@@ -67,6 +67,10 @@ export interface Spe947EvaluatorMirrorView {
 }
 
 export function formatSpe947EnumLabel(value: string): string {
+  if (!value) {
+    return '—'
+  }
+
   return value
     .split('_')
     .map((part) => (part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
@@ -100,21 +104,26 @@ function listSortedById<T extends { readonly id: string }>(
     return []
   }
 
-  return Object.values(map).sort((left, right) => left.id.localeCompare(right.id))
+  return Object.values(map)
+    .filter((entry): entry is T => entry != null && typeof entry.id === 'string')
+    .sort((left, right) => left.id.localeCompare(right.id))
 }
 
 function listSortedMediaCases(
   map: Record<string, PostCaseMediaPersistenceInput> | undefined
-): PostCaseMediaPersistenceInput[] {
+): Array<{ readonly mapKey: string; readonly record: PostCaseMediaPersistenceInput }> {
   if (!map) {
     return []
   }
 
-  return Object.values(map).sort((left, right) => {
-    const leftId = left.caseId?.trim() || ''
-    const rightId = right.caseId?.trim() || ''
-    return leftId.localeCompare(rightId)
-  })
+  return Object.entries(map)
+    .filter((entry): entry is [string, PostCaseMediaPersistenceInput] => entry[1] != null)
+    .map(([mapKey, record]) => ({ mapKey, record }))
+    .sort((left, right) => {
+      const leftId = left.record.caseId?.trim() || left.mapKey
+      const rightId = right.record.caseId?.trim() || right.mapKey
+      return leftId.localeCompare(rightId)
+    })
 }
 
 function toPlatformRow(platform: Spe947PersistedPlatform): Spe947PlatformMirrorRow {
@@ -161,9 +170,14 @@ function toOwnerRow(owner: ContentOwner): Spe947OwnerMirrorRow {
   })
 }
 
-function toMediaCaseRow(mediaCase: PostCaseMediaPersistenceInput): Spe947MediaCaseMirrorRow {
-  const caseId = mediaCase.caseId?.trim() ? mediaCase.caseId : '—'
-  const artifacts = mediaCase.mediaArtifacts ?? []
+function toMediaCaseRow(
+  mapKey: string,
+  mediaCase: PostCaseMediaPersistenceInput
+): Spe947MediaCaseMirrorRow {
+  const caseId = mediaCase.caseId?.trim() || mapKey.trim() || '—'
+  const artifacts = (mediaCase.mediaArtifacts ?? []).filter(
+    (artifact): artifact is NonNullable<typeof artifact> => artifact != null
+  )
 
   return Object.freeze({
     id: caseId,
@@ -175,7 +189,7 @@ function toMediaCaseRow(mediaCase: PostCaseMediaPersistenceInput): Spe947MediaCa
     riskThresholdLabel: formatOptionalNumber(mediaCase.riskThreshold),
     mediaArtifactCountLabel: String(artifacts.length),
     mediaArtifactLabels: Object.freeze(
-      artifacts.map((artifact) => artifact.label?.trim() || artifact.id)
+      artifacts.map((artifact) => artifact.label?.trim() || artifact.id || '—')
     ),
   })
 }
@@ -185,7 +199,9 @@ export function getSpe947EvaluatorMirrorView(game: GameState): Spe947EvaluatorMi
   const platforms = listSortedById(game.spe947PlatformRecords).map(toPlatformRow)
   const plans = listSortedById(game.spe947CounterMemeticPlans).map(toPlanRow)
   const owners = listSortedById(game.spe947ContentOwners).map(toOwnerRow)
-  const mediaCases = listSortedMediaCases(game.spe947PostCaseMediaCases).map(toMediaCaseRow)
+  const mediaCases = listSortedMediaCases(game.spe947PostCaseMediaCases).map(({ mapKey, record }) =>
+    toMediaCaseRow(mapKey, record)
+  )
 
   const platformCount = platforms.length
   const planCount = plans.length

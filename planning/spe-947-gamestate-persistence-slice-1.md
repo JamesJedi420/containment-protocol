@@ -69,7 +69,7 @@ Persist compact platform / plan / media / owner inputs (or thin wrappers) needed
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Weekly / `advanceWeek` orchestration hooks | New SPE-947 child | Persistence before week-close |
+| Weekly / `advanceWeek` orchestration hooks | **In Progress** — [SPE-2577](https://linear.app/spectranoir/issue/SPE-2577) | Persistence before week-close |
 | Store / UI / planning-mirror surfacing | New SPE-947 child | No operator surface |
 | Propagation graph wire-up | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1 |
 | Full SPE-2111 registry linkage | SPE-947 follow-up child | Compact evaluator inputs only |

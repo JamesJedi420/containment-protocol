@@ -266,6 +266,8 @@ import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPo
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyAffiliationPersonStatusProgressionTick } from '../affiliationPersonStatusWeeklyProgression'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
+import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
+import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
@@ -4961,6 +4963,17 @@ export function advanceWeek(
       }
       result.reports = reports
     }
+  }
+
+  // SPE-2577 slice 1: elapsed propagation + optional authored platform view/uptime deltas on spe947* maps.
+  const priorSpe947Maps = extractSpe947EvaluatorPersistenceMaps(outputWeeklyState)
+  const hasSpe947WeeklyMaps =
+    Object.keys(priorSpe947Maps.spe947PlatformRecords).length > 0 ||
+    Object.keys(priorSpe947Maps.spe947CounterMemeticPlans).length > 0
+  if (hasSpe947WeeklyMaps) {
+    const nextSpe947Maps = applyWeeklySpe947EvaluatorTick(priorSpe947Maps, result.week)
+    outputWeeklyState.spe947PlatformRecords = nextSpe947Maps.spe947PlatformRecords
+    outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
   }
 
   // SPE-2116 slice 4: substitution-policy hardening and confidence erosion on naming-hazard descriptors.

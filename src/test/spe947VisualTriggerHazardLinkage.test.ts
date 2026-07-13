@@ -12,6 +12,7 @@ import {
   sanitizeSpe947VisualTriggerHazardBindings,
   SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
   SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING,
+  type Spe947PostCaseMediaCaseRecordsMap,
 } from '../domain/spe947EvaluatorPersistence'
 import {
   composeSpe947VisualTriggerHazardLinks,
@@ -75,6 +76,37 @@ describe('spe947VisualTriggerHazardLinkage (SPE-2602 / SPE-947)', () => {
     expect(link.entityLabel).toBeNull()
     expect(link.registryRecord).toEqual(BACKGROUND_FRAGMENT_LATENT_FIXTURE)
     expect(link.registryLabel).toBe(BACKGROUND_FRAGMENT_LATENT_FIXTURE.label)
+  })
+
+  it('post_case_media_artifact with omitted mediaArtifacts yields missing_entity without throw', () => {
+    const sparseCases = {
+      'case:sparse': {
+        caseId: 'case:sparse',
+        caseLabel: 'Sparse case',
+        localContainmentSucceeded: true,
+        riskThreshold: 1,
+        // Runtime-sparse / pre-sanitize shape: mediaArtifacts omitted.
+      },
+    } as Spe947PostCaseMediaCaseRecordsMap
+
+    const link = resolveSpe947VisualTriggerHazardLink({
+      binding: {
+        id: 'spe947-vth-link:media:omitted-artifacts',
+        entityKind: 'post_case_media_artifact',
+        entityId: 'media:mirror-clip-1',
+        visualTriggerHazardId: BACKGROUND_FRAGMENT_LATENT_FIXTURE.id,
+      },
+      maps: {
+        spe947PostCaseMediaCases: sparseCases,
+      },
+      visualTriggerHazardRecords: {
+        [BACKGROUND_FRAGMENT_LATENT_FIXTURE.id]: BACKGROUND_FRAGMENT_LATENT_FIXTURE,
+      },
+    })
+
+    expect(link.status).toBe('missing_entity')
+    expect(link.entityLabel).toBeNull()
+    expect(link.registryRecord).toEqual(BACKGROUND_FRAGMENT_LATENT_FIXTURE)
   })
 
   it('authored EXAMPLE linkage resolves the SPE-2111 registry record', () => {

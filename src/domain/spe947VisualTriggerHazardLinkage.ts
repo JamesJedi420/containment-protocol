@@ -67,7 +67,8 @@ function resolveEntityLabel(
     case 'post_case_media_artifact': {
       const cases = maps.spe947PostCaseMediaCases ?? {}
       for (const mediaCase of Object.values(cases)) {
-        const artifact = mediaCase.mediaArtifacts.find((entry) => entry.id === entityId)
+        const artifacts = mediaCase?.mediaArtifacts ?? []
+        const artifact = artifacts.find((entry) => entry.id === entityId)
         if (artifact) {
           return artifact.label
         }
@@ -88,11 +89,17 @@ function resolveEntityLabel(
 export function resolveSpe947VisualTriggerHazardLink(input: {
   binding: Spe947VisualTriggerHazardBinding
   maps: Spe947VisualTriggerHazardLinkageMaps
-  visualTriggerHazardRecords: VisualTriggerHazardRecordsMap
+  visualTriggerHazardRecords?: VisualTriggerHazardRecordsMap | null
 }): Spe947VisualTriggerHazardLink {
-  const { binding, maps, visualTriggerHazardRecords } = input
-  const entityLabel = resolveEntityLabel(maps, binding.entityKind, binding.entityId)
-  const registryRecord = visualTriggerHazardRecords[binding.visualTriggerHazardId] ?? null
+  const binding = input.binding
+  const maps = input.maps ?? {}
+  const visualTriggerHazardRecords = input.visualTriggerHazardRecords ?? {}
+
+  const entityKind = binding.entityKind
+  const entityId = binding.entityId
+  const visualTriggerHazardId = binding.visualTriggerHazardId
+  const entityLabel = resolveEntityLabel(maps, entityKind, entityId)
+  const registryRecord = visualTriggerHazardRecords[visualTriggerHazardId] ?? null
 
   let status: Spe947VisualTriggerHazardLinkStatus
   if (!registryRecord) {
@@ -105,10 +112,10 @@ export function resolveSpe947VisualTriggerHazardLink(input: {
 
   return Object.freeze({
     bindingId: binding.id,
-    entityKind: binding.entityKind,
-    entityId: binding.entityId,
+    entityKind,
+    entityId,
     entityLabel,
-    visualTriggerHazardId: binding.visualTriggerHazardId,
+    visualTriggerHazardId,
     registryLabel: registryRecord?.label ?? null,
     status,
     registryRecord,
@@ -128,13 +135,19 @@ export function composeSpe947VisualTriggerHazardLinks(input: {
   const bindingIds = Object.keys(bindings).sort((left, right) => left.localeCompare(right))
 
   return Object.freeze(
-    bindingIds.map((bindingId) => {
+    bindingIds.flatMap((bindingId) => {
       const binding = bindings[bindingId]
-      return resolveSpe947VisualTriggerHazardLink({
-        binding,
-        maps: input.maps,
-        visualTriggerHazardRecords: registry,
-      })
+      if (!binding) {
+        return []
+      }
+
+      return [
+        resolveSpe947VisualTriggerHazardLink({
+          binding,
+          maps: input.maps,
+          visualTriggerHazardRecords: registry,
+        }),
+      ]
     })
   )
 }

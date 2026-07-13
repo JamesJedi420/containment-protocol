@@ -41,18 +41,18 @@ Documents the canonical typed vocabulary for incident consequence data (SPE-820)
 
 Ten canonical fields with typed denominator semantics:
 
-| Field | Denominator kinds |
-| --- | --- |
-| `affectedPopulation` | `people` |
-| `fatalities` | `people` |
-| `rescueDemand` | `people` |
-| `shelterDemand` | `people`, `households` |
-| `outages` | `customers`, `households`, `services` |
-| `facilityImpact` | `facilities` |
-| `serviceDisruption` | `customers`, `services`, `organizations` |
-| `hazmatExposure` | `people`, `distance_km` |
-| `organizationImpact` | `organizations` |
-| `jurisdictionImpact` | `jurisdictions` |
+| Field                | Denominator kinds                        |
+| -------------------- | ---------------------------------------- |
+| `affectedPopulation` | `people`                                 |
+| `fatalities`         | `people`                                 |
+| `rescueDemand`       | `people`                                 |
+| `shelterDemand`      | `people`, `households`                   |
+| `outages`            | `customers`, `households`, `services`    |
+| `facilityImpact`     | `facilities`                             |
+| `serviceDisruption`  | `customers`, `services`, `organizations` |
+| `hazmatExposure`     | `people`, `distance_km`                  |
+| `organizationImpact` | `organizations`                          |
+| `jurisdictionImpact` | `jurisdictions`                          |
 
 All fields are optional. Each metric carries optional `denominator`, `uncertainty` (level + basis), and `note`.
 
@@ -117,22 +117,22 @@ Documents the canonical schema for procedure definitions covering anomalous acti
 
 ### Top-level fields
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `schemaVersion` | `'spe-1274.v1'` | Discriminant; always stamped by `validateProcedureDefinition` |
-| `procedureId` | `string` | Trimmed and validated; must be non-empty |
-| `canonicalName` | `string` | Trimmed and validated; must be non-empty |
-| `aliases` | `string[]` | Zero or more alternate identifiers |
-| `taxonomy` | `ProcedureTaxonomy` | Intent × effectDomain × executionMethod × originTradition |
-| `tier` | `1–5` | Capability tier; values outside range are rejected |
-| `requirements` | `RequirementPacket` | Speech, gesture, tool tags, reagents, diagram, device tags, environment |
-| `activationTiming` | `ActivationTiming` | `instant` → `ritual_days` |
-| `targeting` | `TargetingPacket` | Geometry, range, resistance handling, cover sensitivity |
-| `persistence` | `PersistencePacket` | Duration, dismissibility, expiry state |
-| `restrictions` | `ProcedureRestrictions` | Forbidden roles, certifications, specialist access, usage cap |
-| `provenance` | `ProcedureProvenance` | Source system, research gate, faction restriction |
-| `availability` | `BoundedAvailability` | Rating, source count, access friction |
-| `entityPayload` | `EntityPayload?` | Required when `taxonomy.intent === 'summoning'` |
+| Field              | Type                    | Notes                                                                   |
+| ------------------ | ----------------------- | ----------------------------------------------------------------------- |
+| `schemaVersion`    | `'spe-1274.v1'`         | Discriminant; always stamped by `validateProcedureDefinition`           |
+| `procedureId`      | `string`                | Trimmed and validated; must be non-empty                                |
+| `canonicalName`    | `string`                | Trimmed and validated; must be non-empty                                |
+| `aliases`          | `string[]`              | Zero or more alternate identifiers                                      |
+| `taxonomy`         | `ProcedureTaxonomy`     | Intent × effectDomain × executionMethod × originTradition               |
+| `tier`             | `1–5`                   | Capability tier; values outside range are rejected                      |
+| `requirements`     | `RequirementPacket`     | Speech, gesture, tool tags, reagents, diagram, device tags, environment |
+| `activationTiming` | `ActivationTiming`      | `instant` → `ritual_days`                                               |
+| `targeting`        | `TargetingPacket`       | Geometry, range, resistance handling, cover sensitivity                 |
+| `persistence`      | `PersistencePacket`     | Duration, dismissibility, expiry state                                  |
+| `restrictions`     | `ProcedureRestrictions` | Forbidden roles, certifications, specialist access, usage cap           |
+| `provenance`       | `ProcedureProvenance`   | Source system, research gate, faction restriction                       |
+| `availability`     | `BoundedAvailability`   | Rating, source count, access friction                                   |
+| `entityPayload`    | `EntityPayload?`        | Required when `taxonomy.intent === 'summoning'`                         |
 
 ### Validation invariants
 
@@ -174,17 +174,17 @@ Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings
 
 ### GameState fields
 
-| Field | Evaluator | Notes |
-| --- | --- | --- |
-| `spe947PlatformRecords` | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics; optional SPE-2577 `weeklyViewDelta` / `weeklyUptimeState` / `lastWeeklyTickWeek` |
-| `spe947OperationRecords` | SPE-2569 | Operation requests keyed by operation id |
-| `spe947ContentArtifacts` | SPE-2571 | Footage/post artifacts keyed by artifact id |
-| `spe947CounterMemeticPlans` | SPE-2570 | Counter-memetic plans keyed by plan id; optional SPE-2577 `lastWeeklyTickWeek` |
-| `spe947ContentOwners` | SPE-2572 | Content owners keyed by owner id |
-| `spe947PostCaseMediaCases` | SPE-2573 | Post-case media inputs keyed by case id |
-| `spe947FootageExposureBindings` | SPE-2571 | Optional baseline bindings keyed by artifact id |
-| `spe947TakedownResistanceBindings` | SPE-2572 | Threshold bindings keyed by owner id |
-| `spe947VisualTriggerHazardBindings` | SPE-2602 | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords` |
+| Field                               | Evaluator           | Notes                                                                                                                                                                              |
+| ----------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spe947PlatformRecords`             | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics; optional SPE-2577 `weeklyViewDelta` / `weeklyUptimeState` / `lastWeeklyTickWeek` |
+| `spe947OperationRecords`            | SPE-2569            | Operation requests keyed by operation id                                                                                                                                           |
+| `spe947ContentArtifacts`            | SPE-2571            | Footage/post artifacts keyed by artifact id                                                                                                                                        |
+| `spe947CounterMemeticPlans`         | SPE-2570            | Counter-memetic plans keyed by plan id; optional SPE-2577 `lastWeeklyTickWeek`                                                                                                     |
+| `spe947ContentOwners`               | SPE-2572            | Content owners keyed by owner id                                                                                                                                                   |
+| `spe947PostCaseMediaCases`          | SPE-2573 / SPE-2606 | Post-case media inputs keyed by case id (`hazardous_content` \| `mirror` \| `derivative` \| `adaptation` \| `commercialization`)                                                   |
+| `spe947FootageExposureBindings`     | SPE-2571            | Optional baseline bindings keyed by artifact id                                                                                                                                    |
+| `spe947TakedownResistanceBindings`  | SPE-2572            | Threshold bindings keyed by owner id                                                                                                                                               |
+| `spe947VisualTriggerHazardBindings` | SPE-2602            | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
 
 ### Hydration
 

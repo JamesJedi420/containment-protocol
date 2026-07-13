@@ -1,11 +1,19 @@
 /**
- * SPE-2573 / SPE-947 AC row 6: pure post-case media persistence evaluator.
- * After local containment, hazardous content / mirrors / derivative media can keep the case risky.
+ * SPE-2573 / SPE-2606 / SPE-947 AC row 6: pure post-case media persistence evaluator.
+ * After local containment, hazardous content / mirrors / derivative / adaptation /
+ * commercialization media can keep the case risky.
  * No GameState persistence, weekly mutation, store, or UI coupling.
  * Distinct from SPE-2572 takedown resistance (AC row 5) and SPE-2569 platform outage (AC row 4).
+ * SPE-2606 adds adaptation + commercialization kinds only — no media-economy simulator.
  */
 
-export const POST_CASE_MEDIA_KINDS = ['hazardous_content', 'mirror', 'derivative'] as const
+export const POST_CASE_MEDIA_KINDS = [
+  'hazardous_content',
+  'mirror',
+  'derivative',
+  'adaptation',
+  'commercialization',
+] as const
 
 export type PostCaseMediaKind = (typeof POST_CASE_MEDIA_KINDS)[number]
 
@@ -15,7 +23,8 @@ export type PostCaseRiskOutcome = (typeof POST_CASE_RISK_OUTCOMES)[number]
 
 /**
  * Compact post-containment media artifact. Kind vocabulary aligns with SPE-2111
- * hazardous / mirror / derivative concepts without importing the registry.
+ * hazardous / mirror / derivative concepts (plus SPE-2606 adaptation /
+ * commercialization) without importing the registry.
  */
 export interface PostCaseMediaArtifact {
   readonly id: string
@@ -151,6 +160,10 @@ function kindPersistReason(kind: PostCaseMediaKind): string {
       return 'mirror_persists'
     case 'derivative':
       return 'derivative_persists'
+    case 'adaptation':
+      return 'adaptation_persists'
+    case 'commercialization':
+      return 'commercialization_persists'
     default: {
       const _exhaustive: never = kind
       return _exhaustive
@@ -239,7 +252,8 @@ function parseArtifact(raw: unknown, index: number): ParsedArtifact {
 
 /**
  * Evaluates whether a case remains risky after local containment because
- * hazardous content, mirrors, or derivative media still persist.
+ * hazardous content, mirrors, derivative, adaptation, or commercialization
+ * media still persist.
  *
  * Priority:
  *   missing/invalid evaluation input or riskThreshold → blocked
@@ -250,6 +264,7 @@ function parseArtifact(raw: unknown, index: number): ParsedArtifact {
  *   else → cleared
  *
  * Does not model owner takedown incentives (SPE-2572) or platform outage (SPE-2569).
+ * Does not invent a media-economy simulator (SPE-2606 kinds only).
  */
 export function evaluatePostCaseMediaPersistence(
   input: PostCaseMediaPersistenceInput | null | undefined
@@ -471,3 +486,31 @@ export const EXAMPLE_CLEARED_POST_CASE_MEDIA: PostCaseMediaPersistenceInput = Ob
     }),
   ]),
 })
+
+/**
+ * SPE-2606 fixture: local containment succeeded but adaptation + commercialization
+ * kinds keep the case risky. Distinct kinds — no dual truth / collapsed label.
+ */
+export const EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA: PostCaseMediaPersistenceInput =
+  Object.freeze({
+    caseId: 'case:echo-merch-9',
+    caseLabel: 'Site Echo merch adaptation residue',
+    localContainmentSucceeded: true,
+    riskThreshold: 3,
+    mediaArtifacts: Object.freeze([
+      Object.freeze({
+        id: 'media:adaptation-drama-cut',
+        label: 'Unauthorized drama adaptation cut',
+        kind: 'adaptation' as const,
+        persistsAfterContainment: true,
+        riskWeight: 2,
+      }),
+      Object.freeze({
+        id: 'media:commercial-merch-line',
+        label: 'Residual merch catalog listing',
+        kind: 'commercialization' as const,
+        persistsAfterContainment: true,
+        riskWeight: 1.5,
+      }),
+    ]),
+  })

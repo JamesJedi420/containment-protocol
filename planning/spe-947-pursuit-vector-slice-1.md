@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2604](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                 |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2604 — Pursuit vector simulator integration (slice 1)](https://linear.app/spectranoir/issue/SPE-2604/pursuit-vector-simulator-integration-slice-1) |
-| **Status**          | **In Progress**                                                                                                                                       |
+| **Status**          | **Shipped** — PR #3112 @ `0b661d6e`                                                                                                                     |
 | **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**             |
 | **Branch**          | `spe-947-pursuit-vector-slice-1`                                                                                                                      |
 | **Base `main` SHA** | `fae99f42`                                                                                                                                            |
@@ -62,7 +62,7 @@ Ship the smallest deterministic **pursuit-vector** surface that consumes SPE-211
 | Item                      | Suggested owner              | Why deferred            |
 | ------------------------- | ---------------------------- | ----------------------- |
 | Propagation graph wire-up | SPE-956 / harvest #965       | Deferred since SPE-2111 |
-| Countermeasure ledger link | SPE-947 sibling             | Next SPE-947-owned row  |
+| Countermeasure ledger link | [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605) | Next SPE-947-owned row (active) |
 | Adaptation / commercialization kinds | SPE-947 / SPE-1085 | Out of this slice       |
 | Parent umbrella Done      | Later SPE-947 reconciliation | Wire-up still open      |
 

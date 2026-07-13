@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA,
   EXAMPLE_CLEARED_POST_CASE_MEDIA,
   EXAMPLE_PERSISTING_POST_CASE_MEDIA,
   evaluatePostCaseMediaPersistence,
@@ -228,7 +229,7 @@ describe('postCaseMediaPersistence (SPE-2573 / SPE-947 AC row 6)', () => {
         mediaArtifacts: [
           {
             ...artifact(),
-            kind: 'commercialization' as PostCaseMediaArtifact['kind'],
+            kind: 'not_a_kind' as PostCaseMediaArtifact['kind'],
           },
         ],
       })
@@ -241,6 +242,90 @@ describe('postCaseMediaPersistence (SPE-2573 / SPE-947 AC row 6)', () => {
       'media_config_incomplete',
       'media_persistence_blocked',
     ])
+  })
+
+  it('marks remains_risky when adaptation and commercialization kinds persist past threshold (SPE-2606)', () => {
+    const decision = evaluatePostCaseMediaPersistence(
+      EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA
+    )
+
+    expect(decision.outcome).toBe('remains_risky')
+    expect(decision.remainsRisky).toBe(true)
+    expect(decision.reasonCodes).toEqual([
+      'adaptation_persists',
+      'commercialization_persists',
+      'media_persistence_risk',
+    ])
+    expect(decision).toEqual(
+      expect.objectContaining({
+        caseId: 'case:echo-merch-9',
+        caseLabel: 'Site Echo merch adaptation residue',
+        localContainmentSucceeded: true,
+        persistentArtifactCount: 2,
+        persistenceRiskScore: 3.5,
+        riskThreshold: 3,
+      })
+    )
+  })
+
+  it('keeps adaptation and commercialization as distinct persist reason codes', () => {
+    const adaptationOnly = evaluatePostCaseMediaPersistence(
+      input({
+        riskThreshold: 1,
+        mediaArtifacts: [
+          artifact({
+            id: 'media:adaptation-only',
+            kind: 'adaptation',
+            riskWeight: 1,
+          }),
+        ],
+      })
+    )
+    const commercializationOnly = evaluatePostCaseMediaPersistence(
+      input({
+        riskThreshold: 1,
+        mediaArtifacts: [
+          artifact({
+            id: 'media:commercial-only',
+            kind: 'commercialization',
+            riskWeight: 1,
+          }),
+        ],
+      })
+    )
+
+    expect(adaptationOnly.reasonCodes).toEqual(['adaptation_persists', 'media_persistence_risk'])
+    expect(commercializationOnly.reasonCodes).toEqual([
+      'commercialization_persists',
+      'media_persistence_risk',
+    ])
+    expect(adaptationOnly.reasonCodes).not.toEqual(commercializationOnly.reasonCodes)
+  })
+
+  it('clears when adaptation/commercialization artifacts do not persist after containment', () => {
+    const decision = evaluatePostCaseMediaPersistence(
+      input({
+        mediaArtifacts: [
+          artifact({
+            id: 'media:adaptation-scrubbed',
+            kind: 'adaptation',
+            persistsAfterContainment: false,
+            riskWeight: 5,
+          }),
+          artifact({
+            id: 'media:commercial-scrubbed',
+            kind: 'commercialization',
+            persistsAfterContainment: false,
+            riskWeight: 5,
+          }),
+        ],
+      })
+    )
+
+    expect(decision.outcome).toBe('cleared')
+    expect(decision.remainsRisky).toBe(false)
+    expect(decision.persistentArtifactCount).toBe(0)
+    expect(decision.reasonCodes).toEqual(['media_cleared'])
   })
 
   it('blocks when mediaArtifacts is a sparse array', () => {

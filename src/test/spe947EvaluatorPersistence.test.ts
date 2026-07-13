@@ -3,16 +3,32 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
-import { evaluateContentOwnerTakedownResistance, EXAMPLE_RESISTING_CONTENT_OWNER } from '../domain/contentOwnerTakedownResistance'
-import { evaluateCounterMemeticUptakeGate, EXAMPLE_COUNTER_MEMETIC_PLAN } from '../domain/counterMemeticUptakeGate'
-import { evaluateFootageExposureTraffic, EXAMPLE_ACTIVE_FOOTAGE_ARTIFACT } from '../domain/footageExposureTraffic'
+import {
+  evaluateContentOwnerTakedownResistance,
+  EXAMPLE_RESISTING_CONTENT_OWNER,
+} from '../domain/contentOwnerTakedownResistance'
+import {
+  evaluateCounterMemeticUptakeGate,
+  EXAMPLE_COUNTER_MEMETIC_PLAN,
+} from '../domain/counterMemeticUptakeGate'
+import {
+  evaluateFootageExposureTraffic,
+  EXAMPLE_ACTIVE_FOOTAGE_ARTIFACT,
+} from '../domain/footageExposureTraffic'
 import {
   EXAMPLE_COUNTER_MEMETIC_BLAST,
   EXAMPLE_RUMOR_FORUM_OPERATION_PLATFORM,
   evaluatePlatformOperationDegrade,
 } from '../domain/platformOperationDegrade'
-import { evaluatePlatformReachMultiplier, EXAMPLE_RUMOR_FORUM_PLATFORM } from '../domain/platformReachMultiplier'
-import { evaluatePostCaseMediaPersistence, EXAMPLE_PERSISTING_POST_CASE_MEDIA } from '../domain/postCaseMediaPersistence'
+import {
+  evaluatePlatformReachMultiplier,
+  EXAMPLE_RUMOR_FORUM_PLATFORM,
+} from '../domain/platformReachMultiplier'
+import {
+  evaluatePostCaseMediaPersistence,
+  EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA,
+  EXAMPLE_PERSISTING_POST_CASE_MEDIA,
+} from '../domain/postCaseMediaPersistence'
 import {
   resolveCounterMemeticUptakeEvaluationInput,
   resolveFootageExposureEvaluationInput,
@@ -74,7 +90,9 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
       fallback
     )
 
-    expect(sanitizedPlatforms[EXAMPLE_RUMOR_FORUM_PLATFORM.id]).toEqual(EXAMPLE_RUMOR_FORUM_PLATFORM)
+    expect(sanitizedPlatforms[EXAMPLE_RUMOR_FORUM_PLATFORM.id]).toEqual(
+      EXAMPLE_RUMOR_FORUM_PLATFORM
+    )
     expect(sanitizedPlatforms.duplicate).toBeUndefined()
     expect(sanitizedPlatforms.invalid).toBeUndefined()
     expect(sanitizedPlatforms['wrong-key']).toBeUndefined()
@@ -149,9 +167,7 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     expect(loaded.spe947ContentOwners).toEqual(state.spe947ContentOwners)
     expect(loaded.spe947PostCaseMediaCases).toEqual(state.spe947PostCaseMediaCases)
     expect(loaded.spe947FootageExposureBindings).toEqual(state.spe947FootageExposureBindings)
-    expect(loaded.spe947TakedownResistanceBindings).toEqual(
-      state.spe947TakedownResistanceBindings
-    )
+    expect(loaded.spe947TakedownResistanceBindings).toEqual(state.spe947TakedownResistanceBindings)
     expect(loaded.spe947VisualTriggerHazardBindings).toEqual(
       state.spe947VisualTriggerHazardBindings
     )
@@ -310,6 +326,28 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     expect(sanitized['case:bad-threshold']).toBeUndefined()
     expect(sanitized['case:bad-artifact']).toBeDefined()
     expect(sanitized['case:bad-artifact']?.mediaArtifacts).toEqual([])
+  })
+
+  it('round-trips adaptation and commercialization post-case media kinds through sanitize (SPE-2606)', () => {
+    const caseId =
+      EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA.caseId ?? 'case:echo-merch-9'
+    const sanitized = sanitizeSpe947PostCaseMediaCases({
+      authored: EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA,
+    })
+
+    expect(sanitized[caseId]).toEqual(EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA)
+    expect(sanitized[caseId]?.mediaArtifacts?.map((entry) => entry.kind)).toEqual([
+      'adaptation',
+      'commercialization',
+    ])
+
+    const decision = evaluatePostCaseMediaPersistence(sanitized[caseId]!)
+    expect(decision.outcome).toBe('remains_risky')
+    expect(decision.reasonCodes).toEqual([
+      'adaptation_persists',
+      'commercialization_persists',
+      'media_persistence_risk',
+    ])
   })
 
   it('drops invalid takedown bindings with contestedThreshold >= resistThreshold', () => {

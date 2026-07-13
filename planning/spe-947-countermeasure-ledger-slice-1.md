@@ -2,13 +2,13 @@
 
 One-page implementation plan. Linear: [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605/countermeasure-ledger-link-slice-1) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Next SPE-947-owned deferred row after shipped [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604); [SPE-947](https://linear.app/spectranoir/issue/SPE-947) parent stays **Backlog**. Coordinate with [SPE-645](https://linear.app/spectranoir/issue/SPE-645) (link only); propagation graph stays [SPE-956](https://linear.app/spectranoir/issue/SPE-956) / harvest #965.
 
-| Field               | Value                                                                                                                                                           |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Linear**          | [SPE-2605 — Countermeasure ledger link (slice 1)](https://linear.app/spectranoir/issue/SPE-2605/countermeasure-ledger-link-slice-1) |
-| **Status**          | **In Progress**                                                                                                                                                 |
-| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**                       |
-| **Branch**          | `spe-947-countermeasure-ledger-slice-1`                                                                                                                         |
-| **Base `main` SHA** | `0b661d6e`                                                                                                                                                      |
+| Field               | Value                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linear**          | [SPE-2605 — Countermeasure ledger link (slice 1)](https://linear.app/spectranoir/issue/SPE-2605/countermeasure-ledger-link-slice-1)       |
+| **Status**          | **In Progress**                                                                                                                           |
+| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog** |
+| **Branch**          | `spe-947-countermeasure-ledger-slice-1`                                                                                                   |
+| **Base `main` SHA** | `0b661d6e`                                                                                                                                |
 
 ## Goal
 
@@ -16,13 +16,13 @@ Ship the smallest deterministic **countermeasure ledger-link** surface that reco
 
 ## Prerequisite (on `main` @ `0b661d6e`)
 
-| Shipped                       | Anchor                                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------- |
-| Uptake-gate evaluator         | [SPE-2570](https://linear.app/spectranoir/issue/SPE-2570) — `evaluateCounterMemeticUptakeGate` |
-| Compact evaluator maps        | [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576)                                   |
-| SPE-947 ↔ registry linkage    | [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) — authored bindings + read/compose |
-| Pursuit-vector surface        | [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604)                                   |
-| Reliability-class vocabulary  | [SPE-645](https://linear.app/spectranoir/issue/SPE-645) — link only; do not rewrite umbrella |
+| Shipped                      | Anchor                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| Uptake-gate evaluator        | [SPE-2570](https://linear.app/spectranoir/issue/SPE-2570) — `evaluateCounterMemeticUptakeGate` |
+| Compact evaluator maps       | [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576)                                      |
+| SPE-947 ↔ registry linkage   | [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) — authored bindings + read/compose   |
+| Pursuit-vector surface       | [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604)                                      |
+| Reliability-class vocabulary | [SPE-645](https://linear.app/spectranoir/issue/SPE-645) — link only; do not rewrite umbrella   |
 
 ## Ledger-link contract
 
@@ -34,14 +34,14 @@ Ship the smallest deterministic **countermeasure ledger-link** surface that reco
 
 ## Scope
 
-| In                                                                      | Out                                        |
-| ----------------------------------------------------------------------- | ------------------------------------------ |
-| Pure `resolveSpe947CountermeasureLedgerLink` / `composeSpe947CountermeasureLedgerLinks` | Propagation graph / internet simulator |
-| Focused Vitest: empty/no-op + authored counter-memetic path             | Evaluator contract changes (SPE-2568–2574) |
-| Slice doc + backlog handoff                                             | Mid-week mutations                         |
-|                                                                         | SPE-947 parent Done                        |
-|                                                                         | Full SPE-645 ward / bypass / fragment AC   |
-|                                                                         | SPE-956 propagation graph                  |
+| In                                                                                      | Out                                        |
+| --------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Pure `resolveSpe947CountermeasureLedgerLink` / `composeSpe947CountermeasureLedgerLinks` | Propagation graph / internet simulator     |
+| Focused Vitest: empty/no-op + authored counter-memetic path                             | Evaluator contract changes (SPE-2568–2574) |
+| Slice doc + backlog handoff                                                             | Mid-week mutations                         |
+|                                                                                         | SPE-947 parent Done                        |
+|                                                                                         | Full SPE-645 ward / bypass / fragment AC   |
+|                                                                                         | SPE-956 propagation graph                  |
 
 ## Acceptance
 
@@ -61,12 +61,12 @@ Ship the smallest deterministic **countermeasure ledger-link** surface that reco
 
 ## Deferred
 
-| Item                                   | Suggested owner         | Why deferred            |
-| -------------------------------------- | ----------------------- | ----------------------- |
-| Propagation graph wire-up              | SPE-956 / harvest #965  | Deferred since SPE-2111 |
-| Full SPE-645 catalog / bypass / fragments | SPE-645              | Link only this slice    |
-| Adaptation / commercialization kinds   | SPE-947 / SPE-1085      | Out of this slice       |
-| Parent umbrella Done                   | Later SPE-947 reconciliation | Wire-up still open |
+| Item                                      | Suggested owner              | Why deferred                        |
+| ----------------------------------------- | ---------------------------- | ----------------------------------- |
+| Propagation graph wire-up                 | SPE-956 / harvest #965       | Deferred since SPE-2111             |
+| Full SPE-645 catalog / bypass / fragments | SPE-645                      | Link only this slice                |
+| Adaptation / commercialization kinds      | **SPE-2606** / SPE-1085      | Next SPE-947-owned deferred sibling |
+| Parent umbrella Done                      | Later SPE-947 reconciliation | Wire-up still open                  |
 
 ## See also
 

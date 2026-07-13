@@ -66,13 +66,13 @@ Satisfy SPE-947 parent AC row 6 with a pure deterministic evaluator: after local
 
 ## Deferred
 
-| Item                                      | Owner                        | Why                                         |
-| ----------------------------------------- | ---------------------------- | ------------------------------------------- |
-| Adaptation / commercialization kinds      | SPE-947 follow-up / SPE-1085 | Parent scope mentions; out of slice-1 kinds |
-| Persistence / weekly / UI wire-up         | SPE-947 follow-up child      | This slice is domain-only foundation        |
-| Propagation graph wire-up                 | SPE-956 / harvest family     | Deferred since SPE-2111                     |
-| Compose with takedown / outage / exposure | SPE-947 follow-up child      | Keep evaluators independently pure          |
-| Full SPE-2111 registry linkage            | SPE-947 follow-up child      | Compact inputs only in slice 1              |
+| Item                                      | Owner                                   | Why                                                          |
+| ----------------------------------------- | --------------------------------------- | ------------------------------------------------------------ |
+| Adaptation / commercialization kinds      | **SPE-2606** (in progress) / SPE-1085   | Opened as next SPE-947-owned deferred sibling after SPE-2605 |
+| Persistence / weekly / UI wire-up         | SPE-2576 / SPE-2577 / SPE-2578 **Done** | Domain-only foundation; wire-up shipped in follow-ons        |
+| Propagation graph wire-up                 | SPE-956 / harvest family                | Deferred since SPE-2111                                      |
+| Compose with takedown / outage / exposure | SPE-947 follow-up child                 | Keep evaluators independently pure                           |
+| Full SPE-2111 registry linkage            | SPE-947 follow-up child                 | Compact inputs only in slice 1                               |
 
 ## See also
 

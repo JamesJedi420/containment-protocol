@@ -2,13 +2,13 @@
 
 One-page hygiene record. Linear: [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575/spe-947-parent-ac-matrix-reconciliation-after-spe-2568-2574-slice-1) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Follows shipped [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568)–[SPE-2574](https://linear.app/spectranoir/issue/SPE-2574); parent stays **Backlog**.
 
-| Field               | Value                                                                                                                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field               | Value                                                                                                                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2575 — SPE-947 parent AC matrix reconciliation after SPE-2568–2574 (slice 1)](https://linear.app/spectranoir/issue/SPE-2575/spe-947-parent-ac-matrix-reconciliation-after-spe-2568-2574-slice-1) |
-| **Status**          | **In Progress**                                                                                                                                                                               |
-| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**                                                     |
-| **Branch**          | `spe-947-parent-ac-matrix-reconciliation-slice-1`                                                                                                                                             |
-| **Base `main` SHA** | `73e4971d`                                                                                                                                                                                    |
+| **Status**          | **In Progress**                                                                                                                                                                                       |
+| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**                                                             |
+| **Branch**          | `spe-947-parent-ac-matrix-reconciliation-slice-1`                                                                                                                                                     |
+| **Base `main` SHA** | `73e4971d`                                                                                                                                                                                            |
 
 ## Goal
 
@@ -16,15 +16,15 @@ Reconcile the SPE-947 parent Linear AC matrix + grooming mirror after SPE-2568�
 
 ## Prerequisite (on `main` @ `73e4971d`)
 
-| Parent AC row | Shipped child | Domain / test anchors | PR |
-| --- | --- | --- | --- |
-| 1 Platform reach multiplier | [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568) | `evaluatePlatformReachMultiplier` — `src/domain/platformReachMultiplier.ts`, `src/test/platformReachMultiplier.test.ts` | #3059 |
-| 2 Footage/post → exposure / traffic | [SPE-2571](https://linear.app/spectranoir/issue/SPE-2571) | `evaluateFootageExposureTraffic` — `src/domain/footageExposureTraffic.ts`, `src/test/footageExposureTraffic.test.ts` | #3065 |
-| 3 Counter-memetic uptake gate | [SPE-2570](https://linear.app/spectranoir/issue/SPE-2570) | `evaluateCounterMemeticUptakeGate` — `src/domain/counterMemeticUptakeGate.ts`, `src/test/counterMemeticUptakeGate.test.ts` | #3063 |
-| 4 Platform outage / reach failure | [SPE-2569](https://linear.app/spectranoir/issue/SPE-2569) | `evaluatePlatformOperationDegrade` — `src/domain/platformOperationDegrade.ts`, `src/test/platformOperationDegrade.test.ts` | #3061 |
+| Parent AC row                       | Shipped child                                             | Domain / test anchors                                                                                                                        | PR    |
+| ----------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1 Platform reach multiplier         | [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568) | `evaluatePlatformReachMultiplier` — `src/domain/platformReachMultiplier.ts`, `src/test/platformReachMultiplier.test.ts`                      | #3059 |
+| 2 Footage/post → exposure / traffic | [SPE-2571](https://linear.app/spectranoir/issue/SPE-2571) | `evaluateFootageExposureTraffic` — `src/domain/footageExposureTraffic.ts`, `src/test/footageExposureTraffic.test.ts`                         | #3065 |
+| 3 Counter-memetic uptake gate       | [SPE-2570](https://linear.app/spectranoir/issue/SPE-2570) | `evaluateCounterMemeticUptakeGate` — `src/domain/counterMemeticUptakeGate.ts`, `src/test/counterMemeticUptakeGate.test.ts`                   | #3063 |
+| 4 Platform outage / reach failure   | [SPE-2569](https://linear.app/spectranoir/issue/SPE-2569) | `evaluatePlatformOperationDegrade` — `src/domain/platformOperationDegrade.ts`, `src/test/platformOperationDegrade.test.ts`                   | #3061 |
 | 5 Content-owner takedown resistance | [SPE-2572](https://linear.app/spectranoir/issue/SPE-2572) | `evaluateContentOwnerTakedownResistance` — `src/domain/contentOwnerTakedownResistance.ts`, `src/test/contentOwnerTakedownResistance.test.ts` | #3067 |
-| 6 Post-case media persistence | [SPE-2573](https://linear.app/spectranoir/issue/SPE-2573) | `evaluatePostCaseMediaPersistence` — `src/domain/postCaseMediaPersistence.ts`, `src/test/postCaseMediaPersistence.test.ts` | #3069 |
-| 7 Parent scenario integration tests | [SPE-2574](https://linear.app/spectranoir/issue/SPE-2574) | `src/test/spe947ParentAcScenarioIntegration.test.ts` composing SPE-2568–2573 EXAMPLE fixtures | #3071 |
+| 6 Post-case media persistence       | [SPE-2573](https://linear.app/spectranoir/issue/SPE-2573) | `evaluatePostCaseMediaPersistence` — `src/domain/postCaseMediaPersistence.ts`, `src/test/postCaseMediaPersistence.test.ts`                   | #3069 |
+| 7 Parent scenario integration tests | [SPE-2574](https://linear.app/spectranoir/issue/SPE-2574) | `src/test/spe947ParentAcScenarioIntegration.test.ts` composing SPE-2568–2573 EXAMPLE fixtures                                                | #3071 |
 
 Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) — `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md` (0/7 Yes after SPE-2111 registry substrate only).
 
@@ -32,15 +32,15 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 
 ## Parent AC vs shipped evidence (post SPE-2568–2574)
 
-| Parent AC | Shipped evidence | Met? |
-| --- | --- | --- |
-| Platform reach multiplier from view count | SPE-2568 `evaluatePlatformReachMultiplier` + Vitest; EXAMPLE platform scales reach with view count | **Yes** (domain-evaluator) |
-| Footage/post increases civilian exposure or traffic | SPE-2571 `evaluateFootageExposureTraffic` + Vitest; active footage amplifies exposure / attraction traffic | **Yes** (domain-evaluator) |
-| Counter-memetic lore + distributor + uptake gate | SPE-2570 `evaluateCounterMemeticUptakeGate` + Vitest; lore + distributor + propagation + uptake readiness | **Yes** (domain-evaluator) |
-| Platform outage / reach failure degrades operation | SPE-2569 `evaluatePlatformOperationDegrade` + Vitest; outage / crash / insufficient reach → failed or degraded | **Yes** (domain-evaluator) |
-| Content owner resists takedown | SPE-2572 `evaluateContentOwnerTakedownResistance` + Vitest; audience/status incentives → `resists` | **Yes** (domain-evaluator) |
-| Post-case hazardous media persistence | SPE-2573 `evaluatePostCaseMediaPersistence` + Vitest; after containment, persisting media → `remains_risky` | **Yes** (domain-evaluator) |
-| Integration tests for parent scenarios | SPE-2574 `spe947ParentAcScenarioIntegration.test.ts` composes six evaluators; incomplete-config paths do not falsely pass | **Yes** (focused-test) |
+| Parent AC                                           | Shipped evidence                                                                                                          | Met?                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Platform reach multiplier from view count           | SPE-2568 `evaluatePlatformReachMultiplier` + Vitest; EXAMPLE platform scales reach with view count                        | **Yes** (domain-evaluator) |
+| Footage/post increases civilian exposure or traffic | SPE-2571 `evaluateFootageExposureTraffic` + Vitest; active footage amplifies exposure / attraction traffic                | **Yes** (domain-evaluator) |
+| Counter-memetic lore + distributor + uptake gate    | SPE-2570 `evaluateCounterMemeticUptakeGate` + Vitest; lore + distributor + propagation + uptake readiness                 | **Yes** (domain-evaluator) |
+| Platform outage / reach failure degrades operation  | SPE-2569 `evaluatePlatformOperationDegrade` + Vitest; outage / crash / insufficient reach → failed or degraded            | **Yes** (domain-evaluator) |
+| Content owner resists takedown                      | SPE-2572 `evaluateContentOwnerTakedownResistance` + Vitest; audience/status incentives → `resists`                        | **Yes** (domain-evaluator) |
+| Post-case hazardous media persistence               | SPE-2573 `evaluatePostCaseMediaPersistence` + Vitest; after containment, persisting media → `remains_risky`               | **Yes** (domain-evaluator) |
+| Integration tests for parent scenarios              | SPE-2574 `spe947ParentAcScenarioIntegration.test.ts` composes six evaluators; incomplete-config paths do not falsely pass | **Yes** (focused-test)     |
 
 **Level note:** **Yes** means parent AC is evidenced at pure domain-evaluator / focused Vitest level. It does **not** mean GameState persistence, weekly orchestration, store, UI, or propagation-graph wire-up shipped.
 
@@ -48,13 +48,13 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 
 ## Scope (this slice)
 
-| In | Out |
-| --- | --- |
-| SPE-947 Linear parent AC matrix + deferred table | GameState / schema / weekly / UI / store wire-up |
-| Slice doc (this file) + `planning/backlog.md` handoff | Propagation graph implementation |
-| Pointer / delta note on SPE-2481 grooming mirror | Rewrite of SPE-2568–2574 evaluator or test contracts |
-| Distinguish domain-evaluator Yes vs umbrella Done | SPE-2111 registry changes |
-| | Mark SPE-947 Done |
+| In                                                    | Out                                                  |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| SPE-947 Linear parent AC matrix + deferred table      | GameState / schema / weekly / UI / store wire-up     |
+| Slice doc (this file) + `planning/backlog.md` handoff | Propagation graph implementation                     |
+| Pointer / delta note on SPE-2481 grooming mirror      | Rewrite of SPE-2568–2574 evaluator or test contracts |
+| Distinguish domain-evaluator Yes vs umbrella Done     | SPE-2111 registry changes                            |
+|                                                       | Mark SPE-947 Done                                    |
 
 ## Acceptance
 
@@ -66,17 +66,17 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 
 ## Deferred
 
-| Item | Suggested owner | Why deferred |
-| --- | --- | --- |
-| GameState persistence / schema / hydration for SPE-947 evaluators | New SPE-947 child | Domain-only contracts today; no persisted platform / plan / media fields |
-| Weekly / `advanceWeek` orchestration hooks | New SPE-947 child | Evaluators not wired into week-close |
-| Store / UI / planning-mirror surfacing | New SPE-947 child | No operator surface for reach, uptake, takedown, or persistence decisions |
-| Propagation graph wire-up | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1; not closed by SPE-2568–2574 |
-| Pursuit vector simulator integration | **In Progress** — [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604) | Pure pursuit-vector readings over SPE-2602 linkage + SPE-2111 pursuit fields |
-| Countermeasure ledger link | [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605) | Active SPE-947-owned child after SPE-2604 |
-| Adaptation / commercialization persistence kinds | SPE-947 / SPE-1085 | Out of SPE-2573 slice-1 kinds |
-| Full SPE-2111 registry linkage | **Done** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) / PR #3108 | Authored bind map + read/compose over `visualTriggerHazardRecords` |
-| Parent umbrella Done | Later SPE-947 reconciliation | Domain-evaluator Yes ≠ umbrella Done while wire-up remains |
+| Item                                                              | Suggested owner                                                                 | Why deferred                                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| GameState persistence / schema / hydration for SPE-947 evaluators | New SPE-947 child                                                               | Domain-only contracts today; no persisted platform / plan / media fields     |
+| Weekly / `advanceWeek` orchestration hooks                        | New SPE-947 child                                                               | Evaluators not wired into week-close                                         |
+| Store / UI / planning-mirror surfacing                            | New SPE-947 child                                                               | No operator surface for reach, uptake, takedown, or persistence decisions    |
+| Propagation graph wire-up                                         | SPE-956 / harvest #965 family                                                   | Deferred since SPE-2111 slice 1; not closed by SPE-2568–2574                 |
+| Pursuit vector simulator integration                              | **In Progress** — [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604)     | Pure pursuit-vector readings over SPE-2602 linkage + SPE-2111 pursuit fields |
+| Countermeasure ledger link                                        | [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605)                       | Active SPE-947-owned child after SPE-2604                                    |
+| Adaptation / commercialization persistence kinds                  | **SPE-2606** / SPE-1085                                                         | Expand SPE-2573 kinds; In Progress                                           |
+| Full SPE-2111 registry linkage                                    | **Done** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) / PR #3108 | Authored bind map + read/compose over `visualTriggerHazardRecords`           |
+| Parent umbrella Done                                              | Later SPE-947 reconciliation                                                    | Domain-evaluator Yes ≠ umbrella Done while wire-up remains                   |
 
 ## Validation
 

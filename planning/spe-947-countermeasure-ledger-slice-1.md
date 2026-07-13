@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2605](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                     |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2605 — Countermeasure ledger link (slice 1)](https://linear.app/spectranoir/issue/SPE-2605/countermeasure-ledger-link-slice-1)       |
-| **Status**          | **In Progress**                                                                                                                           |
+| **Status**          | **Shipped** (PR #3114)                                                                                                                    |
 | **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog** |
 | **Branch**          | `spe-947-countermeasure-ledger-slice-1`                                                                                                   |
 | **Base `main` SHA** | `0b661d6e`                                                                                                                                |

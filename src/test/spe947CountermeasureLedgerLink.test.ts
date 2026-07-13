@@ -80,6 +80,28 @@ describe('spe947CountermeasureLedgerLink (SPE-2605 / SPE-947)', () => {
     expect(reading.reasonCodes).toContain('unresolved_link')
   })
 
+  it('present attempt with empty label still resolves (presence is map-keyed, not label proxy)', () => {
+    const reading = resolveSpe947CountermeasureLedgerLink({
+      binding: SPE_947_EXAMPLE_COUNTERMEASURE_LEDGER_BINDING,
+      maps: {
+        spe947CounterMemeticPlans: {
+          [EXAMPLE_COUNTER_MEMETIC_PLAN.id]: {
+            ...EXAMPLE_COUNTER_MEMETIC_PLAN,
+            label: '',
+          },
+        },
+        spe947CountermeasureReliabilityLedger: {
+          [SPE_947_EXAMPLE_RELIABILITY_LEDGER_ENTRY.id]: SPE_947_EXAMPLE_RELIABILITY_LEDGER_ENTRY,
+        },
+      },
+    })
+
+    expect(reading.linkStatus).toBe('resolved')
+    expect(reading.attemptLabel).toBe('')
+    expect(reading.reliabilityClass).toBe('operative')
+    expect(reading.uptakeReadiness).toBe('ready')
+  })
+
   it('authored counter-memetic path yields deterministic operative ledger link with uptake ready', () => {
     const readings = composeSpe947CountermeasureLedgerLinks({
       maps: {

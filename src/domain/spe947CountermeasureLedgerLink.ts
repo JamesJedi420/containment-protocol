@@ -145,6 +145,24 @@ function reasonCodeForUptakeReadiness(
   }
 }
 
+function hasAttemptSource(input: {
+  attemptKind: Spe947CountermeasureAttemptKind
+  attemptId: string
+  maps: Spe947CountermeasureLedgerLinkMaps
+  visualTriggerHazardRecords?: VisualTriggerHazardRecordsMap | null
+}): boolean {
+  switch (input.attemptKind) {
+    case 'counter_memetic_plan':
+      return input.maps.spe947CounterMemeticPlans?.[input.attemptId] !== undefined
+    case 'linked_registry':
+      return (input.visualTriggerHazardRecords?.[input.attemptId] ?? null) !== null
+    default: {
+      const _exhaustive: never = input.attemptKind
+      return _exhaustive
+    }
+  }
+}
+
 function resolveAttemptLabel(input: {
   attemptKind: Spe947CountermeasureAttemptKind
   attemptId: string
@@ -199,16 +217,17 @@ export function resolveSpe947CountermeasureLedgerLink(input: {
 
   const ledger = maps.spe947CountermeasureReliabilityLedger ?? {}
   const reliabilityEntry = ledger[binding.reliabilityClassId]
-  const attemptLabel = resolveAttemptLabel({
+  const attemptLookup = {
     attemptKind: binding.attemptKind,
     attemptId: binding.attemptId,
     maps,
     visualTriggerHazardRecords: input.visualTriggerHazardRecords,
-  })
+  }
+  const attemptLabel = resolveAttemptLabel(attemptLookup)
+  const hasAttempt = hasAttemptSource(attemptLookup)
 
   const hasReliability =
     reliabilityEntry !== undefined && isReliabilityClass(reliabilityEntry.reliabilityClass)
-  const hasAttempt = attemptLabel !== null
 
   if (!hasReliability) {
     reasonCodes.push('missing_reliability_class')
@@ -276,7 +295,7 @@ export function composeSpe947CountermeasureLedgerLinks(input: {
   maps: Spe947CountermeasureLedgerLinkMaps
   visualTriggerHazardRecords?: VisualTriggerHazardRecordsMap | null
 }): readonly Spe947CountermeasureLedgerLinkReading[] {
-  const bindings = input.maps.spe947CountermeasureLedgerBindings ?? {}
+  const bindings = input.maps?.spe947CountermeasureLedgerBindings ?? {}
   const bindingIds = Object.keys(bindings).sort((left, right) => left.localeCompare(right))
 
   return Object.freeze(

@@ -50,14 +50,15 @@ function resolveAwarenessBand(record: NonNullable<Spe947VisualTriggerHazardLink[
 }
 
 function resolveTargetInstanceIds(
-  record: NonNullable<Spe947VisualTriggerHazardLink['registryRecord']> | null
+  record: NonNullable<Spe947VisualTriggerHazardLink['registryRecord']>
 ): readonly string[] {
-  if (!record?.targetInstanceIds) {
+  const rawTargets = record.targetInstanceIds
+  if (!Array.isArray(rawTargets)) {
     return Object.freeze([])
   }
 
   return Object.freeze(
-    record.targetInstanceIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    rawTargets.filter((id): id is string => typeof id === 'string' && id.length > 0)
   )
 }
 

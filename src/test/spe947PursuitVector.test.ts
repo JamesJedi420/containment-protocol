@@ -79,6 +79,32 @@ describe('spe947PursuitVector (SPE-2604 / SPE-947)', () => {
     expect(readings[0]?.reasonCodes).not.toContain('pursuit_active')
   })
 
+  it('malformed targetInstanceIds do not throw and yield empty targets', () => {
+    const link = resolveSpe947VisualTriggerHazardLink({
+      binding: {
+        id: 'spe947-vth-link:pursuit-malformed-targets',
+        entityKind: 'content_artifact',
+        entityId: EXAMPLE_ACTIVE_FOOTAGE_ARTIFACT.id,
+        visualTriggerHazardId: 'visual-trigger:malformed-targets',
+      },
+      maps: SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
+      visualTriggerHazardRecords: {
+        'visual-trigger:malformed-targets': {
+          ...COVERED_PURSUIT_RESOLUTION_FIXTURE,
+          id: 'visual-trigger:malformed-targets',
+          // Runtime-malformed persisted shape.
+          targetInstanceIds: 'not-an-array' as unknown as readonly string[],
+        },
+      },
+    })
+
+    const reading = resolveSpe947PursuitVector({ link })
+
+    expect(reading.pursuitVectorBand).toBe('active')
+    expect(reading.targetInstanceIds).toEqual([])
+    expect(reading.reasonCodes).toContain('missing_pursuit_targets')
+  })
+
   it('active_pursuit without targets reports missing_pursuit_targets without throw', () => {
     const link = resolveSpe947VisualTriggerHazardLink({
       binding: {

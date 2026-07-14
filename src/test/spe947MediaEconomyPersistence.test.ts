@@ -112,6 +112,26 @@ describe('spe947MediaEconomyPersistence (SPE-2610 / SPE-947)', () => {
     expect(Object.keys(sanitizedBindings)).toEqual([
       SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING.id,
     ])
+
+    const protoPollution = sanitizeSpe947MediaEconomyWeights({
+      polluted: {
+        id: '__proto__',
+        label: 'Proto pollution attempt',
+        continuityFactor: 1,
+      },
+    })
+    expect(Object.prototype.hasOwnProperty.call(protoPollution, '__proto__')).toBe(false)
+    expect(Object.keys(protoPollution)).toEqual([])
+
+    const blankArtifactBinding = sanitizeSpe947MediaEconomyContinuityBindings({
+      blankArtifact: {
+        id: 'spe947-media-economy:blank-artifact',
+        caseId: 'case:x',
+        economyWeightId: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id,
+        mediaArtifactId: '   ',
+      },
+    })
+    expect(blankArtifactBinding['spe947-media-economy:blank-artifact']).toBeUndefined()
   })
 
   it('round-trips authored weight and binding through save/load', () => {

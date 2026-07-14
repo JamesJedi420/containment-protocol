@@ -121,6 +121,10 @@ function isNonNegativeFinite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
+function isSafeMapKey(id: string): boolean {
+  return id !== '__proto__' && id !== 'constructor' && id !== 'prototype'
+}
+
 function sanitizeSpe947MediaEconomyWeightEntry(value: unknown): Spe947MediaEconomyWeight | null {
   if (!isPlainRecord(value)) {
     return null
@@ -128,7 +132,12 @@ function sanitizeSpe947MediaEconomyWeightEntry(value: unknown): Spe947MediaEcono
 
   const id = normalizeId(value.id, '')
   const label = normalizeLabel(value.label, id)
-  if (id.length === 0 || label.length === 0 || !isNonNegativeFinite(value.continuityFactor)) {
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    label.length === 0 ||
+    !isNonNegativeFinite(value.continuityFactor)
+  ) {
     return null
   }
 
@@ -161,8 +170,20 @@ function sanitizeSpe947MediaEconomyContinuityBindingEntry(
   const id = normalizeId(value.id, '')
   const caseId = normalizeId(value.caseId, '')
   const economyWeightId = normalizeId(value.economyWeightId, '')
-  if (id.length === 0 || caseId.length === 0 || economyWeightId.length === 0) {
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    caseId.length === 0 ||
+    economyWeightId.length === 0
+  ) {
     return null
+  }
+
+  // Present but blank/non-string mediaArtifactId must not collapse to unscoped binding.
+  if (value.mediaArtifactId !== undefined) {
+    if (typeof value.mediaArtifactId !== 'string' || value.mediaArtifactId.trim().length === 0) {
+      return null
+    }
   }
 
   const mediaArtifactId =

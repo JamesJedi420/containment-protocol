@@ -60,7 +60,7 @@ Ship the smallest deterministic **SPE-2576-style sanitize/hydrate + GameState ma
 | Item                                   | Suggested owner              | Why deferred             |
 | -------------------------------------- | ---------------------------- | ------------------------ |
 | Propagation graph wire-up              | SPE-956 / harvest #965       | Deferred since SPE-2111  |
-| Full commercialization / media-economy | Later SPE-947 sibling        | Compact persist only     |
+| Full commercialization / media-economy | **In Progress** — [SPE-2611](https://linear.app/spectranoir/issue/SPE-2611) | Compact persist only; sim in SPE-2611 |
 | Parent umbrella Done                   | Later SPE-947 reconciliation | Wire-up still open       |
 
 ## See also

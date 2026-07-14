@@ -400,7 +400,10 @@ export function composeSpe947CommercializationEconomySims(input: {
   maps: Spe947MediaEconomyContinuityMaps
 }): readonly Spe947MediaEconomySimReading[] {
   const actors = input.actors ?? []
-  const sorted = [...actors].sort((left, right) => left.id.localeCompare(right.id))
+  // Code-unit order (not localeCompare) so actor order stays deterministic across runtimes.
+  const sorted = [...actors].sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  )
 
   return Object.freeze(
     sorted.map((actor) =>
@@ -419,7 +422,7 @@ export type Spe947MediaEconomyMultiPathStatus =
 
 /**
  * Deterministic multi-path compose over the same persisted maps (SPE-2612).
- * Readings reuse SPE-2611 simulate path; actor order is id localeCompare ascending.
+ * Readings reuse SPE-2611 simulate path; actor order is id code-unit ascending.
  */
 export interface Spe947MediaEconomyMultiPathReading {
   readonly readings: readonly Spe947MediaEconomySimReading[]
@@ -488,7 +491,7 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR: Spe947MediaE
 /**
  * Second EXAMPLE commercialization actor (SPE-2612): livestream tour promoter.
  * Same continuity binding / persisted maps as merch promoter; factor 3.
- * Id sorts before `actor:merch-attention-promoter` under localeCompare.
+ * Id sorts before `actor:merch-attention-promoter` under code-unit order.
  */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR: Spe947MediaEconomyCommercializationActor =
   Object.freeze({

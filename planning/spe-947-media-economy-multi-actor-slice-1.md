@@ -28,7 +28,7 @@ Ship the smallest deterministic expansion beyond SPE-2611’s single EXAMPLE act
 
 - **Authored actors (≥2)** — id / label / `continuityBindingId` / `actorWorsenFactor` (finite ≥ 1); no dual weight/case truth.
 - **Single-path** — SPE-2611 `simulateSpe947CommercializationEconomyPath` semantics preserved (extend, do not rewrite).
-- **Multi-path compose** — `composeSpe947CommercializationEconomyMultiPath` reuses SPE-2611 simulate per actor; deterministic id `localeCompare` ascending; same SPE-2610 persisted maps for all paths.
+- **Multi-path compose** — `composeSpe947CommercializationEconomyMultiPath` reuses SPE-2611 simulate per actor; deterministic id code-unit ascending; same SPE-2610 persisted maps for all paths.
 - **Empty / missing** — empty actors → `empty_actors` / `anyRemainsRisky: false`; empty persisted maps → `empty_maps` / no false AC.
 - **Adaptation vs commercialization** — adaptation never scaled; factor < 1 / overflow stay invalid.
 - **Sanitize** — no SPE-2610 contract rewrite; round-trip through existing sanitizers remains valid.

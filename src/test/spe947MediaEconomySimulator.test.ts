@@ -235,7 +235,7 @@ describe('spe947MediaEconomySimulator (SPE-2611 / SPE-2612 / SPE-947)', () => {
       expect(merch?.reasonCodes).toContain('adaptation_untouched')
     })
 
-    it('multi-path actor order is deterministic id localeCompare regardless of input order', () => {
+    it('multi-path actor order is deterministic id code-unit order regardless of input order', () => {
       const reversed = [
         SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
         SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,

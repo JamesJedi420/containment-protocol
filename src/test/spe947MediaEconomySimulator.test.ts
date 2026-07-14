@@ -10,13 +10,17 @@ import {
 } from '../domain/spe947MediaEconomyContinuity'
 import {
   composeCommercializationActorMediaInput,
+  composeSpe947CommercializationEconomyMultiPath,
   composeSpe947CommercializationEconomySims,
   simulateSpe947CommercializationEconomyPath,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_FIXTURE,
 } from '../domain/spe947MediaEconomySimulator'
 
-describe('spe947MediaEconomySimulator (SPE-2611 / SPE-947)', () => {
+describe('spe947MediaEconomySimulator (SPE-2611 / SPE-2612 / SPE-947)', () => {
   it('empty persisted economy maps do not throw or falsely satisfy residual-risk AC', () => {
     expect(() =>
       simulateSpe947CommercializationEconomyPath({
@@ -170,5 +174,97 @@ describe('spe947MediaEconomySimulator (SPE-2611 / SPE-947)', () => {
     expect(reading.status).toBe('invalid_actor')
     expect(reading.remainsRisky).toBe(false)
     expect(reading.reasonCodes).toContain('invalid_actor')
+  })
+
+  describe('SPE-2612 multi-actor media-economy growth', () => {
+    it('empty multi-path actors do not throw or falsely satisfy residual-risk AC', () => {
+      const multi = composeSpe947CommercializationEconomyMultiPath({
+        actors: [],
+        maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE.maps,
+      })
+
+      expect(multi.status).toBe('empty_actors')
+      expect(multi.readings).toEqual([])
+      expect(multi.anyRemainsRisky).toBe(false)
+      expect(multi.anyWorsened).toBe(false)
+    })
+
+    it('empty persisted maps with ≥2 actors stay empty_maps without false AC', () => {
+      const multi = composeSpe947CommercializationEconomyMultiPath({
+        actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+        maps: {
+          spe947MediaEconomyWeights: {},
+          spe947MediaEconomyContinuityBindings: {},
+        },
+      })
+
+      expect(multi.status).toBe('empty_maps')
+      expect(multi.readings).toHaveLength(2)
+      expect(multi.anyRemainsRisky).toBe(false)
+      expect(multi.readings.every((reading) => reading.status === 'empty_maps')).toBe(true)
+    })
+
+    it('≥2 authored commercialization actor paths worsen residual risk over the same maps', () => {
+      const multi = composeSpe947CommercializationEconomyMultiPath(
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE
+      )
+
+      expect(multi.status).toBe('multi_path')
+      expect(multi.readings).toHaveLength(2)
+      expect(multi.anyRemainsRisky).toBe(true)
+      expect(multi.anyWorsened).toBe(true)
+
+      const livestream = multi.readings.find(
+        (reading) => reading.actorId === SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR.id
+      )
+      const merch = multi.readings.find(
+        (reading) => reading.actorId === SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR.id
+      )
+
+      expect(livestream?.status).toBe('worsened')
+      // adaptation 1 + commercialization 1 * continuity 3 * livestream 3 = 10
+      expect(livestream?.simDecision?.persistenceRiskScore).toBe(10)
+      expect(livestream?.remainsRisky).toBe(true)
+
+      expect(merch?.status).toBe('worsened')
+      // adaptation 1 + commercialization 1 * continuity 3 * merch 2 = 7
+      expect(merch?.simDecision?.persistenceRiskScore).toBe(7)
+      expect(merch?.remainsRisky).toBe(true)
+
+      expect(livestream?.reasonCodes).toContain('adaptation_untouched')
+      expect(merch?.reasonCodes).toContain('adaptation_untouched')
+    })
+
+    it('multi-path actor order is deterministic id code-unit order regardless of input order', () => {
+      const reversed = [
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+      ]
+      const forward = [
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+      ]
+
+      const fromReversed = composeSpe947CommercializationEconomyMultiPath({
+        actors: reversed,
+        maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE.maps,
+      })
+      const fromForward = composeSpe947CommercializationEconomyMultiPath({
+        actors: forward,
+        maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE.maps,
+      })
+
+      expect(fromReversed.actorIdsInOrder).toEqual([
+        'actor:livestream-tour-promoter',
+        'actor:merch-attention-promoter',
+      ])
+      expect(fromForward.actorIdsInOrder).toEqual(fromReversed.actorIdsInOrder)
+      expect(fromReversed.readings.map((r) => r.simDecision?.persistenceRiskScore)).toEqual([
+        10, 7,
+      ])
+      expect(fromForward.readings.map((r) => r.simDecision?.persistenceRiskScore)).toEqual([
+        10, 7,
+      ])
+    })
   })
 })

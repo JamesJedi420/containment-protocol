@@ -1,10 +1,13 @@
 /**
- * SPE-2611 / SPE-947: smallest commercialization / media-economy simulator.
+ * SPE-2611 / SPE-2612 / SPE-947: commercialization / media-economy simulator.
  *
  * Compose/sim only over SPE-2610 persisted economy maps + SPE-2609 continuity
- * resolve/compose. One authored commercialization actor/path can worsen residual
- * risk after local containment. No full internet simulator, no SPE-956 graph,
- * no mid-week mutations, no SPE-2609 status rewrite, no SPE-2610 sanitize rewrite.
+ * resolve/compose. SPE-2611: one authored commercialization actor/path can worsen
+ * residual risk after local containment. SPE-2612: ≥2 authored actors /
+ * deterministic multi-path compose over the same persisted maps (extend, do not
+ * rewrite SPE-2611 single-path semantics). No full internet simulator, no SPE-956
+ * graph, no mid-week mutations, no SPE-2609 status rewrite, no SPE-2610 sanitize
+ * rewrite.
  */
 
 import {
@@ -390,14 +393,17 @@ export function simulateSpe947CommercializationEconomyPath(input: {
 
 /**
  * Simulate authored commercialization actors in deterministic id order.
- * Empty actor list → empty readings (no-op).
+ * Empty actor list → empty readings (no-op). SPE-2611 single-path semantics unchanged.
  */
 export function composeSpe947CommercializationEconomySims(input: {
   actors: readonly Spe947MediaEconomyCommercializationActor[]
   maps: Spe947MediaEconomyContinuityMaps
 }): readonly Spe947MediaEconomySimReading[] {
   const actors = input.actors ?? []
-  const sorted = [...actors].sort((left, right) => left.id.localeCompare(right.id))
+  // Code-unit order (not localeCompare) so actor order stays deterministic across runtimes.
+  const sorted = [...actors].sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  )
 
   return Object.freeze(
     sorted.map((actor) =>
@@ -407,6 +413,70 @@ export function composeSpe947CommercializationEconomySims(input: {
       })
     )
   )
+}
+
+export type Spe947MediaEconomyMultiPathStatus =
+  | 'empty_actors'
+  | 'empty_maps'
+  | 'multi_path'
+
+/**
+ * Deterministic multi-path compose over the same persisted maps (SPE-2612).
+ * Readings reuse SPE-2611 simulate path; actor order is id code-unit ascending.
+ */
+export interface Spe947MediaEconomyMultiPathReading {
+  readonly readings: readonly Spe947MediaEconomySimReading[]
+  readonly actorIdsInOrder: readonly string[]
+  readonly anyRemainsRisky: boolean
+  readonly anyWorsened: boolean
+  readonly status: Spe947MediaEconomyMultiPathStatus
+}
+
+/**
+ * Multi-path compose: same maps, ≥0 authored actors, deterministic id order.
+ * Empty actor list → empty_actors (no-op; remainsRisky false).
+ * Empty persisted maps with actors → empty_maps (no false AC).
+ */
+export function composeSpe947CommercializationEconomyMultiPath(input: {
+  actors: readonly Spe947MediaEconomyCommercializationActor[]
+  maps: Spe947MediaEconomyContinuityMaps
+}): Spe947MediaEconomyMultiPathReading {
+  const actors = input.actors ?? []
+  if (actors.length === 0) {
+    return Object.freeze({
+      readings: Object.freeze([]),
+      actorIdsInOrder: Object.freeze([]),
+      anyRemainsRisky: false,
+      anyWorsened: false,
+      status: 'empty_actors',
+    })
+  }
+
+  const readings = composeSpe947CommercializationEconomySims({
+    actors,
+    maps: input.maps,
+  })
+  const actorIdsInOrder = Object.freeze(readings.map((reading) => reading.actorId))
+  const anyRemainsRisky = readings.some((reading) => reading.remainsRisky)
+  const anyWorsened = readings.some((reading) => reading.status === 'worsened')
+
+  if (persistedEconomyMapsAreEmpty(input.maps ?? {})) {
+    return Object.freeze({
+      readings,
+      actorIdsInOrder,
+      anyRemainsRisky: false,
+      anyWorsened: false,
+      status: 'empty_maps',
+    })
+  }
+
+  return Object.freeze({
+    readings,
+    actorIdsInOrder,
+    anyRemainsRisky,
+    anyWorsened,
+    status: 'multi_path',
+  })
 }
 
 /** EXAMPLE actor: merch promoter worsens residual commercialization via persisted continuity maps. */
@@ -419,16 +489,48 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR: Spe947MediaE
   })
 
 /**
+ * Second EXAMPLE commercialization actor (SPE-2612): livestream tour promoter.
+ * Same continuity binding / persisted maps as merch promoter; factor 3.
+ * Id sorts before `actor:merch-attention-promoter` under code-unit order.
+ */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR: Spe947MediaEconomyCommercializationActor =
+  Object.freeze({
+    id: 'actor:livestream-tour-promoter',
+    label: 'Livestream tour promoter',
+    continuityBindingId: SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING.id,
+    actorWorsenFactor: 3,
+  })
+
+/** Authored multi-actor EXAMPLE list (≥2 commercialization paths over the same maps). */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS: readonly Spe947MediaEconomyCommercializationActor[] =
+  Object.freeze([
+    SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+    SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+  ])
+
+/** Shared persisted maps for single- and multi-actor EXAMPLE fixtures. */
+const SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS = Object.freeze({
+  spe947PostCaseMediaCases: Object.freeze({
+    [EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE.caseId!]:
+      EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,
+  }),
+  ...SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE,
+})
+
+/**
  * Compact sim fixture: SPE-2610 persisted economy maps + weak post-case media case + EXAMPLE actor.
  * Empty defaults ≠ AC.
  */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_FIXTURE = Object.freeze({
   actor: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
-  maps: Object.freeze({
-    spe947PostCaseMediaCases: Object.freeze({
-      [EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE.caseId!]:
-        EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,
-    }),
-    ...SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE,
-  }),
+  maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
+})
+
+/**
+ * Multi-actor sim fixture (SPE-2612): same persisted maps + ≥2 authored commercialization actors.
+ * Empty defaults ≠ AC. Actor list order is intentionally reverse of id sort for tests.
+ */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE = Object.freeze({
+  actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+  maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
 })

@@ -167,10 +167,11 @@ Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inpu
 Optional SPE-2577 week-close fields: `weeklyViewDelta`, `weeklyUptimeState`, `lastWeeklyTickWeek`.
 Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `advanceWeek`).
 Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings` (id-only links; compose in `spe947VisualTriggerHazardLinkage.ts`).
+Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `spe947MediaEconomyContinuityBindings` (sanitize in `spe947MediaEconomyContinuity.ts`; round-trip only).
 
 **Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe947EvaluatorPersistence.ts`
+**Location**: `src/domain/spe947EvaluatorPersistence.ts` (media-economy maps: `src/domain/spe947MediaEconomyContinuity.ts`)
 
 ### GameState fields
 
@@ -185,12 +186,15 @@ Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings
 | `spe947FootageExposureBindings`     | SPE-2571            | Optional baseline bindings keyed by artifact id                                                                                                                                    |
 | `spe947TakedownResistanceBindings`  | SPE-2572            | Threshold bindings keyed by owner id                                                                                                                                               |
 | `spe947VisualTriggerHazardBindings` | SPE-2602            | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
+| `spe947MediaEconomyWeights` | SPE-2609 / SPE-2610 | Authored continuity weights (`continuityFactor` + optional incentive peers); sanitize in `spe947MediaEconomyContinuity.ts` |
+| `spe947MediaEconomyContinuityBindings` | SPE-2609 / SPE-2610 | Authored case → economy-weight bindings (optional `mediaArtifactId`); round-trip only |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts`
+- Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts` (and media-economy sanitizers in `spe947MediaEconomyContinuity.ts`)
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
-- Invalid, duplicate-id, and mismatched-key entries are dropped without throw
+- Invalid and duplicate-id entries are dropped without throw; map keys are re-derived from record ids
+- Media-economy maps: an authored plain-record input (including `{}`) is preserved — not replaced by hydrate fallback
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Versioning

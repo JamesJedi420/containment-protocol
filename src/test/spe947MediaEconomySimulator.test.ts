@@ -81,8 +81,9 @@ describe('spe947MediaEconomySimulator (SPE-2611 / SPE-947)', () => {
         SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR.actorWorsenFactor,
     })
 
-    const adaptation = composed.mediaArtifacts!.find((a) => a.kind === 'adaptation')
-    const commercialization = composed.mediaArtifacts!.find(
+    expect(composed).not.toBeNull()
+    const adaptation = composed!.mediaArtifacts!.find((a) => a.kind === 'adaptation')
+    const commercialization = composed!.mediaArtifacts!.find(
       (a) => a.kind === 'commercialization'
     )
     expect(adaptation?.riskWeight).toBe(1)

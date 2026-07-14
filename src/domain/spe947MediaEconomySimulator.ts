@@ -123,19 +123,24 @@ function reasonCodeForDecision(
 /**
  * Apply actor worsen factor only to commercialization artifacts matching the binding.
  * Adaptation (and other kinds) are never scaled.
+ * Returns null when caseRecord is missing (compose no-op; mirrors SPE-2609 continuity helper).
  */
 export function composeCommercializationActorMediaInput(input: {
-  caseRecord: PostCaseMediaPersistenceInput
+  caseRecord: PostCaseMediaPersistenceInput | null | undefined
   binding: Spe947MediaEconomyContinuityBinding
   economyWeight: Spe947MediaEconomyWeight
   actorWorsenFactor: number
-}): PostCaseMediaPersistenceInput {
+}): PostCaseMediaPersistenceInput | null {
   const continuityComposed = composeCommercializationContinuityMediaInput({
     caseRecord: input.caseRecord,
     economyWeight: input.economyWeight,
     binding: input.binding,
   })
   const base = continuityComposed ?? input.caseRecord
+  if (base === null || base === undefined) {
+    return null
+  }
+
   const artifacts = base.mediaArtifacts
   if (artifacts === null || artifacts === undefined || !Array.isArray(artifacts)) {
     return base
@@ -316,6 +321,22 @@ export function simulateSpe947CommercializationEconomyPath(input: {
     economyWeight: weight,
     actorWorsenFactor: actor.actorWorsenFactor,
   })
+  if (simInput === null) {
+    reasonCodes.push('unresolved_continuity')
+    return Object.freeze({
+      actorId: actor.id,
+      actorLabel: actor.label,
+      continuityBindingId: actor.continuityBindingId,
+      continuityReading,
+      actorWorsenFactor: actor.actorWorsenFactor,
+      status: 'unresolved_continuity',
+      baseDecision: continuityReading.baseDecision,
+      continuityDecision: continuityReading.modulatedDecision,
+      simDecision: null,
+      remainsRisky: false,
+      reasonCodes: Object.freeze(reasonCodes),
+    })
+  }
   const simDecision = evaluatePostCaseMediaPersistence(simInput)
 
   reasonCodes.push('commercialization_actor_applied')

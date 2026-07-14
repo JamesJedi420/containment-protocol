@@ -315,6 +315,10 @@ import type {
   Spe947TakedownResistanceBindingRecordsMap,
   Spe947VisualTriggerHazardBindingRecordsMap,
 } from './spe947EvaluatorPersistence'
+import type {
+  Spe947MediaEconomyContinuityBindingRecordsMap,
+  Spe947MediaEconomyWeightRecordsMap,
+} from './spe947MediaEconomyContinuity'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2832,6 +2836,18 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
    */
   spe947VisualTriggerHazardBindings?: Spe947VisualTriggerHazardBindingRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 media-economy continuity weights (keyed by weight id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyWeights?: Spe947MediaEconomyWeightRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 case → economy-weight continuity bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyContinuityBindings?: Spe947MediaEconomyContinuityBindingRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

@@ -1,11 +1,15 @@
 /**
- * SPE-2609 / SPE-947: smallest deterministic media-economy continuity surface.
+ * SPE-2609 / SPE-2610 / SPE-947: media-economy continuity surface + GameState
+ * persistence for authored economy weights / continuity bindings.
  *
  * Authored economy weights / incentive factors over SPE-2606 commercialization
  * kind so lingering commercialization can modulate residual risk after local
  * containment. Compose-only inputs into SPE-2573 — no full media-economy
  * simulator, no kind vocabulary rewrite, no mid-week mutations, no SPE-2572
  * takedown AC rewrite, no SPE-1085 canon continuity rewrite.
+ *
+ * SPE-2610: sanitize/hydrate for `spe947MediaEconomyWeights` and
+ * `spe947MediaEconomyContinuityBindings` (round-trip only; SPE-2576 pattern).
  */
 
 import {
@@ -99,8 +103,120 @@ export interface Spe947MediaEconomyContinuityMaps {
   readonly spe947MediaEconomyContinuityBindings?: Spe947MediaEconomyContinuityBindingRecordsMap
 }
 
+type PlainRecord = Record<string, unknown>
+
+function isPlainRecord(value: unknown): value is PlainRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeId(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
+}
+
+function normalizeLabel(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
+}
+
 function isNonNegativeFinite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+function sanitizeSpe947MediaEconomyWeightEntry(value: unknown): Spe947MediaEconomyWeight | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeId(value.id, '')
+  const label = normalizeLabel(value.label, id)
+  if (id.length === 0 || label.length === 0 || !isNonNegativeFinite(value.continuityFactor)) {
+    return null
+  }
+
+  if (value.profitIncentive !== undefined && !isNonNegativeFinite(value.profitIncentive)) {
+    return null
+  }
+
+  if (value.attentionIncentive !== undefined && !isNonNegativeFinite(value.attentionIncentive)) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    label,
+    continuityFactor: value.continuityFactor,
+    ...(value.profitIncentive !== undefined ? { profitIncentive: value.profitIncentive } : {}),
+    ...(value.attentionIncentive !== undefined
+      ? { attentionIncentive: value.attentionIncentive }
+      : {}),
+  })
+}
+
+function sanitizeSpe947MediaEconomyContinuityBindingEntry(
+  value: unknown
+): Spe947MediaEconomyContinuityBinding | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeId(value.id, '')
+  const caseId = normalizeId(value.caseId, '')
+  const economyWeightId = normalizeId(value.economyWeightId, '')
+  if (id.length === 0 || caseId.length === 0 || economyWeightId.length === 0) {
+    return null
+  }
+
+  const mediaArtifactId =
+    typeof value.mediaArtifactId === 'string' && value.mediaArtifactId.trim().length > 0
+      ? value.mediaArtifactId.trim()
+      : undefined
+
+  return Object.freeze({
+    id,
+    caseId,
+    economyWeightId,
+    ...(mediaArtifactId !== undefined ? { mediaArtifactId } : {}),
+  })
+}
+
+function sanitizeKeyedRecordMap<T extends { readonly id: string }>(
+  value: unknown,
+  fallback: Record<string, T>,
+  sanitizeEntry: (entry: unknown) => T | null
+): Record<string, T> {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: Record<string, T> = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
+/** Hydration: canonical economy-weight map keyed by weight id; drops invalid/duplicate-id. */
+export function sanitizeSpe947MediaEconomyWeights(
+  value: unknown,
+  fallback: Spe947MediaEconomyWeightRecordsMap = {}
+): Spe947MediaEconomyWeightRecordsMap {
+  return sanitizeKeyedRecordMap(value, fallback, sanitizeSpe947MediaEconomyWeightEntry)
+}
+
+/** Hydration: continuity bindings keyed by binding id; drops invalid/duplicate-id. */
+export function sanitizeSpe947MediaEconomyContinuityBindings(
+  value: unknown,
+  fallback: Spe947MediaEconomyContinuityBindingRecordsMap = {}
+): Spe947MediaEconomyContinuityBindingRecordsMap {
+  return sanitizeKeyedRecordMap(value, fallback, sanitizeSpe947MediaEconomyContinuityBindingEntry)
 }
 
 function roundMetric(value: number): number {
@@ -458,3 +574,14 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING: Spe947MediaEconom
     economyWeightId: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id,
     mediaArtifactId: 'media:commercial-merch-line',
   })
+
+/** Compact SPE-2610 persistence fixture: authored weight + binding only (empty defaults ≠ AC). */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE = Object.freeze({
+  spe947MediaEconomyWeights: Object.freeze({
+    [SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id]: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT,
+  }),
+  spe947MediaEconomyContinuityBindings: Object.freeze({
+    [SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING.id]:
+      SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING,
+  }),
+})

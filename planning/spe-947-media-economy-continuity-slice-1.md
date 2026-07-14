@@ -67,7 +67,7 @@ Ship the smallest deterministic **authored media-economy / commercialization con
 | Propagation graph wire-up              | SPE-956 / harvest #965       | Deferred since SPE-2111  |
 | Full SPE-1085 canon continuity         | SPE-1085                     | Co-own coordination only |
 | Full commercialization / media-economy | Later SPE-947 sibling        | Compact weights only     |
-| GameState persistence for economy maps | Later SPE-947 sibling        | Compose-only this slice  |
+| GameState persistence for economy maps | **In Progress** — [SPE-2610](https://linear.app/spectranoir/issue/SPE-2610) | Compose-only SPE-2609; persist in SPE-2610 |
 | Parent umbrella Done                   | Later SPE-947 reconciliation | Wire-up still open       |
 
 ## See also

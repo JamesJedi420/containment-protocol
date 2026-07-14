@@ -252,6 +252,10 @@ import {
   sanitizeSpe947VisualTriggerHazardBindings,
 } from '../../domain/spe947EvaluatorPersistence'
 import {
+  sanitizeSpe947MediaEconomyContinuityBindings,
+  sanitizeSpe947MediaEconomyWeights,
+} from '../../domain/spe947MediaEconomyContinuity'
+import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
   normalizeCandidateHireStatus,
@@ -9058,6 +9062,14 @@ export function hydrateGame(
     game.spe947VisualTriggerHazardBindings,
     fallback.spe947VisualTriggerHazardBindings ?? {}
   )
+  const spe947MediaEconomyWeights = sanitizeSpe947MediaEconomyWeights(
+    game.spe947MediaEconomyWeights,
+    fallback.spe947MediaEconomyWeights ?? {}
+  )
+  const spe947MediaEconomyContinuityBindings = sanitizeSpe947MediaEconomyContinuityBindings(
+    game.spe947MediaEconomyContinuityBindings,
+    fallback.spe947MediaEconomyContinuityBindings ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9319,6 +9331,8 @@ export function hydrateGame(
     spe947FootageExposureBindings,
     spe947TakedownResistanceBindings,
     spe947VisualTriggerHazardBindings,
+    spe947MediaEconomyWeights,
+    spe947MediaEconomyContinuityBindings,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

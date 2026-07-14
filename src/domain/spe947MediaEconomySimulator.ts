@@ -34,8 +34,9 @@ export interface Spe947MediaEconomyCommercializationActor {
   readonly label: string
   readonly continuityBindingId: string
   /**
-   * Finite >= 0 amplifier applied after SPE-2609 continuity on matching
+   * Finite >= 1 amplifier applied after SPE-2609 continuity on matching
    * commercialization artifacts. Factor 1 = continuity-only; >1 worsens further.
+   * Values below 1 are rejected (worsen-only surface).
    */
   readonly actorWorsenFactor: number
 }
@@ -78,8 +79,8 @@ export interface Spe947MediaEconomySimReading {
   readonly reasonCodes: readonly Spe947MediaEconomySimReasonCode[]
 }
 
-function isNonNegativeFinite(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+function isValidActorWorsenFactor(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1
 }
 
 function persistedEconomyMapsAreEmpty(maps: Spe947MediaEconomyContinuityMaps): boolean {
@@ -146,16 +147,26 @@ export function composeCommercializationActorMediaInput(input: {
     return base
   }
 
-  const nextArtifacts = artifacts.map((artifact) => {
+  const nextArtifacts: PostCaseMediaArtifact[] = []
+  for (const artifact of artifacts) {
     if (!shouldScaleCommercialArtifact(artifact, input.binding)) {
-      return artifact
+      nextArtifacts.push(artifact)
+      continue
     }
 
-    return Object.freeze({
-      ...artifact,
-      riskWeight: artifact.riskWeight * input.actorWorsenFactor,
-    })
-  })
+    const nextWeight = artifact.riskWeight * input.actorWorsenFactor
+    // Overflow / non-finite product would make SPE-2573 block as invalid config.
+    if (!Number.isFinite(nextWeight) || nextWeight < 0) {
+      return null
+    }
+
+    nextArtifacts.push(
+      Object.freeze({
+        ...artifact,
+        riskWeight: nextWeight,
+      })
+    )
+  }
 
   return Object.freeze({
     ...base,
@@ -192,7 +203,7 @@ export function simulateSpe947CommercializationEconomyPath(input: {
     })
   }
 
-  if (!isNonNegativeFinite(actor.actorWorsenFactor)) {
+  if (!isValidActorWorsenFactor(actor.actorWorsenFactor)) {
     reasonCodes.push('invalid_actor')
     return Object.freeze({
       actorId: actor.id,
@@ -273,7 +284,12 @@ export function simulateSpe947CommercializationEconomyPath(input: {
 
   if (continuityReading.status === 'no_commercialization') {
     reasonCodes.push('no_commercialization_target')
-    reasonCodes.push('adaptation_untouched')
+    const noCommercialArtifacts = Array.isArray(maps.spe947PostCaseMediaCases?.[binding.caseId]?.mediaArtifacts)
+      ? maps.spe947PostCaseMediaCases![binding.caseId]!.mediaArtifacts!
+      : []
+    if (noCommercialArtifacts.some((artifact) => artifact.kind === 'adaptation')) {
+      reasonCodes.push('adaptation_untouched')
+    }
     reasonCodes.push(reasonCodeForDecision(continuityReading.baseDecision!))
     return Object.freeze({
       actorId: actor.id,
@@ -304,7 +320,7 @@ export function simulateSpe947CommercializationEconomyPath(input: {
       baseDecision: continuityReading.baseDecision,
       continuityDecision: continuityReading.modulatedDecision,
       simDecision: null,
-      remainsRisky: false,
+      remainsRisky: continuityReading.remainsRisky,
       reasonCodes: Object.freeze(reasonCodes),
     })
   }

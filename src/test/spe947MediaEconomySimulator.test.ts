@@ -142,19 +142,17 @@ describe('spe947MediaEconomySimulator (SPE-2611 / SPE-947)', () => {
     expect(reading.reasonCodes).toContain('missing_binding')
   })
 
-  it('actorWorsenFactor 1 stays continuity_only when continuity already remains risky', () => {
+  it('rejects actorWorsenFactor below 1 as invalid_actor', () => {
     const reading = simulateSpe947CommercializationEconomyPath({
       actor: {
         ...SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
-        actorWorsenFactor: 1,
+        actorWorsenFactor: 0.5,
       },
       maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_FIXTURE.maps,
     })
 
-    expect(reading.status).toBe('continuity_only')
-    expect(reading.simDecision?.persistenceRiskScore).toBe(
-      reading.continuityDecision?.persistenceRiskScore
-    )
-    expect(reading.reasonCodes).toContain('residual_risk_unchanged')
+    expect(reading.status).toBe('invalid_actor')
+    expect(reading.remainsRisky).toBe(false)
+    expect(reading.reasonCodes).toContain('invalid_actor')
   })
 })

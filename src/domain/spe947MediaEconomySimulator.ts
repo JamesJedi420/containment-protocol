@@ -304,6 +304,10 @@ export function simulateSpe947CommercializationEconomyPath(input: {
     })
   }
 
+  const rawArtifacts = caseRecord.mediaArtifacts
+  const artifacts = Array.isArray(rawArtifacts) ? rawArtifacts : []
+  const hasAdaptation = artifacts.some((artifact) => artifact.kind === 'adaptation')
+
   const baseDecision = continuityReading.baseDecision
   const continuityDecision = continuityReading.modulatedDecision
   const simInput = composeCommercializationActorMediaInput({
@@ -315,7 +319,9 @@ export function simulateSpe947CommercializationEconomyPath(input: {
   const simDecision = evaluatePostCaseMediaPersistence(simInput)
 
   reasonCodes.push('commercialization_actor_applied')
-  reasonCodes.push('adaptation_untouched')
+  if (hasAdaptation) {
+    reasonCodes.push('adaptation_untouched')
+  }
 
   const continuityScore = continuityDecision?.persistenceRiskScore ?? 0
   const simScore = simDecision.persistenceRiskScore

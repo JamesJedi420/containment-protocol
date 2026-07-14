@@ -193,7 +193,8 @@ Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `
 
 - Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts` (and media-economy sanitizers in `spe947MediaEconomyContinuity.ts`)
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
-- Invalid, duplicate-id, and mismatched-key entries are dropped without throw
+- Invalid and duplicate-id entries are dropped without throw; map keys are re-derived from record ids
+- Media-economy maps: an authored plain-record input (including `{}`) is preserved — not replaced by hydrate fallback
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Versioning

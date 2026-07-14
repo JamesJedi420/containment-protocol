@@ -200,7 +200,9 @@ function sanitizeKeyedRecordMap<T extends { readonly id: string }>(
     next[record.id] = record
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
 }
 
 /** Hydration: canonical economy-weight map keyed by weight id; drops invalid/duplicate-id. */

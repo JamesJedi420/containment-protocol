@@ -43,6 +43,23 @@ describe('spe947MediaEconomyPersistence (SPE-2610 / SPE-947)', () => {
     ).toEqual([])
   })
 
+  it('preserves explicitly empty maps over non-empty hydrate fallback', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE)
+
+    const hydrated = hydrateGame(
+      {
+        ...createStartingState(),
+        spe947MediaEconomyWeights: {},
+        spe947MediaEconomyContinuityBindings: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe947MediaEconomyWeights).toEqual({})
+    expect(hydrated.spe947MediaEconomyContinuityBindings).toEqual({})
+  })
+
   it('drops invalid factors and duplicate-id entries during sanitize without throwing', () => {
     const sanitizedWeights = sanitizeSpe947MediaEconomyWeights({
       valid: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT,

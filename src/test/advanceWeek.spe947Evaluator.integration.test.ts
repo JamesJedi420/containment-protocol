@@ -212,8 +212,8 @@ describe('advanceWeek SPE-947 media-economy week-close (SPE-2615)', () => {
         economyWeightId: 'weight:test',
       },
     }
-    const priorWeights = state.spe947MediaEconomyWeights
-    const priorBindings = state.spe947MediaEconomyContinuityBindings
+    const priorWeights = structuredClone(state.spe947MediaEconomyWeights)
+    const priorBindings = structuredClone(state.spe947MediaEconomyContinuityBindings)
 
     const nextState = advanceWeek(state)
 

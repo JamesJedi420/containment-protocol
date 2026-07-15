@@ -113,7 +113,7 @@ export function applyWeeklySpe947MediaEconomyTick(input: {
         })
       }
 
-                  // Authored weekly deltas would mutate maps here; slice 1 has none (no invent).
+      // Authored weekly deltas would mutate maps here; slice 1 has none (no invent).
       const mapsMutated = hasSpe947MediaEconomyWeeklyDelta(maps)
 
       return Object.freeze({

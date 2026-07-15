@@ -319,6 +319,7 @@ import type {
   Spe947MediaEconomyContinuityBindingRecordsMap,
   Spe947MediaEconomyWeightRecordsMap,
 } from './spe947MediaEconomyContinuity'
+import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2848,6 +2849,17 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
    */
   spe947MediaEconomyContinuityBindings?: Spe947MediaEconomyContinuityBindingRecordsMap
+
+  /**
+   * SPE-2616 slice 1: authored commercialization actors for SPE-2611–2615 media-economy paths (keyed by actor id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyCommercializationActors?: Spe947MediaEconomyCommercializationActorRecordsMap
+
+  /**
+   * SPE-2616 slice 1: last week the SPE-2615 media-economy week-close tick ran; idempotency marker.
+   */
+  spe947MediaEconomyLastWeeklyTickWeek?: number
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

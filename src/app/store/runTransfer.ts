@@ -256,6 +256,10 @@ import {
   sanitizeSpe947MediaEconomyWeights,
 } from '../../domain/spe947MediaEconomyContinuity'
 import {
+  sanitizeSpe947MediaEconomyCommercializationActors,
+  sanitizeSpe947MediaEconomyLastWeeklyTickWeek,
+} from '../../domain/spe947MediaEconomySimulator'
+import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
   normalizeCandidateHireStatus,
@@ -9070,6 +9074,14 @@ export function hydrateGame(
     game.spe947MediaEconomyContinuityBindings,
     fallback.spe947MediaEconomyContinuityBindings ?? {}
   )
+  const spe947MediaEconomyCommercializationActors = sanitizeSpe947MediaEconomyCommercializationActors(
+    game.spe947MediaEconomyCommercializationActors,
+    fallback.spe947MediaEconomyCommercializationActors ?? {}
+  )
+  const spe947MediaEconomyLastWeeklyTickWeek = sanitizeSpe947MediaEconomyLastWeeklyTickWeek(
+    game.spe947MediaEconomyLastWeeklyTickWeek,
+    fallback.spe947MediaEconomyLastWeeklyTickWeek
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9333,6 +9345,8 @@ export function hydrateGame(
     spe947VisualTriggerHazardBindings,
     spe947MediaEconomyWeights,
     spe947MediaEconomyContinuityBindings,
+    spe947MediaEconomyCommercializationActors,
+    spe947MediaEconomyLastWeeklyTickWeek,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

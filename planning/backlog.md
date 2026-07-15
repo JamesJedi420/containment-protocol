@@ -78,6 +78,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2614](https://linear.app/spectranoir/issue/SPE-2614/further-media-economy-growth-third-commercial-path-week-close-wire) SPE-947 further media-economy growth (third commercial path) (slice 1) — third authored commercialization path + three-path aggregate over SPE-2613; PR #3130 @ `731d0af5`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
+**Recently shipped:** [SPE-2616](https://linear.app/spectranoir/issue/SPE-2616/persisted-commercialization-actor-map-richer-advanceweek-delta) SPE-947 persisted commercialization-actor map + advanceWeek tick wire (slice 1) — GameState actor map + `spe947MediaEconomyLastWeeklyTickWeek`; PR #3134 @ `4de14e4e`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+
 **Recently shipped:** [SPE-2613](https://linear.app/spectranoir/issue/SPE-2613/broader-media-economy-growth-beyond-two-actor-compose-slice-1) SPE-947 broader media-economy growth beyond two-actor compose (slice 1) — authored cross-path aggregate (any/worse) over SPE-2612 multi-path; PR #3128 @ `d81425c5`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2612](https://linear.app/spectranoir/issue/SPE-2612/broader-multi-actor-media-economy-growth-slice-1) SPE-947 broader multi-actor media-economy growth (slice 1) — ≥2 authored commercialization actors / deterministic multi-path compose over SPE-2610 persisted maps; PR #3126 @ `7e6c41f7`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.

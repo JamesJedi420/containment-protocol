@@ -1,18 +1,22 @@
 /**
- * SPE-2615 / SPE-947: week-close orchestration over SPE-2613/2614 media-economy aggregate.
+ * SPE-2615 / SPE-2617 / SPE-947: week-close orchestration over SPE-2613/2614 media-economy aggregate.
  *
  * Pure deterministic week-close compose (SPE-2577 pattern peer):
  * - Read/orchestrate cross-path aggregate over authored actors + SPE-2610 maps
  * - Do not invent media-economy truth mid-week
- * - Do not mutate shared economy maps unless an authored weekly delta exists
- * - Slice 1: SPE-2610 weight/binding sanitize unchanged — no weekly delta fields → maps keep identity
+ * - Mutate shared economy maps only when an authored weekly delta exists (SPE-2617)
  * - Idempotent when lastWeeklyTickWeek === week
  *
  * Optional advanceWeek wire may call this; empty actors/maps are a no-op (no false AC).
  * No full internet simulator, no SPE-956 graph, no SPE-2609 status rewrite.
  */
 
-import type { Spe947MediaEconomyContinuityMaps } from './spe947MediaEconomyContinuity'
+import {
+  applyWeeklySpe947MediaEconomyMapDeltas,
+  hasSpe947MediaEconomyBindingWeeklyDelta,
+  hasSpe947MediaEconomyWeightWeeklyDelta,
+  type Spe947MediaEconomyContinuityMaps,
+} from './spe947MediaEconomyContinuity'
 import {
   composeSpe947CommercializationEconomyCrossPathAggregate,
   type Spe947MediaEconomyCommercializationActor,
@@ -32,7 +36,7 @@ export interface Spe947MediaEconomyWeeklyOrchestrationResult {
   /** Stamp after a successful orchestrated week-close; unchanged on empty / already-ticked. */
   readonly lastWeeklyTickWeek: number | undefined
   readonly status: Spe947MediaEconomyWeeklyOrchestrationStatus
-  /** True only when an authored weekly delta mutated maps (slice 1: always false). */
+  /** True only when an authored weekly delta mutated maps. */
   readonly mapsMutated: boolean
 }
 
@@ -53,19 +57,35 @@ function emptyMaps(): Spe947MediaEconomyContinuityMaps {
 
 /**
  * True when maps carry an authored weekly delta that should mutate shared economy state.
- * Slice 1: SPE-2610 sanitize unchanged — no weekly delta fields exist → always false (no invent).
  */
 export function hasSpe947MediaEconomyWeeklyDelta(
   maps: Spe947MediaEconomyContinuityMaps | null | undefined
 ): boolean {
-  void maps
+  if (maps == null) {
+    return false
+  }
+
+  const weights = maps.spe947MediaEconomyWeights ?? {}
+  for (const weight of Object.values(weights)) {
+    if (weight && hasSpe947MediaEconomyWeightWeeklyDelta(weight)) {
+      return true
+    }
+  }
+
+  const bindings = maps.spe947MediaEconomyContinuityBindings ?? {}
+  for (const binding of Object.values(bindings)) {
+    if (binding && hasSpe947MediaEconomyBindingWeeklyDelta(binding)) {
+      return true
+    }
+  }
+
   return false
 }
 
 /**
  * Applies one week-close orchestration pass over the SPE-2613/2614 cross-path aggregate.
  * Empty actors / empty maps are a no-op without false AC. Same-week re-tick is idempotent.
- * Shared maps keep identity unless an authored weekly delta exists (none in slice 1).
+ * Shared maps mutate only when an authored weekly delta produces a real field change.
  */
 export function applyWeeklySpe947MediaEconomyTick(input: {
   actors: readonly Spe947MediaEconomyCommercializationActor[]
@@ -113,12 +133,14 @@ export function applyWeeklySpe947MediaEconomyTick(input: {
         })
       }
 
-      // Authored weekly deltas would mutate maps here; slice 1 has none (no invent).
-      const mapsMutated = hasSpe947MediaEconomyWeeklyDelta(maps)
+      const nextMaps = hasSpe947MediaEconomyWeeklyDelta(maps)
+        ? applyWeeklySpe947MediaEconomyMapDeltas(maps)
+        : maps
+      const mapsMutated = nextMaps !== maps
 
       return Object.freeze({
         aggregate,
-        maps,
+        maps: nextMaps,
         week: normalizedWeek,
         lastWeeklyTickWeek: normalizedWeek,
         status: 'orchestrated',

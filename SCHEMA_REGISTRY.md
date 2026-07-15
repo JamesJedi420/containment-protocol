@@ -167,7 +167,7 @@ Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inpu
 Optional SPE-2577 week-close fields: `weeklyViewDelta`, `weeklyUptimeState`, `lastWeeklyTickWeek`.
 Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `advanceWeek`).
 Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings` (id-only links; compose in `spe947VisualTriggerHazardLinkage.ts`).
-Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `spe947MediaEconomyContinuityBindings` (sanitize in `spe947MediaEconomyContinuity.ts`; round-trip only).
+Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `spe947MediaEconomyContinuityBindings` (sanitize in `spe947MediaEconomyContinuity.ts`; optional SPE-2617 `weeklyContinuityFactorDelta` / `weeklyEconomyWeightId`; week-close apply via `spe947MediaEconomyWeeklyOrchestration.ts`).
 Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializationActors` + `spe947MediaEconomyLastWeeklyTickWeek` (sanitize in `spe947MediaEconomySimulator.ts`; week-close tick via `advanceWeek`).
 
 **Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
@@ -187,8 +187,8 @@ Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializat
 | `spe947FootageExposureBindings`     | SPE-2571            | Optional baseline bindings keyed by artifact id                                                                                                                                    |
 | `spe947TakedownResistanceBindings`  | SPE-2572            | Threshold bindings keyed by owner id                                                                                                                                               |
 | `spe947VisualTriggerHazardBindings` | SPE-2602            | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
-| `spe947MediaEconomyWeights` | SPE-2609 / SPE-2610 | Authored continuity weights (`continuityFactor` + optional incentive peers); sanitize in `spe947MediaEconomyContinuity.ts` |
-| `spe947MediaEconomyContinuityBindings` | SPE-2609 / SPE-2610 | Authored case → economy-weight bindings (optional `mediaArtifactId`); round-trip only |
+| `spe947MediaEconomyWeights` | SPE-2609 / SPE-2610 / SPE-2617 | Authored continuity weights (`continuityFactor` + optional incentive peers); optional SPE-2617 `weeklyContinuityFactorDelta`; sanitize in `spe947MediaEconomyContinuity.ts` |
+| `spe947MediaEconomyContinuityBindings` | SPE-2609 / SPE-2610 / SPE-2617 | Authored case → economy-weight bindings (optional `mediaArtifactId`); optional SPE-2617 `weeklyEconomyWeightId`; week-close apply in `spe947MediaEconomyWeeklyOrchestration.ts` |
 | `spe947MediaEconomyCommercializationActors` | SPE-2611–2615 / SPE-2616 | Authored commercialization actors keyed by actor id; sanitize in `spe947MediaEconomySimulator.ts` |
 | `spe947MediaEconomyLastWeeklyTickWeek` | SPE-2615 / SPE-2616 | Week-close idempotency stamp for media-economy orchestration tick |
 

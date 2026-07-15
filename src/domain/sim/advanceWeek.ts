@@ -4979,9 +4979,9 @@ export function advanceWeek(
     outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
   }
 
-  // SPE-2615 / SPE-2616: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
+  // SPE-2615 / SPE-2616 / SPE-2617: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
   // Persisted commercialization actors feed the tick; empty actors ⇒ no-op (no invent).
-  // Shared economy maps mutate only when an authored weekly delta exists (none through SPE-2616).
+  // Shared economy maps mutate when an authored weekly delta applies (SPE-2617).
   const mediaEconomyWeekClose = applyWeeklySpe947MediaEconomyTick({
     actors: listSpe947MediaEconomyCommercializationActors(
       outputWeeklyState.spe947MediaEconomyCommercializationActors

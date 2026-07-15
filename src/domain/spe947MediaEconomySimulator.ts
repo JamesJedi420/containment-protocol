@@ -1,13 +1,14 @@
 /**
- * SPE-2611 / SPE-2612 / SPE-947: commercialization / media-economy simulator.
+ * SPE-2611 / SPE-2612 / SPE-2613 / SPE-947: commercialization / media-economy simulator.
  *
  * Compose/sim only over SPE-2610 persisted economy maps + SPE-2609 continuity
  * resolve/compose. SPE-2611: one authored commercialization actor/path can worsen
  * residual risk after local containment. SPE-2612: ≥2 authored actors /
  * deterministic multi-path compose over the same persisted maps (extend, do not
- * rewrite SPE-2611 single-path semantics). No full internet simulator, no SPE-956
- * graph, no mid-week mutations, no SPE-2609 status rewrite, no SPE-2610 sanitize
- * rewrite.
+ * rewrite SPE-2611 single-path semantics). SPE-2613: authored cross-path aggregate
+ * (any / worse reading) over SPE-2612 multi-path without mid-week mutation or
+ * sequential shared-map rewrite. No full internet simulator, no SPE-956 graph,
+ * no mid-week mutations, no SPE-2609 status rewrite, no SPE-2610 sanitize rewrite.
  */
 
 import {
@@ -479,6 +480,131 @@ export function composeSpe947CommercializationEconomyMultiPath(input: {
   })
 }
 
+export type Spe947MediaEconomyCrossPathAggregateStatus =
+  | 'empty_actors'
+  | 'empty_maps'
+  | 'cross_path_aggregate'
+
+/**
+ * Authored cross-path aggregate over SPE-2612 multi-path (SPE-2613).
+ * Fold path readings into any/worse without mutating shared maps.
+ */
+export interface Spe947MediaEconomyCrossPathAggregateReading {
+  readonly multiPath: Spe947MediaEconomyMultiPathReading
+  readonly anyRemainsRisky: boolean
+  readonly anyWorsened: boolean
+  readonly worseReading: Spe947MediaEconomySimReading | null
+  readonly worseActorId: string | null
+  readonly worsePersistenceRiskScore: number | null
+  readonly status: Spe947MediaEconomyCrossPathAggregateStatus
+}
+
+function persistenceRiskScoreForCompare(reading: Spe947MediaEconomySimReading): number {
+  return (
+    reading.simDecision?.persistenceRiskScore ??
+    reading.continuityDecision?.persistenceRiskScore ??
+    reading.baseDecision?.persistenceRiskScore ??
+    Number.NEGATIVE_INFINITY
+  )
+}
+
+/**
+ * Deterministic worse path: remainsRisky first, then highest sim score,
+ * then earliest actor id in already code-unit-sorted multi-path order.
+ */
+function selectWorseCrossPathReading(
+  readings: readonly Spe947MediaEconomySimReading[]
+): Spe947MediaEconomySimReading | null {
+  if (readings.length === 0) {
+    return null
+  }
+
+  let worse: Spe947MediaEconomySimReading | null = null
+  for (const reading of readings) {
+    if (worse === null) {
+      worse = reading
+      continue
+    }
+
+    if (reading.remainsRisky !== worse.remainsRisky) {
+      if (reading.remainsRisky) {
+        worse = reading
+      }
+      continue
+    }
+
+    const readingScore = persistenceRiskScoreForCompare(reading)
+    const worseScore = persistenceRiskScoreForCompare(worse)
+    if (readingScore > worseScore) {
+      worse = reading
+      continue
+    }
+
+    // Equal score: keep earlier id (readings are already code-unit ascending).
+  }
+
+  return worse
+}
+
+/**
+ * Cross-path aggregate: reuse SPE-2612 multi-path; fold into any/worse.
+ * Empty actors → empty_actors. Empty maps → empty_maps (no false AC).
+ * Does not mutate shared maps across actors.
+ */
+export function composeSpe947CommercializationEconomyCrossPathAggregate(input: {
+  actors: readonly Spe947MediaEconomyCommercializationActor[]
+  maps: Spe947MediaEconomyContinuityMaps
+}): Spe947MediaEconomyCrossPathAggregateReading {
+  const multiPath = composeSpe947CommercializationEconomyMultiPath(input)
+
+  switch (multiPath.status) {
+    case 'empty_actors':
+      return Object.freeze({
+        multiPath,
+        anyRemainsRisky: false,
+        anyWorsened: false,
+        worseReading: null,
+        worseActorId: null,
+        worsePersistenceRiskScore: null,
+        status: 'empty_actors',
+      })
+    case 'empty_maps':
+      return Object.freeze({
+        multiPath,
+        anyRemainsRisky: false,
+        anyWorsened: false,
+        worseReading: null,
+        worseActorId: null,
+        worsePersistenceRiskScore: null,
+        status: 'empty_maps',
+      })
+    case 'multi_path': {
+      const worseReading = selectWorseCrossPathReading(multiPath.readings)
+      const worsePersistenceRiskScore =
+        worseReading === null
+          ? null
+          : (worseReading.simDecision?.persistenceRiskScore ??
+            worseReading.continuityDecision?.persistenceRiskScore ??
+            worseReading.baseDecision?.persistenceRiskScore ??
+            null)
+
+      return Object.freeze({
+        multiPath,
+        anyRemainsRisky: multiPath.anyRemainsRisky,
+        anyWorsened: multiPath.anyWorsened,
+        worseReading,
+        worseActorId: worseReading?.actorId ?? null,
+        worsePersistenceRiskScore,
+        status: 'cross_path_aggregate',
+      })
+    }
+    default: {
+      const _exhaustive: never = multiPath.status
+      return _exhaustive
+    }
+  }
+}
+
 /** EXAMPLE actor: merch promoter worsens residual commercialization via persisted continuity maps. */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR: Spe947MediaEconomyCommercializationActor =
   Object.freeze({
@@ -531,6 +657,15 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_FIXTURE = Object.freeze({
  * Empty defaults ≠ AC. Actor list order is intentionally reverse of id sort for tests.
  */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE = Object.freeze({
+  actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+  maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
+})
+
+/**
+ * Cross-path aggregate fixture (SPE-2613): same multi-actor maps/actors as SPE-2612.
+ * Empty defaults ≠ AC. Aggregate folds independent paths without map mutation.
+ */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_CROSS_PATH_AGGREGATE_FIXTURE = Object.freeze({
   actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
   maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
 })

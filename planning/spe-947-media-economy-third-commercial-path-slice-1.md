@@ -1,6 +1,6 @@
 # SPE-947 — Further media-economy growth (third commercial path) (slice 1)
 
-One-page implementation plan. Linear: [SPE-2614](https://linear.app/spectranoir/issue/SPE-2614/further-media-economy-growth-third-commercial-path-week-close-wire) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Next SPE-947-owned deferred sibling after shipped [SPE-2613](https://linear.app/spectranoir/issue/SPE-2613); [SPE-947](https://linear.app/spectranoir/issue/SPE-947) parent stays **Backlog**. Week-close wire and propagation graph stay out ([SPE-956](https://linear.app/spectranoir/issue/SPE-956) / harvest #965).
+One-page implementation plan. Linear: [SPE-2614](https://linear.app/spectranoir/issue/SPE-2614/further-media-economy-growth-third-commercial-path-week-close-wire) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Next SPE-947-owned deferred sibling after shipped [SPE-2613](https://linear.app/spectranoir/issue/SPE-2613); [SPE-947](https://linear.app/spectranoir/issue/SPE-947) parent stays **Backlog**. Week-close wire and propagation graph stay out ([SPE-956](https://linear.app/spectranoir/issue/SPE-956) / harvest 965).
 
 | Field               | Value                                                                                                                                                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ Ship the smallest deterministic growth past SPE-2613’s two-actor cross-path ag
 
 | Item                                                            | Suggested owner              | Why deferred                         |
 | --------------------------------------------------------------- | ---------------------------- | ------------------------------------ |
-| Propagation graph wire-up                                       | SPE-956 / harvest #965       | Deferred since SPE-2111              |
+| Propagation graph wire-up                                       | SPE-956 / harvest 965        | Deferred since SPE-2111              |
 | Week-close orchestration hook over media-economy aggregate      | Later SPE-947 sibling        | Slice 1 = third commercial path only |
 | Parent umbrella Done                                            | Later SPE-947 reconciliation | Wire-up still open                   |
 

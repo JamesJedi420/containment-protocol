@@ -168,6 +168,7 @@ Optional SPE-2577 week-close fields: `weeklyViewDelta`, `weeklyUptimeState`, `la
 Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `advanceWeek`).
 Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings` (id-only links; compose in `spe947VisualTriggerHazardLinkage.ts`).
 Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `spe947MediaEconomyContinuityBindings` (sanitize in `spe947MediaEconomyContinuity.ts`; round-trip only).
+Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializationActors` + `spe947MediaEconomyLastWeeklyTickWeek` (sanitize in `spe947MediaEconomySimulator.ts`; week-close tick via `advanceWeek`).
 
 **Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
 
@@ -188,10 +189,12 @@ Optional SPE-2610 media-economy continuity maps: `spe947MediaEconomyWeights` / `
 | `spe947VisualTriggerHazardBindings` | SPE-2602            | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
 | `spe947MediaEconomyWeights` | SPE-2609 / SPE-2610 | Authored continuity weights (`continuityFactor` + optional incentive peers); sanitize in `spe947MediaEconomyContinuity.ts` |
 | `spe947MediaEconomyContinuityBindings` | SPE-2609 / SPE-2610 | Authored case → economy-weight bindings (optional `mediaArtifactId`); round-trip only |
+| `spe947MediaEconomyCommercializationActors` | SPE-2611–2615 / SPE-2616 | Authored commercialization actors keyed by actor id; sanitize in `spe947MediaEconomySimulator.ts` |
+| `spe947MediaEconomyLastWeeklyTickWeek` | SPE-2615 / SPE-2616 | Week-close idempotency stamp for media-economy orchestration tick |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts` (and media-economy sanitizers in `spe947MediaEconomyContinuity.ts`)
+- Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts` (media-economy weight/binding sanitizers in `spe947MediaEconomyContinuity.ts`; commercialization-actor sanitizers in `spe947MediaEconomySimulator.ts`)
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
 - Invalid and duplicate-id entries are dropped without throw; map keys are re-derived from record ids
 - Media-economy maps: an authored plain-record input (including `{}`) is preserved — not replaced by hydrate fallback

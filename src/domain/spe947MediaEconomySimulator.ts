@@ -50,6 +50,131 @@ export interface Spe947MediaEconomyCommercializationActor {
   readonly actorWorsenFactor: number
 }
 
+export type Spe947MediaEconomyCommercializationActorRecordsMap = Record<
+  string,
+  Spe947MediaEconomyCommercializationActor
+>
+
+type PlainRecord = Record<string, unknown>
+
+function isPlainRecord(value: unknown): value is PlainRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeId(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
+}
+
+function normalizeLabel(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
+}
+
+function isSafeMapKey(id: string): boolean {
+  return id !== '__proto__' && id !== 'constructor' && id !== 'prototype'
+}
+
+function isValidActorWorsenFactor(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1
+}
+
+function sanitizeSpe947MediaEconomyCommercializationActorEntry(
+  value: unknown
+): Spe947MediaEconomyCommercializationActor | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeId(value.id, '')
+  const label = normalizeLabel(value.label, id)
+  const continuityBindingId = normalizeId(value.continuityBindingId, '')
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    label.length === 0 ||
+    continuityBindingId.length === 0 ||
+    !isValidActorWorsenFactor(value.actorWorsenFactor)
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    label,
+    continuityBindingId,
+    actorWorsenFactor: value.actorWorsenFactor,
+  })
+}
+
+function sanitizeKeyedRecordMap<T extends { readonly id: string }>(
+  value: unknown,
+  fallback: Record<string, T>,
+  sanitizeEntry: (entry: unknown) => T | null
+): Record<string, T> {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: Record<string, T> = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
+}
+
+/** Hydration: canonical commercialization-actor map keyed by actor id; drops invalid/duplicate-id. */
+export function sanitizeSpe947MediaEconomyCommercializationActors(
+  value: unknown,
+  fallback: Spe947MediaEconomyCommercializationActorRecordsMap = {}
+): Spe947MediaEconomyCommercializationActorRecordsMap {
+  return sanitizeKeyedRecordMap(value, fallback, sanitizeSpe947MediaEconomyCommercializationActorEntry)
+}
+
+/** Hydration: week-close idempotency stamp for SPE-2615 media-economy tick (SPE-2577 pattern). */
+export function sanitizeSpe947MediaEconomyLastWeeklyTickWeek(
+  value: unknown,
+  fallback: number | undefined = undefined
+): number | undefined {
+  if (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= 1 &&
+    value === Math.trunc(value)
+  ) {
+    return value
+  }
+
+  return fallback
+}
+
+/**
+ * Read persisted commercialization actors in deterministic code-unit id order.
+ * Empty / missing map → empty list (no invent).
+ */
+export function listSpe947MediaEconomyCommercializationActors(
+  actors: Spe947MediaEconomyCommercializationActorRecordsMap | null | undefined
+): readonly Spe947MediaEconomyCommercializationActor[] {
+  const map = actors ?? {}
+  return Object.freeze(
+    Object.keys(map)
+      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+      .flatMap((actorId) => {
+        const actor = map[actorId]
+        return actor ? [actor] : []
+      })
+  )
+}
+
 export type Spe947MediaEconomySimStatus =
   | 'worsened'
   | 'continuity_only'
@@ -86,10 +211,6 @@ export interface Spe947MediaEconomySimReading {
   readonly simDecision: PostCaseMediaPersistenceDecision | null
   readonly remainsRisky: boolean
   readonly reasonCodes: readonly Spe947MediaEconomySimReasonCode[]
-}
-
-function isValidActorWorsenFactor(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 1
 }
 
 function persistedEconomyMapsAreEmpty(maps: Spe947MediaEconomyContinuityMaps): boolean {
@@ -659,6 +780,16 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS: readonly Spe947Med
     SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
     SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
   ])
+
+/** Authored three-path EXAMPLE map keyed by actor id (SPE-2616 persistence fixture). */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS_MAP: Spe947MediaEconomyCommercializationActorRecordsMap =
+  Object.freeze({
+    [SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR.id]:
+      SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+    [SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR.id]:
+      SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+    [SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id]: SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+  })
 
 /** Shared persisted maps for single- and multi-actor EXAMPLE fixtures. */
 const SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS = Object.freeze({

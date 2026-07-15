@@ -72,7 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2615](https://linear.app/spectranoir/issue/SPE-2615/week-close-orchestration-hook-over-media-economy-aggregate-slice-1) SPE-947 week-close orchestration hook over media-economy aggregate (slice 1) — pure week-close compose over SPE-2613/2614 aggregate (SPE-2577 pattern); branch `spe-947-media-economy-week-close-orchestration-slice-1`; see `planning/spe-947-media-economy-week-close-orchestration-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2616](https://linear.app/spectranoir/issue/SPE-2616/persisted-commercialization-actor-map-richer-advanceweek-delta) SPE-947 persisted commercialization-actor map + richer advanceWeek delta mutation (slice 1) — sanitize/hydrate actors on GameState + wire `advanceWeek` into SPE-2615 tick with `lastWeeklyTickWeek`; branch `spe-947-commercialization-actor-persistence-slice-1`; see `planning/spe-947-commercialization-actor-persistence-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+
+**Recently shipped:** [SPE-2615](https://linear.app/spectranoir/issue/SPE-2615/week-close-orchestration-hook-over-media-economy-aggregate-slice-1) SPE-947 week-close orchestration hook over media-economy aggregate (slice 1) — pure week-close compose over SPE-2613/2614 aggregate (SPE-2577 pattern); PR #3132 @ `cc05bf50`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2614](https://linear.app/spectranoir/issue/SPE-2614/further-media-economy-growth-third-commercial-path-week-close-wire) SPE-947 further media-economy growth (third commercial path) (slice 1) — third authored commercialization path + three-path aggregate over SPE-2613; PR #3130 @ `731d0af5`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 

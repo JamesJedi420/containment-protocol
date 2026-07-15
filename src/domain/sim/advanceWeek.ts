@@ -270,6 +270,7 @@ import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestr
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
 import { applyWeeklySpe947MediaEconomyTick } from '../spe947MediaEconomyWeeklyOrchestration'
+import { listSpe947MediaEconomyCommercializationActors } from '../spe947MediaEconomySimulator'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
@@ -4978,11 +4979,13 @@ export function advanceWeek(
     outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
   }
 
-  // SPE-2615 slice 1: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
-  // Commercialization actors are not GameState-persisted yet — empty actors ⇒ no-op (no invent).
-  // Shared economy maps mutate only when an authored weekly delta exists (none in slice 1).
+  // SPE-2615 / SPE-2616: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
+  // Persisted commercialization actors feed the tick; empty actors ⇒ no-op (no invent).
+  // Shared economy maps mutate only when an authored weekly delta exists (none through SPE-2616).
   const mediaEconomyWeekClose = applyWeeklySpe947MediaEconomyTick({
-    actors: [],
+    actors: listSpe947MediaEconomyCommercializationActors(
+      outputWeeklyState.spe947MediaEconomyCommercializationActors
+    ),
     maps: {
       spe947PostCaseMediaCases: outputWeeklyState.spe947PostCaseMediaCases,
       spe947MediaEconomyWeights: outputWeeklyState.spe947MediaEconomyWeights,
@@ -4990,7 +4993,12 @@ export function advanceWeek(
         outputWeeklyState.spe947MediaEconomyContinuityBindings,
     },
     week: result.week,
+    lastWeeklyTickWeek: outputWeeklyState.spe947MediaEconomyLastWeeklyTickWeek,
   })
+  if (mediaEconomyWeekClose.lastWeeklyTickWeek !== undefined) {
+    outputWeeklyState.spe947MediaEconomyLastWeeklyTickWeek =
+      mediaEconomyWeekClose.lastWeeklyTickWeek
+  }
   if (mediaEconomyWeekClose.mapsMutated) {
     outputWeeklyState.spe947MediaEconomyWeights =
       mediaEconomyWeekClose.maps.spe947MediaEconomyWeights ?? {}

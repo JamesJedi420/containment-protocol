@@ -54,7 +54,7 @@ Ship the smallest deterministic expansion beyond SPE-2611’s single EXAMPLE act
 - [x] SPE-2609 continuity status semantics unchanged; SPE-2610 sanitize round-trip remains valid
 - [x] Factor < 1 / overflow stay invalid; no mid-week mutations; no invented media-economy or propagation graph
 - [x] `npm run lint` + targeted tests green
-- [ ] Parent SPE-947 stays **Backlog**; child Done only after merge
+- [x] Parent SPE-947 stays **Backlog**; child Done only after merge
 
 ## Validation
 

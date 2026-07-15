@@ -500,7 +500,12 @@ export interface Spe947MediaEconomyCrossPathAggregateReading {
 }
 
 function persistenceRiskScoreForCompare(reading: Spe947MediaEconomySimReading): number {
-  return reading.simDecision?.persistenceRiskScore ?? Number.NEGATIVE_INFINITY
+  return (
+    reading.simDecision?.persistenceRiskScore ??
+    reading.continuityDecision?.persistenceRiskScore ??
+    reading.baseDecision?.persistenceRiskScore ??
+    Number.NEGATIVE_INFINITY
+  )
 }
 
 /**
@@ -576,7 +581,12 @@ export function composeSpe947CommercializationEconomyCrossPathAggregate(input: {
     case 'multi_path': {
       const worseReading = selectWorseCrossPathReading(multiPath.readings)
       const worsePersistenceRiskScore =
-        worseReading?.simDecision?.persistenceRiskScore ?? null
+        worseReading === null
+          ? null
+          : (worseReading.simDecision?.persistenceRiskScore ??
+            worseReading.continuityDecision?.persistenceRiskScore ??
+            worseReading.baseDecision?.persistenceRiskScore ??
+            null)
 
       return Object.freeze({
         multiPath,

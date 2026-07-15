@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2612](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                                                     |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2612 — Broader multi-actor media-economy growth (slice 1)](https://linear.app/spectranoir/issue/SPE-2612/broader-multi-actor-media-economy-growth-slice-1)                           |
-| **Status**          | **In Progress**                                                                                                                                                                           |
+| **Status**          | **Done** (merged PR #3126 @ `7e6c41f7`)                                                                                                                                                   |
 | **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**                                                 |
 | **Branch**          | `spe-947-media-economy-multi-actor-slice-1`                                                                                                                                               |
 | **Base `main` SHA** | `cf289141`                                                                                                                                                                                |
@@ -66,7 +66,7 @@ Ship the smallest deterministic expansion beyond SPE-2611’s single EXAMPLE act
 | Item                                               | Suggested owner              | Why deferred                    |
 | -------------------------------------------------- | ---------------------------- | ------------------------------- |
 | Propagation graph wire-up                          | SPE-956 / harvest #965       | Deferred since SPE-2111         |
-| Broader media-economy growth beyond two-actor compose | Later SPE-947 sibling     | Slice 1 = multi-path over sim   |
+| Broader media-economy growth beyond two-actor compose | [SPE-2613](https://linear.app/spectranoir/issue/SPE-2613) | Slice 1 = multi-path over sim; cross-path aggregate = next sibling |
 | Parent umbrella Done                               | Later SPE-947 reconciliation | Wire-up still open              |
 
 ## See also

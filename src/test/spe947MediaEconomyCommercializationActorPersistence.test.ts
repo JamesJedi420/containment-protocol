@@ -109,15 +109,16 @@ describe('spe947MediaEconomyCommercializationActorPersistence (SPE-2616 / SPE-94
 
   it('drops proto-pollution keys during sanitize', () => {
     const protoPollution = sanitizeSpe947MediaEconomyCommercializationActors({
-      __proto__: {
+      polluted: {
         id: '__proto__',
-        label: 'Proto pollution',
+        label: 'Proto pollution attempt',
         continuityBindingId: 'bind:proto',
         actorWorsenFactor: 2,
       },
       valid: SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
     })
 
+    expect(Object.prototype.hasOwnProperty.call(protoPollution, '__proto__')).toBe(false)
     expect(Object.keys(protoPollution)).toEqual([SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id])
   })
 

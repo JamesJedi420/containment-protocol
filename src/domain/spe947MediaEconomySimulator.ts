@@ -167,7 +167,7 @@ export function listSpe947MediaEconomyCommercializationActors(
   const map = actors ?? {}
   return Object.freeze(
     Object.keys(map)
-      .sort((left, right) => left.localeCompare(right))
+      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
       .flatMap((actorId) => {
         const actor = map[actorId]
         return actor ? [actor] : []

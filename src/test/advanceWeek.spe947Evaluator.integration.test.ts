@@ -180,3 +180,44 @@ describe('advanceWeek SPE-947 evaluator weekly orchestration (SPE-2577)', () => 
     expect(transitionNotes).toEqual([])
   })
 })
+
+describe('advanceWeek SPE-947 media-economy week-close (SPE-2615)', () => {
+  it('no-ops for empty economy maps / no persisted actors without inventing truth', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.spe947MediaEconomyWeights = {}
+    state.spe947MediaEconomyContinuityBindings = {}
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.spe947MediaEconomyWeights).toEqual({})
+    expect(nextState.spe947MediaEconomyContinuityBindings).toEqual({})
+  })
+
+  it('does not mutate authored economy maps when actors are not persisted', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 6
+    state.spe947MediaEconomyWeights = {
+      'weight:test': {
+        id: 'weight:test',
+        label: 'Test weight',
+        continuityFactor: 2,
+      },
+    }
+    state.spe947MediaEconomyContinuityBindings = {
+      'bind:test': {
+        id: 'bind:test',
+        caseId: 'case:test',
+        economyWeightId: 'weight:test',
+      },
+    }
+    const priorWeights = state.spe947MediaEconomyWeights
+    const priorBindings = state.spe947MediaEconomyContinuityBindings
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.spe947MediaEconomyWeights).toEqual(priorWeights)
+    expect(nextState.spe947MediaEconomyContinuityBindings).toEqual(priorBindings)
+  })
+})

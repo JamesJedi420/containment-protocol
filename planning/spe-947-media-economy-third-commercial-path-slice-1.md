@@ -71,7 +71,7 @@ Ship the smallest deterministic growth past SPE-2613’s two-actor cross-path ag
 | Item                                                            | Suggested owner              | Why deferred                         |
 | --------------------------------------------------------------- | ---------------------------- | ------------------------------------ |
 | Propagation graph wire-up                                       | SPE-956 / harvest 965        | Deferred since SPE-2111              |
-| Week-close orchestration hook over media-economy aggregate      | Later SPE-947 sibling        | Slice 1 = third commercial path only |
+| Week-close orchestration hook over media-economy aggregate      | [SPE-2615](https://linear.app/spectranoir/issue/SPE-2615) | Opened as next SPE-947 sibling after third commercial path |
 | Parent umbrella Done                                            | Later SPE-947 reconciliation | Wire-up still open                   |
 
 ## See also

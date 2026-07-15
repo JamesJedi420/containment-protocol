@@ -269,6 +269,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
+import { applyWeeklySpe947MediaEconomyTick } from '../spe947MediaEconomyWeeklyOrchestration'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
@@ -4975,6 +4976,26 @@ export function advanceWeek(
     const nextSpe947Maps = applyWeeklySpe947EvaluatorTick(priorSpe947Maps, result.week)
     outputWeeklyState.spe947PlatformRecords = nextSpe947Maps.spe947PlatformRecords
     outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
+  }
+
+  // SPE-2615 slice 1: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
+  // Commercialization actors are not GameState-persisted yet — empty actors ⇒ no-op (no invent).
+  // Shared economy maps mutate only when an authored weekly delta exists (none in slice 1).
+  const mediaEconomyWeekClose = applyWeeklySpe947MediaEconomyTick({
+    actors: [],
+    maps: {
+      spe947PostCaseMediaCases: outputWeeklyState.spe947PostCaseMediaCases,
+      spe947MediaEconomyWeights: outputWeeklyState.spe947MediaEconomyWeights,
+      spe947MediaEconomyContinuityBindings:
+        outputWeeklyState.spe947MediaEconomyContinuityBindings,
+    },
+    week: result.week,
+  })
+  if (mediaEconomyWeekClose.mapsMutated) {
+    outputWeeklyState.spe947MediaEconomyWeights =
+      mediaEconomyWeekClose.maps.spe947MediaEconomyWeights ?? {}
+    outputWeeklyState.spe947MediaEconomyContinuityBindings =
+      mediaEconomyWeekClose.maps.spe947MediaEconomyContinuityBindings ?? {}
   }
 
   // SPE-2596 slice 1: surface post-tick spe947* plan/platform transitions in weekly report notes.

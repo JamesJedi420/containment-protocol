@@ -7,6 +7,13 @@ import type {
   Spe947PersistedPlatform,
 } from '../domain/spe947EvaluatorPersistence'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import {
+  EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE,
+} from '../domain/spe947MediaEconomyContinuity'
+import {
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+} from '../domain/spe947MediaEconomySimulator'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -219,5 +226,46 @@ describe('advanceWeek SPE-947 media-economy week-close (SPE-2615)', () => {
 
     expect(nextState.spe947MediaEconomyWeights).toEqual(priorWeights)
     expect(nextState.spe947MediaEconomyContinuityBindings).toEqual(priorBindings)
+  })
+
+  it('applies authored economy-map weekly deltas once when actors are persisted (SPE-2617)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 6
+    state.spe947PostCaseMediaCases = {
+      [EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE.caseId!]:
+        EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,
+    }
+    state.spe947MediaEconomyWeights = {
+      ...SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE.spe947MediaEconomyWeights,
+      'economy:merch-attention-boost': {
+        ...SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE.spe947MediaEconomyWeights[
+          'economy:merch-attention-boost'
+        ]!,
+        weeklyContinuityFactorDelta: 0.5,
+      },
+    }
+    state.spe947MediaEconomyContinuityBindings = {
+      ...SPE_947_EXAMPLE_MEDIA_ECONOMY_PERSISTENCE_FIXTURE.spe947MediaEconomyContinuityBindings,
+    }
+    state.spe947MediaEconomyCommercializationActors = Object.freeze({
+      [SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id]: SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+    })
+
+    const once = advanceWeek(state)
+    expect(once.spe947MediaEconomyLastWeeklyTickWeek).toBe(7)
+    expect(
+      once.spe947MediaEconomyWeights?.['economy:merch-attention-boost']?.continuityFactor
+    ).toBe(2.5)
+
+    const reticked = advanceWeek({
+      ...once,
+      week: 6,
+      spe947MediaEconomyCommercializationActors: once.spe947MediaEconomyCommercializationActors,
+      spe947MediaEconomyLastWeeklyTickWeek: once.spe947MediaEconomyLastWeeklyTickWeek,
+    })
+    expect(
+      reticked.spe947MediaEconomyWeights?.['economy:merch-attention-boost']?.continuityFactor
+    ).toBe(2.5)
   })
 })

@@ -5,10 +5,15 @@ import {
   EXAMPLE_ADAPTATION_COMMERCIALIZATION_POST_CASE_MEDIA,
 } from '../domain/postCaseMediaPersistence'
 import {
+  applyWeeklySpe947MediaEconomyMapDeltas,
   composeCommercializationContinuityMediaInput,
   composeSpe947MediaEconomyContinuityReadings,
   EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,
+  hasSpe947MediaEconomyBindingWeeklyDelta,
+  hasSpe947MediaEconomyWeightWeeklyDelta,
   resolveSpe947MediaEconomyContinuity,
+  sanitizeSpe947MediaEconomyContinuityBindings,
+  sanitizeSpe947MediaEconomyWeights,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT,
 } from '../domain/spe947MediaEconomyContinuity'
@@ -228,5 +233,123 @@ describe('spe947MediaEconomyContinuity (SPE-2609 / SPE-947)', () => {
         },
       })
     ).toEqual([])
+  })
+
+  it('sanitizes authored weeklyContinuityFactorDelta on weights (SPE-2617)', () => {
+    const sanitized = sanitizeSpe947MediaEconomyWeights({
+      'weight:delta': {
+        id: 'weight:delta',
+        label: 'Delta weight',
+        continuityFactor: 2,
+        weeklyContinuityFactorDelta: 0.5,
+      },
+    })
+
+    expect(sanitized['weight:delta']).toEqual({
+      id: 'weight:delta',
+      label: 'Delta weight',
+      continuityFactor: 2,
+      weeklyContinuityFactorDelta: 0.5,
+    })
+    expect(hasSpe947MediaEconomyWeightWeeklyDelta(sanitized['weight:delta']!)).toBe(true)
+  })
+
+  it('drops weight entries with malformed weeklyContinuityFactorDelta on sanitize', () => {
+    expect(
+      sanitizeSpe947MediaEconomyWeights({
+        bad: {
+          id: 'bad',
+          label: 'Bad delta',
+          continuityFactor: 1,
+          weeklyContinuityFactorDelta: -1,
+        },
+      })
+    ).toEqual({})
+  })
+
+  it('sanitizes authored weeklyEconomyWeightId on bindings (SPE-2617)', () => {
+    const sanitized = sanitizeSpe947MediaEconomyContinuityBindings({
+      'bind:delta': {
+        id: 'bind:delta',
+        caseId: 'case:test',
+        economyWeightId: 'weight:base',
+        weeklyEconomyWeightId: 'weight:replacement',
+      },
+    })
+
+    expect(sanitized['bind:delta']).toEqual({
+      id: 'bind:delta',
+      caseId: 'case:test',
+      economyWeightId: 'weight:base',
+      weeklyEconomyWeightId: 'weight:replacement',
+    })
+    expect(hasSpe947MediaEconomyBindingWeeklyDelta(sanitized['bind:delta']!)).toBe(true)
+  })
+
+  it('drops binding entries with blank weeklyEconomyWeightId on sanitize', () => {
+    expect(
+      sanitizeSpe947MediaEconomyContinuityBindings({
+        bad: {
+          id: 'bad',
+          caseId: 'case:test',
+          economyWeightId: 'weight:base',
+          weeklyEconomyWeightId: '   ',
+        },
+      })
+    ).toEqual({})
+  })
+
+  it('applyWeeklySpe947MediaEconomyMapDeltas mutates continuityFactor and economyWeightId once', () => {
+    const maps = {
+      spe947MediaEconomyWeights: {
+        'weight:base': {
+          id: 'weight:base',
+          label: 'Base',
+          continuityFactor: 2,
+          weeklyContinuityFactorDelta: 1,
+        },
+      },
+      spe947MediaEconomyContinuityBindings: {
+        'bind:swap': {
+          id: 'bind:swap',
+          caseId: 'case:test',
+          economyWeightId: 'weight:base',
+          weeklyEconomyWeightId: 'weight:replacement',
+        },
+      },
+    }
+
+    const applied = applyWeeklySpe947MediaEconomyMapDeltas(maps)
+    expect(applied).not.toBe(maps)
+    expect(applied.spe947MediaEconomyWeights?.['weight:base']?.continuityFactor).toBe(3)
+    expect(applied.spe947MediaEconomyWeights?.['weight:base']?.weeklyContinuityFactorDelta).toBe(1)
+    expect(applied.spe947MediaEconomyContinuityBindings?.['bind:swap']?.economyWeightId).toBe(
+      'weight:replacement'
+    )
+    expect(
+      applied.spe947MediaEconomyContinuityBindings?.['bind:swap']?.weeklyEconomyWeightId
+    ).toBe('weight:replacement')
+  })
+
+  it('applyWeeklySpe947MediaEconomyMapDeltas keeps identity when deltas are absent or no-op', () => {
+    const maps = {
+      spe947MediaEconomyWeights: {
+        'weight:base': {
+          id: 'weight:base',
+          label: 'Base',
+          continuityFactor: 2,
+        },
+      },
+      spe947MediaEconomyContinuityBindings: {
+        'bind:noop': {
+          id: 'bind:noop',
+          caseId: 'case:test',
+          economyWeightId: 'weight:base',
+          weeklyEconomyWeightId: 'weight:base',
+        },
+      },
+    }
+
+    expect(applyWeeklySpe947MediaEconomyMapDeltas(maps)).toBe(maps)
   })
 })

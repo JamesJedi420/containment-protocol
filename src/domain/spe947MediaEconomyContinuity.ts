@@ -10,6 +10,8 @@
  *
  * SPE-2610: sanitize/hydrate for `spe947MediaEconomyWeights` and
  * `spe947MediaEconomyContinuityBindings` (round-trip only; SPE-2576 pattern).
+ * SPE-2617: optional `weeklyContinuityFactorDelta` / `weeklyEconomyWeightId` +
+ * week-close apply via `applyWeeklySpe947MediaEconomyMapDeltas`.
  */
 
 import {
@@ -42,6 +44,11 @@ export interface Spe947MediaEconomyWeight {
    * continuity multiplier when present.
    */
   readonly attentionIncentive?: number
+  /**
+   * Optional SPE-2617 week-close additive delta (SPE-2577 `weeklyViewDelta` pattern).
+   * When authored, adds to `continuityFactor` once per media-economy orchestration tick.
+   */
+  readonly weeklyContinuityFactorDelta?: number
 }
 
 export type Spe947MediaEconomyWeightRecordsMap = Record<string, Spe947MediaEconomyWeight>
@@ -55,6 +62,11 @@ export interface Spe947MediaEconomyContinuityBinding {
   readonly caseId: string
   readonly economyWeightId: string
   readonly mediaArtifactId?: string
+  /**
+   * Optional SPE-2617 week-close replacement (SPE-2577 `weeklyUptimeState` pattern).
+   * When authored, sets `economyWeightId` once per media-economy orchestration tick.
+   */
+  readonly weeklyEconomyWeightId?: string
 }
 
 export type Spe947MediaEconomyContinuityBindingRecordsMap = Record<
@@ -149,6 +161,13 @@ function sanitizeSpe947MediaEconomyWeightEntry(value: unknown): Spe947MediaEcono
     return null
   }
 
+  if (
+    value.weeklyContinuityFactorDelta !== undefined &&
+    !isNonNegativeFinite(value.weeklyContinuityFactorDelta)
+  ) {
+    return null
+  }
+
   return Object.freeze({
     id,
     label,
@@ -156,6 +175,9 @@ function sanitizeSpe947MediaEconomyWeightEntry(value: unknown): Spe947MediaEcono
     ...(value.profitIncentive !== undefined ? { profitIncentive: value.profitIncentive } : {}),
     ...(value.attentionIncentive !== undefined
       ? { attentionIncentive: value.attentionIncentive }
+      : {}),
+    ...(value.weeklyContinuityFactorDelta !== undefined
+      ? { weeklyContinuityFactorDelta: value.weeklyContinuityFactorDelta }
       : {}),
   })
 }
@@ -191,11 +213,17 @@ function sanitizeSpe947MediaEconomyContinuityBindingEntry(
       ? value.mediaArtifactId.trim()
       : undefined
 
+  const weeklyEconomyWeightId = normalizeId(value.weeklyEconomyWeightId, '')
+  if (value.weeklyEconomyWeightId !== undefined && weeklyEconomyWeightId.length === 0) {
+    return null
+  }
+
   return Object.freeze({
     id,
     caseId,
     economyWeightId,
     ...(mediaArtifactId !== undefined ? { mediaArtifactId } : {}),
+    ...(weeklyEconomyWeightId.length > 0 ? { weeklyEconomyWeightId } : {}),
   })
 }
 
@@ -550,6 +578,98 @@ export function composeSpe947MediaEconomyContinuityReadings(input: {
       ]
     })
   )
+}
+
+/** True when a weight carries an authored week-close continuity-factor delta. */
+export function hasSpe947MediaEconomyWeightWeeklyDelta(
+  weight: Pick<Spe947MediaEconomyWeight, 'weeklyContinuityFactorDelta'>
+): boolean {
+  return isNonNegativeFinite(weight.weeklyContinuityFactorDelta)
+}
+
+/** True when a binding carries an authored week-close economy-weight replacement. */
+export function hasSpe947MediaEconomyBindingWeeklyDelta(
+  binding: Pick<Spe947MediaEconomyContinuityBinding, 'weeklyEconomyWeightId'>
+): boolean {
+  return (
+    typeof binding.weeklyEconomyWeightId === 'string' &&
+    binding.weeklyEconomyWeightId.trim().length > 0
+  )
+}
+
+/**
+ * Applies authored weekly deltas over economy weights / continuity bindings once.
+ * Delta fields keep identity on records; only `continuityFactor` / `economyWeightId` mutate.
+ * Returns the same maps reference when no nested field changes.
+ */
+export function applyWeeklySpe947MediaEconomyMapDeltas(
+  maps: Spe947MediaEconomyContinuityMaps
+): Spe947MediaEconomyContinuityMaps {
+  const weights = maps.spe947MediaEconomyWeights ?? {}
+  const bindings = maps.spe947MediaEconomyContinuityBindings ?? {}
+  const weightIds = Object.keys(weights).sort((left, right) => left.localeCompare(right))
+  const bindingIds = Object.keys(bindings).sort((left, right) => left.localeCompare(right))
+
+  if (weightIds.length === 0 && bindingIds.length === 0) {
+    return maps
+  }
+
+  const nextWeights: Spe947MediaEconomyWeightRecordsMap = { ...weights }
+  const nextBindings: Spe947MediaEconomyContinuityBindingRecordsMap = { ...bindings }
+  let weightsChanged = false
+  let bindingsChanged = false
+
+  for (const weightId of weightIds) {
+    const weight = weights[weightId]
+    if (!weight || !hasSpe947MediaEconomyWeightWeeklyDelta(weight)) {
+      continue
+    }
+
+    const nextContinuityFactor = roundMetric(
+      weight.continuityFactor + weight.weeklyContinuityFactorDelta!
+    )
+    if (nextContinuityFactor === weight.continuityFactor) {
+      continue
+    }
+
+    nextWeights[weightId] = Object.freeze({
+      ...weight,
+      continuityFactor: nextContinuityFactor,
+    })
+    weightsChanged = true
+  }
+
+  for (const bindingId of bindingIds) {
+    const binding = bindings[bindingId]
+    if (!binding || !hasSpe947MediaEconomyBindingWeeklyDelta(binding)) {
+      continue
+    }
+
+    const nextEconomyWeightId = binding.weeklyEconomyWeightId!
+    if (nextEconomyWeightId === binding.economyWeightId) {
+      continue
+    }
+
+    nextBindings[bindingId] = Object.freeze({
+      ...binding,
+      economyWeightId: nextEconomyWeightId,
+    })
+    bindingsChanged = true
+  }
+
+  if (!weightsChanged && !bindingsChanged) {
+    return maps
+  }
+
+  return Object.freeze({
+    ...maps,
+    ...(weightsChanged
+      ? { spe947MediaEconomyWeights: Object.freeze(nextWeights) }
+      : {}),
+    ...(bindingsChanged
+      ? { spe947MediaEconomyContinuityBindings: Object.freeze(nextBindings) }
+      : {}),
+  })
 }
 
 /**

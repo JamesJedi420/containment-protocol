@@ -132,4 +132,70 @@ describe('spe947MediaEconomyWeeklyOrchestration (SPE-2615 / SPE-947)', () => {
     expect(result.lastWeeklyTickWeek).toBe(1)
     expect(result.status).toBe('orchestrated')
   })
+
+  it('orchestrates with mapsMutated when authored weight delta applies (SPE-2617)', () => {
+    const baseMaps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
+    const maps = {
+      ...baseMaps,
+      spe947MediaEconomyWeights: Object.freeze({
+        ...baseMaps.spe947MediaEconomyWeights,
+        'economy:merch-attention-boost': Object.freeze({
+          ...baseMaps.spe947MediaEconomyWeights!['economy:merch-attention-boost']!,
+          weeklyContinuityFactorDelta: 0.25,
+        }),
+      }),
+    }
+
+    expect(hasSpe947MediaEconomyWeeklyDelta(maps)).toBe(true)
+
+    const result = applyWeeklySpe947MediaEconomyTick({
+      actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+      maps,
+      week: 11,
+    })
+
+    expect(result.status).toBe('orchestrated')
+    expect(result.mapsMutated).toBe(true)
+    expect(result.maps).not.toBe(maps)
+    expect(
+      result.maps.spe947MediaEconomyWeights?.['economy:merch-attention-boost']?.continuityFactor
+    ).toBe(2.25)
+  })
+
+  it('same-week re-tick does not double-apply authored deltas (SPE-2617)', () => {
+    const baseMaps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
+    const maps = {
+      ...baseMaps,
+      spe947MediaEconomyWeights: Object.freeze({
+        ...baseMaps.spe947MediaEconomyWeights,
+        'economy:merch-attention-boost': Object.freeze({
+          ...baseMaps.spe947MediaEconomyWeights!['economy:merch-attention-boost']!,
+          weeklyContinuityFactorDelta: 1,
+        }),
+      }),
+    }
+
+    const first = applyWeeklySpe947MediaEconomyTick({
+      actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+      maps,
+      week: 5,
+    })
+    const second = applyWeeklySpe947MediaEconomyTick({
+      actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+      maps: first.maps,
+      week: 5,
+      lastWeeklyTickWeek: first.lastWeeklyTickWeek,
+    })
+
+    expect(first.mapsMutated).toBe(true)
+    expect(
+      first.maps.spe947MediaEconomyWeights?.['economy:merch-attention-boost']?.continuityFactor
+    ).toBe(3)
+    expect(second.status).toBe('already_ticked')
+    expect(second.mapsMutated).toBe(false)
+    expect(second.maps).toBe(first.maps)
+    expect(
+      second.maps.spe947MediaEconomyWeights?.['economy:merch-attention-boost']?.continuityFactor
+    ).toBe(3)
+  })
 })

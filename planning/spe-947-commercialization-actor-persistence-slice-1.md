@@ -65,7 +65,7 @@ Ship the smallest SPE-2576-style sanitize/hydrate for authored commercialization
 
 | Item                         | Suggested owner              | Why deferred                                      |
 | ---------------------------- | ---------------------------- | ------------------------------------------------- |
-| Authored weekly economy-map delta fields | Later SPE-947 sibling | `hasSpe947MediaEconomyWeeklyDelta` still false — maps identity-only |
+| Authored weekly economy-map delta fields | **Done** — [SPE-2617](https://linear.app/spectranoir/issue/SPE-2617) | `weeklyContinuityFactorDelta` / `weeklyEconomyWeightId` + week-close apply |
 | Propagation graph wire-up    | SPE-956 / harvest 965        | Deferred since SPE-2111                           |
 | Parent umbrella Done         | Later SPE-947 reconciliation | Wire-up still open                                |
 

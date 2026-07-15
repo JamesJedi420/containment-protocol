@@ -1,5 +1,6 @@
 /**
- * SPE-2611 / SPE-2612 / SPE-2613 / SPE-947: commercialization / media-economy simulator.
+ * SPE-2611 / SPE-2612 / SPE-2613 / SPE-2614 / SPE-947: commercialization /
+ * media-economy simulator.
  *
  * Compose/sim only over SPE-2610 persisted economy maps + SPE-2609 continuity
  * resolve/compose. SPE-2611: one authored commercialization actor/path can worsen
@@ -7,8 +8,10 @@
  * deterministic multi-path compose over the same persisted maps (extend, do not
  * rewrite SPE-2611 single-path semantics). SPE-2613: authored cross-path aggregate
  * (any / worse reading) over SPE-2612 multi-path without mid-week mutation or
- * sequential shared-map rewrite. No full internet simulator, no SPE-956 graph,
- * no mid-week mutations, no SPE-2609 status rewrite, no SPE-2610 sanitize rewrite.
+ * sequential shared-map rewrite. SPE-2614: third distinct commercialization EXAMPLE
+ * path + three-path aggregate over the same maps (extend, do not rewrite 2611–2613).
+ * No full internet simulator, no SPE-956 graph, no mid-week mutations, no week-close
+ * invent, no SPE-2609 status rewrite, no SPE-2610 sanitize rewrite.
  */
 
 import {
@@ -627,11 +630,32 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR: Spe947MediaEconomyC
     actorWorsenFactor: 3,
   })
 
+/**
+ * Third EXAMPLE commercialization actor (SPE-2614): clip-farm reseller.
+ * Same continuity binding / persisted maps as merch + livestream; factor 4.
+ * Id sorts before livestream and merch under code-unit order.
+ */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR: Spe947MediaEconomyCommercializationActor =
+  Object.freeze({
+    id: 'actor:clip-farm-reseller',
+    label: 'Clip-farm reseller',
+    continuityBindingId: SPE_947_EXAMPLE_MEDIA_ECONOMY_CONTINUITY_BINDING.id,
+    actorWorsenFactor: 4,
+  })
+
 /** Authored multi-actor EXAMPLE list (≥2 commercialization paths over the same maps). */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS: readonly Spe947MediaEconomyCommercializationActor[] =
   Object.freeze([
     SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
     SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+  ])
+
+/** Authored three-path EXAMPLE list (SPE-2614): ≥3 commercialization paths over the same maps. */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS: readonly Spe947MediaEconomyCommercializationActor[] =
+  Object.freeze([
+    SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+    SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+    SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
   ])
 
 /** Shared persisted maps for single- and multi-actor EXAMPLE fixtures. */
@@ -667,5 +691,14 @@ export const SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE = Object.free
  */
 export const SPE_947_EXAMPLE_MEDIA_ECONOMY_CROSS_PATH_AGGREGATE_FIXTURE = Object.freeze({
   actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+  maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
+})
+
+/**
+ * Three-path aggregate fixture (SPE-2614): same persisted maps + ≥3 authored actors.
+ * Empty defaults ≠ AC. Actor list order is intentionally reverse of id sort for tests.
+ */
+export const SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE = Object.freeze({
+  actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
   maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_MAPS,
 })

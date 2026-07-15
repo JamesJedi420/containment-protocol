@@ -14,15 +14,18 @@ import {
   composeSpe947CommercializationEconomyMultiPath,
   composeSpe947CommercializationEconomySims,
   simulateSpe947CommercializationEconomyPath,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_CROSS_PATH_AGGREGATE_FIXTURE,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_MULTI_ACTOR_SIM_FIXTURE,
   SPE_947_EXAMPLE_MEDIA_ECONOMY_SIM_FIXTURE,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+  SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE,
 } from '../domain/spe947MediaEconomySimulator'
 
-describe('spe947MediaEconomySimulator (SPE-2611 / SPE-2612 / SPE-2613 / SPE-947)', () => {
+describe('spe947MediaEconomySimulator (SPE-2611 / SPE-2612 / SPE-2613 / SPE-2614 / SPE-947)', () => {
   it('empty persisted economy maps do not throw or falsely satisfy residual-risk AC', () => {
     expect(() =>
       simulateSpe947CommercializationEconomyPath({
@@ -351,6 +354,138 @@ describe('spe947MediaEconomySimulator (SPE-2611 / SPE-2612 / SPE-2613 / SPE-947)
 
       composeSpe947CommercializationEconomyCrossPathAggregate({
         actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTORS,
+        maps,
+      })
+
+      const afterArtifacts = maps.spe947PostCaseMediaCases![caseId]!.mediaArtifacts!.map(
+        (artifact) => ({ id: artifact.id, kind: artifact.kind, riskWeight: artifact.riskWeight })
+      )
+      expect(afterArtifacts).toEqual(beforeArtifacts)
+    })
+  })
+
+  describe('SPE-2614 third commercial path beyond cross-path aggregate', () => {
+    it('empty three-path actors do not throw or falsely satisfy residual-risk AC', () => {
+      const aggregate = composeSpe947CommercializationEconomyCrossPathAggregate({
+        actors: [],
+        maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps,
+      })
+
+      expect(aggregate.status).toBe('empty_actors')
+      expect(aggregate.anyRemainsRisky).toBe(false)
+      expect(aggregate.worseReading).toBeNull()
+      expect(aggregate.worseActorId).toBeNull()
+    })
+
+    it('empty persisted maps with ≥3 actors stay empty_maps without false AC', () => {
+      const aggregate = composeSpe947CommercializationEconomyCrossPathAggregate({
+        actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+        maps: {
+          spe947MediaEconomyWeights: {},
+          spe947MediaEconomyContinuityBindings: {},
+        },
+      })
+
+      expect(aggregate.status).toBe('empty_maps')
+      expect(aggregate.anyRemainsRisky).toBe(false)
+      expect(aggregate.anyWorsened).toBe(false)
+      expect(aggregate.worseReading).toBeNull()
+      expect(aggregate.worseActorId).toBeNull()
+    })
+
+    it('third commercialization path worsens residual risk beyond two-actor EXAMPLE', () => {
+      const reading = simulateSpe947CommercializationEconomyPath({
+        actor: SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+        maps: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps,
+      })
+
+      expect(reading.status).toBe('worsened')
+      // adaptation 1 + commercialization 1 * continuity 3 * clip-farm 4 = 13
+      expect(reading.simDecision?.persistenceRiskScore).toBe(13)
+      expect(reading.remainsRisky).toBe(true)
+      expect(reading.reasonCodes).toContain('adaptation_untouched')
+      expect(reading.reasonCodes).toContain('residual_risk_worsened')
+    })
+
+    it('three-path aggregate picks deterministic worse reading beyond SPE-2613 two-actor EXAMPLE', () => {
+      const twoPath = composeSpe947CommercializationEconomyCrossPathAggregate(
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_CROSS_PATH_AGGREGATE_FIXTURE
+      )
+      const threePath = composeSpe947CommercializationEconomyCrossPathAggregate(
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE
+      )
+
+      expect(twoPath.worseActorId).toBe(SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR.id)
+      expect(twoPath.worsePersistenceRiskScore).toBe(10)
+      expect(twoPath.multiPath.readings).toHaveLength(2)
+
+      expect(threePath.status).toBe('cross_path_aggregate')
+      expect(threePath.anyRemainsRisky).toBe(true)
+      expect(threePath.anyWorsened).toBe(true)
+      expect(threePath.multiPath.readings).toHaveLength(3)
+      expect(threePath.multiPath.actorIdsInOrder).toEqual([
+        'actor:clip-farm-reseller',
+        'actor:livestream-tour-promoter',
+        'actor:merch-attention-promoter',
+      ])
+
+      // Clip-farm factor 4 → score 13 beats livestream 10 / merch 7.
+      expect(threePath.worseActorId).toBe(SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id)
+      expect(threePath.worsePersistenceRiskScore).toBe(13)
+      expect(threePath.worseReading?.status).toBe('worsened')
+      expect(threePath.worseReading?.reasonCodes).toContain('adaptation_untouched')
+
+      const clipFarm = threePath.multiPath.readings.find(
+        (reading) => reading.actorId === SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id
+      )
+      const livestream = threePath.multiPath.readings.find(
+        (reading) => reading.actorId === SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR.id
+      )
+      const merch = threePath.multiPath.readings.find(
+        (reading) => reading.actorId === SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR.id
+      )
+      expect(clipFarm?.simDecision?.persistenceRiskScore).toBe(13)
+      expect(livestream?.simDecision?.persistenceRiskScore).toBe(10)
+      expect(merch?.simDecision?.persistenceRiskScore).toBe(7)
+    })
+
+    it('three-path worse pick is stable under reversed actor input order', () => {
+      const maps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
+      const reversed = [
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+      ]
+      const forward = [
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_LIVESTREAM_ACTOR,
+        SPE_947_EXAMPLE_MEDIA_ECONOMY_COMMERCIALIZATION_ACTOR,
+      ]
+
+      const fromReversed = composeSpe947CommercializationEconomyCrossPathAggregate({
+        actors: reversed,
+        maps,
+      })
+      const fromForward = composeSpe947CommercializationEconomyCrossPathAggregate({
+        actors: forward,
+        maps,
+      })
+
+      expect(fromReversed.worseActorId).toBe(SPE_947_EXAMPLE_MEDIA_ECONOMY_CLIP_FARM_ACTOR.id)
+      expect(fromForward.worseActorId).toBe(fromReversed.worseActorId)
+      expect(fromForward.worsePersistenceRiskScore).toBe(fromReversed.worsePersistenceRiskScore)
+      expect(fromReversed.multiPath.actorIdsInOrder).toEqual(fromForward.multiPath.actorIdsInOrder)
+    })
+
+    it('three-path aggregate does not sequentially mutate shared maps across actors', () => {
+      const maps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
+      const caseId = EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE.caseId!
+      const beforeArtifacts = maps.spe947PostCaseMediaCases![caseId]!.mediaArtifacts!.map(
+        (artifact) => ({ id: artifact.id, kind: artifact.kind, riskWeight: artifact.riskWeight })
+      )
+
+      composeSpe947CommercializationEconomyCrossPathAggregate({
+        actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
         maps,
       })
 

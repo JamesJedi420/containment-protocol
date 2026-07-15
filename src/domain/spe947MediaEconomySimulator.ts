@@ -1,5 +1,5 @@
 /**
- * SPE-2611 / SPE-2612 / SPE-2613 / SPE-2614 / SPE-947: commercialization /
+ * SPE-2611 / SPE-2612 / SPE-2613 / SPE-2614 / SPE-2615 / SPE-947: commercialization /
  * media-economy simulator.
  *
  * Compose/sim only over SPE-2610 persisted economy maps + SPE-2609 continuity
@@ -10,6 +10,8 @@
  * (any / worse reading) over SPE-2612 multi-path without mid-week mutation or
  * sequential shared-map rewrite. SPE-2614: third distinct commercialization EXAMPLE
  * path + three-path aggregate over the same maps (extend, do not rewrite 2611–2613).
+ * SPE-2615: week-close orchestration composes this aggregate (SPE-2577 pattern peer)
+ * without inventing mid-week truth or rewriting sanitize.
  * No full internet simulator, no SPE-956 graph, no mid-week mutations, no week-close
  * invent, no SPE-2609 status rewrite, no SPE-2610 sanitize rewrite.
  */

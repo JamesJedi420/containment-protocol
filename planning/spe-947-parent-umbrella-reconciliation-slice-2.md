@@ -1,12 +1,12 @@
 # SPE-947 — Parent umbrella reconciliation after SPE-2576–2617 (slice 2)
 
-One-page hygiene record. Linear: [SPE-2618](https://linear.app/spectranoir/issue/SPE-2618/spe-947-parent-umbrella-reconciliation-after-spe-2576-2617-slice-2) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Follows shipped [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576)–[SPE-2617](https://linear.app/spectranoir/issue/SPE-2617); parent stays **Backlog** until explicit owner acceptance.
+One-page hygiene record. Linear: [SPE-2618](https://linear.app/spectranoir/issue/SPE-2618/spe-947-parent-umbrella-reconciliation-after-spe-2576-2617-slice-2) (child under [SPE-947](https://linear.app/spectranoir/issue/SPE-947)). Follows shipped [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576)–[SPE-2617](https://linear.app/spectranoir/issue/SPE-2617); parent **Done** (owner acceptance July 2026).
 
 | Field               | Value                                                                                                                                                                                               |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2618 — SPE-947 parent umbrella reconciliation after SPE-2576–2617 (slice 2)](https://linear.app/spectranoir/issue/SPE-2618/spe-947-parent-umbrella-reconciliation-after-spe-2576-2617-slice-2) |
-| **Status**          | **In Progress**                                                                                                                                                                                     |
-| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**                                                           |
+| **Status**          | **Done** (PR #3137 @ `8f713c51`)                                                                                                                                                                                     |
+| **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; **Done** (owner acceptance July 2026)                                      |
 | **Branch**          | `spe-947-parent-umbrella-reconciliation-slice-2`                                                                                                                                                    |
 | **Base `main` SHA** | `6e88d513`                                                                                                                                                                                          |
 
@@ -79,7 +79,7 @@ Prior reconciliation: [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575) 
 - [x] SPE-947 Linear deferred table marks SPE-2576–2617 wire-up rows **Done**; propagation graph stays SPE-956
 - [x] Parent body records propagation graph does not block SPE-947 AC; umbrella Done awaits explicit acceptance
 - [x] Slice doc + backlog handoff present (SPE-2616/2617 → shipped; reconciliation current)
-- [ ] Parent SPE-947 stays **Backlog**; child Done only after merge
+- [x] Parent SPE-947 **Done** accepted (Linear-only, July 2026); child SPE-2618 Done after merge
 - [x] No `src/` domain/runtime changes
 
 ## Deferred
@@ -87,7 +87,7 @@ Prior reconciliation: [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575) 
 | Item                                        | Suggested owner                                                               | Why deferred                           |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
 | Propagation graph wire-up                   | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) / harvest #965 family | Cross-parent; not SPE-947 AC           |
-| Parent umbrella **Done**                    | Owner explicit acceptance                                                     | Wire-up complete; acceptance gate only |
+| Parent umbrella **Done**                    | **Done** — owner acceptance July 2026                                         | SPE-2618 disposition; 7/7 AC at wire-up |
 | Full internet / sprawling media-economy sim | Owner reprioritization                                                        | Out of bounded SPE-947 slices          |
 
 ## Validation

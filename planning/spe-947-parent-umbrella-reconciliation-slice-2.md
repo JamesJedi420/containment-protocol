@@ -76,8 +76,8 @@ Prior reconciliation: [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575) 
 
 ## Acceptance
 
-- [ ] SPE-947 Linear deferred table marks SPE-2576–2617 wire-up rows **Done**; propagation graph stays SPE-956
-- [ ] Parent body records propagation graph does not block SPE-947 AC; umbrella Done awaits explicit acceptance
+- [x] SPE-947 Linear deferred table marks SPE-2576–2617 wire-up rows **Done**; propagation graph stays SPE-956
+- [x] Parent body records propagation graph does not block SPE-947 AC; umbrella Done awaits explicit acceptance
 - [x] Slice doc + backlog handoff present (SPE-2616/2617 → shipped; reconciliation current)
 - [ ] Parent SPE-947 stays **Backlog**; child Done only after merge
 - [x] No `src/` domain/runtime changes

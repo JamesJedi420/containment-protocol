@@ -44,7 +44,7 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 
 **Level note:** **Yes** means parent AC is evidenced at pure domain-evaluator / focused Vitest level. It does **not** mean GameState persistence, weekly orchestration, store, UI, or propagation-graph wire-up shipped.
 
-**Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) disposition:** **Backlog** — 7/7 rows Yes at domain-evaluator / focused-test level; umbrella stays open until wire-up deferred items close or a later reconciliation explicitly closes the parent.
+**Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) disposition:** **Backlog** — 7/7 rows Yes at domain-evaluator / focused-test level; wire-up/integration shipped SPE-2576–2617 ([SPE-2618](https://linear.app/spectranoir/issue/SPE-2618) reconciliation). Umbrella stays open until owner explicit acceptance; SPE-956 propagation graph does not block SPE-947 AC.
 
 ## Scope (this slice)
 
@@ -66,17 +66,21 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 
 ## Deferred
 
-| Item                                                              | Suggested owner                                                                 | Why deferred                                                                 |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| GameState persistence / schema / hydration for SPE-947 evaluators | New SPE-947 child                                                               | Domain-only contracts today; no persisted platform / plan / media fields     |
-| Weekly / `advanceWeek` orchestration hooks                        | New SPE-947 child                                                               | Evaluators not wired into week-close                                         |
-| Store / UI / planning-mirror surfacing                            | New SPE-947 child                                                               | No operator surface for reach, uptake, takedown, or persistence decisions    |
-| Propagation graph wire-up                                         | SPE-956 / harvest #965 family                                                   | Deferred since SPE-2111 slice 1; not closed by SPE-2568–2574                 |
-| Pursuit vector simulator integration                              | **Done** — [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604) / PR #3112 | Pure pursuit-vector readings over SPE-2602 linkage + SPE-2111 pursuit fields |
-| Countermeasure ledger link                                        | **Done** — [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605) / PR #3114 | Pure attempt → SPE-645-style reliability-class ledger resolve/compose        |
-| Adaptation / commercialization persistence kinds                  | **SPE-2606** / SPE-1085                                                         | Expand SPE-2573 kinds; In Progress                                           |
-| Full SPE-2111 registry linkage                                    | **Done** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) / PR #3108 | Authored bind map + read/compose over `visualTriggerHazardRecords`           |
-| Parent umbrella Done                                              | Later SPE-947 reconciliation                                                    | Domain-evaluator Yes ≠ umbrella Done while wire-up remains                   |
+| Item                                                              | Suggested owner                                                                                                                                | Why deferred                                                                                                                                                  |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GameState persistence / schema / hydration for SPE-947 evaluators | **Done** — [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576) / PR #3075                                                                | `spe947*` maps + sanitize/hydrate                                                                                                                             |
+| Weekly / `advanceWeek` orchestration hooks                        | **Done** — [SPE-2577](https://linear.app/spectranoir/issue/SPE-2577) / PR #3077                                                                | Week-close tick over persisted maps                                                                                                                           |
+| Store / UI / planning-mirror surfacing                            | **Done** — [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578) / PR #3079                                                                | Read-only mirror + Front Desk link                                                                                                                            |
+| Weekly report-note surfacing                                      | **Done** — [SPE-2596](https://linear.app/spectranoir/issue/SPE-2596) / PR #3098                                                                | Week-close notes from map deltas                                                                                                                              |
+| Full SPE-2111 registry linkage                                    | **Done** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) / PR #3108                                                                | Authored bind map + read/compose over `visualTriggerHazardRecords`                                                                                            |
+| Pursuit vector simulator integration                              | **Done** — [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604) / PR #3112                                                                | Pure pursuit-vector readings over SPE-2602 linkage + SPE-2111 pursuit fields                                                                                  |
+| Countermeasure ledger link                                        | **Done** — [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605) / PR #3114                                                                | Pure attempt → SPE-645-style reliability-class ledger resolve/compose                                                                                         |
+| Adaptation / commercialization persistence kinds                  | **Done** — [SPE-2606](https://linear.app/spectranoir/issue/SPE-2606) / PR #3116                                                                | Expand SPE-2573 kinds                                                                                                                                         |
+| Media-economy continuity / persistence / compose chain            | **Done** — [SPE-2609](https://linear.app/spectranoir/issue/SPE-2609)–[SPE-2617](https://linear.app/spectranoir/issue/SPE-2617) / PR #3120–3136 | Economy weights, actors, week-close orchestration, weekly deltas                                                                                              |
+| Propagation graph wire-up                                         | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) / harvest #965 family                                                                  | Cross-parent; carved out since SPE-2111 slice 1 — does not block SPE-947 AC                                                                                   |
+| Parent umbrella Done                                              | Owner explicit acceptance                                                                                                                      | Wire-up complete ([SPE-2618](https://linear.app/spectranoir/issue/SPE-2618) reconciliation); see `planning/spe-947-parent-umbrella-reconciliation-slice-2.md` |
+
+**Superseding reconciliation ([SPE-2618](https://linear.app/spectranoir/issue/SPE-2618) — July 2026):** After [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576)–[SPE-2617](https://linear.app/spectranoir/issue/SPE-2617), all SPE-947-owned wire-up rows above are **Done**. Canonical umbrella disposition: `planning/spe-947-parent-umbrella-reconciliation-slice-2.md`.
 
 ## Validation
 
@@ -92,4 +96,5 @@ Docs/hygiene only — no new domain tests. Run `verify:audits-index` / `verify:t
 - `planning/spe-947-platform-outage-degrade-slice-1.md`
 - `planning/spe-947-platform-reach-multiplier-slice-1.md`
 - `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`
+- `planning/spe-947-parent-umbrella-reconciliation-slice-2.md`
 - `planning/backlog.md`

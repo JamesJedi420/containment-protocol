@@ -102,10 +102,6 @@ function isUnitInterval(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
 }
 
-function isPositiveUnitInterval(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1
-}
-
 function roundMetric(value: number): number {
   if (!Number.isFinite(value)) {
     return 0
@@ -302,9 +298,7 @@ export function evaluateHotlineCall(
   const channelId = normalizeToken(channel.id) || null
   const callId = normalizeToken(call.callId) || null
   const callChannelId = normalizeToken(call.channelId)
-  const handleThreshold = isPositiveUnitInterval(channel.handleThreshold)
-    ? channel.handleThreshold
-    : 0
+  const handleThreshold = isUnitInterval(channel.handleThreshold) ? channel.handleThreshold : 0
   const escalationRules = normalizeToken(channel.escalationRules)
 
   if (!channelId) {
@@ -323,7 +317,7 @@ export function evaluateHotlineCall(
     !escalationRules ||
     !isUnansweredMode(channel.unansweredMode) ||
     !isAngerMode(channel.angerMode) ||
-    !isPositiveUnitInterval(channel.handleThreshold) ||
+    !isUnitInterval(channel.handleThreshold) ||
     typeof channel.languageSupport !== 'boolean'
   ) {
     return unansweredResult(['incomplete_hotline_channel'], baseline, {

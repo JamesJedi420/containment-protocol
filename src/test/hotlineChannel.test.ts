@@ -272,6 +272,26 @@ describe('hotlineChannel (SPE-2628 / SPE-956 slice 1)', () => {
     expect(result.proposedAdjustment).toBeNull()
   })
 
+  it('handles a call when handleThreshold is zero within the inclusive unit interval', () => {
+    const result = evaluateHotlineCall({
+      channel: channel({
+        scriptQuality: 0.1,
+        staffingCapacity: 0.1,
+        handleThreshold: 0,
+      }),
+      call: EXAMPLE_HOTLINE_CALL,
+      baseline: EXAMPLE_HOTLINE_GUIDANCE_BASELINE,
+    })
+
+    expect(result.outcome).toBe('handled')
+    expect(result.handleThreshold).toBe(0)
+    expect(result.proposedAdjustment).toEqual({
+      scope: 'support_routing',
+      fromValue: 'standard_ops_desk',
+      toValue: 'hotline_priority_callback',
+    })
+  })
+
   it('returns unanswered for an incomplete channel before applying adjustments', () => {
     const result = evaluateHotlineCall({
       channel: {

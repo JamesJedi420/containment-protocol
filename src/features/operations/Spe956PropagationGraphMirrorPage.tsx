@@ -20,7 +20,11 @@ export default function Spe956PropagationGraphMirrorPage() {
 
   return (
     <section className="space-y-4" aria-label="Propagation graph mirror">
-      <article className="panel panel-primary space-y-4" role="region" aria-label="Propagation graph summary">
+      <article
+        className="panel panel-primary space-y-4"
+        role="region"
+        aria-label="Propagation graph summary"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -29,7 +33,9 @@ export default function Spe956PropagationGraphMirrorPage() {
             <h2 className="text-xl font-semibold">
               {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.pageHeading}
             </h2>
-            <p className="text-sm opacity-60">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.pageSubtitle}</p>
+            <p className="text-sm opacity-60">
+              {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.pageSubtitle}
+            </p>
           </div>
           <Link to={APP_ROUTES.operationsDesk} className="btn btn-sm btn-ghost">
             {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.backToDeskLabel}
@@ -55,12 +61,20 @@ export default function Spe956PropagationGraphMirrorPage() {
           />
         </div>
 
-        <p className="text-xs opacity-55">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.readOnlyNote}</p>
+        <p className="text-xs opacity-55">
+          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.readOnlyNote}
+        </p>
       </article>
 
       {view.isEmpty ? (
-        <article className="panel panel-support space-y-2" role="region" aria-label="Empty propagation graph state">
-          <h3 className="text-lg font-semibold">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.emptyTitle}</h3>
+        <article
+          className="panel panel-support space-y-2"
+          role="region"
+          aria-label="Empty propagation graph state"
+        >
+          <h3 className="text-lg font-semibold">
+            {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.emptyTitle}
+          </h3>
           <p className="text-sm opacity-70">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.emptyBody}</p>
         </article>
       ) : (
@@ -103,9 +117,15 @@ export default function Spe956PropagationGraphMirrorPage() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.labelColumn}</th>
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.kindColumn}</th>
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.entityColumn}</th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.labelColumn}
+                        </th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.kindColumn}
+                        </th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.entityColumn}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -125,7 +145,7 @@ export default function Spe956PropagationGraphMirrorPage() {
               </div>
             ) : null}
 
-            {graph.edges.length > 0 ? (
+            {!graph.isEdgeEmpty ? (
               <div className="space-y-2">
                 <h4 className="text-base font-semibold">
                   {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.edgesHeading}
@@ -134,10 +154,18 @@ export default function Spe956PropagationGraphMirrorPage() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.edgeIdColumn}</th>
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.fromNodeColumn}</th>
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.toNodeColumn}</th>
-                        <th className="px-2 py-2">{SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.spreadFactorColumn}</th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.edgeIdColumn}
+                        </th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.fromNodeColumn}
+                        </th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.toNodeColumn}
+                        </th>
+                        <th className="px-2 py-2">
+                          {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.spreadFactorColumn}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -153,7 +181,15 @@ export default function Spe956PropagationGraphMirrorPage() {
                   </table>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div
+                className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-70"
+                role="status"
+                aria-label={SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.edgeEmptyLabel}
+              >
+                {SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT.edgeEmptyBody}
+              </div>
+            )}
           </article>
         ))
       )}

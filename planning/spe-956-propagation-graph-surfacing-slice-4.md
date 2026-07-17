@@ -2,27 +2,27 @@
 
 One-page implementation plan. Linear: [SPE-2626](https://linear.app/spectranoir/issue/SPE-2626) (child under [SPE-956](https://linear.app/spectranoir/issue/SPE-956)). Follows shipped slice 3 ([SPE-2624](https://linear.app/spectranoir/issue/SPE-2624), PR #3147) and hydration fix ([SPE-2622](https://linear.app/spectranoir/issue/SPE-2622), PR #3149).
 
-| Field               | Value                                                                                                      |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Field               | Value                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2626 — Store / UI / planning-mirror surfacing for SPE-956 propagation graphs (slice 4)](https://linear.app/spectranoir/issue/SPE-2626) |
-| **Status**          | **In Progress**                                                                                            |
-| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — **Done**                                |
-| **Branch**          | `spe-956-propagation-graph-surfacing-slice-4`                                                                |
-| **Base `main` SHA** | `223ae71d`                                                                                                 |
+| **Status**          | **Shipped**                                                                                                                                 |
+| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — **Backlog**                                                                       |
+| **Branch**          | `spe-956-propagation-graph-surfacing-slice-4`                                                                                               |
+| **Base `main` SHA** | `6acbc51a`                                                                                                                                  |
 
 ## Goal
 
 Ship a read-only planning mirror over persisted `spe956PropagationGraphRecords` so operators can inspect authored graph structure and week-close orchestration fields without re-deriving compose/evaluator truth in UI. Sibling slice deferred from persistence slices 1–3.
 
-## Prerequisite (on `main` @ `223ae71d`)
+## Prerequisite (on `main` @ `6acbc51a`)
 
-| Shipped                         | Anchor                                                                                          |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Pure graph compose              | [SPE-2619](https://linear.app/spectranoir/issue/SPE-2619) — `spe956PropagationGraph.ts`         |
-| GameState persistence           | [SPE-2621](https://linear.app/spectranoir/issue/SPE-2621) — `spe956PropagationGraphPersistence.ts` |
-| Week-close tick                 | [SPE-2624](https://linear.app/spectranoir/issue/SPE-2624) — `spe956PropagationGraphWeeklyOrchestration.ts` |
-| Hydration fix                   | [SPE-2622](https://linear.app/spectranoir/issue/SPE-2622) — explicit `{}` + unsafe key rejection |
-| Mirror pattern                  | [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578) — SPE-947 evaluator mirror           |
+| Shipped               | Anchor                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Pure graph compose    | [SPE-2619](https://linear.app/spectranoir/issue/SPE-2619) — `spe956PropagationGraph.ts`                    |
+| GameState persistence | [SPE-2621](https://linear.app/spectranoir/issue/SPE-2621) — `spe956PropagationGraphPersistence.ts`         |
+| Week-close tick       | [SPE-2624](https://linear.app/spectranoir/issue/SPE-2624) — `spe956PropagationGraphWeeklyOrchestration.ts` |
+| Hydration fix         | [SPE-2622](https://linear.app/spectranoir/issue/SPE-2622) — explicit `{}` + unsafe key rejection           |
+| Mirror pattern        | [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578) — SPE-947 evaluator mirror                       |
 
 ## Mirror contract
 
@@ -35,13 +35,13 @@ Ship a read-only planning mirror over persisted `spe956PropagationGraphRecords` 
 
 ## Scope
 
-| In                                                                 | Out                                        |
-| ------------------------------------------------------------------ | ------------------------------------------ |
-| `getSpe956PropagationGraphMirrorView` + `Spe956PropagationGraphMirrorPage` | Compose semantic changes          |
-| Route `/propagation-graph` + Front Desk quick link                 | Week-close tick logic changes              |
-| Focused Vitest: empty/no-op + authored graph row + hydrate round-trip | SPE-2568–2574 / SPE-2617 contract edits |
-| Slice doc + backlog handoff                                        | SPE-956 parent AC (advisory/hotline)       |
-|                                                                    | Store writes from mirror                   |
+| In                                                                         | Out                                     |
+| -------------------------------------------------------------------------- | --------------------------------------- |
+| `getSpe956PropagationGraphMirrorView` + `Spe956PropagationGraphMirrorPage` | Compose semantic changes                |
+| Route `/propagation-graph` + Front Desk quick link                         | Week-close tick logic changes           |
+| Focused Vitest: empty/no-op + authored graph row + hydrate round-trip      | SPE-2568–2574 / SPE-2617 contract edits |
+| Slice doc + backlog handoff                                                | SPE-956 parent AC (advisory/hotline)    |
+|                                                                            | Store writes from mirror                |
 
 ## Acceptance
 
@@ -50,15 +50,20 @@ Ship a read-only planning mirror over persisted `spe956PropagationGraphRecords` 
 - [x] Projection is pure; mirror makes no store writes
 - [x] Front Desk / ops route link matches SPE-2578 pattern
 - [x] Hydrate round-trip preserves surfaced graph records
+- [x] Graph, node, and edge IDs use locale-independent code-unit ordering
+- [x] Enum formatting uses a neutral helper with no cross-feature projection import
+- [x] Graphs with zero persisted edges render an explicit empty state
+- [x] Numeric totals derive from source arrays rather than display labels
+- [x] Persisted entity IDs render consistently after trimming
 - [x] `npm run lint` + targeted tests green
 
 ## Deferred
 
-| Item                              | Suggested owner | Why deferred              |
-| --------------------------------- | --------------- | ------------------------- |
-| Weekly report-note surfacing      | SPE-956 sibling | Out of slice 4 boundary   |
-| Compose aggregate surfacing in UI | SPE-956 sibling | Would leak evaluator truth |
-| SPE-956 parent AC (advisory/hotline) | SPE-956 siblings | Separate umbrella scope |
+| Item                                 | Suggested owner  | Why deferred               |
+| ------------------------------------ | ---------------- | -------------------------- |
+| Weekly report-note surfacing         | SPE-956 sibling  | Out of slice 4 boundary    |
+| Compose aggregate surfacing in UI    | SPE-956 sibling  | Would leak evaluator truth |
+| SPE-956 parent AC (advisory/hotline) | SPE-956 siblings | Separate umbrella scope    |
 
 ## Validation
 

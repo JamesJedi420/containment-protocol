@@ -28,7 +28,9 @@ describe('Spe956PropagationGraphMirrorPage (SPE-2626 slice 4)', () => {
     renderMirrorPage()
 
     expect(screen.getByRole('region', { name: /propagation graph summary/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /empty propagation graph state/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: /empty propagation graph state/i })
+    ).toBeInTheDocument()
     expect(screen.getByText(/no propagation graph records/i)).toBeInTheDocument()
     expect(
       screen.getByText(/empty maps do not satisfy parent acceptance criteria/i)
@@ -45,10 +47,33 @@ describe('Spe956PropagationGraphMirrorPage (SPE-2626 slice 4)', () => {
     renderMirrorPage()
 
     expect(
-      screen.getByRole('region', { name: /persisted propagation graph leak footage to rumor forum chain/i })
+      screen.getByRole('region', {
+        name: /persisted propagation graph leak footage to rumor forum chain/i,
+      })
     ).toBeInTheDocument()
     expect(screen.getByText('Leaked footage artifact')).toBeInTheDocument()
     expect(screen.getByText('Rumor forum platform')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
+      'href',
+      '/'
+    )
+  })
+
+  it('renders an explicit edge empty state when a persisted graph has no edges', () => {
+    const game = createStartingState()
+    game.spe956PropagationGraphRecords = {
+      empty: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS['propagation-graph:leak-forum-chain']!,
+        id: 'empty',
+        edges: [],
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    expect(screen.getByRole('status', { name: /persisted edges empty/i })).toHaveTextContent(
+      /no persisted edges/i
+    )
   })
 })

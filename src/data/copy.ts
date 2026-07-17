@@ -1718,7 +1718,8 @@ export const SPE_947_EVALUATOR_MIRROR_UI_TEXT: Record<string, string> = {
   ownersHeading: 'Persisted content owners',
   ownersSubtitle: 'Incentive fields as stored — resistance outcomes are not computed here.',
   mediaCasesHeading: 'Persisted post-case media cases',
-  mediaCasesSubtitle: 'Containment and artifact inventory as stored — residual risk is not computed here.',
+  mediaCasesSubtitle:
+    'Containment and artifact inventory as stored — residual risk is not computed here.',
   labelColumn: 'Label',
   viewCountColumn: 'View count',
   uptimeColumn: 'Uptime',
@@ -1758,6 +1759,8 @@ export const SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT: Record<string, string> = 
   lastTickWeekLabel: 'Last tick week',
   nodesHeading: 'Persisted nodes',
   edgesHeading: 'Persisted edges',
+  edgeEmptyLabel: 'Persisted edges empty',
+  edgeEmptyBody: 'No persisted edges are authored for this graph.',
   labelColumn: 'Label',
   kindColumn: 'Node kind',
   entityColumn: 'Entity id',

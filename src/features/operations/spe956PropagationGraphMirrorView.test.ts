@@ -165,6 +165,25 @@ describe('spe956PropagationGraphMirrorView (SPE-2626 slice 4)', () => {
     expect(summary.totalEdgeCount).toBe(SPE_956_EXAMPLE_PROPAGATION_GRAPH.edges.length)
   })
 
+  it('keeps aggregate totals aligned with filtered projected arrays', () => {
+    const game = createStartingState()
+    game.spe956PropagationGraphRecords = {
+      malformed: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        id: 'malformed',
+        nodes: [SPE_956_EXAMPLE_PROPAGATION_GRAPH.nodes[0]!, null as never],
+        edges: [null as never],
+      },
+    }
+
+    const view = getSpe956PropagationGraphMirrorView(game)
+
+    expect(view.graphs[0]?.nodes).toHaveLength(1)
+    expect(view.graphs[0]?.edges).toHaveLength(0)
+    expect(view.summary.totalNodeCount).toBe(1)
+    expect(view.summary.totalEdgeCount).toBe(0)
+  })
+
   it('trims whitespace-padded persisted entity ids consistently', () => {
     const game = createStartingState()
     game.spe956PropagationGraphRecords = {

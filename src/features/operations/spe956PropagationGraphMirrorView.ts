@@ -137,8 +137,8 @@ export function getSpe956PropagationGraphMirrorView(
   const graphs = graphRecords.map(toGraphRow)
 
   const graphCount = graphs.length
-  const totalNodeCount = graphRecords.reduce((sum, graph) => sum + graph.nodes.length, 0)
-  const totalEdgeCount = graphRecords.reduce((sum, graph) => sum + graph.edges.length, 0)
+  const totalNodeCount = graphs.reduce((sum, graph) => sum + graph.nodes.length, 0)
+  const totalEdgeCount = graphs.reduce((sum, graph) => sum + graph.edges.length, 0)
 
   return Object.freeze({
     isEmpty: graphCount === 0,

@@ -1,8 +1,9 @@
 {
   "primary": "SPE-2620",
-  "inProgress": [],
+  "inProgress": ["SPE-2620"],
   "recentlyShipped": ["SPE-2626", "SPE-2625"],
   "sliceDocStatus": {
+    "planning/spe-956-community-advisory-decision-influence-slice-1.md": "In Progress",
     "planning/spe-2625-propagation-graph-counter-overflow-fix.md": "Shipped",
     "planning/spe-956-propagation-graph-surfacing-slice-4.md": "Shipped"
   }

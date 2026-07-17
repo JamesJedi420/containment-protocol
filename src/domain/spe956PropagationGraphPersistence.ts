@@ -269,6 +269,10 @@ export function resolvePersistedPropagationGraph(
   game: Partial<{ spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap }>,
   graphId: string
 ): Spe956PersistedPropagationGraph | null {
+  if (!isSafeMapKey(graphId)) {
+    return null
+  }
+
   const records = extractSpe956PropagationGraphRecords(game)
   if (!Object.prototype.hasOwnProperty.call(records, graphId)) {
     return null

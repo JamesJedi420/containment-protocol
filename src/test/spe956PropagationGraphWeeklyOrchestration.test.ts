@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { createStartingState } from '../data/startingState'
 import {
   advanceSpe956PropagationGraphForWeek,
   applyWeeklySpe956PropagationGraphTick,
@@ -71,7 +73,47 @@ describe('spe956PropagationGraphWeeklyOrchestration (SPE-2624 / SPE-956 slice 3)
     expect(advanced.lastWeeklyTickWeek).toBe(6)
   })
 
-  it('applies map tick in deterministic graph-id order', () => {
+  it('materializes elapsedPropagationWeeks 0 when zero delta applies to missing counter (SPE-2625)', () => {
+    const graph = graphWithWeeklyDelta({ weeklyElapsedWeeksDelta: 0 })
+    const advanced = advanceSpe956PropagationGraphForWeek(graph, 6)
+
+    expect(advanced.elapsedPropagationWeeks).toBe(0)
+    expect(advanced.lastWeeklyTickWeek).toBe(6)
+  })
+
+  it('clamps counter overflow to Number.MAX_VALUE without producing Infinity (SPE-2625)', () => {
+    const graph = graphWithWeeklyDelta({
+      elapsedPropagationWeeks: Number.MAX_VALUE,
+      weeklyElapsedWeeksDelta: Number.MAX_VALUE,
+    })
+    const advanced = advanceSpe956PropagationGraphForWeek(graph, 3)
+
+    expect(advanced.elapsedPropagationWeeks).toBe(Number.MAX_VALUE)
+    expect(Number.isFinite(advanced.elapsedPropagationWeeks)).toBe(true)
+    expect(advanced.lastWeeklyTickWeek).toBe(3)
+  })
+
+  it('round-trips overflow boundary counter through save/load (SPE-2625)', () => {
+    const graph = graphWithWeeklyDelta({
+      elapsedPropagationWeeks: Number.MAX_VALUE,
+      weeklyElapsedWeeksDelta: Number.MAX_VALUE,
+      lastWeeklyTickWeek: 2,
+    })
+    const records = { [graph.id]: graph }
+    const state = createStartingState()
+    Object.assign(state, {
+      spe956PropagationGraphRecords: records,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.spe956PropagationGraphRecords?.[graph.id]?.elapsedPropagationWeeks).toBe(
+      Number.MAX_VALUE
+    )
+    expect(loaded.spe956PropagationGraphRecords?.[graph.id]).toBeDefined()
+  })
+
+  it('applies map tick in deterministic code-unit graph-id order (SPE-2625)', () => {
     const alpha = graphWithWeeklyDelta({ id: 'graph:alpha', label: 'Alpha' })
     const beta = graphWithWeeklyDelta({ id: 'graph:beta', label: 'Beta' })
     const maps = {
@@ -85,6 +127,22 @@ describe('spe956PropagationGraphWeeklyOrchestration (SPE-2624 / SPE-956 slice 3)
     expect(next[beta.id]?.elapsedPropagationWeeks).toBe(1)
     expect(next[alpha.id]?.lastWeeklyTickWeek).toBe(3)
     expect(next[beta.id]?.lastWeeklyTickWeek).toBe(3)
+  })
+
+  it('uses code-unit ordering for graph-id iteration (SPE-2625)', () => {
+    const zGraph = graphWithWeeklyDelta({ id: 'graph:Z', label: 'Z-cap' })
+    const aGraph = graphWithWeeklyDelta({ id: 'graph:a', label: 'a-lower' })
+    const maps = { [aGraph.id]: aGraph, [zGraph.id]: zGraph }
+
+    expect(
+      Object.keys(maps).sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+    ).toEqual([zGraph.id, aGraph.id])
+    expect('graph:Z'.localeCompare('graph:a')).not.toBe(-1)
+
+    const next = applyWeeklySpe956PropagationGraphTick(maps, 2)
+
+    expect(next[zGraph.id]?.elapsedPropagationWeeks).toBe(1)
+    expect(next[aGraph.id]?.elapsedPropagationWeeks).toBe(1)
   })
 
   it('returns the same map reference when nothing changes', () => {

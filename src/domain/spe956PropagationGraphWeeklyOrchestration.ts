@@ -25,6 +25,24 @@ function isNonNegativeFinite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
+/** Code-unit order (not localeCompare) so tick order stays deterministic across runtimes. */
+function compareIdsByCodeUnit(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+/**
+ * Add non-negative counters without producing Infinity/NaN (SPE-2577 safe-counter pattern).
+ * Clamps to Number.MAX_VALUE when finite inputs would overflow.
+ */
+function addNonNegativeCounters(prior: number, delta: number): number {
+  const sum = prior + delta
+  if (!Number.isFinite(sum)) {
+    return Number.MAX_VALUE
+  }
+
+  return sum
+}
+
 function freezeGraph(
   graph: Spe956PersistedPropagationGraph
 ): Spe956PersistedPropagationGraph {
@@ -56,18 +74,19 @@ export function advanceSpe956PropagationGraphForWeek(
   }
 
   const priorElapsedWeeks = graph.elapsedPropagationWeeks ?? 0
-  const nextElapsedWeeks = priorElapsedWeeks + graph.weeklyElapsedWeeksDelta!
+  const nextElapsedWeeks = addNonNegativeCounters(
+    priorElapsedWeeks,
+    graph.weeklyElapsedWeeksDelta!
+  )
 
-  if (nextElapsedWeeks === priorElapsedWeeks) {
-    return freezeGraph({
-      ...graph,
-      lastWeeklyTickWeek: normalizedWeek,
-    })
-  }
+  const counterUnchanged =
+    nextElapsedWeeks === priorElapsedWeeks && graph.elapsedPropagationWeeks !== undefined
 
   return freezeGraph({
     ...graph,
-    elapsedPropagationWeeks: nextElapsedWeeks,
+    ...(counterUnchanged
+      ? {}
+      : { elapsedPropagationWeeks: nextElapsedWeeks }),
     lastWeeklyTickWeek: normalizedWeek,
   })
 }
@@ -84,7 +103,7 @@ function applyGraphMapTick(
   const next: Spe956PropagationGraphRecordsMap = { ...records }
   let changed = false
 
-  for (const graphId of graphIds.sort((left, right) => left.localeCompare(right))) {
+  for (const graphId of graphIds.sort(compareIdsByCodeUnit)) {
     const graph = records[graphId]
     if (!graph) {
       continue

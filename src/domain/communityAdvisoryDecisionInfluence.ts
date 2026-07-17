@@ -392,6 +392,39 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
   const authorizedScopes = Array.isArray(body.authorizedDecisionScopes)
     ? body.authorizedDecisionScopes.filter(isDecisionScope)
     : []
+  const mission = normalizeToken(body.mission)
+  const membershipRule = normalizeToken(body.membershipRule)
+  const decisionCriteria = normalizeToken(body.decisionCriteria)
+  const stakeholderClasses = Array.isArray(body.representedStakeholderClasses)
+    ? body.representedStakeholderClasses
+        .map((value) => normalizeToken(value))
+        .filter((value) => value.length > 0)
+    : []
+
+  if (!bodyId) {
+    return emptyDeferredResult(['missing_advisory_body_id'], baseline)
+  }
+
+  if (!mission || !membershipRule || !decisionCriteria || stakeholderClasses.length === 0) {
+    return emptyDeferredResult(['incomplete_advisory_body'], baseline, {
+      bodyId,
+      influenceThreshold,
+    })
+  }
+
+  if (!isPositiveUnitInterval(body.influenceThreshold)) {
+    return emptyDeferredResult(['missing_or_invalid_influence_threshold'], baseline, {
+      bodyId,
+    })
+  }
+
+  if (authorizedScopes.length === 0) {
+    return emptyDeferredResult(['missing_authorized_decision_scopes'], baseline, {
+      bodyId,
+      influenceThreshold,
+    })
+  }
+
   const normalizedConditions = tryNormalizeConditions(signal.conditions)
   if (!normalizedConditions.ok) {
     return emptyDeferredResult(['invalid_advisory_conditions'], baseline, {
@@ -400,25 +433,6 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
     })
   }
   const conditions = normalizedConditions.conditions
-
-  if (!bodyId) {
-    return emptyDeferredResult(['missing_advisory_body_id'], baseline)
-  }
-
-  if (!isPositiveUnitInterval(body.influenceThreshold)) {
-    return emptyDeferredResult(['missing_or_invalid_influence_threshold'], baseline, {
-      bodyId,
-      conditions,
-    })
-  }
-
-  if (!signalBodyId || signalBodyId !== bodyId) {
-    return emptyRejectedResult(['advisory_rejected', 'body_signal_mismatch'], baseline, {
-      bodyId,
-      influenceThreshold,
-      conditions,
-    })
-  }
 
   const recommendation = signal.recommendation
   if (!isRecord(recommendation) || !isDecisionScope(recommendation.scope)) {
@@ -432,14 +446,6 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
   const proposedValue = normalizeToken(recommendation.proposedValue)
   if (!proposedValue) {
     return emptyDeferredResult(['missing_recommendation_value'], baseline, {
-      bodyId,
-      influenceThreshold,
-      conditions,
-    })
-  }
-
-  if (!authorizedScopes.includes(recommendation.scope)) {
-    return emptyRejectedResult(['advisory_rejected', 'recommendation_out_of_scope'], baseline, {
       bodyId,
       influenceThreshold,
       conditions,
@@ -464,6 +470,22 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
 
   if (!isUrgency(signal.urgency)) {
     return emptyDeferredResult(['missing_or_invalid_urgency'], baseline, {
+      bodyId,
+      influenceThreshold,
+      conditions,
+    })
+  }
+
+  if (!signalBodyId || signalBodyId !== bodyId) {
+    return emptyRejectedResult(['advisory_rejected', 'body_signal_mismatch'], baseline, {
+      bodyId,
+      influenceThreshold,
+      conditions,
+    })
+  }
+
+  if (!authorizedScopes.includes(recommendation.scope)) {
+    return emptyRejectedResult(['advisory_rejected', 'recommendation_out_of_scope'], baseline, {
       bodyId,
       influenceThreshold,
       conditions,

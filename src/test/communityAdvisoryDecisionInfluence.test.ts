@@ -209,6 +209,9 @@ describe('communityAdvisoryDecisionInfluence (SPE-2620 / SPE-956 slice 1)', () =
     expect(Object.isFrozen(result.reasonCodes)).toBe(true)
     expect(Object.isFrozen(result.resolved)).toBe(true)
     expect(Object.isFrozen(result.baseline)).toBe(true)
+    expect(Object.isFrozen(result.conditions)).toBe(true)
+    expect(result.proposedAdjustment).not.toBeNull()
+    expect(Object.isFrozen(result.proposedAdjustment)).toBe(true)
     expect(inputBaseline.supportRouting).toBe('standard_ops_desk')
     expect(result.resolved).not.toBe(inputBaseline)
     expect(result.baseline).not.toBe(inputBaseline)
@@ -280,5 +283,45 @@ describe('communityAdvisoryDecisionInfluence (SPE-2620 / SPE-956 slice 1)', () =
     expect(numericConditions.disposition).toBe('deferred')
     expect(numericConditions.reasonCodes).toEqual(['invalid_advisory_conditions'])
     expect(numericConditions.proposedAdjustment).toBeNull()
+  })
+
+  it('defers an incomplete advisory body before applying influence', () => {
+    const result = evaluateCommunityAdvisoryDecisionInfluence({
+      body: {
+        id: 'advisory-body:incomplete',
+        mission: '',
+        membershipRule: 'rule',
+        representedStakeholderClasses: [],
+        authorizedDecisionScopes: ['support_routing'],
+        influenceThreshold: 0.6,
+        decisionCriteria: '',
+      },
+      signal: {
+        ...EXAMPLE_SUPPORT_ROUTING_SIGNAL,
+        bodyId: 'advisory-body:incomplete',
+      },
+      baseline: EXAMPLE_INCIDENT_BASELINE,
+    })
+
+    expect(result.disposition).toBe('deferred')
+    expect(result.reasonCodes).toEqual(['incomplete_advisory_body'])
+    expect(result.proposedAdjustment).toBeNull()
+    expect(result.resolved).toEqual(EXAMPLE_INCIDENT_BASELINE)
+  })
+
+  it('defers malformed signal fields before rejecting a body mismatch', () => {
+    const result = evaluateCommunityAdvisoryDecisionInfluence({
+      body: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      signal: signal({
+        bodyId: 'advisory-body:other',
+        supportBand: 'invalid' as CommunityAdvisorySignal['supportBand'],
+      }),
+      baseline: EXAMPLE_INCIDENT_BASELINE,
+    })
+
+    expect(result.disposition).toBe('deferred')
+    expect(result.reasonCodes).toEqual(['missing_or_invalid_support_band'])
+    expect(result.proposedAdjustment).toBeNull()
+    expect(result.resolved).toEqual(EXAMPLE_INCIDENT_BASELINE)
   })
 })

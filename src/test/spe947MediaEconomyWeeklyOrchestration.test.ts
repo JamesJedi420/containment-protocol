@@ -162,6 +162,36 @@ describe('spe947MediaEconomyWeeklyOrchestration (SPE-2615 / SPE-947)', () => {
     ).toBe(2.25)
   })
 
+  it('clamps overflowing authored weight deltas instead of resetting continuity factor', () => {
+    const baseMaps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
+    const overflowWeightId = 'economy:overflow-boundary'
+    const overflowStart = Number.MAX_VALUE * 0.75
+    const maps = {
+      ...baseMaps,
+      spe947MediaEconomyWeights: Object.freeze({
+        ...baseMaps.spe947MediaEconomyWeights,
+        [overflowWeightId]: Object.freeze({
+          id: overflowWeightId,
+          label: 'Overflow boundary weight',
+          continuityFactor: overflowStart,
+          weeklyContinuityFactorDelta: overflowStart,
+        }),
+      }),
+    }
+
+    const result = applyWeeklySpe947MediaEconomyTick({
+      actors: SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_ACTORS,
+      maps,
+      week: 12,
+    })
+
+    const overflowWeight = result.maps.spe947MediaEconomyWeights?.[overflowWeightId]
+    expect(result.status).toBe('orchestrated')
+    expect(result.mapsMutated).toBe(true)
+    expect(overflowWeight?.continuityFactor).toBe(Number.MAX_VALUE)
+    expect(Number.isFinite(overflowWeight?.continuityFactor)).toBe(true)
+  })
+
   it('same-week re-tick does not double-apply authored deltas (SPE-2617)', () => {
     const baseMaps = SPE_947_EXAMPLE_MEDIA_ECONOMY_THREE_PATH_AGGREGATE_FIXTURE.maps
     const maps = {

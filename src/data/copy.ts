@@ -1737,6 +1737,36 @@ export const SPE_947_EVALUATOR_MIRROR_UI_TEXT: Record<string, string> = {
   requiredWeeksPrefix: 'Required:',
 }
 
+export const SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Propagation graphs',
+  pageSubtitle:
+    'Read-only operations view over persisted SPE-956 propagation graph records — authored nodes, edges, and week-close orchestration fields.',
+  backToDeskLabel: 'Back to Operations Desk',
+  graphsLabel: 'Graph records',
+  nodesLabel: 'Total nodes',
+  edgesLabel: 'Total edges',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Labels mirror hydrated GameState fields only. This surface does not re-run graph compose or SPE-947 evaluators or invent parent acceptance evidence.',
+  emptyTitle: 'No propagation graph records',
+  emptyBody:
+    'Persisted SPE-956 propagation graph records will appear here after hydration. Empty maps do not satisfy parent acceptance criteria.',
+  seedNodePrefix: 'Seed node:',
+  elapsedWeeksLabel: 'Elapsed propagation weeks',
+  weeklyDeltaLabel: 'Weekly elapsed delta',
+  lastTickWeekLabel: 'Last tick week',
+  nodesHeading: 'Persisted nodes',
+  edgesHeading: 'Persisted edges',
+  labelColumn: 'Label',
+  kindColumn: 'Node kind',
+  entityColumn: 'Entity id',
+  edgeIdColumn: 'Edge id',
+  fromNodeColumn: 'From node',
+  toNodeColumn: 'To node',
+  spreadFactorColumn: 'Spread factor',
+}
+
 export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Publish queue',

@@ -245,6 +245,12 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 - `resolvePersistedPropagationGraph` resolves own properties only (SPE-2622)
 - Default starting state: empty `{}` map in `createStartingState`
 
+### Read surfacing (SPE-2626 slice 4)
+
+- Planning mirror projection: `getSpe956PropagationGraphMirrorView` in `src/features/operations/spe956PropagationGraphMirrorView.ts`
+- Route: `/propagation-graph` (`Spe956PropagationGraphMirrorPage`); Front Desk quick link
+- Surfaces persisted graph structure and weekly orchestration fields only — does not call compose or evaluators from UI
+
 ### Versioning
 
 - No migration path defined yet (single version)

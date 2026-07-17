@@ -111,6 +111,9 @@ const VisualTriggerHazardMirrorRoute = createRouteComponent(
 const Spe947EvaluatorMirrorRoute = createRouteComponent(
   () => import('../features/operations/Spe947EvaluatorMirrorPage')
 )
+const Spe956PropagationGraphMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe956PropagationGraphMirrorPage')
+)
 const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
   () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
 )
@@ -237,6 +240,10 @@ export default function App() {
         <Route
           path="hazardous-content-propagation"
           element={renderLazyRoute(Spe947EvaluatorMirrorRoute)}
+        />
+        <Route
+          path="propagation-graph"
+          element={renderLazyRoute(Spe956PropagationGraphMirrorRoute)}
         />
         <Route
           path="entity-welfare-reclassification"

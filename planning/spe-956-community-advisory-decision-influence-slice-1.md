@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2620](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2620 — Community advisory body decision influence (slice 1)](https://linear.app/spectranoir/issue/SPE-2620)                 |
-| **Status**          | **In Progress**                                                                                                                  |
+| **Status**          | **Shipped** — PR #3158 @ `adceb5a1`                                                                                              |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog** |
 | **Branch**          | `spe-956-community-advisory-decision-influence-slice-1`                                                                          |
 | **Base `main` SHA** | `0c2d31ea`                                                                                                                       |
@@ -59,7 +59,7 @@ Ship the smallest pure deterministic community-advisory surface: one authored ad
 - [x] At least one signal is `modified`, `deferred`, or `rejected` for scope exceed or threshold failure.
 - [x] Empty/missing advisory input is a deterministic no-op without throw.
 - [x] Focused tests cover adopted influence, bounded reject/defer/modify, stable reason codes, immutability.
-- [ ] SPE-956 remains **Backlog** after this child ships; child Done only after merge.
+- [x] SPE-956 remains **Backlog** after this child ships; child Done only after merge.
 
 ## Validation
 
@@ -70,15 +70,15 @@ Ship the smallest pure deterministic community-advisory surface: one authored ad
 
 ## Deferred
 
-| Item                                     | Suggested owner                                         | Why deferred                                      |
-| ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------- |
-| Hotline intake / callback queues         | Later SPE-956 child; coordinate SPE-860                 | Parent participatory channel, not this boundary   |
-| Stakeholder notification duties          | [SPE-911](https://linear.app/spectranoir/issue/SPE-911) | Separate notification matrix                      |
-| Worker / contractor governance           | [SPE-875](https://linear.app/spectranoir/issue/SPE-875) | Out of advisory-body influence                    |
-| Survivor registry / recurrence           | Later SPE-956 child; SPE-860 / SPE-1682                 | Separate registry surface                         |
-| Persistence / store / week-close wire    | SPE-956 follow-up child                                 | Domain-only foundation this slice                 |
-| UI / planning mirror                     | SPE-956 follow-up child                                 | No presentational surface this slice              |
-| Compose with operational `getAdvisories` | Do not merge                                            | Distinct operational vs community advisory spaces |
+| Item                                     | Suggested owner                                           | Why deferred                                         |
+| ---------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| Hotline intake / callback queues         | [SPE-2628](https://linear.app/spectranoir/issue/SPE-2628) | Next SPE-956 participatory child; coordinate SPE-860 |
+| Stakeholder notification duties          | [SPE-911](https://linear.app/spectranoir/issue/SPE-911)   | Separate notification matrix                         |
+| Worker / contractor governance           | [SPE-875](https://linear.app/spectranoir/issue/SPE-875)   | Out of advisory-body influence                       |
+| Survivor registry / recurrence           | Later SPE-956 child; SPE-860 / SPE-1682                   | Separate registry surface                            |
+| Persistence / store / week-close wire    | SPE-956 follow-up child                                   | Domain-only foundation this slice                    |
+| UI / planning mirror                     | SPE-956 follow-up child                                   | No presentational surface this slice                 |
+| Compose with operational `getAdvisories` | Do not merge                                              | Distinct operational vs community advisory spaces    |
 
 ## See also
 

@@ -100,7 +100,10 @@ function applyGraphMapTick(
     return records
   }
 
-  const next: Spe956PropagationGraphRecordsMap = { ...records }
+  const next = Object.assign(
+    Object.create(Object.getPrototypeOf(records)) as Spe956PropagationGraphRecordsMap,
+    records
+  )
   let changed = false
 
   for (const graphId of graphIds.sort(compareIdsByCodeUnit)) {

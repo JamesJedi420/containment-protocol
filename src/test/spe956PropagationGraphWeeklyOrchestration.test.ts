@@ -137,12 +137,22 @@ describe('spe956PropagationGraphWeeklyOrchestration (SPE-2624 / SPE-956 slice 3)
     expect(
       Object.keys(maps).sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
     ).toEqual([zGraph.id, aGraph.id])
-    expect('graph:Z'.localeCompare('graph:a')).not.toBe(-1)
 
     const next = applyWeeklySpe956PropagationGraphTick(maps, 2)
 
     expect(next[zGraph.id]?.elapsedPropagationWeeks).toBe(1)
     expect(next[aGraph.id]?.elapsedPropagationWeeks).toBe(1)
+  })
+
+  it('preserves null-prototype records maps when applying weekly tick (SPE-2625)', () => {
+    const graph = graphWithWeeklyDelta()
+    const records = Object.create(null) as Spe956PropagationGraphRecordsMap
+    records[graph.id] = graph
+
+    const next = applyWeeklySpe956PropagationGraphTick(records, 4)
+
+    expect(Object.getPrototypeOf(next)).toBeNull()
+    expect(next[graph.id]?.elapsedPropagationWeeks).toBe(1)
   })
 
   it('returns the same map reference when nothing changes', () => {

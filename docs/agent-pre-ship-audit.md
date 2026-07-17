@@ -56,6 +56,15 @@ Nearby systems affected by the change. Existing tests still reflect intended beh
 
 Update docs, comments, fixtures, schemas, or authoring guidance when part of the issue boundary. No broad documentation unrelated to the slice.
 
+**Backlog handoff (mandatory when the slice closes or reopens a sibling):**
+
+- [ ] `planning/backlog.md` handoff block matches Linear: primary, **In progress**, **Recently shipped** (no issue listed in both in-progress and recently-shipped handoff lines).
+- [ ] Active slice doc `| **Status** |` and backlog slice-doc table row agree.
+- [ ] `planning/backlog-handoff-manifest.json` updated in the **same commit** as backlog/slice-doc status changes.
+- [ ] `npm run verify:backlog-handoff` passes before commit/PR (CI enforces on `planning/**` changes).
+
+Do **not** put the shipping slice under **In progress** in backlog when opening the merge PR — move it to **Recently shipped** in the same branch before merge.
+
 ### Pass 6: Cleanup
 
 Remove dead code, unused imports, duplicate helpers, debug logs, temporary comments, speculative TODOs, and overbroad abstractions. Keep the final diff minimal and coherent.
@@ -83,6 +92,7 @@ Ready for review only when **all** are true:
 5. Validation commands pass.
 6. No unrelated scope added.
 7. Final diff is clean and explainable.
+8. Backlog handoff + `planning/backlog-handoff-manifest.json` match Linear; `npm run verify:backlog-handoff` passes when `planning/**` changed.
 
 Then run the **ship loop**: commit → push → open PR → Linear comment.
 

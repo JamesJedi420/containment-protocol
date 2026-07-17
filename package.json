@@ -17,6 +17,7 @@
     "coverage": "vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads --coverage",
     "coverage:ci": "vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool forks --coverage",
     "verify:audits-index": "node scripts/verify-design-audits-index.mjs",
+    "verify:backlog-handoff": "node scripts/verify-backlog-handoff.mjs",
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs"
   },
   "dependencies": {

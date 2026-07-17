@@ -62,6 +62,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 | Tests           | `npm run test:run`               | Vitest (302 files, ~2700 tests, ~55s)                               |
 | Format check    | `npm run format:check`           | Prettier                                                            |
 | Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                   |
+| Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`    |
 | Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md` |
 
 ### Non-obvious caveats
@@ -78,7 +79,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 ### Documentation hygiene
 
-- **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists).
+- **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI).
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
 - **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).

@@ -6,7 +6,7 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 | Artifact                                               | Owner intent                            | Update when                                                                                                                                                                                              |
 | ------------------------------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`planning/backlog.md`**                              | Ordered near-term engineering queue     | Priorities shift, an item ships, or a new concrete blocker appears. **Do not** duplicate the full queue in `README.md`.                                                                                  |
+| **`planning/backlog.md`**                              | Ordered near-term engineering queue     | Priorities shift, an item ships, or a new concrete blocker appears. **Do not** duplicate the full queue in `README.md`. Update **`planning/backlog-handoff-manifest.json`** in the same commit; run **`npm run verify:backlog-handoff`**. |
 | **`planning/roadmap.md`**                              | Phases, dependencies, philosophy        | Strategy or phase ordering changes—not every small task.                                                                                                                                                 |
 | **`planning/milestones.md`**                           | Milestone proof points                  | Milestone definitions or exit bars change.                                                                                                                                                               |
 | **`planning/deferred-design-documents.md`**            | Tracks depth not yet in `architecture/` | A child issue (e.g. SPE-529) gets a real repo doc (then **remove or narrow** the row); or SPE-186+ themes gain a canonical stub here pointing to new `architecture/`.                                    |
@@ -19,13 +19,14 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 ## Cadence (lightweight)
 
-- **Each PR that changes docs or planning:** skim **backlog** (still accurate order?), run **`npm run verify:audits-index`** if `docs/` changed; run **`npm run verify:theme-contracts`** if the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changed.
+- **Each PR that changes docs or planning:** skim **backlog** (still accurate order?), run **`npm run verify:audits-index`** if `docs/` changed; run **`npm run verify:theme-contracts`** if the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changed; run **`npm run verify:backlog-handoff`** if `planning/backlog.md`, slice docs, or **`planning/backlog-handoff-manifest.json`** changed.
 - **After a milestone or release slice:** reconcile **roadmap §15** tone with **backlog** top items; archive done backlog lines or move them to issue bodies.
 - **When Linear external doc changes:** refresh **`docs/linear-external-documentation-follow-ups.md`** from source so SPE-186+ mirror stays diffable.
 
 ## Anti-patterns
 
 - Same tactical item listed in **README**, **backlog**, and a **Linear** description with conflicting priority—pick **one** ordered source (`planning/backlog.md`) for sequencing.
+- Backlog handoff updated without **`planning/backlog-handoff-manifest.json`** or without running **`npm run verify:backlog-handoff`**—CI will fail after merge.
 - New audit file without index row—**CI will fail** after merge if `verify:audits-index` is not run locally.
 - Mirror / theme **SPE** mismatch—**CI will fail** if `verify:theme-contracts` is not run after editing the mirror or theme clusters.
 - Promoting a design into **`architecture/`** without linking it from **`game-state-and-core-loop.md`**—the map stops being complete.

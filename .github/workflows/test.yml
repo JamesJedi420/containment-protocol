@@ -33,6 +33,9 @@ jobs:
       - name: Verify design audits index
         run: npm run verify:audits-index
 
+      - name: Verify backlog handoff
+        run: npm run verify:backlog-handoff
+
       - name: Verify external theme contracts
         run: npm run verify:theme-contracts
 

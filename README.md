@@ -54,6 +54,7 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run format`                 | Rewrite files with Prettier.                                                          |
 | `npm run format:check`           | Check formatting without editing files.                                               |
 | `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
+| `npm run verify:backlog-handoff` | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`. |
 | `npm run verify:theme-contracts` | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`. |
 | `npm run build`                  | Run the TypeScript project build and Vite production bundle. See the note below.      |
 
@@ -73,6 +74,7 @@ Documentation and planning changes may also need:
 
 ```bash
 npm run verify:audits-index
+npm run verify:backlog-handoff
 npm run verify:theme-contracts
 ```
 

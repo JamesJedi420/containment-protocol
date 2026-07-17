@@ -6,7 +6,7 @@ One-page implementation plan. Linear: [SPE-2626](https://linear.app/spectranoir/
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2626 — Store / UI / planning-mirror surfacing for SPE-956 propagation graphs (slice 4)](https://linear.app/spectranoir/issue/SPE-2626) |
 | **Status**          | **In Progress**                                                                                            |
-| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — stays **Backlog**                                |
+| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — **Done**                                |
 | **Branch**          | `spe-956-propagation-graph-surfacing-slice-4`                                                                |
 | **Base `main` SHA** | `223ae71d`                                                                                                 |
 

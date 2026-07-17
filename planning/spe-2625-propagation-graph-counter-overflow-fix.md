@@ -5,8 +5,8 @@ One-page implementation plan. Linear: [SPE-2625](https://linear.app/spectranoir/
 | Field               | Value                                                                                                      |
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2625 — Fix SPE-956 weekly graph counter overflow, zero initialization, and deterministic ordering](https://linear.app/spectranoir/issue/SPE-2625) |
-| **Status**          | **In Progress**                                                                                            |
-| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — stays **Backlog**                                |
+| **Status**          | **Shipped** — PR #3152 @ `e6eddfbc`                                                                                            |
+| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — **Done**                                |
 | **Branch**          | `spe-2625-propagation-graph-counter-overflow-fix`                                                          |
 | **Base `main` SHA** | `33630c56`                                                                                                 |
 
@@ -33,14 +33,14 @@ Repair five post-SPE-2624 defects in orchestration/persistence only so graph sta
 
 ## Acceptance
 
-- [ ] Large finite inputs cannot produce a non-finite persisted counter
-- [ ] Save/load retains the graph after the overflow boundary case
-- [ ] Missing counter plus authored zero delta produces `elapsedPropagationWeeks: 0`
-- [ ] Graph iteration order is code-unit deterministic
-- [ ] Direct lookup returns `null` for unsafe ids on bypassed maps
-- [ ] Sanitized result maps have null prototype (direct assertion)
-- [ ] Same-week re-tick remains a no-op
-- [ ] Targeted tests + lint green
+- [x] Large finite inputs cannot produce a non-finite persisted counter
+- [x] Save/load retains the graph after the overflow boundary case
+- [x] Missing counter plus authored zero delta produces `elapsedPropagationWeeks: 0`
+- [x] Graph iteration order is code-unit deterministic
+- [x] Direct lookup returns `null` for unsafe ids on bypassed maps
+- [x] Sanitized result maps have null prototype (direct assertion)
+- [x] Same-week re-tick remains a no-op
+- [x] Targeted tests + lint green
 
 ## Deferred
 

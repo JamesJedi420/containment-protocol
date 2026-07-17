@@ -32,5 +32,5 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 ## Optional one-line first message (per task)
 
 ```
-PR #____ merged. On main @ <sha>. Next: <Linear URL> — see planning/<slice>.md — branch <name>.
+PR #____ merged. On main @ <sha>. Next: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
 ```

@@ -192,4 +192,53 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
     expect(result.hops[1]?.reachValue).toBeCloseTo(platformDecision.reachValue * 0.8, 6)
     expect(result.reasonCodes).toContain('graph_traversed')
   })
+
+  it('sanitizes and round-trips optional weekly orchestration fields', () => {
+    const withWeeklyFields = Object.freeze({
+      ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+      elapsedPropagationWeeks: 3,
+      weeklyElapsedWeeksDelta: 2,
+      lastWeeklyTickWeek: 7,
+    })
+
+    const sanitized = sanitizeSpe956PropagationGraphRecords({
+      [withWeeklyFields.id]: withWeeklyFields,
+      invalidWeekly: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        id: 'graph:invalid-weekly',
+        label: 'Invalid weekly',
+        weeklyElapsedWeeksDelta: -1,
+      },
+      invalidTickWeek: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        id: 'graph:invalid-tick',
+        label: 'Invalid tick week',
+        lastWeeklyTickWeek: 0,
+      },
+    })
+
+    expect(sanitized[withWeeklyFields.id]).toEqual(withWeeklyFields)
+    expect(sanitized['graph:invalid-weekly']).toBeUndefined()
+    expect(sanitized['graph:invalid-tick']).toBeUndefined()
+  })
+
+  it('round-trips weekly fields through save/load', () => {
+    const records = {
+      [SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]: Object.freeze({
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        elapsedPropagationWeeks: 1,
+        weeklyElapsedWeeksDelta: 1,
+        lastWeeklyTickWeek: 4,
+      }),
+    }
+    const state = createStartingState()
+    Object.assign(state, {
+      ...SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
+      spe956PropagationGraphRecords: records,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.spe956PropagationGraphRecords).toEqual(records)
+  })
 })

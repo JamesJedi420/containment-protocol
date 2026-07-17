@@ -209,19 +209,31 @@ Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializat
 
 ## SPE-956 propagation graph persistence (spe-956-propagation-graph.v1)
 
-Documents compact GameState map for authored SPE-956 propagation graphs (SPE-2621 slice 2).
+Documents compact GameState map for authored SPE-956 propagation graphs (SPE-2621 slice 2, SPE-2624 slice 3).
 Compose helper wires persisted graph + spe947* maps via `composeSpe956PropagationGraphFromGameState`.
-No week-close tick; no evaluator contract changes.
+Optional week-close orchestration fields follow SPE-2577 pattern; no evaluator contract changes.
 
 **Current version**: `spe-956-propagation-graph.v1` — exported as `SPE_956_PROPAGATION_GRAPH_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956PropagationGraphPersistence.ts` (pure compose: `src/domain/spe956PropagationGraph.ts`)
+**Location**: `src/domain/spe956PropagationGraphPersistence.ts` (pure compose: `src/domain/spe956PropagationGraph.ts`; week-close tick: `src/domain/spe956PropagationGraphWeeklyOrchestration.ts`)
 
 ### GameState fields
 
 | Field                           | Notes                                                                 |
 | ------------------------------- | --------------------------------------------------------------------- |
 | `spe956PropagationGraphRecords` | Authored graph id + nested nodes/edges; keyed by graph id             |
+
+### Optional weekly orchestration fields (SPE-2624)
+
+On each persisted graph record when explicitly authored:
+
+| Field                      | Notes                                                                 |
+| -------------------------- | --------------------------------------------------------------------- |
+| `elapsedPropagationWeeks`  | Running counter; defaults to 0 when delta applies                     |
+| `weeklyElapsedWeeksDelta`  | Non-negative additive delta applied once per week on week-close       |
+| `lastWeeklyTickWeek`       | Idempotency marker; same-week re-tick is a no-op                      |
+
+Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graphs without `weeklyElapsedWeeksDelta` are unchanged.
 
 ### Hydration
 

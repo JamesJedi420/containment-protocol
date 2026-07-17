@@ -320,6 +320,7 @@ import type {
   Spe947MediaEconomyWeightRecordsMap,
 } from './spe947MediaEconomyContinuity'
 import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
+import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2860,6 +2861,12 @@ export interface GameState {
    * SPE-2616 slice 1: last week the SPE-2615 media-economy week-close tick ran; idempotency marker.
    */
   spe947MediaEconomyLastWeeklyTickWeek?: number
+
+  /**
+   * SPE-2621 slice 2: authored SPE-956 propagation graphs (keyed by graph id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

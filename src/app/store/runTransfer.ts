@@ -259,6 +259,7 @@ import {
   sanitizeSpe947MediaEconomyCommercializationActors,
   sanitizeSpe947MediaEconomyLastWeeklyTickWeek,
 } from '../../domain/spe947MediaEconomySimulator'
+import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -9082,6 +9083,10 @@ export function hydrateGame(
     game.spe947MediaEconomyLastWeeklyTickWeek,
     fallback.spe947MediaEconomyLastWeeklyTickWeek
   )
+  const spe956PropagationGraphRecords = sanitizeSpe956PropagationGraphRecords(
+    game.spe956PropagationGraphRecords,
+    fallback.spe956PropagationGraphRecords ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9347,6 +9352,7 @@ export function hydrateGame(
     spe947MediaEconomyContinuityBindings,
     spe947MediaEconomyCommercializationActors,
     spe947MediaEconomyLastWeeklyTickWeek,
+    spe956PropagationGraphRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

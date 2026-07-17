@@ -240,6 +240,9 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 - Sanitize via `sanitizeSpe956PropagationGraphRecords` in `spe956PropagationGraphPersistence.ts`
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
 - Invalid graphs, duplicate ids, unknown node kinds, dangling edges, and missing seed nodes are dropped without throw
+- Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior graphs); non-record input still uses fallback
+- Unsafe graph ids (`__proto__`, `constructor`, `prototype`) are rejected; result map uses null prototype
+- `resolvePersistedPropagationGraph` resolves own properties only (SPE-2622)
 - Default starting state: empty `{}` map in `createStartingState`
 
 ### Versioning

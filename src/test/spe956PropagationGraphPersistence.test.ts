@@ -35,6 +35,7 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
 
     expect(sanitizeSpe956PropagationGraphRecords({}, fallback)).toEqual({})
     expect(sanitizeSpe956PropagationGraphRecords({}, fallback)).not.toBe(fallback)
+    expect(Object.getPrototypeOf(sanitizeSpe956PropagationGraphRecords({}, fallback))).toBeNull()
   })
 
   it('returns fallback only for non-record input during sanitize (SPE-2622)', () => {
@@ -111,6 +112,27 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
         prototypeOnlyId
       )
     ).toBeNull()
+  })
+
+  it('resolvePersistedPropagationGraph rejects unsafe graph ids even on own-property maps (SPE-2625)', () => {
+    const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
+
+    for (const unsafeId of unsafeIds) {
+      const records = Object.create(null) as Record<string, unknown>
+      records[unsafeId] = SPE_956_EXAMPLE_PROPAGATION_GRAPH
+
+      expect(
+        resolvePersistedPropagationGraph({ spe956PropagationGraphRecords: records }, unsafeId)
+      ).toBeNull()
+    }
+  })
+
+  it('sanitizeSpe956PropagationGraphRecords returns null-prototype maps (SPE-2625)', () => {
+    const sanitized = sanitizeSpe956PropagationGraphRecords({
+      valid: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+    })
+
+    expect(Object.getPrototypeOf(sanitized)).toBeNull()
   })
 
   it('hydrates explicit empty graph records over fallback during import (SPE-2622)', () => {

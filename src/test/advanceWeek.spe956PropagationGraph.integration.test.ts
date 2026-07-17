@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { SPE_956_EXAMPLE_PROPAGATION_GRAPH } from '../domain/spe956PropagationGraph'
 import type { Spe956PersistedPropagationGraph } from '../domain/spe956PropagationGraphPersistence'
@@ -83,5 +84,50 @@ describe('advanceWeek SPE-956 propagation graph weekly orchestration (SPE-2624)'
     expect(nextGraph?.nodes).toEqual(SPE_956_EXAMPLE_PROPAGATION_GRAPH.nodes)
     expect(nextGraph?.edges).toEqual(SPE_956_EXAMPLE_PROPAGATION_GRAPH.edges)
     expect(nextGraph?.seedNodeId).toBe(SPE_956_EXAMPLE_PROPAGATION_GRAPH.seedNodeId)
+  })
+
+  it('materializes elapsedPropagationWeeks 0 on advanceWeek when zero delta and missing counter (SPE-2625)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 3
+    state.spe956PropagationGraphRecords = {
+      [SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]: graphWithWeeklyDelta({
+        weeklyElapsedWeeksDelta: 0,
+      }),
+    }
+
+    const nextState = advanceWeek(state)
+    const nextGraph =
+      nextState.spe956PropagationGraphRecords?.[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]
+
+    expect(nextGraph?.elapsedPropagationWeeks).toBe(0)
+    expect(nextGraph?.lastWeeklyTickWeek).toBe(4)
+  })
+
+  it('retains graph on save/load after overflow boundary tick (SPE-2625)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 1
+    state.spe956PropagationGraphRecords = {
+      [SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]: graphWithWeeklyDelta({
+        elapsedPropagationWeeks: Number.MAX_VALUE,
+        weeklyElapsedWeeksDelta: Number.MAX_VALUE,
+      }),
+    }
+
+    const afterTick = advanceWeek(state)
+    const tickedGraph =
+      afterTick.spe956PropagationGraphRecords?.[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]
+
+    expect(tickedGraph?.elapsedPropagationWeeks).toBe(Number.MAX_VALUE)
+    expect(Number.isFinite(tickedGraph?.elapsedPropagationWeeks)).toBe(true)
+
+    const loaded = loadGameSave(serializeGameSave(afterTick))
+
+    expect(loaded.spe956PropagationGraphRecords?.[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]).toBeDefined()
+    expect(
+      loaded.spe956PropagationGraphRecords?.[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]
+        ?.elapsedPropagationWeeks
+    ).toBe(Number.MAX_VALUE)
   })
 })

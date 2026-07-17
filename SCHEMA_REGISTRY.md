@@ -229,7 +229,7 @@ On each persisted graph record when explicitly authored:
 
 | Field                      | Notes                                                                 |
 | -------------------------- | --------------------------------------------------------------------- |
-| `elapsedPropagationWeeks`  | Running counter; defaults to 0 when delta applies                     |
+| `elapsedPropagationWeeks`  | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` (SPE-2625) |
 | `weeklyElapsedWeeksDelta`  | Non-negative additive delta applied once per week on week-close       |
 | `lastWeeklyTickWeek`       | Idempotency marker; same-week re-tick is a no-op                      |
 
@@ -242,7 +242,7 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 - Invalid graphs, duplicate ids, unknown node kinds, dangling edges, and missing seed nodes are dropped without throw
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior graphs); non-record input still uses fallback
 - Unsafe graph ids (`__proto__`, `constructor`, `prototype`) are rejected; result map uses null prototype
-- `resolvePersistedPropagationGraph` resolves own properties only (SPE-2622)
+- `resolvePersistedPropagationGraph` resolves own properties only and rejects unsafe graph ids (SPE-2622, SPE-2625)
 - Default starting state: empty `{}` map in `createStartingState`
 
 ### Read surfacing (SPE-2626 slice 4)

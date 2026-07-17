@@ -10,7 +10,7 @@ import type {
   Spe956PropagationGraphRecordsMap,
 } from '../../domain/spe956PropagationGraphPersistence'
 import { extractSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
-import { formatSpe947EnumLabel } from './spe947EvaluatorMirrorView'
+import { formatMirrorEnumLabel } from './mirrorFormatting'
 
 export interface Spe956PropagationGraphNodeMirrorRow {
   readonly id: string
@@ -35,6 +35,7 @@ export interface Spe956PropagationGraphMirrorRow {
   readonly elapsedPropagationWeeksLabel: string
   readonly weeklyElapsedWeeksDeltaLabel: string
   readonly lastWeeklyTickWeekLabel: string
+  readonly isEdgeEmpty: boolean
   readonly nodes: readonly Spe956PropagationGraphNodeMirrorRow[]
   readonly edges: readonly Spe956PropagationGraphEdgeMirrorRow[]
 }
@@ -60,6 +61,14 @@ function formatOptionalNumber(value: number | undefined): string {
   return String(value)
 }
 
+/** Code-unit order (not localeCompare) keeps mirror output deterministic across runtimes. */
+function compareIdsByCodeUnit(
+  left: { readonly id: string },
+  right: { readonly id: string }
+): number {
+  return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+}
+
 function listSortedGraphs(
   map: Spe956PropagationGraphRecordsMap | undefined
 ): Spe956PersistedPropagationGraph[] {
@@ -69,7 +78,7 @@ function listSortedGraphs(
 
   return Object.values(map)
     .filter((entry): entry is Spe956PersistedPropagationGraph => entry != null)
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort(compareIdsByCodeUnit)
 }
 
 function toNodeRow(
@@ -78,8 +87,8 @@ function toNodeRow(
   return Object.freeze({
     id: node.id,
     label: node.label,
-    kindLabel: formatSpe947EnumLabel(node.kind),
-    entityIdLabel: node.entityId?.trim() ? node.entityId : '—',
+    kindLabel: formatMirrorEnumLabel(node.kind),
+    entityIdLabel: node.entityId?.trim() || '—',
   })
 }
 
@@ -97,11 +106,11 @@ function toEdgeRow(
 function toGraphRow(graph: Spe956PersistedPropagationGraph): Spe956PropagationGraphMirrorRow {
   const nodes = [...graph.nodes]
     .filter((node) => node != null)
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort(compareIdsByCodeUnit)
     .map(toNodeRow)
   const edges = [...graph.edges]
     .filter((edge) => edge != null)
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort(compareIdsByCodeUnit)
     .map(toEdgeRow)
 
   return Object.freeze({
@@ -113,25 +122,23 @@ function toGraphRow(graph: Spe956PersistedPropagationGraph): Spe956PropagationGr
     elapsedPropagationWeeksLabel: formatOptionalNumber(graph.elapsedPropagationWeeks),
     weeklyElapsedWeeksDeltaLabel: formatOptionalNumber(graph.weeklyElapsedWeeksDelta),
     lastWeeklyTickWeekLabel: formatOptionalNumber(graph.lastWeeklyTickWeek),
+    isEdgeEmpty: edges.length === 0,
     nodes: Object.freeze(nodes),
     edges: Object.freeze(edges),
   })
 }
 
 /** Read-only mirror over hydrated spe956PropagationGraphRecords; does not compose evaluators. */
-export function getSpe956PropagationGraphMirrorView(game: GameState): Spe956PropagationGraphMirrorView {
+export function getSpe956PropagationGraphMirrorView(
+  game: GameState
+): Spe956PropagationGraphMirrorView {
   const records = extractSpe956PropagationGraphRecords(game)
-  const graphs = listSortedGraphs(records).map(toGraphRow)
+  const graphRecords = listSortedGraphs(records)
+  const graphs = graphRecords.map(toGraphRow)
 
   const graphCount = graphs.length
-  const totalNodeCount = graphs.reduce(
-    (sum, graph) => sum + Number.parseInt(graph.nodeCountLabel, 10),
-    0
-  )
-  const totalEdgeCount = graphs.reduce(
-    (sum, graph) => sum + Number.parseInt(graph.edgeCountLabel, 10),
-    0
-  )
+  const totalNodeCount = graphRecords.reduce((sum, graph) => sum + graph.nodes.length, 0)
+  const totalEdgeCount = graphRecords.reduce((sum, graph) => sum + graph.edges.length, 0)
 
   return Object.freeze({
     isEmpty: graphCount === 0,

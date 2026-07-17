@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { APP_ROUTES } from '../../app/routes'
 import { hydrateGame } from '../../app/store/runTransfer'
 import { createStartingState } from '../../data/startingState'
@@ -6,6 +6,10 @@ import { SPE_956_EXAMPLE_PROPAGATION_GRAPH } from '../../domain/spe956Propagatio
 import { SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS } from '../../domain/spe956PropagationGraphPersistence'
 import { getFrontDeskHubView } from './frontDeskView'
 import { getSpe956PropagationGraphMirrorView } from './spe956PropagationGraphMirrorView'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('spe956PropagationGraphMirrorView (SPE-2626 slice 4)', () => {
   it('returns empty mirror when spe956PropagationGraphRecords is empty without false AC', () => {
@@ -96,6 +100,90 @@ describe('spe956PropagationGraphMirrorView (SPE-2626 slice 4)', () => {
     const second = JSON.stringify(getSpe956PropagationGraphMirrorView(game))
 
     expect(first).toBe(second)
+  })
+
+  it('orders graph, node, and edge ids by locale-independent code units', () => {
+    const game = createStartingState()
+    const base = SPE_956_EXAMPLE_PROPAGATION_GRAPH
+    const makeGraph = (id: string) => ({
+      ...base,
+      id,
+      seedNodeId: 'Z',
+      nodes: [
+        { id: 'a', label: 'Lowercase node', kind: 'platform' as const, entityId: 'entity:a' },
+        {
+          id: 'Z',
+          label: 'Uppercase node',
+          kind: 'content_artifact' as const,
+          entityId: 'entity:Z',
+        },
+      ],
+      edges: [
+        { id: 'a', fromNodeId: 'Z', toNodeId: 'a' },
+        { id: 'Z', fromNodeId: 'a', toNodeId: 'Z' },
+      ],
+    })
+    game.spe956PropagationGraphRecords = {
+      a: makeGraph('a'),
+      Z: makeGraph('Z'),
+    }
+
+    const view = getSpe956PropagationGraphMirrorView(game)
+
+    expect(view.graphs.map((graph) => graph.id)).toEqual(['Z', 'a'])
+    expect(view.graphs[0]?.nodes.map((node) => node.id)).toEqual(['Z', 'a'])
+    expect(view.graphs[0]?.edges.map((edge) => edge.id)).toEqual(['Z', 'a'])
+  })
+
+  it('projects an explicit empty-edge state for graphs with zero persisted edges', () => {
+    const game = createStartingState()
+    game.spe956PropagationGraphRecords = {
+      empty: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        id: 'empty',
+        edges: [],
+      },
+    }
+
+    const graph = getSpe956PropagationGraphMirrorView(game).graphs[0]
+
+    expect(graph?.isEdgeEmpty).toBe(true)
+    expect(graph?.edges).toEqual([])
+  })
+
+  it('derives aggregate totals from source arrays without parsing display labels', () => {
+    const game = createStartingState()
+    game.spe956PropagationGraphRecords = {
+      ...SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS,
+    }
+    const parseIntSpy = vi.spyOn(Number, 'parseInt').mockReturnValue(999)
+
+    const summary = getSpe956PropagationGraphMirrorView(game).summary
+
+    expect(parseIntSpy).not.toHaveBeenCalled()
+    expect(summary.totalNodeCount).toBe(SPE_956_EXAMPLE_PROPAGATION_GRAPH.nodes.length)
+    expect(summary.totalEdgeCount).toBe(SPE_956_EXAMPLE_PROPAGATION_GRAPH.edges.length)
+  })
+
+  it('trims whitespace-padded persisted entity ids consistently', () => {
+    const game = createStartingState()
+    game.spe956PropagationGraphRecords = {
+      padded: {
+        ...SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+        id: 'padded',
+        nodes: [
+          {
+            ...SPE_956_EXAMPLE_PROPAGATION_GRAPH.nodes[0]!,
+            entityId: '  artifact:leaked-footage  ',
+          },
+        ],
+        edges: [],
+      },
+    }
+
+    const node = getSpe956PropagationGraphMirrorView(game).graphs[0]?.nodes[0]
+
+    expect(node?.entityIdLabel).toBe('artifact:leaked-footage')
   })
 
   it('exposes Front Desk quick link to the propagation graph mirror', () => {

@@ -11,6 +11,9 @@ import type {
 } from '../../domain/spe947EvaluatorPersistence'
 import type { ContentOwner } from '../../domain/contentOwnerTakedownResistance'
 import type { PostCaseMediaPersistenceInput } from '../../domain/postCaseMediaPersistence'
+import { formatMirrorEnumLabel } from './mirrorFormatting'
+
+export { formatMirrorEnumLabel as formatSpe947EnumLabel } from './mirrorFormatting'
 
 export interface Spe947PlatformMirrorRow {
   readonly id: string
@@ -66,17 +69,6 @@ export interface Spe947EvaluatorMirrorView {
   readonly mediaCases: readonly Spe947MediaCaseMirrorRow[]
 }
 
-export function formatSpe947EnumLabel(value: string): string {
-  if (!value) {
-    return '—'
-  }
-
-  return value
-    .split('_')
-    .map((part) => (part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
-    .join(' ')
-}
-
 function formatOptionalNumber(value: number | undefined): string {
   if (value === undefined) {
     return '—'
@@ -90,7 +82,7 @@ function formatOptionalEnum(value: string | undefined): string {
     return '—'
   }
 
-  return formatSpe947EnumLabel(value)
+  return formatMirrorEnumLabel(value)
 }
 
 function formatYesNo(value: boolean): string {
@@ -143,9 +135,9 @@ function toPlanRow(plan: Spe947PersistedCounterMemeticPlan): Spe947PlanMirrorRow
   return Object.freeze({
     id: plan.id,
     label: plan.label,
-    loreStateLabel: formatSpe947EnumLabel(plan.loreState),
+    loreStateLabel: formatMirrorEnumLabel(plan.loreState),
     distributorLabel: plan.distributorId?.trim() ? plan.distributorId : '—',
-    uptakeStateLabel: formatSpe947EnumLabel(plan.uptakeState),
+    uptakeStateLabel: formatMirrorEnumLabel(plan.uptakeState),
     elapsedPropagationWeeksLabel: String(plan.elapsedPropagationWeeks),
     requiredPropagationWeeksLabel: String(plan.requiredPropagationWeeks),
     lastWeeklyTickWeekLabel: formatOptionalNumber(plan.lastWeeklyTickWeek),

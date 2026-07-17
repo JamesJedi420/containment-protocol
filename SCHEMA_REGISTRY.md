@@ -204,3 +204,33 @@ Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializat
 
 - No migration path defined yet (single version)
 - If a breaking field change is needed, bump the discriminant string (e.g. `spe-947-evaluator.v2`) and add hydration defaults alongside `runTransfer.ts`
+
+---
+
+## SPE-956 propagation graph persistence (spe-956-propagation-graph.v1)
+
+Documents compact GameState map for authored SPE-956 propagation graphs (SPE-2621 slice 2).
+Compose helper wires persisted graph + spe947* maps via `composeSpe956PropagationGraphFromGameState`.
+No week-close tick; no evaluator contract changes.
+
+**Current version**: `spe-956-propagation-graph.v1` — exported as `SPE_956_PROPAGATION_GRAPH_PERSISTENCE_SCHEMA_VERSION`
+
+**Location**: `src/domain/spe956PropagationGraphPersistence.ts` (pure compose: `src/domain/spe956PropagationGraph.ts`)
+
+### GameState fields
+
+| Field                           | Notes                                                                 |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `spe956PropagationGraphRecords` | Authored graph id + nested nodes/edges; keyed by graph id             |
+
+### Hydration
+
+- Sanitize via `sanitizeSpe956PropagationGraphRecords` in `spe956PropagationGraphPersistence.ts`
+- Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
+- Invalid graphs, duplicate ids, unknown node kinds, dangling edges, and missing seed nodes are dropped without throw
+- Default starting state: empty `{}` map in `createStartingState`
+
+### Versioning
+
+- No migration path defined yet (single version)
+- If a breaking field change is needed, bump the discriminant string (e.g. `spe-956-propagation-graph.v2`) and add hydration defaults alongside `runTransfer.ts`

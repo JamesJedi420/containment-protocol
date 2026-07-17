@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2619](https://linear.app/spectranoir/
 | Field               | Value                                                                                                      |
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2619 — Propagation graph wire-up (slice 1)](https://linear.app/spectranoir/issue/SPE-2619)            |
-| **Status**          | **In Progress**                                                                                            |
+| **Status**          | **Shipped** — PR #3140 @ `cbba01d4`                                                                                                      |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / harvest #965 anchor; stays **Backlog** |
 | **Branch**          | `spe-956-propagation-graph-wire-up-slice-1`                                                                |
 | **Base `main` SHA** | `8f713c51`                                                                                                 |
@@ -51,13 +51,13 @@ Ship the smallest deterministic **propagation graph compose** that wires authore
 - [x] Linked registry record contributes broadcast risk when binding resolves
 - [x] Unresolved/missing node entity → encoded in reasonCodes without throw
 - [x] SPE-2568–2574 / SPE-2617 contracts unchanged
-- [ ] `npm run lint` + targeted tests green (pre-merge)
+- [x] `npm run lint` + targeted tests green
 
 ## Deferred
 
 | Item                              | Suggested owner | Why deferred              |
 | --------------------------------- | --------------- | ------------------------- |
-| GameState graph persistence       | SPE-956 slice 2 | Out of pure-compose slice |
+| GameState graph persistence       | SPE-2621        | Slice 2 — GameState persistence |
 | Week-close graph tick             | SPE-956 slice 3 | Week-close boundary       |
 | Store / UI / mirror surfacing     | SPE-956 sibling | After persistence         |
 | SPE-956 parent AC (advisory/hotline) | SPE-956 siblings | Separate umbrella scope |

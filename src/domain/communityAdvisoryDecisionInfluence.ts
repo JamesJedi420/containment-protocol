@@ -144,12 +144,29 @@ function normalizeToken(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function normalizeStringList(values: unknown): readonly string[] {
-  if (!Array.isArray(values)) {
-    return Object.freeze([])
+function tryNormalizeConditions(
+  values: unknown
+): { readonly ok: true; readonly conditions: readonly string[] } | { readonly ok: false } {
+  if (values === undefined) {
+    return { ok: true, conditions: Object.freeze([]) }
   }
 
-  return uniqueSorted(values.map((value) => normalizeToken(value)))
+  if (!Array.isArray(values)) {
+    return { ok: false }
+  }
+
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      return { ok: false }
+    }
+  }
+
+  return {
+    ok: true,
+    conditions: uniqueSorted(
+      values.map((value) => value.trim()).filter((value) => value.length > 0)
+    ),
+  }
 }
 
 function freezeBaseline(decision: IncidentResponseDecision): IncidentResponseDecision {
@@ -289,13 +306,27 @@ function isUrgency(value: unknown): value is CommunityAdvisoryUrgency {
   return typeof value === 'string' && URGENCY_SET.has(value)
 }
 
-function normalizeBaseline(value: IncidentResponseDecision): IncidentResponseDecision {
+function tryNormalizeBaseline(value: unknown): IncidentResponseDecision | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const incidentId = normalizeToken(value.incidentId)
+  const responseTiming = normalizeToken(value.responseTiming)
+  const restrictionLevel = normalizeToken(value.restrictionLevel)
+  const framing = normalizeToken(value.framing)
+  const supportRouting = normalizeToken(value.supportRouting)
+
+  if (!incidentId || !responseTiming || !restrictionLevel || !framing || !supportRouting) {
+    return null
+  }
+
   return freezeBaseline({
-    incidentId: normalizeToken(value.incidentId) || 'incident:unknown',
-    responseTiming: normalizeToken(value.responseTiming) || 'unchanged',
-    restrictionLevel: normalizeToken(value.restrictionLevel) || 'unchanged',
-    framing: normalizeToken(value.framing) || 'unchanged',
-    supportRouting: normalizeToken(value.supportRouting) || 'unchanged',
+    incidentId,
+    responseTiming,
+    restrictionLevel,
+    framing,
+    supportRouting,
   })
 }
 
@@ -324,7 +355,10 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
     return emptyDeferredResult(['invalid_incident_baseline'])
   }
 
-  const baseline = normalizeBaseline(rawBaseline as IncidentResponseDecision)
+  const baseline = tryNormalizeBaseline(rawBaseline)
+  if (!baseline) {
+    return emptyDeferredResult(['invalid_incident_baseline'])
+  }
 
   const rawBody = input.body
   if (rawBody === null || rawBody === undefined) {
@@ -358,7 +392,14 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
   const authorizedScopes = Array.isArray(body.authorizedDecisionScopes)
     ? body.authorizedDecisionScopes.filter(isDecisionScope)
     : []
-  const conditions = normalizeStringList(signal.conditions)
+  const normalizedConditions = tryNormalizeConditions(signal.conditions)
+  if (!normalizedConditions.ok) {
+    return emptyDeferredResult(['invalid_advisory_conditions'], baseline, {
+      bodyId,
+      influenceThreshold,
+    })
+  }
+  const conditions = normalizedConditions.conditions
 
   if (!bodyId) {
     return emptyDeferredResult(['missing_advisory_body_id'], baseline)

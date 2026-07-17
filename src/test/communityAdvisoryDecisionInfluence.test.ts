@@ -239,4 +239,46 @@ describe('communityAdvisoryDecisionInfluence (SPE-2620 / SPE-956 slice 1)', () =
     ])
     expect(EXAMPLE_COMMUNITY_ADVISORY_BODY.influenceThreshold).toBeGreaterThan(0)
   })
+
+  it('defers a partial baseline instead of inventing missing decision fields', () => {
+    const result = evaluateCommunityAdvisoryDecisionInfluence({
+      body: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      signal: EXAMPLE_SUPPORT_ROUTING_SIGNAL,
+      baseline: {
+        incidentId: 'incident:partial',
+        responseTiming: 'now',
+      } as IncidentResponseDecision,
+    })
+
+    expect(result.disposition).toBe('deferred')
+    expect(result.reasonCodes).toEqual(['invalid_incident_baseline'])
+    expect(result.proposedAdjustment).toBeNull()
+  })
+
+  it('defers malformed condition payloads instead of adopting them', () => {
+    const objectConditions = evaluateCommunityAdvisoryDecisionInfluence({
+      body: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      signal: {
+        ...EXAMPLE_SUPPORT_ROUTING_SIGNAL,
+        conditions: {} as unknown as readonly string[],
+      },
+      baseline: EXAMPLE_INCIDENT_BASELINE,
+    })
+    expect(objectConditions.disposition).toBe('deferred')
+    expect(objectConditions.reasonCodes).toEqual(['invalid_advisory_conditions'])
+    expect(objectConditions.proposedAdjustment).toBeNull()
+    expect(objectConditions.resolved).toEqual(EXAMPLE_INCIDENT_BASELINE)
+
+    const numericConditions = evaluateCommunityAdvisoryDecisionInfluence({
+      body: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      signal: {
+        ...EXAMPLE_SUPPORT_ROUTING_SIGNAL,
+        conditions: [42] as unknown as readonly string[],
+      },
+      baseline: EXAMPLE_INCIDENT_BASELINE,
+    })
+    expect(numericConditions.disposition).toBe('deferred')
+    expect(numericConditions.reasonCodes).toEqual(['invalid_advisory_conditions'])
+    expect(numericConditions.proposedAdjustment).toBeNull()
+  })
 })

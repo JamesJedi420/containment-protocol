@@ -31,12 +31,13 @@ Ship the smallest pure deterministic community-advisory surface: one authored ad
 - **Baseline:** incidentId + responseTiming / restrictionLevel / framing / supportRouting strings (single source of truth input).
 - **supportScore** = `SUPPORT_BAND_WEIGHT[supportBand] * confidence` (micro-rounded for display; compare with raw product).
 - **Disposition priority:**
-  1. Missing/invalid evaluation input, body, signal, or baseline → `deferred`, resolved === baseline, no adjustment.
+  1. Missing/invalid evaluation input, body, signal, or baseline (including partial baselines missing required fields) → `deferred`, resolved === baseline, no adjustment.
   2. bodyId mismatch → `rejected`, no adjustment.
   3. Recommendation scope ∉ authorizedDecisionScopes → `rejected` (`recommendation_out_of_scope`), no adjustment.
-  4. supportScore < influenceThreshold → `deferred` when urgency is `elevated`/`urgent`, else `rejected` (`below_influence_threshold`); no adjustment.
-  5. Meets threshold + conditions present → `modified`, apply proposed value, keep conditions inspectable.
-  6. Meets threshold + no conditions → `adopted`, apply proposed value.
+  4. Malformed `conditions` (non-array or non-string entries) → `deferred` (`invalid_advisory_conditions`), no adjustment.
+  5. supportScore < influenceThreshold → `deferred` when urgency is `elevated`/`urgent`, else `rejected` (`below_influence_threshold`); no adjustment.
+  6. Meets threshold + conditions present → `modified`, apply proposed value, keep conditions inspectable.
+  7. Meets threshold + no conditions → `adopted`, apply proposed value.
 - Result is frozen: disposition, baseline, resolved, proposedAdjustment | null, supportScore, influenceThreshold, bodyId, reasonCodes (unique sorted).
 - Never mutates baseline; never invents parallel policy maps.
 

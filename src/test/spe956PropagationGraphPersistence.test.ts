@@ -19,6 +19,7 @@ import {
 } from '../domain/spe956PropagationGraph'
 import {
   composeSpe956PropagationGraphFromGameState,
+  resolvePersistedPropagationGraph,
   sanitizeSpe956PropagationGraphRecords,
   SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS,
 } from '../domain/spe956PropagationGraphPersistence'
@@ -27,6 +28,106 @@ import { BACKGROUND_FRAGMENT_LATENT_FIXTURE } from '../domain/visualTriggerHazar
 describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () => {
   it('defaults starting state to empty spe956PropagationGraphRecords', () => {
     expect(createStartingState().spe956PropagationGraphRecords).toEqual({})
+  })
+
+  it('returns explicit empty map instead of fallback during sanitize (SPE-2622)', () => {
+    const fallback = SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS
+
+    expect(sanitizeSpe956PropagationGraphRecords({}, fallback)).toEqual({})
+    expect(sanitizeSpe956PropagationGraphRecords({}, fallback)).not.toBe(fallback)
+  })
+
+  it('returns fallback only for non-record input during sanitize (SPE-2622)', () => {
+    const fallback = SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS
+
+    expect(sanitizeSpe956PropagationGraphRecords(null, fallback)).toBe(fallback)
+    expect(sanitizeSpe956PropagationGraphRecords(undefined, fallback)).toBe(fallback)
+    expect(sanitizeSpe956PropagationGraphRecords('not-a-record', fallback)).toBe(fallback)
+  })
+
+  it('rejects unsafe graph ids and preserves valid records in mixed input (SPE-2622)', () => {
+    const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
+
+    for (const unsafeId of unsafeIds) {
+      const polluted = sanitizeSpe956PropagationGraphRecords({
+        polluted: {
+          id: unsafeId,
+          label: 'Unsafe graph id',
+          seedNodeId: 'node:unsafe',
+          nodes: [
+            {
+              id: 'node:unsafe',
+              label: 'Unsafe',
+              kind: 'artifact',
+              entityId: 'artifact:unsafe',
+            },
+          ],
+          edges: [],
+        },
+      })
+
+      expect(Object.prototype.hasOwnProperty.call(polluted, unsafeId)).toBe(false)
+      expect(Object.keys(polluted)).toEqual([])
+    }
+
+    const mixed = sanitizeSpe956PropagationGraphRecords({
+      valid: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+      polluted: {
+        id: '__proto__',
+        label: 'Proto pollution attempt',
+        seedNodeId: 'node:artifact-leak',
+        nodes: SPE_956_EXAMPLE_PROPAGATION_GRAPH.nodes,
+        edges: [],
+      },
+    })
+
+    expect(mixed[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]).toEqual(
+      SPE_956_EXAMPLE_PROPAGATION_GRAPH
+    )
+    expect(Object.prototype.hasOwnProperty.call(mixed, '__proto__')).toBe(false)
+    expect(Object.keys(mixed)).toEqual([SPE_956_EXAMPLE_PROPAGATION_GRAPH.id])
+  })
+
+  it('resolvePersistedPropagationGraph ignores inherited keys (SPE-2622)', () => {
+    const inheritedGraphId = 'graph:inherited'
+    const records = Object.create(null) as Record<string, unknown>
+    records[inheritedGraphId] = SPE_956_EXAMPLE_PROPAGATION_GRAPH
+    Object.setPrototypeOf(records, {
+      [inheritedGraphId]: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+    })
+
+    expect(resolvePersistedPropagationGraph({ spe956PropagationGraphRecords: records }, inheritedGraphId)).toEqual(
+      SPE_956_EXAMPLE_PROPAGATION_GRAPH
+    )
+
+    const prototypeOnlyId = 'graph:prototype-only'
+    const prototypeBacked = Object.create({
+      [prototypeOnlyId]: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
+    }) as Record<string, unknown>
+
+    expect(
+      resolvePersistedPropagationGraph(
+        { spe956PropagationGraphRecords: prototypeBacked },
+        prototypeOnlyId
+      )
+    ).toBeNull()
+  })
+
+  it('hydrates explicit empty graph records over fallback during import (SPE-2622)', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, {
+      spe956PropagationGraphRecords: SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS,
+    })
+
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956PropagationGraphRecords: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956PropagationGraphRecords).toEqual({})
   })
 
   it('drops invalid and duplicate graph entries during sanitize without throwing', () => {

@@ -60,6 +60,10 @@ function isNonNegativeFinite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
+function isSafeMapKey(id: string): boolean {
+  return id !== '__proto__' && id !== 'constructor' && id !== 'prototype'
+}
+
 function sanitizePositiveIntegerWeek(value: unknown): number | undefined {
   if (
     typeof value !== 'number' ||
@@ -154,7 +158,7 @@ function sanitizeSpe956PropagationGraphEntry(
   const id = normalizeId(value.id, '')
   const label = normalizeLabel(value.label, id)
   const seedNodeId = normalizeId(value.seedNodeId, '')
-  if (id.length === 0 || label.length === 0 || seedNodeId.length === 0) {
+  if (id.length === 0 || !isSafeMapKey(id) || label.length === 0 || seedNodeId.length === 0) {
     return null
   }
 
@@ -237,7 +241,7 @@ export function sanitizeSpe956PropagationGraphRecords(
     return fallback
   }
 
-  const next: Spe956PropagationGraphRecordsMap = {}
+  const next = Object.create(null) as Spe956PropagationGraphRecordsMap
   const seenIds = new Set<string>()
 
   for (const entry of Object.values(value)) {
@@ -250,7 +254,9 @@ export function sanitizeSpe956PropagationGraphRecords(
     next[record.id] = record
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
 }
 
 export function extractSpe956PropagationGraphRecords(
@@ -263,7 +269,12 @@ export function resolvePersistedPropagationGraph(
   game: Partial<{ spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap }>,
   graphId: string
 ): Spe956PersistedPropagationGraph | null {
-  return extractSpe956PropagationGraphRecords(game)[graphId] ?? null
+  const records = extractSpe956PropagationGraphRecords(game)
+  if (!Object.prototype.hasOwnProperty.call(records, graphId)) {
+    return null
+  }
+
+  return records[graphId] ?? null
 }
 
 export interface Spe956PropagationGraphGameStateLike {

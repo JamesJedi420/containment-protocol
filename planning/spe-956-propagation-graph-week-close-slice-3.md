@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2624](https://linear.app/spectranoir/
 | Field               | Value                                                                                                      |
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2624 — Propagation graph week-close tick (slice 3)](https://linear.app/spectranoir/issue/SPE-2624)    |
-| **Status**          | **In Progress**                                                                                            |
+| **Status**          | **Shipped** — PR #3147 @ `62766f11`                                                                                            |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — stays **Backlog**                                |
 | **Branch**          | `spe-956-propagation-graph-week-close-slice-3`                                                             |
 | **Base `main` SHA** | `dc2bf497`                                                                                                 |

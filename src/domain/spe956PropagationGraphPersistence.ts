@@ -1,7 +1,7 @@
 /**
- * SPE-2621 / SPE-956 slice 2: GameState persistence for authored propagation graphs.
- * Sanitize/hydrate authored graph records; compose helper wires persisted graph + spe947* maps.
- * No week-close tick, no evaluator contract changes, no pure-compose semantic changes.
+ * SPE-2621 / SPE-956 slice 2 + SPE-2624 slice 3: GameState persistence for authored propagation graphs.
+ * Sanitize/hydrate authored graph records; optional weekly orchestration fields (SPE-2577 pattern).
+ * Compose helper wires persisted graph + spe947* maps. No evaluator contract changes.
  */
 
 import { extractSpe947EvaluatorPersistenceMaps } from './spe947EvaluatorPersistence'
@@ -23,7 +23,17 @@ export const SPE_956_PROPAGATION_GRAPH_PERSISTENCE_SCHEMA_VERSION =
 export type Spe956PropagationGraphPersistenceSchemaVersion =
   typeof SPE_956_PROPAGATION_GRAPH_PERSISTENCE_SCHEMA_VERSION
 
-export type Spe956PropagationGraphRecordsMap = Record<string, AuthoredSpe956PropagationGraph>
+/** Persisted graph record: authored structure plus optional week-close orchestration fields. */
+export interface Spe956PersistedPropagationGraph extends AuthoredSpe956PropagationGraph {
+  /** Running elapsed propagation weeks counter (orchestration-owned when delta authored). */
+  readonly elapsedPropagationWeeks?: number
+  /** Optional authored week-close additive delta (SPE-2577 weeklyViewDelta pattern). */
+  readonly weeklyElapsedWeeksDelta?: number
+  /** Idempotency marker: last simulation week this record was ticked. */
+  readonly lastWeeklyTickWeek?: number
+}
+
+export type Spe956PropagationGraphRecordsMap = Record<string, Spe956PersistedPropagationGraph>
 
 type PlainRecord = Record<string, unknown>
 
@@ -44,6 +54,23 @@ function isNodeKind(value: unknown): value is Spe956PropagationGraphNodeKind {
     typeof value === 'string' &&
     (SPE_956_PROPAGATION_GRAPH_NODE_KINDS as readonly string[]).includes(value)
   )
+}
+
+function isNonNegativeFinite(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+function sanitizePositiveIntegerWeek(value: unknown): number | undefined {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < 1 ||
+    value !== Math.trunc(value)
+  ) {
+    return undefined
+  }
+
+  return value
 }
 
 function sanitizeSpreadFactor(value: unknown): number | undefined {
@@ -117,7 +144,9 @@ function sanitizeSpe956PropagationGraphEdgeEntry(
   })
 }
 
-function sanitizeSpe956PropagationGraphEntry(value: unknown): AuthoredSpe956PropagationGraph | null {
+function sanitizeSpe956PropagationGraphEntry(
+  value: unknown
+): Spe956PersistedPropagationGraph | null {
   if (!isPlainRecord(value)) {
     return null
   }
@@ -148,6 +177,25 @@ function sanitizeSpe956PropagationGraphEntry(value: unknown): AuthoredSpe956Prop
     return null
   }
 
+  if (
+    value.elapsedPropagationWeeks !== undefined &&
+    !isNonNegativeFinite(value.elapsedPropagationWeeks)
+  ) {
+    return null
+  }
+
+  if (
+    value.weeklyElapsedWeeksDelta !== undefined &&
+    !isNonNegativeFinite(value.weeklyElapsedWeeksDelta)
+  ) {
+    return null
+  }
+
+  const lastWeeklyTickWeek = sanitizePositiveIntegerWeek(value.lastWeeklyTickWeek)
+  if (value.lastWeeklyTickWeek !== undefined && lastWeeklyTickWeek === undefined) {
+    return null
+  }
+
   const knownNodeIds = new Set(nodes.map((node) => node.id))
   const edges: Spe956PropagationGraphEdge[] = []
   const seenEdgeIds = new Set<string>()
@@ -170,6 +218,13 @@ function sanitizeSpe956PropagationGraphEntry(value: unknown): AuthoredSpe956Prop
     seedNodeId,
     nodes: Object.freeze(nodes),
     edges: Object.freeze(edges),
+    ...(value.elapsedPropagationWeeks !== undefined
+      ? { elapsedPropagationWeeks: value.elapsedPropagationWeeks }
+      : {}),
+    ...(value.weeklyElapsedWeeksDelta !== undefined
+      ? { weeklyElapsedWeeksDelta: value.weeklyElapsedWeeksDelta }
+      : {}),
+    ...(lastWeeklyTickWeek !== undefined ? { lastWeeklyTickWeek } : {}),
   })
 }
 
@@ -207,7 +262,7 @@ export function extractSpe956PropagationGraphRecords(
 export function resolvePersistedPropagationGraph(
   game: Partial<{ spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap }>,
   graphId: string
-): AuthoredSpe956PropagationGraph | null {
+): Spe956PersistedPropagationGraph | null {
   return extractSpe956PropagationGraphRecords(game)[graphId] ?? null
 }
 

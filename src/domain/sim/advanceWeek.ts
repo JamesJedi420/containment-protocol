@@ -268,6 +268,8 @@ import { applyWeeklyAffiliationPersonStatusProgressionTick } from '../affiliatio
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
+import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
+import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
 import { applyWeeklySpe947MediaEconomyTick } from '../spe947MediaEconomyWeeklyOrchestration'
 import { listSpe947MediaEconomyCommercializationActors } from '../spe947MediaEconomySimulator'
@@ -4977,6 +4979,18 @@ export function advanceWeek(
     const nextSpe947Maps = applyWeeklySpe947EvaluatorTick(priorSpe947Maps, result.week)
     outputWeeklyState.spe947PlatformRecords = nextSpe947Maps.spe947PlatformRecords
     outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
+  }
+
+  // SPE-2624 slice 3: optional authored graph elapsed-week deltas on spe956PropagationGraphRecords.
+  const priorSpe956GraphRecords = extractSpe956PropagationGraphRecords(outputWeeklyState)
+  if (Object.keys(priorSpe956GraphRecords).length > 0) {
+    const nextSpe956GraphRecords = applyWeeklySpe956PropagationGraphTick(
+      priorSpe956GraphRecords,
+      result.week
+    )
+    if (nextSpe956GraphRecords !== priorSpe956GraphRecords) {
+      outputWeeklyState.spe956PropagationGraphRecords = nextSpe956GraphRecords
+    }
   }
 
   // SPE-2615 / SPE-2616 / SPE-2617: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).

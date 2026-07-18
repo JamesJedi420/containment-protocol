@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2634](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2634 — Participatory channel persistence — advisory / hotline / async maps (slice 3)](https://linear.app/spectranoir/issue/SPE-2634) |
-| **Status**          | **In PR** — [#3177](https://github.com/JamesJedi420/containment-protocol/pull/3177); handoff primary → SPE-2635 |
+| **Status**          | **Shipped** — PR #3177                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**        |
 | **Branch**          | `spe-956-participatory-channel-persistence-slice-3`                                                                                     |
 | **Base `main` SHA** | `679f46b1`                                                                                                                              |

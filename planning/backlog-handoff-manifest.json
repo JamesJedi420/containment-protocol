@@ -1,8 +1,9 @@
 {
-  "primary": "SPE-2630",
+  "primary": "SPE-2631",
   "inProgress": [],
-  "recentlyShipped": ["SPE-2629", "SPE-2628", "SPE-2620"],
+  "recentlyShipped": ["SPE-2630", "SPE-2629", "SPE-2628"],
   "sliceDocStatus": {
+    "planning/spe-956-survivor-informal-registry-slice-1.md": "Shipped",
     "planning/spe-956-async-discussion-surface-slice-1.md": "Shipped",
     "planning/spe-956-hotline-channel-slice-1.md": "Shipped",
     "planning/spe-956-community-advisory-decision-influence-slice-1.md": "Shipped",

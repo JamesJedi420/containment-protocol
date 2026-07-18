@@ -199,8 +199,7 @@ describe('survivorInformalRegistry (SPE-2630 / SPE-956 slice 1)', () => {
     expect(result.resolved).toEqual(EXAMPLE_SURVIVOR_REGISTRY_BASELINE)
   })
 
-  it('rejects contribute_support when proposed scope is not support_knowledge', () => {
-    // credibility_stance is handled as weak_testimony; other scopes reject
+  it('rejects record_symptom when proposed scope is credibility_stance', () => {
     const result = evaluateSurvivorInformalRegistrySignal({
       registry: EXAMPLE_SURVIVOR_REGISTRY,
       signal: signal({
@@ -213,6 +212,35 @@ describe('survivorInformalRegistry (SPE-2630 / SPE-956 slice 1)', () => {
 
     expect(result.outcome).toBe('rejected')
     expect(result.reasonCodes).toEqual(['intent_scope_mismatch', 'registry_rejected'])
+    expect(result.proposedAdjustment).toBeNull()
+  })
+
+  it('prefers catalog_closed over registry_signal_mismatch when both apply', () => {
+    const result = evaluateSurvivorInformalRegistrySignal({
+      registry: registry({ catalogRule: 'closed' }),
+      signal: signal({ registryId: 'registry:other' }),
+      baseline: EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
+    })
+
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCodes).toEqual(['catalog_closed', 'registry_rejected'])
+    expect(result.proposedAdjustment).toBeNull()
+  })
+
+  it('prefers incomplete_catalog_rule over registry_signal_mismatch when both apply', () => {
+    const result = evaluateSurvivorInformalRegistrySignal({
+      registry: registry({ catalogRule: 'pattern_only' }),
+      signal: signal({
+        signalId: 'signal:riverside-symptom-mismatch',
+        registryId: 'registry:other',
+        intent: 'record_symptom',
+        proposedValue: 'night_tremor_note',
+      }),
+      baseline: EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
+    })
+
+    expect(result.outcome).toBe('deferred')
+    expect(result.reasonCodes).toEqual(['incomplete_catalog_rule'])
     expect(result.proposedAdjustment).toBeNull()
   })
 

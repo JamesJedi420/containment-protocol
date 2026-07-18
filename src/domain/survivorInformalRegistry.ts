@@ -364,15 +364,23 @@ export function evaluateSurvivorInformalRegistrySignal(
     })
   }
 
-  if (!signalRegistryId || signalRegistryId !== registryId) {
-    return rejectedResult(['registry_rejected', 'registry_signal_mismatch'], baseline, {
+  // Outcome priority: catalog rules before registry/signal mismatch (slice contract).
+  if (registry.catalogRule === 'closed') {
+    return rejectedResult(['catalog_closed', 'registry_rejected'], baseline, {
       registryId,
       signalId,
     })
   }
 
-  if (registry.catalogRule === 'closed') {
-    return rejectedResult(['catalog_closed', 'registry_rejected'], baseline, {
+  if (registry.catalogRule === 'pattern_only' && signal.intent === 'record_symptom') {
+    return deferredResult(['incomplete_catalog_rule'], baseline, {
+      registryId,
+      signalId,
+    })
+  }
+
+  if (!signalRegistryId || signalRegistryId !== registryId) {
+    return rejectedResult(['registry_rejected', 'registry_signal_mismatch'], baseline, {
       registryId,
       signalId,
     })
@@ -397,15 +405,9 @@ export function evaluateSurvivorInformalRegistrySignal(
     })
   }
 
+  // Only support_knowledge remains after credibility_stance handling above.
   if (signal.proposedScope !== 'support_knowledge') {
     return rejectedResult(['intent_scope_mismatch', 'registry_rejected'], baseline, {
-      registryId,
-      signalId,
-    })
-  }
-
-  if (registry.catalogRule === 'pattern_only' && signal.intent === 'record_symptom') {
-    return deferredResult(['incomplete_catalog_rule'], baseline, {
       registryId,
       signalId,
     })

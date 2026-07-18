@@ -210,6 +210,37 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     })
   })
 
+  it('preserves explicitly empty evaluator maps over non-empty hydrate fallback', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, SPE_947_EXAMPLE_PERSISTENCE_FIXTURE)
+
+    const hydrated = hydrateGame(
+      {
+        ...createStartingState(),
+        spe947PlatformRecords: {},
+        spe947OperationRecords: {},
+        spe947ContentArtifacts: {},
+        spe947CounterMemeticPlans: {},
+        spe947ContentOwners: {},
+        spe947PostCaseMediaCases: {},
+        spe947FootageExposureBindings: {},
+        spe947TakedownResistanceBindings: {},
+        spe947VisualTriggerHazardBindings: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe947PlatformRecords).toEqual({})
+    expect(hydrated.spe947OperationRecords).toEqual({})
+    expect(hydrated.spe947ContentArtifacts).toEqual({})
+    expect(hydrated.spe947CounterMemeticPlans).toEqual({})
+    expect(hydrated.spe947ContentOwners).toEqual({})
+    expect(hydrated.spe947PostCaseMediaCases).toEqual({})
+    expect(hydrated.spe947FootageExposureBindings).toEqual({})
+    expect(hydrated.spe947TakedownResistanceBindings).toEqual({})
+    expect(hydrated.spe947VisualTriggerHazardBindings).toEqual({})
+  })
+
   it('feeds SPE-2568–2573 evaluators from persisted shape with EXAMPLE-equivalent decisions', () => {
     const maps = SPE_947_EXAMPLE_PERSISTENCE_FIXTURE
 

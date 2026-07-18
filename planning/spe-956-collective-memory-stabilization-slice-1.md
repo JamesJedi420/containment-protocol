@@ -30,15 +30,16 @@ Ship the smallest pure deterministic collective memory-stabilization channel: on
 - **Signal:** signalId, channelId, intent (`stabilize_recall` \| `share_narrative` \| `elevate_testimony`), proposedScope (`procedure_memory` \| `credibility_stance`), proposedValue.
 - **Baseline:** memberId + procedureMemory + credibilityStance strings.
 - **Outcome priority:**
-  1. Missing/invalid evaluation input, channel, signal, or baseline → `deferred`, resolved === baseline, no adjustment.
-  2. Incomplete channel (narrative / recall / ceiling / rule enums) → `deferred` (`incomplete_stabilization_rules`), no adjustment.
-  3. `stabilizationRule` `incomplete` → `deferred` (`incomplete_stabilization_rule`), no adjustment.
-  4. `recallWindow` `closed` → `rejected` (`recall_window_closed`), no adjustment.
-  5. `stabilizationRule` `procedure_fragments_only` + intent `share_narrative` → `deferred` (`incomplete_stabilization_rule`), no adjustment.
-  6. channelId mismatch → `rejected` (`channel_signal_mismatch`), no adjustment.
-  7. intent/scope mismatch (`stabilize_recall` / `share_narrative` with `credibility_stance`, or other non-`procedure_memory` scopes) → `rejected` (`intent_scope_mismatch`), no adjustment.
-  8. `elevate_testimony` + `proposedScope` `credibility_stance` → `weak_testimony` (`weak_testimony_ceiling`); no formal credibility elevation; no adjustment.
-  9. Otherwise valid procedure-memory path → `stabilized`, apply procedure_memory adjustment; reason codes include `credibility_capped_weak`.
+  1. Missing/null/invalid evaluation input, channel object, signal object, or baseline → `deferred`, resolved value-equals baseline (frozen clones; not same reference), no adjustment.
+  2. Incomplete channel enums (narrative / recall / ceiling / rule) → `deferred` (`incomplete_stabilization_rules`), no adjustment. Runs after channel/signal objects are present and before field-level signal checks (SPE-2630-aligned).
+  3. Field-level signal gaps (`signalId` / intent / scope / proposedValue) → `deferred`, no adjustment.
+  4. `stabilizationRule` `incomplete` → `deferred` (`incomplete_stabilization_rule`), no adjustment.
+  5. `recallWindow` `closed` → `rejected` (`recall_window_closed`), no adjustment.
+  6. `stabilizationRule` `procedure_fragments_only` + intent `share_narrative` → `deferred` (`incomplete_stabilization_rule`), no adjustment.
+  7. channelId mismatch → `rejected` (`channel_signal_mismatch`), no adjustment.
+  8. intent/scope mismatch (`stabilize_recall` / `share_narrative` with `credibility_stance`, or other non-`procedure_memory` scopes) → `rejected` (`intent_scope_mismatch`), no adjustment.
+  9. `elevate_testimony` + `proposedScope` `credibility_stance` → `weak_testimony` (`weak_testimony_ceiling`); no formal credibility elevation; no adjustment.
+  10. Otherwise valid procedure-memory path → `stabilized`, apply procedure_memory adjustment; reason codes include `credibility_capped_weak`.
 - Result is frozen: outcome, channelId, signalId, baseline, resolved, proposedAdjustment \| null, reasonCodes (unique sorted).
 - Never mutates baseline; never invents a deliberative forum or institutional memory transcript (SPE-2629 owns that surface).
 

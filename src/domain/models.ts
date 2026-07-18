@@ -322,6 +322,7 @@ import type {
 import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
 import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
 import type {
+  Spe956AsyncDiscussionSurfaceRecordsMap,
   Spe956CollectiveMemoryChannelRecordsMap,
   Spe956HotlineChannelRecordsMap,
   Spe956SurvivorInformalRegistryRecordsMap,
@@ -2890,6 +2891,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
    */
   spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+
+  /**
+   * SPE-2635 slice 4: authored SPE-956 async discussion surfaces (keyed by surface id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

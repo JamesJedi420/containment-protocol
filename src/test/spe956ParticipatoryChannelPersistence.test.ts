@@ -3,16 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
+import { EXAMPLE_DISCUSSION_SURFACE } from '../domain/asyncDiscussionSurface'
 import { EXAMPLE_MEMORY_STABILIZATION_CHANNEL } from '../domain/collectiveMemoryStabilization'
 import { EXAMPLE_HOTLINE_CHANNEL } from '../domain/hotlineChannel'
 import { EXAMPLE_SURVIVOR_REGISTRY } from '../domain/survivorInformalRegistry'
 import {
+  resolvePersistedAsyncDiscussionSurface,
   resolvePersistedCollectiveMemoryChannel,
   resolvePersistedHotlineChannel,
   resolvePersistedSurvivorInformalRegistry,
+  sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
   sanitizeSpe956HotlineChannelRecords,
   sanitizeSpe956SurvivorInformalRegistryRecords,
+  SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
   SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS,
   SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
   SPE_956_EXAMPLE_SURVIVOR_INFORMAL_REGISTRY_RECORDS,
@@ -605,5 +609,226 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2634 / SPE-956 slice 3)', (
     )
 
     expect(hydrated.spe956HotlineChannelRecords).toEqual(SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS)
+  })
+})
+
+describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', () => {
+  it('defaults starting state to empty spe956AsyncDiscussionSurfaceRecords', () => {
+    expect(createStartingState().spe956AsyncDiscussionSurfaceRecords).toEqual({})
+  })
+
+  it('returns explicit empty map instead of fallback during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS
+
+    expect(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback)).toEqual({})
+    expect(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback)).not.toBe(fallback)
+    expect(Object.getPrototypeOf(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback))).toBeNull()
+  })
+
+  it('returns fallback only for non-record / missing input during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS
+
+    expect(sanitizeSpe956AsyncDiscussionSurfaceRecords(null, fallback)).toBe(fallback)
+    expect(sanitizeSpe956AsyncDiscussionSurfaceRecords(undefined, fallback)).toBe(fallback)
+    expect(sanitizeSpe956AsyncDiscussionSurfaceRecords('not-a-record', fallback)).toBe(fallback)
+  })
+
+  it('rejects unsafe surface ids and preserves valid records in mixed input', () => {
+    const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
+
+    for (const unsafeId of unsafeIds) {
+      const polluted = sanitizeSpe956AsyncDiscussionSurfaceRecords({
+        polluted: {
+          id: unsafeId,
+          participationWindow: { startWeek: 1, endWeek: 12 },
+          transcriptRetentionMode: 'session_bound',
+          wideningRule: 'open_async',
+          memoryStabilization: false,
+        },
+      })
+
+      expect(Object.prototype.hasOwnProperty.call(polluted, unsafeId)).toBe(false)
+      expect(Object.keys(polluted)).toEqual([])
+    }
+
+    const mixed = sanitizeSpe956AsyncDiscussionSurfaceRecords({
+      valid: EXAMPLE_DISCUSSION_SURFACE,
+      polluted: {
+        id: '__proto__',
+        participationWindow: { startWeek: 1, endWeek: 12 },
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+    })
+
+    expect(mixed[EXAMPLE_DISCUSSION_SURFACE.id]).toEqual(EXAMPLE_DISCUSSION_SURFACE)
+    expect(Object.prototype.hasOwnProperty.call(mixed, '__proto__')).toBe(false)
+    expect(Object.keys(mixed)).toEqual([EXAMPLE_DISCUSSION_SURFACE.id])
+  })
+
+  it('drops invalid and duplicate surface entries during sanitize without throwing', () => {
+    const sanitized = sanitizeSpe956AsyncDiscussionSurfaceRecords({
+      valid: EXAMPLE_DISCUSSION_SURFACE,
+      duplicate: {
+        ...EXAMPLE_DISCUSSION_SURFACE,
+        wideningRule: 'closed',
+      },
+      missingId: {
+        id: '',
+        participationWindow: { startWeek: 1, endWeek: 12 },
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+      badEnum: {
+        id: 'discussion:bad-enum',
+        participationWindow: { startWeek: 1, endWeek: 12 },
+        transcriptRetentionMode: 'not_a_mode',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+      invertedWindow: {
+        id: 'discussion:inverted-window',
+        participationWindow: { startWeek: 12, endWeek: 1 },
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+      badWindowField: {
+        id: 'discussion:bad-window',
+        participationWindow: { startWeek: 1.5, endWeek: 12 },
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+      missingWindow: {
+        id: 'discussion:missing-window',
+        participationWindow: null,
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: false,
+      },
+      badBoolean: {
+        id: 'discussion:bad-boolean',
+        participationWindow: { startWeek: 1, endWeek: 12 },
+        transcriptRetentionMode: 'session_bound',
+        wideningRule: 'open_async',
+        memoryStabilization: 'yes',
+      },
+      notRecord: 'skip-me',
+    })
+
+    expect(sanitized[EXAMPLE_DISCUSSION_SURFACE.id]).toEqual(EXAMPLE_DISCUSSION_SURFACE)
+    expect(sanitized['discussion:bad-enum']).toBeUndefined()
+    expect(sanitized['discussion:inverted-window']).toBeUndefined()
+    expect(sanitized['discussion:bad-window']).toBeUndefined()
+    expect(sanitized['discussion:missing-window']).toBeUndefined()
+    expect(sanitized['discussion:bad-boolean']).toBeUndefined()
+    expect(Object.keys(sanitized)).toEqual([EXAMPLE_DISCUSSION_SURFACE.id])
+  })
+
+  it('hydrated EXAMPLE async discussion surface shape is frozen', () => {
+    const sanitized = sanitizeSpe956AsyncDiscussionSurfaceRecords({
+      valid: {
+        ...EXAMPLE_DISCUSSION_SURFACE,
+        participationWindow: { ...EXAMPLE_DISCUSSION_SURFACE.participationWindow },
+      },
+    })
+    const record = sanitized[EXAMPLE_DISCUSSION_SURFACE.id]
+
+    expect(record).toEqual(EXAMPLE_DISCUSSION_SURFACE)
+    expect(Object.isFrozen(record)).toBe(true)
+    expect(Object.isFrozen(record?.participationWindow)).toBe(true)
+  })
+
+  it('resolvePersistedAsyncDiscussionSurface ignores inherited keys and unsafe ids', () => {
+    const surfaceId = EXAMPLE_DISCUSSION_SURFACE.id
+    const ownRecords = Object.create(null) as Record<string, unknown>
+    ownRecords[surfaceId] = EXAMPLE_DISCUSSION_SURFACE
+
+    expect(
+      resolvePersistedAsyncDiscussionSurface(
+        { spe956AsyncDiscussionSurfaceRecords: ownRecords },
+        surfaceId
+      )
+    ).toEqual(EXAMPLE_DISCUSSION_SURFACE)
+
+    const prototypeOnlyId = 'discussion:prototype-only'
+    const prototypeBacked = Object.create({
+      [prototypeOnlyId]: EXAMPLE_DISCUSSION_SURFACE,
+    }) as Record<string, unknown>
+
+    expect(
+      resolvePersistedAsyncDiscussionSurface(
+        { spe956AsyncDiscussionSurfaceRecords: prototypeBacked },
+        prototypeOnlyId
+      )
+    ).toBeNull()
+
+    for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
+      const records = Object.create(null) as Record<string, unknown>
+      records[unsafeId] = EXAMPLE_DISCUSSION_SURFACE
+      expect(
+        resolvePersistedAsyncDiscussionSurface(
+          { spe956AsyncDiscussionSurfaceRecords: records },
+          unsafeId
+        )
+      ).toBeNull()
+    }
+  })
+
+  it('hydrates explicit empty async discussion surface records over fallback during import', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, {
+      spe956AsyncDiscussionSurfaceRecords: SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
+    })
+
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956AsyncDiscussionSurfaceRecords: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956AsyncDiscussionSurfaceRecords).toEqual({})
+  })
+
+  it('round-trips EXAMPLE async discussion surface records through save/load', () => {
+    const state = createStartingState()
+    Object.assign(state, {
+      spe956AsyncDiscussionSurfaceRecords: SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.spe956AsyncDiscussionSurfaceRecords).toEqual(
+      SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS
+    )
+  })
+
+  it('hydrates persisted async discussion surface records through import parsing', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956AsyncDiscussionSurfaceRecords: {
+          ...SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
+          invalid: {
+            id: 'discussion:invalid',
+            participationWindow: { startWeek: 1, endWeek: 12 },
+            transcriptRetentionMode: 'not_valid',
+            wideningRule: 'open_async',
+            memoryStabilization: false,
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956AsyncDiscussionSurfaceRecords).toEqual(
+      SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS
+    )
   })
 })

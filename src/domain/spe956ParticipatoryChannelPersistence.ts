@@ -1,11 +1,21 @@
 /**
- * SPE-2632 / SPE-2633 / SPE-2634 / SPE-956: GameState persistence for participatory channel envelopes.
+ * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-956: GameState persistence for participatory channel envelopes.
  * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
  * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
  * Slice 3 (SPE-2634): hotline channel (SPE-2628 evaluator).
+ * Slice 4 (SPE-2635): async discussion surface (SPE-2629 evaluator).
  * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
  */
 
+import {
+  DISCUSSION_WIDENING_RULES,
+  EXAMPLE_DISCUSSION_SURFACE,
+  TRANSCRIPT_RETENTION_MODES,
+  type DiscussionParticipationWindow,
+  type DiscussionSurface,
+  type DiscussionWideningRule,
+  type TranscriptRetentionMode,
+} from './asyncDiscussionSurface'
 import {
   CREDIBILITY_CEILINGS as MEMORY_CREDIBILITY_CEILINGS,
   EXAMPLE_MEMORY_STABILIZATION_CHANNEL,
@@ -403,3 +413,137 @@ export function resolvePersistedHotlineChannel(
 export const SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS: Spe956HotlineChannelRecordsMap = Object.freeze({
   [EXAMPLE_HOTLINE_CHANNEL.id]: EXAMPLE_HOTLINE_CHANNEL,
 })
+
+/** Persisted async discussion surface: opaque authored SPE-2629 channel envelope. */
+export type Spe956PersistedAsyncDiscussionSurface = DiscussionSurface
+
+export type Spe956AsyncDiscussionSurfaceRecordsMap = Record<
+  string,
+  Spe956PersistedAsyncDiscussionSurface
+>
+
+function isNonNegativeInt(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function isTranscriptRetentionMode(value: unknown): value is TranscriptRetentionMode {
+  return (
+    typeof value === 'string' && (TRANSCRIPT_RETENTION_MODES as readonly string[]).includes(value)
+  )
+}
+
+function isDiscussionWideningRule(value: unknown): value is DiscussionWideningRule {
+  return (
+    typeof value === 'string' && (DISCUSSION_WIDENING_RULES as readonly string[]).includes(value)
+  )
+}
+
+function sanitizeParticipationWindow(value: unknown): DiscussionParticipationWindow | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const { startWeek, endWeek } = value
+  if (!isNonNegativeInt(startWeek) || !isNonNegativeInt(endWeek) || startWeek > endWeek) {
+    return null
+  }
+
+  return Object.freeze({ startWeek, endWeek })
+}
+
+function sanitizeSpe956AsyncDiscussionSurfaceEntry(
+  value: unknown
+): Spe956PersistedAsyncDiscussionSurface | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const {
+    id: rawId,
+    participationWindow: rawWindow,
+    transcriptRetentionMode,
+    wideningRule,
+    memoryStabilization,
+  } = value
+
+  const id = normalizeId(rawId, '')
+  const participationWindow = sanitizeParticipationWindow(rawWindow)
+
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    participationWindow === null ||
+    !isTranscriptRetentionMode(transcriptRetentionMode) ||
+    !isDiscussionWideningRule(wideningRule) ||
+    typeof memoryStabilization !== 'boolean'
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    participationWindow,
+    transcriptRetentionMode,
+    wideningRule,
+    memoryStabilization,
+  })
+}
+
+/** Hydration: canonical authored async discussion surface map keyed by surface id. */
+export function sanitizeSpe956AsyncDiscussionSurfaceRecords(
+  value: unknown,
+  fallback: Spe956AsyncDiscussionSurfaceRecordsMap = {}
+): Spe956AsyncDiscussionSurfaceRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next = Object.create(null) as Spe956AsyncDiscussionSurfaceRecordsMap
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeSpe956AsyncDiscussionSurfaceEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
+}
+
+export function extractSpe956AsyncDiscussionSurfaceRecords(
+  game: Partial<{
+    spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+  }>
+): Spe956AsyncDiscussionSurfaceRecordsMap {
+  return game.spe956AsyncDiscussionSurfaceRecords ?? {}
+}
+
+export function resolvePersistedAsyncDiscussionSurface(
+  game: Partial<{
+    spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+  }>,
+  surfaceId: string
+): Spe956PersistedAsyncDiscussionSurface | null {
+  if (!isSafeMapKey(surfaceId)) {
+    return null
+  }
+
+  const records = extractSpe956AsyncDiscussionSurfaceRecords(game)
+  if (!Object.prototype.hasOwnProperty.call(records, surfaceId)) {
+    return null
+  }
+
+  return records[surfaceId] ?? null
+}
+
+/** EXAMPLE persisted async discussion surface fixture (mirrors SPE-2629 authored surface). */
+export const SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS: Spe956AsyncDiscussionSurfaceRecordsMap =
+  Object.freeze({
+    [EXAMPLE_DISCUSSION_SURFACE.id]: EXAMPLE_DISCUSSION_SURFACE,
+  })

@@ -261,6 +261,7 @@ import {
 } from '../../domain/spe947MediaEconomySimulator'
 import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
 import {
+  sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
   sanitizeSpe956HotlineChannelRecords,
   sanitizeSpe956SurvivorInformalRegistryRecords,
@@ -9105,6 +9106,10 @@ export function hydrateGame(
     game.spe956HotlineChannelRecords,
     fallback.spe956HotlineChannelRecords ?? {}
   )
+  const spe956AsyncDiscussionSurfaceRecords = sanitizeSpe956AsyncDiscussionSurfaceRecords(
+    game.spe956AsyncDiscussionSurfaceRecords,
+    fallback.spe956AsyncDiscussionSurfaceRecords ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9374,6 +9379,7 @@ export function hydrateGame(
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,
+    spe956AsyncDiscussionSurfaceRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

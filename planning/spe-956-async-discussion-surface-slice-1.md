@@ -36,7 +36,9 @@ Ship the smallest pure deterministic asynchronous / transcript-preserving discus
   4. surfaceId mismatch → `rejected`, no adjustment.
   5. intent/scope mismatch (`widen` without `participation`, or `stabilize_memory` without `institutional_memory`) → `rejected` (`intent_scope_mismatch`), no adjustment.
   6. `widen` + wideningRule `closed` → `rejected` (`widening_not_allowed`), no adjustment.
-  7. `stabilize_memory` without memoryStabilization or without `institutional` retention → `deferred` / `rejected` under incomplete retention rules, no adjustment.
+  7. `stabilize_memory` with correct scope, checked in this order:
+     - `memoryStabilization === false` → `rejected` (`memory_stabilization_disabled`), no adjustment.
+     - `transcriptRetentionMode !== institutional` → `deferred` (`incomplete_transcript_retention`), no adjustment.
   8. `record` with `ephemeral` retention → `deferred` (`incomplete_transcript_retention`), no adjustment.
   9. `widen` with `invite_extend` / `open_async` → `widened`, apply participation adjustment.
   10. `stabilize_memory` with institutional retention + memoryStabilization → `recorded`, apply institutional_memory adjustment.

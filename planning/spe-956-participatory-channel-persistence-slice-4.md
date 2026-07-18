@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2635](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                         |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2635 — Participatory channel persistence — advisory / async maps (slice 4)](https://linear.app/spectranoir/issue/SPE-2635)                 |
-| **Status**          | **In progress**                                                                                                                               |
+| **Status**          | **Shipped** — PR #3180                                                                                                            |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**              |
 | **Branch**          | `spe-956-participatory-channel-persistence-slice-4`                                                                                           |
 | **Base `main` SHA** | `2d20e9a6`                                                                                                                                    |

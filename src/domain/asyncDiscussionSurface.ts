@@ -386,6 +386,20 @@ export function evaluateAsyncDiscussionSession(
     })
   }
 
+  if (session.intent === 'widen' && session.proposedScope !== 'participation') {
+    return rejectedResult(['discussion_rejected', 'intent_scope_mismatch'], baseline, {
+      surfaceId,
+      sessionId,
+    })
+  }
+
+  if (session.intent === 'stabilize_memory' && session.proposedScope !== 'institutional_memory') {
+    return rejectedResult(['discussion_rejected', 'intent_scope_mismatch'], baseline, {
+      surfaceId,
+      sessionId,
+    })
+  }
+
   if (session.intent === 'widen' && surface.wideningRule === 'closed') {
     return rejectedResult(['discussion_rejected', 'widening_not_allowed'], baseline, {
       surfaceId,

@@ -237,6 +237,42 @@ describe('asyncDiscussionSurface (SPE-2629 / SPE-956 slice 1)', () => {
     expect(result.resolved).toEqual(EXAMPLE_DISCUSSION_BASELINE)
   })
 
+  it('rejects widen intent when proposed scope is not participation', () => {
+    const result = evaluateAsyncDiscussionSession({
+      surface: EXAMPLE_DISCUSSION_SURFACE,
+      session: session({
+        proposedScope: 'institutional_memory',
+        proposedValue: 'retain_evac_consensus_notes',
+      }),
+      baseline: EXAMPLE_DISCUSSION_BASELINE,
+    })
+
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCodes).toEqual(['discussion_rejected', 'intent_scope_mismatch'])
+    expect(result.proposedAdjustment).toBeNull()
+    expect(result.resolved).toEqual(EXAMPLE_DISCUSSION_BASELINE)
+  })
+
+  it('rejects stabilize_memory when proposed scope is not institutional_memory', () => {
+    const result = evaluateAsyncDiscussionSession({
+      surface: surface({
+        transcriptRetentionMode: 'institutional',
+        memoryStabilization: true,
+      }),
+      session: session({
+        intent: 'stabilize_memory',
+        proposedScope: 'participation',
+        proposedValue: 'async_resident_thread',
+      }),
+      baseline: EXAMPLE_DISCUSSION_BASELINE,
+    })
+
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCodes).toEqual(['discussion_rejected', 'intent_scope_mismatch'])
+    expect(result.proposedAdjustment).toBeNull()
+    expect(result.resolved).toEqual(EXAMPLE_DISCUSSION_BASELINE)
+  })
+
   it('keeps reason codes unique and sorted across paths', () => {
     const widened = evaluateAsyncDiscussionSession({
       surface: EXAMPLE_DISCUSSION_SURFACE,

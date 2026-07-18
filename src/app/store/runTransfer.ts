@@ -260,7 +260,10 @@ import {
   sanitizeSpe947MediaEconomyLastWeeklyTickWeek,
 } from '../../domain/spe947MediaEconomySimulator'
 import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
-import { sanitizeSpe956SurvivorInformalRegistryRecords } from '../../domain/spe956ParticipatoryChannelPersistence'
+import {
+  sanitizeSpe956CollectiveMemoryChannelRecords,
+  sanitizeSpe956SurvivorInformalRegistryRecords,
+} from '../../domain/spe956ParticipatoryChannelPersistence'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -9093,6 +9096,10 @@ export function hydrateGame(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
   )
+  const spe956CollectiveMemoryChannelRecords = sanitizeSpe956CollectiveMemoryChannelRecords(
+    game.spe956CollectiveMemoryChannelRecords,
+    fallback.spe956CollectiveMemoryChannelRecords ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9360,6 +9367,7 @@ export function hydrateGame(
     spe947MediaEconomyLastWeeklyTickWeek,
     spe956PropagationGraphRecords,
     spe956SurvivorInformalRegistryRecords,
+    spe956CollectiveMemoryChannelRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

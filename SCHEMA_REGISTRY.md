@@ -287,7 +287,7 @@ No evaluator contract changes.
 
 ### Deferred (later SPE-956 children)
 
-- Advisory / hotline / async discussion channel maps
+- Advisory / hotline / async discussion channel maps (SPE-2634)
 - UI / planning mirror; week-close channel tick
 
 ### Versioning

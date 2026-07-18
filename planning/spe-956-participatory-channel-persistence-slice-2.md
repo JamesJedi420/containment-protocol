@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2633](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2633 — Participatory channel persistence — remaining channel maps (slice 2)](https://linear.app/spectranoir/issue/SPE-2633) |
-| **Status**          | **In Progress**                                                                                                                  |
+| **Status**          | **Shipped** — PR #3172                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog** |
 | **Branch**          | `spe-956-participatory-channel-persistence-slice-2`                                                                              |
 | **Base `main` SHA** | `0893aec8`                                                                                                                       |
@@ -53,7 +53,7 @@ Persist at least one additional already-shipped SPE-956 participatory channel en
 
 | Item                                              | Suggested owner | Why deferred            |
 | ------------------------------------------------- | --------------- | ----------------------- |
-| Advisory / hotline / async channel maps           | SPE-956 sibling | One-channel boundary    |
+| Advisory / hotline / async channel maps           | [SPE-2634](https://linear.app/spectranoir/issue/SPE-2634) | One-channel boundary    |
 | UI / planning mirror                              | SPE-956 sibling | After persistence       |
 | Week-close channel tick                           | SPE-956 sibling | Not required this slice |
 | Compose/evaluate-from-GameState helpers (broader) | SPE-956 sibling | Optional read helpers   |

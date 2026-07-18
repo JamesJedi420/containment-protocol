@@ -74,6 +74,7 @@ const startingStateTemplate: GameState = {
   spe947MediaEconomyContinuityBindings: {},
   spe947MediaEconomyCommercializationActors: {},
   spe956PropagationGraphRecords: {},
+  spe956SurvivorInformalRegistryRecords: {},
   affiliationPersonStatusRecords: {},
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},

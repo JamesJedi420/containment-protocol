@@ -1,8 +1,9 @@
 {
   "primary": "SPE-2632",
-  "inProgress": [],
+  "inProgress": ["SPE-2632"],
   "recentlyShipped": ["SPE-2631", "SPE-2630", "SPE-2629"],
   "sliceDocStatus": {
+    "planning/spe-956-participatory-channel-persistence-slice-1.md": "In Progress",
     "planning/spe-956-collective-memory-stabilization-slice-1.md": "Shipped",
     "planning/spe-956-survivor-informal-registry-slice-1.md": "Shipped",
     "planning/spe-956-async-discussion-surface-slice-1.md": "Shipped",

@@ -321,6 +321,7 @@ import type {
 } from './spe947MediaEconomyContinuity'
 import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
 import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
+import type { Spe956SurvivorInformalRegistryRecordsMap } from './spe956ParticipatoryChannelPersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2867,6 +2868,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
    */
   spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap
+
+  /**
+   * SPE-2632 slice 1: authored SPE-956 survivor informal registry channels (keyed by registry id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956SurvivorInformalRegistryRecords?: Spe956SurvivorInformalRegistryRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

@@ -255,3 +255,40 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 
 - No migration path defined yet (single version)
 - If a breaking field change is needed, bump the discriminant string (e.g. `spe-956-propagation-graph.v2`) and add hydration defaults alongside `runTransfer.ts`
+
+---
+
+## SPE-956 participatory channel persistence (spe-956-participatory-channel.v1)
+
+Documents compact GameState map for authored SPE-956 participatory channel envelopes (SPE-2632 slice 1).
+Slice 1 persists survivor informal registry records only (SPE-2630 authored shape). No evaluator contract changes.
+
+**Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
+
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contract: `src/domain/survivorInformalRegistry.ts`)
+
+### GameState fields
+
+| Field                                   | Notes                                                                              |
+| --------------------------------------- | ---------------------------------------------------------------------------------- |
+| `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id |
+
+### Hydration
+
+- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords` in `spe956ParticipatoryChannelPersistence.ts`
+- Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
+- Invalid registries, duplicate ids, and incomplete enum sets are dropped without throw
+- Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior registries); non-record input still uses fallback
+- Unsafe registry ids (`__proto__`, `constructor`, `prototype`) are rejected; result map uses null prototype
+- `resolvePersistedSurvivorInformalRegistry` resolves own properties only and rejects unsafe registry ids
+- Default starting state: empty `{}` map in `createStartingState`
+
+### Deferred (later SPE-956 children)
+
+- Advisory / hotline / async discussion / collective memory channel maps
+- UI / planning mirror; week-close channel tick
+
+### Versioning
+
+- No migration path defined yet (single version)
+- If a breaking field change is needed, bump the discriminant string (e.g. `spe-956-participatory-channel.v2`) and add hydration defaults alongside `runTransfer.ts`

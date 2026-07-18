@@ -334,18 +334,6 @@ export function evaluateCollectiveMemoryStabilization(
     return deferredResult(['missing_memory_channel_id'], baseline)
   }
 
-  if (
-    !isNarrativeStance(memoryChannel.narrativeStance) ||
-    !isRecallWindow(memoryChannel.recallWindow) ||
-    !isCredibilityCeiling(memoryChannel.credibilityCeiling) ||
-    !isStabilizationRule(memoryChannel.stabilizationRule)
-  ) {
-    return deferredResult(['incomplete_stabilization_rules'], baseline, {
-      channelId,
-      signalId,
-    })
-  }
-
   if (!signalId) {
     return deferredResult(['missing_memory_signal_id'], baseline, {
       channelId,
@@ -369,6 +357,18 @@ export function evaluateCollectiveMemoryStabilization(
   const proposedValue = normalizeToken(signal.proposedValue)
   if (!proposedValue) {
     return deferredResult(['missing_proposed_value'], baseline, {
+      channelId,
+      signalId,
+    })
+  }
+
+  if (
+    !isNarrativeStance(memoryChannel.narrativeStance) ||
+    !isRecallWindow(memoryChannel.recallWindow) ||
+    !isCredibilityCeiling(memoryChannel.credibilityCeiling) ||
+    !isStabilizationRule(memoryChannel.stabilizationRule)
+  ) {
+    return deferredResult(['incomplete_stabilization_rules'], baseline, {
       channelId,
       signalId,
     })

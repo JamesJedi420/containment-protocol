@@ -31,8 +31,8 @@ Ship the smallest pure deterministic collective memory-stabilization channel: on
 - **Baseline:** memberId + procedureMemory + credibilityStance strings.
 - **Outcome priority:**
   1. Missing/null/invalid evaluation input, channel object, signal object, or baseline → `deferred`, resolved value-equals baseline (frozen clones; not same reference), no adjustment.
-  2. Incomplete channel enums (narrative / recall / ceiling / rule) → `deferred` (`incomplete_stabilization_rules`), no adjustment. Runs after channel/signal objects are present and before field-level signal checks (SPE-2630-aligned).
-  3. Field-level signal gaps (`signalId` / intent / scope / proposedValue) → `deferred`, no adjustment.
+  2. Field-level signal gaps (`signalId` / intent / scope / proposedValue) → `deferred`, no adjustment.
+  3. Incomplete channel enums (narrative / recall / ceiling / rule) → `deferred` (`incomplete_stabilization_rules`), no adjustment.
   4. `stabilizationRule` `incomplete` → `deferred` (`incomplete_stabilization_rule`), no adjustment.
   5. `recallWindow` `closed` → `rejected` (`recall_window_closed`), no adjustment.
   6. `stabilizationRule` `procedure_fragments_only` + intent `share_narrative` → `deferred` (`incomplete_stabilization_rule`), no adjustment.

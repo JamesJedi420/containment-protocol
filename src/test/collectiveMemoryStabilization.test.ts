@@ -177,6 +177,28 @@ describe('collectiveMemoryStabilization (SPE-2631 / SPE-956 slice 1)', () => {
     expect(missingBaseline.proposedAdjustment).toBeNull()
   })
 
+  it('prefers missing signal fields over incomplete channel rules when both apply', () => {
+    const result = evaluateCollectiveMemoryStabilization({
+      channel: {
+        id: 'channel:incomplete',
+        narrativeStance: 'shared_survivor',
+        recallWindow: 'active_session',
+        credibilityCeiling: 'clinical' as CollectiveMemoryChannel['credibilityCeiling'],
+        stabilizationRule: 'open_shared',
+      },
+      signal: {
+        ...EXAMPLE_MEMORY_STABILIZATION_SIGNAL,
+        signalId: '',
+        channelId: 'channel:incomplete',
+      },
+      baseline: EXAMPLE_MEMORY_STABILIZATION_BASELINE,
+    })
+
+    expect(result.outcome).toBe('deferred')
+    expect(result.reasonCodes).toEqual(['missing_memory_signal_id'])
+    expect(result.proposedAdjustment).toBeNull()
+  })
+
   it('defers for an incomplete channel before applying adjustments', () => {
     const result = evaluateCollectiveMemoryStabilization({
       channel: {

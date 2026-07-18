@@ -1,6 +1,8 @@
 /**
- * SPE-2632 / SPE-2633 / SPE-956: GameState persistence for participatory channel envelopes.
- * Slice 1: survivor informal registry (SPE-2630). Slice 2: collective memory channel (SPE-2631).
+ * SPE-2632 / SPE-2633 / SPE-2634 / SPE-956: GameState persistence for participatory channel envelopes.
+ * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
+ * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
+ * Slice 3 (SPE-2634): hotline channel (SPE-2628 evaluator).
  * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
  */
 
@@ -16,6 +18,14 @@ import {
   type RecallWindow,
   type StabilizationRule,
 } from './collectiveMemoryStabilization'
+import {
+  EXAMPLE_HOTLINE_CHANNEL,
+  HOTLINE_ANGER_MODES,
+  HOTLINE_UNANSWERED_MODES,
+  type HotlineAngerMode,
+  type HotlineChannel,
+  type HotlineUnansweredMode,
+} from './hotlineChannel'
 import {
   CATALOG_RULES,
   CREDIBILITY_CEILINGS,
@@ -272,3 +282,124 @@ export const SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS: Spe956Collective
   Object.freeze({
     [EXAMPLE_MEMORY_STABILIZATION_CHANNEL.id]: EXAMPLE_MEMORY_STABILIZATION_CHANNEL,
   })
+
+/** Persisted hotline channel: opaque authored SPE-2628 channel envelope. */
+export type Spe956PersistedHotlineChannel = HotlineChannel
+
+export type Spe956HotlineChannelRecordsMap = Record<string, Spe956PersistedHotlineChannel>
+
+function isUnitInterval(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+}
+
+function isHotlineUnansweredMode(value: unknown): value is HotlineUnansweredMode {
+  return typeof value === 'string' && (HOTLINE_UNANSWERED_MODES as readonly string[]).includes(value)
+}
+
+function isHotlineAngerMode(value: unknown): value is HotlineAngerMode {
+  return typeof value === 'string' && (HOTLINE_ANGER_MODES as readonly string[]).includes(value)
+}
+
+function sanitizeSpe956HotlineChannelEntry(value: unknown): Spe956PersistedHotlineChannel | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const {
+    id: rawId,
+    scriptQuality,
+    staffingCapacity,
+    languageSupport,
+    escalationRules: rawEscalationRules,
+    unansweredMode,
+    angerMode,
+    handleThreshold,
+  } = value
+
+  const id = normalizeId(rawId, '')
+  const escalationRules =
+    typeof rawEscalationRules === 'string' ? rawEscalationRules.trim() : ''
+
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    !isUnitInterval(scriptQuality) ||
+    !isUnitInterval(staffingCapacity) ||
+    typeof languageSupport !== 'boolean' ||
+    escalationRules.length === 0 ||
+    !isHotlineUnansweredMode(unansweredMode) ||
+    !isHotlineAngerMode(angerMode) ||
+    !isUnitInterval(handleThreshold)
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    scriptQuality,
+    staffingCapacity,
+    languageSupport,
+    escalationRules,
+    unansweredMode,
+    angerMode,
+    handleThreshold,
+  })
+}
+
+/** Hydration: canonical authored hotline channel map keyed by channel id. */
+export function sanitizeSpe956HotlineChannelRecords(
+  value: unknown,
+  fallback: Spe956HotlineChannelRecordsMap = {}
+): Spe956HotlineChannelRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next = Object.create(null) as Spe956HotlineChannelRecordsMap
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeSpe956HotlineChannelEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
+}
+
+export function extractSpe956HotlineChannelRecords(
+  game: Partial<{
+    spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+  }>
+): Spe956HotlineChannelRecordsMap {
+  return game.spe956HotlineChannelRecords ?? {}
+}
+
+export function resolvePersistedHotlineChannel(
+  game: Partial<{
+    spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+  }>,
+  channelId: string
+): Spe956PersistedHotlineChannel | null {
+  if (!isSafeMapKey(channelId)) {
+    return null
+  }
+
+  const records = extractSpe956HotlineChannelRecords(game)
+  if (!Object.prototype.hasOwnProperty.call(records, channelId)) {
+    return null
+  }
+
+  return records[channelId] ?? null
+}
+
+/** EXAMPLE persisted hotline channel fixture (mirrors SPE-2628 authored channel). */
+export const SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS: Spe956HotlineChannelRecordsMap = Object.freeze({
+  [EXAMPLE_HOTLINE_CHANNEL.id]: EXAMPLE_HOTLINE_CHANNEL,
+})

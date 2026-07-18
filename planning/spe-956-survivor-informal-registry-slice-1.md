@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2630](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2630 — Survivor informal morbidity / recurrence registry (slice 1)](https://linear.app/spectranoir/issue/SPE-2630)          |
-| **Status**          | **Shipped**                                                                                                                      |
+| **Status**          | **Shipped** — PR #3166                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog** |
 | **Branch**          | `spe-956-survivor-informal-registry-slice-1`                                                                                     |
 | **Base `main` SHA** | `a4bb6ee0`                                                                                                                       |

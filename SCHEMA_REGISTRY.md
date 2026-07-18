@@ -260,32 +260,34 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 
 ## SPE-956 participatory channel persistence (spe-956-participatory-channel.v1)
 
-Documents compact GameState map for authored SPE-956 participatory channel envelopes (SPE-2632 slice 1).
-Slice 1 persists survivor informal registry records only (SPE-2630 authored shape). No evaluator contract changes.
+Documents compact GameState maps for authored SPE-956 participatory channel envelopes
+(SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel).
+No evaluator contract changes.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contract: `src/domain/survivorInformalRegistry.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`)
 
 ### GameState fields
 
 | Field                                   | Notes                                                                              |
 | --------------------------------------- | ---------------------------------------------------------------------------------- |
 | `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id |
+| `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id      |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords` in `spe956ParticipatoryChannelPersistence.ts`
+- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords` and `sanitizeSpe956CollectiveMemoryChannelRecords` in `spe956ParticipatoryChannelPersistence.ts`
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
-- Invalid registries, duplicate ids, and incomplete enum sets are dropped without throw
-- Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior registries); non-record input still uses fallback
-- Unsafe registry ids (`__proto__`, `constructor`, `prototype`) are rejected; result map uses null prototype
-- `resolvePersistedSurvivorInformalRegistry` resolves own properties only and rejects unsafe registry ids
-- Default starting state: empty `{}` map in `createStartingState`
+- Invalid entries, duplicate ids, and incomplete enum sets are dropped without throw
+- Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
+- Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; result maps use null prototype
+- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` resolve own properties only and reject unsafe ids
+- Default starting state: empty `{}` maps in `createStartingState`
 
 ### Deferred (later SPE-956 children)
 
-- Advisory / hotline / async discussion / collective memory channel maps
+- Advisory / hotline / async discussion channel maps
 - UI / planning mirror; week-close channel tick
 
 ### Versioning

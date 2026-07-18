@@ -52,7 +52,8 @@ Persist the smallest already-shipped SPE-956 participatory channel envelope on G
 
 | Item                                              | Suggested owner | Why deferred            |
 | ------------------------------------------------- | --------------- | ----------------------- |
-| Advisory / hotline / async / memory channel maps  | [SPE-2633](https://linear.app/spectranoir/issue/SPE-2633) | One-channel boundary    |
+| Collective memory channel map (slice 2)           | [SPE-2633](https://linear.app/spectranoir/issue/SPE-2633) | In progress this session |
+| Advisory / hotline / async channel maps           | SPE-956 sibling after SPE-2633                          | Nested / remaining maps |
 | UI / planning mirror                              | SPE-956 sibling | After persistence       |
 | Week-close channel tick                           | SPE-956 sibling | Not required this slice |
 | Compose/evaluate-from-GameState helpers (broader) | SPE-956 sibling | Optional read helpers   |

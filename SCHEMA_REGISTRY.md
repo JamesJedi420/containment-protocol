@@ -262,12 +262,13 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 
 Documents compact GameState maps for authored SPE-956 participatory channel envelopes
 (SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel;
-SPE-2634 slice 3 hotline channel; SPE-2635 slice 4 async discussion surface).
+SPE-2634 slice 3 hotline channel; SPE-2635 slice 4 async discussion surface;
+SPE-2636 slice 5 community advisory body).
 No evaluator contract changes.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`)
 
 ### GameState fields
 
@@ -277,21 +278,22 @@ No evaluator contract changes.
 | `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id                     |
 | `spe956HotlineChannelRecords`           | Authored channel id + unit intervals + boolean + unanswered/anger enums + escalation rules string |
 | `spe956AsyncDiscussionSurfaceRecords`   | Authored surface id + nested participation window + retention/widening enums + memoryStabilization |
+| `spe956CommunityAdvisoryBodyRecords`    | Authored body id + mission/membership/criteria strings + stakeholder string array + scope enums + positive unit-interval influenceThreshold |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords`, `sanitizeSpe956CollectiveMemoryChannelRecords`, `sanitizeSpe956HotlineChannelRecords`, and `sanitizeSpe956AsyncDiscussionSurfaceRecords` in `spe956ParticipatoryChannelPersistence.ts`
+- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords`, `sanitizeSpe956CollectiveMemoryChannelRecords`, `sanitizeSpe956HotlineChannelRecords`, `sanitizeSpe956AsyncDiscussionSurfaceRecords`, and `sanitizeSpe956CommunityAdvisoryBodyRecords` in `spe956ParticipatoryChannelPersistence.ts`
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
 - Invalid entries, duplicate ids, and incomplete enum/field sets are dropped without throw
 - Nested `participationWindow` requires non-negative integer `startWeek`/`endWeek` with `startWeek <= endWeek`
+- Community advisory bodies require non-empty mission/membership/criteria strings; non-empty trimmed `representedStakeholderClasses` string array; non-empty `authorizedDecisionScopes` enum array (any invalid enum drops the entry); positive unit-interval `influenceThreshold` (`> 0` and `<= 1`)
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
 - Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; maps built from plain-record input use null prototype (non-record input returns the caller `fallback` unchanged)
-- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` resolve own properties only and reject unsafe ids
+- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` / `resolvePersistedCommunityAdvisoryBody` resolve own properties only and reject unsafe ids
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Deferred (later SPE-956 children)
 
-- Community advisory body channel map
 - UI / planning mirror; week-close channel tick
 
 ### Versioning

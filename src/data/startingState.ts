@@ -78,6 +78,7 @@ const startingStateTemplate: GameState = {
   spe956CollectiveMemoryChannelRecords: {},
   spe956HotlineChannelRecords: {},
   spe956AsyncDiscussionSurfaceRecords: {},
+  spe956CommunityAdvisoryBodyRecords: {},
   affiliationPersonStatusRecords: {},
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},

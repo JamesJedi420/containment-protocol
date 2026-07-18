@@ -1,12 +1,13 @@
 {
-  "primary": "SPE-2635",
-  "inProgress": [],
+  "primary": null,
+  "inProgress": ["SPE-2635"],
   "recentlyShipped": [
     "SPE-2634",
     "SPE-2633",
     "SPE-2632"
   ],
   "sliceDocStatus": {
+    "planning/spe-956-participatory-channel-persistence-slice-4.md": "In progress",
     "planning/spe-956-participatory-channel-persistence-slice-3.md": "Shipped",
     "planning/spe-956-participatory-channel-persistence-slice-2.md": "Shipped",
     "planning/spe-956-participatory-channel-persistence-slice-1.md": "Shipped",

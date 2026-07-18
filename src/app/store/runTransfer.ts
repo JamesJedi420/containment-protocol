@@ -260,6 +260,7 @@ import {
   sanitizeSpe947MediaEconomyLastWeeklyTickWeek,
 } from '../../domain/spe947MediaEconomySimulator'
 import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
+import { sanitizeSpe956SurvivorInformalRegistryRecords } from '../../domain/spe956ParticipatoryChannelPersistence'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -9075,10 +9076,11 @@ export function hydrateGame(
     game.spe947MediaEconomyContinuityBindings,
     fallback.spe947MediaEconomyContinuityBindings ?? {}
   )
-  const spe947MediaEconomyCommercializationActors = sanitizeSpe947MediaEconomyCommercializationActors(
-    game.spe947MediaEconomyCommercializationActors,
-    fallback.spe947MediaEconomyCommercializationActors ?? {}
-  )
+  const spe947MediaEconomyCommercializationActors =
+    sanitizeSpe947MediaEconomyCommercializationActors(
+      game.spe947MediaEconomyCommercializationActors,
+      fallback.spe947MediaEconomyCommercializationActors ?? {}
+    )
   const spe947MediaEconomyLastWeeklyTickWeek = sanitizeSpe947MediaEconomyLastWeeklyTickWeek(
     game.spe947MediaEconomyLastWeeklyTickWeek,
     fallback.spe947MediaEconomyLastWeeklyTickWeek
@@ -9086,6 +9088,10 @@ export function hydrateGame(
   const spe956PropagationGraphRecords = sanitizeSpe956PropagationGraphRecords(
     game.spe956PropagationGraphRecords,
     fallback.spe956PropagationGraphRecords ?? {}
+  )
+  const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
+    game.spe956SurvivorInformalRegistryRecords,
+    fallback.spe956SurvivorInformalRegistryRecords ?? {}
   )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
@@ -9353,6 +9359,7 @@ export function hydrateGame(
     spe947MediaEconomyCommercializationActors,
     spe947MediaEconomyLastWeeklyTickWeek,
     spe956PropagationGraphRecords,
+    spe956SurvivorInformalRegistryRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

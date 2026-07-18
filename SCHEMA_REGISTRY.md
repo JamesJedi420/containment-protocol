@@ -283,7 +283,7 @@ No evaluator contract changes.
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
 - Invalid entries, duplicate ids, and incomplete enum/field sets are dropped without throw
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
-- Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; result maps use null prototype
+- Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; maps built from plain-record input use null prototype (non-record input returns the caller `fallback` unchanged)
 - `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` resolve own properties only and reject unsafe ids
 - Default starting state: empty `{}` maps in `createStartingState`
 

@@ -1,8 +1,9 @@
 /**
  * SPE-2632 / SPE-2633 / SPE-2634 / SPE-956: GameState persistence for participatory channel envelopes.
- * Slice 1: survivor informal registry (SPE-2630). Slice 2: collective memory channel (SPE-2631).
- * Slice 3: hotline channel (SPE-2628). Sanitize/hydrate follows SPE-2621 pattern.
- * No evaluator contract changes.
+ * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
+ * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
+ * Slice 3 (SPE-2634): hotline channel (SPE-2628 evaluator).
+ * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
  */
 
 import {
@@ -304,33 +305,44 @@ function sanitizeSpe956HotlineChannelEntry(value: unknown): Spe956PersistedHotli
     return null
   }
 
-  const id = normalizeId(value.id, '')
+  const {
+    id: rawId,
+    scriptQuality,
+    staffingCapacity,
+    languageSupport,
+    escalationRules: rawEscalationRules,
+    unansweredMode,
+    angerMode,
+    handleThreshold,
+  } = value
+
+  const id = normalizeId(rawId, '')
   const escalationRules =
-    typeof value.escalationRules === 'string' ? value.escalationRules.trim() : ''
+    typeof rawEscalationRules === 'string' ? rawEscalationRules.trim() : ''
 
   if (
     id.length === 0 ||
     !isSafeMapKey(id) ||
-    !isUnitInterval(value.scriptQuality) ||
-    !isUnitInterval(value.staffingCapacity) ||
-    typeof value.languageSupport !== 'boolean' ||
+    !isUnitInterval(scriptQuality) ||
+    !isUnitInterval(staffingCapacity) ||
+    typeof languageSupport !== 'boolean' ||
     escalationRules.length === 0 ||
-    !isHotlineUnansweredMode(value.unansweredMode) ||
-    !isHotlineAngerMode(value.angerMode) ||
-    !isUnitInterval(value.handleThreshold)
+    !isHotlineUnansweredMode(unansweredMode) ||
+    !isHotlineAngerMode(angerMode) ||
+    !isUnitInterval(handleThreshold)
   ) {
     return null
   }
 
   return Object.freeze({
     id,
-    scriptQuality: value.scriptQuality,
-    staffingCapacity: value.staffingCapacity,
-    languageSupport: value.languageSupport,
+    scriptQuality,
+    staffingCapacity,
+    languageSupport,
     escalationRules,
-    unansweredMode: value.unansweredMode,
-    angerMode: value.angerMode,
-    handleThreshold: value.handleThreshold,
+    unansweredMode,
+    angerMode,
+    handleThreshold,
   })
 }
 

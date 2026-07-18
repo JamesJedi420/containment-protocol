@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2629](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2629 — Async / transcript discussion surface (slice 1)](https://linear.app/spectranoir/issue/SPE-2629)                      |
-| **Status**          | **Shipped** — pending PR                                                                                                         |
+| **Status**          | **Shipped** — PR #3164                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog** |
 | **Branch**          | `spe-956-async-discussion-surface-slice-1`                                                                                       |
 | **Base `main` SHA** | `01485d73`                                                                                                                       |

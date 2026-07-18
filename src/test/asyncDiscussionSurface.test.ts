@@ -128,6 +128,22 @@ describe('asyncDiscussionSurface (SPE-2629 / SPE-956 slice 1)', () => {
     expect(result.resolved).toEqual(EXAMPLE_DISCUSSION_BASELINE)
   })
 
+  it('widens participation when the surface widening rule is invite_extend', () => {
+    const result = evaluateAsyncDiscussionSession({
+      surface: surface({ wideningRule: 'invite_extend' }),
+      session: EXAMPLE_DISCUSSION_SESSION,
+      baseline: EXAMPLE_DISCUSSION_BASELINE,
+    })
+
+    expect(result.outcome).toBe('widened')
+    expect(result.reasonCodes).toEqual(['discussion_widened'])
+    expect(result.proposedAdjustment).toEqual({
+      scope: 'participation',
+      fromValue: 'live_meeting_only',
+      toValue: 'async_resident_thread',
+    })
+  })
+
   it('defers stabilize_memory when retention is not institutional', () => {
     const result = evaluateAsyncDiscussionSession({
       surface: surface({
@@ -145,6 +161,26 @@ describe('asyncDiscussionSurface (SPE-2629 / SPE-956 slice 1)', () => {
     expect(result.outcome).toBe('deferred')
     expect(result.reasonCodes).toEqual(['incomplete_transcript_retention'])
     expect(result.proposedAdjustment).toBeNull()
+  })
+
+  it('rejects stabilize_memory when memoryStabilization is disabled', () => {
+    const result = evaluateAsyncDiscussionSession({
+      surface: surface({
+        transcriptRetentionMode: 'institutional',
+        memoryStabilization: false,
+      }),
+      session: session({
+        intent: 'stabilize_memory',
+        proposedScope: 'institutional_memory',
+        proposedValue: 'retain_evac_consensus_notes',
+      }),
+      baseline: EXAMPLE_DISCUSSION_BASELINE,
+    })
+
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCodes).toEqual(['discussion_rejected', 'memory_stabilization_disabled'])
+    expect(result.proposedAdjustment).toBeNull()
+    expect(result.resolved).toEqual(EXAMPLE_DISCUSSION_BASELINE)
   })
 
   it('returns a deterministic deferred no-op when evaluation input is missing', () => {

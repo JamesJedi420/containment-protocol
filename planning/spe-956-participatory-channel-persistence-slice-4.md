@@ -55,7 +55,7 @@ Persist at least one additional already-shipped SPE-956 participatory channel en
 
 | Item                                              | Suggested owner | Why deferred                         |
 | ------------------------------------------------- | --------------- | ------------------------------------ |
-| Community advisory body channel map               | [SPE-2636](https://linear.app/spectranoir/issue/SPE-2636) | Arrays + threshold; after async map  |
+| Community advisory body channel map               | [SPE-2636](https://linear.app/spectranoir/issue/SPE-2636) | Arrays + threshold; after async map — **in progress** (slice 5) |
 | UI / planning mirror                              | SPE-956 sibling | After persistence                    |
 | Week-close channel tick                           | SPE-956 sibling | Not required this slice              |
 | Compose/evaluate-from-GameState helpers (broader) | SPE-956 sibling | Optional read helpers                |

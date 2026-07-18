@@ -324,6 +324,7 @@ import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphP
 import type {
   Spe956AsyncDiscussionSurfaceRecordsMap,
   Spe956CollectiveMemoryChannelRecordsMap,
+  Spe956CommunityAdvisoryBodyRecordsMap,
   Spe956HotlineChannelRecordsMap,
   Spe956SurvivorInformalRegistryRecordsMap,
 } from './spe956ParticipatoryChannelPersistence'
@@ -2897,6 +2898,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
    */
   spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+
+  /**
+   * SPE-2636 slice 5: authored SPE-956 community advisory bodies (keyed by body id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

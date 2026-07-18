@@ -1,9 +1,10 @@
 /**
- * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-956: GameState persistence for participatory channel envelopes.
+ * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-2636 / SPE-956: GameState persistence for participatory channel envelopes.
  * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
  * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
  * Slice 3 (SPE-2634): hotline channel (SPE-2628 evaluator).
  * Slice 4 (SPE-2635): async discussion surface (SPE-2629 evaluator).
+ * Slice 5 (SPE-2636): community advisory body (SPE-2620 evaluator).
  * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
  */
 
@@ -28,6 +29,12 @@ import {
   type RecallWindow,
   type StabilizationRule,
 } from './collectiveMemoryStabilization'
+import {
+  COMMUNITY_ADVISORY_DECISION_SCOPES,
+  EXAMPLE_COMMUNITY_ADVISORY_BODY,
+  type CommunityAdvisoryBody,
+  type CommunityAdvisoryDecisionScope,
+} from './communityAdvisoryDecisionInfluence'
 import {
   EXAMPLE_HOTLINE_CHANNEL,
   HOTLINE_ANGER_MODES,
@@ -546,4 +553,178 @@ export function resolvePersistedAsyncDiscussionSurface(
 export const SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS: Spe956AsyncDiscussionSurfaceRecordsMap =
   Object.freeze({
     [EXAMPLE_DISCUSSION_SURFACE.id]: EXAMPLE_DISCUSSION_SURFACE,
+  })
+
+/** Persisted community advisory body: opaque authored SPE-2620 channel envelope. */
+export type Spe956PersistedCommunityAdvisoryBody = CommunityAdvisoryBody
+
+export type Spe956CommunityAdvisoryBodyRecordsMap = Record<
+  string,
+  Spe956PersistedCommunityAdvisoryBody
+>
+
+function isPositiveUnitInterval(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1
+}
+
+function isCommunityAdvisoryDecisionScope(
+  value: unknown
+): value is CommunityAdvisoryDecisionScope {
+  return (
+    typeof value === 'string' &&
+    (COMMUNITY_ADVISORY_DECISION_SCOPES as readonly string[]).includes(value)
+  )
+}
+
+function sanitizeRepresentedStakeholderClasses(
+  value: unknown
+): readonly string[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const next: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== 'string') {
+      return null
+    }
+    const trimmed = entry.trim()
+    if (trimmed.length > 0) {
+      next.push(trimmed)
+    }
+  }
+
+  if (next.length === 0) {
+    return null
+  }
+
+  return Object.freeze(next)
+}
+
+function sanitizeAuthorizedDecisionScopes(
+  value: unknown
+): readonly CommunityAdvisoryDecisionScope[] | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null
+  }
+
+  const next: CommunityAdvisoryDecisionScope[] = []
+  for (const entry of value) {
+    if (!isCommunityAdvisoryDecisionScope(entry)) {
+      return null
+    }
+    next.push(entry)
+  }
+
+  return Object.freeze(next)
+}
+
+function sanitizeSpe956CommunityAdvisoryBodyEntry(
+  value: unknown
+): Spe956PersistedCommunityAdvisoryBody | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const {
+    id: rawId,
+    mission: rawMission,
+    membershipRule: rawMembershipRule,
+    representedStakeholderClasses: rawStakeholderClasses,
+    authorizedDecisionScopes: rawScopes,
+    influenceThreshold,
+    decisionCriteria: rawDecisionCriteria,
+  } = value
+
+  const id = normalizeId(rawId, '')
+  const mission = typeof rawMission === 'string' ? rawMission.trim() : ''
+  const membershipRule =
+    typeof rawMembershipRule === 'string' ? rawMembershipRule.trim() : ''
+  const decisionCriteria =
+    typeof rawDecisionCriteria === 'string' ? rawDecisionCriteria.trim() : ''
+  const representedStakeholderClasses =
+    sanitizeRepresentedStakeholderClasses(rawStakeholderClasses)
+  const authorizedDecisionScopes = sanitizeAuthorizedDecisionScopes(rawScopes)
+
+  if (
+    id.length === 0 ||
+    !isSafeMapKey(id) ||
+    mission.length === 0 ||
+    membershipRule.length === 0 ||
+    decisionCriteria.length === 0 ||
+    representedStakeholderClasses === null ||
+    authorizedDecisionScopes === null ||
+    !isPositiveUnitInterval(influenceThreshold)
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    mission,
+    membershipRule,
+    representedStakeholderClasses,
+    authorizedDecisionScopes,
+    influenceThreshold,
+    decisionCriteria,
+  })
+}
+
+/** Hydration: canonical authored community advisory body map keyed by body id. */
+export function sanitizeSpe956CommunityAdvisoryBodyRecords(
+  value: unknown,
+  fallback: Spe956CommunityAdvisoryBodyRecordsMap = {}
+): Spe956CommunityAdvisoryBodyRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next = Object.create(null) as Spe956CommunityAdvisoryBodyRecordsMap
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeSpe956CommunityAdvisoryBodyEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive Zustand rehydration when current state still holds records.
+  return next
+}
+
+export function extractSpe956CommunityAdvisoryBodyRecords(
+  game: Partial<{
+    spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+  }>
+): Spe956CommunityAdvisoryBodyRecordsMap {
+  return game.spe956CommunityAdvisoryBodyRecords ?? {}
+}
+
+export function resolvePersistedCommunityAdvisoryBody(
+  game: Partial<{
+    spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+  }>,
+  bodyId: string
+): Spe956PersistedCommunityAdvisoryBody | null {
+  if (!isSafeMapKey(bodyId)) {
+    return null
+  }
+
+  const records = extractSpe956CommunityAdvisoryBodyRecords(game)
+  if (!Object.prototype.hasOwnProperty.call(records, bodyId)) {
+    return null
+  }
+
+  return records[bodyId] ?? null
+}
+
+/** EXAMPLE persisted community advisory body fixture (mirrors SPE-2620 authored body). */
+export const SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS: Spe956CommunityAdvisoryBodyRecordsMap =
+  Object.freeze({
+    [EXAMPLE_COMMUNITY_ADVISORY_BODY.id]: EXAMPLE_COMMUNITY_ADVISORY_BODY,
   })

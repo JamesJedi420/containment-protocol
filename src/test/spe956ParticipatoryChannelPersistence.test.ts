@@ -4,20 +4,24 @@ import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import { EXAMPLE_DISCUSSION_SURFACE } from '../domain/asyncDiscussionSurface'
+import { EXAMPLE_COMMUNITY_ADVISORY_BODY } from '../domain/communityAdvisoryDecisionInfluence'
 import { EXAMPLE_MEMORY_STABILIZATION_CHANNEL } from '../domain/collectiveMemoryStabilization'
 import { EXAMPLE_HOTLINE_CHANNEL } from '../domain/hotlineChannel'
 import { EXAMPLE_SURVIVOR_REGISTRY } from '../domain/survivorInformalRegistry'
 import {
   resolvePersistedAsyncDiscussionSurface,
   resolvePersistedCollectiveMemoryChannel,
+  resolvePersistedCommunityAdvisoryBody,
   resolvePersistedHotlineChannel,
   resolvePersistedSurvivorInformalRegistry,
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
+  sanitizeSpe956CommunityAdvisoryBodyRecords,
   sanitizeSpe956HotlineChannelRecords,
   sanitizeSpe956SurvivorInformalRegistryRecords,
   SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
   SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS,
+  SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS,
   SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
   SPE_956_EXAMPLE_SURVIVOR_INFORMAL_REGISTRY_RECORDS,
 } from '../domain/spe956ParticipatoryChannelPersistence'
@@ -850,6 +854,296 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
 
     expect(hydrated.spe956AsyncDiscussionSurfaceRecords).toEqual(
       SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS
+    )
+  })
+})
+
+describe('spe956ParticipatoryChannelPersistence (SPE-2636 / SPE-956 slice 5)', () => {
+  it('defaults starting state to empty spe956CommunityAdvisoryBodyRecords', () => {
+    expect(createStartingState().spe956CommunityAdvisoryBodyRecords).toEqual({})
+  })
+
+  it('returns explicit empty map instead of fallback during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS
+
+    expect(sanitizeSpe956CommunityAdvisoryBodyRecords({}, fallback)).toEqual({})
+    expect(sanitizeSpe956CommunityAdvisoryBodyRecords({}, fallback)).not.toBe(fallback)
+    expect(
+      Object.getPrototypeOf(sanitizeSpe956CommunityAdvisoryBodyRecords({}, fallback))
+    ).toBeNull()
+  })
+
+  it('returns fallback only for non-record / missing input during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS
+
+    expect(sanitizeSpe956CommunityAdvisoryBodyRecords(null, fallback)).toBe(fallback)
+    expect(sanitizeSpe956CommunityAdvisoryBodyRecords(undefined, fallback)).toBe(fallback)
+    expect(sanitizeSpe956CommunityAdvisoryBodyRecords('not-a-record', fallback)).toBe(fallback)
+  })
+
+  it('rejects unsafe body ids and preserves valid records in mixed input', () => {
+    const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
+
+    for (const unsafeId of unsafeIds) {
+      const polluted = sanitizeSpe956CommunityAdvisoryBodyRecords({
+        polluted: {
+          id: unsafeId,
+          mission: 'Mission',
+          membershipRule: 'Rule',
+          representedStakeholderClasses: ['local_residents'],
+          authorizedDecisionScopes: ['framing'],
+          influenceThreshold: 0.5,
+          decisionCriteria: 'Criteria',
+        },
+      })
+
+      expect(Object.prototype.hasOwnProperty.call(polluted, unsafeId)).toBe(false)
+      expect(Object.keys(polluted)).toEqual([])
+    }
+
+    const mixed = sanitizeSpe956CommunityAdvisoryBodyRecords({
+      valid: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      polluted: {
+        id: '__proto__',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+    })
+
+    expect(mixed[EXAMPLE_COMMUNITY_ADVISORY_BODY.id]).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
+    expect(Object.prototype.hasOwnProperty.call(mixed, '__proto__')).toBe(false)
+    expect(Object.keys(mixed)).toEqual([EXAMPLE_COMMUNITY_ADVISORY_BODY.id])
+  })
+
+  it('drops invalid and duplicate advisory body entries during sanitize without throwing', () => {
+    const sanitized = sanitizeSpe956CommunityAdvisoryBodyRecords({
+      valid: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      duplicate: {
+        ...EXAMPLE_COMMUNITY_ADVISORY_BODY,
+        influenceThreshold: 0.9,
+      },
+      missingId: {
+        id: '',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      badEnum: {
+        id: 'advisory-body:bad-enum',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['not_a_scope'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      mixedScopes: {
+        id: 'advisory-body:mixed-scopes',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['framing', 'not_a_scope'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      emptyScopes: {
+        id: 'advisory-body:empty-scopes',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: [],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      badArray: {
+        id: 'advisory-body:bad-array',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents', 42],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      emptyStakeholders: {
+        id: 'advisory-body:empty-stakeholders',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['  ', ''],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      badThreshold: {
+        id: 'advisory-body:bad-threshold',
+        mission: 'Mission',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0,
+        decisionCriteria: 'Criteria',
+      },
+      emptyMission: {
+        id: 'advisory-body:empty-mission',
+        mission: '   ',
+        membershipRule: 'Rule',
+        representedStakeholderClasses: ['local_residents'],
+        authorizedDecisionScopes: ['framing'],
+        influenceThreshold: 0.5,
+        decisionCriteria: 'Criteria',
+      },
+      notRecord: 'skip-me',
+    })
+
+    expect(sanitized[EXAMPLE_COMMUNITY_ADVISORY_BODY.id]).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
+    expect(sanitized['advisory-body:bad-enum']).toBeUndefined()
+    expect(sanitized['advisory-body:mixed-scopes']).toBeUndefined()
+    expect(sanitized['advisory-body:empty-scopes']).toBeUndefined()
+    expect(sanitized['advisory-body:bad-array']).toBeUndefined()
+    expect(sanitized['advisory-body:empty-stakeholders']).toBeUndefined()
+    expect(sanitized['advisory-body:bad-threshold']).toBeUndefined()
+    expect(sanitized['advisory-body:empty-mission']).toBeUndefined()
+    expect(Object.keys(sanitized)).toEqual([EXAMPLE_COMMUNITY_ADVISORY_BODY.id])
+  })
+
+  it('hydrated EXAMPLE community advisory body shape is frozen including nested arrays', () => {
+    const sanitized = sanitizeSpe956CommunityAdvisoryBodyRecords({
+      valid: {
+        ...EXAMPLE_COMMUNITY_ADVISORY_BODY,
+        representedStakeholderClasses: [
+          ...EXAMPLE_COMMUNITY_ADVISORY_BODY.representedStakeholderClasses,
+        ],
+        authorizedDecisionScopes: [...EXAMPLE_COMMUNITY_ADVISORY_BODY.authorizedDecisionScopes],
+      },
+    })
+    const record = sanitized[EXAMPLE_COMMUNITY_ADVISORY_BODY.id]
+
+    expect(record).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
+    expect(Object.isFrozen(record)).toBe(true)
+    expect(Object.isFrozen(record?.representedStakeholderClasses)).toBe(true)
+    expect(Object.isFrozen(record?.authorizedDecisionScopes)).toBe(true)
+  })
+
+  it('hydrateGame preserves frozen community advisory body shape including nested arrays', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956CommunityAdvisoryBodyRecords: {
+          valid: {
+            ...EXAMPLE_COMMUNITY_ADVISORY_BODY,
+            representedStakeholderClasses: [
+              ...EXAMPLE_COMMUNITY_ADVISORY_BODY.representedStakeholderClasses,
+            ],
+            authorizedDecisionScopes: [...EXAMPLE_COMMUNITY_ADVISORY_BODY.authorizedDecisionScopes],
+          },
+        },
+      },
+      fallback
+    )
+    const record = hydrated.spe956CommunityAdvisoryBodyRecords?.[EXAMPLE_COMMUNITY_ADVISORY_BODY.id]
+
+    expect(record).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
+    expect(Object.isFrozen(record)).toBe(true)
+    expect(Object.isFrozen(record?.representedStakeholderClasses)).toBe(true)
+    expect(Object.isFrozen(record?.authorizedDecisionScopes)).toBe(true)
+  })
+
+  it('resolvePersistedCommunityAdvisoryBody ignores inherited keys and unsafe ids', () => {
+    const bodyId = EXAMPLE_COMMUNITY_ADVISORY_BODY.id
+    const ownRecords = Object.create(null) as Record<string, unknown>
+    ownRecords[bodyId] = EXAMPLE_COMMUNITY_ADVISORY_BODY
+
+    expect(
+      resolvePersistedCommunityAdvisoryBody(
+        { spe956CommunityAdvisoryBodyRecords: ownRecords },
+        bodyId
+      )
+    ).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
+
+    const prototypeOnlyId = 'advisory-body:prototype-only'
+    const prototypeBacked = Object.create({
+      [prototypeOnlyId]: EXAMPLE_COMMUNITY_ADVISORY_BODY,
+    }) as Record<string, unknown>
+
+    expect(
+      resolvePersistedCommunityAdvisoryBody(
+        { spe956CommunityAdvisoryBodyRecords: prototypeBacked },
+        prototypeOnlyId
+      )
+    ).toBeNull()
+
+    for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
+      const records = Object.create(null) as Record<string, unknown>
+      records[unsafeId] = EXAMPLE_COMMUNITY_ADVISORY_BODY
+      expect(
+        resolvePersistedCommunityAdvisoryBody(
+          { spe956CommunityAdvisoryBodyRecords: records },
+          unsafeId
+        )
+      ).toBeNull()
+    }
+  })
+
+  it('hydrates explicit empty community advisory body records over fallback during import', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, {
+      spe956CommunityAdvisoryBodyRecords: SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS,
+    })
+
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956CommunityAdvisoryBodyRecords: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956CommunityAdvisoryBodyRecords).toEqual({})
+  })
+
+  it('round-trips EXAMPLE community advisory body records through save/load', () => {
+    const state = createStartingState()
+    Object.assign(state, {
+      spe956CommunityAdvisoryBodyRecords: SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.spe956CommunityAdvisoryBodyRecords).toEqual(
+      SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS
+    )
+  })
+
+  it('hydrates persisted community advisory body records through import parsing', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956CommunityAdvisoryBodyRecords: {
+          ...SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS,
+          invalid: {
+            id: 'advisory-body:invalid',
+            mission: 'Mission',
+            membershipRule: 'Rule',
+            representedStakeholderClasses: ['local_residents'],
+            authorizedDecisionScopes: ['not_valid'],
+            influenceThreshold: 0.5,
+            decisionCriteria: 'Criteria',
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956CommunityAdvisoryBodyRecords).toEqual(
+      SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS
     )
   })
 })

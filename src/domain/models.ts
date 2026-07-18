@@ -323,6 +323,7 @@ import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe94
 import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
 import type {
   Spe956CollectiveMemoryChannelRecordsMap,
+  Spe956HotlineChannelRecordsMap,
   Spe956SurvivorInformalRegistryRecordsMap,
 } from './spe956ParticipatoryChannelPersistence'
 import type { SquadMetadata } from './squadMetadata'
@@ -2883,6 +2884,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
    */
   spe956CollectiveMemoryChannelRecords?: Spe956CollectiveMemoryChannelRecordsMap
+
+  /**
+   * SPE-2634 slice 3: authored SPE-956 hotline channels (keyed by channel id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

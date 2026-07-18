@@ -4,13 +4,17 @@ import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import { EXAMPLE_MEMORY_STABILIZATION_CHANNEL } from '../domain/collectiveMemoryStabilization'
+import { EXAMPLE_HOTLINE_CHANNEL } from '../domain/hotlineChannel'
 import { EXAMPLE_SURVIVOR_REGISTRY } from '../domain/survivorInformalRegistry'
 import {
   resolvePersistedCollectiveMemoryChannel,
+  resolvePersistedHotlineChannel,
   resolvePersistedSurvivorInformalRegistry,
   sanitizeSpe956CollectiveMemoryChannelRecords,
+  sanitizeSpe956HotlineChannelRecords,
   sanitizeSpe956SurvivorInformalRegistryRecords,
   SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS,
+  SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
   SPE_956_EXAMPLE_SURVIVOR_INFORMAL_REGISTRY_RECORDS,
 } from '../domain/spe956ParticipatoryChannelPersistence'
 
@@ -389,5 +393,217 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2633 / SPE-956 slice 2)', (
     expect(hydrated.spe956CollectiveMemoryChannelRecords).toEqual(
       SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS
     )
+  })
+})
+
+describe('spe956ParticipatoryChannelPersistence (SPE-2634 / SPE-956 slice 3)', () => {
+  it('defaults starting state to empty spe956HotlineChannelRecords', () => {
+    expect(createStartingState().spe956HotlineChannelRecords).toEqual({})
+  })
+
+  it('returns explicit empty map instead of fallback during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS
+
+    expect(sanitizeSpe956HotlineChannelRecords({}, fallback)).toEqual({})
+    expect(sanitizeSpe956HotlineChannelRecords({}, fallback)).not.toBe(fallback)
+    expect(Object.getPrototypeOf(sanitizeSpe956HotlineChannelRecords({}, fallback))).toBeNull()
+  })
+
+  it('returns fallback only for non-record / missing input during sanitize', () => {
+    const fallback = SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS
+
+    expect(sanitizeSpe956HotlineChannelRecords(null, fallback)).toBe(fallback)
+    expect(sanitizeSpe956HotlineChannelRecords(undefined, fallback)).toBe(fallback)
+    expect(sanitizeSpe956HotlineChannelRecords('not-a-record', fallback)).toBe(fallback)
+  })
+
+  it('rejects unsafe channel ids and preserves valid records in mixed input', () => {
+    const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
+
+    for (const unsafeId of unsafeIds) {
+      const polluted = sanitizeSpe956HotlineChannelRecords({
+        polluted: {
+          id: unsafeId,
+          scriptQuality: 0.85,
+          staffingCapacity: 0.8,
+          languageSupport: true,
+          escalationRules: 'Escalate language gaps.',
+          unansweredMode: 'queue_callback',
+          angerMode: 'anger_only',
+          handleThreshold: 0.5,
+        },
+      })
+
+      expect(Object.prototype.hasOwnProperty.call(polluted, unsafeId)).toBe(false)
+      expect(Object.keys(polluted)).toEqual([])
+    }
+
+    const mixed = sanitizeSpe956HotlineChannelRecords({
+      valid: EXAMPLE_HOTLINE_CHANNEL,
+      polluted: {
+        id: '__proto__',
+        scriptQuality: 0.85,
+        staffingCapacity: 0.8,
+        languageSupport: true,
+        escalationRules: 'Escalate language gaps.',
+        unansweredMode: 'queue_callback',
+        angerMode: 'anger_only',
+        handleThreshold: 0.5,
+      },
+    })
+
+    expect(mixed[EXAMPLE_HOTLINE_CHANNEL.id]).toEqual(EXAMPLE_HOTLINE_CHANNEL)
+    expect(Object.prototype.hasOwnProperty.call(mixed, '__proto__')).toBe(false)
+    expect(Object.keys(mixed)).toEqual([EXAMPLE_HOTLINE_CHANNEL.id])
+  })
+
+  it('drops invalid and duplicate channel entries during sanitize without throwing', () => {
+    const sanitized = sanitizeSpe956HotlineChannelRecords({
+      valid: EXAMPLE_HOTLINE_CHANNEL,
+      duplicate: {
+        ...EXAMPLE_HOTLINE_CHANNEL,
+        angerMode: 'deescalate',
+      },
+      missingId: {
+        id: '',
+        scriptQuality: 0.85,
+        staffingCapacity: 0.8,
+        languageSupport: true,
+        escalationRules: 'Escalate language gaps.',
+        unansweredMode: 'queue_callback',
+        angerMode: 'anger_only',
+        handleThreshold: 0.5,
+      },
+      badEnum: {
+        id: 'hotline:bad-enum',
+        scriptQuality: 0.85,
+        staffingCapacity: 0.8,
+        languageSupport: true,
+        escalationRules: 'Escalate language gaps.',
+        unansweredMode: 'not_a_mode',
+        angerMode: 'anger_only',
+        handleThreshold: 0.5,
+      },
+      badMetric: {
+        id: 'hotline:bad-metric',
+        scriptQuality: 1.5,
+        staffingCapacity: 0.8,
+        languageSupport: true,
+        escalationRules: 'Escalate language gaps.',
+        unansweredMode: 'queue_callback',
+        angerMode: 'anger_only',
+        handleThreshold: 0.5,
+      },
+      emptyRules: {
+        id: 'hotline:empty-rules',
+        scriptQuality: 0.85,
+        staffingCapacity: 0.8,
+        languageSupport: true,
+        escalationRules: '   ',
+        unansweredMode: 'queue_callback',
+        angerMode: 'anger_only',
+        handleThreshold: 0.5,
+      },
+      notRecord: 'skip-me',
+    })
+
+    expect(sanitized[EXAMPLE_HOTLINE_CHANNEL.id]).toEqual(EXAMPLE_HOTLINE_CHANNEL)
+    expect(sanitized['hotline:bad-enum']).toBeUndefined()
+    expect(sanitized['hotline:bad-metric']).toBeUndefined()
+    expect(sanitized['hotline:empty-rules']).toBeUndefined()
+    expect(Object.keys(sanitized)).toEqual([EXAMPLE_HOTLINE_CHANNEL.id])
+  })
+
+  it('hydrated EXAMPLE hotline channel shape is frozen', () => {
+    const sanitized = sanitizeSpe956HotlineChannelRecords({
+      valid: { ...EXAMPLE_HOTLINE_CHANNEL },
+    })
+    const record = sanitized[EXAMPLE_HOTLINE_CHANNEL.id]
+
+    expect(record).toEqual(EXAMPLE_HOTLINE_CHANNEL)
+    expect(Object.isFrozen(record)).toBe(true)
+  })
+
+  it('resolvePersistedHotlineChannel ignores inherited keys and unsafe ids', () => {
+    const channelId = EXAMPLE_HOTLINE_CHANNEL.id
+    const ownRecords = Object.create(null) as Record<string, unknown>
+    ownRecords[channelId] = EXAMPLE_HOTLINE_CHANNEL
+
+    expect(
+      resolvePersistedHotlineChannel({ spe956HotlineChannelRecords: ownRecords }, channelId)
+    ).toEqual(EXAMPLE_HOTLINE_CHANNEL)
+
+    const prototypeOnlyId = 'hotline:prototype-only'
+    const prototypeBacked = Object.create({
+      [prototypeOnlyId]: EXAMPLE_HOTLINE_CHANNEL,
+    }) as Record<string, unknown>
+
+    expect(
+      resolvePersistedHotlineChannel(
+        { spe956HotlineChannelRecords: prototypeBacked },
+        prototypeOnlyId
+      )
+    ).toBeNull()
+
+    for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
+      const records = Object.create(null) as Record<string, unknown>
+      records[unsafeId] = EXAMPLE_HOTLINE_CHANNEL
+      expect(
+        resolvePersistedHotlineChannel({ spe956HotlineChannelRecords: records }, unsafeId)
+      ).toBeNull()
+    }
+  })
+
+  it('hydrates explicit empty hotline records over fallback during import', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, {
+      spe956HotlineChannelRecords: SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
+    })
+
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956HotlineChannelRecords: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956HotlineChannelRecords).toEqual({})
+  })
+
+  it('round-trips EXAMPLE hotline channel records through save/load', () => {
+    const state = createStartingState()
+    Object.assign(state, {
+      spe956HotlineChannelRecords: SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.spe956HotlineChannelRecords).toEqual(SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS)
+  })
+
+  it('hydrates persisted hotline channel records through import parsing', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956HotlineChannelRecords: {
+          ...SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS,
+          invalid: {
+            id: 'hotline:invalid',
+            scriptQuality: 0.85,
+            staffingCapacity: 0.8,
+            languageSupport: true,
+            escalationRules: 'Escalate language gaps.',
+            unansweredMode: 'not_valid',
+            angerMode: 'anger_only',
+            handleThreshold: 0.5,
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.spe956HotlineChannelRecords).toEqual(SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS)
   })
 })

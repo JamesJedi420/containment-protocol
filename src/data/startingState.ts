@@ -76,6 +76,7 @@ const startingStateTemplate: GameState = {
   spe956PropagationGraphRecords: {},
   spe956SurvivorInformalRegistryRecords: {},
   spe956CollectiveMemoryChannelRecords: {},
+  spe956HotlineChannelRecords: {},
   affiliationPersonStatusRecords: {},
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},

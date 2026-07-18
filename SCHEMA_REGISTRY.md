@@ -261,33 +261,35 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 ## SPE-956 participatory channel persistence (spe-956-participatory-channel.v1)
 
 Documents compact GameState maps for authored SPE-956 participatory channel envelopes
-(SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel).
+(SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel;
+SPE-2634 slice 3 hotline channel).
 No evaluator contract changes.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`)
 
 ### GameState fields
 
-| Field                                   | Notes                                                                              |
-| --------------------------------------- | ---------------------------------------------------------------------------------- |
-| `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id |
-| `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id      |
+| Field                                   | Notes                                                                                              |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id                |
+| `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id                     |
+| `spe956HotlineChannelRecords`           | Authored channel id + unit intervals + boolean + unanswered/anger enums + escalation rules string |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords` and `sanitizeSpe956CollectiveMemoryChannelRecords` in `spe956ParticipatoryChannelPersistence.ts`
+- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords`, `sanitizeSpe956CollectiveMemoryChannelRecords`, and `sanitizeSpe956HotlineChannelRecords` in `spe956ParticipatoryChannelPersistence.ts`
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
-- Invalid entries, duplicate ids, and incomplete enum sets are dropped without throw
+- Invalid entries, duplicate ids, and incomplete enum/field sets are dropped without throw
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
 - Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; result maps use null prototype
-- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` resolve own properties only and reject unsafe ids
+- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` resolve own properties only and reject unsafe ids
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Deferred (later SPE-956 children)
 
-- Advisory / hotline / async discussion channel maps (SPE-2634)
+- Advisory / async discussion channel maps
 - UI / planning mirror; week-close channel tick
 
 ### Versioning

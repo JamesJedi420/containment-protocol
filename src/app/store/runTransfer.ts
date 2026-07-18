@@ -9572,6 +9572,16 @@ export function hydrateGame(
     }
   }
 
+  // Reapply SPE-956 participatory channel maps after stripUndefinedFields / spreads so
+  // per-entry Object.freeze (and nested windows) from sanitize survive hydrateGame.
+  hydrated = {
+    ...hydrated,
+    spe956SurvivorInformalRegistryRecords,
+    spe956CollectiveMemoryChannelRecords,
+    spe956HotlineChannelRecords,
+    spe956AsyncDiscussionSurfaceRecords,
+  }
+
   return hydrated
 }
 

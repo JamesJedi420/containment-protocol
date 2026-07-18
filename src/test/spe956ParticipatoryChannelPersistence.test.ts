@@ -742,6 +742,27 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
     expect(Object.isFrozen(record?.participationWindow)).toBe(true)
   })
 
+  it('hydrateGame preserves frozen async discussion surface shape including nested window', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        spe956AsyncDiscussionSurfaceRecords: {
+          valid: {
+            ...EXAMPLE_DISCUSSION_SURFACE,
+            participationWindow: { ...EXAMPLE_DISCUSSION_SURFACE.participationWindow },
+          },
+        },
+      },
+      fallback
+    )
+    const record = hydrated.spe956AsyncDiscussionSurfaceRecords?.[EXAMPLE_DISCUSSION_SURFACE.id]
+
+    expect(record).toEqual(EXAMPLE_DISCUSSION_SURFACE)
+    expect(Object.isFrozen(record)).toBe(true)
+    expect(Object.isFrozen(record?.participationWindow)).toBe(true)
+  })
+
   it('resolvePersistedAsyncDiscussionSurface ignores inherited keys and unsafe ids', () => {
     const surfaceId = EXAMPLE_DISCUSSION_SURFACE.id
     const ownRecords = Object.create(null) as Record<string, unknown>

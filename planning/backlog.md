@@ -16,11 +16,11 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-**Recently shipped:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment on `main` @ `14b3f29a`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays **Backlog**.
+**Recently shipped:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment on `main` @ `14b3f29a`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) historical chain (now **Done**).
 
 **Recently shipped:** SPE-1046 file work queue file-content release delivery (slice 1) - persisted metadata-only file-release delivery receipts after safe package handoff; landed on `main` @ `97da46e3`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
 
-**Next up (planning):** Actual file-content release delivery (slice 2) requires a new active Linear successor issue because [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) now reflects **Done**.
+**Recently shipped:** [SPE-2542](https://linear.app/spectranoir/issue/SPE-2542) SPE-1046 file work queue actual file-content release delivery (slice 2) — ledger kind `actual_file_content_release_delivered` after metadata-only; PR #3021 @ `e28042c5`; see `planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md`. Backend file-byte transport remains deferred (not a duplicate ledger successor).
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
@@ -72,9 +72,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643) — SPE-956 participatory channel week-close tick (post-Done follow-on); branch `spe-956-participatory-channel-week-close-slice-1`; see `planning/spe-956-participatory-channel-week-close-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) remains **Done** (does not reopen AC).
+**Current handoff (primary):** [SPE-2644](https://linear.app/spectranoir/issue/SPE-2644) — SPE-956 GameState incident baseline persistence (post-Done follow-on); branch `spe-956-gamestate-incident-baseline-persistence-slice-1`; see `planning/spe-956-gamestate-incident-baseline-persistence-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) remains **Done** (does not reopen AC).
 
-**In progress:** [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643)
+**In progress:** [SPE-2644](https://linear.app/spectranoir/issue/SPE-2644)
+
+**Recently shipped:** [SPE-2645](https://linear.app/spectranoir/issue/SPE-2645) post-SPE-2643 handoff reconciliation (docs) — week-close tick → Shipped; primary → GameState incident baseline persistence; SPE-2542 slice-2 status corrected; see `planning/spe-2645-post-spe-2643-handoff-reconciliation-slice-1.md`.
+
+**Recently shipped:** [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643) SPE-956 participatory channel week-close tick (post-Done follow-on) — pure `applyWeeklySpe956ParticipatoryChannelTick` + `advanceWeek` wire; PR #3196 @ `fd0aed55`; see `planning/spe-956-participatory-channel-week-close-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) remains **Done**.
 
 **Recently shipped:** [SPE-2642](https://linear.app/spectranoir/issue/SPE-2642) SPE-956 parent umbrella Done after SPE-2641 (owner acceptance) — Linear-only; PR #3194 @ `4133bb07`; see `planning/spe-956-parent-umbrella-acceptance-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) **Done**.
 
@@ -172,7 +176,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568/platform-reach-multiplier-from-view-count-slice-1) SPE-947 platform reach multiplier (slice 1) — pure `evaluatePlatformReachMultiplier`; PR #3059 @ `cc1ec1d4`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
-**Secondary queue notes:** SPE-1046 file work queue file-content release delivery (slice 1) shipped on `main` @ `97da46e3` (`planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`); prepare actual file-content release delivery (slice 2) via `planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md` once a new Linear successor exists.
+**Secondary queue notes:** SPE-1046 file work queue file-content release delivery (slice 1) shipped on `main` @ `97da46e3` (`planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`); actual file-content release delivery (slice 2) shipped as [SPE-2542](https://linear.app/spectranoir/issue/SPE-2542) / PR #3021 @ `e28042c5` (`planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md`). Backend file-byte transport remains deferred — do not open a duplicate ledger successor.
 
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 
@@ -453,7 +457,9 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-947-counter-memetic-uptake-gate-slice-1.md`                          | **Shipped**     | [SPE-2570](https://linear.app/spectranoir/issue/SPE-2570) — pure counter-memetic lore + distributor + uptake gate evaluator (parent AC row 3); PR #3063 @ `e46115b2`; parent SPE-947 stays **Backlog**.                                                                                               |
 | `spe-947-platform-outage-degrade-slice-1.md`                              | **Shipped**     | [SPE-2569](https://linear.app/spectranoir/issue/SPE-2569) — pure platform outage / reach-failure degrade evaluator (parent AC row 4); PR #3061 @ `ee721082`; parent SPE-947 stays **Backlog**.                                                                                                        |
 | `spe-947-platform-reach-multiplier-slice-1.md`                            | **Shipped**     | [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568) — pure platform reach-multiplier evaluator (parent AC row 1); PR #3059 @ `cc1ec1d4`; parent SPE-947 stays **Backlog**.                                                                                                                      |
-| `spe-956-participatory-channel-week-close-slice-1.md`                     | **In progress** | [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643) — SPE-956 participatory channel week-close tick (post-Done follow-on; SPE-2624 pattern); parent SPE-956 remains **Done**.                                                                                                              |
+| `spe-2645-post-spe-2643-handoff-reconciliation-slice-1.md`                 | **Shipped**     | [SPE-2645](https://linear.app/spectranoir/issue/SPE-2645) — post-SPE-2643 handoff reconciliation (docs); primary → baseline persistence follow-on; SPE-2542 slice-2 status corrected.                                                                                                            |
+| `spe-956-gamestate-incident-baseline-persistence-slice-1.md`              | **In progress** | [SPE-2644](https://linear.app/spectranoir/issue/SPE-2644) — SPE-956 GameState incident baseline persistence (post-Done follow-on); parent SPE-956 remains **Done**.                                                                                                                              |
+| `spe-956-participatory-channel-week-close-slice-1.md`                     | **Shipped**     | [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643) — SPE-956 participatory channel week-close tick (post-Done follow-on; SPE-2624 pattern); PR #3196 @ `fd0aed55`; parent SPE-956 remains **Done**.                                                                                      |
 | `spe-956-parent-umbrella-acceptance-slice-1.md`                           | **Shipped**     | [SPE-2642](https://linear.app/spectranoir/issue/SPE-2642) — SPE-956 parent umbrella Done after SPE-2641 (owner acceptance; SPE-2618 pattern); parent SPE-956 **Done**; PR #3194 @ `4133bb07`.                                                                                                     |
 | `spe-956-parent-ac-matrix-reconciliation-slice-1.md`                      | **Shipped**     | [SPE-2641](https://linear.app/spectranoir/issue/SPE-2641) — parent AC matrix reconciliation after SPE-2639/2640; 7/7 Yes at incident-path / evaluator+EXAMPLE level; PR #3192 @ `e697dcbb`; parent SPE-956 umbrella Done via owner-acceptance child.                                                   |
 | `spe-956-parent-ac-incident-wire-up-slice-2.md`                           | **Shipped**     | [SPE-2640](https://linear.app/spectranoir/issue/SPE-2640) — parent AC incident wire-up async + survivor + memory lanes via SPE-2638 FromGameState helpers (slice 2); PR #3190 @ `0b99f42f`; parent SPE-956 stays **Backlog**.                                                                        |

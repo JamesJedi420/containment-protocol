@@ -141,7 +141,9 @@ describe('spe956ParticipatoryChannelIncidentPath (SPE-2639 / SPE-956)', () => {
 
     expect(Object.isFrozen(result)).toBe(true)
     expect(Object.isFrozen(result.reasonCodes)).toBe(true)
-    expect([...result.reasonCodes]).toEqual([...result.reasonCodes].sort())
+    expect([...result.reasonCodes]).toEqual(
+      [...result.reasonCodes].sort((left, right) => left.localeCompare(right))
+    )
     expect(new Set(result.reasonCodes).size).toBe(result.reasonCodes.length)
   })
 
@@ -154,5 +156,15 @@ describe('spe956ParticipatoryChannelIncidentPath (SPE-2639 / SPE-956)', () => {
     expect(result.hotline).toBeNull()
     expect(result.materialInfluence).toBe(false)
     expect(result.reasonCodes).toEqual(['no_material_influence', 'no_participatory_lanes'])
+  })
+
+  it('nullish input yields no material influence without throw', () => {
+    const fromUndefined = applySpe956ParticipatoryChannelsToIncident(EXAMPLE_GAME, undefined)
+    const fromNull = applySpe956ParticipatoryChannelsToIncident(EXAMPLE_GAME, null)
+
+    expect(fromUndefined.materialInfluence).toBe(false)
+    expect(fromNull.materialInfluence).toBe(false)
+    expect(fromUndefined.reasonCodes).toEqual(['no_material_influence', 'no_participatory_lanes'])
+    expect(fromNull.reasonCodes).toEqual(['no_material_influence', 'no_participatory_lanes'])
   })
 })

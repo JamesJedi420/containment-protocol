@@ -64,7 +64,11 @@ export interface Spe956ParticipatoryChannelIncidentPathResult {
 }
 
 function uniqueSortedReasonCodes(codes: readonly string[]): readonly string[] {
-  return Object.freeze([...new Set(codes)].sort())
+  return Object.freeze(
+    [...new Set(codes.map((value) => value.trim()).filter((value) => value.length > 0))].sort(
+      (left, right) => left.localeCompare(right)
+    )
+  )
 }
 
 function freezeResult(
@@ -84,6 +88,18 @@ function isHotlineMaterial(result: HotlineCallEvaluationResult): boolean {
   return result.outcome === 'handled' && result.proposedAdjustment !== null
 }
 
+function emptyNoLaneResult(incidentId: string): Spe956ParticipatoryChannelIncidentPathResult {
+  return freezeResult({
+    incidentId,
+    advisory: null,
+    hotline: null,
+    advisoryMaterialInfluence: false,
+    hotlineMaterialInfluence: false,
+    materialInfluence: false,
+    reasonCodes: ['no_material_influence', 'no_participatory_lanes'],
+  })
+}
+
 /**
  * Apply authored advisory + hotline lanes for one incident via FromGameState helpers.
  * Skips a lane when its baseline incidentId does not match the path incidentId.
@@ -91,8 +107,12 @@ function isHotlineMaterial(result: HotlineCallEvaluationResult): boolean {
  */
 export function applySpe956ParticipatoryChannelsToIncident(
   game: Partial<Spe956ParticipatoryChannelGameStateLike>,
-  input: Spe956ParticipatoryChannelIncidentPathInput
+  input?: Spe956ParticipatoryChannelIncidentPathInput | null
 ): Spe956ParticipatoryChannelIncidentPathResult {
+  if (input == null) {
+    return emptyNoLaneResult(SPE_956_EXAMPLE_INCIDENT_ID)
+  }
+
   const incidentId =
     typeof input.incidentId === 'string' && input.incidentId.trim().length > 0
       ? input.incidentId.trim()
@@ -103,7 +123,7 @@ export function applySpe956ParticipatoryChannelsToIncident(
   let hotline: HotlineCallEvaluationResult | null = null
 
   if (input.advisory) {
-    if (input.advisory.baseline.incidentId !== incidentId) {
+    if (!input.advisory.baseline || input.advisory.baseline.incidentId !== incidentId) {
       reasonCodes.push('advisory_incident_id_mismatch')
     } else {
       advisory = evaluateCommunityAdvisoryDecisionInfluenceFromGameState(
@@ -119,7 +139,7 @@ export function applySpe956ParticipatoryChannelsToIncident(
   }
 
   if (input.hotline) {
-    if (input.hotline.baseline.incidentId !== incidentId) {
+    if (!input.hotline.baseline || input.hotline.baseline.incidentId !== incidentId) {
       reasonCodes.push('hotline_incident_id_mismatch')
     } else {
       hotline = evaluateHotlineCallFromGameState(game, input.hotline.channelId, {

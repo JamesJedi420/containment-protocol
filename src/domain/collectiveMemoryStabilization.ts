@@ -250,7 +250,9 @@ function isSignalIntent(value: unknown): value is MemorySignalIntent {
   return typeof value === 'string' && INTENT_SET.has(value)
 }
 
-function tryNormalizeBaseline(value: unknown): CollectiveMemoryBaseline | null {
+export function tryNormalizeCollectiveMemoryBaseline(
+  value: unknown
+): CollectiveMemoryBaseline | null {
   if (!isRecord(value)) {
     return null
   }
@@ -297,7 +299,7 @@ export function evaluateCollectiveMemoryStabilization(
     return deferredResult(['invalid_memory_baseline'])
   }
 
-  const baseline = tryNormalizeBaseline(rawBaseline)
+  const baseline = tryNormalizeCollectiveMemoryBaseline(rawBaseline)
   if (!baseline) {
     return deferredResult(['invalid_memory_baseline'])
   }

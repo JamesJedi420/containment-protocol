@@ -227,7 +227,9 @@ function isSessionIntent(value: unknown): value is DiscussionSessionIntent {
   return typeof value === 'string' && INTENT_SET.has(value)
 }
 
-function tryNormalizeBaseline(value: unknown): DiscussionMemoryBaseline | null {
+export function tryNormalizeDiscussionMemoryBaseline(
+  value: unknown
+): DiscussionMemoryBaseline | null {
   if (!isRecord(value)) {
     return null
   }
@@ -285,7 +287,7 @@ export function evaluateAsyncDiscussionSession(
     return deferredResult(['invalid_discussion_baseline'])
   }
 
-  const baseline = tryNormalizeBaseline(rawBaseline)
+  const baseline = tryNormalizeDiscussionMemoryBaseline(rawBaseline)
   if (!baseline) {
     return deferredResult(['invalid_discussion_baseline'])
   }

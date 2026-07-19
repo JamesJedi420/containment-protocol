@@ -241,7 +241,9 @@ function isSignalIntent(value: unknown): value is RegistrySignalIntent {
   return typeof value === 'string' && INTENT_SET.has(value)
 }
 
-function tryNormalizeBaseline(value: unknown): SurvivorSupportBaseline | null {
+export function tryNormalizeSurvivorSupportBaseline(
+  value: unknown
+): SurvivorSupportBaseline | null {
   if (!isRecord(value)) {
     return null
   }
@@ -287,7 +289,7 @@ export function evaluateSurvivorInformalRegistrySignal(
     return deferredResult(['invalid_support_baseline'])
   }
 
-  const baseline = tryNormalizeBaseline(rawBaseline)
+  const baseline = tryNormalizeSurvivorSupportBaseline(rawBaseline)
   if (!baseline) {
     return deferredResult(['invalid_support_baseline'])
   }

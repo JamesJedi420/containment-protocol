@@ -306,7 +306,9 @@ function isUrgency(value: unknown): value is CommunityAdvisoryUrgency {
   return typeof value === 'string' && URGENCY_SET.has(value)
 }
 
-function tryNormalizeBaseline(value: unknown): IncidentResponseDecision | null {
+export function tryNormalizeIncidentResponseBaseline(
+  value: unknown
+): IncidentResponseDecision | null {
   if (!isRecord(value)) {
     return null
   }
@@ -355,7 +357,7 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
     return emptyDeferredResult(['invalid_incident_baseline'])
   }
 
-  const baseline = tryNormalizeBaseline(rawBaseline)
+  const baseline = tryNormalizeIncidentResponseBaseline(rawBaseline)
   if (!baseline) {
     return emptyDeferredResult(['invalid_incident_baseline'])
   }

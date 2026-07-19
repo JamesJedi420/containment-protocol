@@ -5,8 +5,8 @@ One-page hygiene record. Linear: [SPE-2641](https://linear.app/spectranoir/issue
 | Field               | Value                                                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2641 — Parent AC matrix reconciliation after SPE-2639/2640 (slice 1)](https://linear.app/spectranoir/issue/SPE-2641)                                      |
-| **Status**          | **In progress**                                                                                                                                               |
-| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**                              |
+| **Status**          | **Shipped** (PR #3192 @ `e697dcbb`)                                                                                                                           |
+| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; umbrella Done via `planning/spe-956-parent-umbrella-acceptance-slice-1.md` |
 | **Branch**          | `spe-956-parent-ac-matrix-reconciliation-slice-1`                                                                                                             |
 | **Base `main` SHA** | `0b99f42f`                                                                                                                                                    |
 
@@ -47,7 +47,7 @@ Reconcile the SPE-956 parent Linear AC matrix against shipped five-lane incident
 
 ## Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) disposition
 
-**Backlog** — 7/7 AC rows Yes at incident-path / evaluator+EXAMPLE level. Umbrella **Done** still requires explicit owner acceptance. Week-close channel tick and GameState incident baseline persistence remain optional siblings (not AC blockers once matrix Yes is accepted).
+7/7 AC rows Yes at incident-path / evaluator+EXAMPLE level. Umbrella **Done** accepted via [SPE-2642](https://linear.app/spectranoir/issue/SPE-2642) (owner acceptance July 2026; SPE-2618 pattern). Week-close channel tick and GameState incident baseline persistence remain optional post-Done siblings (not AC blockers).
 
 ## Scope (this slice)
 
@@ -65,23 +65,23 @@ Reconcile the SPE-956 parent Linear AC matrix against shipped five-lane incident
 - [x] Script/staffing-under-pressure disposition: satisfied; no gap child
 - [x] Deferred table lists week-close tick, baseline persistence, umbrella Done
 - [x] Slice doc + backlog handoff present; SPE-2640 → recently shipped
-- [ ] Parent SPE-956 stays **Backlog**; child Done only after merge
+- [x] Parent SPE-956 stays **Backlog** through this child; umbrella Done via SPE-2642
 - [x] No `src/` domain/runtime changes
 
 ## Deferred
 
 | Item                                    | Suggested owner                                                         | Why deferred                                                                 |
 | --------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Week-close channel tick                 | SPE-956 sibling                                                         | Optional orchestration; not required once AC matrix Yes                      |
-| GameState incident baseline persistence | SPE-956 sibling                                                         | Baselines remain authored inputs on SPE-2639/2640 path                       |
-| Parent umbrella **Done**                | Owner explicit acceptance                                               | 7/7 AC Yes ≠ Done without owner gate (SPE-947 SPE-2618 pattern)              |
+| Week-close channel tick                 | Optional post-Done sibling                                              | Optional orchestration; not required once AC matrix Yes                      |
+| GameState incident baseline persistence | Optional post-Done sibling                                              | Baselines remain authored inputs on SPE-2639/2640 path                       |
+| Parent umbrella **Done**                | [SPE-2642](https://linear.app/spectranoir/issue/SPE-2642)               | Owner acceptance July 2026; 7/7 AC Yes closes umbrella (SPE-2618 pattern)    |
 | SPE-1682 / 860 / 911 / 875 expansions   | Those parents                                                           | Explicitly out of SPE-956 incident / matrix boundary                         |
 
 ## Validation
 
 Docs/hygiene only — no new domain tests.
 
-- `npm.cmd run verify:backlog-handoff`
+- `npm run verify:backlog-handoff`
 
 ## See also
 

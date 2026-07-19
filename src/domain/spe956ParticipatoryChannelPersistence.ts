@@ -1,5 +1,5 @@
 /**
- * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-2636 / SPE-2638 / SPE-956:
+ * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-2636 / SPE-2638 / SPE-2643 / SPE-956:
  * GameState persistence for participatory channel envelopes + evaluate-from-GameState helpers.
  * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
  * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
@@ -7,7 +7,8 @@
  * Slice 4 (SPE-2635): async discussion surface (SPE-2629 evaluator).
  * Slice 5 (SPE-2636): community advisory body (SPE-2620 evaluator).
  * Compose helpers (SPE-2638): resolve hydrated maps and call SPE-2620–2631 evaluators.
- * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
+ * Week-close fields (SPE-2643): optional weeklyElapsedWeeksDelta / elapsedChannelWeeks /
+ * lastWeeklyTickWeek on persisted entries (SPE-2624 pattern). No evaluator contract changes.
  */
 
 import {
@@ -79,8 +80,19 @@ export const SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION =
 export type Spe956ParticipatoryChannelPersistenceSchemaVersion =
   typeof SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION
 
+/** Optional SPE-2643 week-close orchestration fields (SPE-2624 pattern). */
+export interface Spe956ParticipatoryChannelWeeklyFields {
+  /** Running elapsed channel weeks counter (orchestration-owned when delta authored). */
+  readonly elapsedChannelWeeks?: number
+  /** Optional authored week-close additive delta. */
+  readonly weeklyElapsedWeeksDelta?: number
+  /** Idempotency marker: last simulation week this record was ticked. */
+  readonly lastWeeklyTickWeek?: number
+}
+
 /** Persisted survivor informal registry: opaque authored SPE-2630 channel envelope. */
-export type Spe956PersistedSurvivorInformalRegistry = SurvivorInformalRegistry
+export type Spe956PersistedSurvivorInformalRegistry = SurvivorInformalRegistry &
+  Spe956ParticipatoryChannelWeeklyFields
 
 export type Spe956SurvivorInformalRegistryRecordsMap = Record<
   string,
@@ -88,7 +100,8 @@ export type Spe956SurvivorInformalRegistryRecordsMap = Record<
 >
 
 /** Persisted collective memory channel: opaque authored SPE-2631 channel envelope. */
-export type Spe956PersistedCollectiveMemoryChannel = CollectiveMemoryChannel
+export type Spe956PersistedCollectiveMemoryChannel = CollectiveMemoryChannel &
+  Spe956ParticipatoryChannelWeeklyFields
 
 export type Spe956CollectiveMemoryChannelRecordsMap = Record<
   string,
@@ -107,6 +120,57 @@ function normalizeId(value: unknown, fallback: string): string {
 
 function isSafeMapKey(id: string): boolean {
   return id !== '__proto__' && id !== 'constructor' && id !== 'prototype'
+}
+
+function isNonNegativeFinite(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+function sanitizePositiveIntegerWeek(value: unknown): number | undefined {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < 1 ||
+    value !== Math.trunc(value)
+  ) {
+    return undefined
+  }
+
+  return value
+}
+
+/**
+ * Sanitize optional SPE-2643 weekly fields.
+ * Returns null when present fields are invalid (drops the whole entry).
+ */
+function sanitizeParticipatoryChannelWeeklyFields(
+  value: PlainRecord
+): Spe956ParticipatoryChannelWeeklyFields | null {
+  if (value.elapsedChannelWeeks !== undefined && !isNonNegativeFinite(value.elapsedChannelWeeks)) {
+    return null
+  }
+
+  if (
+    value.weeklyElapsedWeeksDelta !== undefined &&
+    !isNonNegativeFinite(value.weeklyElapsedWeeksDelta)
+  ) {
+    return null
+  }
+
+  const lastWeeklyTickWeek = sanitizePositiveIntegerWeek(value.lastWeeklyTickWeek)
+  if (value.lastWeeklyTickWeek !== undefined && lastWeeklyTickWeek === undefined) {
+    return null
+  }
+
+  return {
+    ...(value.elapsedChannelWeeks !== undefined
+      ? { elapsedChannelWeeks: value.elapsedChannelWeeks }
+      : {}),
+    ...(value.weeklyElapsedWeeksDelta !== undefined
+      ? { weeklyElapsedWeeksDelta: value.weeklyElapsedWeeksDelta }
+      : {}),
+    ...(lastWeeklyTickWeek !== undefined ? { lastWeeklyTickWeek } : {}),
+  }
 }
 
 function isRecognitionStance(value: unknown): value is RecognitionStance {
@@ -144,12 +208,18 @@ function sanitizeSpe956SurvivorInformalRegistryEntry(
     return null
   }
 
+  const weeklyFields = sanitizeParticipatoryChannelWeeklyFields(value)
+  if (weeklyFields === null) {
+    return null
+  }
+
   return Object.freeze({
     id,
     recognitionStance: value.recognitionStance,
     catalogRule: value.catalogRule,
     supportKnowledgeBand: value.supportKnowledgeBand,
     credibilityCeiling: value.credibilityCeiling,
+    ...weeklyFields,
   })
 }
 
@@ -249,12 +319,18 @@ function sanitizeSpe956CollectiveMemoryChannelEntry(
     return null
   }
 
+  const weeklyFields = sanitizeParticipatoryChannelWeeklyFields(value)
+  if (weeklyFields === null) {
+    return null
+  }
+
   return Object.freeze({
     id,
     narrativeStance: value.narrativeStance,
     recallWindow: value.recallWindow,
     credibilityCeiling: value.credibilityCeiling,
     stabilizationRule: value.stabilizationRule,
+    ...weeklyFields,
   })
 }
 
@@ -318,7 +394,7 @@ export const SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS: Spe956Collective
   })
 
 /** Persisted hotline channel: opaque authored SPE-2628 channel envelope. */
-export type Spe956PersistedHotlineChannel = HotlineChannel
+export type Spe956PersistedHotlineChannel = HotlineChannel & Spe956ParticipatoryChannelWeeklyFields
 
 export type Spe956HotlineChannelRecordsMap = Record<string, Spe956PersistedHotlineChannel>
 
@@ -368,6 +444,11 @@ function sanitizeSpe956HotlineChannelEntry(value: unknown): Spe956PersistedHotli
     return null
   }
 
+  const weeklyFields = sanitizeParticipatoryChannelWeeklyFields(value)
+  if (weeklyFields === null) {
+    return null
+  }
+
   return Object.freeze({
     id,
     scriptQuality,
@@ -377,6 +458,7 @@ function sanitizeSpe956HotlineChannelEntry(value: unknown): Spe956PersistedHotli
     unansweredMode,
     angerMode,
     handleThreshold,
+    ...weeklyFields,
   })
 }
 
@@ -439,7 +521,8 @@ export const SPE_956_EXAMPLE_HOTLINE_CHANNEL_RECORDS: Spe956HotlineChannelRecord
 })
 
 /** Persisted async discussion surface: opaque authored SPE-2629 channel envelope. */
-export type Spe956PersistedAsyncDiscussionSurface = DiscussionSurface
+export type Spe956PersistedAsyncDiscussionSurface = DiscussionSurface &
+  Spe956ParticipatoryChannelWeeklyFields
 
 export type Spe956AsyncDiscussionSurfaceRecordsMap = Record<
   string,
@@ -504,12 +587,18 @@ function sanitizeSpe956AsyncDiscussionSurfaceEntry(
     return null
   }
 
+  const weeklyFields = sanitizeParticipatoryChannelWeeklyFields(value)
+  if (weeklyFields === null) {
+    return null
+  }
+
   return Object.freeze({
     id,
     participationWindow,
     transcriptRetentionMode,
     wideningRule,
     memoryStabilization,
+    ...weeklyFields,
   })
 }
 
@@ -573,7 +662,8 @@ export const SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS: Spe956AsyncDiscus
   })
 
 /** Persisted community advisory body: opaque authored SPE-2620 channel envelope. */
-export type Spe956PersistedCommunityAdvisoryBody = CommunityAdvisoryBody
+export type Spe956PersistedCommunityAdvisoryBody = CommunityAdvisoryBody &
+  Spe956ParticipatoryChannelWeeklyFields
 
 export type Spe956CommunityAdvisoryBodyRecordsMap = Record<
   string,
@@ -676,6 +766,11 @@ function sanitizeSpe956CommunityAdvisoryBodyEntry(
     return null
   }
 
+  const weeklyFields = sanitizeParticipatoryChannelWeeklyFields(value)
+  if (weeklyFields === null) {
+    return null
+  }
+
   return Object.freeze({
     id,
     mission,
@@ -684,6 +779,7 @@ function sanitizeSpe956CommunityAdvisoryBodyEntry(
     authorizedDecisionScopes,
     influenceThreshold,
     decisionCriteria,
+    ...weeklyFields,
   })
 }
 

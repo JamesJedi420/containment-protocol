@@ -292,10 +292,20 @@ No evaluator contract changes.
 - `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` / `resolvePersistedCommunityAdvisoryBody` resolve own properties only and reject unsafe ids
 - Default starting state: empty `{}` maps in `createStartingState`
 
-### Deferred (later SPE-956 children)
+### Optional weekly orchestration fields (SPE-2643)
 
-- Week-close channel tick; remaining parent AC lanes (async / survivor / memory); GameState incident baseline persistence
-- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); advisory+hotline incident path in progress (SPE-2639)
+| Field                      | Notes                                                                 |
+| -------------------------- | --------------------------------------------------------------------- |
+| `elapsedChannelWeeks`      | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` |
+| `weeklyElapsedWeeksDelta`  | Non-negative additive delta applied once per week on week-close       |
+| `lastWeeklyTickWeek`       | Idempotency marker; same-week re-tick is a no-op                      |
+
+Tick wired from `advanceWeek` via `applyWeeklySpe956ParticipatoryChannelTick` over all five maps. Channels without `weeklyElapsedWeeksDelta` are unchanged. Does **not** reopen SPE-956 AC (parent Done via SPE-2642).
+
+### Deferred (optional post-Done siblings)
+
+- GameState incident baseline persistence; weekly report-note surfacing; SPE-1046 file-content release delivery slice 2 (separate successor)
+- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); incident path shipped (SPE-2639/2640); umbrella Done (SPE-2642)
 
 ### Versioning
 

@@ -30,7 +30,7 @@ Mark SPE-2643 **Shipped** in backlog/manifest, correct stale SPE-1046 actual fil
 - [x] SPE-2542 / actual file-content slice-2 docs no longer claim In Progress / “needs successor”
 - [x] `npm run verify:backlog-handoff` green
 - [x] No `src/` changes
-- [ ] Child Done only after merge
+- [x] Child Done only after merge (PR #3199)
 
 ## Status finding (binding)
 

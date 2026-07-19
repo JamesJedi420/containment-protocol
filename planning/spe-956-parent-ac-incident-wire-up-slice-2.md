@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2640](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                     |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2640 — Parent AC incident wire-up — async + survivor + memory lanes (slice 2)](https://linear.app/spectranoir/issue/SPE-2640)        |
-| **Status**          | **In progress**                                                                                                                           |
+| **Status**          | **Shipped** (PR #3190 @ `0b99f42f`)                                                                                                       |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**          |
 | **Branch**          | `spe-956-parent-ac-incident-wire-up-slice-2`                                                                                              |
 | **Base `main` SHA** | `73ddb4fb`                                                                                                                                |

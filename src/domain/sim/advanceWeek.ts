@@ -270,6 +270,14 @@ import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestr
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
+import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
+import {
+  extractSpe956AsyncDiscussionSurfaceRecords,
+  extractSpe956CollectiveMemoryChannelRecords,
+  extractSpe956CommunityAdvisoryBodyRecords,
+  extractSpe956HotlineChannelRecords,
+  extractSpe956SurvivorInformalRegistryRecords,
+} from '../spe956ParticipatoryChannelPersistence'
 import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
 import { applyWeeklySpe947MediaEconomyTick } from '../spe947MediaEconomyWeeklyOrchestration'
 import { listSpe947MediaEconomyCommercializationActors } from '../spe947MediaEconomySimulator'
@@ -4990,6 +4998,68 @@ export function advanceWeek(
     )
     if (nextSpe956GraphRecords !== priorSpe956GraphRecords) {
       outputWeeklyState.spe956PropagationGraphRecords = nextSpe956GraphRecords
+    }
+  }
+
+  // SPE-2643: optional authored elapsed-week deltas on five SPE-956 participatory channel maps.
+  const priorSpe956ChannelMaps = {
+    spe956SurvivorInformalRegistryRecords:
+      extractSpe956SurvivorInformalRegistryRecords(outputWeeklyState),
+    spe956CollectiveMemoryChannelRecords:
+      extractSpe956CollectiveMemoryChannelRecords(outputWeeklyState),
+    spe956HotlineChannelRecords: extractSpe956HotlineChannelRecords(outputWeeklyState),
+    spe956AsyncDiscussionSurfaceRecords:
+      extractSpe956AsyncDiscussionSurfaceRecords(outputWeeklyState),
+    spe956CommunityAdvisoryBodyRecords:
+      extractSpe956CommunityAdvisoryBodyRecords(outputWeeklyState),
+  }
+  const hasSpe956ChannelRecords =
+    Object.keys(priorSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956HotlineChannelRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords).length > 0
+  if (hasSpe956ChannelRecords) {
+    const nextSpe956ChannelMaps = applyWeeklySpe956ParticipatoryChannelTick(
+      priorSpe956ChannelMaps,
+      result.week
+    )
+    if (nextSpe956ChannelMaps !== priorSpe956ChannelMaps) {
+      if (
+        nextSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords !==
+        priorSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords
+      ) {
+        outputWeeklyState.spe956SurvivorInformalRegistryRecords =
+          nextSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords !==
+        priorSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords
+      ) {
+        outputWeeklyState.spe956CollectiveMemoryChannelRecords =
+          nextSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956HotlineChannelRecords !==
+        priorSpe956ChannelMaps.spe956HotlineChannelRecords
+      ) {
+        outputWeeklyState.spe956HotlineChannelRecords =
+          nextSpe956ChannelMaps.spe956HotlineChannelRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords !==
+        priorSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords
+      ) {
+        outputWeeklyState.spe956AsyncDiscussionSurfaceRecords =
+          nextSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords !==
+        priorSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords
+      ) {
+        outputWeeklyState.spe956CommunityAdvisoryBodyRecords =
+          nextSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords
+      }
     }
   }
 

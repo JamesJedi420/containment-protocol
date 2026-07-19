@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2642",
-  "inProgress": ["SPE-2642"],
+  "primary": "SPE-2643",
+  "inProgress": ["SPE-2643"],
   "recentlyShipped": [
+    "SPE-2642",
     "SPE-2641",
     "SPE-2640",
     "SPE-2639",
@@ -14,7 +15,8 @@
     "SPE-2632"
   ],
   "sliceDocStatus": {
-    "planning/spe-956-parent-umbrella-acceptance-slice-1.md": "In progress",
+    "planning/spe-956-participatory-channel-week-close-slice-1.md": "In progress",
+    "planning/spe-956-parent-umbrella-acceptance-slice-1.md": "Shipped",
     "planning/spe-956-parent-ac-matrix-reconciliation-slice-1.md": "Shipped",
     "planning/spe-956-parent-ac-incident-wire-up-slice-2.md": "Shipped",
     "planning/spe-956-parent-ac-incident-wire-up-slice-1.md": "Shipped",

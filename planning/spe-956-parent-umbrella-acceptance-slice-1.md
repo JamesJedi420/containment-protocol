@@ -5,7 +5,7 @@ One-page hygiene record. Linear: [SPE-2642](https://linear.app/spectranoir/issue
 | Field               | Value                                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2642 — SPE-956 parent umbrella Done after SPE-2641 (owner acceptance)](https://linear.app/spectranoir/issue/SPE-2642)              |
-| **Status**          | **In progress**                                                                                                                         |
+| **Status**          | **Shipped** — PR #3194 @ `4133bb07`                                                                                                                         |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; **Done** on this merge |
 | **Branch**          | `spe-956-parent-umbrella-acceptance-slice-1`                                                                                            |
 | **Base `main` SHA** | `e697dcbb`                                                                                                                              |
@@ -59,7 +59,7 @@ Record explicit owner acceptance that the SPE-2641 AC matrix (7/7 **Yes** at inc
 
 | Item                                    | Suggested owner                               | Why deferred                                                                 |
 | --------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| Week-close channel tick                 | Optional post-Done sibling                    | Orchestration only; not an AC blocker once umbrella Done                     |
+| Week-close channel tick                 | [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643) | Post-Done orchestration sibling; does not reopen AC |
 | GameState incident baseline persistence | Optional post-Done sibling                    | Baselines remain authored inputs on SPE-2639/2640 path                       |
 | Parent umbrella **Done**                | **Done** — owner acceptance July 2026         | SPE-2642 disposition; 7/7 AC Yes at incident-path / evaluator+EXAMPLE        |
 | SPE-1682 / 860 / 911 / 875 expansions   | Those parents                                 | Explicitly out of SPE-956 matrix boundary                                    |

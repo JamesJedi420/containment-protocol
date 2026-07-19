@@ -268,7 +268,7 @@ No evaluator contract changes.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`; SPE-2638 `evaluate*FromGameState` helpers; SPE-2639 incident path: `spe956ParticipatoryChannelIncidentPath.ts`)
 
 ### GameState fields
 
@@ -294,7 +294,8 @@ No evaluator contract changes.
 
 ### Deferred (later SPE-956 children)
 
-- UI / planning mirror; week-close channel tick
+- Week-close channel tick; remaining parent AC lanes (async / survivor / memory); GameState incident baseline persistence
+- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); advisory+hotline incident path in progress (SPE-2639)
 
 ### Versioning
 

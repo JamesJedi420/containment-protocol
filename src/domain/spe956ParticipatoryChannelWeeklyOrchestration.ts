@@ -148,16 +148,15 @@ export function applyWeeklySpe956ParticipatoryChannelTick(
   week: number
 ): Spe956ParticipatoryChannelPersistenceMaps {
   const normalizedWeek = normalizeWeek(week)
-  const empty: Spe956ParticipatoryChannelPersistenceMaps = {
-    spe956SurvivorInformalRegistryRecords: extractSpe956SurvivorInformalRegistryRecords({}),
-    spe956CollectiveMemoryChannelRecords: extractSpe956CollectiveMemoryChannelRecords({}),
-    spe956HotlineChannelRecords: extractSpe956HotlineChannelRecords({}),
-    spe956AsyncDiscussionSurfaceRecords: extractSpe956AsyncDiscussionSurfaceRecords({}),
-    spe956CommunityAdvisoryBodyRecords: extractSpe956CommunityAdvisoryBodyRecords({}),
-  }
 
   if (maps == null) {
-    return empty
+    return {
+      spe956SurvivorInformalRegistryRecords: extractSpe956SurvivorInformalRegistryRecords({}),
+      spe956CollectiveMemoryChannelRecords: extractSpe956CollectiveMemoryChannelRecords({}),
+      spe956HotlineChannelRecords: extractSpe956HotlineChannelRecords({}),
+      spe956AsyncDiscussionSurfaceRecords: extractSpe956AsyncDiscussionSurfaceRecords({}),
+      spe956CommunityAdvisoryBodyRecords: extractSpe956CommunityAdvisoryBodyRecords({}),
+    }
   }
 
   const nextSurvivor = applyChannelMapTick(

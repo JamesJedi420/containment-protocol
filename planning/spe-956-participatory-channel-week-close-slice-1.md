@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2643](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2643 — SPE-956 participatory channel week-close tick (post-Done follow-on)](https://linear.app/spectranoir/issue/SPE-2643)        |
-| **Status**          | **In progress**                                                                                                                         |
+| **Status**          | **Shipped**                                                                                                                             |
 | **Parent / related**| [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                               |
 | **Branch**          | `spe-956-participatory-channel-week-close-slice-1`                                                                                      |
 | **Base `main` SHA** | `4133bb07`                                                                                                                              |
@@ -50,14 +50,14 @@ Wire persisted SPE-956 participatory channel maps into `advanceWeek` with a pure
 - [x] sanitize/hydrate round-trip preserves weekly fields
 - [x] `advanceWeek` integration covers no-op + authored-delta paths
 - [x] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
-- [ ] Child Done only after merge
+- [x] Child Done only after merge (PR #3196 @ `fd0aed55`)
 
 ## Deferred
 
 | Item                                    | Suggested owner                               | Why deferred                                                                 |
 | --------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| GameState incident baseline persistence | Optional post-Done sibling                    | Baselines remain authored inputs on SPE-2639/2640 path                       |
-| SPE-1046 file-content release delivery slice 2 | New SPE-1046 successor (SPE-1046 Done) | Alternate handoff sibling; not this boundary                                 |
+| GameState incident baseline persistence | [SPE-2644](https://linear.app/spectranoir/issue/SPE-2644) | Baselines remain authored inputs on SPE-2639/2640 path; primary after SPE-2645 handoff |
+| SPE-1046 file-content release delivery slice 2 | [SPE-2542](https://linear.app/spectranoir/issue/SPE-2542) (already **Done**) | Ledger slice 2 shipped PR #3021; do not reopen duplicate successor           |
 | Weekly report-note surfacing            | Optional sibling                              | Out of week-close compose boundary                                           |
 | SPE-1682 / 860 / 911 / 875 expansions   | Those parents                                 | Explicitly out of SPE-956 matrix boundary                                    |
 

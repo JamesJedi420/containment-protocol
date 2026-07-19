@@ -46,9 +46,12 @@ Persist a durable metadata-only file-release delivery receipt after safe package
 
 ## Deferred
 
-- **Actual file content release**
-  Owner: SPE-1046 follow-up child
-  Why: This slice records metadata-only delivery receipts, not file payload transport.
+- **Actual file content release (ledger)**
+  Owner: [SPE-2542](https://linear.app/spectranoir/issue/SPE-2542) — **Done** (PR #3021)
+  Why: Metadata-only receipts deferred ledger kind; SPE-2542 shipped `actual_file_content_release_delivered`.
+- **Backend file-byte transport / storage**
+  Owner: dedicated infrastructure slice
+  Why: Still out of ledger boundary; do not invent file-byte I/O under SPE-1046 successors.
 - **Mission routing / procurement**
   Owner: SPE-1046 follow-up child
   Why: Existing routing/procurement gates remain separate from this receipt ledger.
@@ -56,11 +59,8 @@ Persist a durable metadata-only file-release delivery receipt after safe package
   Owner: SPE-947 child
   Why: Separate parent thread.
 - **SPE-1046 parent closure**
-  Owner: SPE-1046
-  Why: Broader parent acceptance remains open.
-- **Successor issue creation for actual file-content delivery**
-  Owner: Human / next agent
-  Why: Follow-up scope must be tracked under a new active successor issue.
+  Owner: SPE-1046 (historical; parent now **Done**)
+  Why: Broader parent acceptance was separate from this receipt ledger.
 
 ## See also
 

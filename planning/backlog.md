@@ -76,7 +76,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **In progress:** [SPE-2642](https://linear.app/spectranoir/issue/SPE-2642)
 
-**Recently shipped:** [SPE-2641](https://linear.app/spectranoir/issue/SPE-2641) parent AC matrix reconciliation after SPE-2639/2640 (slice 1) — 7/7 Yes at incident-path / evaluator+EXAMPLE level; PR #3192 @ `e697dcbb`; see `planning/spe-956-parent-ac-matrix-reconciliation-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) umbrella Done awaits owner-acceptance child.
+**Recently shipped:** [SPE-2641](https://linear.app/spectranoir/issue/SPE-2641) parent AC matrix reconciliation after SPE-2639/2640 (slice 1) — 7/7 Yes at incident-path / evaluator+EXAMPLE level; PR #3192 @ `e697dcbb`; see `planning/spe-956-parent-ac-matrix-reconciliation-slice-1.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) umbrella Done via owner-acceptance child (SPE-2618 pattern).
 
 **Recently shipped:** [SPE-2640](https://linear.app/spectranoir/issue/SPE-2640) parent AC incident wire-up — async + survivor + memory lanes (slice 2) — five-lane `applySpe956ParticipatoryChannelsToIncident`; PR #3190 @ `0b99f42f`; see `planning/spe-956-parent-ac-incident-wire-up-slice-2.md`. Parent [SPE-956](https://linear.app/spectranoir/issue/SPE-956) stays **Backlog**.
 

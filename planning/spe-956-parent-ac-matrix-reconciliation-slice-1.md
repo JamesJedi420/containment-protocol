@@ -6,7 +6,7 @@ One-page hygiene record. Linear: [SPE-2641](https://linear.app/spectranoir/issue
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2641 — Parent AC matrix reconciliation after SPE-2639/2640 (slice 1)](https://linear.app/spectranoir/issue/SPE-2641)                                      |
 | **Status**          | **Shipped** (PR #3192 @ `e697dcbb`)                                                                                                                           |
-| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; **Done** pending SPE-2642 owner acceptance    |
+| **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; umbrella Done via `planning/spe-956-parent-umbrella-acceptance-slice-1.md` |
 | **Branch**          | `spe-956-parent-ac-matrix-reconciliation-slice-1`                                                                                                             |
 | **Base `main` SHA** | `0b99f42f`                                                                                                                                                    |
 
@@ -81,7 +81,7 @@ Reconcile the SPE-956 parent Linear AC matrix against shipped five-lane incident
 
 Docs/hygiene only — no new domain tests.
 
-- `npm.cmd run verify:backlog-handoff`
+- `npm run verify:backlog-handoff`
 
 ## See also
 

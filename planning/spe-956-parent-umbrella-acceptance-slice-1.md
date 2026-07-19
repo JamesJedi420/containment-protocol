@@ -68,7 +68,7 @@ Record explicit owner acceptance that the SPE-2641 AC matrix (7/7 **Yes** at inc
 
 Docs/hygiene only — no new domain tests.
 
-- `npm.cmd run verify:backlog-handoff`
+- `npm run verify:backlog-handoff`
 
 ## See also
 

@@ -213,7 +213,7 @@ describe('spe956ParticipatoryChannelIncidentPath (SPE-2639 / SPE-2640 / SPE-956)
     expect(memoryBaseline).toEqual(snapshotMemory)
   })
 
-  it('skips lanes whose baseline incidentId mismatches the path incident', () => {
+  it('skips lanes whose incidentId binding mismatches the path incident', () => {
     const result = applySpe956ParticipatoryChannelsToIncident(EXAMPLE_GAME, {
       incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
       advisory: {

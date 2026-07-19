@@ -249,7 +249,11 @@ export function applySpe956ParticipatoryChannelsToIncident(
   }
 
   if (input.asyncDiscussion) {
-    if (input.asyncDiscussion.incidentId !== incidentId) {
+    const asyncIncidentId =
+      typeof input.asyncDiscussion.incidentId === 'string'
+        ? input.asyncDiscussion.incidentId.trim()
+        : ''
+    if (asyncIncidentId !== incidentId) {
       reasonCodes.push('async_discussion_incident_id_mismatch')
     } else {
       asyncDiscussion = evaluateAsyncDiscussionSessionFromGameState(
@@ -265,7 +269,11 @@ export function applySpe956ParticipatoryChannelsToIncident(
   }
 
   if (input.survivorRegistry) {
-    if (input.survivorRegistry.incidentId !== incidentId) {
+    const survivorIncidentId =
+      typeof input.survivorRegistry.incidentId === 'string'
+        ? input.survivorRegistry.incidentId.trim()
+        : ''
+    if (survivorIncidentId !== incidentId) {
       reasonCodes.push('survivor_registry_incident_id_mismatch')
     } else {
       survivorRegistry = evaluateSurvivorInformalRegistrySignalFromGameState(
@@ -281,7 +289,11 @@ export function applySpe956ParticipatoryChannelsToIncident(
   }
 
   if (input.collectiveMemory) {
-    if (input.collectiveMemory.incidentId !== incidentId) {
+    const memoryIncidentId =
+      typeof input.collectiveMemory.incidentId === 'string'
+        ? input.collectiveMemory.incidentId.trim()
+        : ''
+    if (memoryIncidentId !== incidentId) {
       reasonCodes.push('collective_memory_incident_id_mismatch')
     } else {
       collectiveMemory = evaluateCollectiveMemoryStabilizationFromGameState(

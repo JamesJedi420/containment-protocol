@@ -127,12 +127,16 @@ function isNonNegativeFinite(value: unknown): value is number {
 }
 
 function sanitizePositiveIntegerWeek(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < 1 ||
+    value !== Math.trunc(value)
+  ) {
     return undefined
   }
 
-  const week = Math.trunc(value)
-  return week >= 1 ? week : undefined
+  return value
 }
 
 /**

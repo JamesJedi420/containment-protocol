@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import { EXAMPLE_HOTLINE_CHANNEL } from '../domain/hotlineChannel'
+import { EXAMPLE_DISCUSSION_SURFACE } from '../domain/asyncDiscussionSurface'
+import { EXAMPLE_COMMUNITY_ADVISORY_BODY } from '../domain/communityAdvisoryDecisionInfluence'
+import { EXAMPLE_MEMORY_STABILIZATION_CHANNEL } from '../domain/collectiveMemoryStabilization'
 import { EXAMPLE_SURVIVOR_REGISTRY } from '../domain/survivorInformalRegistry'
 import type { Spe956PersistedHotlineChannel } from '../domain/spe956ParticipatoryChannelPersistence'
 import { sanitizeSpe956HotlineChannelRecords } from '../domain/spe956ParticipatoryChannelPersistence'
@@ -134,6 +137,7 @@ describe('spe956ParticipatoryChannelWeeklyOrchestration (SPE-2643)', () => {
       Number.MAX_VALUE
     )
     expect(loaded.spe956HotlineChannelRecords?.[channel.id]?.weeklyElapsedWeeksDelta).toBe(2)
+    expect(loaded.spe956HotlineChannelRecords?.[channel.id]?.lastWeeklyTickWeek).toBe(2)
   })
 
   it('drops entries with invalid weekly fields during sanitize', () => {
@@ -144,6 +148,14 @@ describe('spe956ParticipatoryChannelWeeklyOrchestration (SPE-2643)', () => {
       },
     })
     expect(Object.keys(dropped)).toEqual([])
+
+    const fractionalWeek = sanitizeSpe956HotlineChannelRecords({
+      bad: {
+        ...EXAMPLE_HOTLINE_CHANNEL,
+        lastWeeklyTickWeek: 4.9,
+      },
+    })
+    expect(Object.keys(fractionalWeek)).toEqual([])
   })
 
   it('ticks all five map kinds when deltas are authored', () => {
@@ -151,13 +163,25 @@ describe('spe956ParticipatoryChannelWeeklyOrchestration (SPE-2643)', () => {
       ...EXAMPLE_SURVIVOR_REGISTRY,
       weeklyElapsedWeeksDelta: 1,
     })
+    const memory = Object.freeze({
+      ...EXAMPLE_MEMORY_STABILIZATION_CHANNEL,
+      weeklyElapsedWeeksDelta: 1,
+    })
     const hotline = hotlineWithWeeklyDelta()
+    const asyncSurface = Object.freeze({
+      ...EXAMPLE_DISCUSSION_SURFACE,
+      weeklyElapsedWeeksDelta: 1,
+    })
+    const advisory = Object.freeze({
+      ...EXAMPLE_COMMUNITY_ADVISORY_BODY,
+      weeklyElapsedWeeksDelta: 1,
+    })
     const maps: Spe956ParticipatoryChannelPersistenceMaps = {
       spe956SurvivorInformalRegistryRecords: { [survivor.id]: survivor },
-      spe956CollectiveMemoryChannelRecords: {},
+      spe956CollectiveMemoryChannelRecords: { [memory.id]: memory },
       spe956HotlineChannelRecords: { [hotline.id]: hotline },
-      spe956AsyncDiscussionSurfaceRecords: {},
-      spe956CommunityAdvisoryBodyRecords: {},
+      spe956AsyncDiscussionSurfaceRecords: { [asyncSurface.id]: asyncSurface },
+      spe956CommunityAdvisoryBodyRecords: { [advisory.id]: advisory },
     }
 
     const next = applyWeeklySpe956ParticipatoryChannelTick(maps, 9)
@@ -165,11 +189,14 @@ describe('spe956ParticipatoryChannelWeeklyOrchestration (SPE-2643)', () => {
     expect(next).not.toBe(maps)
     expect(next.spe956SurvivorInformalRegistryRecords[survivor.id]?.elapsedChannelWeeks).toBe(1)
     expect(next.spe956SurvivorInformalRegistryRecords[survivor.id]?.lastWeeklyTickWeek).toBe(9)
+    expect(next.spe956CollectiveMemoryChannelRecords[memory.id]?.elapsedChannelWeeks).toBe(1)
+    expect(next.spe956CollectiveMemoryChannelRecords[memory.id]?.lastWeeklyTickWeek).toBe(9)
     expect(next.spe956HotlineChannelRecords[hotline.id]?.elapsedChannelWeeks).toBe(1)
     expect(next.spe956HotlineChannelRecords[hotline.id]?.lastWeeklyTickWeek).toBe(9)
-    expect(next.spe956CollectiveMemoryChannelRecords).toBe(
-      maps.spe956CollectiveMemoryChannelRecords
-    )
+    expect(next.spe956AsyncDiscussionSurfaceRecords[asyncSurface.id]?.elapsedChannelWeeks).toBe(1)
+    expect(next.spe956AsyncDiscussionSurfaceRecords[asyncSurface.id]?.lastWeeklyTickWeek).toBe(9)
+    expect(next.spe956CommunityAdvisoryBodyRecords[advisory.id]?.elapsedChannelWeeks).toBe(1)
+    expect(next.spe956CommunityAdvisoryBodyRecords[advisory.id]?.lastWeeklyTickWeek).toBe(9)
   })
 
   it('applies map tick in deterministic code-unit channel-id order', () => {

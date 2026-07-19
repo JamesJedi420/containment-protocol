@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2637](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2637 — Participatory channel planning mirror UI (slice 1)](https://linear.app/spectranoir/issue/SPE-2637)                       |
-| **Status**          | **In progress**                                                                                                                       |
+| **Status**          | **Shipped**                                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**    |
 | **Branch**          | `spe-956-participatory-channel-mirror-slice-1`                                                                                        |
 | **Base `main` SHA** | `2af0aeec`                                                                                                                            |
@@ -58,7 +58,7 @@ Ship a read-only planning mirror over the five persisted SPE-956 participatory c
 | Item                                              | Suggested owner | Why deferred            |
 | ------------------------------------------------- | --------------- | ----------------------- |
 | Week-close channel tick                           | SPE-956 sibling | Not required this slice |
-| Compose/evaluate-from-GameState helpers (broader) | SPE-956 sibling | Optional read helpers   |
+| Compose/evaluate-from-GameState helpers (broader) | [SPE-2638](https://linear.app/spectranoir/issue/SPE-2638) | Primary handoff after mirror |
 | SPE-956 parent AC (incident wire-up)              | SPE-956 siblings | Separate umbrella scope |
 
 ## Validation

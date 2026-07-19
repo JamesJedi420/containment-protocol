@@ -86,9 +86,12 @@ describe('spe956ParticipatoryChannelMirrorView (SPE-2637 slice 1)', () => {
 
     expect(view.hotlineChannels[0]?.id).toBe('hotline:riverside-direct')
     expect(view.hotlineChannels[0]?.scriptQualityLabel).toBe('0.85')
+    expect(view.hotlineChannels[0]?.staffingCapacityLabel).toBe('0.8')
     expect(view.hotlineChannels[0]?.languageSupportLabel).toBe('Yes')
+    expect(view.hotlineChannels[0]?.escalationRulesLabel).toContain('municipal liaison desk')
     expect(view.hotlineChannels[0]?.unansweredModeLabel).toBe('Queue Callback')
     expect(view.hotlineChannels[0]?.angerModeLabel).toBe('Anger Only')
+    expect(view.hotlineChannels[0]?.handleThresholdLabel).toBe('0.5')
 
     expect(view.asyncDiscussionSurfaces[0]?.id).toBe('discussion:riverside-async-board')
     expect(view.asyncDiscussionSurfaces[0]?.participationWindowLabel).toBe('W1–W12')
@@ -97,6 +100,8 @@ describe('spe956ParticipatoryChannelMirrorView (SPE-2637 slice 1)', () => {
     expect(view.asyncDiscussionSurfaces[0]?.memoryStabilizationLabel).toBe('No')
 
     expect(view.communityAdvisoryBodies[0]?.id).toBe('advisory-body:riverside-stakeholders')
+    expect(view.communityAdvisoryBodies[0]?.missionLabel).toContain('local residents and survivors')
+    expect(view.communityAdvisoryBodies[0]?.membershipRuleLabel).toContain('rotating chair')
     expect(view.communityAdvisoryBodies[0]?.representedStakeholderClassesLabel).toBe(
       'Local Residents, Survivors, Municipal Liaison'
     )
@@ -104,6 +109,11 @@ describe('spe956ParticipatoryChannelMirrorView (SPE-2637 slice 1)', () => {
       'Framing, Response Timing, Support Routing'
     )
     expect(view.communityAdvisoryBodies[0]?.influenceThresholdLabel).toBe('0.6')
+    expect(view.communityAdvisoryBodies[0]?.decisionCriteriaLabel).toContain(
+      'influence threshold'
+    )
+
+    expect(view.collectiveMemoryChannels[0]?.credibilityCeilingLabel).toBe('Community Weak')
   })
 
   it('survives hydrate round-trip through store transfer without losing channel records', () => {

@@ -1,10 +1,12 @@
 /**
- * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-2636 / SPE-956: GameState persistence for participatory channel envelopes.
+ * SPE-2632 / SPE-2633 / SPE-2634 / SPE-2635 / SPE-2636 / SPE-2638 / SPE-956:
+ * GameState persistence for participatory channel envelopes + evaluate-from-GameState helpers.
  * Slice 1 (SPE-2632): survivor informal registry (SPE-2630 evaluator).
  * Slice 2 (SPE-2633): collective memory channel (SPE-2631 evaluator).
  * Slice 3 (SPE-2634): hotline channel (SPE-2628 evaluator).
  * Slice 4 (SPE-2635): async discussion surface (SPE-2629 evaluator).
  * Slice 5 (SPE-2636): community advisory body (SPE-2620 evaluator).
+ * Compose helpers (SPE-2638): resolve hydrated maps and call SPE-2620–2631 evaluators.
  * Sanitize/hydrate follows SPE-2621 pattern. No evaluator contract changes.
  */
 
@@ -12,7 +14,10 @@ import {
   DISCUSSION_WIDENING_RULES,
   EXAMPLE_DISCUSSION_SURFACE,
   TRANSCRIPT_RETENTION_MODES,
+  evaluateAsyncDiscussionSession,
   type DiscussionParticipationWindow,
+  type DiscussionSessionEvaluationInput,
+  type DiscussionSessionEvaluationResult,
   type DiscussionSurface,
   type DiscussionWideningRule,
   type TranscriptRetentionMode,
@@ -23,7 +28,10 @@ import {
   NARRATIVE_STANCES,
   RECALL_WINDOWS,
   STABILIZATION_RULES,
+  evaluateCollectiveMemoryStabilization,
   type CollectiveMemoryChannel,
+  type CollectiveMemoryEvaluationInput,
+  type CollectiveMemoryEvaluationResult,
   type CredibilityCeiling as MemoryCredibilityCeiling,
   type NarrativeStance,
   type RecallWindow,
@@ -32,14 +40,20 @@ import {
 import {
   COMMUNITY_ADVISORY_DECISION_SCOPES,
   EXAMPLE_COMMUNITY_ADVISORY_BODY,
+  evaluateCommunityAdvisoryDecisionInfluence,
   type CommunityAdvisoryBody,
   type CommunityAdvisoryDecisionScope,
+  type CommunityAdvisoryInfluenceEvaluationInput,
+  type CommunityAdvisoryInfluenceResult,
 } from './communityAdvisoryDecisionInfluence'
 import {
   EXAMPLE_HOTLINE_CHANNEL,
   HOTLINE_ANGER_MODES,
   HOTLINE_UNANSWERED_MODES,
+  evaluateHotlineCall,
   type HotlineAngerMode,
+  type HotlineCallEvaluationInput,
+  type HotlineCallEvaluationResult,
   type HotlineChannel,
   type HotlineUnansweredMode,
 } from './hotlineChannel'
@@ -49,11 +63,14 @@ import {
   EXAMPLE_SURVIVOR_REGISTRY,
   RECOGNITION_STANCES,
   SUPPORT_KNOWLEDGE_BANDS,
+  evaluateSurvivorInformalRegistrySignal,
   type CatalogRule,
   type CredibilityCeiling,
   type RecognitionStance,
   type SupportKnowledgeBand,
   type SurvivorInformalRegistry,
+  type SurvivorRegistryEvaluationInput,
+  type SurvivorRegistryEvaluationResult,
 } from './survivorInformalRegistry'
 
 export const SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION =
@@ -728,3 +745,87 @@ export const SPE_956_EXAMPLE_COMMUNITY_ADVISORY_BODY_RECORDS: Spe956CommunityAdv
   Object.freeze({
     [EXAMPLE_COMMUNITY_ADVISORY_BODY.id]: EXAMPLE_COMMUNITY_ADVISORY_BODY,
   })
+
+/** GameState shape used by SPE-2638 evaluate-from-GameState helpers. */
+export interface Spe956ParticipatoryChannelGameStateLike {
+  readonly spe956SurvivorInformalRegistryRecords?: Spe956SurvivorInformalRegistryRecordsMap
+  readonly spe956CollectiveMemoryChannelRecords?: Spe956CollectiveMemoryChannelRecordsMap
+  readonly spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+  readonly spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+  readonly spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+}
+
+/**
+ * Read helper: resolve hydrated advisory body from GameState and evaluate influence
+ * (SPE-2620). Missing/unsafe ids pass null body into the existing evaluator no-op path.
+ */
+export function evaluateCommunityAdvisoryDecisionInfluenceFromGameState(
+  game: Partial<Spe956ParticipatoryChannelGameStateLike>,
+  bodyId: string,
+  input: Omit<CommunityAdvisoryInfluenceEvaluationInput, 'body'>
+): CommunityAdvisoryInfluenceResult {
+  return evaluateCommunityAdvisoryDecisionInfluence({
+    ...input,
+    body: resolvePersistedCommunityAdvisoryBody(game, bodyId),
+  })
+}
+
+/**
+ * Read helper: resolve hydrated hotline channel from GameState and evaluate a call
+ * (SPE-2628). Missing/unsafe ids pass null channel into the existing evaluator no-op path.
+ */
+export function evaluateHotlineCallFromGameState(
+  game: Partial<Spe956ParticipatoryChannelGameStateLike>,
+  channelId: string,
+  input: Omit<HotlineCallEvaluationInput, 'channel'>
+): HotlineCallEvaluationResult {
+  return evaluateHotlineCall({
+    ...input,
+    channel: resolvePersistedHotlineChannel(game, channelId),
+  })
+}
+
+/**
+ * Read helper: resolve hydrated async discussion surface from GameState and evaluate
+ * a session (SPE-2629). Missing/unsafe ids pass null surface into the existing no-op path.
+ */
+export function evaluateAsyncDiscussionSessionFromGameState(
+  game: Partial<Spe956ParticipatoryChannelGameStateLike>,
+  surfaceId: string,
+  input: Omit<DiscussionSessionEvaluationInput, 'surface'>
+): DiscussionSessionEvaluationResult {
+  return evaluateAsyncDiscussionSession({
+    ...input,
+    surface: resolvePersistedAsyncDiscussionSurface(game, surfaceId),
+  })
+}
+
+/**
+ * Read helper: resolve hydrated survivor registry from GameState and evaluate a signal
+ * (SPE-2630). Missing/unsafe ids pass null registry into the existing evaluator no-op path.
+ */
+export function evaluateSurvivorInformalRegistrySignalFromGameState(
+  game: Partial<Spe956ParticipatoryChannelGameStateLike>,
+  registryId: string,
+  input: Omit<SurvivorRegistryEvaluationInput, 'registry'>
+): SurvivorRegistryEvaluationResult {
+  return evaluateSurvivorInformalRegistrySignal({
+    ...input,
+    registry: resolvePersistedSurvivorInformalRegistry(game, registryId),
+  })
+}
+
+/**
+ * Read helper: resolve hydrated collective memory channel from GameState and evaluate
+ * a signal (SPE-2631). Missing/unsafe ids pass null channel into the existing no-op path.
+ */
+export function evaluateCollectiveMemoryStabilizationFromGameState(
+  game: Partial<Spe956ParticipatoryChannelGameStateLike>,
+  channelId: string,
+  input: Omit<CollectiveMemoryEvaluationInput, 'channel'>
+): CollectiveMemoryEvaluationResult {
+  return evaluateCollectiveMemoryStabilization({
+    ...input,
+    channel: resolvePersistedCollectiveMemoryChannel(game, channelId),
+  })
+}

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2639](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2639 — Parent AC incident wire-up — advisory + hotline path (slice 1)](https://linear.app/spectranoir/issue/SPE-2639)       |
-| **Status**          | **In progress**                                                                                                                  |
+| **Status**          | **Shipped** (PR #3188)                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog** |
 | **Branch**          | `spe-956-parent-ac-incident-wire-up-slice-1`                                                                                     |
 | **Base `main` SHA** | `6072a008`                                                                                                                       |
@@ -56,7 +56,7 @@ Ship a pure domain incident-path composer that materially applies advisory + hot
 | Item                                       | Suggested owner  | Why deferred                               |
 | ------------------------------------------ | ---------------- | ------------------------------------------ |
 | Week-close channel tick                    | SPE-956 sibling  | Alternative orchestration sibling          |
-| Async / survivor / memory incident lanes   | SPE-956 siblings | Remaining parent AC channel bullets        |
+| Async / survivor / memory incident lanes   | [SPE-2640](https://linear.app/spectranoir/issue/SPE-2640) | Remaining parent AC channel bullets (slice 2) |
 | GameState incident baseline persistence    | SPE-956 sibling  | Baselines still authored inputs this slice |
 | Parent reconciliation / full umbrella Done | SPE-956 child    | Only after all parent AC bullets met       |
 

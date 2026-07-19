@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2639",
-  "inProgress": ["SPE-2639"],
+  "primary": "SPE-2640",
+  "inProgress": ["SPE-2640"],
   "recentlyShipped": [
+    "SPE-2639",
     "SPE-2638",
     "SPE-2637",
     "SPE-2636",
@@ -11,7 +12,8 @@
     "SPE-2632"
   ],
   "sliceDocStatus": {
-    "planning/spe-956-parent-ac-incident-wire-up-slice-1.md": "In progress",
+    "planning/spe-956-parent-ac-incident-wire-up-slice-2.md": "In progress",
+    "planning/spe-956-parent-ac-incident-wire-up-slice-1.md": "Shipped",
     "planning/spe-956-participatory-channel-compose-slice-1.md": "Shipped",
     "planning/spe-956-participatory-channel-mirror-slice-1.md": "Shipped",
     "planning/spe-956-participatory-channel-persistence-slice-5.md": "Shipped",

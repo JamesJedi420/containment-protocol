@@ -52,7 +52,7 @@ Record explicit owner acceptance that the SPE-2641 AC matrix (7/7 **Yes** at inc
 - [x] Owner acceptance recorded: 7/7 SPE-2641 matrix Yes closes SPE-956 umbrella
 - [ ] SPE-956 Linear status **Done** on merge; deferred table marks umbrella Done accepted
 - [x] Slice doc + backlog handoff present; SPE-2641 → recently shipped
-- [ ] `npm run verify:backlog-handoff` green; no `src/` domain/runtime changes
+- [x] `npm run verify:backlog-handoff` green; no `src/` domain/runtime changes
 - [ ] Child Done only after merge
 
 ## Deferred

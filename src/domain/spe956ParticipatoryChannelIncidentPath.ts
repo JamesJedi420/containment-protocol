@@ -1,11 +1,32 @@
 /**
- * SPE-2639 / SPE-956: Parent AC incident wire-up (slice 1).
+ * SPE-2639 / SPE-2640 / SPE-956: Parent AC incident wire-up (slices 1–2).
  *
- * Pure deterministic incident path that applies advisory + hotline channels via
- * SPE-2638 evaluate*FromGameState helpers. Lanes stay parallel (no unified baseline
- * merge). Does not mutate GameState, week-close, UI, or evaluator contracts.
+ * Pure deterministic incident path that applies advisory, hotline, async discussion,
+ * survivor registry, and collective memory channels via SPE-2638 evaluate*FromGameState
+ * helpers. Lanes stay parallel (no unified baseline merge). Does not mutate GameState,
+ * week-close, UI, or evaluator contracts.
  */
 
+import type {
+  DiscussionMemoryBaseline,
+  DiscussionSession,
+  DiscussionSessionEvaluationResult,
+} from './asyncDiscussionSurface'
+import {
+  EXAMPLE_DISCUSSION_BASELINE,
+  EXAMPLE_DISCUSSION_SESSION,
+  EXAMPLE_DISCUSSION_SURFACE,
+} from './asyncDiscussionSurface'
+import type {
+  CollectiveMemoryBaseline,
+  CollectiveMemoryEvaluationResult,
+  CollectiveMemorySignal,
+} from './collectiveMemoryStabilization'
+import {
+  EXAMPLE_MEMORY_STABILIZATION_BASELINE,
+  EXAMPLE_MEMORY_STABILIZATION_CHANNEL,
+  EXAMPLE_MEMORY_STABILIZATION_SIGNAL,
+} from './collectiveMemoryStabilization'
 import type {
   CommunityAdvisoryInfluenceResult,
   CommunityAdvisorySignal,
@@ -28,9 +49,22 @@ import {
 } from './hotlineChannel'
 import type { Spe956ParticipatoryChannelGameStateLike } from './spe956ParticipatoryChannelPersistence'
 import {
+  evaluateAsyncDiscussionSessionFromGameState,
+  evaluateCollectiveMemoryStabilizationFromGameState,
   evaluateCommunityAdvisoryDecisionInfluenceFromGameState,
   evaluateHotlineCallFromGameState,
+  evaluateSurvivorInformalRegistrySignalFromGameState,
 } from './spe956ParticipatoryChannelPersistence'
+import type {
+  SurvivorRegistryEvaluationResult,
+  SurvivorRegistrySignal,
+  SurvivorSupportBaseline,
+} from './survivorInformalRegistry'
+import {
+  EXAMPLE_SURVIVOR_REGISTRY,
+  EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
+  EXAMPLE_SURVIVOR_REGISTRY_SIGNAL,
+} from './survivorInformalRegistry'
 
 /** Shared riverside incident id for the authored SPE-956 EXAMPLE path. */
 export const SPE_956_EXAMPLE_INCIDENT_ID = 'incident:riverside-site-breach' as const
@@ -47,18 +81,48 @@ export interface Spe956HotlineIncidentLaneInput {
   readonly baseline: HotlineGuidanceBaseline
 }
 
+export interface Spe956AsyncDiscussionIncidentLaneInput {
+  readonly incidentId: string
+  readonly surfaceId: string
+  readonly session: DiscussionSession
+  readonly baseline: DiscussionMemoryBaseline
+}
+
+export interface Spe956SurvivorRegistryIncidentLaneInput {
+  readonly incidentId: string
+  readonly registryId: string
+  readonly signal: SurvivorRegistrySignal
+  readonly baseline: SurvivorSupportBaseline
+}
+
+export interface Spe956CollectiveMemoryIncidentLaneInput {
+  readonly incidentId: string
+  readonly channelId: string
+  readonly signal: CollectiveMemorySignal
+  readonly baseline: CollectiveMemoryBaseline
+}
+
 export interface Spe956ParticipatoryChannelIncidentPathInput {
   readonly incidentId: string
   readonly advisory?: Spe956AdvisoryIncidentLaneInput | null
   readonly hotline?: Spe956HotlineIncidentLaneInput | null
+  readonly asyncDiscussion?: Spe956AsyncDiscussionIncidentLaneInput | null
+  readonly survivorRegistry?: Spe956SurvivorRegistryIncidentLaneInput | null
+  readonly collectiveMemory?: Spe956CollectiveMemoryIncidentLaneInput | null
 }
 
 export interface Spe956ParticipatoryChannelIncidentPathResult {
   readonly incidentId: string
   readonly advisory: CommunityAdvisoryInfluenceResult | null
   readonly hotline: HotlineCallEvaluationResult | null
+  readonly asyncDiscussion: DiscussionSessionEvaluationResult | null
+  readonly survivorRegistry: SurvivorRegistryEvaluationResult | null
+  readonly collectiveMemory: CollectiveMemoryEvaluationResult | null
   readonly advisoryMaterialInfluence: boolean
   readonly hotlineMaterialInfluence: boolean
+  readonly asyncDiscussionMaterialInfluence: boolean
+  readonly survivorRegistryMaterialInfluence: boolean
+  readonly collectiveMemoryMaterialInfluence: boolean
   readonly materialInfluence: boolean
   readonly reasonCodes: readonly string[]
 }
@@ -88,21 +152,52 @@ function isHotlineMaterial(result: HotlineCallEvaluationResult): boolean {
   return result.outcome === 'handled' && result.proposedAdjustment !== null
 }
 
+function isAsyncDiscussionMaterial(result: DiscussionSessionEvaluationResult): boolean {
+  return (
+    (result.outcome === 'widened' || result.outcome === 'recorded') &&
+    result.proposedAdjustment !== null
+  )
+}
+
+function isSurvivorRegistryMaterial(result: SurvivorRegistryEvaluationResult): boolean {
+  return result.outcome === 'recorded' && result.proposedAdjustment !== null
+}
+
+function isCollectiveMemoryMaterial(result: CollectiveMemoryEvaluationResult): boolean {
+  return result.outcome === 'stabilized' && result.proposedAdjustment !== null
+}
+
 function emptyNoLaneResult(incidentId: string): Spe956ParticipatoryChannelIncidentPathResult {
   return freezeResult({
     incidentId,
     advisory: null,
     hotline: null,
+    asyncDiscussion: null,
+    survivorRegistry: null,
+    collectiveMemory: null,
     advisoryMaterialInfluence: false,
     hotlineMaterialInfluence: false,
+    asyncDiscussionMaterialInfluence: false,
+    survivorRegistryMaterialInfluence: false,
+    collectiveMemoryMaterialInfluence: false,
     materialInfluence: false,
     reasonCodes: ['no_material_influence', 'no_participatory_lanes'],
   })
 }
 
+function hasAnyLane(input: Spe956ParticipatoryChannelIncidentPathInput): boolean {
+  return Boolean(
+    input.advisory ||
+      input.hotline ||
+      input.asyncDiscussion ||
+      input.survivorRegistry ||
+      input.collectiveMemory
+  )
+}
+
 /**
- * Apply authored advisory + hotline lanes for one incident via FromGameState helpers.
- * Skips a lane when its baseline incidentId does not match the path incidentId.
+ * Apply authored participatory-channel lanes for one incident via FromGameState helpers.
+ * Skips a lane when its incidentId binding does not match the path incidentId.
  * Empty / missing channel maps yield evaluator no-ops (no material influence).
  */
 export function applySpe956ParticipatoryChannelsToIncident(
@@ -121,6 +216,9 @@ export function applySpe956ParticipatoryChannelsToIncident(
   const reasonCodes: string[] = []
   let advisory: CommunityAdvisoryInfluenceResult | null = null
   let hotline: HotlineCallEvaluationResult | null = null
+  let asyncDiscussion: DiscussionSessionEvaluationResult | null = null
+  let survivorRegistry: SurvivorRegistryEvaluationResult | null = null
+  let collectiveMemory: CollectiveMemoryEvaluationResult | null = null
 
   if (input.advisory) {
     if (!input.advisory.baseline || input.advisory.baseline.incidentId !== incidentId) {
@@ -150,12 +248,66 @@ export function applySpe956ParticipatoryChannelsToIncident(
     }
   }
 
-  if (!input.advisory && !input.hotline) {
+  if (input.asyncDiscussion) {
+    if (input.asyncDiscussion.incidentId !== incidentId) {
+      reasonCodes.push('async_discussion_incident_id_mismatch')
+    } else {
+      asyncDiscussion = evaluateAsyncDiscussionSessionFromGameState(
+        game,
+        input.asyncDiscussion.surfaceId,
+        {
+          session: input.asyncDiscussion.session,
+          baseline: input.asyncDiscussion.baseline,
+        }
+      )
+      reasonCodes.push(...asyncDiscussion.reasonCodes)
+    }
+  }
+
+  if (input.survivorRegistry) {
+    if (input.survivorRegistry.incidentId !== incidentId) {
+      reasonCodes.push('survivor_registry_incident_id_mismatch')
+    } else {
+      survivorRegistry = evaluateSurvivorInformalRegistrySignalFromGameState(
+        game,
+        input.survivorRegistry.registryId,
+        {
+          signal: input.survivorRegistry.signal,
+          baseline: input.survivorRegistry.baseline,
+        }
+      )
+      reasonCodes.push(...survivorRegistry.reasonCodes)
+    }
+  }
+
+  if (input.collectiveMemory) {
+    if (input.collectiveMemory.incidentId !== incidentId) {
+      reasonCodes.push('collective_memory_incident_id_mismatch')
+    } else {
+      collectiveMemory = evaluateCollectiveMemoryStabilizationFromGameState(
+        game,
+        input.collectiveMemory.channelId,
+        {
+          signal: input.collectiveMemory.signal,
+          baseline: input.collectiveMemory.baseline,
+        }
+      )
+      reasonCodes.push(...collectiveMemory.reasonCodes)
+    }
+  }
+
+  if (!hasAnyLane(input)) {
     reasonCodes.push('no_participatory_lanes')
   }
 
   const advisoryMaterialInfluence = advisory !== null && isAdvisoryMaterial(advisory)
   const hotlineMaterialInfluence = hotline !== null && isHotlineMaterial(hotline)
+  const asyncDiscussionMaterialInfluence =
+    asyncDiscussion !== null && isAsyncDiscussionMaterial(asyncDiscussion)
+  const survivorRegistryMaterialInfluence =
+    survivorRegistry !== null && isSurvivorRegistryMaterial(survivorRegistry)
+  const collectiveMemoryMaterialInfluence =
+    collectiveMemory !== null && isCollectiveMemoryMaterial(collectiveMemory)
 
   if (advisoryMaterialInfluence) {
     reasonCodes.push('advisory_material_influence')
@@ -163,7 +315,24 @@ export function applySpe956ParticipatoryChannelsToIncident(
   if (hotlineMaterialInfluence) {
     reasonCodes.push('hotline_material_influence')
   }
-  if (!advisoryMaterialInfluence && !hotlineMaterialInfluence) {
+  if (asyncDiscussionMaterialInfluence) {
+    reasonCodes.push('async_discussion_material_influence')
+  }
+  if (survivorRegistryMaterialInfluence) {
+    reasonCodes.push('survivor_registry_material_influence')
+  }
+  if (collectiveMemoryMaterialInfluence) {
+    reasonCodes.push('collective_memory_material_influence')
+  }
+
+  const materialInfluence =
+    advisoryMaterialInfluence ||
+    hotlineMaterialInfluence ||
+    asyncDiscussionMaterialInfluence ||
+    survivorRegistryMaterialInfluence ||
+    collectiveMemoryMaterialInfluence
+
+  if (!materialInfluence) {
     reasonCodes.push('no_material_influence')
   }
 
@@ -171,14 +340,20 @@ export function applySpe956ParticipatoryChannelsToIncident(
     incidentId,
     advisory,
     hotline,
+    asyncDiscussion,
+    survivorRegistry,
+    collectiveMemory,
     advisoryMaterialInfluence,
     hotlineMaterialInfluence,
-    materialInfluence: advisoryMaterialInfluence || hotlineMaterialInfluence,
+    asyncDiscussionMaterialInfluence,
+    survivorRegistryMaterialInfluence,
+    collectiveMemoryMaterialInfluence,
+    materialInfluence,
     reasonCodes,
   })
 }
 
-/** Authored riverside advisory + hotline path input (SPE-2620 + SPE-2628 EXAMPLE fixtures). */
+/** Authored riverside five-lane path input (SPE-2620 / 2628 / 2629 / 2630 / 2631 EXAMPLE fixtures). */
 export const EXAMPLE_SPE_956_INCIDENT_PATH_INPUT: Spe956ParticipatoryChannelIncidentPathInput =
   Object.freeze({
     incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
@@ -191,5 +366,23 @@ export const EXAMPLE_SPE_956_INCIDENT_PATH_INPUT: Spe956ParticipatoryChannelInci
       channelId: EXAMPLE_HOTLINE_CHANNEL.id,
       call: EXAMPLE_HOTLINE_CALL,
       baseline: EXAMPLE_HOTLINE_GUIDANCE_BASELINE,
+    }),
+    asyncDiscussion: Object.freeze({
+      incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
+      surfaceId: EXAMPLE_DISCUSSION_SURFACE.id,
+      session: EXAMPLE_DISCUSSION_SESSION,
+      baseline: EXAMPLE_DISCUSSION_BASELINE,
+    }),
+    survivorRegistry: Object.freeze({
+      incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
+      registryId: EXAMPLE_SURVIVOR_REGISTRY.id,
+      signal: EXAMPLE_SURVIVOR_REGISTRY_SIGNAL,
+      baseline: EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
+    }),
+    collectiveMemory: Object.freeze({
+      incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
+      channelId: EXAMPLE_MEMORY_STABILIZATION_CHANNEL.id,
+      signal: EXAMPLE_MEMORY_STABILIZATION_SIGNAL,
+      baseline: EXAMPLE_MEMORY_STABILIZATION_BASELINE,
     }),
   })

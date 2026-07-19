@@ -267,6 +267,7 @@ import {
   sanitizeSpe956HotlineChannelRecords,
   sanitizeSpe956SurvivorInformalRegistryRecords,
 } from '../../domain/spe956ParticipatoryChannelPersistence'
+import { sanitizeSpe956IncidentBaselineRecords } from '../../domain/spe956IncidentBaselinePersistence'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -9115,6 +9116,10 @@ export function hydrateGame(
     game.spe956CommunityAdvisoryBodyRecords,
     fallback.spe956CommunityAdvisoryBodyRecords ?? {}
   )
+  const spe956IncidentBaselineRecords = sanitizeSpe956IncidentBaselineRecords(
+    game.spe956IncidentBaselineRecords,
+    fallback.spe956IncidentBaselineRecords ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9386,6 +9391,7 @@ export function hydrateGame(
     spe956HotlineChannelRecords,
     spe956AsyncDiscussionSurfaceRecords,
     spe956CommunityAdvisoryBodyRecords,
+    spe956IncidentBaselineRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,
@@ -9578,8 +9584,8 @@ export function hydrateGame(
     }
   }
 
-  // Reapply SPE-956 participatory channel maps after stripUndefinedFields / spreads so
-  // per-entry Object.freeze (and nested windows/arrays) from sanitize survive hydrateGame.
+  // Reapply SPE-956 participatory channel + incident baseline maps after stripUndefinedFields /
+  // spreads so per-entry Object.freeze from sanitize survive hydrateGame.
   hydrated = {
     ...hydrated,
     spe956SurvivorInformalRegistryRecords,
@@ -9587,6 +9593,7 @@ export function hydrateGame(
     spe956HotlineChannelRecords,
     spe956AsyncDiscussionSurfaceRecords,
     spe956CommunityAdvisoryBodyRecords,
+    spe956IncidentBaselineRecords,
   }
 
   return hydrated

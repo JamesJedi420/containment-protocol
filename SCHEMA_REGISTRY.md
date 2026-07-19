@@ -263,12 +263,12 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graph
 Documents compact GameState maps for authored SPE-956 participatory channel envelopes
 (SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel;
 SPE-2634 slice 3 hotline channel; SPE-2635 slice 4 async discussion surface;
-SPE-2636 slice 5 community advisory body).
+SPE-2636 slice 5 community advisory body) plus SPE-2644 incident-lane baseline map.
 No evaluator contract changes.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`; SPE-2638 `evaluate*FromGameState` helpers; SPE-2639 incident path: `spe956ParticipatoryChannelIncidentPath.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`; SPE-2638 `evaluate*FromGameState` helpers; SPE-2639 incident path: `spe956ParticipatoryChannelIncidentPath.ts`; SPE-2644 baselines: `spe956IncidentBaselinePersistence.ts`)
 
 ### GameState fields
 
@@ -279,17 +279,19 @@ No evaluator contract changes.
 | `spe956HotlineChannelRecords`           | Authored channel id + unit intervals + boolean + unanswered/anger enums + escalation rules string |
 | `spe956AsyncDiscussionSurfaceRecords`   | Authored surface id + nested participation window + retention/widening enums + memoryStabilization |
 | `spe956CommunityAdvisoryBodyRecords`    | Authored body id + mission/membership/criteria strings + stakeholder string array + scope enums + positive unit-interval influenceThreshold |
+| `spe956IncidentBaselineRecords`         | SPE-2644: authored incident-lane baselines keyed by incident id; optional advisory / hotline / asyncDiscussion / survivorSupport / collectiveMemory |
 
 ### Hydration
 
-- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords`, `sanitizeSpe956CollectiveMemoryChannelRecords`, `sanitizeSpe956HotlineChannelRecords`, `sanitizeSpe956AsyncDiscussionSurfaceRecords`, and `sanitizeSpe956CommunityAdvisoryBodyRecords` in `spe956ParticipatoryChannelPersistence.ts`
+- Sanitize via `sanitizeSpe956SurvivorInformalRegistryRecords`, `sanitizeSpe956CollectiveMemoryChannelRecords`, `sanitizeSpe956HotlineChannelRecords`, `sanitizeSpe956AsyncDiscussionSurfaceRecords`, `sanitizeSpe956CommunityAdvisoryBodyRecords`, and `sanitizeSpe956IncidentBaselineRecords`
 - Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
 - Invalid entries, duplicate ids, and incomplete enum/field sets are dropped without throw
 - Nested `participationWindow` requires non-negative integer `startWeek`/`endWeek` with `startWeek <= endWeek`
 - Community advisory bodies require non-empty mission/membership/criteria strings; non-empty trimmed `representedStakeholderClasses` string array; non-empty `authorizedDecisionScopes` enum array (any invalid enum drops the entry); positive unit-interval `influenceThreshold` (`> 0` and `<= 1`)
+- Incident baselines (SPE-2644): map key must equal `incidentId`; advisory/hotline lanes require `baseline.incidentId === entry.incidentId`; invalid lanes dropped; entries with zero surviving lanes dropped; uses exported `tryNormalize*Baseline` helpers from evaluator modules
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
 - Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; maps built from plain-record input use null prototype (non-record input returns the caller `fallback` unchanged)
-- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` / `resolvePersistedCommunityAdvisoryBody` resolve own properties only and reject unsafe ids
+- `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` / `resolvePersistedCommunityAdvisoryBody` / `resolveSpe956IncidentBaselines` resolve own properties only and reject unsafe ids
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Optional weekly orchestration fields (SPE-2643)
@@ -304,8 +306,9 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956ParticipatoryChannelTick` ov
 
 ### Deferred (optional post-Done siblings)
 
-- GameState incident baseline persistence; weekly report-note surfacing; SPE-1046 file-content release delivery slice 2 (separate successor)
-- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); incident path shipped (SPE-2639/2640); umbrella Done (SPE-2642)
+- Weekly report-note surfacing (optional sibling)
+- Backend file-byte transport remains out of SPE-2542 ledger boundary (slice 2 already shipped)
+- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); incident path shipped (SPE-2639/2640); week-close tick shipped (SPE-2643); incident baselines shipped (SPE-2644); umbrella Done (SPE-2642)
 
 ### Versioning
 

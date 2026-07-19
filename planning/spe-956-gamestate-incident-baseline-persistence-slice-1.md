@@ -8,7 +8,7 @@ One-page implementation plan. Linear: [SPE-2644](https://linear.app/spectranoir/
 | **Status**           | **In progress**                                                                                                                         |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-956-gamestate-incident-baseline-persistence-slice-1`                                                                               |
-| **Base `main` SHA**  | `fd0aed55` (update after SPE-2645 merges if needed)                                                                                     |
+| **Base `main` SHA**  | `6ac79281`                                                                                                                              |
 
 ## Goal
 
@@ -35,11 +35,11 @@ Persist authored SPE-956 incident-lane baselines on GameState (sanitize/hydrate)
 
 ## Acceptance
 
-- [ ] Empty/missing baseline persistence is a no-op without throw
-- [ ] Authored baselines sanitize/hydrate for all five lane kinds
-- [ ] Invalid / mismatched baselines are dropped
-- [ ] Incident path / evaluators / mirror / week-close unchanged unless a thin read helper is required
-- [ ] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
+- [x] Empty/missing baseline persistence is a no-op without throw
+- [x] Authored baselines sanitize/hydrate for all five lane kinds
+- [x] Invalid / mismatched baselines are dropped
+- [x] Incident path / evaluators / mirror / week-close unchanged unless a thin read helper is required
+- [x] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
 - [ ] Child Done only after merge
 
 ## Deferred

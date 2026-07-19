@@ -221,7 +221,9 @@ function isAngerMode(value: unknown): value is HotlineAngerMode {
   return typeof value === 'string' && ANGER_MODE_SET.has(value)
 }
 
-function tryNormalizeBaseline(value: unknown): HotlineGuidanceBaseline | null {
+export function tryNormalizeHotlineGuidanceBaseline(
+  value: unknown
+): HotlineGuidanceBaseline | null {
   if (!isRecord(value)) {
     return null
   }
@@ -266,7 +268,7 @@ export function evaluateHotlineCall(
     return unansweredResult(['invalid_guidance_baseline'])
   }
 
-  const baseline = tryNormalizeBaseline(rawBaseline)
+  const baseline = tryNormalizeHotlineGuidanceBaseline(rawBaseline)
   if (!baseline) {
     return unansweredResult(['invalid_guidance_baseline'])
   }

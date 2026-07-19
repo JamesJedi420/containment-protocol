@@ -328,6 +328,7 @@ import type {
   Spe956HotlineChannelRecordsMap,
   Spe956SurvivorInformalRegistryRecordsMap,
 } from './spe956ParticipatoryChannelPersistence'
+import type { Spe956IncidentBaselineRecordsMap } from './spe956IncidentBaselinePersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2904,6 +2905,13 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
    */
   spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+
+  /**
+   * SPE-2644: authored SPE-956 incident-lane baselines (keyed by incident id).
+   * Optional advisory/hotline/async/survivor/memory lanes per incident.
+   * Hydration drops invalid, mismatched-key, and empty-lane entries without throwing.
+   */
+  spe956IncidentBaselineRecords?: Spe956IncidentBaselineRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

@@ -114,6 +114,9 @@ const Spe947EvaluatorMirrorRoute = createRouteComponent(
 const Spe956PropagationGraphMirrorRoute = createRouteComponent(
   () => import('../features/operations/Spe956PropagationGraphMirrorPage')
 )
+const Spe956ParticipatoryChannelMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe956ParticipatoryChannelMirrorPage')
+)
 const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
   () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
 )
@@ -244,6 +247,10 @@ export default function App() {
         <Route
           path="propagation-graph"
           element={renderLazyRoute(Spe956PropagationGraphMirrorRoute)}
+        />
+        <Route
+          path="participatory-channels"
+          element={renderLazyRoute(Spe956ParticipatoryChannelMirrorRoute)}
         />
         <Route
           path="entity-welfare-reclassification"

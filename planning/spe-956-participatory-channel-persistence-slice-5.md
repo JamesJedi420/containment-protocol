@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2636](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                 |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2636 — Participatory channel persistence — community advisory body map (slice 5)](https://linear.app/spectranoir/issue/SPE-2636)                 |
-| **Status**          | **In progress**                                                                                                                                       |
+| **Status**          | **Shipped**                                                                                                                                           |
 | **Parent**          | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — advisory groups / hotlines / participatory channels; stays **Backlog**                      |
 | **Branch**          | `spe-956-participatory-channel-persistence-slice-5`                                                                                                   |
 | **Base `main` SHA** | `bf4dccbe`                                                                                                                                            |
@@ -56,7 +56,7 @@ Persist the already-shipped SPE-956 community advisory body envelope (`Community
 
 | Item                                              | Suggested owner | Why deferred            |
 | ------------------------------------------------- | --------------- | ----------------------- |
-| UI / planning mirror                              | SPE-956 sibling | After persistence       |
+| UI / planning mirror                              | [SPE-2637](https://linear.app/spectranoir/issue/SPE-2637) | After persistence — primary handoff |
 | Week-close channel tick                           | SPE-956 sibling | Not required this slice |
 | Compose/evaluate-from-GameState helpers (broader) | SPE-956 sibling | Optional read helpers   |
 

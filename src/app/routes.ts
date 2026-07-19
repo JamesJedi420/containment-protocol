@@ -37,6 +37,7 @@ export const APP_ROUTES = {
   visualTriggerHazard: '/visual-trigger-hazard',
   hazardousContentPropagation: '/hazardous-content-propagation',
   propagationGraph: '/propagation-graph',
+  participatoryChannels: '/participatory-channels',
   entityWelfareReclassification: '/entity-welfare-reclassification',
   affiliationPersonStatus: '/affiliation-person-status',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',

@@ -5,7 +5,7 @@ One-page hygiene plan. Linear: [SPE-2649](https://linear.app/spectranoir/issue/S
 | Field                | Value                                                                                          |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
 | **Linear**           | [SPE-2649 — Post-SPE-2646 handoff reconciliation (docs)](https://linear.app/spectranoir/issue/SPE-2649) |
-| **Status**           | **In progress**                                                                                |
+| **Status**           | **Shipped**                                                                                    |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) remains **Done**; [SPE-2647](https://linear.app/spectranoir/issue/SPE-2647) is next primary |
 | **Branch**           | `spe-2649-post-spe-2646-handoff-reconciliation`                                                 |
 | **Base `main` SHA**  | `af276547`                                                                                     |

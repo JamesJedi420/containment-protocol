@@ -343,18 +343,43 @@ const agentResignedSchema = z
   })
   .strict()
 
+const finitePositiveIntSchema = z.number().finite().int().min(1)
+
 const agentPromotedSchema = z
   .object({
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    newRole: z.string(),
-    previousLevel: z.number(),
-    newLevel: z.number(),
-    levelsGained: z.number(),
-    skillPointsGranted: z.number(),
+    newRole: z
+      .string()
+      .refine((value) => value.length > 0 && value === value.trim(), {
+        message: 'newRole must be a trimmed nonblank string',
+      }),
+    previousLevel: finitePositiveIntSchema,
+    newLevel: finitePositiveIntSchema,
+    levelsGained: finiteNonNegativeIntSchema,
+    skillPointsGranted: finiteNonNegativeIntSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.newLevel < payload.previousLevel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'newLevel must be greater than or equal to previousLevel',
+        path: ['newLevel'],
+      })
+      return
+    }
+
+    const expectedLevelsGained = payload.newLevel - payload.previousLevel
+    if (payload.levelsGained !== expectedLevelsGained) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `levelsGained must equal newLevel - previousLevel (${expectedLevelsGained})`,
+        path: ['levelsGained'],
+      })
+    }
+  })
 
 const agentHiredSchema = z
   .object({

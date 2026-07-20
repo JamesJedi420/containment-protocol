@@ -181,7 +181,10 @@ import {
   sanitizeFeaturedRecipeId,
   sanitizePersistedMarketState,
 } from '../../domain/market'
-import { reconcileProgressionXpGainedFields } from '../../domain/progression'
+import {
+  reconcileAgentPromotedFields,
+  reconcileProgressionXpGainedFields,
+} from '../../domain/progression'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
 import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
@@ -1352,23 +1355,6 @@ function reconcileContactRelationshipFields(
     contactRelationshipBefore: before,
     contactRelationshipAfter: reconciledAfter,
     contactDelta: reconciledDelta,
-  }
-}
-
-function reconcilePromotionLevels(
-  previousLevel: unknown,
-  newLevel: unknown,
-  levelsGained: unknown
-) {
-  const previous = sanitizeInteger(previousLevel as number | undefined, 1, 1)
-  const next = Math.max(previous, sanitizeInteger(newLevel as number | undefined, previous, 1))
-  const expectedGained = next - previous
-  const gained = sanitizeInteger(levelsGained as number | undefined, expectedGained, 0)
-
-  return {
-    previousLevel: previous,
-    newLevel: next,
-    levelsGained: gained === expectedGained ? gained : expectedGained,
   }
 }
 
@@ -7892,11 +7878,9 @@ function sanitizeOperationEvents(
         break
 
       case 'agent.promoted': {
-        const promotion = reconcilePromotionLevels(
-          payload.previousLevel,
-          payload.newLevel,
-          payload.levelsGained
-        )
+        const promotion = reconcileAgentPromotedFields(payload)
+        const trimmedNewRole =
+          typeof payload.newRole === 'string' ? payload.newRole.trim() : ''
 
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -7907,23 +7891,20 @@ function sanitizeOperationEvents(
               agentName:
                 typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
               newRole:
-                payload.newRole === 'occultist' ||
-                payload.newRole === 'investigator' ||
-                payload.newRole === 'field_recon' ||
-                payload.newRole === 'medium' ||
-                payload.newRole === 'tech' ||
-                payload.newRole === 'medic' ||
-                payload.newRole === 'negotiator'
-                  ? payload.newRole
+                trimmedNewRole === 'occultist' ||
+                trimmedNewRole === 'investigator' ||
+                trimmedNewRole === 'field_recon' ||
+                trimmedNewRole === 'medium' ||
+                trimmedNewRole === 'tech' ||
+                trimmedNewRole === 'medic' ||
+                trimmedNewRole === 'negotiator' ||
+                trimmedNewRole === 'hunter'
+                  ? trimmedNewRole
                   : 'hunter',
               previousLevel: promotion.previousLevel,
               newLevel: promotion.newLevel,
               levelsGained: promotion.levelsGained,
-              skillPointsGranted: sanitizeInteger(
-                payload.skillPointsGranted as number | undefined,
-                0,
-                0
-              ),
+              skillPointsGranted: promotion.skillPointsGranted,
             },
           })
         )

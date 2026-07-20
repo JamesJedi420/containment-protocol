@@ -10,6 +10,7 @@ import {
   getXpThresholdForLevel,
   getXpToNextLevel,
   PROGRESSION_MAX_LEVEL,
+  reconcileAgentPromotedFields,
   reconcileProgressionXpGainedFields,
   synchronizeProgressionState,
 } from '../domain/progression'
@@ -51,6 +52,22 @@ describe('progression helpers', () => {
       totalXp,
       level: expectedLevel,
       levelsGained: expectedLevelsGained,
+    })
+  })
+
+  it('reconciles agent.promoted level fields to non-decreasing levels', () => {
+    expect(
+      reconcileAgentPromotedFields({
+        previousLevel: 4,
+        newLevel: 2,
+        levelsGained: 9,
+        skillPointsGranted: -1.5,
+      })
+    ).toEqual({
+      previousLevel: 4,
+      newLevel: 4,
+      levelsGained: 0,
+      skillPointsGranted: 0,
     })
   })
 

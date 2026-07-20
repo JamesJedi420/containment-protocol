@@ -19,6 +19,7 @@ import { clamp } from '../math'
 import {
   PROGRESSION_MAX_LEVEL,
   PROGRESSION_MIN_LEVEL,
+  reconcileAgentPromotedFields,
   reconcileProgressionXpGainedFields,
   synchronizeProgressionState,
 } from '../progression'
@@ -1165,7 +1166,16 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
               ? entry.payload.reason.trim()
               : entry.payload.reason,
         }
-      : entry.payload
+      : eventType === 'agent.promoted'
+        ? {
+            ...entry.payload,
+            ...reconcileAgentPromotedFields(entry.payload),
+            newRole:
+              typeof entry.payload.newRole === 'string' && entry.payload.newRole.trim().length > 0
+                ? entry.payload.newRole.trim()
+                : entry.payload.newRole,
+          }
+        : entry.payload
   const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {

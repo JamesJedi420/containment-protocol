@@ -255,6 +255,37 @@ export function reconcileProgressionXpGainedFields(payload: {
   return { xpAmount, totalXp, level, levelsGained }
 }
 
+/** Hydration: reconcile agent.promoted level fields and skill points granted. */
+export function reconcileAgentPromotedFields(payload: {
+  previousLevel?: unknown
+  newLevel?: unknown
+  levelsGained?: unknown
+  skillPointsGranted?: unknown
+}) {
+  const previousLevel =
+    typeof payload.previousLevel === 'number' && Number.isFinite(payload.previousLevel)
+      ? Math.max(PROGRESSION_MIN_LEVEL, Math.trunc(payload.previousLevel))
+      : PROGRESSION_MIN_LEVEL
+  const newLevelRaw =
+    typeof payload.newLevel === 'number' && Number.isFinite(payload.newLevel)
+      ? Math.max(PROGRESSION_MIN_LEVEL, Math.trunc(payload.newLevel))
+      : previousLevel
+  const newLevel = Math.max(previousLevel, newLevelRaw)
+  const expectedLevelsGained = newLevel - previousLevel
+  const levelsGainedRaw =
+    typeof payload.levelsGained === 'number' && Number.isFinite(payload.levelsGained)
+      ? Math.max(0, Math.trunc(payload.levelsGained))
+      : expectedLevelsGained
+  const levelsGained =
+    levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
+  const skillPointsGranted =
+    typeof payload.skillPointsGranted === 'number' && Number.isFinite(payload.skillPointsGranted)
+      ? Math.max(0, Math.trunc(payload.skillPointsGranted))
+      : 0
+
+  return { previousLevel, newLevel, levelsGained, skillPointsGranted }
+}
+
 export function synchronizeProgressionState(
   progression: AgentProgression,
   fallbackLevel = 1

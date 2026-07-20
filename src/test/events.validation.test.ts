@@ -369,4 +369,97 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it('accepts consistent agent.promoted payloads', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 2,
+      newLevel: 4,
+      levelsGained: 2,
+      skillPointsGranted: 2,
+    })
+
+    expect(validation.success, validation.error).toBe(true)
+  })
+
+  it('rejects agent.promoted payloads with negative levels', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with zero previousLevel', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with negative skillPointsGranted', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      skillPointsGranted: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with fractional levels', () => {
+    const fractionalPrevious = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 1.5,
+    })
+    const fractionalSkillPoints = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      skillPointsGranted: 0.5,
+    })
+
+    expect(fractionalPrevious.success).toBe(false)
+    expect(fractionalSkillPoints.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads when newLevel is below previousLevel', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 4,
+      newLevel: 2,
+      levelsGained: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with levelsGained mismatch', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 2,
+      newLevel: 4,
+      levelsGained: 1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with blank newRole', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      newRole: '   ',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with untrimmed newRole', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      newRole: ' medic ',
+    })
+
+    expect(validation.success).toBe(false)
+  })
 })

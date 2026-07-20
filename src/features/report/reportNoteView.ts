@@ -85,6 +85,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'contribution_release.modifiable_data_pack_publish_enqueue',
   'visual_trigger_hazard.weekly_transition',
   'spe947_evaluator.weekly_transition',
+  'spe956_participatory_channel.weekly_transition',
   'entity_welfare_reclassification.weekly_transition',
   'affiliation_person_status.weekly_progression',
   'pattern_source_series.weekly_transition',

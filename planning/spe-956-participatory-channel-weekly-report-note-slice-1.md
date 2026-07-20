@@ -8,7 +8,7 @@ One-page implementation plan. Linear: [SPE-2646](https://linear.app/spectranoir/
 | **Status**           | **In progress**                                                                                                                         |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-956-participatory-channel-weekly-report-note-slice-1`                                                                              |
-| **Base `main` SHA**  | _(set when implementation branch opens after SPE-2648 merge)_                                                                           |
+| **Base `main` SHA**  | `d15a212e`                                                                                                                              |
 
 ## Goal
 
@@ -45,12 +45,12 @@ Ship pure week-close report notes when the five SPE-956 participatory channel ma
 
 ## Acceptance
 
-- [ ] Empty / no-op channel maps emit no weekly report notes
-- [ ] Authored elapsed-week transitions emit deterministic typed notes
-- [ ] Same-week idempotent re-tick does not duplicate notes
-- [ ] Notes CP-neutral; type registered in `reportNoteTypeAudit`
-- [ ] Wired into `advanceWeek` note append when maps change under SPE-2643 tick
-- [ ] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
+- [x] Empty / no-op channel maps emit no weekly report notes
+- [x] Authored elapsed-week transitions emit deterministic typed notes
+- [x] Same-week idempotent re-tick does not duplicate notes
+- [x] Notes CP-neutral; type registered in `reportNoteTypeAudit`
+- [x] Wired into `advanceWeek` note append when maps change under SPE-2643 tick
+- [x] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
 - [ ] Child Done only after merge
 
 ## Deferred

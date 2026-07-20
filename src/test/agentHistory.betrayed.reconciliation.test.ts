@@ -101,4 +101,53 @@ describe('agent history agent.betrayed reconciliation', () => {
       },
     })
   })
+
+  it('preserves numeric-string trust damage when reconciling before validation', () => {
+    const agent = createAgent({
+      id: 'a_betrayed_string',
+      name: 'String Damage',
+      role: 'investigator',
+      baseStats: { combat: 20, investigation: 50, utility: 30, social: 25 },
+      abilities: [],
+      tags: [],
+      relationships: {},
+      fatigue: 0,
+      status: 'active',
+    })
+
+    const normalized = normalizeAgent({
+      ...agent,
+      history: {
+        ...agent.history!,
+        logs: [
+          {
+            id: 'evt-betrayed-string',
+            schemaVersion: 1,
+            type: 'agent.betrayed',
+            sourceSystem: 'agent',
+            timestamp: '2042-01-08T00:00:00.000Z',
+            payload: {
+              week: 2,
+              betrayerId: agent.id,
+              betrayerName: agent.name,
+              betrayedId: 'a_counterpart',
+              betrayedName: 'Counterpart',
+              trustDamageDelta: '0.35',
+              trustDamageTotal: '1.10',
+              triggeredConsequences: [],
+            },
+          },
+        ],
+      },
+    })
+
+    expect(normalized.history?.logs).toHaveLength(1)
+    expect(normalized.history?.logs[0]).toMatchObject({
+      type: 'agent.betrayed',
+      payload: {
+        trustDamageDelta: 0.35,
+        trustDamageTotal: 1.1,
+      },
+    })
+  })
 })

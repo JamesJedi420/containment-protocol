@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2644](https://linear.app/spectranoir/
 | Field                | Value                                                                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**           | [SPE-2644 — SPE-956 GameState incident baseline persistence (post-Done follow-on)](https://linear.app/spectranoir/issue/SPE-2644)     |
-| **Status**           | **In progress**                                                                                                                         |
+| **Status**           | **Shipped**                                                                                                                             |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-956-gamestate-incident-baseline-persistence-slice-1`                                                                               |
 | **Base `main` SHA**  | `6ac79281`                                                                                                                              |
@@ -40,14 +40,16 @@ Persist authored SPE-956 incident-lane baselines on GameState (sanitize/hydrate)
 - [x] Invalid / mismatched baselines are dropped
 - [x] Incident path / evaluators / mirror / week-close unchanged unless a thin read helper is required
 - [x] `npm run lint` + targeted tests green; `npm run verify:backlog-handoff` green
-- [ ] Child Done only after merge
+- [x] Child Done only after merge (PR #3200 @ `34b99cef`)
 
 ## Deferred
 
-| Item                              | Suggested owner | Why deferred                                      |
-| --------------------------------- | --------------- | ------------------------------------------------- |
-| Backend file-byte transport       | Infra slice     | SPE-2542 ledger already covers delivery receipts  |
-| SPE-1682 / 860 / 911 / 875        | Those parents   | Explicitly out of SPE-956 matrix boundary         |
+| Item                                       | Suggested owner | Why deferred                                      |
+| ------------------------------------------ | --------------- | ------------------------------------------------- |
+| Participatory channel weekly report notes  | SPE-2646        | Preferred post-Done sibling (handoff SPE-2648)    |
+| EXAMPLE path baseline resolve wire         | SPE-2647        | Alternate; unused resolve is intentional          |
+| Backend file-byte transport                | Infra slice     | SPE-2542 ledger already covers delivery receipts  |
+| SPE-1682 / 860 / 911 / 875                 | Those parents   | Explicitly out of SPE-956 matrix boundary         |
 
 ## Validation
 

@@ -281,4 +281,83 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success, validation.error).toBe(true)
   })
+
+  it('accepts consistent progression.xp_gained payloads', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      xpAmount: 1,
+      totalXp: 200,
+      level: 2,
+      levelsGained: 1,
+    })
+
+    expect(validation.success, validation.error).toBe(true)
+  })
+
+  it('rejects progression.xp_gained payloads with negative XP', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      xpAmount: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects progression.xp_gained payloads with fractional XP', () => {
+    const fractionalXpAmount = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      xpAmount: 1.5,
+    })
+    const fractionalTotalXp = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      totalXp: 100.5,
+    })
+
+    expect(fractionalXpAmount.success).toBe(false)
+    expect(fractionalTotalXp.success).toBe(false)
+  })
+
+  it('rejects progression.xp_gained payloads when totalXp is below xpAmount', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      xpAmount: 50,
+      totalXp: 20,
+      level: 1,
+      levelsGained: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects progression.xp_gained payloads with level mismatch', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      totalXp: 100,
+      level: 2,
+      levelsGained: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects progression.xp_gained payloads with levelsGained mismatch', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      xpAmount: 1,
+      totalXp: 200,
+      level: 2,
+      levelsGained: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects progression.xp_gained payloads with blank reason', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      reason: '   ',
+    })
+
+    expect(validation.success).toBe(false)
+  })
 })

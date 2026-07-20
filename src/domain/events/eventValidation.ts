@@ -1,11 +1,13 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
+import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
+const trimmedNonBlankStringSchema = z.string().trim().min(1)
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -374,13 +376,41 @@ const progressionXpGainedSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    xpAmount: z.number(),
-    reason: z.string(),
-    totalXp: z.number(),
-    level: z.number(),
-    levelsGained: z.number(),
+    xpAmount: finiteNonNegativeIntSchema,
+    reason: trimmedNonBlankStringSchema,
+    totalXp: finiteNonNegativeIntSchema,
+    level: z.number().finite().int().min(1),
+    levelsGained: finiteNonNegativeIntSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.totalXp < payload.xpAmount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalXp must be greater than or equal to xpAmount',
+        path: ['totalXp'],
+      })
+    }
+
+    const derivedLevel = getLevelForXp(payload.totalXp)
+    if (payload.level !== derivedLevel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `level must equal getLevelForXp(totalXp) (${derivedLevel})`,
+        path: ['level'],
+      })
+    }
+
+    const previousTotalXp = Math.max(0, payload.totalXp - payload.xpAmount)
+    const expectedLevelsGained = derivedLevel - getLevelForXp(previousTotalXp)
+    if (payload.levelsGained !== expectedLevelsGained) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `levelsGained must equal derived level delta (${expectedLevelsGained})`,
+        path: ['levelsGained'],
+      })
+    }
+  })
 
 const systemRecruitmentExpiredSchema = z
   .object({

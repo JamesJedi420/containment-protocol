@@ -391,6 +391,24 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(false)
   })
 
+  it('rejects agent.promoted payloads with zero previousLevel', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      previousLevel: 0,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.promoted payloads with negative skillPointsGranted', () => {
+    const validation = validateOperationEventPayload('agent.promoted', {
+      ...minimalOperationEventPayloads['agent.promoted'],
+      skillPointsGranted: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
   it('rejects agent.promoted payloads with fractional levels', () => {
     const fractionalPrevious = validateOperationEventPayload('agent.promoted', {
       ...minimalOperationEventPayloads['agent.promoted'],

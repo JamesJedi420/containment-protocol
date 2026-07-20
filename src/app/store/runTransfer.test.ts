@@ -10686,6 +10686,39 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('SPE-2652 trims agent.promoted newRole before role allowlist on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-promoted-role-trim',
+            type: 'agent.promoted',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              agentId: Object.keys(fallback.agents)[0]!,
+              agentName: 'Agent',
+              newRole: ' medic ',
+              previousLevel: 2,
+              newLevel: 3,
+              levelsGained: 1,
+              skillPointsGranted: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        newRole: 'medic',
+        previousLevel: 2,
+        newLevel: 3,
+        levelsGained: 1,
+        skillPointsGranted: 1,
+      })
+    })
+
     it('518 sorts weekly reports, dedupes by week, and drops out-of-range weeks', () => {
       const fallback = createStartingState()
 

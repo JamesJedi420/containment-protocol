@@ -7,6 +7,7 @@ const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
+const finiteNonNegativeNumberSchema = z.number().finite().min(0)
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -326,11 +327,20 @@ const agentBetrayedSchema = z
     betrayerName: z.string(),
     betrayedId: idSchema,
     betrayedName: z.string(),
-    trustDamageDelta: z.number(),
-    trustDamageTotal: z.number(),
+    trustDamageDelta: finiteNonNegativeNumberSchema,
+    trustDamageTotal: finiteNonNegativeNumberSchema,
     triggeredConsequences: z.array(externalChemistryConsequenceSchema),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.trustDamageTotal < payload.trustDamageDelta) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'trustDamageTotal must be greater than or equal to trustDamageDelta',
+        path: ['trustDamageTotal'],
+      })
+    }
+  })
 
 const agentResignedSchema = z
   .object({

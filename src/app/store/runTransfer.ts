@@ -185,6 +185,7 @@ import {
   reconcileAgentPromotedFields,
   reconcileProgressionXpGainedFields,
 } from '../../domain/progression'
+import { reconcileAgentBetrayedFields } from '../../domain/sim/betrayal'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
 import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
@@ -7816,7 +7817,8 @@ function sanitizeOperationEvents(
         )
         break
 
-      case 'agent.betrayed':
+      case 'agent.betrayed': {
+        const betrayal = reconcileAgentBetrayedFields(payload)
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('agent.betrayed'),
@@ -7836,8 +7838,8 @@ function sanitizeOperationEvents(
                 typeof payload.betrayedName === 'string'
                   ? payload.betrayedName
                   : `Counterpart ${index + 1}`,
-              trustDamageDelta: sanitizeFiniteNumber(payload.trustDamageDelta, 0),
-              trustDamageTotal: sanitizeFiniteNumber(payload.trustDamageTotal, 0),
+              trustDamageDelta: betrayal.trustDamageDelta,
+              trustDamageTotal: betrayal.trustDamageTotal,
               triggeredConsequences: Array.isArray(payload.triggeredConsequences)
                 ? payload.triggeredConsequences.filter(
                     (
@@ -7857,6 +7859,7 @@ function sanitizeOperationEvents(
           })
         )
         break
+      }
 
       case 'agent.resigned':
         nextEvents.push(

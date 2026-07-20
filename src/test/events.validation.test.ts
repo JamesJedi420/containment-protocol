@@ -462,4 +462,62 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it('accepts consistent agent.betrayed payloads', () => {
+    const validation = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageDelta: 0.35,
+      trustDamageTotal: 1.1,
+      triggeredConsequences: ['benching'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('rejects agent.betrayed payloads with negative trust damage', () => {
+    const negativeDelta = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageDelta: -0.1,
+    })
+    const negativeTotal = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageTotal: -1,
+    })
+
+    expect(negativeDelta.success).toBe(false)
+    expect(negativeTotal.success).toBe(false)
+  })
+
+  it('rejects agent.betrayed payloads with non-finite trust damage', () => {
+    const nanDelta = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageDelta: Number.NaN,
+    })
+    const infiniteTotal = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageTotal: Number.POSITIVE_INFINITY,
+    })
+
+    expect(nanDelta.success).toBe(false)
+    expect(infiniteTotal.success).toBe(false)
+  })
+
+  it('rejects agent.betrayed payloads when trustDamageTotal is below trustDamageDelta', () => {
+    const validation = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      trustDamageDelta: 1.2,
+      trustDamageTotal: 0.5,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.betrayed payloads with invalid consequence entries', () => {
+    const validation = validateOperationEventPayload('agent.betrayed', {
+      ...minimalOperationEventPayloads['agent.betrayed'],
+      triggeredConsequences: ['benching', 'not-a-consequence'],
+    })
+
+    expect(validation.success).toBe(false)
+  })
 })

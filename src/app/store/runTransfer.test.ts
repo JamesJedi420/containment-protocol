@@ -10719,6 +10719,67 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('SPE-2654 reconciles agent.betrayed trust damage on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-betrayed-2654',
+            type: 'agent.betrayed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              betrayerId: Object.keys(fallback.agents)[0]!,
+              betrayerName: 'Agent',
+              betrayedId: Object.keys(fallback.agents)[1] ?? 'a_counterpart',
+              betrayedName: 'Counterpart',
+              trustDamageDelta: -0.4,
+              trustDamageTotal: 0.1,
+              triggeredConsequences: ['benching'],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        trustDamageDelta: 0,
+        trustDamageTotal: 0.1,
+        triggeredConsequences: ['benching'],
+      })
+    })
+
+    it('SPE-2654 lifts agent.betrayed trustDamageTotal to trustDamageDelta on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-betrayed-total-2654',
+            type: 'agent.betrayed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              betrayerId: Object.keys(fallback.agents)[0]!,
+              betrayerName: 'Agent',
+              betrayedId: Object.keys(fallback.agents)[1] ?? 'a_counterpart',
+              betrayedName: 'Counterpart',
+              trustDamageDelta: 0.9,
+              trustDamageTotal: 0.2,
+              triggeredConsequences: [],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        trustDamageDelta: 0.9,
+        trustDamageTotal: 0.9,
+      })
+    })
+
     it('518 sorts weekly reports, dedupes by week, and drops out-of-range weeks', () => {
       const fallback = createStartingState()
 

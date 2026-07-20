@@ -28,7 +28,10 @@ import { createDefaultFatigueChannels } from '../agentFatigueChannels'
 import { normalizeEnergyBudget } from '../responderEnergyBudget'
 import { isAgentAttritionUnavailable } from './attrition'
 import { getEquipmentCatalogEntries } from '../equipment'
-import { PERFORMANCE_PENALTY_MULTIPLIER } from '../sim/betrayal'
+import {
+  PERFORMANCE_PENALTY_MULTIPLIER,
+  reconcileAgentBetrayedFields,
+} from '../sim/betrayal'
 import { ATTRITION_CALIBRATION } from '../sim/calibration'
 import { getTrainingProgram, trainingCatalog } from '../../data/training'
 import { getCertificationDefinitions } from '../sim/training-compat'
@@ -1175,7 +1178,27 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
                 ? entry.payload.newRole.trim()
                 : entry.payload.newRole,
           }
-        : entry.payload
+        : eventType === 'agent.betrayed'
+          ? {
+              ...entry.payload,
+              ...reconcileAgentBetrayedFields(entry.payload),
+              triggeredConsequences: Array.isArray(entry.payload.triggeredConsequences)
+                ? entry.payload.triggeredConsequences.filter(
+                    (
+                      consequence
+                    ): consequence is
+                      | 'benching'
+                      | 'performance_penalty'
+                      | 'disciplinary'
+                      | 'resignation' =>
+                      consequence === 'benching' ||
+                      consequence === 'performance_penalty' ||
+                      consequence === 'disciplinary' ||
+                      consequence === 'resignation'
+                  )
+                : entry.payload.triggeredConsequences,
+            }
+          : entry.payload
   const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {

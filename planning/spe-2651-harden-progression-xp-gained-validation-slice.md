@@ -32,3 +32,8 @@ Reject inconsistent `progression.xp_gained` payloads at the operation-event vali
 | Item | Owner | Why deferred |
 | --- | --- | --- |
 | — | — | None this slice |
+
+## Follow-up fix (same PR)
+
+- Shared `reconcileProgressionXpGainedFields` in domain; agent-history sanitize reconciles before validate so legacy stale level logs are preserved
+- Reason must already be trimmed nonblank; hydrate paths trim reasons before validation

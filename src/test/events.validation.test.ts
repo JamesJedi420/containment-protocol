@@ -360,4 +360,13 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it('rejects progression.xp_gained payloads with untrimmed reason', () => {
+    const validation = validateOperationEventPayload('progression.xp_gained', {
+      ...minimalOperationEventPayloads['progression.xp_gained'],
+      reason: ' mission_success ',
+    })
+
+    expect(validation.success).toBe(false)
+  })
 })

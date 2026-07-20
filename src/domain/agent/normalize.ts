@@ -16,7 +16,12 @@ import {
   deriveDomainStatsFromBase,
 } from '../agentDefaults'
 import { clamp } from '../math'
-import { synchronizeProgressionState } from '../progression'
+import {
+  PROGRESSION_MAX_LEVEL,
+  PROGRESSION_MIN_LEVEL,
+  reconcileProgressionXpGainedFields,
+  synchronizeProgressionState,
+} from '../progression'
 import { cloneDomainStats } from '../statDomains'
 import { createDefaultFatigueChannels } from '../agentFatigueChannels'
 import { normalizeEnergyBudget } from '../responderEnergyBudget'
@@ -26,10 +31,6 @@ import { PERFORMANCE_PENALTY_MULTIPLIER } from '../sim/betrayal'
 import { ATTRITION_CALIBRATION } from '../sim/calibration'
 import { getTrainingProgram, trainingCatalog } from '../../data/training'
 import { getCertificationDefinitions } from '../sim/training-compat'
-import {
-  PROGRESSION_MAX_LEVEL,
-  PROGRESSION_MIN_LEVEL,
-} from '../progression'
 import type {
   AgentAttritionCategory,
   AgentAttritionState,
@@ -1154,7 +1155,18 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
   }
 
   const eventType = entry.type as OperationEventType
-  const validation = validateOperationEventPayload(eventType, entry.payload)
+  const payload =
+    eventType === 'progression.xp_gained'
+      ? {
+          ...entry.payload,
+          ...reconcileProgressionXpGainedFields(entry.payload),
+          reason:
+            typeof entry.payload.reason === 'string' && entry.payload.reason.trim().length > 0
+              ? entry.payload.reason.trim()
+              : entry.payload.reason,
+        }
+      : entry.payload
+  const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {
     return null
@@ -1170,7 +1182,7 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     timestamp: entry.timestamp,
     schemaVersion: entry.schemaVersion,
     sourceSystem: entry.sourceSystem,
-    payload: entry.payload,
+    payload,
   })
 
   if (!migrated) {

@@ -7,7 +7,6 @@ const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
-const trimmedNonBlankStringSchema = z.string().trim().min(1)
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -377,7 +376,11 @@ const progressionXpGainedSchema = z
     agentId: idSchema,
     agentName: z.string(),
     xpAmount: finiteNonNegativeIntSchema,
-    reason: trimmedNonBlankStringSchema,
+    reason: z
+      .string()
+      .refine((value) => value.length > 0 && value === value.trim(), {
+        message: 'reason must be a trimmed nonblank string',
+      }),
     totalXp: finiteNonNegativeIntSchema,
     level: z.number().finite().int().min(1),
     levelsGained: finiteNonNegativeIntSchema,
@@ -390,6 +393,7 @@ const progressionXpGainedSchema = z
         message: 'totalXp must be greater than or equal to xpAmount',
         path: ['totalXp'],
       })
+      return
     }
 
     const derivedLevel = getLevelForXp(payload.totalXp)
@@ -401,7 +405,7 @@ const progressionXpGainedSchema = z
       })
     }
 
-    const previousTotalXp = Math.max(0, payload.totalXp - payload.xpAmount)
+    const previousTotalXp = payload.totalXp - payload.xpAmount
     const expectedLevelsGained = derivedLevel - getLevelForXp(previousTotalXp)
     if (payload.levelsGained !== expectedLevelsGained) {
       context.addIssue({

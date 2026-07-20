@@ -220,6 +220,41 @@ export function getLevelForXp(xp: number) {
   return level
 }
 
+/** Hydration: reconcile xp gained totals with derived level and levelsGained. */
+export function reconcileProgressionXpGainedFields(payload: {
+  xpAmount?: unknown
+  totalXp?: unknown
+  level?: unknown
+  levelsGained?: unknown
+}) {
+  const xpAmount =
+    typeof payload.xpAmount === 'number' && Number.isFinite(payload.xpAmount)
+      ? Math.max(0, Math.trunc(payload.xpAmount))
+      : 0
+  const totalXpRaw =
+    typeof payload.totalXp === 'number' && Number.isFinite(payload.totalXp)
+      ? Math.max(0, Math.trunc(payload.totalXp))
+      : xpAmount
+  const totalXp = Math.max(totalXpRaw, xpAmount)
+  const previousTotalXp = Math.max(0, totalXp - xpAmount)
+  const previousLevel = getLevelForXp(previousTotalXp)
+  const derivedLevel = getLevelForXp(totalXp)
+  const expectedLevelsGained = derivedLevel - previousLevel
+  const levelRaw =
+    typeof payload.level === 'number' && Number.isFinite(payload.level)
+      ? Math.max(1, Math.trunc(payload.level))
+      : derivedLevel
+  const level = levelRaw === derivedLevel ? levelRaw : derivedLevel
+  const levelsGainedRaw =
+    typeof payload.levelsGained === 'number' && Number.isFinite(payload.levelsGained)
+      ? Math.max(0, Math.trunc(payload.levelsGained))
+      : expectedLevelsGained
+  const levelsGained =
+    levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
+
+  return { xpAmount, totalXp, level, levelsGained }
+}
+
 export function synchronizeProgressionState(
   progression: AgentProgression,
   fallbackLevel = 1

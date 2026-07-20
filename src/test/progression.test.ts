@@ -10,6 +10,7 @@ import {
   getXpThresholdForLevel,
   getXpToNextLevel,
   PROGRESSION_MAX_LEVEL,
+  reconcileProgressionXpGainedFields,
   synchronizeProgressionState,
 } from '../domain/progression'
 
@@ -29,6 +30,28 @@ describe('progression helpers', () => {
     expect(getLevelForXp(levelTwoThreshold - 1)).toBe(1)
     expect(getLevelForXp(levelTwoThreshold)).toBe(2)
     expect(getLevelForXp(levelThreeThreshold)).toBe(3)
+  })
+
+  it('reconciles xp_gained level fields from totalXp', () => {
+    const totalXp = getXpThresholdForLevel(3)
+    const xpAmount = 75
+    const previousTotalXp = totalXp - xpAmount
+    const expectedLevel = getLevelForXp(totalXp)
+    const expectedLevelsGained = expectedLevel - getLevelForXp(previousTotalXp)
+
+    expect(
+      reconcileProgressionXpGainedFields({
+        xpAmount,
+        totalXp,
+        level: 1,
+        levelsGained: 9,
+      })
+    ).toEqual({
+      xpAmount,
+      totalXp,
+      level: expectedLevel,
+      levelsGained: expectedLevelsGained,
+    })
   })
 
   it('builds a stable progression snapshot for the current level band', () => {

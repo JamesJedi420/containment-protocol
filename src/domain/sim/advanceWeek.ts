@@ -271,6 +271,7 @@ import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersist
 import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
+import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
 import {
   extractSpe956AsyncDiscussionSurfaceRecords,
   extractSpe956CollectiveMemoryChannelRecords,
@@ -5019,11 +5020,13 @@ export function advanceWeek(
     Object.keys(priorSpe956ChannelMaps.spe956HotlineChannelRecords).length > 0 ||
     Object.keys(priorSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords).length > 0 ||
     Object.keys(priorSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords).length > 0
+  let nextSpe956ChannelMapsForNotes = priorSpe956ChannelMaps
   if (hasSpe956ChannelRecords) {
     const nextSpe956ChannelMaps = applyWeeklySpe956ParticipatoryChannelTick(
       priorSpe956ChannelMaps,
       result.week
     )
+    nextSpe956ChannelMapsForNotes = nextSpe956ChannelMaps
     if (nextSpe956ChannelMaps !== priorSpe956ChannelMaps) {
       if (
         nextSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords !==
@@ -5060,6 +5063,30 @@ export function advanceWeek(
         outputWeeklyState.spe956CommunityAdvisoryBodyRecords =
           nextSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords
       }
+    }
+  }
+
+  // SPE-2646: surface post-tick participatory channel elapsed-week transitions in weekly report notes.
+  if (hasSpe956ChannelRecords && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const spe956ChannelTransitionNotes =
+      buildWeeklySpe956ParticipatoryChannelTransitionReportNotes({
+        priorMaps: priorSpe956ChannelMaps,
+        nextMaps: nextSpe956ChannelMapsForNotes,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (spe956ChannelTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...spe956ChannelTransitionNotes],
+      }
+      result.reports = reports
     }
   }
 

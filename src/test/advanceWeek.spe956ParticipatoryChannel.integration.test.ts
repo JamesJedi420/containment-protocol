@@ -120,4 +120,78 @@ describe('advanceWeek SPE-956 participatory channel weekly orchestration (SPE-26
     expect(nextHotline?.elapsedChannelWeeks).toBe(3)
     expect(nextHotline?.lastWeeklyTickWeek).toBe(7)
   })
+
+  it('surfaces weekly transition notes when channel elapsed weeks advance (SPE-2646)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.spe956HotlineChannelRecords = {
+      [EXAMPLE_HOTLINE_CHANNEL.id]: hotlineWithWeeklyDelta({
+        elapsedChannelWeeks: 0,
+      }),
+    }
+    state.spe956SurvivorInformalRegistryRecords = {
+      [EXAMPLE_SURVIVOR_REGISTRY.id]: Object.freeze({
+        ...EXAMPLE_SURVIVOR_REGISTRY,
+        weeklyElapsedWeeksDelta: 2,
+        elapsedChannelWeeks: 1,
+      }),
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe956_participatory_channel.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toHaveLength(2)
+    expect(transitionNotes.some((note) => note.content.includes(EXAMPLE_HOTLINE_CHANNEL.id))).toBe(
+      true
+    )
+    expect(transitionNotes.some((note) => note.content.includes('Elapsed 0 → 1'))).toBe(true)
+    expect(transitionNotes.some((note) => note.content.includes('Elapsed 1 → 3'))).toBe(true)
+  })
+
+  it('does not surface weekly transition notes when channel maps are empty (SPE-2646)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.spe956SurvivorInformalRegistryRecords = {}
+    state.spe956CollectiveMemoryChannelRecords = {}
+    state.spe956HotlineChannelRecords = {}
+    state.spe956AsyncDiscussionSurfaceRecords = {}
+    state.spe956CommunityAdvisoryBodyRecords = {}
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe956_participatory_channel.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not re-emit transition notes when maps are unchanged on same-week re-tick (SPE-2646)', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.spe956HotlineChannelRecords = {
+      [EXAMPLE_HOTLINE_CHANNEL.id]: hotlineWithWeeklyDelta({
+        elapsedChannelWeeks: 0,
+      }),
+    }
+
+    const once = advanceWeek(state)
+    const retickInput = {
+      ...once,
+      spe956HotlineChannelRecords: once.spe956HotlineChannelRecords,
+    }
+    retickInput.week = 4
+    const reticked = advanceWeek(retickInput)
+    const transitionNotes =
+      reticked.reports[reticked.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe956_participatory_channel.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
 })

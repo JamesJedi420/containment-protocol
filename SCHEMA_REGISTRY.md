@@ -264,11 +264,14 @@ Documents compact GameState maps for authored SPE-956 participatory channel enve
 (SPE-2632 slice 1 survivor registry; SPE-2633 slice 2 collective memory channel;
 SPE-2634 slice 3 hotline channel; SPE-2635 slice 4 async discussion surface;
 SPE-2636 slice 5 community advisory body) plus SPE-2644 incident-lane baseline map.
-No evaluator contract changes.
+SPE-2637 read surfacing, SPE-2638 evaluate-from-GameState helpers, SPE-2639/2640
+incident-path composition, SPE-2643 week-close tick, SPE-2646 weekly report notes,
+and SPE-2647 EXAMPLE incident baseline resolution all read these persisted maps
+without changing the evaluator contracts.
 
 **Current version**: `spe-956-participatory-channel.v1` — exported as `SPE_956_PARTICIPATORY_CHANNEL_PERSISTENCE_SCHEMA_VERSION`
 
-**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`; SPE-2638 `evaluate*FromGameState` helpers; SPE-2639 incident path: `spe956ParticipatoryChannelIncidentPath.ts`; SPE-2644 baselines: `spe956IncidentBaselinePersistence.ts`)
+**Location**: `src/domain/spe956ParticipatoryChannelPersistence.ts` (evaluator contracts: `survivorInformalRegistry.ts`, `collectiveMemoryStabilization.ts`, `hotlineChannel.ts`, `asyncDiscussionSurface.ts`, `communityAdvisoryDecisionInfluence.ts`; SPE-2638 `evaluate*FromGameState` helpers; SPE-2639 incident path and SPE-2647 EXAMPLE baseline resolution: `spe956ParticipatoryChannelIncidentPath.ts`; SPE-2644 baselines: `spe956IncidentBaselinePersistence.ts`; SPE-2643 tick: `spe956ParticipatoryChannelWeeklyOrchestration.ts`; SPE-2646 notes: `spe956ParticipatoryChannelWeeklyReportNotes.ts` / `spe956ParticipatoryChannelSurfacing.ts`)
 
 ### GameState fields
 
@@ -289,9 +292,11 @@ No evaluator contract changes.
 - Nested `participationWindow` requires non-negative integer `startWeek`/`endWeek` with `startWeek <= endWeek`
 - Community advisory bodies require non-empty mission/membership/criteria strings; non-empty trimmed `representedStakeholderClasses` string array; non-empty `authorizedDecisionScopes` enum array (any invalid enum drops the entry); positive unit-interval `influenceThreshold` (`> 0` and `<= 1`)
 - Incident baselines (SPE-2644): map key must equal `incidentId`; advisory/hotline lanes require `baseline.incidentId === entry.incidentId`; invalid lanes dropped; entries with zero surviving lanes dropped; uses exported `tryNormalize*Baseline` helpers from evaluator modules
+- `SPE_956_EXAMPLE_INCIDENT_ID` is `incident:riverside-site-breach`; `SPE_956_EXAMPLE_INCIDENT_BASELINE_RECORDS` persists all five EXAMPLE lanes under that incident id
 - Explicit authored `{}` hydrates as empty canonical map (does not fall back to prior records); non-record input still uses fallback
 - Unsafe ids (`__proto__`, `constructor`, `prototype`) are rejected; maps built from plain-record input use null prototype (non-record input returns the caller `fallback` unchanged)
 - `resolvePersistedSurvivorInformalRegistry` / `resolvePersistedCollectiveMemoryChannel` / `resolvePersistedHotlineChannel` / `resolvePersistedAsyncDiscussionSurface` / `resolvePersistedCommunityAdvisoryBody` / `resolveSpe956IncidentBaselines` resolve own properties only and reject unsafe ids
+- `buildExampleSpe956IncidentPathInputFromGameState` calls `resolveSpe956IncidentBaselines` first and falls back per lane to authored EXAMPLE fixtures when the map is missing or a lane is omitted
 - Default starting state: empty `{}` maps in `createStartingState`
 
 ### Optional weekly orchestration fields (SPE-2643)
@@ -304,11 +309,24 @@ No evaluator contract changes.
 
 Tick wired from `advanceWeek` via `applyWeeklySpe956ParticipatoryChannelTick` over all five maps. Channels without `weeklyElapsedWeeksDelta` are unchanged. Does **not** reopen SPE-956 AC (parent Done via SPE-2642).
 
-### Deferred (optional post-Done siblings)
+### Read surfacing (SPE-2637 slice 1)
 
-- Weekly report-note surfacing (optional sibling)
+- Planning mirror projection: `getSpe956ParticipatoryChannelMirrorView` in `src/features/operations/spe956ParticipatoryChannelMirrorView.ts`
+- Route: `/participatory-channels` (`Spe956ParticipatoryChannelMirrorPage`); Front Desk quick link
+- Surfaces hydrated survivor registries, collective memory channels, hotline channels, async discussion surfaces, and community advisory bodies as labels and counts only; it does not run evaluators or incident-path composition from UI
+- Mirror rows sort ids by code unit order so repeated builds are byte-stable across runtimes
+
+### Weekly report notes (SPE-2646)
+
+- `advanceWeek` appends `spe956_participatory_channel.weekly_transition` notes after the SPE-2643 tick when at least one persisted channel's `elapsedChannelWeeks` changes
+- Producer: `buildWeeklySpe956ParticipatoryChannelTransitionReportNotes`; formatter: `formatSpe956ParticipatoryChannelWeeklyTransitionNoteContent`
+- Payload keys allowed by hydration: `channelKind`, `recordId`, `transitionKinds`, `priorElapsedChannelWeeks`, `nextElapsedChannelWeeks`, `structuredReasons`, `week`
+- Empty channel maps, unchanged maps, and same-week re-ticks emit no transition notes
+
+### Out of scope and shipped notes
+
 - Backend file-byte transport remains out of SPE-2542 ledger boundary (slice 2 already shipped)
-- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); incident path shipped (SPE-2639/2640); week-close tick shipped (SPE-2643); incident baselines shipped (SPE-2644); umbrella Done (SPE-2642)
+- UI / planning mirror shipped (SPE-2637); compose helpers shipped (SPE-2638); incident path shipped (SPE-2639/2640); week-close tick shipped (SPE-2643); incident baselines shipped (SPE-2644); weekly report notes shipped (SPE-2646); EXAMPLE baseline resolution shipped (SPE-2647); umbrella Done (SPE-2642)
 
 ### Versioning
 

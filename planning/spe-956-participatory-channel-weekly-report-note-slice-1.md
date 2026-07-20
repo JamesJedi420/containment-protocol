@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2646](https://linear.app/spectranoir/
 | Field                | Value                                                                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**           | [SPE-2646 — SPE-956 participatory channel weekly report-note surfacing (post-Done follow-on)](https://linear.app/spectranoir/issue/SPE-2646) |
-| **Status**           | **In progress**                                                                                                                         |
+| **Status**           | **Shipped**                                                                                                                             |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-956-participatory-channel-weekly-report-note-slice-1`                                                                              |
 | **Base `main` SHA**  | `d15a212e`                                                                                                                              |
@@ -20,7 +20,7 @@ Ship pure week-close report notes when the five SPE-956 participatory channel ma
 | ----------------------------- | ---------------------------------------------------------------------- | ----- |
 | Week-close channel tick       | [SPE-2643](https://linear.app/spectranoir/issue/SPE-2643)              | #3196 |
 | Incident baseline persistence | [SPE-2644](https://linear.app/spectranoir/issue/SPE-2644)              | #3200 |
-| Handoff (this primary)        | [SPE-2648](https://linear.app/spectranoir/issue/SPE-2648)              | TBD   |
+| Handoff (this primary)        | [SPE-2648](https://linear.app/spectranoir/issue/SPE-2648)              | #3203 |
 | SPE-947 weekly notes pattern  | [SPE-2596](https://linear.app/spectranoir/issue/SPE-2596)              | —     |
 
 ## Surfacing contract

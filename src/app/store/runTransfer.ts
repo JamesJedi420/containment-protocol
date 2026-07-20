@@ -181,7 +181,7 @@ import {
   sanitizeFeaturedRecipeId,
   sanitizePersistedMarketState,
 } from '../../domain/market'
-import { getLevelForXp } from '../../domain/progression'
+import { reconcileProgressionXpGainedFields } from '../../domain/progression'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
 import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
@@ -2643,30 +2643,6 @@ function reconcileAcademyUpgradeFields(payload: Record<string, unknown>) {
     fundingAfterRaw === expectedFundingAfter ? fundingAfterRaw : expectedFundingAfter
 
   return { tierBefore, tierAfter, fundingBefore, fundingAfter, cost }
-}
-
-/** Hydration 590: reconcile xp gained totals with derived level and levelsGained. */
-function reconcileProgressionXpGainedFields(payload: Record<string, unknown>) {
-  const xpAmount = sanitizeInteger(payload.xpAmount as number | undefined, 0, 0)
-  const totalXp = Math.max(
-    sanitizeInteger(payload.totalXp as number | undefined, xpAmount, 0),
-    xpAmount
-  )
-  const previousTotalXp = Math.max(0, totalXp - xpAmount)
-  const previousLevel = getLevelForXp(previousTotalXp)
-  const derivedLevel = getLevelForXp(totalXp)
-  const expectedLevelsGained = derivedLevel - previousLevel
-  const levelRaw = sanitizeInteger(payload.level as number | undefined, derivedLevel, 1)
-  const level = levelRaw === derivedLevel ? levelRaw : derivedLevel
-  const levelsGainedRaw = sanitizeInteger(
-    payload.levelsGained as number | undefined,
-    expectedLevelsGained,
-    0
-  )
-  const levelsGained =
-    levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
-
-  return { xpAmount, totalXp, level, levelsGained }
 }
 
 /** SPE-455: only open or in-progress cases may remain in the priority queue. */
@@ -7986,7 +7962,10 @@ function sanitizeOperationEvents(
               agentName:
                 typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
               xpAmount: progression.xpAmount,
-              reason: typeof payload.reason === 'string' ? payload.reason : 'unknown',
+              reason:
+                typeof payload.reason === 'string' && payload.reason.trim().length > 0
+                  ? payload.reason.trim()
+                  : 'unknown',
               totalXp: progression.totalXp,
               level: progression.level,
               levelsGained: progression.levelsGained,

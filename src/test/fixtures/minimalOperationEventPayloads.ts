@@ -248,7 +248,7 @@ export const minimalOperationEventPayloads = {
     xpAmount: 10,
     reason: 'mission_success',
     totalXp: 100,
-    level: 2,
+    level: 1,
     levelsGained: 0,
   },
   'agent.hired': {

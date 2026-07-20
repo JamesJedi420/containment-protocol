@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2646",
-  "inProgress": ["SPE-2646"],
+  "primary": "SPE-2647",
+  "inProgress": ["SPE-2647"],
   "recentlyShipped": [
+    "SPE-2646",
     "SPE-2648",
     "SPE-2644",
     "SPE-2645",
@@ -11,13 +12,13 @@
     "SPE-2640",
     "SPE-2639",
     "SPE-2638",
-    "SPE-2637",
-    "SPE-2636",
-    "SPE-2635"
+    "SPE-2637"
   ],
   "sliceDocStatus": {
+    "planning/spe-2649-post-spe-2646-handoff-reconciliation-slice-1.md": "In progress",
+    "planning/spe-2647-example-incident-path-baseline-resolve-wire-slice-1.md": "In progress",
     "planning/spe-2648-post-spe-2644-handoff-reconciliation-slice-1.md": "Shipped",
-    "planning/spe-956-participatory-channel-weekly-report-note-slice-1.md": "In progress",
+    "planning/spe-956-participatory-channel-weekly-report-note-slice-1.md": "Shipped",
     "planning/spe-2645-post-spe-2643-handoff-reconciliation-slice-1.md": "Shipped",
     "planning/spe-956-gamestate-incident-baseline-persistence-slice-1.md": "Shipped",
     "planning/spe-956-participatory-channel-week-close-slice-1.md": "Shipped",

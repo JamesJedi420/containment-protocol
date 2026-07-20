@@ -26,12 +26,14 @@ import {
   tryNormalizeHotlineGuidanceBaseline,
   type HotlineGuidanceBaseline,
 } from './hotlineChannel'
-import { SPE_956_EXAMPLE_INCIDENT_ID } from './spe956ParticipatoryChannelIncidentPath'
 import {
   EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
   tryNormalizeSurvivorSupportBaseline,
   type SurvivorSupportBaseline,
 } from './survivorInformalRegistry'
+
+/** Shared riverside incident id for the authored SPE-956 EXAMPLE path. */
+export const SPE_956_EXAMPLE_INCIDENT_ID = 'incident:riverside-site-breach' as const
 
 export interface Spe956PersistedIncidentBaselines {
   readonly incidentId: string

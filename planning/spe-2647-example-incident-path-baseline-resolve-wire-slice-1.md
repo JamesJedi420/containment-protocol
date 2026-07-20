@@ -8,7 +8,7 @@ One-page implementation plan. Linear: [SPE-2647](https://linear.app/spectranoir/
 | **Status**           | **In progress**                                                                                                                         |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-2647-example-incident-path-baseline-resolve-wire-slice-1`                                                                          |
-| **Base `main` SHA**  | TBD after SPE-2649 handoff merge                                                                                                        |
+| **Base `main` SHA**  | `af276547`                                                                                                                              |
 
 ## Goal
 
@@ -34,10 +34,10 @@ Thin-wire `resolveSpe956IncidentBaselines` into EXAMPLE incident-path input buil
 
 ## Acceptance
 
-- [ ] EXAMPLE builders prefer persisted baselines when resolve returns a record
-- [ ] Missing baselines fall back to existing EXAMPLE fixtures
-- [ ] `applySpe956ParticipatoryChannelsToIncident` unchanged
-- [ ] Targeted Vitest green; lint green
+- [x] EXAMPLE builders prefer persisted baselines when resolve returns a record
+- [x] Missing baselines fall back to existing EXAMPLE fixtures
+- [x] `applySpe956ParticipatoryChannelsToIncident` unchanged
+- [x] Targeted Vitest green; lint green
 - [ ] Child Done only after merge
 
 ## Deferred

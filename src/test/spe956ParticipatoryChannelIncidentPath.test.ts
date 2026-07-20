@@ -22,9 +22,11 @@ import {
 } from '../domain/hotlineChannel'
 import {
   applySpe956ParticipatoryChannelsToIncident,
+  buildExampleSpe956IncidentPathInputFromGameState,
   EXAMPLE_SPE_956_INCIDENT_PATH_INPUT,
   SPE_956_EXAMPLE_INCIDENT_ID,
 } from '../domain/spe956ParticipatoryChannelIncidentPath'
+import { SPE_956_EXAMPLE_INCIDENT_BASELINE_RECORDS } from '../domain/spe956IncidentBaselinePersistence'
 import {
   SPE_956_EXAMPLE_ASYNC_DISCUSSION_SURFACE_RECORDS,
   SPE_956_EXAMPLE_COLLECTIVE_MEMORY_CHANNEL_RECORDS,
@@ -301,5 +303,71 @@ describe('spe956ParticipatoryChannelIncidentPath (SPE-2639 / SPE-2640 / SPE-956)
     expect(fromNull.materialInfluence).toBe(false)
     expect(fromUndefined.reasonCodes).toEqual(['no_material_influence', 'no_participatory_lanes'])
     expect(fromNull.reasonCodes).toEqual(['no_material_influence', 'no_participatory_lanes'])
+  })
+})
+
+describe('buildExampleSpe956IncidentPathInputFromGameState (SPE-2647)', () => {
+  it('falls back to EXAMPLE fixtures when GameState has no persisted baselines', () => {
+    const built = buildExampleSpe956IncidentPathInputFromGameState({})
+
+    expect(built).toEqual(EXAMPLE_SPE_956_INCIDENT_PATH_INPUT)
+    expect(Object.isFrozen(built)).toBe(true)
+  })
+
+  it('prefers persisted baselines when resolve returns EXAMPLE records', () => {
+    const game = Object.freeze({
+      spe956IncidentBaselineRecords: SPE_956_EXAMPLE_INCIDENT_BASELINE_RECORDS,
+    })
+    const built = buildExampleSpe956IncidentPathInputFromGameState(game)
+
+    expect(built.advisory?.baseline).toEqual(EXAMPLE_INCIDENT_BASELINE)
+    expect(built.hotline?.baseline).toEqual(EXAMPLE_HOTLINE_GUIDANCE_BASELINE)
+    expect(built.asyncDiscussion?.baseline).toEqual(EXAMPLE_DISCUSSION_BASELINE)
+    expect(built.survivorRegistry?.baseline).toEqual(EXAMPLE_SURVIVOR_REGISTRY_BASELINE)
+    expect(built.collectiveMemory?.baseline).toEqual(EXAMPLE_MEMORY_STABILIZATION_BASELINE)
+    expect(built).toEqual(EXAMPLE_SPE_956_INCIDENT_PATH_INPUT)
+  })
+
+  it('uses persisted lane baselines when they differ from EXAMPLE fixtures', () => {
+    const customAdvisoryBaseline = {
+      ...EXAMPLE_INCIDENT_BASELINE,
+      supportRouting: 'persisted_advisory_routing',
+    }
+    const game = Object.freeze({
+      spe956IncidentBaselineRecords: Object.freeze({
+        [SPE_956_EXAMPLE_INCIDENT_ID]: Object.freeze({
+          incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
+          advisory: customAdvisoryBaseline,
+        }),
+      }),
+    })
+
+    const built = buildExampleSpe956IncidentPathInputFromGameState(game)
+
+    expect(built.advisory?.baseline.supportRouting).toBe('persisted_advisory_routing')
+    expect(built.hotline?.baseline).toEqual(EXAMPLE_HOTLINE_GUIDANCE_BASELINE)
+    expect(built.asyncDiscussion?.baseline).toEqual(EXAMPLE_DISCUSSION_BASELINE)
+  })
+
+  it('wires persisted baselines through applySpe956ParticipatoryChannelsToIncident', () => {
+    const customAdvisoryBaseline = {
+      ...EXAMPLE_INCIDENT_BASELINE,
+      supportRouting: 'community_liaison_first',
+      framing: 'persisted_framing',
+    }
+    const game = Object.freeze({
+      ...EXAMPLE_GAME,
+      spe956IncidentBaselineRecords: Object.freeze({
+        [SPE_956_EXAMPLE_INCIDENT_ID]: Object.freeze({
+          incidentId: SPE_956_EXAMPLE_INCIDENT_ID,
+          advisory: customAdvisoryBaseline,
+        }),
+      }),
+    })
+    const input = buildExampleSpe956IncidentPathInputFromGameState(game)
+    const result = applySpe956ParticipatoryChannelsToIncident(game, input)
+
+    expect(result.advisory?.resolved.framing).toBe('persisted_framing')
+    expect(result.advisory?.resolved.supportRouting).toBe('community_liaison_first')
   })
 })

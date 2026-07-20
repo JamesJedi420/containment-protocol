@@ -47,6 +47,11 @@ import {
   EXAMPLE_HOTLINE_CHANNEL,
   EXAMPLE_HOTLINE_GUIDANCE_BASELINE,
 } from './hotlineChannel'
+import {
+  resolveSpe956IncidentBaselines,
+  SPE_956_EXAMPLE_INCIDENT_ID,
+  type Spe956IncidentBaselineGameStateLike,
+} from './spe956IncidentBaselinePersistence'
 import type { Spe956ParticipatoryChannelGameStateLike } from './spe956ParticipatoryChannelPersistence'
 import {
   evaluateAsyncDiscussionSessionFromGameState,
@@ -66,8 +71,7 @@ import {
   EXAMPLE_SURVIVOR_REGISTRY_SIGNAL,
 } from './survivorInformalRegistry'
 
-/** Shared riverside incident id for the authored SPE-956 EXAMPLE path. */
-export const SPE_956_EXAMPLE_INCIDENT_ID = 'incident:riverside-site-breach' as const
+export { SPE_956_EXAMPLE_INCIDENT_ID }
 
 export interface Spe956AdvisoryIncidentLaneInput {
   readonly bodyId: string
@@ -398,3 +402,46 @@ export const EXAMPLE_SPE_956_INCIDENT_PATH_INPUT: Spe956ParticipatoryChannelInci
       baseline: EXAMPLE_MEMORY_STABILIZATION_BASELINE,
     }),
   })
+
+/**
+ * Build EXAMPLE incident-path input, preferring persisted baselines from GameState when present.
+ * Falls back to authored EXAMPLE fixtures when resolve returns null or omits a lane baseline.
+ */
+export function buildExampleSpe956IncidentPathInputFromGameState(
+  game: Spe956IncidentBaselineGameStateLike | null | undefined,
+  incidentId: string = SPE_956_EXAMPLE_INCIDENT_ID
+): Spe956ParticipatoryChannelIncidentPathInput {
+  const persisted = resolveSpe956IncidentBaselines(game, incidentId)
+
+  return Object.freeze({
+    incidentId,
+    advisory: Object.freeze({
+      bodyId: EXAMPLE_COMMUNITY_ADVISORY_BODY.id,
+      signal: EXAMPLE_SUPPORT_ROUTING_SIGNAL,
+      baseline: persisted?.advisory ?? EXAMPLE_INCIDENT_BASELINE,
+    }),
+    hotline: Object.freeze({
+      channelId: EXAMPLE_HOTLINE_CHANNEL.id,
+      call: EXAMPLE_HOTLINE_CALL,
+      baseline: persisted?.hotline ?? EXAMPLE_HOTLINE_GUIDANCE_BASELINE,
+    }),
+    asyncDiscussion: Object.freeze({
+      incidentId,
+      surfaceId: EXAMPLE_DISCUSSION_SURFACE.id,
+      session: EXAMPLE_DISCUSSION_SESSION,
+      baseline: persisted?.asyncDiscussion ?? EXAMPLE_DISCUSSION_BASELINE,
+    }),
+    survivorRegistry: Object.freeze({
+      incidentId,
+      registryId: EXAMPLE_SURVIVOR_REGISTRY.id,
+      signal: EXAMPLE_SURVIVOR_REGISTRY_SIGNAL,
+      baseline: persisted?.survivorSupport ?? EXAMPLE_SURVIVOR_REGISTRY_BASELINE,
+    }),
+    collectiveMemory: Object.freeze({
+      incidentId,
+      channelId: EXAMPLE_MEMORY_STABILIZATION_CHANNEL.id,
+      signal: EXAMPLE_MEMORY_STABILIZATION_SIGNAL,
+      baseline: persisted?.collectiveMemory ?? EXAMPLE_MEMORY_STABILIZATION_BASELINE,
+    }),
+  })
+}

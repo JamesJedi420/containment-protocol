@@ -1517,6 +1517,46 @@ export function sanitizeFeaturedRecipeId(value: unknown, fallbackRecipeId: strin
 }
 
 /**
+ * Hydration 586–587 / SPE-2660: catalog featured recipe + canonical pressure multiplier.
+ * Aligns with sanitizePersistedMarketState (SPE-454) and validateOperationEventPayload.
+ */
+export function reconcileMarketShiftedFields(
+  payload: {
+    featuredRecipeId?: unknown
+    featuredRecipeName?: unknown
+    pressure?: unknown
+    costMultiplier?: unknown
+  },
+  fallbackFeaturedRecipeId: string
+) {
+  const pressure = isMarketPressure(payload.pressure) ? payload.pressure : 'stable'
+  const featuredRecipeId = sanitizeFeaturedRecipeId(
+    payload.featuredRecipeId,
+    fallbackFeaturedRecipeId
+  )
+  const recipe = getProductionRecipe(featuredRecipeId)
+  const catalogName = recipe?.name ?? featuredRecipeId
+  const featuredRecipeName =
+    typeof payload.featuredRecipeName === 'string' &&
+    payload.featuredRecipeName.trim() === catalogName
+      ? payload.featuredRecipeName.trim()
+      : catalogName
+  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
+  const boundedCostMultiplier = sanitizeMarketDecimal(
+    typeof payload.costMultiplier === 'number' ? payload.costMultiplier : undefined,
+    canonicalCostMultiplier,
+    0.5,
+    2
+  )
+  const costMultiplier =
+    boundedCostMultiplier === canonicalCostMultiplier
+      ? boundedCostMultiplier
+      : canonicalCostMultiplier
+
+  return { featuredRecipeId, featuredRecipeName, pressure, costMultiplier }
+}
+
+/**
  * SPE-446–448: normalize persisted market snapshots on import.
  * `listings` are derived at read time — strip any persisted copy (SPE-448).
  */

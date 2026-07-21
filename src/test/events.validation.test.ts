@@ -915,4 +915,73 @@ describe('event payload validation coverage', () => {
     expect(zeroQuantity.success).toBe(false)
     expect(negativeQuantity.success).toBe(false)
   })
+
+  it('accepts consistent market.shifted payloads for each pressure band', () => {
+    const stable = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
+    const tight = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'tight',
+      costMultiplier: 1.15,
+    })
+    const discounted = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'discounted',
+      costMultiplier: 0.9,
+    })
+
+    expect(stable.success).toBe(true)
+    expect(tight.success).toBe(true)
+    expect(discounted.success).toBe(true)
+  })
+
+  it('rejects market.shifted payloads with non-finite or negative costMultiplier', () => {
+    const nan = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: Number.NaN,
+    })
+    const infinite = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: Number.POSITIVE_INFINITY,
+    })
+    const negative = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: -0.1,
+    })
+
+    expect(nan.success).toBe(false)
+    expect(infinite.success).toBe(false)
+    expect(negative.success).toBe(false)
+  })
+
+  it('rejects market.shifted payloads with pressure-inconsistent costMultiplier', () => {
+    const stableMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1.15,
+    })
+    const tightMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'tight',
+      costMultiplier: 0.9,
+    })
+    const discountedMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'discounted',
+      costMultiplier: 1,
+    })
+    const outOfBand = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1.75,
+    })
+
+    expect(stableMismatch.success).toBe(false)
+    expect(tightMismatch.success).toBe(false)
+    expect(discountedMismatch.success).toBe(false)
+    expect(outOfBand.success).toBe(false)
+  })
 })

@@ -230,14 +230,20 @@ const intelReportGeneratedSchema = z
   })
   .strict()
 
+const trimmedNonblankStringSchema = z
+  .string()
+  .refine((value) => value.length > 0 && value === value.trim(), {
+    message: 'must be a trimmed nonblank string',
+  })
+
 const agentTrainingStartedSchema = z
   .object({
     week: weekSchema,
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string().min(1),
-    trainingName: z.string().min(1),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
     teamName: z.string().optional(),
     etaWeeks: finitePositiveIntSchema,
     fundingCost: finiteNonNegativeIntSchema,
@@ -250,8 +256,8 @@ const agentTrainingCompletedSchema = z
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string().min(1),
-    trainingName: z.string().min(1),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
   })
   .strict()
 
@@ -260,8 +266,8 @@ const agentTrainingCancelledSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string().min(1),
-    trainingName: z.string().min(1),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
     refund: finiteNonNegativeIntSchema,
   })
   .strict()

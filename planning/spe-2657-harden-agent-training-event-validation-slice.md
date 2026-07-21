@@ -33,4 +33,4 @@ Reject inconsistent `agent.training_started` / `agent.training_completed` / `age
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| — | — | None this slice |
+| Catalog membership / id↔name consistency at validate | follow-on if needed | Acceptance is numerics + nonblank ids; hydrate/history reconcile already resolves unknown programs. Producer catalog checks would couple schema to `trainingCatalog`. |

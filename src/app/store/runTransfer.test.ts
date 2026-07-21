@@ -1593,7 +1593,7 @@ describe('runTransfer helpers', () => {
     })
   })
 
-  it('sanitizes legacy unknown training event payloads to catalog-backed IDs/names and bounded refund', () => {
+  it('sanitizes legacy unknown training event payloads to catalog-backed IDs/names and nonnegative refund', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(
       JSON.stringify({
@@ -1651,7 +1651,7 @@ describe('runTransfer helpers', () => {
       payload: {
         trainingId: 'combat-drills',
         trainingName: 'Close-Quarters Drills',
-        refund: 10,
+        refund: 999,
       },
     })
   })

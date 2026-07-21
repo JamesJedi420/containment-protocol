@@ -102,16 +102,18 @@ export function reconcileTrainingEventProgram(
   trainingIdValue: unknown,
   trainingNameValue: unknown
 ): { trainingId: string; trainingName: string; fundingCost: number } {
-  const trainingIdCandidate = typeof trainingIdValue === 'string' ? trainingIdValue : undefined
+  const trainingIdCandidate =
+    typeof trainingIdValue === 'string' && trainingIdValue.trim().length > 0
+      ? trainingIdValue.trim()
+      : undefined
   const trainingNameCandidate =
     typeof trainingNameValue === 'string' && trainingNameValue.trim().length > 0
       ? trainingNameValue.trim()
       : undefined
 
-  const matchedProgramById =
-    trainingIdCandidate && getTrainingProgram(trainingIdCandidate)
-      ? getTrainingProgram(trainingIdCandidate)
-      : undefined
+  const matchedProgramById = trainingIdCandidate
+    ? getTrainingProgram(trainingIdCandidate)
+    : undefined
   const matchedProgramByName = trainingNameCandidate
     ? trainingCatalog.find((program) => program.name === trainingNameCandidate)
     : undefined
@@ -163,22 +165,18 @@ export function reconcileAgentTrainingCompletedFields(payload: {
   }
 }
 
-/** Hydration / history: catalog program + refund clamped to program fundingCost. */
+/** Hydration / history: catalog program + nonnegative int refund (no catalog cost cap; team drills scale). */
 export function reconcileAgentTrainingCancelledFields(payload: {
   trainingId?: unknown
   trainingName?: unknown
   refund?: unknown
 }) {
   const program = reconcileTrainingEventProgram(payload.trainingId, payload.trainingName)
-  const refund = Math.min(
-    Math.max(0, Math.trunc(coerceFiniteNumber(payload.refund, 0))),
-    program.fundingCost
-  )
 
   return {
     trainingId: program.trainingId,
     trainingName: program.trainingName,
-    refund,
+    refund: Math.max(0, Math.trunc(coerceFiniteNumber(payload.refund, 0))),
   }
 }
 

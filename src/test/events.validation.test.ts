@@ -726,6 +726,25 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(false)
   })
 
+  it('rejects agent.training_started payloads with whitespace-only trainingId or trainingName', () => {
+    const blankId = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingId: '   ',
+    })
+    const blankName = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingName: '   ',
+    })
+    const untrimmedId = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingId: ' combat-drills ',
+    })
+
+    expect(blankId.success).toBe(false)
+    expect(blankName.success).toBe(false)
+    expect(untrimmedId.success).toBe(false)
+  })
+
   it('rejects agent.training_cancelled payloads with non-finite refund', () => {
     const nanRefund = validateOperationEventPayload('agent.training_cancelled', {
       ...minimalOperationEventPayloads['agent.training_cancelled'],

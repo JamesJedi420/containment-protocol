@@ -101,7 +101,7 @@ describe('agent history training event reconciliation', () => {
     })
   })
 
-  it('preserves legacy agent.training_cancelled logs by clamping refund to program fundingCost', () => {
+  it('preserves legacy agent.training_cancelled logs with refund above catalog base fundingCost', () => {
     const agent = createAgent({
       id: 'a_training_cancelled_legacy',
       name: 'Legacy Cancelled',
@@ -144,7 +144,7 @@ describe('agent history training event reconciliation', () => {
       payload: {
         trainingId: 'combat-drills',
         trainingName: 'Close-Quarters Drills',
-        refund: 10,
+        refund: 999,
       },
     })
   })

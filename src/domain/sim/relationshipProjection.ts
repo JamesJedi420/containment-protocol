@@ -1,10 +1,58 @@
 import { clamp } from '../math'
 import type { Relationship } from '../models'
 
+export const RELATIONSHIP_VALUE_MIN = -2
+export const RELATIONSHIP_VALUE_MAX = 2
+
 export const STATE_HOSTILE_THRESHOLD = -0.5
 export const STATE_STRAINED_THRESHOLD = 0
 export const STATE_NEUTRAL_THRESHOLD = 0.5
 export const STATE_FRIENDLY_THRESHOLD = 1.2
+
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
+/** Round chemistry delta to two decimal places (producer / hydrate convention). */
+export function roundRelationshipDelta(value: number) {
+  return Math.round(value * 100) / 100
+}
+
+/** Hydration: clamp chemistry values to [-2, 2] and recompute finite delta. */
+export function reconcileAgentRelationshipChangedFields(payload: {
+  previousValue?: unknown
+  nextValue?: unknown
+}) {
+  const previousValue = clamp(
+    coerceFiniteNumber(payload.previousValue, 0),
+    RELATIONSHIP_VALUE_MIN,
+    RELATIONSHIP_VALUE_MAX
+  )
+  const nextValue = clamp(
+    coerceFiniteNumber(payload.nextValue, 0),
+    RELATIONSHIP_VALUE_MIN,
+    RELATIONSHIP_VALUE_MAX
+  )
+  const delta = roundRelationshipDelta(nextValue - previousValue)
+
+  return { previousValue, nextValue, delta }
+}
 
 /**
  * Compute relationship state based on value threshold.

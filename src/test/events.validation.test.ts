@@ -47,6 +47,63 @@ describe('event payload validation coverage', () => {
     expect(validation.error).toBeTypeOf('string')
   })
 
+  it('accepts consistent agent.relationship_changed payloads', () => {
+    const validation = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('rejects agent.relationship_changed payloads with non-finite chemistry values', () => {
+    const nanPrevious = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      previousValue: Number.NaN,
+    })
+    const infiniteNext = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      nextValue: Number.POSITIVE_INFINITY,
+    })
+    const infiniteDelta = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      delta: Number.NEGATIVE_INFINITY,
+    })
+
+    expect(nanPrevious.success).toBe(false)
+    expect(infiniteNext.success).toBe(false)
+    expect(infiniteDelta.success).toBe(false)
+  })
+
+  it('rejects agent.relationship_changed payloads with out-of-range chemistry values', () => {
+    const highPrevious = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      previousValue: 2.01,
+      nextValue: 2,
+      delta: -0.01,
+    })
+    const lowNext = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      previousValue: -2,
+      nextValue: -2.1,
+      delta: -0.1,
+    })
+
+    expect(highPrevious.success).toBe(false)
+    expect(lowNext.success).toBe(false)
+  })
+
+  it('rejects agent.relationship_changed payloads when delta mismatches nextValue - previousValue', () => {
+    const validation = validateOperationEventPayload('agent.relationship_changed', {
+      ...minimalOperationEventPayloads['agent.relationship_changed'],
+      previousValue: 0.2,
+      nextValue: 0.4,
+      delta: 0.15,
+    })
+
+    expect(validation.success).toBe(false)
+    expect(validation.error).toBeTypeOf('string')
+  })
+
   it('accepts recruitment intel confirmation payloads with confirmed confidence', () => {
     const validation = validateOperationEventPayload('recruitment.intel_confirmed', {
       week: 4,

@@ -32,6 +32,7 @@ import {
   PERFORMANCE_PENALTY_MULTIPLIER,
   reconcileAgentBetrayedFields,
 } from '../sim/betrayal'
+import { reconcileAgentRelationshipChangedFields } from '../sim/relationshipProjection'
 import { ATTRITION_CALIBRATION } from '../sim/calibration'
 import { getTrainingProgram, trainingCatalog } from '../../data/training'
 import { getCertificationDefinitions } from '../sim/training-compat'
@@ -1198,7 +1199,23 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
                   )
                 : entry.payload.triggeredConsequences,
             }
-          : entry.payload
+          : eventType === 'agent.relationship_changed'
+            ? {
+                ...entry.payload,
+                ...reconcileAgentRelationshipChangedFields(entry.payload),
+                reason:
+                  entry.payload.reason === 'mission_success' ||
+                  entry.payload.reason === 'mission_partial' ||
+                  entry.payload.reason === 'mission_fail' ||
+                  entry.payload.reason === 'passive_drift' ||
+                  entry.payload.reason === 'external_event' ||
+                  entry.payload.reason === 'reconciliation' ||
+                  entry.payload.reason === 'spontaneous_event' ||
+                  entry.payload.reason === 'betrayal'
+                    ? entry.payload.reason
+                    : 'passive_drift',
+              }
+            : entry.payload
   const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {

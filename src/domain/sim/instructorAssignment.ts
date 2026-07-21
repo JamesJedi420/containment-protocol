@@ -1,6 +1,55 @@
 import { type GameState, type InstructorData, type StatKey } from '../models'
 import { isAgentTraining } from './training'
 
+export const INSTRUCTOR_SPECIALTY_KEYS = [
+  'combat',
+  'investigation',
+  'utility',
+  'social',
+] as const satisfies readonly StatKey[]
+
+const DEFAULT_INSTRUCTOR_SPECIALTY: StatKey = 'combat'
+
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
+function isInstructorSpecialty(value: unknown): value is StatKey {
+  return (
+    typeof value === 'string' &&
+    (INSTRUCTOR_SPECIALTY_KEYS as readonly string[]).includes(value)
+  )
+}
+
+/** Hydration / history: nonnegative int bonus + StatKey specialty allowlist. */
+export function reconcileAgentInstructorAssignmentFields(payload: {
+  bonus?: unknown
+  instructorSpecialty?: unknown
+}) {
+  const bonus = Math.max(0, Math.trunc(coerceFiniteNumber(payload.bonus, 0)))
+  const instructorSpecialty = isInstructorSpecialty(payload.instructorSpecialty)
+    ? payload.instructorSpecialty
+    : DEFAULT_INSTRUCTOR_SPECIALTY
+
+  return { bonus, instructorSpecialty }
+}
+
 export function getInstructorBonus(efficiency: number): 0 | 1 | 2 {
   if (efficiency >= 90) return 2
   if (efficiency >= 70) return 1

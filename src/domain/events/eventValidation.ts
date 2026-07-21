@@ -290,29 +290,22 @@ const agentRelationshipChangedSchema = z
     }
   })
 
-const agentInstructorAssignedSchema = z
+const instructorSpecialtySchema = z.enum(['combat', 'investigation', 'utility', 'social'])
+
+const agentInstructorAssignmentFieldsSchema = z
   .object({
     week: weekSchema,
     staffId: idSchema,
     instructorName: z.string(),
     agentId: idSchema,
     agentName: z.string(),
-    instructorSpecialty: z.string(),
-    bonus: z.number(),
+    instructorSpecialty: instructorSpecialtySchema,
+    bonus: finiteNonNegativeIntSchema,
   })
   .strict()
 
-const agentInstructorUnassignedSchema = z
-  .object({
-    week: weekSchema,
-    staffId: idSchema,
-    instructorName: z.string(),
-    agentId: idSchema,
-    agentName: z.string(),
-    instructorSpecialty: z.string(),
-    bonus: z.number(),
-  })
-  .strict()
+const agentInstructorAssignedSchema = agentInstructorAssignmentFieldsSchema
+const agentInstructorUnassignedSchema = agentInstructorAssignmentFieldsSchema
 
 const agentInjuredSchema = z
   .object({

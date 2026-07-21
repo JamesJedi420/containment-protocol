@@ -186,6 +186,7 @@ import {
   reconcileProgressionXpGainedFields,
 } from '../../domain/progression'
 import { reconcileAgentBetrayedFields } from '../../domain/sim/betrayal'
+import { reconcileAgentInstructorAssignmentFields } from '../../domain/sim/instructorAssignment'
 import { reconcileAgentRelationshipChangedFields } from '../../domain/sim/relationshipProjection'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
@@ -7722,49 +7723,32 @@ function sanitizeOperationEvents(
         break
 
       case 'agent.instructor_assigned':
-        nextEvents.push(
-          migrateOperationEventToCurrentSchema({
-            ...createBase('agent.instructor_assigned'),
-            payload: {
-              week,
-              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
-              instructorName:
-                typeof payload.instructorName === 'string'
-                  ? payload.instructorName
-                  : `Instructor ${index + 1}`,
-              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
-              agentName:
-                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
-              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
-                ? payload.instructorSpecialty
-                : 'combat',
-              bonus: sanitizeInteger(payload.bonus as number | undefined, 0, 0),
-            },
-          })
-        )
-        break
-
       case 'agent.instructor_unassigned':
-        nextEvents.push(
-          migrateOperationEventToCurrentSchema({
-            ...createBase('agent.instructor_unassigned'),
-            payload: {
-              week,
-              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
-              instructorName:
-                typeof payload.instructorName === 'string'
-                  ? payload.instructorName
-                  : `Instructor ${index + 1}`,
-              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
-              agentName:
-                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
-              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
-                ? payload.instructorSpecialty
-                : 'combat',
-              bonus: sanitizeInteger(payload.bonus as number | undefined, 0, 0),
-            },
-          })
-        )
+        {
+          const instructor = reconcileAgentInstructorAssignmentFields(payload)
+          nextEvents.push(
+            migrateOperationEventToCurrentSchema({
+              ...createBase(eventType),
+              payload: {
+                week,
+                staffId:
+                  typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
+                instructorName:
+                  typeof payload.instructorName === 'string'
+                    ? payload.instructorName
+                    : `Instructor ${index + 1}`,
+                agentId:
+                  typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+                agentName:
+                  typeof payload.agentName === 'string'
+                    ? payload.agentName
+                    : `Agent ${index + 1}`,
+                instructorSpecialty: instructor.instructorSpecialty,
+                bonus: instructor.bonus,
+              },
+            })
+          )
+        }
         break
 
       case 'agent.injured':

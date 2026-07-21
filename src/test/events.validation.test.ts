@@ -577,4 +577,68 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it.each(['agent.instructor_assigned', 'agent.instructor_unassigned'] as const)(
+    'accepts consistent %s payloads',
+    (eventType) => {
+      const validation = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+      })
+
+      expect(validation.success).toBe(true)
+    }
+  )
+
+  it.each(['agent.instructor_assigned', 'agent.instructor_unassigned'] as const)(
+    'rejects %s payloads with non-finite bonus',
+    (eventType) => {
+      const nanBonus = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+        bonus: Number.NaN,
+      })
+      const infiniteBonus = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+        bonus: Number.POSITIVE_INFINITY,
+      })
+
+      expect(nanBonus.success).toBe(false)
+      expect(infiniteBonus.success).toBe(false)
+    }
+  )
+
+  it.each(['agent.instructor_assigned', 'agent.instructor_unassigned'] as const)(
+    'rejects %s payloads with negative bonus',
+    (eventType) => {
+      const validation = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+        bonus: -1,
+      })
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
+  it.each(['agent.instructor_assigned', 'agent.instructor_unassigned'] as const)(
+    'rejects %s payloads with fractional bonus',
+    (eventType) => {
+      const validation = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+        bonus: 1.5,
+      })
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
+  it.each(['agent.instructor_assigned', 'agent.instructor_unassigned'] as const)(
+    'rejects %s payloads with invalid instructorSpecialty',
+    (eventType) => {
+      const validation = validateOperationEventPayload(eventType, {
+        ...minimalOperationEventPayloads[eventType],
+        instructorSpecialty: 'not-a-stat',
+      })
+
+      expect(validation.success).toBe(false)
+    }
+  )
 })

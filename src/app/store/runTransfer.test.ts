@@ -920,6 +920,62 @@ describe('runTransfer helpers', () => {
     expect(roundTripped.events).toHaveLength(game.events.length)
   })
 
+  it('reconciles instructor assignment bonus and specialty on import hydration', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame({
+      ...stripGameTemplates(fallback),
+      events: [
+        {
+          id: 'evt-instructor-assigned-raw',
+          type: 'agent.instructor_assigned',
+          timestamp: buildOperationEventTimestamp(2, 0),
+          payload: {
+            week: 2,
+            staffId: 'staff-instructor-01',
+            instructorName: 'Iris Vale',
+            agentId: 'a_mina',
+            agentName: 'Mina Park',
+            instructorSpecialty: 'not-a-stat',
+            bonus: -1.5,
+          },
+        },
+        {
+          id: 'evt-instructor-unassigned-raw',
+          type: 'agent.instructor_unassigned',
+          timestamp: buildOperationEventTimestamp(2, 1),
+          payload: {
+            week: 2,
+            staffId: 'staff-instructor-01',
+            instructorName: 'Iris Vale',
+            agentId: 'a_mina',
+            agentName: 'Mina Park',
+            instructorSpecialty: 'utility',
+            bonus: '3.2',
+          },
+        },
+      ],
+    })
+
+    expect(hydrated.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'agent.instructor_assigned',
+          payload: expect.objectContaining({
+            instructorSpecialty: 'combat',
+            bonus: 0,
+          }),
+        }),
+        expect.objectContaining({
+          type: 'agent.instructor_unassigned',
+          payload: expect.objectContaining({
+            instructorSpecialty: 'utility',
+            bonus: 3,
+          }),
+        }),
+      ])
+    )
+  })
+
   it('assigns deterministic migrated ids for legacy events missing ids', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(

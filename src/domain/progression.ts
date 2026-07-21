@@ -58,6 +58,26 @@ function coerceXp(xp: number | undefined) {
   return Math.max(0, Math.trunc(xp ?? 0))
 }
 
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
 function normalizeSkillTree(skillTree: AgentProgression['skillTree']): NonNullable<SkillTree> {
   return {
     ...createDefaultAgentSkillTree(),
@@ -227,28 +247,19 @@ export function reconcileProgressionXpGainedFields(payload: {
   level?: unknown
   levelsGained?: unknown
 }) {
-  const xpAmount =
-    typeof payload.xpAmount === 'number' && Number.isFinite(payload.xpAmount)
-      ? Math.max(0, Math.trunc(payload.xpAmount))
-      : 0
-  const totalXpRaw =
-    typeof payload.totalXp === 'number' && Number.isFinite(payload.totalXp)
-      ? Math.max(0, Math.trunc(payload.totalXp))
-      : xpAmount
+  const xpAmount = Math.max(0, Math.trunc(coerceFiniteNumber(payload.xpAmount, 0)))
+  const totalXpRaw = Math.max(0, Math.trunc(coerceFiniteNumber(payload.totalXp, xpAmount)))
   const totalXp = Math.max(totalXpRaw, xpAmount)
   const previousTotalXp = Math.max(0, totalXp - xpAmount)
   const previousLevel = getLevelForXp(previousTotalXp)
   const derivedLevel = getLevelForXp(totalXp)
   const expectedLevelsGained = derivedLevel - previousLevel
-  const levelRaw =
-    typeof payload.level === 'number' && Number.isFinite(payload.level)
-      ? Math.max(1, Math.trunc(payload.level))
-      : derivedLevel
+  const levelRaw = Math.max(1, Math.trunc(coerceFiniteNumber(payload.level, derivedLevel)))
   const level = levelRaw === derivedLevel ? levelRaw : derivedLevel
-  const levelsGainedRaw =
-    typeof payload.levelsGained === 'number' && Number.isFinite(payload.levelsGained)
-      ? Math.max(0, Math.trunc(payload.levelsGained))
-      : expectedLevelsGained
+  const levelsGainedRaw = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.levelsGained, expectedLevelsGained))
+  )
   const levelsGained =
     levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
 
@@ -262,26 +273,26 @@ export function reconcileAgentPromotedFields(payload: {
   levelsGained?: unknown
   skillPointsGranted?: unknown
 }) {
-  const previousLevel =
-    typeof payload.previousLevel === 'number' && Number.isFinite(payload.previousLevel)
-      ? Math.max(PROGRESSION_MIN_LEVEL, Math.trunc(payload.previousLevel))
-      : PROGRESSION_MIN_LEVEL
-  const newLevelRaw =
-    typeof payload.newLevel === 'number' && Number.isFinite(payload.newLevel)
-      ? Math.max(PROGRESSION_MIN_LEVEL, Math.trunc(payload.newLevel))
-      : previousLevel
+  const previousLevel = Math.max(
+    PROGRESSION_MIN_LEVEL,
+    Math.trunc(coerceFiniteNumber(payload.previousLevel, PROGRESSION_MIN_LEVEL))
+  )
+  const newLevelRaw = Math.max(
+    PROGRESSION_MIN_LEVEL,
+    Math.trunc(coerceFiniteNumber(payload.newLevel, previousLevel))
+  )
   const newLevel = Math.max(previousLevel, newLevelRaw)
   const expectedLevelsGained = newLevel - previousLevel
-  const levelsGainedRaw =
-    typeof payload.levelsGained === 'number' && Number.isFinite(payload.levelsGained)
-      ? Math.max(0, Math.trunc(payload.levelsGained))
-      : expectedLevelsGained
+  const levelsGainedRaw = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.levelsGained, expectedLevelsGained))
+  )
   const levelsGained =
     levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
-  const skillPointsGranted =
-    typeof payload.skillPointsGranted === 'number' && Number.isFinite(payload.skillPointsGranted)
-      ? Math.max(0, Math.trunc(payload.skillPointsGranted))
-      : 0
+  const skillPointsGranted = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.skillPointsGranted, 0))
+  )
 
   return { previousLevel, newLevel, levelsGained, skillPointsGranted }
 }

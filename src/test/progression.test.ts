@@ -55,6 +55,28 @@ describe('progression helpers', () => {
     })
   })
 
+  it('preserves numeric-string xp_gained fields during legacy reconciliation', () => {
+    const totalXp = getXpThresholdForLevel(3)
+    const xpAmount = 75
+    const previousTotalXp = totalXp - xpAmount
+    const expectedLevel = getLevelForXp(totalXp)
+    const expectedLevelsGained = expectedLevel - getLevelForXp(previousTotalXp)
+
+    expect(
+      reconcileProgressionXpGainedFields({
+        xpAmount: `${xpAmount}`,
+        totalXp: `${totalXp}`,
+        level: '1',
+        levelsGained: '9',
+      })
+    ).toEqual({
+      xpAmount,
+      totalXp,
+      level: expectedLevel,
+      levelsGained: expectedLevelsGained,
+    })
+  })
+
   it('reconciles agent.promoted level fields to non-decreasing levels', () => {
     expect(
       reconcileAgentPromotedFields({
@@ -68,6 +90,22 @@ describe('progression helpers', () => {
       newLevel: 4,
       levelsGained: 0,
       skillPointsGranted: 0,
+    })
+  })
+
+  it('preserves numeric-string promoted fields during legacy reconciliation', () => {
+    expect(
+      reconcileAgentPromotedFields({
+        previousLevel: '4',
+        newLevel: '2',
+        levelsGained: '9',
+        skillPointsGranted: '3',
+      })
+    ).toEqual({
+      previousLevel: 4,
+      newLevel: 4,
+      levelsGained: 0,
+      skillPointsGranted: 3,
     })
   })
 

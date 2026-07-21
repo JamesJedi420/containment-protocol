@@ -61,4 +61,56 @@ describe('agent history progression.xp_gained reconciliation', () => {
       },
     })
   })
+
+  it('preserves legacy xp_gained logs with blank reasons by applying the global-event fallback', () => {
+    const agent = createAgent({
+      id: 'a_xp_blank_reason',
+      name: 'Blank Reason',
+      role: 'investigator',
+      baseStats: { combat: 20, investigation: 50, utility: 30, social: 25 },
+      abilities: [],
+      tags: [],
+      relationships: {},
+      fatigue: 0,
+      status: 'active',
+    })
+
+    const normalized = normalizeAgent({
+      ...agent,
+      history: {
+        ...agent.history!,
+        logs: [
+          {
+            id: 'evt-xp-blank-reason',
+            schemaVersion: 1,
+            type: 'progression.xp_gained',
+            sourceSystem: 'agent',
+            timestamp: '2042-01-08T00:00:00.000Z',
+            payload: {
+              week: 2,
+              agentId: agent.id,
+              agentName: agent.name,
+              xpAmount: 75,
+              reason: '   ',
+              totalXp: 75,
+              level: 1,
+              levelsGained: 0,
+            },
+          },
+        ],
+      },
+    })
+
+    expect(normalized.history?.logs).toHaveLength(1)
+    expect(normalized.history?.logs[0]).toMatchObject({
+      type: 'progression.xp_gained',
+      payload: {
+        xpAmount: 75,
+        reason: 'unknown',
+        totalXp: 75,
+        level: 1,
+        levelsGained: 0,
+      },
+    })
+  })
 })

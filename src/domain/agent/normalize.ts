@@ -1166,24 +1166,24 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
   }
 
   const eventType = entry.type as OperationEventType
+  const trimmedProgressionReason =
+    typeof entry.payload.reason === 'string' ? entry.payload.reason.trim() : ''
+  const trimmedPromotionRole =
+    typeof entry.payload.newRole === 'string' ? entry.payload.newRole.trim() : ''
   const payload =
     eventType === 'progression.xp_gained'
       ? {
           ...entry.payload,
           ...reconcileProgressionXpGainedFields(entry.payload),
-          reason:
-            typeof entry.payload.reason === 'string' && entry.payload.reason.trim().length > 0
-              ? entry.payload.reason.trim()
-              : entry.payload.reason,
+          reason: trimmedProgressionReason.length > 0 ? trimmedProgressionReason : 'unknown',
         }
       : eventType === 'agent.promoted'
         ? {
             ...entry.payload,
             ...reconcileAgentPromotedFields(entry.payload),
-            newRole:
-              typeof entry.payload.newRole === 'string' && entry.payload.newRole.trim().length > 0
-                ? entry.payload.newRole.trim()
-                : entry.payload.newRole,
+            newRole: AGENT_ROLES.has(trimmedPromotionRole as AgentRole)
+              ? (trimmedPromotionRole as AgentRole)
+              : 'hunter',
           }
         : eventType === 'agent.betrayed'
           ? {

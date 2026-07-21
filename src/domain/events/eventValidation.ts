@@ -7,6 +7,7 @@ const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
+const finitePositiveIntSchema = z.number().finite().int().min(1)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
 const finiteNumberSchema = z.number().finite()
 const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
@@ -235,11 +236,11 @@ const agentTrainingStartedSchema = z
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
+    trainingId: z.string().min(1),
+    trainingName: z.string().min(1),
     teamName: z.string().optional(),
-    etaWeeks: z.number(),
-    fundingCost: z.number(),
+    etaWeeks: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -249,8 +250,8 @@ const agentTrainingCompletedSchema = z
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
+    trainingId: z.string().min(1),
+    trainingName: z.string().min(1),
   })
   .strict()
 
@@ -259,9 +260,9 @@ const agentTrainingCancelledSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
-    refund: z.number(),
+    trainingId: z.string().min(1),
+    trainingName: z.string().min(1),
+    refund: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -358,8 +359,6 @@ const agentResignedSchema = z
     counterpartName: z.string().optional(),
   })
   .strict()
-
-const finitePositiveIntSchema = z.number().finite().int().min(1)
 
 const agentPromotedSchema = z
   .object({

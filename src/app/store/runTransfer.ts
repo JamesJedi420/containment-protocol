@@ -10,7 +10,12 @@ import {
   productionMaterialCatalog,
   type ProductionRecipe,
 } from '../../data/production'
-import { getTrainingProgram, trainingCatalog } from '../../data/training'
+import { getTrainingProgram } from '../../data/training'
+import {
+  reconcileAgentTrainingCancelledFields,
+  reconcileAgentTrainingCompletedFields,
+  reconcileAgentTrainingStartedFields,
+} from '../../domain/sim/training'
 import { createDefaultAgentAssignmentState } from '../../domain/agentDefaults'
 import { normalizeAgent, reconcileAgentAssignmentAgainstGame } from '../../domain/agent/normalize'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
@@ -1053,41 +1058,6 @@ function sanitizeFiniteNumber(value: unknown, fallback: number) {
   }
 
   return fallback
-}
-
-function reconcileTrainingEventProgram(
-  trainingIdValue: unknown,
-  trainingNameValue: unknown
-): { trainingId: string; trainingName: string; fundingCost: number } {
-  const trainingIdCandidate = typeof trainingIdValue === 'string' ? trainingIdValue : undefined
-  const trainingNameCandidate =
-    typeof trainingNameValue === 'string' && trainingNameValue.trim().length > 0
-      ? trainingNameValue.trim()
-      : undefined
-
-  const matchedProgramById =
-    trainingIdCandidate && getTrainingProgram(trainingIdCandidate)
-      ? getTrainingProgram(trainingIdCandidate)
-      : undefined
-  const matchedProgramByName = trainingNameCandidate
-    ? trainingCatalog.find((program) => program.name === trainingNameCandidate)
-    : undefined
-  const fallbackProgram = trainingCatalog[0]
-  const program = matchedProgramById ?? matchedProgramByName ?? fallbackProgram
-
-  if (!program) {
-    return {
-      trainingId: 'combat-drills',
-      trainingName: trainingNameCandidate ?? 'Close-Quarters Drills',
-      fundingCost: 0,
-    }
-  }
-
-  return {
-    trainingId: program.trainingId,
-    trainingName: program.name,
-    fundingCost: program.fundingCost,
-  }
 }
 
 const ALLOWED_GAME_OVER_REASONS = new Set<string>(Object.values(GAME_OVER_REASONS))
@@ -7611,10 +7581,7 @@ function sanitizeOperationEvents(
 
       case 'agent.training_started':
         {
-          const trainingProgram = reconcileTrainingEventProgram(
-            payload.trainingId,
-            payload.trainingName
-          )
+          const training = reconcileAgentTrainingStartedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -7627,11 +7594,11 @@ function sanitizeOperationEvents(
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
                   typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
-                trainingId: trainingProgram.trainingId,
-                trainingName: trainingProgram.trainingName,
+                trainingId: training.trainingId,
+                trainingName: training.trainingName,
                 teamName: typeof payload.teamName === 'string' ? payload.teamName : undefined,
-                etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 1),
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+                etaWeeks: training.etaWeeks,
+                fundingCost: training.fundingCost,
               },
             })
           )
@@ -7640,10 +7607,7 @@ function sanitizeOperationEvents(
 
       case 'agent.training_completed':
         {
-          const trainingProgram = reconcileTrainingEventProgram(
-            payload.trainingId,
-            payload.trainingName
-          )
+          const training = reconcileAgentTrainingCompletedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -7656,8 +7620,8 @@ function sanitizeOperationEvents(
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
                   typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
-                trainingId: trainingProgram.trainingId,
-                trainingName: trainingProgram.trainingName,
+                trainingId: training.trainingId,
+                trainingName: training.trainingName,
               },
             })
           )
@@ -7666,10 +7630,7 @@ function sanitizeOperationEvents(
 
       case 'agent.training_cancelled':
         {
-          const trainingProgram = reconcileTrainingEventProgram(
-            payload.trainingId,
-            payload.trainingName
-          )
+          const training = reconcileAgentTrainingCancelledFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -7680,12 +7641,9 @@ function sanitizeOperationEvents(
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
                   typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
-                trainingId: trainingProgram.trainingId,
-                trainingName: trainingProgram.trainingName,
-                refund: Math.min(
-                  sanitizeInteger(payload.refund as number | undefined, 0, 0),
-                  trainingProgram.fundingCost
-                ),
+                trainingId: training.trainingId,
+                trainingName: training.trainingName,
+                refund: training.refund,
               },
             })
           )

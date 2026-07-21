@@ -55,7 +55,7 @@ import {
   BASE_STAT_MAX,
 } from '../models'
 import { applyBoundedDelta } from '../shared/modifiers'
-import { getTrainingProgram } from '../../data/training'
+import { getTrainingProgram, trainingCatalog } from '../../data/training'
 
 /**
  * Primary stat affinity per agent role. Training the affinity stat grants +1 extra statDelta.
@@ -76,6 +76,111 @@ export {
   reviewCertification,
   transitionCertification,
 } from './training-compat'
+
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
+/** Hydration / history: resolve trainingId/name against catalog (id, then name, then fallback). */
+export function reconcileTrainingEventProgram(
+  trainingIdValue: unknown,
+  trainingNameValue: unknown
+): { trainingId: string; trainingName: string; fundingCost: number } {
+  const trainingIdCandidate = typeof trainingIdValue === 'string' ? trainingIdValue : undefined
+  const trainingNameCandidate =
+    typeof trainingNameValue === 'string' && trainingNameValue.trim().length > 0
+      ? trainingNameValue.trim()
+      : undefined
+
+  const matchedProgramById =
+    trainingIdCandidate && getTrainingProgram(trainingIdCandidate)
+      ? getTrainingProgram(trainingIdCandidate)
+      : undefined
+  const matchedProgramByName = trainingNameCandidate
+    ? trainingCatalog.find((program) => program.name === trainingNameCandidate)
+    : undefined
+  const fallbackProgram = trainingCatalog[0]
+  const program = matchedProgramById ?? matchedProgramByName ?? fallbackProgram
+
+  if (!program) {
+    return {
+      trainingId: 'combat-drills',
+      trainingName: trainingNameCandidate ?? 'Close-Quarters Drills',
+      fundingCost: 0,
+    }
+  }
+
+  return {
+    trainingId: program.trainingId,
+    trainingName: program.name,
+    fundingCost: program.fundingCost,
+  }
+}
+
+/** Hydration / history: catalog program + finite positive etaWeeks + nonnegative fundingCost. */
+export function reconcileAgentTrainingStartedFields(payload: {
+  trainingId?: unknown
+  trainingName?: unknown
+  etaWeeks?: unknown
+  fundingCost?: unknown
+}) {
+  const program = reconcileTrainingEventProgram(payload.trainingId, payload.trainingName)
+
+  return {
+    trainingId: program.trainingId,
+    trainingName: program.trainingName,
+    etaWeeks: Math.max(1, Math.trunc(coerceFiniteNumber(payload.etaWeeks, 1))),
+    fundingCost: Math.max(0, Math.trunc(coerceFiniteNumber(payload.fundingCost, 0))),
+  }
+}
+
+/** Hydration / history: catalog program ids/names only. */
+export function reconcileAgentTrainingCompletedFields(payload: {
+  trainingId?: unknown
+  trainingName?: unknown
+}) {
+  const program = reconcileTrainingEventProgram(payload.trainingId, payload.trainingName)
+
+  return {
+    trainingId: program.trainingId,
+    trainingName: program.trainingName,
+  }
+}
+
+/** Hydration / history: catalog program + refund clamped to program fundingCost. */
+export function reconcileAgentTrainingCancelledFields(payload: {
+  trainingId?: unknown
+  trainingName?: unknown
+  refund?: unknown
+}) {
+  const program = reconcileTrainingEventProgram(payload.trainingId, payload.trainingName)
+  const refund = Math.min(
+    Math.max(0, Math.trunc(coerceFiniteNumber(payload.refund, 0))),
+    program.fundingCost
+  )
+
+  return {
+    trainingId: program.trainingId,
+    trainingName: program.trainingName,
+    refund,
+  }
+}
 
 export function getTrainingAptitudeBonus(agentRole: AgentRole, targetStat: StatKey): number {
   if (agentRole === 'field_recon' && (targetStat === 'investigation' || targetStat === 'utility')) {

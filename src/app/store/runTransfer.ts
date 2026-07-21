@@ -7714,17 +7714,7 @@ function sanitizeOperationEvents(
                 previousValue: relationship.previousValue,
                 nextValue: relationship.nextValue,
                 delta: relationship.delta,
-                reason:
-                  payload.reason === 'mission_success' ||
-                  payload.reason === 'mission_partial' ||
-                  payload.reason === 'mission_fail' ||
-                  payload.reason === 'passive_drift' ||
-                  payload.reason === 'external_event' ||
-                  payload.reason === 'reconciliation' ||
-                  payload.reason === 'spontaneous_event' ||
-                  payload.reason === 'betrayal'
-                    ? payload.reason
-                    : 'passive_drift',
+                reason: relationship.reason,
               },
             })
           )

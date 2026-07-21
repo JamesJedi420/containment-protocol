@@ -1203,17 +1203,6 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
             ? {
                 ...entry.payload,
                 ...reconcileAgentRelationshipChangedFields(entry.payload),
-                reason:
-                  entry.payload.reason === 'mission_success' ||
-                  entry.payload.reason === 'mission_partial' ||
-                  entry.payload.reason === 'mission_fail' ||
-                  entry.payload.reason === 'passive_drift' ||
-                  entry.payload.reason === 'external_event' ||
-                  entry.payload.reason === 'reconciliation' ||
-                  entry.payload.reason === 'spontaneous_event' ||
-                  entry.payload.reason === 'betrayal'
-                    ? entry.payload.reason
-                    : 'passive_drift',
               }
             : entry.payload
   const validation = validateOperationEventPayload(eventType, payload)

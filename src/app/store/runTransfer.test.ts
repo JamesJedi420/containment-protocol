@@ -10266,7 +10266,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               outputId: 'stale-output',
               outputName: 'Stale Output',
               outputQuantity: Number.NaN,
-              fundingCost: Number.NaN,
+              fundingCost: scaledFundingCost,
               inputMaterials: [],
             },
           },
@@ -10287,7 +10287,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         outputId: recipe.outputItemId,
         outputName: recipe.outputItemName,
         outputQuantity: 1,
-        fundingCost: 0,
+        fundingCost: scaledFundingCost,
       })
     })
 

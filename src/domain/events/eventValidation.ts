@@ -8,6 +8,8 @@ const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
+const finiteNumberSchema = z.number().finite()
+const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -270,12 +272,23 @@ const agentRelationshipChangedSchema = z
     agentName: z.string(),
     counterpartId: idSchema,
     counterpartName: z.string(),
-    previousValue: z.number(),
-    nextValue: z.number(),
-    delta: z.number(),
+    previousValue: finiteChemistryValueSchema,
+    nextValue: finiteChemistryValueSchema,
+    delta: finiteNumberSchema,
     reason: relationshipReasonSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    const expectedDelta = Math.round((payload.nextValue - payload.previousValue) * 100) / 100
+
+    if (payload.delta !== expectedDelta) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'delta must equal nextValue - previousValue (rounded to two decimals)',
+        path: ['delta'],
+      })
+    }
+  })
 
 const agentInstructorAssignedSchema = z
   .object({

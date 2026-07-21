@@ -186,6 +186,7 @@ import {
   reconcileProgressionXpGainedFields,
 } from '../../domain/progression'
 import { reconcileAgentBetrayedFields } from '../../domain/sim/betrayal'
+import { reconcileAgentRelationshipChangedFields } from '../../domain/sim/relationshipProjection'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
 import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
@@ -1086,14 +1087,6 @@ function reconcileTrainingEventProgram(
     trainingName: program.name,
     fundingCost: program.fundingCost,
   }
-}
-
-function sanitizeRelationshipValue(value: unknown, fallback: number) {
-  return clamp(sanitizeFiniteNumber(value, fallback), -2, 2)
-}
-
-function reconcileRelationshipDelta(previousValue: number, nextValue: number) {
-  return Math.round((nextValue - previousValue) * 100) / 100
 }
 
 const ALLOWED_GAME_OVER_REASONS = new Set<string>(Object.values(GAME_OVER_REASONS))
@@ -7700,8 +7693,7 @@ function sanitizeOperationEvents(
 
       case 'agent.relationship_changed':
         {
-          const previousValue = sanitizeRelationshipValue(payload.previousValue, 0)
-          const nextValue = sanitizeRelationshipValue(payload.nextValue, 0)
+          const relationship = reconcileAgentRelationshipChangedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -7719,20 +7711,10 @@ function sanitizeOperationEvents(
                   typeof payload.counterpartName === 'string'
                     ? payload.counterpartName
                     : `Counterpart ${index + 1}`,
-                previousValue,
-                nextValue,
-                delta: reconcileRelationshipDelta(previousValue, nextValue),
-                reason:
-                  payload.reason === 'mission_success' ||
-                  payload.reason === 'mission_partial' ||
-                  payload.reason === 'mission_fail' ||
-                  payload.reason === 'passive_drift' ||
-                  payload.reason === 'external_event' ||
-                  payload.reason === 'reconciliation' ||
-                  payload.reason === 'spontaneous_event' ||
-                  payload.reason === 'betrayal'
-                    ? payload.reason
-                    : 'passive_drift',
+                previousValue: relationship.previousValue,
+                nextValue: relationship.nextValue,
+                delta: relationship.delta,
+                reason: relationship.reason,
               },
             })
           )

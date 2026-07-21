@@ -10229,6 +10229,68 @@ describe('runTransfer import sanitization (326-332)', () => {
       ).toBe(false)
     })
 
+    it('SPE-2659 reconciles production queue numerics and preserves scaled fundingCost', () => {
+      const fallback = createStartingState()
+      const recipe = getProductionRecipe('ward-seals')!
+      const scaledFundingCost = recipe.baseFundingCost * 3
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-production-started-2659',
+            type: 'production.queue_started',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              queueId: 'q-2659',
+              queueName: 'Queue',
+              recipeId: 'ward-seals',
+              outputId: 'stale-output',
+              outputName: 'Stale Output',
+              outputQuantity: -2.7,
+              etaWeeks: 0,
+              fundingCost: scaledFundingCost,
+              inputMaterials: [],
+            },
+          },
+          {
+            id: 'evt-production-completed-2659',
+            type: 'production.queue_completed',
+            timestamp: buildOperationEventTimestamp(2, 1),
+            payload: {
+              week: 2,
+              queueId: 'q-2659',
+              queueName: 'Queue',
+              recipeId: 'ward-seals',
+              outputId: 'stale-output',
+              outputName: 'Stale Output',
+              outputQuantity: Number.NaN,
+              fundingCost: Number.NaN,
+              inputMaterials: [],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events).toHaveLength(2)
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        recipeId: 'ward-seals',
+        outputId: recipe.outputItemId,
+        outputName: recipe.outputItemName,
+        outputQuantity: 1,
+        etaWeeks: 1,
+        fundingCost: scaledFundingCost,
+      })
+      expect(hydrated.events[1]?.payload).toMatchObject({
+        recipeId: 'ward-seals',
+        outputId: recipe.outputItemId,
+        outputName: recipe.outputItemName,
+        outputQuantity: 1,
+        fundingCost: 0,
+      })
+    })
+
     it('510b keeps only catalog-backed nonnegative integer material rows for legacy unknown-recipe production events', () => {
       const fallback = createStartingState()
 

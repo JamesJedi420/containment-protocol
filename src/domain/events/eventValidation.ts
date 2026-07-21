@@ -511,9 +511,9 @@ const productionQueueStartedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    etaWeeks: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    etaWeeks: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()
@@ -526,8 +526,8 @@ const productionQueueCompletedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()

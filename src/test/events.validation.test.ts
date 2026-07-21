@@ -785,4 +785,119 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it('accepts consistent production.queue_started payloads', () => {
+    const validation = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('accepts consistent production.queue_completed payloads', () => {
+    const validation = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('rejects production.queue_started payloads with non-finite numerics', () => {
+    const nanEta = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: Number.NaN,
+    })
+    const infiniteFunding = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: Number.POSITIVE_INFINITY,
+    })
+    const nanQuantity = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: Number.NaN,
+    })
+
+    expect(nanEta.success).toBe(false)
+    expect(infiniteFunding.success).toBe(false)
+    expect(nanQuantity.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with negative or zero etaWeeks', () => {
+    const negative = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: -1,
+    })
+    const zero = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: 0,
+    })
+
+    expect(negative.success).toBe(false)
+    expect(zero.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with negative fundingCost', () => {
+    const validation = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with zero or negative outputQuantity', () => {
+    const zero = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: 0,
+    })
+    const negative = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: -2,
+    })
+
+    expect(zero.success).toBe(false)
+    expect(negative.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with fractional numerics', () => {
+    const fractionalEta = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: 1.5,
+    })
+    const fractionalFunding = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: 2.5,
+    })
+    const fractionalQuantity = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: 1.25,
+    })
+
+    expect(fractionalEta.success).toBe(false)
+    expect(fractionalFunding.success).toBe(false)
+    expect(fractionalQuantity.success).toBe(false)
+  })
+
+  it('rejects production.queue_completed payloads with non-finite or invalid numerics', () => {
+    const nanFunding = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      fundingCost: Number.NaN,
+    })
+    const negativeFunding = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      fundingCost: -1,
+    })
+    const fractionalQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: 0.5,
+    })
+    const zeroQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: 0,
+    })
+
+    expect(nanFunding.success).toBe(false)
+    expect(negativeFunding.success).toBe(false)
+    expect(fractionalQuantity.success).toBe(false)
+    expect(zeroQuantity.success).toBe(false)
+  })
 })

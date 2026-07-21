@@ -12,6 +12,10 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import {
+  reconcileProductionQueueCompletedFields,
+  reconcileProductionQueueStartedFields,
+} from '../../domain/sim/production'
+import {
   reconcileAgentTrainingCancelledFields,
   reconcileAgentTrainingCompletedFields,
   reconcileAgentTrainingStartedFields,
@@ -1364,38 +1368,6 @@ function reconcileMarketTotalPrice(
   const sanitized = sanitizeInteger(totalPrice as number | undefined, expected, 0)
 
   return sanitized === expected ? sanitized : expected
-}
-
-function reconcileProductionEventRecipeOutput(
-  recipeIdValue: unknown,
-  outputIdValue: unknown,
-  outputNameValue: unknown
-): { recipeId: string; outputId: string; outputName: string } {
-  const recipeById =
-    typeof recipeIdValue === 'string' && getProductionRecipe(recipeIdValue)
-      ? getProductionRecipe(recipeIdValue)
-      : undefined
-  const recipe = recipeById ?? undefined
-
-  if (!recipe) {
-    const fallbackOutputId = typeof outputIdValue === 'string' ? outputIdValue : 'output-1'
-    const fallbackOutputName =
-      typeof outputNameValue === 'string' && outputNameValue.trim().length > 0
-        ? outputNameValue.trim()
-        : (inventoryItemLabels[fallbackOutputId] ?? 'Output 1')
-
-    return {
-      recipeId: typeof recipeIdValue === 'string' ? recipeIdValue : 'recipe-1',
-      outputId: fallbackOutputId,
-      outputName: fallbackOutputName,
-    }
-  }
-
-  return {
-    recipeId: recipe.recipeId,
-    outputId: recipe.outputItemId,
-    outputName: recipe.outputItemName,
-  }
 }
 
 function sanitizeOperationEventMarketProcurementAllocation(value: unknown) {
@@ -7989,11 +7961,7 @@ function sanitizeOperationEvents(
 
       case 'production.queue_started':
         {
-          const productionOutput = reconcileProductionEventRecipeOutput(
-            payload.recipeId,
-            payload.outputId,
-            payload.outputName
-          )
+          const production = reconcileProductionQueueStartedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8004,12 +7972,12 @@ function sanitizeOperationEvents(
                   typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
                 queueName:
                   typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
-                recipeId: productionOutput.recipeId,
-                outputId: productionOutput.outputId,
-                outputName: productionOutput.outputName,
-                outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
-                etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 0),
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+                recipeId: production.recipeId,
+                outputId: production.outputId,
+                outputName: production.outputName,
+                outputQuantity: production.outputQuantity,
+                etaWeeks: production.etaWeeks,
+                fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
               },
             })
@@ -8019,11 +7987,7 @@ function sanitizeOperationEvents(
 
       case 'production.queue_completed':
         {
-          const productionOutput = reconcileProductionEventRecipeOutput(
-            payload.recipeId,
-            payload.outputId,
-            payload.outputName
-          )
+          const production = reconcileProductionQueueCompletedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8034,11 +7998,11 @@ function sanitizeOperationEvents(
                   typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
                 queueName:
                   typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
-                recipeId: productionOutput.recipeId,
-                outputId: productionOutput.outputId,
-                outputName: productionOutput.outputName,
-                outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+                recipeId: production.recipeId,
+                outputId: production.outputId,
+                outputName: production.outputName,
+                outputQuantity: production.outputQuantity,
+                fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
               },
             })

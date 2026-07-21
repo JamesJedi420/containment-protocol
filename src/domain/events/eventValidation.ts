@@ -1,5 +1,6 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
+import { getCanonicalMarketCostMultiplier } from '../market'
 import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
 
@@ -538,9 +539,19 @@ const marketShiftedSchema = z
     featuredRecipeId: z.string(),
     featuredRecipeName: z.string(),
     pressure: z.enum(['tight', 'stable', 'discounted']),
-    costMultiplier: z.number(),
+    costMultiplier: finiteNonNegativeNumberSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(payload.pressure)
+    if (payload.costMultiplier !== canonicalCostMultiplier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `costMultiplier must equal canonical multiplier for pressure (${canonicalCostMultiplier})`,
+        path: ['costMultiplier'],
+      })
+    }
+  })
 
 const marketTransactionListingResourceStatusSchema = z
   .object({

@@ -152,7 +152,6 @@ import {
   type GameConfig,
   type GameState,
   type Id,
-  type MarketPressure,
   type MarketState,
   type MissionResolutionKind,
   type MissionRewardBreakdown,
@@ -186,8 +185,7 @@ import {
 } from '../../domain/procurementEmergencyAuthority'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import {
-  getCanonicalMarketCostMultiplier,
-  sanitizeFeaturedRecipeId,
+  reconcileMarketShiftedFields,
   sanitizePersistedMarketState,
 } from '../../domain/market'
 import {
@@ -367,7 +365,6 @@ const INFILTRATION_COVER_ROLES = [
   'official_inspector',
 ] as const
 const CONCEALMENT_MODES = ['hidden', 'displaced'] as const
-const MARKET_PRESSURES: MarketPressure[] = ['discounted', 'stable', 'tight']
 const RECRUIT_CATEGORIES = [
   'agent',
   'staff',
@@ -2468,38 +2465,6 @@ function sanitizeOperationEventCaseKind(value: unknown): CaseKind {
 
 function sanitizeOperationEventCaseMode(value: unknown): CaseMode {
   return isOneOf(value, CASE_MODES) ? value : 'threshold'
-}
-
-/** Hydration 586–587: market.shifted catalog + canonical pressure multiplier (aligned with 454). */
-function reconcileMarketShiftedFields(
-  payload: Record<string, unknown>,
-  fallbackFeaturedRecipeId: string
-) {
-  const pressure = isOneOf(payload.pressure, MARKET_PRESSURES) ? payload.pressure : 'stable'
-  const featuredRecipeId = sanitizeFeaturedRecipeId(
-    payload.featuredRecipeId,
-    fallbackFeaturedRecipeId
-  )
-  const recipe = getProductionRecipe(featuredRecipeId)
-  const catalogName = recipe?.name ?? featuredRecipeId
-  const featuredRecipeName =
-    typeof payload.featuredRecipeName === 'string' &&
-    payload.featuredRecipeName.trim() === catalogName
-      ? payload.featuredRecipeName.trim()
-      : catalogName
-  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
-  const boundedCostMultiplier = sanitizeFiniteDecimalPreservePrecision(
-    payload.costMultiplier as number | undefined,
-    canonicalCostMultiplier,
-    0.5,
-    2
-  )
-  const costMultiplier =
-    boundedCostMultiplier === canonicalCostMultiplier
-      ? boundedCostMultiplier
-      : canonicalCostMultiplier
-
-  return { featuredRecipeId, featuredRecipeName, pressure, costMultiplier }
 }
 
 /** Hydration 588: reconcile fallout tick outcome with risk and before/after metrics. */

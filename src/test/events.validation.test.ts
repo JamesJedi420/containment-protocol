@@ -641,4 +641,148 @@ describe('event payload validation coverage', () => {
       expect(validation.success).toBe(false)
     }
   )
+
+  it('accepts consistent agent.training_started payloads', () => {
+    const validation = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('accepts consistent agent.training_completed payloads', () => {
+    const validation = validateOperationEventPayload('agent.training_completed', {
+      ...minimalOperationEventPayloads['agent.training_completed'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('accepts consistent agent.training_cancelled payloads', () => {
+    const validation = validateOperationEventPayload('agent.training_cancelled', {
+      ...minimalOperationEventPayloads['agent.training_cancelled'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('rejects agent.training_started payloads with non-finite numerics', () => {
+    const nanEta = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      etaWeeks: Number.NaN,
+    })
+    const infiniteFunding = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      fundingCost: Number.POSITIVE_INFINITY,
+    })
+
+    expect(nanEta.success).toBe(false)
+    expect(infiniteFunding.success).toBe(false)
+  })
+
+  it('rejects agent.training_started payloads with negative or zero etaWeeks', () => {
+    const negative = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      etaWeeks: -1,
+    })
+    const zero = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      etaWeeks: 0,
+    })
+
+    expect(negative.success).toBe(false)
+    expect(zero.success).toBe(false)
+  })
+
+  it('rejects agent.training_started payloads with negative fundingCost', () => {
+    const validation = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      fundingCost: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.training_started payloads with fractional numerics', () => {
+    const fractionalEta = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      etaWeeks: 1.5,
+    })
+    const fractionalFunding = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      fundingCost: 2.5,
+    })
+
+    expect(fractionalEta.success).toBe(false)
+    expect(fractionalFunding.success).toBe(false)
+  })
+
+  it('rejects agent.training_started payloads with blank trainingId', () => {
+    const validation = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingId: '',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.training_started payloads with whitespace-only trainingId or trainingName', () => {
+    const blankId = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingId: '   ',
+    })
+    const blankName = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingName: '   ',
+    })
+    const untrimmedId = validateOperationEventPayload('agent.training_started', {
+      ...minimalOperationEventPayloads['agent.training_started'],
+      trainingId: ' combat-drills ',
+    })
+
+    expect(blankId.success).toBe(false)
+    expect(blankName.success).toBe(false)
+    expect(untrimmedId.success).toBe(false)
+  })
+
+  it('rejects agent.training_cancelled payloads with non-finite refund', () => {
+    const nanRefund = validateOperationEventPayload('agent.training_cancelled', {
+      ...minimalOperationEventPayloads['agent.training_cancelled'],
+      refund: Number.NaN,
+    })
+    const infiniteRefund = validateOperationEventPayload('agent.training_cancelled', {
+      ...minimalOperationEventPayloads['agent.training_cancelled'],
+      refund: Number.POSITIVE_INFINITY,
+    })
+
+    expect(nanRefund.success).toBe(false)
+    expect(infiniteRefund.success).toBe(false)
+  })
+
+  it('rejects agent.training_cancelled payloads with negative refund', () => {
+    const validation = validateOperationEventPayload('agent.training_cancelled', {
+      ...minimalOperationEventPayloads['agent.training_cancelled'],
+      refund: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.training_cancelled payloads with fractional refund', () => {
+    const validation = validateOperationEventPayload('agent.training_cancelled', {
+      ...minimalOperationEventPayloads['agent.training_cancelled'],
+      refund: 1.5,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects agent.training_completed payloads with blank trainingName', () => {
+    const validation = validateOperationEventPayload('agent.training_completed', {
+      ...minimalOperationEventPayloads['agent.training_completed'],
+      trainingName: '',
+    })
+
+    expect(validation.success).toBe(false)
+  })
 })

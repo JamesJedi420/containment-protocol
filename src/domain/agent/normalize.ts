@@ -34,6 +34,11 @@ import {
 } from '../sim/betrayal'
 import { reconcileAgentInstructorAssignmentFields } from '../sim/instructorAssignment'
 import { reconcileAgentRelationshipChangedFields } from '../sim/relationshipProjection'
+import {
+  reconcileAgentTrainingCancelledFields,
+  reconcileAgentTrainingCompletedFields,
+  reconcileAgentTrainingStartedFields,
+} from '../sim/training'
 import { ATTRITION_CALIBRATION } from '../sim/calibration'
 import { getTrainingProgram, trainingCatalog } from '../../data/training'
 import { getCertificationDefinitions } from '../sim/training-compat'
@@ -1211,7 +1216,22 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
                   ...entry.payload,
                   ...reconcileAgentInstructorAssignmentFields(entry.payload),
                 }
-              : entry.payload
+              : eventType === 'agent.training_started'
+                ? {
+                    ...entry.payload,
+                    ...reconcileAgentTrainingStartedFields(entry.payload),
+                  }
+                : eventType === 'agent.training_completed'
+                  ? {
+                      ...entry.payload,
+                      ...reconcileAgentTrainingCompletedFields(entry.payload),
+                    }
+                  : eventType === 'agent.training_cancelled'
+                    ? {
+                        ...entry.payload,
+                        ...reconcileAgentTrainingCancelledFields(entry.payload),
+                      }
+                    : entry.payload
   const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {

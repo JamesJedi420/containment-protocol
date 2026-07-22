@@ -1158,4 +1158,17 @@ describe('event payload validation coverage', () => {
     expect(doubleCounted.success).toBe(false)
     expect(doubleCounted.error).toMatch(/totalPrice must equal/)
   })
+
+  it('rejects market.transaction_recorded payloads whose cent product overflows', () => {
+    const overflow = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      unitPrice: 1e307,
+      quantity: 2,
+      bundleCount: 1,
+      totalPrice: 1e307,
+    })
+
+    expect(overflow.success).toBe(false)
+    expect(overflow.error).toMatch(/finite cent precision/)
+  })
 })

@@ -648,6 +648,15 @@ const marketTransactionRecordedSchema = z
     // Compare in integer cents to avoid float edge cases (e.g. 8.33 * 9).
     const productCents = Math.round(payload.unitPrice * payload.quantity * 100)
     const totalCents = Math.round(payload.totalPrice * 100)
+    // Finite schema fields can still overflow the cent product to Infinity.
+    if (!Number.isFinite(productCents) || !Number.isFinite(totalCents)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalPrice / unitPrice*quantity must stay within finite cent precision',
+        path: ['totalPrice'],
+      })
+      return
+    }
     const maxDriftCents = Math.max(1, payload.bundleCount)
     if (Math.abs(totalCents - productCents) > maxDriftCents) {
       context.addIssue({

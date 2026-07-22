@@ -32,5 +32,5 @@ Reject inconsistent `market.shifted` payloads at the operation-event validation 
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| Catalog membership / featuredRecipeId↔name consistency at validate | follow-on if needed | Acceptance is numerics + pressure↔multiplier; hydrate already reconciles catalog ids/names. Producer catalog checks would couple schema to `productionCatalog`. |
+| Catalog membership / featuredRecipeId↔name consistency at validate | [SPE-2661](https://linear.app/spectranoir/issue/SPE-2661/harden-marketshifted-catalog-membership-featuredrecipeidname) | Deferred from SPE-2660 numerics slice; follow-on owns strict membership + id↔name at validate. |
 | Broader `market.transaction_*` schema hardening | follow-on if needed | Out of slice boundary; backlog primary remains none. |

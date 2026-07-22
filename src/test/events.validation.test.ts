@@ -984,4 +984,36 @@ describe('event payload validation coverage', () => {
     expect(discountedMismatch.success).toBe(false)
     expect(outOfBand.success).toBe(false)
   })
+
+  it('rejects market.shifted payloads with unknown featuredRecipeId', () => {
+    const unknown = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'phantom-recipe',
+      featuredRecipeName: 'Phantom Recipe',
+    })
+
+    expect(unknown.success).toBe(false)
+  })
+
+  it('rejects market.shifted payloads with featuredRecipeId/name mismatch', () => {
+    const mismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'ward-seals',
+      featuredRecipeName: 'Wrong Label',
+    })
+
+    expect(mismatch.success).toBe(false)
+  })
+
+  it('accepts market.shifted payloads with catalog-valid featured recipe id and name', () => {
+    const valid = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'med-kits',
+      featuredRecipeName: 'Emergency Medkits',
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
+
+    expect(valid.success).toBe(true)
+  })
 })

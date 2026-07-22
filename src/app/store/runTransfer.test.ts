@@ -58,6 +58,7 @@ import { buildHavenSchedule } from '../../domain/settlements/haven'
 import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { generateHubState } from '../../domain/hub/hubState'
+import { placeDelayedMarketOrder } from '../../domain/sim/market'
 
 describe('runTransfer helpers', () => {
   it('preserves fallback affiliation file work queue evidence repair workflows for older saves', () => {
@@ -475,6 +476,49 @@ describe('runTransfer helpers', () => {
       },
     ])
     expect(roundTripped.market).toEqual(game.market)
+  })
+
+  it('preserves delayed supplier order and fulfillment actions on import hydration', () => {
+    const ordered = placeDelayedMarketOrder(createStartingState(), 'gear:field_plate', 1)
+    const orderEvent = ordered.events.at(-1)
+
+    expect(orderEvent?.type).toBe('market.transaction_recorded')
+    if (orderEvent?.type !== 'market.transaction_recorded') {
+      throw new Error('Expected delayed supplier order to record a market transaction')
+    }
+    expect(orderEvent.payload.action).toBe('order')
+
+    const fulfillmentWeek = ordered.week + 1
+    const gameWithFulfillment = {
+      ...ordered,
+      week: fulfillmentWeek,
+      market: {
+        ...ordered.market,
+        week: fulfillmentWeek,
+      },
+      events: [
+        ...ordered.events,
+        {
+          ...orderEvent,
+          id: 'event-market-fulfill-test',
+          timestamp: buildOperationEventTimestamp(fulfillmentWeek, 2),
+          payload: {
+            ...orderEvent.payload,
+            week: fulfillmentWeek,
+            marketWeek: fulfillmentWeek,
+            transactionId: 'market-fulfill-test',
+            action: 'fulfill' as const,
+          },
+        },
+      ],
+    }
+
+    const roundTripped = parseRunExport(serializeRunExport(gameWithFulfillment))
+    const marketActions = roundTripped.events
+      .filter((event) => event.type === 'market.transaction_recorded')
+      .map((event) => event.payload.action)
+
+    expect(marketActions).toEqual(['order', 'fulfill'])
   })
 
   it('round-trips agency progression unlocks and active protocols', () => {

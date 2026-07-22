@@ -384,7 +384,14 @@ const CASE_MODES = [
   'anomaly',
 ] as const satisfies readonly CaseMode[]
 const SCOUT_CONFIDENCES = ['low', 'medium', 'high', 'confirmed'] as const
-const MARKET_TRANSACTION_ACTIONS = ['buy', 'sell', 'favor_exchange', 'callable_obligation'] as const
+const MARKET_TRANSACTION_ACTIONS = [
+  'buy',
+  'sell',
+  'favor_exchange',
+  'callable_obligation',
+  'order',
+  'fulfill',
+] as const
 const MARKET_TRANSACTION_CATEGORIES = ['equipment', 'component', 'material'] as const
 const MARKET_TRANSACTION_RESOURCE_CLASSES = [
   'supplier_attention_slot',

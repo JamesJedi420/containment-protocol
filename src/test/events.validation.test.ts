@@ -1029,7 +1029,7 @@ describe('event payload validation coverage', () => {
     const validation = validateOperationEventPayload('market.transaction_recorded', {
       ...minimalOperationEventPayloads['market.transaction_recorded'],
     })
-    const zeroPrice = validateOperationEventPayload('market.transaction_recorded', {
+    const zeroFavor = validateOperationEventPayload('market.transaction_recorded', {
       ...minimalOperationEventPayloads['market.transaction_recorded'],
       action: 'favor_exchange',
       unitPrice: 0,
@@ -1038,9 +1038,37 @@ describe('event payload validation coverage', () => {
       favorExchangeFavorId: 'favor-min',
       favorExchangeLabel: 'Minimal favor',
     })
+    const zeroObligation = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      action: 'callable_obligation',
+      unitPrice: 0,
+      totalPrice: 0,
+      callableObligationFactionId: 'faction-min',
+      callableObligationFavorId: 'favor-min',
+      callableObligationLabel: 'Minimal obligation',
+    })
+    // Producer multi-bundle: quantity already includes bundles; do not * bundleCount.
+    const multiBundle = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      quantity: 3,
+      bundleCount: 3,
+      unitPrice: 10,
+      totalPrice: 30,
+    })
+    // Producer cent unitPrice with listing buyPrice not divisible by bundleQuantity.
+    const centUnitPrice = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      quantity: 3,
+      bundleCount: 1,
+      unitPrice: 8.33,
+      totalPrice: 25,
+    })
 
     expect(validation.success).toBe(true)
-    expect(zeroPrice.success).toBe(true)
+    expect(zeroFavor.success).toBe(true)
+    expect(zeroObligation.success).toBe(true)
+    expect(multiBundle.success).toBe(true)
+    expect(centUnitPrice.success).toBe(true)
   })
 
   it('rejects market.transaction_recorded payloads with non-finite or invalid numerics', () => {
@@ -1058,6 +1086,10 @@ describe('event payload validation coverage', () => {
       ...base,
       remainingAvailability: -1,
     })
+    const fractionalRemaining = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      remainingAvailability: 1.5,
+    })
     const zeroQuantity = validateOperationEventPayload('market.transaction_recorded', {
       ...base,
       quantity: 0,
@@ -1073,6 +1105,11 @@ describe('event payload validation coverage', () => {
       quantity: 1.5,
       totalPrice: 15,
     })
+    const fractionalBundle = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      bundleCount: 1.5,
+      totalPrice: 15,
+    })
     const negativeUnitPrice = validateOperationEventPayload('market.transaction_recorded', {
       ...base,
       unitPrice: -1,
@@ -1082,9 +1119,11 @@ describe('event payload validation coverage', () => {
     expect(nanQuantity.success).toBe(false)
     expect(infiniteUnitPrice.success).toBe(false)
     expect(negativeRemaining.success).toBe(false)
+    expect(fractionalRemaining.success).toBe(false)
     expect(zeroQuantity.success).toBe(false)
     expect(zeroBundle.success).toBe(false)
     expect(fractionalQuantity.success).toBe(false)
+    expect(fractionalBundle.success).toBe(false)
     expect(negativeUnitPrice.success).toBe(false)
   })
 
@@ -1096,17 +1135,18 @@ describe('event payload validation coverage', () => {
       bundleCount: 1,
       totalPrice: 999,
     })
-    const productMismatch = validateOperationEventPayload('market.transaction_recorded', {
+    // Double-counting bundles would wrongly accept this if * bundleCount were used.
+    const doubleCounted = validateOperationEventPayload('market.transaction_recorded', {
       ...minimalOperationEventPayloads['market.transaction_recorded'],
-      unitPrice: 5,
-      quantity: 2,
+      unitPrice: 10,
+      quantity: 3,
       bundleCount: 3,
-      totalPrice: 20,
+      totalPrice: 90,
     })
 
     expect(mismatch.success).toBe(false)
     expect(mismatch.error).toMatch(/totalPrice must equal/)
-    expect(productMismatch.success).toBe(false)
-    expect(productMismatch.error).toMatch(/totalPrice must equal/)
+    expect(doubleCounted.success).toBe(false)
+    expect(doubleCounted.error).toMatch(/totalPrice must equal/)
   })
 })

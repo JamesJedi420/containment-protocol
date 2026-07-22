@@ -625,11 +625,11 @@ const marketTransactionRecordedSchema = z
     itemId: z.string(),
     itemName: z.string(),
     category: z.enum(['equipment', 'component', 'material']),
-    // SPE-2662: finite nonnegative/positive ints; hydrate reconciles before validate.
+    // SPE-2662: qty/bundle positive ints; prices finite nonnegative (cents allowed).
     quantity: finitePositiveIntSchema,
     bundleCount: finitePositiveIntSchema,
-    unitPrice: finiteNonNegativeIntSchema,
-    totalPrice: finiteNonNegativeIntSchema,
+    unitPrice: finiteNonNegativeNumberSchema,
+    totalPrice: finiteNonNegativeNumberSchema,
     remainingAvailability: finiteNonNegativeIntSchema,
     favorExchangeFactionId: z.string().optional(),
     favorExchangeFavorId: z.string().optional(),
@@ -643,12 +643,14 @@ const marketTransactionRecordedSchema = z
   })
   .strict()
   .superRefine((payload, context) => {
-    // Match hydrate reconcileMarketTotalPrice expected product (nonnegative ints).
-    const expectedTotalPrice = payload.unitPrice * payload.quantity * payload.bundleCount
-    if (payload.totalPrice !== expectedTotalPrice) {
+    // Producer semantics (sim/market): quantity already includes bundles; unitPrice is
+    // per-item (may be cents). totalPrice ≈ unitPrice * quantity within 1 cent.
+    // Do not multiply by bundleCount again.
+    const product = payload.unitPrice * payload.quantity
+    if (Math.abs(payload.totalPrice - product) > 0.01) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `totalPrice must equal unitPrice * quantity * bundleCount (${expectedTotalPrice})`,
+        message: `totalPrice must equal unitPrice * quantity within 1 cent (expected ~${product})`,
         path: ['totalPrice'],
       })
     }

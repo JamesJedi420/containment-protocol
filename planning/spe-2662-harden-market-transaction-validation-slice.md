@@ -39,6 +39,6 @@ Hydrate `reconcileMarketTotalPrice` still uses `unitPrice * quantity * bundleCou
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| Align hydrate `reconcileMarketTotalPrice` with producer `unitPrice * quantity` | follow-on if needed | Validate-only slice; hydrate rewrite policy unchanged. |
+| Align hydrate `reconcileMarketTotalPrice` with producer `unitPrice * quantity` | [SPE-2663](https://linear.app/spectranoir/issue/SPE-2663/align-hydrate-reconcilemarkettotalprice-with-producer) | Validate-only slice; hydrate rewrite policy deferred to SPE-2663. |
 | Catalog membership on `production.queue_*` recipeId | follow-on if needed | Alternate SPE-2661 Deferred; production schemas remain opaque-id tolerant. |
 | Allocation priority/delayWeeks + listing resource available/capacity at validate | follow-on if needed | Hydrate already clamps (SPE-2551/2552); out of this numeric/consistency slice. |

@@ -1361,10 +1361,27 @@ function reconcileMarketTotalPrice(
   bundleCount: number,
   totalPrice: unknown
 ) {
-  const expected = Math.max(0, Math.trunc(unitPrice * quantity * bundleCount))
-  const sanitized = sanitizeInteger(totalPrice as number | undefined, expected, 0)
+  // Producer semantics (sim/market): quantity already includes bundles; unitPrice is
+  // per-item (cents allowed). Match SPE-2662 validate: keep totalPrice when within
+  // ~1¢/bundle of unitPrice*quantity; otherwise rewrite to the cent-rounded product.
+  const productCents = Math.round(unitPrice * quantity * 100)
+  const expected = Math.max(0, productCents / 100)
+  const candidate =
+    typeof totalPrice === 'number' && Number.isFinite(totalPrice) && totalPrice >= 0
+      ? totalPrice
+      : expected
+  const totalCents = Math.round(candidate * 100)
 
-  return sanitized === expected ? sanitized : expected
+  if (!Number.isFinite(productCents) || !Number.isFinite(totalCents)) {
+    return expected
+  }
+
+  const maxDriftCents = Math.max(1, bundleCount)
+  if (Math.abs(totalCents - productCents) <= maxDriftCents) {
+    return candidate
+  }
+
+  return expected
 }
 
 function sanitizeOperationEventMarketProcurementAllocation(value: unknown) {
@@ -7996,7 +8013,12 @@ function sanitizeOperationEvents(
       case 'market.transaction_recorded': {
         const quantity = sanitizeInteger(payload.quantity as number | undefined, 1, 1)
         const bundleCount = sanitizeInteger(payload.bundleCount as number | undefined, 1, 1)
-        const unitPrice = sanitizeInteger(payload.unitPrice as number | undefined, 0, 0)
+        // SPE-2663: preserve cent unitPrice (producers round buyPrice/bundleQuantity).
+        const unitPrice = sanitizeFiniteDecimalPreservePrecision(
+          payload.unitPrice as number | undefined,
+          0,
+          0
+        )
         const totalPrice = reconcileMarketTotalPrice(
           unitPrice,
           quantity,

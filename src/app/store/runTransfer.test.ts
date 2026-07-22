@@ -10648,6 +10648,80 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('512 preserves producer multi-bundle totalPrice (unitPrice*quantity, not *bundleCount)', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-multi',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-multi',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 3,
+              bundleCount: 3,
+              unitPrice: 10,
+              totalPrice: 30,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 3,
+        bundleCount: 3,
+        unitPrice: 10,
+        totalPrice: 30,
+      })
+    })
+
+    it('512 preserves cent unitPrice totals within bundle drift', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-cents',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-cents',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 9,
+              bundleCount: 3,
+              unitPrice: 8.33,
+              totalPrice: 75,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 9,
+        bundleCount: 3,
+        unitPrice: 8.33,
+        totalPrice: 75,
+      })
+    })
+
     it('513 clamps emergency waiver accountability waiverGrantWeek below event week', () => {
       const fallback = createStartingState()
 

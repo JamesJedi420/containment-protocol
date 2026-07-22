@@ -1063,12 +1063,21 @@ describe('event payload validation coverage', () => {
       unitPrice: 8.33,
       totalPrice: 25,
     })
+    // Multi-bundle + cent unitPrice: 3¢ drift from 8.33*9 vs bundles*buyPrice.
+    const multiBundleCents = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      quantity: 9,
+      bundleCount: 3,
+      unitPrice: 8.33,
+      totalPrice: 75,
+    })
 
     expect(validation.success).toBe(true)
     expect(zeroFavor.success).toBe(true)
     expect(zeroObligation.success).toBe(true)
     expect(multiBundle.success).toBe(true)
     expect(centUnitPrice.success).toBe(true)
+    expect(multiBundleCents.success).toBe(true)
   })
 
   it('rejects market.transaction_recorded payloads with non-finite or invalid numerics', () => {

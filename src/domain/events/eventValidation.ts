@@ -644,13 +644,15 @@ const marketTransactionRecordedSchema = z
   .strict()
   .superRefine((payload, context) => {
     // Producer semantics (sim/market): quantity already includes bundles; unitPrice is
-    // per-item (may be cents). totalPrice ≈ unitPrice * quantity within 1 cent.
-    // Do not multiply by bundleCount again.
-    const product = payload.unitPrice * payload.quantity
-    if (Math.abs(payload.totalPrice - product) > 0.01) {
+    // per-item rounded to cents. Rounding can accumulate ~1¢ per bundle vs totalPrice.
+    // Compare in integer cents to avoid float edge cases (e.g. 8.33 * 9).
+    const productCents = Math.round(payload.unitPrice * payload.quantity * 100)
+    const totalCents = Math.round(payload.totalPrice * 100)
+    const maxDriftCents = Math.max(1, payload.bundleCount)
+    if (Math.abs(totalCents - productCents) > maxDriftCents) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `totalPrice must equal unitPrice * quantity within 1 cent (expected ~${product})`,
+        message: `totalPrice must equal unitPrice * quantity within ${maxDriftCents} cent(s) (expected ~${productCents / 100})`,
         path: ['totalPrice'],
       })
     }

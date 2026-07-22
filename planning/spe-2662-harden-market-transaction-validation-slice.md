@@ -11,7 +11,7 @@ Reject inconsistent `market.transaction_recorded` payloads at the operation-even
 
 - Harden `marketTransactionRecordedSchema` in `src/domain/events/eventValidation.ts`
 - Finite positive ints for `quantity` / `bundleCount`; finite nonnegative for `unitPrice` / `totalPrice` (cents allowed); finite nonnegative int for `remainingAvailability`
-- `superRefine` consistency: `|totalPrice - unitPrice * quantity| <= 0.01` (quantity already includes bundles; do not multiply by `bundleCount`)
+- `superRefine` consistency: integer-cent drift `|round(totalPrice*100) - round(unitPrice*quantity*100)| <= bundleCount` (quantity already includes bundles; ~1¢/bundle rounding)
 - Keep hydrate reconcile-before-validate; do not change sanitize rewrite policy this slice
 - Targeted validation tests (multi-bundle, cent unitPrice, zero-price favor/obligation)
 
@@ -30,7 +30,7 @@ Hydrate `reconcileMarketTotalPrice` still uses `unitPrice * quantity * bundleCou
 ## Acceptance
 
 - Reject non-finite, negative, zero-quantity/bundle, and fractional qty/bundle/remainingAvailability
-- Reject `totalPrice` outside 1 cent of `unitPrice * quantity`
+- Reject `totalPrice` outside `bundleCount` cents of `unitPrice * quantity` (integer-cent compare)
 - Accept producer-valid multi-bundle and cent-`unitPrice` payloads; zero-price favor / obligation rows
 - Hydrate still runs before validate (runTransfer case 512 policy preserved this slice)
 - Do not break minimal/producer fixtures without intentional fixture update

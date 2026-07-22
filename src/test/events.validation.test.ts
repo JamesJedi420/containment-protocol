@@ -254,6 +254,74 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(true)
   })
 
+  it('rejects market.emergency_gray_market_waiver_granted payloads with invalid crisisPressureScore', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_waiver_granted']
+    const nanScore = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
+      ...base,
+      crisisPressureScore: Number.NaN,
+    })
+    const infiniteScore = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        ...base,
+        crisisPressureScore: Number.POSITIVE_INFINITY,
+      }
+    )
+    const negativeScore = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        ...base,
+        crisisPressureScore: -1,
+      }
+    )
+    const fractionalScore = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        ...base,
+        crisisPressureScore: 1.5,
+      }
+    )
+
+    expect(nanScore.success).toBe(false)
+    expect(infiniteScore.success).toBe(false)
+    expect(negativeScore.success).toBe(false)
+    expect(fractionalScore.success).toBe(false)
+  })
+
+  it('rejects market.emergency_gray_market_fallout_tick payloads with non-finite funding or containment', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const nanFunding = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      fundingBefore: Number.NaN,
+    })
+    const infiniteFundingAfter = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        fundingAfter: Number.POSITIVE_INFINITY,
+      }
+    )
+    const nanContainment = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        containmentRatingBefore: Number.NaN,
+      }
+    )
+    const infiniteContainmentAfter = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        containmentRatingAfter: Number.NEGATIVE_INFINITY,
+      }
+    )
+
+    expect(nanFunding.success).toBe(false)
+    expect(infiniteFundingAfter.success).toBe(false)
+    expect(nanContainment.success).toBe(false)
+    expect(infiniteContainmentAfter.success).toBe(false)
+  })
+
   it('rejects case.aggregate_battle payloads missing battleId', () => {
     const payload: Record<string, unknown> = {
       ...minimalOperationEventPayloads['case.aggregate_battle'],

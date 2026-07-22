@@ -1,6 +1,7 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
-import { getCanonicalMarketCostMultiplier } from '../market'
+import { getProductionRecipe } from '../../data/production'
+import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
 import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
 
@@ -543,6 +544,30 @@ const marketShiftedSchema = z
   })
   .strict()
   .superRefine((payload, context) => {
+    // SPE-2661: catalog membership + id↔name (reuse sanitizeFeaturedRecipeId membership).
+    if (
+      sanitizeFeaturedRecipeId(payload.featuredRecipeId, payload.featuredRecipeId) !==
+      payload.featuredRecipeId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'featuredRecipeId must be a production catalog recipe id',
+        path: ['featuredRecipeId'],
+      })
+    } else {
+      const catalogName = getProductionRecipe(payload.featuredRecipeId)?.name
+      if (
+        typeof catalogName === 'string' &&
+        payload.featuredRecipeName.trim() !== catalogName
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `featuredRecipeName must match catalog name for featuredRecipeId (${catalogName})`,
+          path: ['featuredRecipeName'],
+        })
+      }
+    }
+
     const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(payload.pressure)
     if (payload.costMultiplier !== canonicalCostMultiplier) {
       context.addIssue({

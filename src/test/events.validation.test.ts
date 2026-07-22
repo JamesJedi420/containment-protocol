@@ -1257,4 +1257,104 @@ describe('event payload validation coverage', () => {
     expect(overflow.success).toBe(false)
     expect(overflow.error).toMatch(/finite cent precision/)
   })
+
+  it('accepts market.transaction_recorded allocation and listing bounds aligned with hydrate clamps', () => {
+    const base = minimalOperationEventPayloads['market.transaction_recorded']
+    const clampEdge = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: {
+        ...base.allocation,
+        priority: 10,
+        delayWeeks: 52,
+      },
+      allocations: [
+        {
+          ...base.allocation,
+          allocationId: 'alloc-edge',
+          priority: 0,
+          delayWeeks: 0,
+        },
+      ],
+      listingResourceStatuses: [
+        {
+          resourceClass: 'licensed_handling_capacity',
+          available: 0,
+          capacity: 0,
+        },
+        {
+          resourceClass: 'supplier_attention_slot',
+          available: 2,
+          capacity: 2,
+        },
+        // available without capacity is allowed (hydrate leaves available alone).
+        { resourceClass: 'reagent_stock', available: 10 },
+        { resourceClass: 'reagent_stock', capacity: 5 },
+      ],
+    })
+
+    expect(clampEdge.success).toBe(true)
+  })
+
+  it('rejects market.transaction_recorded payloads with out-of-bounds allocation priority or delayWeeks', () => {
+    const base = minimalOperationEventPayloads['market.transaction_recorded']
+    const priorityTooHigh = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: { ...base.allocation, priority: 11 },
+    })
+    const delayTooHigh = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: { ...base.allocation, delayWeeks: 53 },
+    })
+    const negativePriority = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: { ...base.allocation, priority: -1 },
+    })
+    const fractionalDelay = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: { ...base.allocation, delayWeeks: 1.5 },
+    })
+    const nanPriority = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocation: { ...base.allocation, priority: Number.NaN },
+    })
+    const allocationsPriorityTooHigh = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      allocations: [{ ...base.allocation, allocationId: 'alloc-bad', priority: 99 }],
+    })
+
+    expect(priorityTooHigh.success).toBe(false)
+    expect(delayTooHigh.success).toBe(false)
+    expect(negativePriority.success).toBe(false)
+    expect(fractionalDelay.success).toBe(false)
+    expect(nanPriority.success).toBe(false)
+    expect(allocationsPriorityTooHigh.success).toBe(false)
+  })
+
+  it('rejects market.transaction_recorded payloads with invalid listing available/capacity', () => {
+    const base = minimalOperationEventPayloads['market.transaction_recorded']
+    const availableOverCapacity = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      listingResourceStatuses: [
+        { resourceClass: 'supplier_attention_slot', available: 3, capacity: 2 },
+      ],
+    })
+    const negativeAvailable = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      listingResourceStatuses: [{ resourceClass: 'reagent_stock', available: -1 }],
+    })
+    const fractionalCapacity = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      listingResourceStatuses: [{ resourceClass: 'reagent_stock', capacity: 1.5 }],
+    })
+    const nanAvailable = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      listingResourceStatuses: [{ resourceClass: 'reagent_stock', available: Number.NaN }],
+    })
+
+    expect(availableOverCapacity.success).toBe(false)
+    expect(availableOverCapacity.error).toMatch(/available must be <= capacity/)
+    expect(negativeAvailable.success).toBe(false)
+    expect(fractionalCapacity.success).toBe(false)
+    expect(nanAvailable.success).toBe(false)
+  })
 })

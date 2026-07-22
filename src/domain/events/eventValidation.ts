@@ -624,6 +624,11 @@ const marketShiftedSchema = z
     }
   })
 
+// SPE-2665: align with runTransfer hydrate clamps (SPE-2551/2552). Validate rejects;
+// hydrate still clamps — do not drift these maxima without updating both sites.
+const MARKET_PROCUREMENT_ALLOCATION_PRIORITY_MAX = 10
+const MARKET_PROCUREMENT_ALLOCATION_DELAY_WEEKS_MAX = 52
+
 const marketTransactionListingResourceStatusSchema = z
   .object({
     resourceClass: z.enum([
@@ -633,11 +638,24 @@ const marketTransactionListingResourceStatusSchema = z
     ]),
     sourceId: z.string().optional(),
     label: z.string().optional(),
-    available: z.number().optional(),
-    capacity: z.number().optional(),
+    available: finiteNonNegativeIntSchema.optional(),
+    capacity: finiteNonNegativeIntSchema.optional(),
     allocations: z.array(z.string()).optional(),
   })
   .passthrough()
+  .superRefine((payload, context) => {
+    if (
+      payload.available !== undefined &&
+      payload.capacity !== undefined &&
+      payload.available > payload.capacity
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'available must be <= capacity when both are present',
+        path: ['available'],
+      })
+    }
+  })
 
 const procurementAllocationSchema = z
   .object({
@@ -653,8 +671,8 @@ const procurementAllocationSchema = z
     destinationLabel: z.string(),
     urgency: z.enum(['standard', 'contingency']),
     expectedBenefit: z.string(),
-    priority: z.number(),
-    delayWeeks: z.number(),
+    priority: finiteNonNegativeIntSchema.max(MARKET_PROCUREMENT_ALLOCATION_PRIORITY_MAX),
+    delayWeeks: finiteNonNegativeIntSchema.max(MARKET_PROCUREMENT_ALLOCATION_DELAY_WEEKS_MAX),
     displacedAlternativeUse: z.string().optional(),
     substitutionStatus: z.enum(['none', 'degraded_substitute']),
     substitutionSummary: z.string().optional(),

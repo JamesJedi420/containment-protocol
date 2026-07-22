@@ -625,11 +625,12 @@ const marketTransactionRecordedSchema = z
     itemId: z.string(),
     itemName: z.string(),
     category: z.enum(['equipment', 'component', 'material']),
-    quantity: z.number(),
-    bundleCount: z.number(),
-    unitPrice: z.number(),
-    totalPrice: z.number(),
-    remainingAvailability: z.number(),
+    // SPE-2662: finite nonnegative/positive ints; hydrate reconciles before validate.
+    quantity: finitePositiveIntSchema,
+    bundleCount: finitePositiveIntSchema,
+    unitPrice: finiteNonNegativeIntSchema,
+    totalPrice: finiteNonNegativeIntSchema,
+    remainingAvailability: finiteNonNegativeIntSchema,
     favorExchangeFactionId: z.string().optional(),
     favorExchangeFavorId: z.string().optional(),
     favorExchangeLabel: z.string().optional(),
@@ -641,6 +642,17 @@ const marketTransactionRecordedSchema = z
     allocations: z.array(procurementAllocationSchema).optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    // Match hydrate reconcileMarketTotalPrice expected product (nonnegative ints).
+    const expectedTotalPrice = payload.unitPrice * payload.quantity * payload.bundleCount
+    if (payload.totalPrice !== expectedTotalPrice) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `totalPrice must equal unitPrice * quantity * bundleCount (${expectedTotalPrice})`,
+        path: ['totalPrice'],
+      })
+    }
+  })
 
 const marketEmergencyGrayMarketWaiverGrantedSchema = z
   .object({

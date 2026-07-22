@@ -1024,4 +1024,89 @@ describe('event payload validation coverage', () => {
     expect(valid.success).toBe(true)
     expect(trimmedName.success).toBe(true)
   })
+
+  it('accepts consistent market.transaction_recorded payloads', () => {
+    const validation = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+    })
+    const zeroPrice = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      action: 'favor_exchange',
+      unitPrice: 0,
+      totalPrice: 0,
+      favorExchangeFactionId: 'faction-min',
+      favorExchangeFavorId: 'favor-min',
+      favorExchangeLabel: 'Minimal favor',
+    })
+
+    expect(validation.success).toBe(true)
+    expect(zeroPrice.success).toBe(true)
+  })
+
+  it('rejects market.transaction_recorded payloads with non-finite or invalid numerics', () => {
+    const base = minimalOperationEventPayloads['market.transaction_recorded']
+    const nanQuantity = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      quantity: Number.NaN,
+    })
+    const infiniteUnitPrice = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      unitPrice: Number.POSITIVE_INFINITY,
+      totalPrice: Number.POSITIVE_INFINITY,
+    })
+    const negativeRemaining = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      remainingAvailability: -1,
+    })
+    const zeroQuantity = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      quantity: 0,
+      totalPrice: 0,
+    })
+    const zeroBundle = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      bundleCount: 0,
+      totalPrice: 0,
+    })
+    const fractionalQuantity = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      quantity: 1.5,
+      totalPrice: 15,
+    })
+    const negativeUnitPrice = validateOperationEventPayload('market.transaction_recorded', {
+      ...base,
+      unitPrice: -1,
+      totalPrice: -1,
+    })
+
+    expect(nanQuantity.success).toBe(false)
+    expect(infiniteUnitPrice.success).toBe(false)
+    expect(negativeRemaining.success).toBe(false)
+    expect(zeroQuantity.success).toBe(false)
+    expect(zeroBundle.success).toBe(false)
+    expect(fractionalQuantity.success).toBe(false)
+    expect(negativeUnitPrice.success).toBe(false)
+  })
+
+  it('rejects market.transaction_recorded payloads with totalPrice inconsistency', () => {
+    const mismatch = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      unitPrice: 10,
+      quantity: 1,
+      bundleCount: 1,
+      totalPrice: 999,
+    })
+    const productMismatch = validateOperationEventPayload('market.transaction_recorded', {
+      ...minimalOperationEventPayloads['market.transaction_recorded'],
+      unitPrice: 5,
+      quantity: 2,
+      bundleCount: 3,
+      totalPrice: 20,
+    })
+
+    expect(mismatch.success).toBe(false)
+    expect(mismatch.error).toMatch(/totalPrice must equal/)
+    expect(productMismatch.success).toBe(false)
+    expect(productMismatch.error).toMatch(/totalPrice must equal/)
+  })
 })

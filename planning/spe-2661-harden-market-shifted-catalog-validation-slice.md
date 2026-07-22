@@ -34,4 +34,4 @@ Reject inconsistent `market.shifted` payloads at the operation-event validation 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
 | Broader `market.transaction_*` schema hardening | follow-on if needed | Out of slice boundary; backlog primary remains none. |
-| Catalog membership on production.queue_* recipeId | follow-on if needed | Out of slice; production schemas remain opaque-id tolerant. |
+| Catalog membership on production.queue_* recipeId | [SPE-2664](https://linear.app/spectranoir/issue/SPE-2664/harden-productionqueue-started-queue-completed-catalog-membership-for) | Out of slice; owned by SPE-2664 validate harden. |

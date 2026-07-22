@@ -61,7 +61,7 @@ describe('event feed search surfaces', () => {
     expect(views).toHaveLength(1)
     expect(views[0]?.event.id).toBe('evt-production-search')
 
-    const payloadPhrase = 'recipe-min'
+    const payloadPhrase = 'ward-seals'
     expect(queryEvents(index, { query: payloadPhrase })).toHaveLength(1)
     expect(views.filter((view) => view.searchText.includes(payloadPhrase))).toHaveLength(1)
   })

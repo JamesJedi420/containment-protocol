@@ -625,11 +625,12 @@ const marketTransactionRecordedSchema = z
     itemId: z.string(),
     itemName: z.string(),
     category: z.enum(['equipment', 'component', 'material']),
-    quantity: z.number(),
-    bundleCount: z.number(),
-    unitPrice: z.number(),
-    totalPrice: z.number(),
-    remainingAvailability: z.number(),
+    // SPE-2662: qty/bundle positive ints; prices finite nonnegative (cents allowed).
+    quantity: finitePositiveIntSchema,
+    bundleCount: finitePositiveIntSchema,
+    unitPrice: finiteNonNegativeNumberSchema,
+    totalPrice: finiteNonNegativeNumberSchema,
+    remainingAvailability: finiteNonNegativeIntSchema,
     favorExchangeFactionId: z.string().optional(),
     favorExchangeFavorId: z.string().optional(),
     favorExchangeLabel: z.string().optional(),
@@ -641,6 +642,30 @@ const marketTransactionRecordedSchema = z
     allocations: z.array(procurementAllocationSchema).optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    // Producer semantics (sim/market): quantity already includes bundles; unitPrice is
+    // per-item rounded to cents. Rounding can accumulate ~1¢ per bundle vs totalPrice.
+    // Compare in integer cents to avoid float edge cases (e.g. 8.33 * 9).
+    const productCents = Math.round(payload.unitPrice * payload.quantity * 100)
+    const totalCents = Math.round(payload.totalPrice * 100)
+    // Finite schema fields can still overflow the cent product to Infinity.
+    if (!Number.isFinite(productCents) || !Number.isFinite(totalCents)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalPrice / unitPrice*quantity must stay within finite cent precision',
+        path: ['totalPrice'],
+      })
+      return
+    }
+    const maxDriftCents = Math.max(1, payload.bundleCount)
+    if (Math.abs(totalCents - productCents) > maxDriftCents) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `totalPrice must equal unitPrice * quantity within ${maxDriftCents} cent(s) (expected ~${productCents / 100})`,
+        path: ['totalPrice'],
+      })
+    }
+  })
 
 const marketEmergencyGrayMarketWaiverGrantedSchema = z
   .object({

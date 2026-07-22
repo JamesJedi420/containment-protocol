@@ -35,5 +35,5 @@ Reject unknown `production.queue_started` / `production.queue_completed` payload
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| Allocation priority/delayWeeks + listing resource available/capacity at validate | follow-on if needed | Hydrate already clamps (SPE-2551/2552); out of this production-queue catalog slice. |
+| Allocation priority/delayWeeks + listing resource available/capacity at validate | [SPE-2665](https://linear.app/spectranoir/issue/SPE-2665/harden-markettransaction-recorded-allocation-prioritydelayweeks) | Hydrate already clamps (SPE-2551/2552); owned by SPE-2665 validate harden. |
 | Hydrate rewrite of opaque production queue recipe ids | keep current | This slice is validate-only; hydrate reconcile stays opaque-id tolerant. |

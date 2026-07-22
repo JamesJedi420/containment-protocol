@@ -322,6 +322,77 @@ describe('event payload validation coverage', () => {
     expect(infiniteContainmentAfter.success).toBe(false)
   })
 
+  it('accepts agency.containment_updated producer-aligned payloads including negative deltas', () => {
+    const positive = validateOperationEventPayload(
+      'agency.containment_updated',
+      minimalOperationEventPayloads['agency.containment_updated']
+    )
+    const negativeDeltas = validateOperationEventPayload('agency.containment_updated', {
+      week: 3,
+      containmentRatingBefore: 60,
+      containmentRatingAfter: 55,
+      containmentDelta: -5,
+      clearanceLevelBefore: 2,
+      clearanceLevelAfter: 2,
+      fundingBefore: 200,
+      fundingAfter: 175,
+      fundingDelta: -25,
+    })
+
+    expect(positive.success).toBe(true)
+    expect(negativeDeltas.success).toBe(true)
+  })
+
+  it('rejects agency.containment_updated payloads with non-finite containment or funding fields', () => {
+    const base = minimalOperationEventPayloads['agency.containment_updated']
+    const nanContainment = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      containmentRatingBefore: Number.NaN,
+    })
+    const infiniteContainmentDelta = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      containmentDelta: Number.POSITIVE_INFINITY,
+    })
+    const nanFunding = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      fundingAfter: Number.NaN,
+    })
+    const infiniteFundingDelta = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      fundingDelta: Number.NEGATIVE_INFINITY,
+    })
+
+    expect(nanContainment.success).toBe(false)
+    expect(infiniteContainmentDelta.success).toBe(false)
+    expect(nanFunding.success).toBe(false)
+    expect(infiniteFundingDelta.success).toBe(false)
+  })
+
+  it('rejects agency.containment_updated payloads with invalid clearanceLevel fields', () => {
+    const base = minimalOperationEventPayloads['agency.containment_updated']
+    const nanClearance = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      clearanceLevelBefore: Number.NaN,
+    })
+    const infiniteClearance = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      clearanceLevelAfter: Number.POSITIVE_INFINITY,
+    })
+    const negativeClearance = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      clearanceLevelBefore: -1,
+    })
+    const fractionalClearance = validateOperationEventPayload('agency.containment_updated', {
+      ...base,
+      clearanceLevelAfter: 1.5,
+    })
+
+    expect(nanClearance.success).toBe(false)
+    expect(infiniteClearance.success).toBe(false)
+    expect(negativeClearance.success).toBe(false)
+    expect(fractionalClearance.success).toBe(false)
+  })
+
   it('rejects case.aggregate_battle payloads missing battleId', () => {
     const payload: Record<string, unknown> = {
       ...minimalOperationEventPayloads['case.aggregate_battle'],

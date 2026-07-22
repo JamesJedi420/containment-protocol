@@ -816,14 +816,14 @@ const factionUnlockAvailableSchema = z
 const agencyContainmentUpdatedSchema = z
   .object({
     week: weekSchema,
-    containmentRatingBefore: z.number(),
-    containmentRatingAfter: z.number(),
-    containmentDelta: z.number(),
-    clearanceLevelBefore: z.number(),
-    clearanceLevelAfter: z.number(),
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
-    fundingDelta: z.number(),
+    containmentRatingBefore: finiteNumberSchema,
+    containmentRatingAfter: finiteNumberSchema,
+    containmentDelta: finiteNumberSchema,
+    clearanceLevelBefore: finiteNonNegativeIntSchema,
+    clearanceLevelAfter: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
+    fundingDelta: finiteNumberSchema,
   })
   .strict()
 

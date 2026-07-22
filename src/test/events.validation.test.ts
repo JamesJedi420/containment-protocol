@@ -1013,7 +1013,15 @@ describe('event payload validation coverage', () => {
       pressure: 'stable',
       costMultiplier: 1,
     })
+    const trimmedName = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'med-kits',
+      featuredRecipeName: '  Emergency Medkits  ',
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
 
     expect(valid.success).toBe(true)
+    expect(trimmedName.success).toBe(true)
   })
 })

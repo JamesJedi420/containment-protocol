@@ -802,6 +802,92 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(true)
   })
 
+  it('rejects production.queue_started payloads with unknown recipeId', () => {
+    const unknown = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      recipeId: 'phantom-recipe',
+      outputId: 'phantom-output',
+      outputName: 'Phantom Output',
+    })
+
+    expect(unknown.success).toBe(false)
+  })
+
+  it('rejects production.queue_completed payloads with unknown recipeId', () => {
+    const unknown = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      recipeId: 'phantom-recipe',
+      outputId: 'phantom-output',
+      outputName: 'Phantom Output',
+    })
+
+    expect(unknown.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with outputId/outputName mismatch', () => {
+    const wrongOutputId = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      recipeId: 'ward-seals',
+      outputId: 'wrong-output',
+      outputName: 'Ward Seals',
+    })
+    const wrongOutputName = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      recipeId: 'ward-seals',
+      outputId: 'ward_seals',
+      outputName: 'Wrong Label',
+    })
+    // outputId must be catalog outputItemId — not the recipe id itself.
+    const recipeIdAsOutput = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      recipeId: 'ward-seals',
+      outputId: 'ward-seals',
+      outputName: 'Ward Seals',
+    })
+
+    expect(wrongOutputId.success).toBe(false)
+    expect(wrongOutputName.success).toBe(false)
+    expect(recipeIdAsOutput.success).toBe(false)
+  })
+
+  it('rejects production.queue_completed payloads with outputId/outputName mismatch', () => {
+    const wrongOutputId = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      recipeId: 'med-kits',
+      outputId: 'wrong-output',
+      outputName: 'Emergency Medkits',
+    })
+    const wrongOutputName = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      recipeId: 'med-kits',
+      outputId: 'medkits',
+      outputName: 'Wrong Label',
+    })
+
+    expect(wrongOutputId.success).toBe(false)
+    expect(wrongOutputName.success).toBe(false)
+  })
+
+  it('accepts production.queue_* payloads with catalog-valid recipe and output fields', () => {
+    const started = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      recipeId: 'med-kits',
+      outputId: 'medkits',
+      outputName: 'Emergency Medkits',
+      queueName: 'Emergency Medkits',
+    })
+    const completedTrimmed = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      recipeId: 'med-kits',
+      outputId: 'medkits',
+      outputName: '  Emergency Medkits  ',
+      queueName: 'Emergency Medkits',
+    })
+
+    expect(started.success).toBe(true)
+    expect(completedTrimmed.success).toBe(true)
+  })
+
   it('rejects production.queue_started payloads with non-finite numerics', () => {
     const nanEta = validateOperationEventPayload('production.queue_started', {
       ...minimalOperationEventPayloads['production.queue_started'],

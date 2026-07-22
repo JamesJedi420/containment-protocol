@@ -304,10 +304,12 @@ export const minimalOperationEventPayloads = {
   'production.queue_started': {
     week: WEEK,
     queueId: 'queue-min',
-    queueName: 'Minimal Queue',
-    recipeId: 'recipe-min',
-    outputId: 'output-min',
-    outputName: 'Minimal Output',
+    queueName: 'Ward Seal Batch',
+    // SPE-2664: validate requires productionCatalog membership (not opaque recipe-min).
+    // Producer: outputId/outputName = catalog outputItemId/outputItemName (not recipe id/name).
+    recipeId: 'ward-seals',
+    outputId: 'ward_seals',
+    outputName: 'Ward Seals',
     outputQuantity: 1,
     etaWeeks: 1,
     fundingCost: 10,
@@ -322,10 +324,11 @@ export const minimalOperationEventPayloads = {
   'production.queue_completed': {
     week: WEEK,
     queueId: 'queue-min',
-    queueName: 'Minimal Queue',
-    recipeId: 'recipe-min',
-    outputId: 'output-min',
-    outputName: 'Minimal Output',
+    queueName: 'Ward Seal Batch',
+    // SPE-2664: validate requires productionCatalog membership (not opaque recipe-min).
+    recipeId: 'ward-seals',
+    outputId: 'ward_seals',
+    outputName: 'Ward Seals',
     outputQuantity: 1,
     fundingCost: 10,
     inputMaterials: [

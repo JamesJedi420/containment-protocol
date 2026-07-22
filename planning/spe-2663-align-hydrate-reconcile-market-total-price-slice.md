@@ -32,5 +32,5 @@ Align hydrate `reconcileMarketTotalPrice` with producer semantics so multi-bundl
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| Catalog membership on `production.queue_*` recipeId | follow-on if needed | Alternate SPE-2661/2662 Deferred; production schemas remain opaque-id tolerant. |
+| Catalog membership on `production.queue_*` recipeId | [SPE-2664](https://linear.app/spectranoir/issue/SPE-2664/harden-productionqueue-started-queue-completed-catalog-membership-for) | Alternate SPE-2661/2662 Deferred; owned by SPE-2664 validate harden. |
 | Allocation priority/delayWeeks + listing resource available/capacity at validate | follow-on if needed | Hydrate already clamps (SPE-2551/2552); out of this hydrate-formula slice. |

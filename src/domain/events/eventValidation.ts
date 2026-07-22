@@ -505,6 +505,46 @@ const recruitmentScoutingSchema = z
   })
   .strict()
 
+/** SPE-2664: catalog recipeId membership + outputId/outputName vs catalog product fields. */
+function refineProductionQueueCatalogMembership(
+  payload: { recipeId: string; outputId: string; outputName: string },
+  context: z.RefinementCtx
+) {
+  // Reuse sanitizeFeaturedRecipeId membership (same PRODUCTION_RECIPE_IDS set as market.shifted).
+  if (
+    sanitizeFeaturedRecipeId(payload.recipeId, payload.recipeId) !== payload.recipeId
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'recipeId must be a production catalog recipe id',
+      path: ['recipeId'],
+    })
+    return
+  }
+
+  const recipe = getProductionRecipe(payload.recipeId)
+  if (!recipe) {
+    return
+  }
+
+  // Producer contract: outputId/outputName are catalog outputItemId/outputItemName (not recipe id/name).
+  if (payload.outputId !== recipe.outputItemId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `outputId must match catalog outputItemId for recipeId (${recipe.outputItemId})`,
+      path: ['outputId'],
+    })
+  }
+
+  if (payload.outputName.trim() !== recipe.outputItemName) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `outputName must match catalog outputItemName for recipeId (${recipe.outputItemName})`,
+      path: ['outputName'],
+    })
+  }
+}
+
 const productionQueueStartedSchema = z
   .object({
     week: weekSchema,
@@ -519,6 +559,9 @@ const productionQueueStartedSchema = z
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()
+  .superRefine((payload, context) => {
+    refineProductionQueueCatalogMembership(payload, context)
+  })
 
 const productionQueueCompletedSchema = z
   .object({
@@ -533,6 +576,9 @@ const productionQueueCompletedSchema = z
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()
+  .superRefine((payload, context) => {
+    refineProductionQueueCatalogMembership(payload, context)
+  })
 
 const marketShiftedSchema = z
   .object({

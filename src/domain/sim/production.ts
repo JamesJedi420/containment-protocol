@@ -18,11 +18,119 @@ import {
   hasRecipeMaterialStock,
   getProductionRecipe,
   getMarketPressureLabel,
+  inventoryItemLabels,
   rollNextMarket,
 } from '../../data/production'
 
 function nextQueueId(state: GameState) {
   return `queue-${state.week}-${state.productionQueue.length + 1}-${state.events.length + 1}`
+}
+
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
+/** Hydration: resolve recipeId/output against catalog (id match, else preserve legacy ids/names). */
+export function reconcileProductionEventRecipeOutput(
+  recipeIdValue: unknown,
+  outputIdValue: unknown,
+  outputNameValue: unknown
+): { recipeId: string; outputId: string; outputName: string } {
+  const recipeById =
+    typeof recipeIdValue === 'string' && getProductionRecipe(recipeIdValue)
+      ? getProductionRecipe(recipeIdValue)
+      : undefined
+  const recipe = recipeById ?? undefined
+
+  if (!recipe) {
+    const fallbackOutputId = typeof outputIdValue === 'string' ? outputIdValue : 'output-1'
+    const fallbackOutputName =
+      typeof outputNameValue === 'string' && outputNameValue.trim().length > 0
+        ? outputNameValue.trim()
+        : (inventoryItemLabels[fallbackOutputId] ?? 'Output 1')
+
+    return {
+      recipeId: typeof recipeIdValue === 'string' ? recipeIdValue : 'recipe-1',
+      outputId: fallbackOutputId,
+      outputName: fallbackOutputName,
+    }
+  }
+
+  return {
+    recipeId: recipe.recipeId,
+    outputId: recipe.outputItemId,
+    outputName: recipe.outputItemName,
+  }
+}
+
+/**
+ * Hydration: catalog recipe output + finite positive etaWeeks/outputQuantity + nonnegative fundingCost.
+ * Does not rewrite fundingCost to catalog/market bands (scaled costs must survive).
+ */
+export function reconcileProductionQueueStartedFields(payload: {
+  recipeId?: unknown
+  outputId?: unknown
+  outputName?: unknown
+  outputQuantity?: unknown
+  etaWeeks?: unknown
+  fundingCost?: unknown
+}) {
+  const productionOutput = reconcileProductionEventRecipeOutput(
+    payload.recipeId,
+    payload.outputId,
+    payload.outputName
+  )
+
+  return {
+    recipeId: productionOutput.recipeId,
+    outputId: productionOutput.outputId,
+    outputName: productionOutput.outputName,
+    outputQuantity: Math.max(1, Math.trunc(coerceFiniteNumber(payload.outputQuantity, 1))),
+    etaWeeks: Math.max(1, Math.trunc(coerceFiniteNumber(payload.etaWeeks, 1))),
+    fundingCost: Math.max(0, Math.trunc(coerceFiniteNumber(payload.fundingCost, 0))),
+  }
+}
+
+/**
+ * Hydration: catalog recipe output + finite positive outputQuantity + nonnegative fundingCost.
+ * Does not rewrite fundingCost to catalog/market bands (scaled costs must survive).
+ */
+export function reconcileProductionQueueCompletedFields(payload: {
+  recipeId?: unknown
+  outputId?: unknown
+  outputName?: unknown
+  outputQuantity?: unknown
+  fundingCost?: unknown
+}) {
+  const productionOutput = reconcileProductionEventRecipeOutput(
+    payload.recipeId,
+    payload.outputId,
+    payload.outputName
+  )
+
+  return {
+    recipeId: productionOutput.recipeId,
+    outputId: productionOutput.outputId,
+    outputName: productionOutput.outputName,
+    outputQuantity: Math.max(1, Math.trunc(coerceFiniteNumber(payload.outputQuantity, 1))),
+    fundingCost: Math.max(0, Math.trunc(coerceFiniteNumber(payload.fundingCost, 0))),
+  }
 }
 
 export function queueFabrication(state: GameState, recipeId: string): GameState {

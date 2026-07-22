@@ -338,8 +338,9 @@ export const minimalOperationEventPayloads = {
   },
   'market.shifted': {
     week: WEEK,
-    featuredRecipeId: 'recipe-min',
-    featuredRecipeName: 'Minimal Recipe',
+    // SPE-2661: validate requires productionCatalog membership (not opaque recipe-min).
+    featuredRecipeId: 'ward-seals',
+    featuredRecipeName: 'Ward Seal Batch',
     pressure: 'stable',
     costMultiplier: 1,
   },

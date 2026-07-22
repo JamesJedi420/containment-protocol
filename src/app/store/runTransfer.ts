@@ -12,6 +12,10 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import {
+  reconcileProductionQueueCompletedFields,
+  reconcileProductionQueueStartedFields,
+} from '../../domain/sim/production'
+import {
   reconcileAgentTrainingCancelledFields,
   reconcileAgentTrainingCompletedFields,
   reconcileAgentTrainingStartedFields,
@@ -148,7 +152,6 @@ import {
   type GameConfig,
   type GameState,
   type Id,
-  type MarketPressure,
   type MarketState,
   type MissionResolutionKind,
   type MissionRewardBreakdown,
@@ -182,8 +185,7 @@ import {
 } from '../../domain/procurementEmergencyAuthority'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import {
-  getCanonicalMarketCostMultiplier,
-  sanitizeFeaturedRecipeId,
+  reconcileMarketShiftedFields,
   sanitizePersistedMarketState,
 } from '../../domain/market'
 import {
@@ -363,7 +365,6 @@ const INFILTRATION_COVER_ROLES = [
   'official_inspector',
 ] as const
 const CONCEALMENT_MODES = ['hidden', 'displaced'] as const
-const MARKET_PRESSURES: MarketPressure[] = ['discounted', 'stable', 'tight']
 const RECRUIT_CATEGORIES = [
   'agent',
   'staff',
@@ -1364,38 +1365,6 @@ function reconcileMarketTotalPrice(
   const sanitized = sanitizeInteger(totalPrice as number | undefined, expected, 0)
 
   return sanitized === expected ? sanitized : expected
-}
-
-function reconcileProductionEventRecipeOutput(
-  recipeIdValue: unknown,
-  outputIdValue: unknown,
-  outputNameValue: unknown
-): { recipeId: string; outputId: string; outputName: string } {
-  const recipeById =
-    typeof recipeIdValue === 'string' && getProductionRecipe(recipeIdValue)
-      ? getProductionRecipe(recipeIdValue)
-      : undefined
-  const recipe = recipeById ?? undefined
-
-  if (!recipe) {
-    const fallbackOutputId = typeof outputIdValue === 'string' ? outputIdValue : 'output-1'
-    const fallbackOutputName =
-      typeof outputNameValue === 'string' && outputNameValue.trim().length > 0
-        ? outputNameValue.trim()
-        : (inventoryItemLabels[fallbackOutputId] ?? 'Output 1')
-
-    return {
-      recipeId: typeof recipeIdValue === 'string' ? recipeIdValue : 'recipe-1',
-      outputId: fallbackOutputId,
-      outputName: fallbackOutputName,
-    }
-  }
-
-  return {
-    recipeId: recipe.recipeId,
-    outputId: recipe.outputItemId,
-    outputName: recipe.outputItemName,
-  }
 }
 
 function sanitizeOperationEventMarketProcurementAllocation(value: unknown) {
@@ -2496,38 +2465,6 @@ function sanitizeOperationEventCaseKind(value: unknown): CaseKind {
 
 function sanitizeOperationEventCaseMode(value: unknown): CaseMode {
   return isOneOf(value, CASE_MODES) ? value : 'threshold'
-}
-
-/** Hydration 586–587: market.shifted catalog + canonical pressure multiplier (aligned with 454). */
-function reconcileMarketShiftedFields(
-  payload: Record<string, unknown>,
-  fallbackFeaturedRecipeId: string
-) {
-  const pressure = isOneOf(payload.pressure, MARKET_PRESSURES) ? payload.pressure : 'stable'
-  const featuredRecipeId = sanitizeFeaturedRecipeId(
-    payload.featuredRecipeId,
-    fallbackFeaturedRecipeId
-  )
-  const recipe = getProductionRecipe(featuredRecipeId)
-  const catalogName = recipe?.name ?? featuredRecipeId
-  const featuredRecipeName =
-    typeof payload.featuredRecipeName === 'string' &&
-    payload.featuredRecipeName.trim() === catalogName
-      ? payload.featuredRecipeName.trim()
-      : catalogName
-  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
-  const boundedCostMultiplier = sanitizeFiniteDecimalPreservePrecision(
-    payload.costMultiplier as number | undefined,
-    canonicalCostMultiplier,
-    0.5,
-    2
-  )
-  const costMultiplier =
-    boundedCostMultiplier === canonicalCostMultiplier
-      ? boundedCostMultiplier
-      : canonicalCostMultiplier
-
-  return { featuredRecipeId, featuredRecipeName, pressure, costMultiplier }
 }
 
 /** Hydration 588: reconcile fallout tick outcome with risk and before/after metrics. */
@@ -7989,11 +7926,7 @@ function sanitizeOperationEvents(
 
       case 'production.queue_started':
         {
-          const productionOutput = reconcileProductionEventRecipeOutput(
-            payload.recipeId,
-            payload.outputId,
-            payload.outputName
-          )
+          const production = reconcileProductionQueueStartedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8004,12 +7937,12 @@ function sanitizeOperationEvents(
                   typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
                 queueName:
                   typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
-                recipeId: productionOutput.recipeId,
-                outputId: productionOutput.outputId,
-                outputName: productionOutput.outputName,
-                outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
-                etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 0),
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+                recipeId: production.recipeId,
+                outputId: production.outputId,
+                outputName: production.outputName,
+                outputQuantity: production.outputQuantity,
+                etaWeeks: production.etaWeeks,
+                fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
               },
             })
@@ -8019,11 +7952,7 @@ function sanitizeOperationEvents(
 
       case 'production.queue_completed':
         {
-          const productionOutput = reconcileProductionEventRecipeOutput(
-            payload.recipeId,
-            payload.outputId,
-            payload.outputName
-          )
+          const production = reconcileProductionQueueCompletedFields(payload)
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8034,11 +7963,11 @@ function sanitizeOperationEvents(
                   typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
                 queueName:
                   typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
-                recipeId: productionOutput.recipeId,
-                outputId: productionOutput.outputId,
-                outputName: productionOutput.outputName,
-                outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+                recipeId: production.recipeId,
+                outputId: production.outputId,
+                outputName: production.outputName,
+                outputQuantity: production.outputQuantity,
+                fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
               },
             })

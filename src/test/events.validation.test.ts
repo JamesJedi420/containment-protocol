@@ -785,4 +785,243 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(false)
   })
+
+  it('accepts consistent production.queue_started payloads', () => {
+    const validation = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('accepts consistent production.queue_completed payloads', () => {
+    const validation = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
+  it('rejects production.queue_started payloads with non-finite numerics', () => {
+    const nanEta = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: Number.NaN,
+    })
+    const infiniteFunding = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: Number.POSITIVE_INFINITY,
+    })
+    const nanQuantity = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: Number.NaN,
+    })
+
+    expect(nanEta.success).toBe(false)
+    expect(infiniteFunding.success).toBe(false)
+    expect(nanQuantity.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with negative or zero etaWeeks', () => {
+    const negative = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: -1,
+    })
+    const zero = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: 0,
+    })
+
+    expect(negative.success).toBe(false)
+    expect(zero.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with negative fundingCost', () => {
+    const validation = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with zero or negative outputQuantity', () => {
+    const zero = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: 0,
+    })
+    const negative = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: -2,
+    })
+
+    expect(zero.success).toBe(false)
+    expect(negative.success).toBe(false)
+  })
+
+  it('rejects production.queue_started payloads with fractional numerics', () => {
+    const fractionalEta = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      etaWeeks: 1.5,
+    })
+    const fractionalFunding = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      fundingCost: 2.5,
+    })
+    const fractionalQuantity = validateOperationEventPayload('production.queue_started', {
+      ...minimalOperationEventPayloads['production.queue_started'],
+      outputQuantity: 1.25,
+    })
+
+    expect(fractionalEta.success).toBe(false)
+    expect(fractionalFunding.success).toBe(false)
+    expect(fractionalQuantity.success).toBe(false)
+  })
+
+  it('rejects production.queue_completed payloads with non-finite or invalid numerics', () => {
+    const nanFunding = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      fundingCost: Number.NaN,
+    })
+    const infiniteQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: Number.POSITIVE_INFINITY,
+    })
+    const negativeFunding = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      fundingCost: -1,
+    })
+    const fractionalFunding = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      fundingCost: 2.5,
+    })
+    const fractionalQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: 0.5,
+    })
+    const zeroQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: 0,
+    })
+    const negativeQuantity = validateOperationEventPayload('production.queue_completed', {
+      ...minimalOperationEventPayloads['production.queue_completed'],
+      outputQuantity: -3,
+    })
+
+    expect(nanFunding.success).toBe(false)
+    expect(infiniteQuantity.success).toBe(false)
+    expect(negativeFunding.success).toBe(false)
+    expect(fractionalFunding.success).toBe(false)
+    expect(fractionalQuantity.success).toBe(false)
+    expect(zeroQuantity.success).toBe(false)
+    expect(negativeQuantity.success).toBe(false)
+  })
+
+  it('accepts consistent market.shifted payloads for each pressure band', () => {
+    const stable = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
+    const tight = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'tight',
+      costMultiplier: 1.15,
+    })
+    const discounted = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'discounted',
+      costMultiplier: 0.9,
+    })
+
+    expect(stable.success).toBe(true)
+    expect(tight.success).toBe(true)
+    expect(discounted.success).toBe(true)
+  })
+
+  it('rejects market.shifted payloads with non-finite or negative costMultiplier', () => {
+    const nan = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: Number.NaN,
+    })
+    const infinite = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: Number.POSITIVE_INFINITY,
+    })
+    const negative = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      costMultiplier: -0.1,
+    })
+
+    expect(nan.success).toBe(false)
+    expect(infinite.success).toBe(false)
+    expect(negative.success).toBe(false)
+  })
+
+  it('rejects market.shifted payloads with pressure-inconsistent costMultiplier', () => {
+    const stableMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1.15,
+    })
+    const tightMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'tight',
+      costMultiplier: 0.9,
+    })
+    const discountedMismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'discounted',
+      costMultiplier: 1,
+    })
+    const outOfBand = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      pressure: 'stable',
+      costMultiplier: 1.75,
+    })
+
+    expect(stableMismatch.success).toBe(false)
+    expect(tightMismatch.success).toBe(false)
+    expect(discountedMismatch.success).toBe(false)
+    expect(outOfBand.success).toBe(false)
+  })
+
+  it('rejects market.shifted payloads with unknown featuredRecipeId', () => {
+    const unknown = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'phantom-recipe',
+      featuredRecipeName: 'Phantom Recipe',
+    })
+
+    expect(unknown.success).toBe(false)
+  })
+
+  it('rejects market.shifted payloads with featuredRecipeId/name mismatch', () => {
+    const mismatch = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'ward-seals',
+      featuredRecipeName: 'Wrong Label',
+    })
+
+    expect(mismatch.success).toBe(false)
+  })
+
+  it('accepts market.shifted payloads with catalog-valid featured recipe id and name', () => {
+    const valid = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'med-kits',
+      featuredRecipeName: 'Emergency Medkits',
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
+    const trimmedName = validateOperationEventPayload('market.shifted', {
+      ...minimalOperationEventPayloads['market.shifted'],
+      featuredRecipeId: 'med-kits',
+      featuredRecipeName: '  Emergency Medkits  ',
+      pressure: 'stable',
+      costMultiplier: 1,
+    })
+
+    expect(valid.success).toBe(true)
+    expect(trimmedName.success).toBe(true)
+  })
 })

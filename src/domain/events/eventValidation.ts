@@ -1,5 +1,7 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
+import { getProductionRecipe } from '../../data/production'
+import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
 import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
 
@@ -511,9 +513,9 @@ const productionQueueStartedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    etaWeeks: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    etaWeeks: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()
@@ -526,8 +528,8 @@ const productionQueueCompletedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
   })
   .strict()
@@ -538,9 +540,43 @@ const marketShiftedSchema = z
     featuredRecipeId: z.string(),
     featuredRecipeName: z.string(),
     pressure: z.enum(['tight', 'stable', 'discounted']),
-    costMultiplier: z.number(),
+    costMultiplier: finiteNonNegativeNumberSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    // SPE-2661: catalog membership + id↔name (reuse sanitizeFeaturedRecipeId membership).
+    if (
+      sanitizeFeaturedRecipeId(payload.featuredRecipeId, payload.featuredRecipeId) !==
+      payload.featuredRecipeId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'featuredRecipeId must be a production catalog recipe id',
+        path: ['featuredRecipeId'],
+      })
+    } else {
+      const catalogName = getProductionRecipe(payload.featuredRecipeId)?.name
+      if (
+        typeof catalogName === 'string' &&
+        payload.featuredRecipeName.trim() !== catalogName
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `featuredRecipeName must match catalog name for featuredRecipeId (${catalogName})`,
+          path: ['featuredRecipeName'],
+        })
+      }
+    }
+
+    const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(payload.pressure)
+    if (payload.costMultiplier !== canonicalCostMultiplier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `costMultiplier must equal canonical multiplier for pressure (${canonicalCostMultiplier})`,
+        path: ['costMultiplier'],
+      })
+    }
+  })
 
 const marketTransactionListingResourceStatusSchema = z
   .object({

@@ -10722,6 +10722,43 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('512 rewrites overflowed unitPrice*quantity product to finite zero totalPrice', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-overflow',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-overflow',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 2,
+              bundleCount: 1,
+              unitPrice: 1e307,
+              totalPrice: 1e307,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 2,
+        bundleCount: 1,
+        unitPrice: 1e307,
+        totalPrice: 0,
+      })
+    })
+
     it('513 clamps emergency waiver accountability waiverGrantWeek below event week', () => {
       const fallback = createStartingState()
 

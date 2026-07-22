@@ -1365,6 +1365,10 @@ function reconcileMarketTotalPrice(
   // per-item (cents allowed). Match SPE-2662 validate: keep totalPrice when within
   // ~1¢/bundle of unitPrice*quantity; otherwise rewrite to the cent-rounded product.
   const productCents = Math.round(unitPrice * quantity * 100)
+  // Overflow can yield Infinity; do not hydrate a non-finite totalPrice (validate rejects).
+  if (!Number.isFinite(productCents)) {
+    return 0
+  }
   const expected = Math.max(0, productCents / 100)
   const candidate =
     typeof totalPrice === 'number' && Number.isFinite(totalPrice) && totalPrice >= 0
@@ -1372,7 +1376,7 @@ function reconcileMarketTotalPrice(
       : expected
   const totalCents = Math.round(candidate * 100)
 
-  if (!Number.isFinite(productCents) || !Number.isFinite(totalCents)) {
+  if (!Number.isFinite(totalCents)) {
     return expected
   }
 

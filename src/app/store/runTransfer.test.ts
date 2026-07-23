@@ -13514,18 +13514,22 @@ describe('runTransfer import sanitization (326-332)', () => {
         falloutRiskBefore: 'risk',
         falloutRiskAfter: 'costly',
         fundingBefore: 500,
-        fundingAfter: 500,
+        fundingAfter: 499,
         containmentRatingBefore: 60,
-        containmentRatingAfter: 60,
+        containmentRatingAfter: 59,
+        waiverPrecedentCount: 1,
+        precedentPenaltyMultiplier: 1,
       })
       expect(hydrated.events[1]?.payload).toMatchObject({
         outcome: 'resolved_closed',
         falloutRiskBefore: 'costly',
         falloutRiskAfter: 'none',
         fundingBefore: 400,
-        fundingAfter: 400,
+        fundingAfter: 399,
         containmentRatingBefore: 55,
-        containmentRatingAfter: 55,
+        containmentRatingAfter: 54,
+        waiverPrecedentCount: 2,
+        precedentPenaltyMultiplier: 1.06,
       })
     })
 

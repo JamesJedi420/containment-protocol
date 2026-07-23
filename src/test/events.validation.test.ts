@@ -393,6 +393,137 @@ describe('event payload validation coverage', () => {
     expect(fractionalClearance.success).toBe(false)
   })
 
+  it('accepts agency.front_business.* and system.academy_upgraded producer-aligned payloads including negative funding deltas', () => {
+    const opened = validateOperationEventPayload(
+      'agency.front_business.opened',
+      minimalOperationEventPayloads['agency.front_business.opened']
+    )
+    const resolved = validateOperationEventPayload(
+      'agency.front_business.resolved',
+      minimalOperationEventPayloads['agency.front_business.resolved']
+    )
+    const negativeFundingDelta = validateOperationEventPayload('agency.front_business.resolved', {
+      week: 3,
+      kind: 'courierShell',
+      statusBefore: 'active',
+      statusAfter: 'strained',
+      fundingDelta: -250,
+      riskScore: 3,
+      lockoutCount: 1,
+      residueCount: 0,
+      budgetPressure: 2,
+    })
+    const academy = validateOperationEventPayload(
+      'system.academy_upgraded',
+      minimalOperationEventPayloads['system.academy_upgraded']
+    )
+
+    expect(opened.success).toBe(true)
+    expect(resolved.success).toBe(true)
+    expect(negativeFundingDelta.success).toBe(true)
+    expect(academy.success).toBe(true)
+  })
+
+  it('rejects agency.front_business.opened payloads with non-finite funding or invalid startupCost', () => {
+    const base = minimalOperationEventPayloads['agency.front_business.opened']
+    const nanFunding = validateOperationEventPayload('agency.front_business.opened', {
+      ...base,
+      fundingBefore: Number.NaN,
+    })
+    const infiniteFundingAfter = validateOperationEventPayload('agency.front_business.opened', {
+      ...base,
+      fundingAfter: Number.POSITIVE_INFINITY,
+    })
+    const nanStartupCost = validateOperationEventPayload('agency.front_business.opened', {
+      ...base,
+      startupCost: Number.NaN,
+    })
+    const negativeStartupCost = validateOperationEventPayload('agency.front_business.opened', {
+      ...base,
+      startupCost: -1,
+    })
+    const fractionalStartupCost = validateOperationEventPayload('agency.front_business.opened', {
+      ...base,
+      startupCost: 1.5,
+    })
+
+    expect(nanFunding.success).toBe(false)
+    expect(infiniteFundingAfter.success).toBe(false)
+    expect(nanStartupCost.success).toBe(false)
+    expect(negativeStartupCost.success).toBe(false)
+    expect(fractionalStartupCost.success).toBe(false)
+  })
+
+  it('rejects agency.front_business.resolved payloads with non-finite fundingDelta or invalid score fields', () => {
+    const base = minimalOperationEventPayloads['agency.front_business.resolved']
+    const nanFundingDelta = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      fundingDelta: Number.NaN,
+    })
+    const infiniteFundingDelta = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      fundingDelta: Number.NEGATIVE_INFINITY,
+    })
+    const nanRiskScore = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      riskScore: Number.NaN,
+    })
+    const negativeLockoutCount = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      lockoutCount: -1,
+    })
+    const fractionalBudgetPressure = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      budgetPressure: 1.5,
+    })
+    const infiniteResidueCount = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      residueCount: Number.POSITIVE_INFINITY,
+    })
+
+    expect(nanFundingDelta.success).toBe(false)
+    expect(infiniteFundingDelta.success).toBe(false)
+    expect(nanRiskScore.success).toBe(false)
+    expect(negativeLockoutCount.success).toBe(false)
+    expect(fractionalBudgetPressure.success).toBe(false)
+    expect(infiniteResidueCount.success).toBe(false)
+  })
+
+  it('rejects system.academy_upgraded payloads with non-finite funding or invalid cost/tier fields', () => {
+    const base = minimalOperationEventPayloads['system.academy_upgraded']
+    const nanFunding = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      fundingBefore: Number.NaN,
+    })
+    const infiniteFundingAfter = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      fundingAfter: Number.POSITIVE_INFINITY,
+    })
+    const nanCost = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      cost: Number.NaN,
+    })
+    const negativeCost = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      cost: -1,
+    })
+    const fractionalTier = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      tierAfter: 1.5,
+    })
+    const infiniteTier = validateOperationEventPayload('system.academy_upgraded', {
+      ...base,
+      tierBefore: Number.POSITIVE_INFINITY,
+    })
+
+    expect(nanFunding.success).toBe(false)
+    expect(infiniteFundingAfter.success).toBe(false)
+    expect(nanCost.success).toBe(false)
+    expect(negativeCost.success).toBe(false)
+    expect(fractionalTier.success).toBe(false)
+    expect(infiniteTier.success).toBe(false)
+  })
+
   it('rejects case.aggregate_battle payloads missing battleId', () => {
     const payload: Record<string, unknown> = {
       ...minimalOperationEventPayloads['case.aggregate_battle'],

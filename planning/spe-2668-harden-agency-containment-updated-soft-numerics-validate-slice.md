@@ -40,4 +40,4 @@ Reject non-finite / invalid soft numerics on `agency.containment_updated` at the
 | Item | Owner | Why deferred |
 | --- | --- | --- |
 | Opaque production hydrate rewrite of queue recipe ids | keep current (SPE-2664 Deferred) | Validate-only; hydrate reconcile stays opaque-id tolerant. |
-| Agency front-business / academy soft numerics at validate | follow-on (unnamed) | Out of this slice; same validate-harden pattern when prioritized. |
+| Agency front-business / academy soft numerics at validate | [SPE-2669](https://linear.app/spectranoir/issue/SPE-2669/harden-agencyfront-business-systemacademy-upgraded-soft-numerics-at) | Out of this slice; same validate-harden pattern when prioritized. |

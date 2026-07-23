@@ -7,7 +7,6 @@ import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
-const nonNegativeIntSchema = z.number().int().min(0)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
 const finitePositiveIntSchema = z.number().finite().int().min(1)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
@@ -879,11 +878,11 @@ const concealmentActivatedEventSchema = z
 const systemAcademyUpgradedSchema = z
   .object({
     week: weekSchema,
-    tierBefore: nonNegativeIntSchema,
-    tierAfter: nonNegativeIntSchema,
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
-    cost: z.number(),
+    tierBefore: finiteNonNegativeIntSchema,
+    tierAfter: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
+    cost: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -930,20 +929,20 @@ export const operationEventPayloadSchemas = {
   'agency.front_business.opened': z.object({
     week: z.number(),
     kind: z.literal('courierShell'),
-    startupCost: z.number(),
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
+    startupCost: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
   }),
   'agency.front_business.resolved': z.object({
     week: z.number(),
     kind: z.literal('courierShell'),
     statusBefore: z.enum(['active', 'strained', 'collapsed']),
     statusAfter: z.enum(['active', 'strained', 'collapsed']),
-    fundingDelta: z.number(),
-    riskScore: z.number(),
-    lockoutCount: z.number(),
-    residueCount: z.number(),
-    budgetPressure: z.number(),
+    fundingDelta: finiteNumberSchema.min(-10_000),
+    riskScore: finiteNonNegativeIntSchema,
+    lockoutCount: finiteNonNegativeIntSchema,
+    residueCount: finiteNonNegativeIntSchema,
+    budgetPressure: finiteNonNegativeIntSchema,
   }),
   'directive.applied': directiveAppliedSchema,
   'support.shortfall': supportShortfallSchema,

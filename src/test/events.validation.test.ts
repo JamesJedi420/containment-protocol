@@ -236,6 +236,58 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(true)
   })
 
+  it.each([
+    ['before the grant', 4, 5],
+    ['during the grant week', 5, 5],
+    ['later than the canonical next-week window', 7, 5],
+  ])(
+    'rejects market.emergency_gray_market_waiver_accountability_closed %s',
+    (_case, week, waiverGrantWeek) => {
+      const validation = validateOperationEventPayload(
+        'market.emergency_gray_market_waiver_accountability_closed',
+        {
+          week,
+          waiverGrantWeek,
+          institutionKey: 'containment_protocol',
+        }
+      )
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
+  it.each(['', '   ', ' Containment Protocol ', 'CONTAINMENT_PROTOCOL'])(
+    'rejects market.emergency_gray_market_waiver_accountability_closed with noncanonical institutionKey %j',
+    (institutionKey) => {
+      const validation = validateOperationEventPayload(
+        'market.emergency_gray_market_waiver_accountability_closed',
+        {
+          week: 6,
+          waiverGrantWeek: 5,
+          institutionKey,
+        }
+      )
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
+  it.each([0, -1, 1.5])(
+    'rejects market.emergency_gray_market_waiver_accountability_closed with waiverGrantWeek %s',
+    (waiverGrantWeek) => {
+      const validation = validateOperationEventPayload(
+        'market.emergency_gray_market_waiver_accountability_closed',
+        {
+          week: 2,
+          waiverGrantWeek,
+          institutionKey: 'containment_protocol',
+        }
+      )
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
   it('accepts market.emergency_gray_market_fallout_tick payloads', () => {
     const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
       week: 7,

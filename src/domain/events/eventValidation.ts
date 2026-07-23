@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import { getProductionRecipe } from '../../data/production'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
+import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
 import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
 
@@ -751,9 +752,23 @@ const marketEmergencyGrayMarketWaiverAccountabilityClosedSchema = z
   .object({
     week: weekSchema,
     waiverGrantWeek: weekSchema,
-    institutionKey: z.string().min(1),
+    institutionKey: z
+      .string()
+      .min(1)
+      .refine((value) => value === normalizeInstitutionKeyForAudit(value), {
+        message: 'institutionKey must be a normalized nonblank audit key',
+      }),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.week !== payload.waiverGrantWeek + 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'week must be exactly one campaign week after waiverGrantWeek',
+        path: ['week'],
+      })
+    }
+  })
 
 const marketEmergencyGrayMarketFalloutTickSchema = z
   .object({

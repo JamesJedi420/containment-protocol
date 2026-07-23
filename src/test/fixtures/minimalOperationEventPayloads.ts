@@ -379,8 +379,8 @@ export const minimalOperationEventPayloads = {
     ruleConflictSignal: 'none',
   },
   'market.emergency_gray_market_waiver_accountability_closed': {
-    week: WEEK,
-    waiverGrantWeek: WEEK,
+    week: 2,
+    waiverGrantWeek: 1,
     institutionKey: 'containment_protocol',
   },
   'market.emergency_gray_market_fallout_tick': {

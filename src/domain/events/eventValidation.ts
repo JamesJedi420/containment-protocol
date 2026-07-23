@@ -938,7 +938,7 @@ export const operationEventPayloadSchemas = {
     kind: z.literal('courierShell'),
     statusBefore: z.enum(['active', 'strained', 'collapsed']),
     statusAfter: z.enum(['active', 'strained', 'collapsed']),
-    fundingDelta: finiteNumberSchema,
+    fundingDelta: finiteNumberSchema.min(-10_000),
     riskScore: finiteNonNegativeIntSchema,
     lockoutCount: finiteNonNegativeIntSchema,
     residueCount: finiteNonNegativeIntSchema,

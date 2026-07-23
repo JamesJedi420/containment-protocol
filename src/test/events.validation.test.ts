@@ -413,6 +413,10 @@ describe('event payload validation coverage', () => {
       residueCount: 0,
       budgetPressure: 2,
     })
+    const hydrateFloorFundingDelta = validateOperationEventPayload('agency.front_business.resolved', {
+      ...minimalOperationEventPayloads['agency.front_business.resolved'],
+      fundingDelta: -10_000,
+    })
     const academy = validateOperationEventPayload(
       'system.academy_upgraded',
       minimalOperationEventPayloads['system.academy_upgraded']
@@ -421,6 +425,7 @@ describe('event payload validation coverage', () => {
     expect(opened.success).toBe(true)
     expect(resolved.success).toBe(true)
     expect(negativeFundingDelta.success).toBe(true)
+    expect(hydrateFloorFundingDelta.success).toBe(true)
     expect(academy.success).toBe(true)
   })
 
@@ -464,6 +469,10 @@ describe('event payload validation coverage', () => {
       ...base,
       fundingDelta: Number.NEGATIVE_INFINITY,
     })
+    const belowHydrateFloor = validateOperationEventPayload('agency.front_business.resolved', {
+      ...base,
+      fundingDelta: -10_001,
+    })
     const nanRiskScore = validateOperationEventPayload('agency.front_business.resolved', {
       ...base,
       riskScore: Number.NaN,
@@ -483,6 +492,7 @@ describe('event payload validation coverage', () => {
 
     expect(nanFundingDelta.success).toBe(false)
     expect(infiniteFundingDelta.success).toBe(false)
+    expect(belowHydrateFloor.success).toBe(false)
     expect(nanRiskScore.success).toBe(false)
     expect(negativeLockoutCount.success).toBe(false)
     expect(fractionalBudgetPressure.success).toBe(false)

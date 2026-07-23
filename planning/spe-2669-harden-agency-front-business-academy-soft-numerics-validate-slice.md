@@ -13,7 +13,7 @@ Follow-on from SPE-2668 Deferred (agency front-business / academy soft numerics)
 
 - Harden inline front-business schemas + `systemAcademyUpgradedSchema` in `src/domain/events/eventValidation.ts`
 - **Opened:** `startupCost` finite nonnegative int; `fundingBefore` / `fundingAfter` finite numerics
-- **Resolved:** `fundingDelta` finite signed (hydrate min -10_000); `riskScore` / `lockoutCount` / `residueCount` / `budgetPressure` finite nonnegative ints
+- **Resolved:** `fundingDelta` finite signed with hydrate min `-10_000`; `riskScore` / `lockoutCount` / `residueCount` / `budgetPressure` finite nonnegative ints
 - **Academy:** `fundingBefore` / `fundingAfter` finite; `cost` / `tierBefore` / `tierAfter` finite nonnegative ints
 - Do **not** change hydrate sanitize/reconcile rewrite (`runTransfer.ts` cases ~8387–8448 / `reconcileAcademyUpgradeFields`)
 - Targeted validation tests; fixture update only if needed

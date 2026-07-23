@@ -16,13 +16,7 @@ import type {
 } from '../models'
 
 export type OperationEventSourceSystem =
-  | 'assignment'
-  | 'incident'
-  | 'intel'
-  | 'agent'
-  | 'production'
-  | 'faction'
-  | 'system'
+  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -35,9 +29,7 @@ export type CaseSpawnTrigger =
   | 'pressure_threshold'
 
 export type MarketTransactionListingResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -370,7 +362,7 @@ export interface OperationEventPayloadMap {
     confidence: Exclude<PotentialIntelConfidence, 'unknown'>
     previousProjectedTier?: ExactPotentialTier
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
-    confirmedTier?: ExactPotentialTier
+    confirmedTier: ExactPotentialTier
     revealLevel: number
     sourceFactionId?: string
     sourceFactionName?: string
@@ -430,10 +422,7 @@ export interface OperationEventPayloadMap {
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -448,10 +437,7 @@ export interface OperationEventPayloadMap {
     }
     allocations?: Array<{
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string

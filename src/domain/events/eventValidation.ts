@@ -6,6 +6,8 @@ import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../procurem
 import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
 import { getLevelForXp } from '../progression'
 import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
+import { EXACT_POTENTIAL_TIERS } from '../agentPotential'
+import { CASE_KINDS, CASE_MODES } from '../models'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -15,14 +17,18 @@ const finitePositiveIntSchema = z.number().finite().int().min(1)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
 const finiteNumberSchema = z.number().finite()
 const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
+const factionStandingValueSchema = z.number().finite().int().min(-20).max(20)
+const factionReputationValueSchema = z.number().finite().int().min(-100).max(100)
 const trimmedNonblankTextSchema = z
   .string()
   .min(1)
   .refine((value) => value === value.trim(), {
     message: 'must be a trimmed nonblank string',
   })
-const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
-const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
+const caseModeSchema = z.enum(CASE_MODES)
+const caseKindSchema = z.enum(CASE_KINDS)
+const caseStageSchema = finitePositiveIntSchema
+const caseTeamIdsSchema = z.array(idSchema).transform((teamIds) => [...new Set(teamIds)])
 const relationshipReasonSchema = z.enum([
   'mission_success',
   'mission_partial',
@@ -47,6 +53,7 @@ const factionIdSchema = idSchema.refine((factionId) => knownFactionDefinitionsBy
 })
 
 const scoutingConfidenceSchema = z.enum(['low', 'medium', 'high', 'confirmed'])
+const potentialTierSchema = z.enum(EXACT_POTENTIAL_TIERS)
 const externalChemistryConsequenceSchema = z.enum([
   'benching',
   'performance_penalty',
@@ -70,8 +77,17 @@ const assignmentTeamAssignedSchema = z
     caseKind: z.string(),
     teamId: idSchema,
     teamName: z.string(),
-    assignedTeamCount: z.number(),
-    maxTeams: z.number(),
+    assignedTeamCount: finiteNonNegativeIntSchema,
+    maxTeams: finitePositiveIntSchema,
+  })
+  .superRefine((payload, context) => {
+    if (payload.assignedTeamCount > payload.maxTeams) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['assignedTeamCount'],
+        message: 'assignedTeamCount must be less than or equal to maxTeams',
+      })
+    }
   })
   .strict()
 
@@ -82,7 +98,7 @@ const assignmentTeamUnassignedSchema = z
     caseTitle: z.string(),
     teamId: idSchema,
     teamName: z.string(),
-    remainingTeamCount: z.number(),
+    remainingTeamCount: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -91,10 +107,10 @@ const caseResolvedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    stage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    stage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
@@ -105,44 +121,72 @@ const casePartiallyResolvedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseFailedSchema = z
   .object({
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseEscalatedSchema = z
   .object({
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
     trigger: z.enum(['deadline', 'failure']),
-    deadlineRemaining: z.number(),
+    deadlineRemaining: finiteNonNegativeIntSchema,
     convertedToRaid: z.boolean(),
+    neighborhoodPressureAuditTag: trimmedNonblankTextSchema.max(200).optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseSpawnedSchema = z
   .object({
@@ -151,7 +195,7 @@ const caseSpawnedSchema = z
     caseTitle: z.string(),
     templateId: z.string(),
     kind: z.string(),
-    stage: z.number(),
+    stage: caseStageSchema,
     trigger: z.enum([
       'failure',
       'unresolved',
@@ -174,10 +218,19 @@ const caseRaidConvertedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    stage: z.number(),
+    stage: caseStageSchema,
     trigger: z.enum(['deadline', 'failure']),
-    minTeams: z.number(),
-    maxTeams: z.number(),
+    minTeams: finitePositiveIntSchema,
+    maxTeams: finitePositiveIntSchema,
+  })
+  .superRefine((payload, context) => {
+    if (payload.maxTeams < payload.minTeams) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['maxTeams'],
+        message: 'maxTeams must be greater than or equal to minTeams',
+      })
+    }
   })
   .strict()
 
@@ -506,20 +559,41 @@ const recruitmentScoutingSchema = z
     week: weekSchema,
     candidateId: idSchema,
     candidateName: z.string(),
-    fundingCost: z.number(),
+    fundingCost: finiteNonNegativeIntSchema,
     stage: z.number().int().min(1).max(3),
-    projectedTier: z.string(),
+    projectedTier: potentialTierSchema,
     confidence: scoutingConfidenceSchema,
-    previousProjectedTier: z.string().optional(),
+    previousProjectedTier: potentialTierSchema.optional(),
     previousConfidence: scoutingConfidenceSchema.optional(),
-    confirmedTier: z.string().optional(),
-    revealLevel: z.number(),
+    confirmedTier: potentialTierSchema.optional(),
+    revealLevel: z.number().finite().int().min(0).max(2),
     sourceFactionId: z.string().optional(),
     sourceFactionName: z.string().optional(),
     sourceContactId: z.string().optional(),
     sourceContactName: z.string().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.stage === 1 && payload.revealLevel < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['revealLevel'],
+        message: 'revealLevel must be at least 1 when stage is 1',
+      })
+    }
+
+    if (payload.stage >= 2 && payload.revealLevel !== 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['revealLevel'],
+        message: 'revealLevel must be 2 when stage is 2 or 3',
+      })
+    }
+  })
+
+const recruitmentIntelConfirmedSchema = recruitmentScoutingSchema.safeExtend({
+  confirmedTier: potentialTierSchema,
+})
 
 /** SPE-2664: catalog recipeId membership + outputId/outputName vs catalog product fields. */
 function refineProductionQueueCatalogMembership(
@@ -856,13 +930,13 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
 const factionStandingChangedSchema = z
   .object({
     week: weekSchema,
-    factionId: z.string(),
+    factionId: factionIdSchema,
     factionName: z.string(),
-    delta: z.number(),
-    standingBefore: z.number(),
-    standingAfter: z.number(),
-    reputationBefore: z.number().optional(),
-    reputationAfter: z.number().optional(),
+    delta: z.number().finite().int(),
+    standingBefore: factionStandingValueSchema,
+    standingAfter: factionStandingValueSchema,
+    reputationBefore: factionReputationValueSchema.optional(),
+    reputationAfter: factionReputationValueSchema.optional(),
     reason: z.enum([
       'case.resolved',
       'case.partially_resolved',
@@ -875,9 +949,79 @@ const factionStandingChangedSchema = z
     interactionLabel: z.string().optional(),
     contactId: z.string().optional(),
     contactName: z.string().optional(),
-    contactRelationshipBefore: z.number().optional(),
-    contactRelationshipAfter: z.number().optional(),
-    contactDelta: z.number().optional(),
+    contactRelationshipBefore: factionReputationValueSchema.optional(),
+    contactRelationshipAfter: factionReputationValueSchema.optional(),
+    contactDelta: z.number().finite().int().optional(),
+  })
+  .superRefine((payload, context) => {
+    const deltaMatchesTransition = (
+      before: number,
+      after: number,
+      delta: number,
+      minimum: number,
+      maximum: number
+    ) => after === Math.min(maximum, Math.max(minimum, before + delta))
+
+    const deltaMatches =
+      payload.reason === 'recruitment.hired' &&
+      payload.reputationBefore !== undefined &&
+      payload.reputationAfter !== undefined
+        ? deltaMatchesTransition(
+            payload.reputationBefore,
+            payload.reputationAfter,
+            payload.delta,
+            -100,
+            100
+          )
+        : deltaMatchesTransition(
+            payload.standingBefore,
+            payload.standingAfter,
+            payload.delta,
+            -20,
+            20
+          )
+
+    if (!deltaMatches) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['delta'],
+        message: 'delta must produce the bounded standing or reputation transition',
+      })
+    }
+
+    const contactValues = [
+      payload.contactRelationshipBefore,
+      payload.contactRelationshipAfter,
+      payload.contactDelta,
+    ]
+    const providedContactValues = contactValues.filter((value) => value !== undefined)
+    if (providedContactValues.length > 0 && providedContactValues.length < contactValues.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactDelta'],
+        message: 'contact relationship fields must all be present together',
+      })
+      return
+    }
+
+    if (
+      payload.contactRelationshipBefore !== undefined &&
+      payload.contactRelationshipAfter !== undefined &&
+      payload.contactDelta !== undefined &&
+      !deltaMatchesTransition(
+        payload.contactRelationshipBefore,
+        payload.contactRelationshipAfter,
+        payload.contactDelta,
+        -100,
+        100
+      )
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactDelta'],
+        message: 'contactDelta must produce the bounded contact relationship transition',
+      })
+    }
   })
   .strict()
 
@@ -1037,7 +1181,7 @@ export const operationEventPayloadSchemas = {
   'system.party_cards_drawn': systemPartyCardsDrawnSchema,
   'recruitment.scouting_initiated': recruitmentScoutingSchema,
   'recruitment.scouting_refined': recruitmentScoutingSchema,
-  'recruitment.intel_confirmed': recruitmentScoutingSchema,
+  'recruitment.intel_confirmed': recruitmentIntelConfirmedSchema,
   'production.queue_started': productionQueueStartedSchema,
   'production.queue_completed': productionQueueCompletedSchema,
   'market.shifted': marketShiftedSchema,

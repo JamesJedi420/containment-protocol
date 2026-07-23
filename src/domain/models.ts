@@ -23,11 +23,7 @@ export type DeploymentSoftRiskCode =
   | 'intel-uncertainty'
 
 export type DeploymentReadinessCategory =
-  | 'mission_ready'
-  | 'conditional'
-  | 'hard_blocked'
-  | 'temporarily_blocked'
-  | 'recovery_required'
+  'mission_ready' | 'conditional' | 'hard_blocked' | 'temporarily_blocked' | 'recovery_required'
 
 export type MissionCategory =
   | 'containment_breach'
@@ -119,12 +115,7 @@ export interface MissionRoutingState {
 }
 
 export type MissionIntakeSource =
-  | 'scripted'
-  | 'escalation'
-  | 'pressure'
-  | 'faction'
-  | 'contract'
-  | 'tutorial'
+  'scripted' | 'escalation' | 'pressure' | 'faction' | 'contract' | 'tutorial'
 
 export interface TeamDeploymentReadinessState {
   teamId: string
@@ -478,8 +469,10 @@ export type StatBlock = Record<StatKey, number> & Record<string, number>
 export type WeightBlock = Record<StatKey, number> & Record<string, number>
 export const BASE_STAT_MAX = 100
 
-export type CaseMode = 'threshold' | 'probability' | 'deterministic' | 'standard'
-export type CaseKind = 'case' | 'raid' | 'standard' | 'anomaly'
+export const CASE_MODES = ['threshold', 'probability', 'deterministic', 'standard'] as const
+export type CaseMode = (typeof CASE_MODES)[number]
+export const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const
+export type CaseKind = (typeof CASE_KINDS)[number]
 export type CaseStatus = 'open' | 'in_progress' | 'resolved'
 
 export type AgentAssignmentStateKind = 'idle' | 'assigned' | 'recovery' | 'training'
@@ -993,10 +986,7 @@ export interface FieldBaseStagingPacket {
 
 /** SPE-99: deployed recovery-mode taxonomy derived from fieldBase staging quality. */
 export type ExpeditionRecoveryMode =
-  | 'unsafe_pause'
-  | 'ordinary_rest'
-  | 'active_recovery'
-  | 'sanctuary_recovery'
+  'unsafe_pause' | 'ordinary_rest' | 'active_recovery' | 'sanctuary_recovery'
 
 export const EXPEDITION_RECOVERY_MODES: readonly ExpeditionRecoveryMode[] = [
   'unsafe_pause',
@@ -1056,11 +1046,7 @@ export type ContractNextIntent =
   | 'answer-emergency'
 
 export type ContractDebriefChangedEntityKind =
-  | 'staff'
-  | 'subject'
-  | 'route'
-  | 'evidence'
-  | 'faction'
+  'staff' | 'subject' | 'route' | 'evidence' | 'faction'
 
 export interface ContractDebriefChangedEntity {
   kind: ContractDebriefChangedEntityKind
@@ -1356,9 +1342,7 @@ export interface CaseTemplate {
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
 export type DeploymentCarryInCode =
-  | 'residue-therapy-foregone'
-  | 'well-rested-stable-energy'
-  | 'off-books-courier-lockout'
+  'residue-therapy-foregone' | 'well-rested-stable-energy' | 'off-books-courier-lockout'
 
 export interface AgentDeploymentCarryInStamp {
   readinessDelta: number
@@ -1610,13 +1594,7 @@ export type ReportNoteType =
   | 'pattern_source_series.weekly_transition'
 
 export type ReportNoteMetadataValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly string[]
-  | readonly number[]
-  | readonly boolean[]
+  string | number | boolean | null | readonly string[] | readonly number[] | readonly boolean[]
 
 export type ReportNoteMetadata = Record<string, ReportNoteMetadataValue>
 
@@ -1691,10 +1669,7 @@ export interface WeeklyReport {
 }
 
 export type WeeklyDirectiveId =
-  | 'intel-surge'
-  | 'recovery-rotation'
-  | 'procurement-push'
-  | 'lockdown-protocol'
+  'intel-surge' | 'recovery-rotation' | 'procurement-push' | 'lockdown-protocol'
 
 export interface WeeklyDirectiveHistoryEntry {
   week: number
@@ -1833,12 +1808,7 @@ export interface OneShotEventState {
 }
 
 export type EncounterRuntimeStatus =
-  | 'available'
-  | 'active'
-  | 'resolved'
-  | 'locked'
-  | 'hidden'
-  | 'archived'
+  'available' | 'active' | 'resolved' | 'locked' | 'hidden' | 'archived'
 export type EncounterResolutionOutcome = 'success' | 'partial' | 'failed' | 'failure' | 'dismissed'
 
 export interface EncounterRuntimeState {
@@ -2036,12 +2006,7 @@ export interface FundingState {
 }
 
 export type ResearchUnlockCategory =
-  | 'intel_tool'
-  | 'facility'
-  | 'training'
-  | 'equipment'
-  | 'contract'
-  | (string & {})
+  'intel_tool' | 'facility' | 'training' | 'equipment' | 'contract' | (string & {})
 
 export interface ResearchUnlock {
   id: string
@@ -2051,12 +2016,7 @@ export interface ResearchUnlock {
 }
 
 export type ResearchProjectStatus =
-  | 'locked'
-  | 'available'
-  | 'queued'
-  | 'active'
-  | 'completed'
-  | 'blocked'
+  'locked' | 'available' | 'queued' | 'active' | 'completed' | 'blocked'
 
 export interface ResearchProject {
   projectId: string
@@ -2093,11 +2053,7 @@ export interface ResearchState {
 
 export type AgentAttritionStatus = 'active' | 'at_risk' | 'temporarily_unavailable' | 'lost'
 export type AgentAttritionCategory =
-  | 'injury_exit'
-  | 'burnout'
-  | 'temporary_leave'
-  | 'disciplinary'
-  | 'unknown'
+  'injury_exit' | 'burnout' | 'temporary_leave' | 'disciplinary' | 'unknown'
 
 export interface AgentAttritionState {
   attritionStatus: AgentAttritionStatus
@@ -2144,12 +2100,7 @@ export interface SupportStaffSummary {
 }
 
 export type MajorIncidentStrategy =
-  | 'aggressive'
-  | 'balanced'
-  | 'cautious'
-  | 'rapid_response'
-  | 'containment_first'
-  | 'risk_accepting'
+  'aggressive' | 'balanced' | 'cautious' | 'rapid_response' | 'containment_first' | 'risk_accepting'
 export type MajorIncidentProvisionType = string
 export type RecruitmentFunnelStage = import('./recruitment/types').RecruitmentFunnelStage
 export type CertificationState = import('./agent/models').CertificationState
@@ -3113,18 +3064,11 @@ export interface GameState {
 
 /** The named stages a subject passes through in a custody pipeline. */
 export type CustodyStageKind =
-  | 'intake'
-  | 'holding'
-  | 'transfer_en_route'
-  | 'handoff'
-  | 'delivered'
-  | 'released_hostile'
+  'intake' | 'holding' | 'transfer_en_route' | 'handoff' | 'delivered' | 'released_hostile'
 
 /** Custody-specific distortion tags attached to a single stage record. */
 export type CustodyDistortionContext =
-  | 'custody_record_scrubbed'
-  | 'forged_transfer_credentials'
-  | 'vanished_file'
+  'custody_record_scrubbed' | 'forged_transfer_credentials' | 'vanished_file'
 
 /** One stage in the chain, with which institution owns it and any record-tampering context. */
 export interface CustodyStageRecord {
@@ -3173,9 +3117,7 @@ export interface CustodyChain {
 
 /** The type of corruption evidence surfaced by an investigation. */
 export type CustodyDiscoveryEventType =
-  | 'missing_record'
-  | 'marker_revealed'
-  | 'compromised_actor_identified'
+  'missing_record' | 'marker_revealed' | 'compromised_actor_identified'
 
 /** A single discovery produced by resolveCorruptionDiscovery(). */
 export interface CustodyDiscoveryEvent {

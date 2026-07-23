@@ -599,6 +599,68 @@ describe('event payload validation coverage', () => {
     expect(belowFatigueFloor.success).toBe(false)
   })
 
+  it('accepts infiltration probe fixtures with omitted or finite awareness/progress', () => {
+    const fixture = validateOperationEventPayload(
+      'infiltration.awareness_complication',
+      minimalOperationEventPayloads['infiltration.awareness_complication']
+    )
+    const withFractions = validateOperationEventPayload('infiltration.weekly_encounter', {
+      ...minimalOperationEventPayloads['infiltration.weekly_encounter'],
+      infiltrationAwareness: 0.35,
+      infiltrationProbeProgress: 0.8,
+    })
+    const withPercentStyle = validateOperationEventPayload('infiltration.cover_strain', {
+      ...minimalOperationEventPayloads['infiltration.cover_strain'],
+      infiltrationAwareness: 50,
+      infiltrationProbeProgress: 100,
+    })
+    const withNegative = validateOperationEventPayload('infiltration.leave_behind_tradeoff', {
+      ...minimalOperationEventPayloads['infiltration.leave_behind_tradeoff'],
+      infiltrationAwareness: -0.1,
+      infiltrationProbeProgress: -1,
+    })
+    const staffUnchanged = validateOperationEventPayload(
+      'staff.side_work.resolved',
+      minimalOperationEventPayloads['staff.side_work.resolved']
+    )
+    const concealmentUnchanged = validateOperationEventPayload(
+      'concealment.activated',
+      minimalOperationEventPayloads['concealment.activated']
+    )
+
+    expect(fixture.success).toBe(true)
+    expect(withFractions.success).toBe(true)
+    expect(withPercentStyle.success).toBe(true)
+    expect(withNegative.success).toBe(true)
+    expect(staffUnchanged.success).toBe(true)
+    expect(concealmentUnchanged.success).toBe(true)
+  })
+
+  it('rejects infiltration probe payloads with non-finite awareness or progress when present', () => {
+    const base = minimalOperationEventPayloads['infiltration.escalation_exposed']
+    const nanAwareness = validateOperationEventPayload('infiltration.escalation_exposed', {
+      ...base,
+      infiltrationAwareness: Number.NaN,
+    })
+    const infiniteAwareness = validateOperationEventPayload('infiltration.escalation_violent', {
+      ...minimalOperationEventPayloads['infiltration.escalation_violent'],
+      infiltrationAwareness: Number.POSITIVE_INFINITY,
+    })
+    const nanProgress = validateOperationEventPayload('infiltration.awareness_complication', {
+      ...minimalOperationEventPayloads['infiltration.awareness_complication'],
+      infiltrationProbeProgress: Number.NaN,
+    })
+    const infiniteProgress = validateOperationEventPayload('infiltration.weekly_encounter', {
+      ...minimalOperationEventPayloads['infiltration.weekly_encounter'],
+      infiltrationProbeProgress: Number.NEGATIVE_INFINITY,
+    })
+
+    expect(nanAwareness.success).toBe(false)
+    expect(infiniteAwareness.success).toBe(false)
+    expect(nanProgress.success).toBe(false)
+    expect(infiniteProgress.success).toBe(false)
+  })
+
   it('rejects case.aggregate_battle payloads missing battleId', () => {
     const payload: Record<string, unknown> = {
       ...minimalOperationEventPayloads['case.aggregate_battle'],

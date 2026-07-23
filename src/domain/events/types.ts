@@ -328,7 +328,7 @@ export interface OperationEventPayloadMap {
     confidence: Exclude<PotentialIntelConfidence, 'unknown'>
     previousProjectedTier?: ExactPotentialTier
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
-    confirmedTier: ExactPotentialTier
+    confirmedTier?: ExactPotentialTier
     revealLevel: number
     sourceFactionId?: string
     sourceFactionName?: string
@@ -362,7 +362,7 @@ export interface OperationEventPayloadMap {
     confidence: Exclude<PotentialIntelConfidence, 'unknown'>
     previousProjectedTier?: ExactPotentialTier
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
-    confirmedTier?: ExactPotentialTier
+    confirmedTier: ExactPotentialTier
     revealLevel: number
     sourceFactionId?: string
     sourceFactionName?: string

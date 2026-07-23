@@ -15,6 +15,12 @@ const finitePositiveIntSchema = z.number().finite().int().min(1)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
 const finiteNumberSchema = z.number().finite()
 const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
+const trimmedNonblankTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value === value.trim(), {
+    message: 'must be a trimmed nonblank string',
+  })
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -879,11 +885,11 @@ const factionUnlockAvailableSchema = z
   .object({
     week: weekSchema,
     factionId: factionIdSchema,
-    factionName: z.string().trim().min(1),
+    factionName: trimmedNonblankTextSchema,
     contactId: idSchema.optional(),
-    contactName: z.string().trim().min(1).optional(),
-    label: z.string().trim().min(1).max(120),
-    summary: z.string().trim().min(1).max(500),
+    contactName: trimmedNonblankTextSchema.optional(),
+    label: trimmedNonblankTextSchema.max(120),
+    summary: trimmedNonblankTextSchema.max(500),
     disposition: z.enum(['supportive', 'adversarial']),
   })
   .superRefine((payload, context) => {

@@ -1959,6 +1959,30 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(false)
   })
 
+  it('rejects faction.unlock_available payloads with padded labels or summaries', () => {
+    const base = {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      label: 'Research fellowship',
+      summary: 'A research fellowship became available.',
+      disposition: 'supportive' as const,
+    }
+
+    expect(
+      validateOperationEventPayload('faction.unlock_available', {
+        ...base,
+        label: '  Research fellowship  ',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('faction.unlock_available', {
+        ...base,
+        summary: '  A research fellowship became available.  ',
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects faction.unlock_available payloads with overlong summaries', () => {
     const validation = validateOperationEventPayload('faction.unlock_available', {
       week: 3,

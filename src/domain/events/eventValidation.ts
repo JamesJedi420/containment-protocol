@@ -972,8 +972,8 @@ export const operationEventPayloadSchemas = {
     agentId: z.string(),
     optionId: z.enum(['offBooksCourier', 'trustedCourier']),
     outcome: z.enum(['paid', 'lockout']),
-    fundingDelta: z.number(),
-    fatigueDelta: z.number(),
+    fundingDelta: finiteNumberSchema.min(-10_000),
+    fatigueDelta: finiteNumberSchema.min(-100),
   }),
 } satisfies Record<OperationEventType, z.ZodTypeAny>
 

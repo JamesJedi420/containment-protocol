@@ -534,6 +534,71 @@ describe('event payload validation coverage', () => {
     expect(infiniteTier.success).toBe(false)
   })
 
+  it('accepts staff.side_work.resolved producer-aligned payloads including negative deltas', () => {
+    const fixture = validateOperationEventPayload(
+      'staff.side_work.resolved',
+      minimalOperationEventPayloads['staff.side_work.resolved']
+    )
+    const negativeFunding = validateOperationEventPayload('staff.side_work.resolved', {
+      ...minimalOperationEventPayloads['staff.side_work.resolved'],
+      fundingDelta: -250,
+      fatigueDelta: -10,
+    })
+    const hydrateFloorFunding = validateOperationEventPayload('staff.side_work.resolved', {
+      ...minimalOperationEventPayloads['staff.side_work.resolved'],
+      fundingDelta: -10_000,
+    })
+    const hydrateFloorFatigue = validateOperationEventPayload('staff.side_work.resolved', {
+      ...minimalOperationEventPayloads['staff.side_work.resolved'],
+      fatigueDelta: -100,
+    })
+    const copingUnchanged = validateOperationEventPayload(
+      'staff.coping.misconduct',
+      minimalOperationEventPayloads['staff.coping.misconduct']
+    )
+
+    expect(fixture.success).toBe(true)
+    expect(negativeFunding.success).toBe(true)
+    expect(hydrateFloorFunding.success).toBe(true)
+    expect(hydrateFloorFatigue.success).toBe(true)
+    expect(copingUnchanged.success).toBe(true)
+  })
+
+  it('rejects staff.side_work.resolved payloads with non-finite or below-floor deltas', () => {
+    const base = minimalOperationEventPayloads['staff.side_work.resolved']
+    const nanFundingDelta = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fundingDelta: Number.NaN,
+    })
+    const infiniteFundingDelta = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fundingDelta: Number.NEGATIVE_INFINITY,
+    })
+    const belowFundingFloor = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fundingDelta: -10_001,
+    })
+    const nanFatigueDelta = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fatigueDelta: Number.NaN,
+    })
+    const infiniteFatigueDelta = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fatigueDelta: Number.POSITIVE_INFINITY,
+    })
+    const belowFatigueFloor = validateOperationEventPayload('staff.side_work.resolved', {
+      ...base,
+      fatigueDelta: -101,
+    })
+
+    expect(nanFundingDelta.success).toBe(false)
+    expect(infiniteFundingDelta.success).toBe(false)
+    expect(belowFundingFloor.success).toBe(false)
+    expect(nanFatigueDelta.success).toBe(false)
+    expect(infiniteFatigueDelta.success).toBe(false)
+    expect(belowFatigueFloor.success).toBe(false)
+  })
+
   it('rejects case.aggregate_battle payloads missing battleId', () => {
     const payload: Record<string, unknown> = {
       ...minimalOperationEventPayloads['case.aggregate_battle'],

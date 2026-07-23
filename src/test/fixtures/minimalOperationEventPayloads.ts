@@ -407,8 +407,10 @@ export const minimalOperationEventPayloads = {
   },
   'faction.unlock_available': {
     week: WEEK,
-    factionId: 'faction-min',
-    factionName: 'Minimal Faction',
+    factionId: 'institutions',
+    factionName: 'Academic Institutions',
+    contactId: 'institutions-halden',
+    contactName: 'Miren Halden',
     label: 'Minimal unlock',
     summary: 'Minimal unlock summary.',
     disposition: 'supportive',

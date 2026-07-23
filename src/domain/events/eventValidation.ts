@@ -5,6 +5,7 @@ import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../m
 import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../procurementEmergencyFallout'
 import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
 import { getLevelForXp } from '../progression'
+import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -14,6 +15,12 @@ const finitePositiveIntSchema = z.number().finite().int().min(1)
 const finiteNonNegativeNumberSchema = z.number().finite().min(0)
 const finiteNumberSchema = z.number().finite()
 const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
+const trimmedNonblankTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value === value.trim(), {
+    message: 'must be a trimmed nonblank string',
+  })
 const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
 const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
@@ -26,6 +33,18 @@ const relationshipReasonSchema = z.enum([
   'spontaneous_event',
   'betrayal',
 ])
+const knownFactionDefinitionsById = new Map(
+  FACTION_DEFINITIONS.map((faction) => [faction.id, faction] as const)
+)
+const knownFactionContactsByFactionId = new Map(
+  Object.entries(createInitialFactionState()).map(([factionId, faction]) => [
+    factionId,
+    new Map((faction.contacts ?? []).map((contact) => [contact.id, contact] as const)),
+  ])
+)
+const factionIdSchema = idSchema.refine((factionId) => knownFactionDefinitionsById.has(factionId), {
+  message: 'factionId must reference a known faction',
+})
 
 const scoutingConfidenceSchema = z.enum(['low', 'medium', 'high', 'confirmed'])
 const externalChemistryConsequenceSchema = z.enum([
@@ -374,11 +393,9 @@ const agentPromotedSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    newRole: z
-      .string()
-      .refine((value) => value.length > 0 && value === value.trim(), {
-        message: 'newRole must be a trimmed nonblank string',
-      }),
+    newRole: z.string().refine((value) => value.length > 0 && value === value.trim(), {
+      message: 'newRole must be a trimmed nonblank string',
+    }),
     previousLevel: finitePositiveIntSchema,
     newLevel: finitePositiveIntSchema,
     levelsGained: finiteNonNegativeIntSchema,
@@ -425,11 +442,9 @@ const progressionXpGainedSchema = z
     agentId: idSchema,
     agentName: z.string(),
     xpAmount: finiteNonNegativeIntSchema,
-    reason: z
-      .string()
-      .refine((value) => value.length > 0 && value === value.trim(), {
-        message: 'reason must be a trimmed nonblank string',
-      }),
+    reason: z.string().refine((value) => value.length > 0 && value === value.trim(), {
+      message: 'reason must be a trimmed nonblank string',
+    }),
     totalXp: finiteNonNegativeIntSchema,
     level: z.number().finite().int().min(1),
     levelsGained: finiteNonNegativeIntSchema,
@@ -512,9 +527,7 @@ function refineProductionQueueCatalogMembership(
   context: z.RefinementCtx
 ) {
   // Reuse sanitizeFeaturedRecipeId membership (same PRODUCTION_RECIPE_IDS set as market.shifted).
-  if (
-    sanitizeFeaturedRecipeId(payload.recipeId, payload.recipeId) !== payload.recipeId
-  ) {
+  if (sanitizeFeaturedRecipeId(payload.recipeId, payload.recipeId) !== payload.recipeId) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'recipeId must be a production catalog recipe id',
@@ -603,10 +616,7 @@ const marketShiftedSchema = z
       })
     } else {
       const catalogName = getProductionRecipe(payload.featuredRecipeId)?.name
-      if (
-        typeof catalogName === 'string' &&
-        payload.featuredRecipeName.trim() !== catalogName
-      ) {
+      if (typeof catalogName === 'string' && payload.featuredRecipeName.trim() !== catalogName) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: `featuredRecipeName must match catalog name for featuredRecipeId (${catalogName})`,
@@ -831,8 +841,9 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
       })
     }
 
-    const expectedMultiplier =
-      getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(payload.waiverPrecedentCount)
+    const expectedMultiplier = getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
+      payload.waiverPrecedentCount
+    )
     if (payload.precedentPenaltyMultiplier !== expectedMultiplier) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -873,13 +884,54 @@ const factionStandingChangedSchema = z
 const factionUnlockAvailableSchema = z
   .object({
     week: weekSchema,
-    factionId: z.string(),
-    factionName: z.string(),
-    contactId: z.string().optional(),
-    contactName: z.string().optional(),
-    label: z.string(),
-    summary: z.string(),
+    factionId: factionIdSchema,
+    factionName: trimmedNonblankTextSchema,
+    contactId: idSchema.optional(),
+    contactName: trimmedNonblankTextSchema.optional(),
+    label: trimmedNonblankTextSchema.max(120),
+    summary: trimmedNonblankTextSchema.max(500),
     disposition: z.enum(['supportive', 'adversarial']),
+  })
+  .superRefine((payload, context) => {
+    const definition = knownFactionDefinitionsById.get(payload.factionId)
+    if (!definition) return
+
+    if (payload.factionName !== definition.name && payload.factionName !== definition.label) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['factionName'],
+        message: 'factionName must match the catalog name or label for factionId',
+      })
+    }
+
+    if (!payload.contactId) {
+      if (payload.contactName) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['contactName'],
+          message: 'contactName requires contactId',
+        })
+      }
+      return
+    }
+
+    const contact = knownFactionContactsByFactionId.get(payload.factionId)?.get(payload.contactId)
+    if (!contact) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactId'],
+        message: 'contactId must reference a known contact for factionId',
+      })
+      return
+    }
+
+    if (payload.contactName && contact.name && payload.contactName !== contact.name) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactName'],
+        message: 'contactName must match the catalog contact name for contactId',
+      })
+    }
   })
   .strict()
 

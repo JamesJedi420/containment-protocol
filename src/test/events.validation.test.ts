@@ -308,41 +308,32 @@ describe('event payload validation coverage', () => {
 
   it('rejects market.emergency_gray_market_fallout_tick with a risk transition that contradicts the outcome', () => {
     const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
-    const validation = validateOperationEventPayload(
-      'market.emergency_gray_market_fallout_tick',
-      {
-        ...base,
-        outcome: 'escalated_pending_oversight',
-        falloutRiskBefore: 'costly',
-        falloutRiskAfter: 'none',
-      }
-    )
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      outcome: 'escalated_pending_oversight',
+      falloutRiskBefore: 'costly',
+      falloutRiskAfter: 'none',
+    })
 
     expect(validation.success).toBe(false)
   })
 
   it('rejects market.emergency_gray_market_fallout_tick when funding increases on a penalty tick', () => {
     const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
-    const validation = validateOperationEventPayload(
-      'market.emergency_gray_market_fallout_tick',
-      {
-        ...base,
-        fundingAfter: base.fundingBefore + 1,
-      }
-    )
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      fundingAfter: base.fundingBefore + 1,
+    })
 
     expect(validation.success).toBe(false)
   })
 
   it('rejects market.emergency_gray_market_fallout_tick when containment increases on a penalty tick', () => {
     const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
-    const validation = validateOperationEventPayload(
-      'market.emergency_gray_market_fallout_tick',
-      {
-        ...base,
-        containmentRatingAfter: base.containmentRatingBefore + 1,
-      }
-    )
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      containmentRatingAfter: base.containmentRatingBefore + 1,
+    })
 
     expect(validation.success).toBe(false)
   })
@@ -367,14 +358,11 @@ describe('event payload validation coverage', () => {
 
   it('rejects market.emergency_gray_market_fallout_tick with a multiplier not derived from precedent count', () => {
     const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
-    const validation = validateOperationEventPayload(
-      'market.emergency_gray_market_fallout_tick',
-      {
-        ...base,
-        waiverPrecedentCount: 3,
-        precedentPenaltyMultiplier: 1.06,
-      }
-    )
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      waiverPrecedentCount: 3,
+      precedentPenaltyMultiplier: 1.06,
+    })
 
     expect(validation.success).toBe(false)
   })
@@ -569,10 +557,13 @@ describe('event payload validation coverage', () => {
       residueCount: 0,
       budgetPressure: 2,
     })
-    const hydrateFloorFundingDelta = validateOperationEventPayload('agency.front_business.resolved', {
-      ...minimalOperationEventPayloads['agency.front_business.resolved'],
-      fundingDelta: -10_000,
-    })
+    const hydrateFloorFundingDelta = validateOperationEventPayload(
+      'agency.front_business.resolved',
+      {
+        ...minimalOperationEventPayloads['agency.front_business.resolved'],
+        fundingDelta: -10_000,
+      }
+    )
     const academy = validateOperationEventPayload(
       'system.academy_upgraded',
       minimalOperationEventPayloads['system.academy_upgraded']
@@ -637,10 +628,13 @@ describe('event payload validation coverage', () => {
       ...base,
       lockoutCount: -1,
     })
-    const fractionalBudgetPressure = validateOperationEventPayload('agency.front_business.resolved', {
-      ...base,
-      budgetPressure: 1.5,
-    })
+    const fractionalBudgetPressure = validateOperationEventPayload(
+      'agency.front_business.resolved',
+      {
+        ...base,
+        budgetPressure: 1.5,
+      }
+    )
     const infiniteResidueCount = validateOperationEventPayload('agency.front_business.resolved', {
       ...base,
       residueCount: Number.POSITIVE_INFINITY,
@@ -1880,10 +1874,13 @@ describe('event payload validation coverage', () => {
       ...base,
       allocation: { ...base.allocation, priority: Number.NaN },
     })
-    const allocationsPriorityTooHigh = validateOperationEventPayload('market.transaction_recorded', {
-      ...base,
-      allocations: [{ ...base.allocation, allocationId: 'alloc-bad', priority: 99 }],
-    })
+    const allocationsPriorityTooHigh = validateOperationEventPayload(
+      'market.transaction_recorded',
+      {
+        ...base,
+        allocations: [{ ...base.allocation, allocationId: 'alloc-bad', priority: 99 }],
+      }
+    )
 
     expect(priorityTooHigh.success).toBe(false)
     expect(delayTooHigh.success).toBe(false)
@@ -1919,5 +1916,111 @@ describe('event payload validation coverage', () => {
     expect(negativeAvailable.success).toBe(false)
     expect(fractionalCapacity.success).toBe(false)
     expect(nanAvailable.success).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with unknown faction references', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'unknown-faction',
+      factionName: 'Unknown Faction',
+      label: 'Unknown channel',
+      summary: 'An unknown channel became available.',
+      disposition: 'supportive',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with stale contacts', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      contactId: 'institutions-retired-contact',
+      contactName: 'Retired Contact',
+      label: 'Archive referral',
+      summary: 'A stale archive referral became available.',
+      disposition: 'supportive',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with blank labels', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      label: '   ',
+      summary: 'A research channel became available.',
+      disposition: 'supportive',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with padded labels or summaries', () => {
+    const base = {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      label: 'Research fellowship',
+      summary: 'A research fellowship became available.',
+      disposition: 'supportive' as const,
+    }
+
+    expect(
+      validateOperationEventPayload('faction.unlock_available', {
+        ...base,
+        label: '  Research fellowship  ',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('faction.unlock_available', {
+        ...base,
+        summary: '  A research fellowship became available.  ',
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with overlong summaries', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      label: 'Research fellowship',
+      summary: 'x'.repeat(501),
+      disposition: 'supportive',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects faction.unlock_available payloads with invalid dispositions', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      label: 'Research fellowship',
+      summary: 'A research fellowship became available.',
+      disposition: 'neutral',
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('accepts a valid faction.unlock_available payload', () => {
+    const validation = validateOperationEventPayload('faction.unlock_available', {
+      week: 3,
+      factionId: 'institutions',
+      factionName: 'Academic Institutions',
+      contactId: 'institutions-halden',
+      contactName: 'Miren Halden',
+      label: 'Research fellowship',
+      summary: 'A fellowship referral channel is available through Halden.',
+      disposition: 'supportive',
+    })
+
+    expect(validation.success).toBe(true)
   })
 })

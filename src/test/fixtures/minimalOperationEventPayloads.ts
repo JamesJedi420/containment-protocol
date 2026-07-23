@@ -76,7 +76,7 @@ export const minimalOperationEventPayloads = {
     mode: 'threshold',
     kind: 'case',
     fromStage: 2,
-    toStage: 1,
+    toStage: 2,
     teamIds: ['team-min'],
   },
   'case.failed': {
@@ -398,8 +398,8 @@ export const minimalOperationEventPayloads = {
   },
   'faction.standing_changed': {
     week: WEEK,
-    factionId: 'faction-min',
-    factionName: 'Minimal Faction',
+    factionId: 'oversight',
+    factionName: 'Oversight Bureau',
     delta: 1,
     standingBefore: 0,
     standingAfter: 1,

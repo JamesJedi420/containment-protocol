@@ -1331,22 +1331,9 @@ function reconcileContactRelationshipFields(
   }
 }
 
-function clampEmergencyWaiverGrantWeek(
-  value: unknown,
-  eventWeek: number,
-  campaignWeek: number
-): number {
-  const cappedCampaignWeek = Math.max(1, Math.trunc(campaignWeek))
-  const cappedEventWeek = Math.max(1, Math.trunc(eventWeek))
-  const maxGrantWeek = Math.min(cappedEventWeek - 1, cappedCampaignWeek)
-
-  if (maxGrantWeek < 1) {
-    return 1
-  }
-
-  const fallback = Math.max(1, cappedEventWeek - 1)
-
-  return clamp(sanitizeInteger(value as number | undefined, fallback, 1), 1, maxGrantWeek)
+/** Hydration policy: legacy closure records always reconcile to the canonical next-week window. */
+function reconcileEmergencyWaiverClosureGrantWeek(eventWeek: number): number {
+  return Math.max(1, Math.trunc(eventWeek) - 1)
 }
 
 function reconcileBeforeAfterDelta(before: unknown, after: unknown, delta: unknown, min: number) {
@@ -7584,7 +7571,9 @@ function sanitizeOperationEvents(
                 agentId:
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
-                  typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+                  typeof payload.agentName === 'string'
+                    ? payload.agentName
+                    : `Agent ${index + 1}`,
                 trainingId: training.trainingId,
                 trainingName: training.trainingName,
               },
@@ -7663,9 +7652,7 @@ function sanitizeOperationEvents(
                 agentId:
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
-                  typeof payload.agentName === 'string'
-                    ? payload.agentName
-                    : `Agent ${index + 1}`,
+                  typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
                 instructorSpecialty: instructor.instructorSpecialty,
                 bonus: instructor.bonus,
               },
@@ -8143,16 +8130,16 @@ function sanitizeOperationEvents(
         break
 
       case 'market.emergency_gray_market_waiver_accountability_closed':
+        if (week === 1) {
+          break
+        }
+
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('market.emergency_gray_market_waiver_accountability_closed'),
             payload: {
               week,
-              waiverGrantWeek: clampEmergencyWaiverGrantWeek(
-                payload.waiverGrantWeek,
-                week,
-                cappedCampaignWeek
-              ),
+              waiverGrantWeek: reconcileEmergencyWaiverClosureGrantWeek(week),
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),

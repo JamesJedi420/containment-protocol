@@ -10803,7 +10803,11 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
-    it('513 clamps emergency waiver accountability waiverGrantWeek below event week', () => {
+    it.each([
+      ['after the closure week', 99],
+      ['during the closure week', 5],
+      ['too early for the canonical window', 2],
+    ])('513 reconciles emergency waiver accountability grant week %s', (_case, waiverGrantWeek) => {
       const fallback = createStartingState()
 
       const hydrated = hydrateGame({
@@ -10816,7 +10820,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             timestamp: buildOperationEventTimestamp(5, 0),
             payload: {
               week: 5,
-              waiverGrantWeek: 99,
+              waiverGrantWeek,
               institutionKey: 'containment_protocol',
             },
           },
@@ -10828,6 +10832,29 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(payload.waiverGrantWeek).toBeLessThan(payload.week ?? 0)
       expect(payload.waiverGrantWeek).toBeLessThanOrEqual(hydrated.week)
       expect(payload.waiverGrantWeek).toBe(4)
+    })
+
+    it('513 drops an emergency waiver accountability closure in campaign week one', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 1,
+        events: [
+          {
+            id: 'evt-waiver-closed-513-impossible',
+            type: 'market.emergency_gray_market_waiver_accountability_closed',
+            timestamp: buildOperationEventTimestamp(1, 0),
+            payload: {
+              week: 1,
+              waiverGrantWeek: 1,
+              institutionKey: 'containment_protocol',
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events).toEqual([])
     })
 
     it('514-515 reconcile standing, reputation, and contact relationship deltas', () => {

@@ -617,7 +617,9 @@ function sanitizeKeyedRecordMap<T extends { readonly id: string }>(
     next[record.id] = record
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive hydrate/merge paths where current state still holds records.
+  return next
 }
 
 function sanitizeBindingMap<T extends { readonly artifactId?: string; readonly ownerId?: string }>(
@@ -648,7 +650,9 @@ function sanitizeBindingMap<T extends { readonly artifactId?: string; readonly o
     next[key] = record
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive hydrate/merge paths where current state still holds records.
+  return next
 }
 
 /** Hydration: canonical platform map keyed by platform id; drops invalid and duplicate-id entries. */
@@ -718,7 +722,9 @@ export function sanitizeSpe947PostCaseMediaCases(
     next[caseId] = record
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  // Plain-record input (including authored `{}`) wins over fallback so cleared
+  // maps survive hydrate/merge paths where current state still holds records.
+  return next
 }
 
 /** Hydration: footage-exposure baseline bindings keyed by artifact id. */
@@ -945,6 +951,7 @@ export const SPE_947_EXAMPLE_PERSISTENCE_FIXTURE: Spe947EvaluatorPersistenceMaps
     }),
   }),
   spe947VisualTriggerHazardBindings: Object.freeze({
-    [SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING.id]: SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING,
+    [SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING.id]:
+      SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING,
   }),
 })

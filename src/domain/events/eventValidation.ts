@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import { getProductionRecipe } from '../../data/production'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
+import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../procurementEmergencyFallout'
 import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
 import { getLevelForXp } from '../progression'
 import type { OperationEventType } from './types'
@@ -776,15 +777,70 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
     outcome: z.enum(['escalated_pending_oversight', 'resolved_closed']),
     falloutRiskBefore: z.enum(['risk', 'costly']),
     falloutRiskAfter: z.enum(['costly', 'none']),
-    fundingBefore: finiteNumberSchema,
-    fundingAfter: finiteNumberSchema,
-    containmentRatingBefore: finiteNumberSchema,
-    containmentRatingAfter: finiteNumberSchema,
+    fundingBefore: finiteNonNegativeNumberSchema,
+    fundingAfter: finiteNonNegativeNumberSchema,
+    containmentRatingBefore: finiteNonNegativeNumberSchema,
+    containmentRatingAfter: finiteNonNegativeNumberSchema,
     waiverPrecedentCount: z.number().int().min(1).max(50000),
-    precedentPenaltyMultiplier: z.number().min(1).max(2),
-    institutionKey: z.string().min(1),
+    precedentPenaltyMultiplier: z.number().finite(),
+    institutionKey: z
+      .string()
+      .min(1)
+      .refine((value) => value === normalizeInstitutionKeyForAudit(value), {
+        message: 'institutionKey must be a normalized nonblank audit key',
+      }),
   })
   .strict()
+  .superRefine((payload, context) => {
+    const expectedRisk =
+      payload.outcome === 'resolved_closed'
+        ? { before: 'costly', after: 'none' }
+        : { before: 'risk', after: 'costly' }
+
+    if (
+      payload.falloutRiskBefore !== expectedRisk.before ||
+      payload.falloutRiskAfter !== expectedRisk.after
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'fallout risk transition must match outcome',
+        path: ['falloutRiskAfter'],
+      })
+    }
+
+    if (
+      payload.fundingAfter > payload.fundingBefore ||
+      (payload.fundingBefore > 0 && payload.fundingAfter === payload.fundingBefore)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'fundingAfter must decrease when fundingBefore is positive',
+        path: ['fundingAfter'],
+      })
+    }
+
+    if (
+      payload.containmentRatingAfter > payload.containmentRatingBefore ||
+      (payload.containmentRatingBefore > 0 &&
+        payload.containmentRatingAfter === payload.containmentRatingBefore)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'containmentRatingAfter must decrease when containmentRatingBefore is positive',
+        path: ['containmentRatingAfter'],
+      })
+    }
+
+    const expectedMultiplier =
+      getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(payload.waiverPrecedentCount)
+    if (payload.precedentPenaltyMultiplier !== expectedMultiplier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `precedentPenaltyMultiplier must equal ${expectedMultiplier} for waiverPrecedentCount`,
+        path: ['precedentPenaltyMultiplier'],
+      })
+    }
+  })
 
 const factionStandingChangedSchema = z
   .object({

@@ -306,6 +306,94 @@ describe('event payload validation coverage', () => {
     expect(validation.success).toBe(true)
   })
 
+  it('rejects market.emergency_gray_market_fallout_tick with a risk transition that contradicts the outcome', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        outcome: 'escalated_pending_oversight',
+        falloutRiskBefore: 'costly',
+        falloutRiskAfter: 'none',
+      }
+    )
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects market.emergency_gray_market_fallout_tick when funding increases on a penalty tick', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        fundingAfter: base.fundingBefore + 1,
+      }
+    )
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects market.emergency_gray_market_fallout_tick when containment increases on a penalty tick', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        containmentRatingAfter: base.containmentRatingBefore + 1,
+      }
+    )
+
+    expect(validation.success).toBe(false)
+  })
+
+  it.each([
+    ['funding', { fundingAfter: 100 }],
+    ['containment', { containmentRatingAfter: 60 }],
+  ])(
+    'rejects market.emergency_gray_market_fallout_tick when positive %s does not decrease',
+    (_metric, override) => {
+      const validation = validateOperationEventPayload(
+        'market.emergency_gray_market_fallout_tick',
+        {
+          ...minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick'],
+          ...override,
+        }
+      )
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
+  it('rejects market.emergency_gray_market_fallout_tick with a multiplier not derived from precedent count', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        waiverPrecedentCount: 3,
+        precedentPenaltyMultiplier: 1.06,
+      }
+    )
+
+    expect(validation.success).toBe(false)
+  })
+
+  it.each(['', '   ', ' Containment Protocol ', 'CONTAINMENT_PROTOCOL'])(
+    'rejects market.emergency_gray_market_fallout_tick with noncanonical institutionKey %j',
+    (institutionKey) => {
+      const validation = validateOperationEventPayload(
+        'market.emergency_gray_market_fallout_tick',
+        {
+          ...minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick'],
+          institutionKey,
+        }
+      )
+
+      expect(validation.success).toBe(false)
+    }
+  )
+
   it('rejects market.emergency_gray_market_waiver_granted payloads with invalid crisisPressureScore', () => {
     const base = minimalOperationEventPayloads['market.emergency_gray_market_waiver_granted']
     const nanScore = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
@@ -367,11 +455,27 @@ describe('event payload validation coverage', () => {
         containmentRatingAfter: Number.NEGATIVE_INFINITY,
       }
     )
+    const negativeFunding = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        fundingAfter: -1,
+      }
+    )
+    const negativeContainment = validateOperationEventPayload(
+      'market.emergency_gray_market_fallout_tick',
+      {
+        ...base,
+        containmentRatingBefore: -1,
+      }
+    )
 
     expect(nanFunding.success).toBe(false)
     expect(infiniteFundingAfter.success).toBe(false)
     expect(nanContainment.success).toBe(false)
     expect(infiniteContainmentAfter.success).toBe(false)
+    expect(negativeFunding.success).toBe(false)
+    expect(negativeContainment.success).toBe(false)
   })
 
   it('accepts agency.containment_updated producer-aligned payloads including negative deltas', () => {

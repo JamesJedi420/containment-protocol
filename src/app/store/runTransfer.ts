@@ -183,6 +183,7 @@ import {
   AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
   LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
 } from '../../domain/procurementEmergencyAuthority'
+import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../../domain/procurementEmergencyFallout'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import {
   reconcileMarketShiftedFields,
@@ -2494,7 +2495,7 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
     fundingBefore,
     0
   )
-  const fundingAfter = Math.min(fundingAfterRaw, fundingBefore)
+  const fundingAfter = Math.min(fundingAfterRaw, Math.max(0, fundingBefore - 1))
   const containmentRatingBefore = sanitizeInteger(
     payload.containmentRatingBefore as number | undefined,
     0,
@@ -2505,7 +2506,17 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
     containmentRatingBefore,
     0
   )
-  const containmentRatingAfter = Math.min(containmentRatingAfterRaw, containmentRatingBefore)
+  const containmentRatingAfter = Math.min(
+    containmentRatingAfterRaw,
+    Math.max(0, containmentRatingBefore - 1)
+  )
+  const waiverPrecedentCount = clamp(
+    sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
+    1,
+    50000
+  )
+  const precedentPenaltyMultiplier =
+    getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(waiverPrecedentCount)
 
   return {
     outcome,
@@ -2515,6 +2526,8 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
     fundingAfter,
     containmentRatingBefore,
     containmentRatingAfter,
+    waiverPrecedentCount,
+    precedentPenaltyMultiplier,
   }
 }
 
@@ -8166,19 +8179,8 @@ function sanitizeOperationEvents(
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),
-              waiverPrecedentCount: clamp(
-                sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
-                1,
-                50000
-              ),
-              precedentPenaltyMultiplier: clamp(
-                typeof payload.precedentPenaltyMultiplier === 'number' &&
-                  Number.isFinite(payload.precedentPenaltyMultiplier)
-                  ? payload.precedentPenaltyMultiplier
-                  : 1,
-                1,
-                2
-              ),
+              waiverPrecedentCount: fallout.waiverPrecedentCount,
+              precedentPenaltyMultiplier: fallout.precedentPenaltyMultiplier,
             },
           })
         )

@@ -10,6 +10,7 @@ import {
   AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION,
   resolveEmergencyGrayMarketWaiverAuthority,
 } from './procurementEmergencyAuthority'
+import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from './procurementEmergencyFallout'
 import { getEmergencyProcurementInstitutionAuditKey } from './procurementEmergencyInstitution'
 import { buildMajorIncidentState } from './strategicState'
 import { normalizeGameState } from './teamSimulation'
@@ -120,18 +121,6 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
   )
 }
 
-/** Max extra precedent steps that tighten fallout (beyond first waiver); caps abuse scaling (SPE-1184). */
-const FALLOUT_PRECEDENT_PRESSURE_MAX_EXTRA_STEPS = 6
-
-/** Per-step pressure on funding/containment penalty magnitude (+6% per step over baseline waiver). */
-const FALLOUT_PRECEDENT_PRESSURE_STEP = 0.06
-
-function emergencyWaiverFalloutPrecedentPressureMultiplier(precedentCount: number): number {
-  const baseline = clamp(precedentCount > 0 ? precedentCount : 1, 1, 50000)
-  const extraSteps = Math.min(Math.max(0, baseline - 1), FALLOUT_PRECEDENT_PRESSURE_MAX_EXTRA_STEPS)
-  return 1 + FALLOUT_PRECEDENT_PRESSURE_STEP * extraSteps
-}
-
 /**
  * Deterministic weekly fallout for emergency waiver legitimacy pressure (SPE-1184).
  * Phase 1: `risk` → `costly` with bounded funding + containment pressure.
@@ -151,10 +140,9 @@ export function applyEmergencyGrayMarketFalloutTick(
   const containmentBefore = nextStateDraft.containmentRating ?? 0
   const institutionKey = getEmergencyProcurementInstitutionAuditKey(nextStateDraft)
   const waiverPrecedentCount = clamp(nextStateDraft.emergencyGrayMarketWaiverPrecedentCount ?? 1, 1, 50000)
-  const precedentPenaltyMultiplier = emergencyWaiverFalloutPrecedentPressureMultiplier(
+  const precedentPenaltyMultiplier = getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
     waiverPrecedentCount
   )
-  const multiplierRounded = Math.round(precedentPenaltyMultiplier * 1000) / 1000
 
   const baseLegitimacy: LegitimacyState = {
     sanctionLevel: nextStateDraft.legitimacy?.sanctionLevel ?? 'tolerated',
@@ -187,7 +175,7 @@ export function applyEmergencyGrayMarketFalloutTick(
         containmentRatingBefore: containmentBefore,
         containmentRatingAfter: containmentAfter,
         waiverPrecedentCount,
-        precedentPenaltyMultiplier: multiplierRounded,
+        precedentPenaltyMultiplier,
         institutionKey,
       },
     }
@@ -229,7 +217,7 @@ export function applyEmergencyGrayMarketFalloutTick(
       containmentRatingBefore: containmentBefore,
       containmentRatingAfter: containmentAfter,
       waiverPrecedentCount,
-      precedentPenaltyMultiplier: multiplierRounded,
+      precedentPenaltyMultiplier,
       institutionKey,
     },
   }

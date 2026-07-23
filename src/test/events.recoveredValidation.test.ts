@@ -108,6 +108,51 @@ describe('recovered operation event validation', () => {
     expect(validateOperationEventPayload('faction.standing_changed', base).success).toBe(true)
   })
 
+  it('accepts bounded faction transitions and recruitment reputation deltas', () => {
+    const base = minimalOperationEventPayloads['faction.standing_changed']
+
+    expect(
+      validateOperationEventPayload('faction.standing_changed', {
+        ...base,
+        delta: 4,
+        standingBefore: 19,
+        standingAfter: 20,
+        contactRelationshipBefore: 98,
+        contactRelationshipAfter: 100,
+        contactDelta: 6,
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('faction.standing_changed', {
+        ...base,
+        reason: 'recruitment.hired',
+        delta: 4,
+        standingBefore: 0,
+        standingAfter: 1,
+        reputationBefore: 2,
+        reputationAfter: 6,
+      }).success
+    ).toBe(true)
+  })
+
+  it('preserves a valid recovered payload during v1 migration', () => {
+    const payload = minimalOperationEventPayloads['case.failed']
+    const migrated = migrateEventV1toV2({
+      id: 'recovered-valid-case-failed',
+      schemaVersion: 1,
+      type: 'case.failed',
+      timestamp: '2026-07-23T00:00:00.000Z',
+      sourceSystem: 'system',
+      payload,
+    })
+
+    expect(migrated).toMatchObject({
+      schemaVersion: 2,
+      type: 'case.failed',
+      payload,
+    })
+  })
+
   it('drops recovered invalid payload classes during v1 migration', () => {
     const invalidPayloads = [
       {

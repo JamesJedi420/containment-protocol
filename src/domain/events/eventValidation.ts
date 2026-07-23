@@ -954,11 +954,38 @@ const factionStandingChangedSchema = z
     contactDelta: z.number().finite().int().optional(),
   })
   .superRefine((payload, context) => {
-    if (payload.delta !== payload.standingAfter - payload.standingBefore) {
+    const deltaMatchesTransition = (
+      before: number,
+      after: number,
+      delta: number,
+      minimum: number,
+      maximum: number
+    ) => after === Math.min(maximum, Math.max(minimum, before + delta))
+
+    const deltaMatches =
+      payload.reason === 'recruitment.hired' &&
+      payload.reputationBefore !== undefined &&
+      payload.reputationAfter !== undefined
+        ? deltaMatchesTransition(
+            payload.reputationBefore,
+            payload.reputationAfter,
+            payload.delta,
+            -100,
+            100
+          )
+        : deltaMatchesTransition(
+            payload.standingBefore,
+            payload.standingAfter,
+            payload.delta,
+            -20,
+            20
+          )
+
+    if (!deltaMatches) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['delta'],
-        message: 'delta must equal standingAfter - standingBefore',
+        message: 'delta must produce the bounded standing or reputation transition',
       })
     }
 
@@ -980,12 +1007,19 @@ const factionStandingChangedSchema = z
     if (
       payload.contactRelationshipBefore !== undefined &&
       payload.contactRelationshipAfter !== undefined &&
-      payload.contactDelta !== payload.contactRelationshipAfter - payload.contactRelationshipBefore
+      payload.contactDelta !== undefined &&
+      !deltaMatchesTransition(
+        payload.contactRelationshipBefore,
+        payload.contactRelationshipAfter,
+        payload.contactDelta,
+        -100,
+        100
+      )
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['contactDelta'],
-        message: 'contactDelta must equal contactRelationshipAfter - contactRelationshipBefore',
+        message: 'contactDelta must produce the bounded contact relationship transition',
       })
     }
   })

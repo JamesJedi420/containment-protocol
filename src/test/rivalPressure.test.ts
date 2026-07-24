@@ -11,6 +11,7 @@ import {
 } from '../domain/rivalPressure'
 import { applyAssetReliabilityDrift, createContractorAsset } from '../domain/externalSupport'
 import { buildRecruitmentGenerationState } from '../domain/sim/candidateGenerator'
+import { getReportPageView } from '../features/report/reportView'
 import type { WeeklyReport } from '../domain/models'
 
 function reportWithFailures(week: number, failures: number, unresolved: number): WeeklyReport {
@@ -93,10 +94,20 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(weakDrift.asset.reliability).toBeLessThan(neutralDrift.asset.reliability)
     expect(strongDrift.asset.reliability).toBeGreaterThan(weakDrift.asset.reliability)
 
-    const identicalA = applyAssetReliabilityDrift(contractor, 'support_partial', {
+    const weakPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
       trustFailureDriftScale: weak.trustFailureDriftScale,
     })
-    const identicalB = applyAssetReliabilityDrift(contractor, 'support_partial', {
+    const strongPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
+      trustFailureDriftScale: strong.trustFailureDriftScale,
+    })
+    const neutralPartial = applyAssetReliabilityDrift(contractor, 'support_partial')
+    expect(strongPartial.asset.reliability).toBeGreaterThan(neutralPartial.asset.reliability)
+    expect(weakPartial.asset.reliability).toBeLessThan(neutralPartial.asset.reliability)
+
+    const identicalA = applyAssetReliabilityDrift(contractor, 'week_idle', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const identicalB = applyAssetReliabilityDrift(contractor, 'week_idle', {
       trustFailureDriftScale: weak.trustFailureDriftScale,
     })
     expect(identicalA.asset.reliability).toBe(identicalB.asset.reliability)
@@ -162,6 +173,24 @@ describe('rival comparative pressure (SPE-2699)', () => {
 
   it('exposes rival pressure on agency summary for player-facing surfaces', () => {
     const game = createStartingState()
+    game.reports = [
+      {
+        week: 1,
+        rngStateBefore: 1,
+        rngStateAfter: 2,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+    ]
     const summary = buildAgencySummary(game)
 
     expect(summary.rivalPressure).toEqual({
@@ -174,5 +203,12 @@ describe('rival comparative pressure (SPE-2699)', () => {
     })
     expect(summary.rivalPressure.summary).toMatch(/Comparative pressure/)
     expect(summary.rivalPressure.summary).toMatch(/external-support failure drift/)
+
+    const reportLine = getReportPageView(game).summary?.agencySummaryLine ?? ''
+    expect(reportLine).toMatch(
+      new RegExp(
+        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; trust-failure drift ${summary.rivalPressure.trustFailureDriftScale}×\\)`
+      )
+    )
   })
 })

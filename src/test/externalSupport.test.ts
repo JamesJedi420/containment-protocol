@@ -98,10 +98,14 @@ describe('applyAssetReliabilityDrift', () => {
     const delivered = applyAssetReliabilityDrift(base, 'support_delivered', {
       trustFailureDriftScale: 1.12,
     })
+    const idleForgiven = applyAssetReliabilityDrift(base, 'week_idle', {
+      trustFailureDriftScale: 0.7,
+    })
 
     expect(forgiven.asset.reliability).toBe(32) // 50 + round(-20 * 0.88)
     expect(hardened.asset.reliability).toBe(28) // 50 + round(-20 * 1.12)
     expect(delivered.asset.reliability).toBe(62) // positive drift unscaled
+    expect(idleForgiven.asset.reliability).toBe(48) // 50 + round(-3 * 0.7) = 50 - 2
   })
 })
 

@@ -37,7 +37,9 @@ export function getReportPageView(game: GameState): ReportPageView {
     `${agencySummary.name}: reputation ${agencySummary.reputation}, ` +
     `pressure ${agencySummary.pressure.score} (${agencySummary.pressure.level}), ` +
     `rival pressure ${agencySummary.rivalPressure.score} (${agencySummary.rivalPressure.band}; ` +
-    `trust-failure drift ${agencySummary.rivalPressure.trustFailureDriftScale}×), ` +
+    `trust-failure drift ${agencySummary.rivalPressure.trustFailureDriftScale}×; ` +
+    `post-exposure ${agencySummary.rivalPressure.postExposurePosture} ` +
+    `${agencySummary.rivalPressure.postExposureTrustDelta > 0 ? '+' : ''}${agencySummary.rivalPressure.postExposureTrustDelta}), ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

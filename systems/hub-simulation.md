@@ -164,8 +164,11 @@ Comparative rival pressure is a separate **read-time** derivation from agency ra
 an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
 comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases
 both. The same pressure also scales **negative** external-support reliability drift (SPE-93): high
-standing softens trust collapse after weak outputs; low standing accelerates it. Agency overview and
-report summary lines expose the pressure band and forgiveness scale for legibility.
+standing softens trust collapse after weak outputs; low standing accelerates it. After public
+disclosure exposure (awareness ≠ secrecy-intact), ranking also supplies a bounded
+`postExposureTrustDelta` into regional trust → cooperation bands: high standing is protective, low
+standing is coercive. Agency overview and report summary lines expose the pressure band, forgiveness
+scale, and post-exposure posture for legibility.
 
 ### Stage B — Build hub opportunity pools
 

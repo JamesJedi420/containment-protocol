@@ -80,7 +80,33 @@ describe('publicDisclosureTrustOutcomeProjection (SPE-861 slice 2)', () => {
     })
 
     expect(formatPublicDisclosureTrustOutcomeNoteContent(projection, 24)).toBe(
-      'Public disclosure trust outcome — W24: 1 active campaign(s); dominant awareness Official Disclosure; Opposed posture; Low regional trust.'
+      'Public disclosure trust outcome — W24: 1 active campaign(s); dominant awareness Official Disclosure; Opposed posture; Low regional trust; rival posture neutral (trust 0).'
+    )
+  })
+
+  it('applies standing-shaped post-exposure trust only when exposure is active (SPE-2701)', () => {
+    const records = { [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE }
+    const protective = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: 0.08,
+    })
+    const coercive = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: -0.08,
+    })
+    const inactive = projectPublicDisclosureTrustOutcome({}, null, {
+      postExposureTrustDelta: 0.08,
+    })
+
+    expect(protective.rivalPosture).toBe('protective')
+    expect(protective.postExposureTrustDeltaApplied).toBe(0.08)
+    expect(protective.aggregateRegionalTrustBand).toBe('moderate')
+    expect(protective.cooperationBand).toBe('watchful')
+    expect(coercive.rivalPosture).toBe('coercive')
+    expect(coercive.aggregateRegionalTrustBand).toBe('low')
+    expect(coercive.cooperationBand).toBe('opposed')
+    expect(inactive.rivalPosture).toBe('inactive')
+    expect(inactive.postExposureTrustDeltaApplied).toBe(0)
+    expect(formatPublicDisclosureTrustOutcomeNoteContent(protective, 7)).toContain(
+      'rival posture protective (trust +0.08)'
     )
   })
 

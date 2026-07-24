@@ -7,6 +7,8 @@ export const RIVAL_PRESSURE_PEER_BASELINE = RANKING_BASE_SCORE
 
 export type RivalPressureBand = 'suppressed' | 'balanced' | 'competitive' | 'severe'
 
+export type RivalPostExposurePosture = 'protective' | 'coercive' | 'neutral'
+
 export interface RivalPressureView {
   /** 0–100 comparative pressure (higher = rivals look stronger). */
   score: number
@@ -22,6 +24,13 @@ export interface RivalPressureView {
    * <1 = standing-shaped forgiveness; >1 = accelerated trust collapse.
    */
   trustFailureDriftScale: number
+  /**
+   * Additive regional-trust delta after public exposure (SPE-2701).
+   * Applied only when disclosure awareness is active; high standing protective, low coercive.
+   */
+  postExposureTrustDelta: number
+  /** Protective / coercive / neutral label for the post-exposure trust delta. */
+  postExposurePosture: RivalPostExposurePosture
   summary: string
 }
 
@@ -48,21 +57,54 @@ function buildForgivenessNote(trustFailureDriftScale: number): string {
   return `external-support failure drift neutral (${trustFailureDriftScale}×).`
 }
 
+export function resolveRivalPostExposurePosture(
+  postExposureTrustDelta: number
+): RivalPostExposurePosture {
+  if (postExposureTrustDelta > 0) {
+    return 'protective'
+  }
+  if (postExposureTrustDelta < 0) {
+    return 'coercive'
+  }
+  return 'neutral'
+}
+
+function buildPostExposurePostureNote(
+  postExposurePosture: RivalPostExposurePosture,
+  postExposureTrustDelta: number
+): string {
+  switch (postExposurePosture) {
+    case 'protective':
+      return `post-exposure rival posture protective (trust ${postExposureTrustDelta > 0 ? '+' : ''}${postExposureTrustDelta}).`
+    case 'coercive':
+      return `post-exposure rival posture coercive (trust ${postExposureTrustDelta}).`
+    case 'neutral':
+      return `post-exposure rival posture neutral (trust ${postExposureTrustDelta}).`
+    default: {
+      const _exhaustive: never = postExposurePosture
+      return _exhaustive
+    }
+  }
+}
+
 function buildRivalPressureSummary(
   band: RivalPressureBand,
   rankingScore: number,
-  trustFailureDriftScale: number
+  trustFailureDriftScale: number,
+  postExposurePosture: RivalPostExposurePosture,
+  postExposureTrustDelta: number
 ): string {
   const forgiveness = buildForgivenessNote(trustFailureDriftScale)
+  const exposure = buildPostExposurePostureNote(postExposurePosture, postExposureTrustDelta)
   switch (band) {
     case 'suppressed':
-      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable; ${forgiveness}`
+      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable; ${forgiveness} ${exposure}`
     case 'balanced':
-      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew; ${forgiveness}`
+      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew; ${forgiveness} ${exposure}`
     case 'competitive':
-      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten; ${forgiveness}`
+      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten; ${forgiveness} ${exposure}`
     case 'severe':
-      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress; ${forgiveness}`
+      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress; ${forgiveness} ${exposure}`
     default: {
       const _exhaustive: never = band
       return _exhaustive
@@ -85,6 +127,9 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
   const recruitQualityDelta = clamp(Math.round(-deltaFromPeer * 0.12), -6, 4) + 0
   // High standing (negative deltaFromPeer) softens trust collapse; low standing hardens it.
   const trustFailureDriftScale = Number(clamp(1 + deltaFromPeer * 0.004, 0.7, 1.3).toFixed(3))
+  // High standing protects regional trust after exposure; low standing coerces it downward.
+  const postExposureTrustDelta = Number(clamp(-deltaFromPeer * 0.0025, -0.1, 0.1).toFixed(2)) + 0
+  const postExposurePosture = resolveRivalPostExposurePosture(postExposureTrustDelta)
 
   return {
     score,
@@ -94,7 +139,15 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
     contractRewardMultiplier,
     recruitQualityDelta,
     trustFailureDriftScale,
-    summary: buildRivalPressureSummary(band, clampedRanking, trustFailureDriftScale),
+    postExposureTrustDelta,
+    postExposurePosture,
+    summary: buildRivalPressureSummary(
+      band,
+      clampedRanking,
+      trustFailureDriftScale,
+      postExposurePosture,
+      postExposureTrustDelta
+    ),
   }
 }
 

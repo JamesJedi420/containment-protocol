@@ -17,13 +17,15 @@ import { createDeterministicReportNote } from './reportNotes'
 export function buildWeeklyPublicDisclosureTrustOutcomeReportNotes(input: {
   nextRecords: PublicDisclosureRecordsMap | null | undefined
   postureChoices?: PublicDisclosurePostureChoicesMap | null
+  postExposureTrustDelta?: number
   week: number
   sequenceStart: number
   baseTimestamp?: number
 }): ReportNote[] {
   const projection = projectPublicDisclosureTrustOutcome(
     input.nextRecords,
-    input.postureChoices
+    input.postureChoices,
+    { postExposureTrustDelta: input.postExposureTrustDelta ?? 0 }
   )
 
   if (projection.activeCampaignCount === 0) {
@@ -42,6 +44,8 @@ export function buildWeeklyPublicDisclosureTrustOutcomeReportNotes(input: {
         dominantAwarenessLevel: projection.dominantAwarenessLevel,
         aggregateRegionalTrustBand: projection.aggregateRegionalTrustBand,
         cooperationBand: projection.cooperationBand,
+        postExposureTrustDeltaApplied: projection.postExposureTrustDeltaApplied,
+        rivalPosture: projection.rivalPosture,
         week: input.week,
       }
     ),

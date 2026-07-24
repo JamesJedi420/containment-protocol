@@ -325,6 +325,7 @@ import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '..
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
+import { buildRivalPressure } from '../rivalPressure'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
@@ -5736,9 +5737,11 @@ export function advanceWeek(
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const postExposureTrustDelta = buildRivalPressure(result).postExposureTrustDelta
     const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
@@ -5749,6 +5752,7 @@ export function advanceWeek(
     const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,

@@ -15,7 +15,11 @@ import {
   type PublicDisclosureRecord,
   type PublicDisclosureRecordsMap,
 } from './publicDisclosureStateRegistry'
-import type { PublicDisclosureTrustOutcomeAttentionTone } from './publicDisclosureTrustOutcomeProjection'
+import {
+  applyPostExposureComparativeTrustAdjustment,
+  type PublicDisclosureTrustOutcomeAttentionTone,
+} from './publicDisclosureTrustOutcomeProjection'
+import { buildRivalPressure } from './rivalPressure'
 
 export type PublicDisclosureTrustSegmentKind = 'population' | 'channel'
 
@@ -274,9 +278,14 @@ function resolveFrontDeskDivergenceTone(
 /** Projects population / channel trust divergence from hydrated disclosure records. */
 export function projectPublicDisclosureSegmentedTrustOutcome(
   records: PublicDisclosureRecordsMap | null | undefined,
-  postureChoices?: PublicDisclosurePostureChoicesMap | null
+  postureChoices?: PublicDisclosurePostureChoicesMap | null,
+  options?: { readonly postExposureTrustDelta?: number } | null
 ): PublicDisclosureSegmentedTrustOutcomeProjection {
-  const effectiveRecords = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const postureAdjusted = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const effectiveRecords = applyPostExposureComparativeTrustAdjustment(
+    postureAdjusted,
+    options?.postExposureTrustDelta ?? 0
+  )
   const persistedRecords = listPersistedRecords(effectiveRecords)
   const activeRecords = persistedRecords.filter((record) => record.awarenessLevel !== 'secrecy_intact')
   const aggregate = collectSegmentTrustScores(activeRecords)
@@ -306,11 +315,15 @@ export function projectPublicDisclosureSegmentedTrustOutcome(
 }
 
 export function projectPublicDisclosureSegmentedTrustOutcomeFromGame(
-  game: Pick<GameState, 'publicDisclosureRecords' | 'publicDisclosurePostureChoices'>
+  game: Pick<
+    GameState,
+    'publicDisclosureRecords' | 'publicDisclosurePostureChoices' | 'reports' | 'events'
+  >
 ): PublicDisclosureSegmentedTrustOutcomeProjection {
   return projectPublicDisclosureSegmentedTrustOutcome(
     game.publicDisclosureRecords,
-    game.publicDisclosurePostureChoices
+    game.publicDisclosurePostureChoices,
+    { postExposureTrustDelta: buildRivalPressure(game).postExposureTrustDelta }
   )
 }
 

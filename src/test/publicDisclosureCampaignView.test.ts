@@ -142,4 +142,57 @@ describe('publicDisclosureCampaignView (SPE-861 slice 1)', () => {
     expect(adjusted.records[0]?.selectedPostureChoiceLabel).toBe('Transparent posture')
     expect(adjusted.summary.cooperationBandLabel).toBe('Watchful compliance')
   })
+
+  it('aligns campaign regional bands with standing-shaped post-exposure trust (SPE-2701)', () => {
+    const game = createStartingState()
+    game.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+    game.reports = [
+      {
+        week: 1,
+        rngStateBefore: 1,
+        rngStateAfter: 2,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: Array.from({ length: 10 }, (_, index) => `resolved-a-${index}`),
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+      {
+        week: 2,
+        rngStateBefore: 2,
+        rngStateAfter: 3,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: Array.from({ length: 10 }, (_, index) => `resolved-b-${index}`),
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+    ]
+
+    const view = getPublicDisclosureCampaignView(game)
+    const coastal = view.records[0]?.regionalBandViews.find(
+      (entry) => entry.regionLabel === 'Coastal Metro'
+    )
+    const coastalChip = view.summary.segmentTrustChips.find(
+      (entry) => entry.segmentLabel === 'Coastal Metro'
+    )
+
+    expect(view.summary.cooperationBandLabel).toBe('Watchful compliance')
+    expect(coastal?.trustBandLabel).toBe('Moderate')
+    expect(coastalChip?.trustBandLabel).toBe('Moderate')
+  })
 })

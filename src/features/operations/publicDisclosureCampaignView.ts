@@ -5,15 +5,20 @@ import {
   type PublicDisclosureRecord,
 } from '../../domain/publicDisclosureStateRegistry'
 import { resolveTruthLayerDualIncidentPairing } from '../../domain/truthLayerCoverNarrativePairing'
-import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
+import {
+  applyPostExposureComparativeTrustAdjustment,
+  projectPublicDisclosureTrustOutcomeFromGame,
+} from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 import {
+  applyPublicDisclosurePostureTrustAdjustment,
   canApplyPublicDisclosurePostureChoiceOnRecord,
   listPublicDisclosurePostureChoiceOptions,
   readPublicDisclosurePostureChoice,
   formatPublicDisclosurePostureChoiceLabel,
   type PublicDisclosurePostureChoice,
 } from '../../domain/publicDisclosurePostureChoice'
+import { buildRivalPressure } from '../../domain/rivalPressure'
 import { formatPublicDisclosureEnumLabel } from './publicDisclosureMirrorView'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
@@ -160,7 +165,15 @@ function resolveCoverNarrativeContextLabel(
 }
 
 function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDisclosureCampaignRecordView {
-  const projection = projectDisclosureRegionalView(record, { redactUnknown: true })
+  const adjustedRecords = applyPostExposureComparativeTrustAdjustment(
+    applyPublicDisclosurePostureTrustAdjustment(
+      { [record.id]: record },
+      game.publicDisclosurePostureChoices
+    ),
+    buildRivalPressure(game).postExposureTrustDelta
+  )
+  const effectiveRecord = adjustedRecords[record.id] ?? record
+  const projection = projectDisclosureRegionalView(effectiveRecord, { redactUnknown: true })
   const allowsPostureChoice = canApplyPublicDisclosurePostureChoiceOnRecord(record)
   const selectedPostureChoice = readPublicDisclosurePostureChoice(game, record.id) ?? null
   const postureChoiceOptions = allowsPostureChoice

@@ -5737,10 +5737,11 @@ export function advanceWeek(
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const postExposureTrustDelta = buildRivalPressure(result).postExposureTrustDelta
     const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
-      postExposureTrustDelta: buildRivalPressure(result).postExposureTrustDelta,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
@@ -5751,6 +5752,7 @@ export function advanceWeek(
     const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,

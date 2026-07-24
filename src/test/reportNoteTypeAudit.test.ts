@@ -61,6 +61,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'crossJurisdictionCoordinationWeeklyReportNotes',
     category: 'system',
   },
+  'agency.hidden_cell_interference': {
+    status: 'active',
+    producer: 'hiddenCellInterferenceWeeklyReportNotes',
+    category: 'system',
+  },
   'system.week_delta': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'system.recruitment_expired': {
     status: 'active',
@@ -253,7 +258,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(60)
+    expect(entries).toHaveLength(61)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

@@ -326,6 +326,12 @@ import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureW
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
+import { buildWeeklyHiddenCellInterferenceReportNotes } from '../hiddenCellInterferenceWeeklyReportNotes'
+import {
+  applyHiddenCellFundingTheftToFundingState,
+  findHiddenCellFundingTheftAmountForWeek,
+  resolveHiddenCellFundingTheftFromPressure,
+} from '../hiddenCellStrategicInterference'
 import { buildRivalPressure } from '../rivalPressure'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
@@ -4359,8 +4365,26 @@ function updateAgencyMetrics(
   const fundingStateAfterBacklog =
     stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterHoldingCost
 
+  // SPE-2704 / SPE-39: hidden-cell funding theft from rival/cell pressure (after ops/holding).
+  const rivalPressureForInterference = buildRivalPressure(context.sourceState)
+  const hiddenCellInterference = resolveHiddenCellFundingTheftFromPressure(
+    rivalPressureForInterference,
+    nextFunding
+  )
+  const fundingStateSyncedForTheft = {
+    ...fundingStateAfterBacklog,
+    funding: nextFunding,
+  }
+  const { state: fundingStateAfterHiddenCellTheft, appliedAmount: hiddenCellTheftAmount } =
+    applyHiddenCellFundingTheftToFundingState(
+      fundingStateSyncedForTheft,
+      hiddenCellInterference,
+      closedWeek
+    )
+  const fundingAfterHiddenCellTheft = Math.max(0, fundingStateAfterHiddenCellTheft.funding)
+
   if (
-    nextFunding !== context.nextState.funding ||
+    fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
     nextClearanceLevel !== context.nextState.clearanceLevel
   ) {
@@ -4375,8 +4399,8 @@ function updateAgencyMetrics(
         clearanceLevelBefore: context.nextState.clearanceLevel,
         clearanceLevelAfter: nextClearanceLevel,
         fundingBefore: context.nextState.funding,
-        fundingAfter: nextFunding,
-        fundingDelta,
+        fundingAfter: fundingAfterHiddenCellTheft,
+        fundingDelta: fundingDelta - hiddenCellTheftAmount,
       },
     })
   }
@@ -4385,8 +4409,8 @@ function updateAgencyMetrics(
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
-    funding: nextFunding,
-    fundingState: fundingStateAfterBacklog,
+    funding: fundingAfterHiddenCellTheft,
+    fundingState: fundingStateAfterHiddenCellTheft,
   }
   return {
     weekScore,
@@ -4403,7 +4427,7 @@ function updateAgencyMetrics(
         : capacityExceeded
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
-      funding: nextFunding,
+      funding: fundingAfterHiddenCellTheft,
       inventory: stateAfterBacklogFulfillment.inventory,
       events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
@@ -5309,6 +5333,39 @@ export function advanceWeek(
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...coordinationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2704 / SPE-39: hidden-cell funding theft → weekly interference note.
+  // Funding history + report notes key off the closed week (sourceState.week), not result.week.
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForInterference = sourceState.week
+    // Same pressure inputs as updateAgencyMetrics apply path (pre-append ranking).
+    const rivalPressureForNotes = buildRivalPressure(sourceState)
+    const appliedTheft = findHiddenCellFundingTheftAmountForWeek(
+      result.agency?.fundingState,
+      closedWeekForInterference
+    )
+    const fundingBeforeTheft = result.funding + appliedTheft
+    const hiddenCellNotes = buildWeeklyHiddenCellInterferenceReportNotes({
+      fundingState: result.agency?.fundingState,
+      rivalPressure: rivalPressureForNotes,
+      fundingBeforeTheft,
+      week: closedWeekForInterference,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (hiddenCellNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...hiddenCellNotes],
       }
       result.reports = reports
     }

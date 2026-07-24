@@ -45,6 +45,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'faction.unlock_available': 'system',
   'agency.containment_updated': 'system',
   'agency.cross_jurisdiction_coordination': 'system',
+  'agency.hidden_cell_interference': 'system',
   'directive.applied': 'system',
   'support.shortfall': 'system',
   'support.restored': 'system',

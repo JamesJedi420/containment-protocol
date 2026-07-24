@@ -1,9 +1,9 @@
 import { clamp } from './math'
 import type { GameState } from './models'
-import { buildAgencyRanking } from './rankings'
+import { buildAgencyRanking, RANKING_BASE_SCORE } from './rankings'
 
-/** Abstract peer baseline — matches ranking base score when no history exists. */
-export const RIVAL_PRESSURE_PEER_BASELINE = 50
+/** Abstract peer baseline — shared with ranking base score when no history exists. */
+export const RIVAL_PRESSURE_PEER_BASELINE = RANKING_BASE_SCORE
 
 export type RivalPressureBand = 'suppressed' | 'balanced' | 'competitive' | 'severe'
 

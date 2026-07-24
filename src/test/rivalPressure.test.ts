@@ -36,14 +36,17 @@ function reportWithResolutions(week: number, resolved: number): WeeklyReport {
 
 describe('rival comparative pressure (SPE-2699)', () => {
   it('derives deterministic pressure bands and surface deltas from ranking score', () => {
+    const empty = buildRivalPressure({ reports: [], events: [] })
     const balanced = buildRivalPressureFromRankingScore(50)
     const weak = buildRivalPressureFromRankingScore(20)
     const strong = buildRivalPressureFromRankingScore(80)
 
+    expect(empty).toEqual(balanced)
     expect(balanced).toEqual(buildRivalPressureFromRankingScore(50))
     expect(balanced.band).toBe('balanced')
     expect(balanced.contractRewardMultiplier).toBe(1)
     expect(balanced.recruitQualityDelta).toBe(0)
+    expect(Object.is(balanced.recruitQualityDelta, -0)).toBe(false)
 
     expect(weak.score).toBeGreaterThan(balanced.score)
     expect(weak.band).toBe('severe')

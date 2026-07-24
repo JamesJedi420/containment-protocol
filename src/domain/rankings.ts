@@ -81,6 +81,12 @@ interface RankingAccumulator {
   unresolvedCases: number
   majorResolvedIncidents: number
   majorPartialIncidents: number
+  legacyResolvedCases: number
+  legacyPartialCases: number
+  legacyFailedCases: number
+  legacyUnresolvedCases: number
+  legacyMajorResolvedIncidents: number
+  legacyMajorPartialIncidents: number
   reputationDelta: number
   progressionXp: number
   promotions: number
@@ -109,6 +115,12 @@ function createEmptyAccumulator(): RankingAccumulator {
     unresolvedCases: 0,
     majorResolvedIncidents: 0,
     majorPartialIncidents: 0,
+    legacyResolvedCases: 0,
+    legacyPartialCases: 0,
+    legacyFailedCases: 0,
+    legacyUnresolvedCases: 0,
+    legacyMajorResolvedIncidents: 0,
+    legacyMajorPartialIncidents: 0,
     reputationDelta: 0,
     progressionXp: 0,
     promotions: 0,
@@ -147,7 +159,11 @@ function isMajorIncidentOutcome(
   return payload.kind === 'raid' || stage >= 4
 }
 
-function accumulateRankingEvent(accumulator: RankingAccumulator, event: OperationEvent) {
+function accumulateRankingEvent(
+  accumulator: RankingAccumulator,
+  event: OperationEvent,
+  standingCoveredCaseIds: Set<string>
+) {
   if (
     event.type === 'case.resolved' ||
     event.type === 'case.partially_resolved' ||
@@ -158,6 +174,7 @@ function accumulateRankingEvent(accumulator: RankingAccumulator, event: Operatio
     if (award) {
       accumulator.agencyStanding += award.points
       accumulator.standingAwards += 1
+      standingCoveredCaseIds.add(event.payload.caseId)
     }
   }
 
@@ -166,12 +183,18 @@ function accumulateRankingEvent(accumulator: RankingAccumulator, event: Operatio
       accumulator.reputationDelta += event.payload.rewardBreakdown?.reputationDelta ?? 0
       if (isMajorIncidentOutcome(event.payload)) {
         accumulator.majorResolvedIncidents += 1
+        if (!event.payload.rewardBreakdown?.agencyStanding) {
+          accumulator.legacyMajorResolvedIncidents += 1
+        }
       }
       break
     case 'case.partially_resolved':
       accumulator.reputationDelta += event.payload.rewardBreakdown?.reputationDelta ?? 0
       if (isMajorIncidentOutcome(event.payload)) {
         accumulator.majorPartialIncidents += 1
+        if (!event.payload.rewardBreakdown?.agencyStanding) {
+          accumulator.legacyMajorPartialIncidents += 1
+        }
       }
       break
     case 'case.failed':
@@ -186,6 +209,36 @@ function accumulateRankingEvent(accumulator: RankingAccumulator, event: Operatio
       break
     default:
       break
+  }
+}
+
+function accumulateLegacyReportCounts(
+  accumulator: RankingAccumulator,
+  report: Pick<
+    GameState['reports'][number],
+    'resolvedCases' | 'partialCases' | 'failedCases' | 'unresolvedTriggers'
+  >,
+  standingCoveredCaseIds: Set<string>
+) {
+  for (const caseId of report.resolvedCases) {
+    if (!standingCoveredCaseIds.has(caseId)) {
+      accumulator.legacyResolvedCases += 1
+    }
+  }
+  for (const caseId of report.partialCases) {
+    if (!standingCoveredCaseIds.has(caseId)) {
+      accumulator.legacyPartialCases += 1
+    }
+  }
+  for (const caseId of report.failedCases) {
+    if (!standingCoveredCaseIds.has(caseId)) {
+      accumulator.legacyFailedCases += 1
+    }
+  }
+  for (const caseId of report.unresolvedTriggers) {
+    if (!standingCoveredCaseIds.has(caseId)) {
+      accumulator.legacyUnresolvedCases += 1
+    }
   }
 }
 
@@ -268,17 +321,24 @@ function buildAgencyRankingFromAccumulator(
   updatedThroughWeek: number | null
 ): Omit<AgencyRankingView, 'history'> {
   const breakdown = buildAgencyRankingBreakdown(accumulator)
+  const legacyCasePoints =
+    accumulator.legacyResolvedCases * RESOLVED_CASE_POINTS +
+    accumulator.legacyPartialCases * PARTIAL_CASE_POINTS
+  const legacyMajorPoints =
+    accumulator.legacyMajorResolvedIncidents * RESOLVED_MAJOR_INCIDENT_POINTS +
+    accumulator.legacyMajorPartialIncidents * PARTIAL_MAJOR_INCIDENT_POINTS
+  const legacyFailurePenalty = accumulator.legacyFailedCases * FAILURE_PENALTY_POINTS
+  const legacyUnresolvedPenalty = accumulator.legacyUnresolvedCases * UNRESOLVED_PENALTY_POINTS
   const score = clamp(
     Math.round(
       RANKING_BASE_SCORE +
-        (breakdown.agencyStanding.awards > 0
-          ? breakdown.agencyStanding.points
-          : breakdown.casesResolved.points + breakdown.majorIncidentsHandled.points) +
+        breakdown.agencyStanding.points +
+        legacyCasePoints +
+        legacyMajorPoints +
         breakdown.reputation.points +
         breakdown.progression.points -
-        (breakdown.agencyStanding.awards > 0
-          ? 0
-          : breakdown.failures.penalty + breakdown.unresolved.penalty)
+        legacyFailurePenalty -
+        legacyUnresolvedPenalty
     ),
     0,
     100
@@ -291,6 +351,24 @@ function buildAgencyRankingFromAccumulator(
     updatedThroughWeek,
     breakdown,
   }
+}
+
+function accumulateReportWeek(
+  accumulator: RankingAccumulator,
+  report: GameState['reports'][number],
+  weeklyEvents: OperationEvent[]
+) {
+  accumulator.reportsLogged += 1
+  accumulator.resolvedCases += report.resolvedCases.length
+  accumulator.partialCases += report.partialCases.length
+  accumulator.failedCases += report.failedCases.length
+  accumulator.unresolvedCases += report.unresolvedTriggers.length
+
+  const standingCoveredCaseIds = new Set<string>()
+  for (const event of weeklyEvents) {
+    accumulateRankingEvent(accumulator, event, standingCoveredCaseIds)
+  }
+  accumulateLegacyReportCounts(accumulator, report, standingCoveredCaseIds)
 }
 
 export function buildAgencyRankingHistory(
@@ -310,19 +388,10 @@ export function buildAgencyRankingHistory(
   const history: AgencyRankingHistoryEntry[] = []
 
   for (const report of reports) {
-    accumulator.reportsLogged += 1
-    accumulator.resolvedCases += report.resolvedCases.length
-    accumulator.partialCases += report.partialCases.length
-    accumulator.failedCases += report.failedCases.length
-    accumulator.unresolvedCases += report.unresolvedTriggers.length
-
     const weeklyEvents = [...(eventsByWeek.get(report.week) ?? [])].sort((left, right) =>
       left.id.localeCompare(right.id)
     )
-
-    for (const event of weeklyEvents) {
-      accumulateRankingEvent(accumulator, event)
-    }
+    accumulateReportWeek(accumulator, report, weeklyEvents)
 
     const ranking = buildAgencyRankingFromAccumulator(accumulator, report.week)
     const previousScore = history[history.length - 1]?.score ?? RANKING_BASE_SCORE
@@ -376,19 +445,10 @@ export function buildAgencyRanking(game: Pick<GameState, 'reports' | 'events'>):
       continue
     }
 
-    accumulator.reportsLogged += 1
-    accumulator.resolvedCases += report.resolvedCases.length
-    accumulator.partialCases += report.partialCases.length
-    accumulator.failedCases += report.failedCases.length
-    accumulator.unresolvedCases += report.unresolvedTriggers.length
-
     const weeklyEvents = [...(eventsByWeek.get(week) ?? [])].sort((left, right) =>
       left.id.localeCompare(right.id)
     )
-
-    for (const event of weeklyEvents) {
-      accumulateRankingEvent(accumulator, event)
-    }
+    accumulateReportWeek(accumulator, report, weeklyEvents)
   }
 
   return {

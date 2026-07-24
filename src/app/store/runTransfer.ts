@@ -154,6 +154,9 @@ import {
   type GameState,
   type Id,
   type MarketState,
+  type AgencyStandingAward,
+  type AgencyStandingDangerBand,
+  type AgencyStandingFactor,
   type MissionResolutionKind,
   type MissionRewardBreakdown,
   type MissionResult,
@@ -3928,6 +3931,109 @@ function sanitizePowerImpactSummary(value: unknown): PowerImpactSummary | undefi
   }
 }
 
+const AGENCY_STANDING_DANGER_BANDS = [
+  'routine',
+  'elevated',
+  'high',
+  'extreme',
+] as const satisfies readonly AgencyStandingDangerBand[]
+
+const AGENCY_STANDING_FACTOR_IDS = [
+  'danger',
+  'outcome',
+  'duration',
+  'repeat',
+] as const satisfies readonly AgencyStandingFactor['id'][]
+
+function sanitizeAgencyStandingAward(
+  value: unknown,
+  fallback?: AgencyStandingAward
+): AgencyStandingAward | undefined {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const dangerBand = isOneOf(value.dangerBand, AGENCY_STANDING_DANGER_BANDS)
+    ? value.dangerBand
+    : fallback?.dangerBand
+  const repeatKey =
+    typeof value.repeatKey === 'string' && value.repeatKey.trim().length > 0
+      ? value.repeatKey.trim()
+      : fallback?.repeatKey
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : fallback?.summary
+
+  if (!dangerBand || !repeatKey || !summary) {
+    return fallback
+  }
+
+  const factors = Array.isArray(value.factors)
+    ? value.factors
+        .map((entry): AgencyStandingFactor | undefined => {
+          if (!isRecord(entry)) {
+            return undefined
+          }
+          const id = isOneOf(entry.id, AGENCY_STANDING_FACTOR_IDS) ? entry.id : undefined
+          const label = typeof entry.label === 'string' ? entry.label : undefined
+          const detail = typeof entry.detail === 'string' ? entry.detail : undefined
+          const multiplier =
+            typeof entry.multiplier === 'number' && Number.isFinite(entry.multiplier)
+              ? entry.multiplier
+              : undefined
+          if (!id || !label || !detail || multiplier === undefined) {
+            return undefined
+          }
+          return { id, label, multiplier, detail }
+        })
+        .filter((entry): entry is AgencyStandingFactor => entry !== undefined)
+    : (fallback?.factors ?? [])
+
+  return {
+    points: sanitizeInteger(value.points as number | undefined, fallback?.points ?? 0, -10_000),
+    rawPoints:
+      typeof value.rawPoints === 'number' && Number.isFinite(value.rawPoints)
+        ? value.rawPoints
+        : (fallback?.rawPoints ?? 0),
+    basePoints: sanitizeInteger(
+      value.basePoints as number | undefined,
+      fallback?.basePoints ?? 0,
+      0
+    ),
+    dangerScore: sanitizeInteger(
+      value.dangerScore as number | undefined,
+      fallback?.dangerScore ?? 0,
+      0
+    ),
+    dangerBand,
+    dangerMultiplier:
+      typeof value.dangerMultiplier === 'number' && Number.isFinite(value.dangerMultiplier)
+        ? value.dangerMultiplier
+        : (fallback?.dangerMultiplier ?? 1),
+    outcomeMultiplier:
+      typeof value.outcomeMultiplier === 'number' && Number.isFinite(value.outcomeMultiplier)
+        ? value.outcomeMultiplier
+        : (fallback?.outcomeMultiplier ?? 0),
+    durationMultiplier:
+      typeof value.durationMultiplier === 'number' && Number.isFinite(value.durationMultiplier)
+        ? value.durationMultiplier
+        : (fallback?.durationMultiplier ?? 1),
+    repeatMultiplier:
+      typeof value.repeatMultiplier === 'number' && Number.isFinite(value.repeatMultiplier)
+        ? value.repeatMultiplier
+        : (fallback?.repeatMultiplier ?? 1),
+    priorSimilarCompletions: sanitizeInteger(
+      value.priorSimilarCompletions as number | undefined,
+      fallback?.priorSimilarCompletions ?? 0,
+      0
+    ),
+    repeatKey,
+    factors,
+    summary,
+  }
+}
+
 function sanitizeMissionRewardBreakdownSnapshot(
   value: unknown,
   fallback?: MissionRewardBreakdown
@@ -3943,6 +4049,11 @@ function sanitizeMissionRewardBreakdownSnapshot(
   if (!outcome) {
     return fallback
   }
+
+  const agencyStanding = sanitizeAgencyStandingAward(
+    value.agencyStanding,
+    fallback?.agencyStanding
+  )
 
   return {
     outcome,
@@ -3982,6 +4093,7 @@ function sanitizeMissionRewardBreakdownSnapshot(
       fallback?.reputationDelta ?? 0,
       -10_000
     ),
+    ...(agencyStanding ? { agencyStanding } : {}),
     inventoryRewards: Array.isArray(value.inventoryRewards)
       ? value.inventoryRewards.filter((entry) => isRecord(entry))
       : (fallback?.inventoryRewards ?? []),
@@ -4351,73 +4463,22 @@ function sanitizeMissionResult(
     fallback?.weakestLink
   )
 
-  const rewards = isRecord(value.rewards)
-    ? {
-        ...(fallback?.rewards ?? {
-          outcome,
-          caseType: 'general',
-          caseTypeLabel: 'Operation',
-          operationValue: 0,
-          factors: [],
-          fundingDelta: 0,
-          containmentDelta: 0,
-          strategicValueDelta: 0,
-          reputationDelta: 0,
-          inventoryRewards: [],
-          factionStanding: [],
-          label: 'Mission',
-          reasons: [],
-        }),
-        ...value.rewards,
-        outcome: isOneOf(
-          (value.rewards as { outcome?: unknown }).outcome,
-          MISSION_RESOLUTION_OUTCOMES
-        )
-          ? (value.rewards as { outcome: MissionResolutionKind }).outcome
-          : outcome,
-        fundingDelta: sanitizeInteger(
-          (value.rewards as { fundingDelta?: number }).fundingDelta,
-          fallback?.rewards.fundingDelta ?? 0,
-          -10_000
-        ),
-        containmentDelta: sanitizeInteger(
-          (value.rewards as { containmentDelta?: number }).containmentDelta,
-          fallback?.rewards.containmentDelta ?? 0,
-          -10_000
-        ),
-        reputationDelta: sanitizeInteger(
-          (value.rewards as { reputationDelta?: number }).reputationDelta,
-          fallback?.rewards.reputationDelta ?? 0,
-          -10_000
-        ),
-        inventoryRewards: Array.isArray(
-          (value.rewards as { inventoryRewards?: unknown }).inventoryRewards
-        )
-          ? (value.rewards as { inventoryRewards: MissionResult['rewards']['inventoryRewards'] })
-              .inventoryRewards
-          : (fallback?.rewards.inventoryRewards ?? []),
-        factionStanding: Array.isArray(
-          (value.rewards as { factionStanding?: unknown }).factionStanding
-        )
-          ? (value.rewards as { factionStanding: MissionResult['rewards']['factionStanding'] })
-              .factionStanding
-          : (fallback?.rewards.factionStanding ?? []),
-      }
-    : (fallback?.rewards ?? {
-        outcome,
-        caseType: 'general',
-        caseTypeLabel: 'Operation',
-        operationValue: 0,
-        factors: [],
-        fundingDelta: 0,
-        containmentDelta: 0,
-        strategicValueDelta: 0,
-        reputationDelta: 0,
-        inventoryRewards: [],
-        factionStanding: [],
-        label: 'Mission',
-        reasons: [],
-      })
+  const rewards =
+    sanitizeMissionRewardBreakdownSnapshot(value.rewards, fallback?.rewards) ?? {
+      outcome,
+      caseType: 'general',
+      caseTypeLabel: 'Operation',
+      operationValue: 0,
+      factors: [],
+      fundingDelta: 0,
+      containmentDelta: 0,
+      strategicValueDelta: 0,
+      reputationDelta: 0,
+      inventoryRewards: [],
+      factionStanding: [],
+      label: 'Mission',
+      reasons: [],
+    }
 
   const penalties = isRecord(value.penalties)
     ? {

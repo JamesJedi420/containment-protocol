@@ -1691,6 +1691,23 @@ interface WeeklyCaseResolutionStrategy {
 
 type SeededRng = ReturnType<typeof createSeededRng>
 
+function buildMissionRewardGameContext(
+  nextState: GameState,
+  rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>>,
+  excludeCaseId?: string
+) {
+  const pendingAgencyStandingAwards = Object.entries(rewardByCaseId)
+    .filter(([caseId]) => caseId !== excludeCaseId)
+    .map(([, reward]) => reward?.agencyStanding)
+    .filter((award): award is NonNullable<typeof award> => award !== undefined)
+    .map((award) => ({ repeatKey: award.repeatKey }))
+
+  return {
+    ...nextState,
+    pendingAgencyStandingAwards,
+  }
+}
+
 interface WeeklyExecutionContext {
   sourceState: GameState
   nextState: GameState
@@ -2671,7 +2688,7 @@ function resolveAssignments(
         effectiveCase,
         'success',
         context.nextState.config,
-        context.nextState
+        buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
       )
 
       if (!willDegrade) {
@@ -2905,7 +2922,7 @@ function resolveAssignments(
       escalatedCase,
       outcome.result,
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.rewardByCaseId[caseId] = rewardBreakdown
     const hiddenFields = getMissionResultHiddenStateFields(escalatedCase)
@@ -3072,7 +3089,7 @@ function downgradeResolvedCaseToPartial(
     downgradedCase,
     'partial',
     nextState.config,
-    nextState
+    buildMissionRewardGameContext(nextState, context.rewardByCaseId, caseId)
   )
   const instabilityObjectiveDrift = buildExecutionInstabilityObjectiveDriftConsequence(
     sourceCase,
@@ -3198,7 +3215,7 @@ function escalateCases(
       escalatedCase,
       'unresolved',
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.nextState.cases[caseId] = escalatedCase
     context.rewardByCaseId[caseId] = rewardBreakdown

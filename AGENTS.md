@@ -69,7 +69,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 - **`npm run build` currently has baseline TS errors outside dev-environment setup.** Treat those as known type-contract drift, not as production-ignored failures; fix them in scoped follow-up changes before using `build` as a deployment gate. They do not block tests or the dev server because Vite transpiles TypeScript without strict type checking.
 - **This repo is pinned to Vite 8 (`vite` `^8.0.1`) with the native config loader.** Type-only exports are stripped at the ESM boundary. If you import an `interface` or `type` alias as a value import, the dev server will throw `SyntaxError: does not provide an export named '...'`. Always use `import type { ... }` for type-only imports in source files that the Vite dev server loads.
-- **Tests use `--pool vmThreads`** locally and the `jsdom` environment. The full suite runs in ~55s locally. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main` so PR babysit does not pay for a second instrumented suite.
+- **Tests use `--pool vmThreads`** locally and the `jsdom` environment. The full suite runs in ~55s locally. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
 - **No environment variables or secrets** are required. The only optional env var is `STRICT_TEST_CONSOLE=1` (used in CI to fail on console warnings in tests).
 - **Node.js 22** is required (matches CI configuration in `.github/workflows/test.yml`).
 

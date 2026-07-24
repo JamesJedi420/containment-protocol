@@ -79,7 +79,7 @@ npm run verify:backlog-handoff
 npm run verify:theme-contracts
 ```
 
-GitHub Actions runs lint, audit verification, theme-contract verification, tests, and coverage on pull requests.
+GitHub Actions on pull requests runs lint, audit verification, theme-contract verification, and tests. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 
 ## Architecture
 

@@ -325,6 +325,7 @@ import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '..
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
+import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
 import { buildRivalPressure } from '../rivalPressure'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
@@ -5284,6 +5285,30 @@ export function advanceWeek(
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...unexplainedLocationCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2702 / SPE-39: distant archive-signature reappearance → cross-jurisdiction coordination packets.
+  const nextIntakeReportsForCoordination = outputWeeklyState.informationIntakeReports ?? {}
+  if (Object.keys(nextIntakeReportsForCoordination).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const coordinationNotes = buildWeeklyCrossJurisdictionCoordinationReportNotes({
+      reports: nextIntakeReportsForCoordination,
+      cases: result.cases,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (coordinationNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...coordinationNotes],
       }
       result.reports = reports
     }

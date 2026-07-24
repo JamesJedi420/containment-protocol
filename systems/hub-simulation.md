@@ -170,6 +170,13 @@ disclosure exposure (awareness ≠ secrecy-intact), ranking also supplies a boun
 standing is coercive. Agency overview and report summary lines expose the pressure band, forgiveness
 scale, and post-exposure posture for legibility.
 
+Cross-jurisdiction coordination packets are a separate **read-time** projection
+(`src/domain/crossJurisdictionCoordinationPacket.ts`): when SPE-854 `archive_signature` intake
+reaches a tentative or strong match band and linked cases show two distinct `regionTag`
+jurisdictions (distant reappearance), week-close emits a bounded liaison/shared-signature alert note
+(`agency.cross_jurisdiction_coordination`) and agency/report summaries surface the packet count.
+Weak signature matches and same-jurisdiction reappearance do not emit a packet.
+
 ### Stage B — Build hub opportunity pools
 
 Create possible output candidates based on:

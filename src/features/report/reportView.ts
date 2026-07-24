@@ -40,6 +40,7 @@ export function getReportPageView(game: GameState): ReportPageView {
     `trust-failure drift ${agencySummary.rivalPressure.trustFailureDriftScale}×; ` +
     `post-exposure ${agencySummary.rivalPressure.postExposurePosture} ` +
     `${agencySummary.rivalPressure.postExposureTrustDelta > 0 ? '+' : ''}${agencySummary.rivalPressure.postExposureTrustDelta}), ` +
+    `cross-jurisdiction packets ${agencySummary.crossJurisdictionCoordination.packetCount}, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

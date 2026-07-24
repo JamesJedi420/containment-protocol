@@ -36,6 +36,7 @@ export function getReportPageView(game: GameState): ReportPageView {
   const extendedSummaryLine =
     `${agencySummary.name}: reputation ${agencySummary.reputation}, ` +
     `pressure ${agencySummary.pressure.score} (${agencySummary.pressure.level}), ` +
+    `rival pressure ${agencySummary.rivalPressure.score} (${agencySummary.rivalPressure.band}), ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

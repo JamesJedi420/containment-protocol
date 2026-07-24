@@ -1592,6 +1592,7 @@ export type ReportNoteType =
   | 'faction.unlock_available'
   | 'agency.containment_updated'
   | 'agency.cross_jurisdiction_coordination'
+  | 'agency.hidden_cell_interference'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'

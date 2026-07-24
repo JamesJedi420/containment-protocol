@@ -177,6 +177,14 @@ jurisdictions (distant reappearance), week-close emits a bounded liaison/shared-
 (`agency.cross_jurisdiction_coordination`) and agency/report summaries surface the packet count.
 Weak signature matches and same-jurisdiction reappearance do not emit a packet.
 
+Hidden-cell strategic interference is a bounded week-close funding hook
+(`src/domain/hiddenCellStrategicInterference.ts`): when rival-pressure band is competitive or
+severe, abstract cell pressure diverts a deterministic funding amount through existing
+`FundingState` history (`hidden_cell_funding_theft`). Suppressed/balanced pressure is inactive.
+Week-close emits `agency.hidden_cell_interference` when theft applies; agency/report summaries
+expose the active/inactive signal. This is not a full adversary-org sim and does not include cell
+detection.
+
 ### Stage B — Build hub opportunity pools
 
 Create possible output candidates based on:

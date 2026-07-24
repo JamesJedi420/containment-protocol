@@ -41,6 +41,11 @@ export function getReportPageView(game: GameState): ReportPageView {
     `post-exposure ${agencySummary.rivalPressure.postExposurePosture} ` +
     `${agencySummary.rivalPressure.postExposureTrustDelta > 0 ? '+' : ''}${agencySummary.rivalPressure.postExposureTrustDelta}), ` +
     `cross-jurisdiction packets ${agencySummary.crossJurisdictionCoordination.packetCount}, ` +
+    `hidden-cell interference ${
+      agencySummary.hiddenCellInterference.active
+        ? `${agencySummary.hiddenCellInterference.kind} ${agencySummary.hiddenCellInterference.fundingStolen}`
+        : 'inactive'
+    }, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

@@ -80,7 +80,7 @@ describe('SPE-95: Command-coordination friction', () => {
     const baseAgent = createStartingState().agents.a_ava
     // 5 active cases, 0 support shortfall
     for (let i = 0; i < 5; ++i) {
-      state.cases['c' + i] = { id: 'c' + i, templateId: 't', title: 'C' + i, description: '', mode: 'deterministic', kind: 'case', status: 'in_progress', difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 }, weights: { combat: 1, investigation: 1, utility: 1, social: 1 }, tags: [], requiredTags: [], preferredTags: [], stage: 1, durationWeeks: 1, deadlineWeeks: 1, deadlineRemaining: 1, assignedTeamIds: ['t' + i], onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] }, onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] } }
+      state.cases['c' + i] = { id: 'c' + i, templateId: 't-' + i, title: 'C' + i, description: '', mode: 'deterministic', kind: 'case', status: 'in_progress', difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 }, weights: { combat: 1, investigation: 1, utility: 1, social: 1 }, tags: [], requiredTags: [], preferredTags: [], stage: 1, durationWeeks: 1, deadlineWeeks: 1, deadlineRemaining: 1, assignedTeamIds: ['t' + i], onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] }, onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] } }
       state.agents['a' + i] = {
         ...baseAgent,
         id: 'a' + i,

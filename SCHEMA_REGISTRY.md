@@ -86,6 +86,7 @@ Documents the versioned serialization format for the full game store state.
 - On load, the persisted payload version is checked against `GAME_STORE_VERSION`
 - Older payloads are migrated forward via `migratePersistedStore`
 - Missing or unrecognised version causes fallback to a fresh store
+- Optional `MissionRewardBreakdown.agencyStanding` on case-outcome event payloads and weekly `caseSnapshots` is sanitized by `sanitizeMissionRewardBreakdownSnapshot` / `sanitizeAgencyStandingAward` (SPE-2696 / SPE-2697); missing awards stay legacy-compatible
 
 ---
 

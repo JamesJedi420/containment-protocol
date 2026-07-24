@@ -4464,8 +4464,7 @@ function sanitizeMissionResult(
   )
 
   const rewards =
-    sanitizeMissionRewardBreakdownSnapshot(value.rewards, fallback?.rewards) ??
-    fallback?.rewards ?? {
+    sanitizeMissionRewardBreakdownSnapshot(value.rewards, fallback?.rewards) ?? {
       outcome,
       caseType: 'general',
       caseTypeLabel: 'Operation',

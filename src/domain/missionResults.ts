@@ -348,12 +348,17 @@ function getAgencyStandingRepeatKey(currentCase: CaseInstance) {
   return contractTemplateId || currentCase.templateId
 }
 
-function countPriorSimilarCompletions(repeatKey: string, game?: Pick<GameState, 'reports'>) {
+export type AgencyStandingGameContext = Pick<GameState, 'reports'> & {
+  /** Same-week awards already computed before the weekly report is appended. */
+  pendingAgencyStandingAwards?: readonly Pick<AgencyStandingAward, 'repeatKey'>[]
+}
+
+function countPriorSimilarCompletions(repeatKey: string, game?: AgencyStandingGameContext) {
   if (!game) {
     return 0
   }
 
-  return game.reports.reduce(
+  const fromReports = game.reports.reduce(
     (count, report) =>
       count +
       Object.values(report.caseSnapshots ?? {}).filter(
@@ -361,13 +366,18 @@ function countPriorSimilarCompletions(repeatKey: string, game?: Pick<GameState, 
       ).length,
     0
   )
+  const fromPending = (game.pendingAgencyStandingAwards ?? []).filter(
+    (award) => award.repeatKey === repeatKey
+  ).length
+
+  return fromReports + fromPending
 }
 
 export function buildAgencyStandingAward(
   currentCase: CaseInstance,
   outcome: MissionResolutionKind,
   config: GameConfig,
-  game?: Pick<GameState, 'reports'>
+  game?: AgencyStandingGameContext
 ): AgencyStandingAward {
   const operationValue = buildOperationValueBreakdown(currentCase, config)
   const durationValue = currentCase.durationWeeks * DURATION_VALUE_STEP
@@ -966,7 +976,8 @@ export function buildMissionRewardBreakdown(
     | 'reports'
     | 'market'
     | 'events'
-  >
+  > &
+    AgencyStandingGameContext
 ): MissionRewardBreakdown {
   const operationValue = buildOperationValueBreakdown(currentCase, config)
   const profile = classifyRewardCaseProfile(currentCase)

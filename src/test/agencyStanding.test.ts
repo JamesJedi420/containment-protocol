@@ -1,4 +1,6 @@
+import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
 import { buildAgencySummary } from '../domain/agency'
 import { buildAgencyStandingAward, buildMissionRewardBreakdown } from '../domain/missionResults'
 import { buildAgencyRanking } from '../domain/rankings'
@@ -196,6 +198,185 @@ describe('Agency Standing & Ranking', () => {
     expect(ranking.breakdown.agencyStanding.awards).toBe(1)
     expect(ranking.breakdown.agencyStanding.points).toBe(reward.agencyStanding!.points)
     expect(ranking.history[0]?.summary.agencyStanding).toBe(reward.agencyStanding!.points)
+  })
+
+  it('preserves legacy failure penalties alongside new standing awards', () => {
+    const state = createStartingState()
+    const reward = buildMissionRewardBreakdown(
+      state.cases['case-001'],
+      'success',
+      state.config,
+      state
+    )
+    const ranking = buildAgencyRanking({
+      reports: [
+        {
+          week: 1,
+          resolvedCases: [],
+          partialCases: [],
+          failedCases: ['legacy-fail'],
+          unresolvedTriggers: ['legacy-unresolved'],
+        } as unknown as WeeklyReport,
+        {
+          week: 2,
+          resolvedCases: ['case-001'],
+          partialCases: [],
+          failedCases: [],
+          unresolvedTriggers: [],
+        } as unknown as WeeklyReport,
+      ],
+      events: [
+        {
+          id: 'evt-standing-case-001',
+          schemaVersion: 2,
+          type: 'case.resolved',
+          sourceSystem: 'incident',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          payload: {
+            week: 2,
+            caseId: 'case-001',
+            caseTitle: state.cases['case-001'].title,
+            mode: state.cases['case-001'].mode,
+            kind: state.cases['case-001'].kind,
+            stage: state.cases['case-001'].stage,
+            teamIds: [],
+            rewardBreakdown: reward,
+          },
+        },
+      ],
+    })
+
+    expect(ranking.breakdown.agencyStanding.awards).toBe(1)
+    expect(ranking.score).toBe(
+      Math.max(
+        0,
+        Math.min(
+          100,
+          50 +
+            reward.agencyStanding!.points +
+            reward.reputationDelta -
+            6 -
+            8
+        )
+      )
+    )
+  })
+
+  it('counts same-week pending awards for repeat normalization', () => {
+    const state = createStartingState()
+    const shortCase = {
+      ...state.cases['case-001'],
+      durationWeeks: 1,
+      contract: { templateId: 'same-week-repeat' },
+    }
+    const first = buildAgencyStandingAward(shortCase, 'success', state.config, {
+      reports: [],
+      pendingAgencyStandingAwards: [],
+    })
+    const second = buildAgencyStandingAward(shortCase, 'success', state.config, {
+      reports: [],
+      pendingAgencyStandingAwards: [{ repeatKey: first.repeatKey }],
+    })
+
+    expect(first.priorSimilarCompletions).toBe(0)
+    expect(second.priorSimilarCompletions).toBe(1)
+    expect(second.repeatMultiplier).toBeCloseTo(0.5)
+    expect(second.points).toBeLessThan(first.points)
+  })
+
+  it('round-trips agencyStanding through event and caseSnapshot hydration', () => {
+    const state = createStartingState()
+    const reward = buildMissionRewardBreakdown(
+      state.cases['case-001'],
+      'success',
+      state.config,
+      state
+    )
+    const withStanding: GameState = {
+      ...state,
+      reports: [
+        {
+          week: 1,
+          rngStateBefore: 1,
+          rngStateAfter: 2,
+          newCases: [],
+          progressedCases: [],
+          resolvedCases: ['case-001'],
+          failedCases: [],
+          partialCases: [],
+          unresolvedTriggers: [],
+          spawnedCases: [],
+          maxStage: 1,
+          avgFatigue: 0,
+          teamStatus: [],
+          notes: [],
+          caseSnapshots: {
+            'case-001': {
+              caseId: 'case-001',
+              rewardBreakdown: reward,
+              missionResult: {
+                caseId: 'case-001',
+                caseTitle: state.cases['case-001'].title,
+                teamsUsed: [],
+                outcome: 'success',
+                performanceSummary: {
+                  contribution: 0,
+                  threatHandled: 0,
+                  damageTaken: 0,
+                  healingPerformed: 0,
+                  evidenceGathered: 0,
+                  containmentActionsCompleted: 0,
+                },
+                rewards: reward,
+                penalties: {
+                  fundingLoss: 0,
+                  containmentLoss: 0,
+                  reputationLoss: 0,
+                  strategicLoss: 0,
+                },
+                fatigueChanges: [],
+                injuries: [],
+                spawnedConsequences: [],
+                explanationNotes: [],
+              },
+            },
+          },
+        } as unknown as WeeklyReport,
+      ],
+      events: [
+        {
+          id: 'evt-standing-hydrate',
+          schemaVersion: 2,
+          type: 'case.resolved',
+          sourceSystem: 'incident',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          payload: {
+            week: 1,
+            caseId: 'case-001',
+            caseTitle: state.cases['case-001'].title,
+            mode: state.cases['case-001'].mode,
+            kind: state.cases['case-001'].kind,
+            stage: state.cases['case-001'].stage,
+            teamIds: [],
+            rewardBreakdown: reward,
+          },
+        },
+      ],
+    }
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(withStanding)), createStartingState())
+    const hydratedEvent = hydrated.events.find((event) => event.id === 'evt-standing-hydrate')
+    const hydratedSnapshot = hydrated.reports[0]?.caseSnapshots?.['case-001']
+
+    expect(hydratedEvent && 'rewardBreakdown' in hydratedEvent.payload
+      ? hydratedEvent.payload.rewardBreakdown?.agencyStanding
+      : undefined).toEqual(reward.agencyStanding)
+    expect(hydratedSnapshot?.rewardBreakdown?.agencyStanding).toEqual(reward.agencyStanding)
+    expect(hydratedSnapshot?.missionResult?.rewards.agencyStanding).toEqual(reward.agencyStanding)
+
+    const ranking = buildAgencyRanking(hydrated)
+    expect(ranking.breakdown.agencyStanding.awards).toBe(1)
+    expect(ranking.breakdown.agencyStanding.points).toBe(reward.agencyStanding!.points)
   })
 
   it('computes ranking tier and score deterministically from campaign state', () => {

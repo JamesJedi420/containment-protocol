@@ -67,6 +67,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'faction.standing_changed',
   'faction.unlock_available',
   'agency.containment_updated',
+  'agency.cross_jurisdiction_coordination',
   'directive.applied',
   'support.shortfall',
   'support.restored',

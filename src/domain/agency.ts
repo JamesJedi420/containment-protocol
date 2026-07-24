@@ -8,6 +8,10 @@ import { buildFactionStates } from './factions'
 import { buildLogisticsOverview } from './logistics'
 import { buildMajorIncidentProfile } from './majorIncidents'
 import { buildAgencyRanking, type AgencyRankingTier } from './rankings'
+import {
+  buildCrossJurisdictionCoordinationSummary,
+  type CrossJurisdictionCoordinationSummary,
+} from './crossJurisdictionCoordinationPacket'
 import { buildRivalPressure, type RivalPressureBand, type RivalPostExposurePosture } from './rivalPressure'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
 
@@ -87,6 +91,7 @@ export interface AgencySummary {
     postExposureTrustDelta: number
     postExposurePosture: RivalPostExposurePosture
   }
+  crossJurisdictionCoordination: CrossJurisdictionCoordinationSummary
   report: AgencyReportSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
   chokepointLeverage: number // 0-100, deterministic
@@ -310,6 +315,10 @@ export function buildAgencySummary(game: GameState): AgencySummary {
   const stability = buildAgencyStabilitySummary(game, pressure, teams)
   const ranking = buildAgencyRanking(game)
   const rivalPressure = buildRivalPressure(game)
+  const crossJurisdictionCoordination = buildCrossJurisdictionCoordinationSummary({
+    reports: game.informationIntakeReports,
+    cases: game.cases,
+  })
   const averageFactionStanding = (() => {
     const factions = buildFactionStates(game)
     if (factions.length === 0) {
@@ -376,6 +385,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       postExposureTrustDelta: rivalPressure.postExposureTrustDelta,
       postExposurePosture: rivalPressure.postExposurePosture,
     },
+    crossJurisdictionCoordination,
     report: buildAgencyReportSummary(game),
     chokepointLeverage,
     councilPowerDistribution,

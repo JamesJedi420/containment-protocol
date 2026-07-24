@@ -131,6 +131,43 @@ describe('crossJurisdictionCoordinationPacket (SPE-2702)', () => {
     expect(packets[0]?.currentJurisdictionRef).toBe('region:harbor-east')
   })
 
+  it('still emits when a same-region open case sorts before a distant open case', () => {
+    const prior = makeCase({
+      id: 'case-a-prior',
+      title: 'Canal archive case',
+      status: 'resolved',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:canal-west',
+    })
+    const sameRegionOpen = makeCase({
+      id: 'case-b-same',
+      title: 'Canal follow-up',
+      status: 'open',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:canal-west',
+    })
+    const distantOpen = makeCase({
+      id: 'case-c-distant',
+      title: 'Harbor reappearance',
+      status: 'open',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:harbor-east',
+    })
+
+    const packets = projectCrossJurisdictionCoordinationPackets({
+      reports: { [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE },
+      cases: {
+        [prior.id]: prior,
+        [sameRegionOpen.id]: sameRegionOpen,
+        [distantOpen.id]: distantOpen,
+      },
+    })
+
+    expect(packets).toHaveLength(1)
+    expect(packets[0]?.priorJurisdictionRef).toBe('region:canal-west')
+    expect(packets[0]?.currentJurisdictionRef).toBe('region:harbor-east')
+  })
+
   it('emits no packet when site is not distant', () => {
     const prior = makeCase({
       id: 'case-prior-same',

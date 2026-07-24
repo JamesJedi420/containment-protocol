@@ -202,20 +202,20 @@ function pickJurisdictionPair(
     (currentCase) => currentCase.status !== 'resolved' && normalizeToken(currentCase.regionTag ?? '')
   )
 
-  if (resolvedWithRegion.length > 0 && openWithRegion.length > 0) {
-    const priorCase = resolvedWithRegion[0]
-    const currentCase = openWithRegion[0]
-    const priorJurisdictionRef = normalizeToken(priorCase.regionTag ?? '')
-    const currentJurisdictionRef = normalizeToken(currentCase.regionTag ?? '')
-    if (!isDistantJurisdiction(priorJurisdictionRef, currentJurisdictionRef)) {
-      return null
-    }
+  for (const priorCase of resolvedWithRegion) {
+    for (const currentCase of openWithRegion) {
+      const priorJurisdictionRef = normalizeToken(priorCase.regionTag ?? '')
+      const currentJurisdictionRef = normalizeToken(currentCase.regionTag ?? '')
+      if (!isDistantJurisdiction(priorJurisdictionRef, currentJurisdictionRef)) {
+        continue
+      }
 
-    return {
-      priorJurisdictionRef,
-      currentJurisdictionRef,
-      priorSiteLabel: priorCase.title,
-      currentSiteLabel: currentCase.title,
+      return {
+        priorJurisdictionRef,
+        currentJurisdictionRef,
+        priorSiteLabel: priorCase.title,
+        currentSiteLabel: currentCase.title,
+      }
     }
   }
 

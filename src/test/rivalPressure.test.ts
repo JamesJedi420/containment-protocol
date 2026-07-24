@@ -10,6 +10,8 @@ import {
   buildRivalPressureFromRankingScore,
 } from '../domain/rivalPressure'
 import { applyAssetReliabilityDrift, createContractorAsset } from '../domain/externalSupport'
+import { DISCLOSURE_PROGRESSION_FIXTURE } from '../domain/publicDisclosureStateRegistry'
+import { projectPublicDisclosureTrustOutcome } from '../domain/publicDisclosureTrustOutcomeProjection'
 import { buildRecruitmentGenerationState } from '../domain/sim/candidateGenerator'
 import { getReportPageView } from '../features/report/reportView'
 import type { WeeklyReport } from '../domain/models'
@@ -50,19 +52,26 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(balanced.contractRewardMultiplier).toBe(1)
     expect(balanced.recruitQualityDelta).toBe(0)
     expect(balanced.trustFailureDriftScale).toBe(1)
+    expect(balanced.postExposureTrustDelta).toBe(0)
+    expect(balanced.postExposurePosture).toBe('neutral')
     expect(Object.is(balanced.recruitQualityDelta, -0)).toBe(false)
+    expect(Object.is(balanced.postExposureTrustDelta, -0)).toBe(false)
 
     expect(weak.score).toBeGreaterThan(balanced.score)
     expect(weak.band).toBe('severe')
     expect(weak.contractRewardMultiplier).toBeLessThan(balanced.contractRewardMultiplier)
     expect(weak.recruitQualityDelta).toBeLessThan(balanced.recruitQualityDelta)
     expect(weak.trustFailureDriftScale).toBeGreaterThan(balanced.trustFailureDriftScale)
+    expect(weak.postExposureTrustDelta).toBeLessThan(balanced.postExposureTrustDelta)
+    expect(weak.postExposurePosture).toBe('coercive')
 
     expect(strong.score).toBeLessThan(balanced.score)
     expect(strong.band).toBe('suppressed')
     expect(strong.contractRewardMultiplier).toBeGreaterThan(balanced.contractRewardMultiplier)
     expect(strong.recruitQualityDelta).toBeGreaterThan(balanced.recruitQualityDelta)
     expect(strong.trustFailureDriftScale).toBeLessThan(balanced.trustFailureDriftScale)
+    expect(strong.postExposureTrustDelta).toBeGreaterThan(balanced.postExposureTrustDelta)
+    expect(strong.postExposurePosture).toBe('protective')
 
     expect(applyRivalPressureToContractScalar(1, weak)).toBeLessThan(
       applyRivalPressureToContractScalar(1, strong)
@@ -200,14 +209,64 @@ describe('rival comparative pressure (SPE-2699)', () => {
       contractRewardMultiplier: buildRivalPressure(game).contractRewardMultiplier,
       recruitQualityDelta: buildRivalPressure(game).recruitQualityDelta,
       trustFailureDriftScale: buildRivalPressure(game).trustFailureDriftScale,
+      postExposureTrustDelta: buildRivalPressure(game).postExposureTrustDelta,
+      postExposurePosture: buildRivalPressure(game).postExposurePosture,
     })
     expect(summary.rivalPressure.summary).toMatch(/Comparative pressure/)
     expect(summary.rivalPressure.summary).toMatch(/external-support failure drift/)
+    expect(summary.rivalPressure.summary).toMatch(/post-exposure rival posture/)
 
     const reportLine = getReportPageView(game).summary?.agencySummaryLine ?? ''
     expect(reportLine).toMatch(
       new RegExp(
-        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; trust-failure drift ${summary.rivalPressure.trustFailureDriftScale}×\\)`
+        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; trust-failure drift ${summary.rivalPressure.trustFailureDriftScale}×; post-exposure ${summary.rivalPressure.postExposurePosture} ${summary.rivalPressure.postExposureTrustDelta > 0 ? '\\+' : ''}${summary.rivalPressure.postExposureTrustDelta}\\)`
+      )
+    )
+  })
+
+  it('shifts public-disclosure cooperation after exposure by standing (SPE-2701)', () => {
+    const records = { [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE }
+    const weak = buildRivalPressureFromRankingScore(20)
+    const strong = buildRivalPressureFromRankingScore(80)
+    const baseline = projectPublicDisclosureTrustOutcome(records)
+    const weakExposure = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: weak.postExposureTrustDelta,
+    })
+    const strongExposure = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: strong.postExposureTrustDelta,
+    })
+    const secrecyOnly = projectPublicDisclosureTrustOutcome(
+      {
+        'disclosure:secret': {
+          ...DISCLOSURE_PROGRESSION_FIXTURE,
+          id: 'disclosure:secret',
+          awarenessLevel: 'secrecy_intact',
+        },
+      },
+      null,
+      { postExposureTrustDelta: strong.postExposureTrustDelta }
+    )
+
+    expect(weak.postExposureTrustDelta).toBeLessThan(0)
+    expect(strong.postExposureTrustDelta).toBeGreaterThan(0)
+    expect(weakExposure.postExposureTrustDeltaApplied).toBe(weak.postExposureTrustDelta)
+    expect(strongExposure.postExposureTrustDeltaApplied).toBe(strong.postExposureTrustDelta)
+    expect(weakExposure.rivalPosture).toBe('coercive')
+    expect(strongExposure.rivalPosture).toBe('protective')
+    expect(baseline.cooperationBand).toBe('opposed')
+    expect(weakExposure.cooperationBand).toBe('opposed')
+    expect(strongExposure.cooperationBand).not.toBe(weakExposure.cooperationBand)
+    expect(strongExposure.aggregateRegionalTrustBand).not.toBe(
+      weakExposure.aggregateRegionalTrustBand
+    )
+    expect(secrecyOnly.activeCampaignCount).toBe(0)
+    expect(secrecyOnly.postExposureTrustDeltaApplied).toBe(0)
+    expect(secrecyOnly.rivalPosture).toBe('inactive')
+    expect(JSON.stringify(weakExposure)).toBe(
+      JSON.stringify(
+        projectPublicDisclosureTrustOutcome(records, null, {
+          postExposureTrustDelta: weak.postExposureTrustDelta,
+        })
       )
     )
   })

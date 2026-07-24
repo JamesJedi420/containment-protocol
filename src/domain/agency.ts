@@ -8,7 +8,7 @@ import { buildFactionStates } from './factions'
 import { buildLogisticsOverview } from './logistics'
 import { buildMajorIncidentProfile } from './majorIncidents'
 import { buildAgencyRanking, type AgencyRankingTier } from './rankings'
-import { buildRivalPressure, type RivalPressureBand } from './rivalPressure'
+import { buildRivalPressure, type RivalPressureBand, type RivalPostExposurePosture } from './rivalPressure'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
 
 const DEFAULT_AGENCY_NAME = 'Containment Protocol'
@@ -84,6 +84,8 @@ export interface AgencySummary {
     contractRewardMultiplier: number
     recruitQualityDelta: number
     trustFailureDriftScale: number
+    postExposureTrustDelta: number
+    postExposurePosture: RivalPostExposurePosture
   }
   report: AgencyReportSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
@@ -371,6 +373,8 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       contractRewardMultiplier: rivalPressure.contractRewardMultiplier,
       recruitQualityDelta: rivalPressure.recruitQualityDelta,
       trustFailureDriftScale: rivalPressure.trustFailureDriftScale,
+      postExposureTrustDelta: rivalPressure.postExposureTrustDelta,
+      postExposurePosture: rivalPressure.postExposurePosture,
     },
     report: buildAgencyReportSummary(game),
     chokepointLeverage,

@@ -152,6 +152,14 @@ Hub simulation should read:
 
 This determines what the hub can plausibly surface.
 
+Agency standing awards are resolved separately from funding, salvage, faction standing, and
+tactical momentum. New operation results use a bounded deterministic contract: authoritative
+operation danger (difficulty, escalation, raid coordination, and deadline pressure), terminal
+outcome, expected-duration commitment, and prior completions of the same case/contract template.
+Success and partial completion can add standing; failure and withdrawal/abandonment remove it, so
+entering dangerous content never grants standing by itself. Campaign reward summaries retain the
+four multipliers used for each award.
+
 ### Stage B — Build hub opportunity pools
 
 Create possible output candidates based on:

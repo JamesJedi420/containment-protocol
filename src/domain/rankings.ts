@@ -22,6 +22,9 @@ export interface RankingProgressionFactor extends RankingScoreFactor {
 }
 
 export interface AgencyRankingBreakdown {
+  agencyStanding: RankingScoreFactor & {
+    awards: number
+  }
   casesResolved: RankingScoreFactor & {
     resolvedCases: number
     partialCases: number
@@ -55,6 +58,7 @@ export interface AgencyRankingHistoryEntry {
     unresolved: number
     reputationDelta: number
     progressionXp: number
+    agencyStanding: number
   }
 }
 
@@ -80,6 +84,8 @@ interface RankingAccumulator {
   reputationDelta: number
   progressionXp: number
   promotions: number
+  agencyStanding: number
+  standingAwards: number
 }
 
 const RANKING_BASE_SCORE = 50
@@ -106,6 +112,8 @@ function createEmptyAccumulator(): RankingAccumulator {
     reputationDelta: 0,
     progressionXp: 0,
     promotions: 0,
+    agencyStanding: 0,
+    standingAwards: 0,
   }
 }
 
@@ -140,6 +148,19 @@ function isMajorIncidentOutcome(
 }
 
 function accumulateRankingEvent(accumulator: RankingAccumulator, event: OperationEvent) {
+  if (
+    event.type === 'case.resolved' ||
+    event.type === 'case.partially_resolved' ||
+    event.type === 'case.failed' ||
+    event.type === 'case.escalated'
+  ) {
+    const award = event.payload.rewardBreakdown?.agencyStanding
+    if (award) {
+      accumulator.agencyStanding += award.points
+      accumulator.standingAwards += 1
+    }
+  }
+
   switch (event.type) {
     case 'case.resolved':
       accumulator.reputationDelta += event.payload.rewardBreakdown?.reputationDelta ?? 0
@@ -183,6 +204,13 @@ function buildAgencyRankingBreakdown(accumulator: RankingAccumulator): AgencyRan
   const unresolvedPenalty = accumulator.unresolvedCases * UNRESOLVED_PENALTY_POINTS
 
   return {
+    agencyStanding: {
+      label: 'Risk-weighted agency standing',
+      value: accumulator.agencyStanding,
+      awards: accumulator.standingAwards,
+      points: accumulator.agencyStanding,
+      detail: `${accumulator.standingAwards} operation award(s) combine authoritative danger, outcome, expected commitment, and repeat normalization.`,
+    },
     casesResolved: {
       label: 'Cases resolved',
       value: accumulator.resolvedCases + accumulator.partialCases,
@@ -243,12 +271,14 @@ function buildAgencyRankingFromAccumulator(
   const score = clamp(
     Math.round(
       RANKING_BASE_SCORE +
-        breakdown.casesResolved.points +
-        breakdown.majorIncidentsHandled.points +
+        (breakdown.agencyStanding.awards > 0
+          ? breakdown.agencyStanding.points
+          : breakdown.casesResolved.points + breakdown.majorIncidentsHandled.points) +
         breakdown.reputation.points +
         breakdown.progression.points -
-        breakdown.failures.penalty -
-        breakdown.unresolved.penalty
+        (breakdown.agencyStanding.awards > 0
+          ? 0
+          : breakdown.failures.penalty + breakdown.unresolved.penalty)
     ),
     0,
     100
@@ -311,6 +341,7 @@ export function buildAgencyRankingHistory(
         unresolved: accumulator.unresolvedCases,
         reputationDelta: accumulator.reputationDelta,
         progressionXp: accumulator.progressionXp,
+        agencyStanding: accumulator.agencyStanding,
       },
     })
   }

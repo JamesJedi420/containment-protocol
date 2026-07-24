@@ -3,6 +3,8 @@ import { getEquipmentDefinition } from './equipment'
 import { buildFactionRewardInfluence, FACTION_DEFINITIONS } from './factions'
 import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
 import type {
+  AgencyStandingAward,
+  AgencyStandingDangerBand,
   CaseInstance,
   GameConfig,
   GameState,
@@ -84,6 +86,18 @@ const RAID_VALUE_MULTIPLIER = 1.2
 const STAGE_VALUE_STEP = 0.14
 const DURATION_VALUE_STEP = 2
 const DEADLINE_PRESSURE_VALUE_STEP = 1.5
+const AGENCY_STANDING_BASE_POINTS = 6
+const AGENCY_STANDING_MAX_ABSOLUTE_POINTS = 24
+const AGENCY_STANDING_DURATION_STEP = 0.15
+const AGENCY_STANDING_MAX_DURATION_MULTIPLIER = 1.45
+const AGENCY_STANDING_MIN_REPEAT_MULTIPLIER = 0.2
+
+const AGENCY_STANDING_OUTCOME_MULTIPLIERS: Readonly<Record<MissionResolutionKind, number>> = {
+  success: 1,
+  partial: 0.55,
+  fail: -0.3,
+  unresolved: -0.45,
+}
 
 const REWARD_CASE_PROFILES: readonly RewardCaseProfile[] = [
   {
@@ -307,6 +321,127 @@ function buildOperationValueBreakdown(
     factors,
     operationValue:
       requiredScore + stageBonusValue + raidBonusValue + durationValue + deadlinePressureValue,
+  }
+}
+
+function getAgencyStandingDangerBand(dangerScore: number): {
+  band: AgencyStandingDangerBand
+  multiplier: number
+} {
+  if (dangerScore >= 90) {
+    return { band: 'extreme', multiplier: 1.9 }
+  }
+  if (dangerScore >= 65) {
+    return { band: 'high', multiplier: 1.55 }
+  }
+  if (dangerScore >= 40) {
+    return { band: 'elevated', multiplier: 1.25 }
+  }
+  return { band: 'routine', multiplier: 1 }
+}
+
+function getAgencyStandingRepeatKey(currentCase: CaseInstance) {
+  const contractTemplateId =
+    typeof currentCase.contract?.templateId === 'string'
+      ? currentCase.contract.templateId.trim()
+      : ''
+  return contractTemplateId || currentCase.templateId
+}
+
+function countPriorSimilarCompletions(repeatKey: string, game?: Pick<GameState, 'reports'>) {
+  if (!game) {
+    return 0
+  }
+
+  return game.reports.reduce(
+    (count, report) =>
+      count +
+      Object.values(report.caseSnapshots ?? {}).filter(
+        (snapshot) => snapshot.missionResult?.rewards.agencyStanding?.repeatKey === repeatKey
+      ).length,
+    0
+  )
+}
+
+export function buildAgencyStandingAward(
+  currentCase: CaseInstance,
+  outcome: MissionResolutionKind,
+  config: GameConfig,
+  game?: Pick<GameState, 'reports'>
+): AgencyStandingAward {
+  const operationValue = buildOperationValueBreakdown(currentCase, config)
+  const durationValue = currentCase.durationWeeks * DURATION_VALUE_STEP
+  const dangerScore = Math.max(0, Math.round(operationValue.operationValue - durationValue))
+  const danger = getAgencyStandingDangerBand(dangerScore)
+  const durationMultiplier = Math.min(
+    AGENCY_STANDING_MAX_DURATION_MULTIPLIER,
+    1 + Math.max(0, currentCase.durationWeeks - 1) * AGENCY_STANDING_DURATION_STEP
+  )
+  const repeatKey = getAgencyStandingRepeatKey(currentCase)
+  const priorSimilarCompletions = countPriorSimilarCompletions(repeatKey, game)
+  const repeatMultiplier = Math.max(
+    AGENCY_STANDING_MIN_REPEAT_MULTIPLIER,
+    1 / (priorSimilarCompletions + 1)
+  )
+  const outcomeMultiplier = AGENCY_STANDING_OUTCOME_MULTIPLIERS[outcome]
+  const rawPoints =
+    AGENCY_STANDING_BASE_POINTS *
+    danger.multiplier *
+    outcomeMultiplier *
+    durationMultiplier *
+    repeatMultiplier
+  const points = Math.max(
+    -AGENCY_STANDING_MAX_ABSOLUTE_POINTS,
+    Math.min(AGENCY_STANDING_MAX_ABSOLUTE_POINTS, Math.round(rawPoints))
+  )
+  const outcomeLabel =
+    outcome === 'success'
+      ? 'completed'
+      : outcome === 'partial'
+        ? 'partially completed'
+        : outcome === 'fail'
+          ? 'failed'
+          : 'withdrawn or abandoned'
+
+  return {
+    points,
+    rawPoints: Number(rawPoints.toFixed(3)),
+    basePoints: AGENCY_STANDING_BASE_POINTS,
+    dangerScore,
+    dangerBand: danger.band,
+    dangerMultiplier: danger.multiplier,
+    outcomeMultiplier,
+    durationMultiplier,
+    repeatMultiplier,
+    priorSimilarCompletions,
+    repeatKey,
+    factors: [
+      {
+        id: 'danger',
+        label: 'Operational danger',
+        multiplier: danger.multiplier,
+        detail: `${danger.band} danger (${dangerScore}) applies x${danger.multiplier.toFixed(2)}.`,
+      },
+      {
+        id: 'outcome',
+        label: 'Completion outcome',
+        multiplier: outcomeMultiplier,
+        detail: `${outcomeLabel} applies x${outcomeMultiplier.toFixed(2)}; danger alone never grants standing.`,
+      },
+      {
+        id: 'duration',
+        label: 'Expected commitment',
+        multiplier: durationMultiplier,
+        detail: `${Math.max(1, currentCase.durationWeeks)} expected week(s) applies bounded x${durationMultiplier.toFixed(2)}.`,
+      },
+      {
+        id: 'repeat',
+        label: 'Repeat normalization',
+        multiplier: repeatMultiplier,
+        detail: `${priorSimilarCompletions} prior similar completion(s) applies bounded x${repeatMultiplier.toFixed(2)}.`,
+      },
+    ],
+    summary: `${points >= 0 ? '+' : ''}${points} agency standing: ${danger.band} danger, ${outcomeLabel}, x${durationMultiplier.toFixed(2)} commitment, x${repeatMultiplier.toFixed(2)} repeat normalization.`,
   }
 }
 
@@ -633,6 +768,7 @@ function buildRewardReasons(
     | 'factionStanding'
     | 'containmentDelta'
     | 'factors'
+    | 'agencyStanding'
   >
 ) {
   const inventorySummary =
@@ -657,6 +793,7 @@ function buildRewardReasons(
   )
 
   return [
+    ...(breakdown.agencyStanding ? [breakdown.agencyStanding.summary] : []),
     `Operation value ${breakdown.operationValue} came from difficulty, escalation pressure, duration, and deadline pressure.`,
     `${breakdown.caseTypeLabel} routing applies the deterministic reward table for this incident family.`,
     factionInfluence
@@ -708,22 +845,31 @@ function buildPowerImpactNotes(powerImpact: PowerImpactSummary | undefined) {
 }
 
 export function buildMissionResult(input: MissionResultInput): MissionResult {
-    const explanationNotes: string[] = []
-    // --- Knowledge-state gating/risk: defeat-condition certainty check ---
-    if (input.knowledge && input.requiredDefeatCertainty && input.anomalyId && input.teamsUsed?.length) {
-      const teamId = input.teamsUsed[0]?.teamId ?? ''
-      const anomalyId = input.anomalyId
-      const key = Object.keys(input.knowledge).find(
-        (knowledgeKey) => knowledgeKey.includes(teamId) && knowledgeKey.includes(anomalyId)
+  const explanationNotes: string[] = []
+  // --- Knowledge-state gating/risk: defeat-condition certainty check ---
+  if (
+    input.knowledge &&
+    input.requiredDefeatCertainty &&
+    input.anomalyId &&
+    input.teamsUsed?.length
+  ) {
+    const teamId = input.teamsUsed[0]?.teamId ?? ''
+    const anomalyId = input.anomalyId
+    const key = Object.keys(input.knowledge).find(
+      (knowledgeKey) => knowledgeKey.includes(teamId) && knowledgeKey.includes(anomalyId)
+    )
+    const entry = key ? input.knowledge[key] : undefined
+    const order = ['unknown', 'suspected', 'family', 'exact']
+    const currentIdx =
+      entry && entry.defeatConditionCertainty ? order.indexOf(entry.defeatConditionCertainty) : -1
+    const requiredIdx = order.indexOf(input.requiredDefeatCertainty)
+    if (currentIdx < requiredIdx) {
+      appendUniqueNote(
+        explanationNotes,
+        `Insufficient defeat-condition certainty: required ${input.requiredDefeatCertainty}, found ${entry?.defeatConditionCertainty ?? 'none'}. Risk of mission failure or escalation.`
       )
-      const entry = key ? input.knowledge[key] : undefined
-      const order = ['unknown', 'suspected', 'family', 'exact']
-      const currentIdx = entry && entry.defeatConditionCertainty ? order.indexOf(entry.defeatConditionCertainty) : -1
-      const requiredIdx = order.indexOf(input.requiredDefeatCertainty)
-      if (currentIdx < requiredIdx) {
-        appendUniqueNote(explanationNotes, `Insufficient defeat-condition certainty: required ${input.requiredDefeatCertainty}, found ${entry?.defeatConditionCertainty ?? 'none'}. Risk of mission failure or escalation.`)
-      }
     }
+  }
   const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
   const powerImpact = input.powerImpact
   const fatigueChanges = input.fatigueChanges ?? []
@@ -798,7 +944,9 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
     penalties: buildMissionPenaltyBreakdown(input.rewards),
     fatigueChanges: fatigueChanges.map((change) => ({ ...change })),
     injuries: injuries.map((injury) => ({ ...injury })),
-    ...(fatalities.length > 0 ? { fatalities: fatalities.map((fatality) => ({ ...fatality })) } : {}),
+    ...(fatalities.length > 0
+      ? { fatalities: fatalities.map((fatality) => ({ ...fatality })) }
+      : {}),
     spawnedConsequences: spawnedConsequences.map((consequence) => ({ ...consequence })),
     explanationNotes,
   }
@@ -842,6 +990,7 @@ export function buildMissionRewardBreakdown(
     outcome,
     operationValue.operationValue
   )
+  const agencyStanding = buildAgencyStandingAward(currentCase, outcome, config, game)
 
   const breakdown: MissionRewardBreakdown = {
     outcome,
@@ -878,6 +1027,7 @@ export function buildMissionRewardBreakdown(
       profile,
       factionRewardValue.modifierValue
     ),
+    agencyStanding,
     inventoryRewards,
     factionStanding,
     label: getOutcomeLabel(outcome),
@@ -888,11 +1038,7 @@ export function buildMissionRewardBreakdown(
   if (fieldBase) {
     const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
       const raw = inventoryRewardsRaw[index]
-      return (
-        grant.kind === 'material' &&
-        raw?.kind === 'material' &&
-        grant.quantity > raw.quantity
-      )
+      return grant.kind === 'material' && raw?.kind === 'material' && grant.quantity > raw.quantity
     })
     if (fieldBase.quality.supply > 0 && materialQuantityIncreased) {
       fieldBaseReasons.push(FIELD_BASE_SUPPLY_TIER_MATERIAL_REASON)

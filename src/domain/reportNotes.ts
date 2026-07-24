@@ -690,6 +690,9 @@ function buildRewardMetadata(rewardBreakdown: MissionRewardBreakdown): ReportNot
     materialRewardCount: inventoryTotals.materials,
     equipmentRewardCount: inventoryTotals.equipment,
     factionStandingNet: getMissionRewardFactionStandingNet(rewardBreakdown),
+    ...(rewardBreakdown.agencyStanding
+      ? { agencyStandingDelta: rewardBreakdown.agencyStanding.points }
+      : {}),
   }
 }
 
@@ -698,6 +701,9 @@ function formatRewardSummary(rewardBreakdown: MissionRewardBreakdown) {
   const summaryParts = [
     `Funding ${formatSignedNumber(rewardBreakdown.fundingDelta)}`,
     `Reputation ${formatSignedNumber(rewardBreakdown.reputationDelta)}`,
+    ...(rewardBreakdown.agencyStanding
+      ? [`Agency standing ${formatSignedNumber(rewardBreakdown.agencyStanding.points)}`]
+      : []),
   ]
 
   if (inventoryTotals.materials > 0) {

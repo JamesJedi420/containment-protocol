@@ -182,6 +182,11 @@ describe('rankings', () => {
       partialReward.reputationDelta +
       failedReward.reputationDelta +
       unresolvedReward.reputationDelta
+    const expectedAgencyStanding =
+      successReward.agencyStanding!.points +
+      partialReward.agencyStanding!.points +
+      failedReward.agencyStanding!.points +
+      unresolvedReward.agencyStanding!.points
 
     expect(ranking).toEqual(secondRanking)
     expect(ranking.breakdown.casesResolved.points).toBe(6)
@@ -192,8 +197,9 @@ describe('rankings', () => {
     expect(ranking.breakdown.progression.points).toBe(5)
     expect(ranking.breakdown.failures.penalty).toBe(6)
     expect(ranking.breakdown.unresolved.penalty).toBe(8)
+    expect(ranking.breakdown.agencyStanding.points).toBe(expectedAgencyStanding)
     expect(ranking.score).toBe(
-      Math.max(0, Math.min(100, 50 + 6 + 8 + expectedReputation + 5 - 6 - 8))
+      Math.max(0, Math.min(100, 50 + expectedAgencyStanding + expectedReputation + 5))
     )
   })
 

@@ -50,5 +50,5 @@ Delta derives from ranking vs peer baseline (same inputs as SPE-2699/2700 pressu
 
 ## Validation
 
-- `npm run test:run -- src/test/rivalPressure.test.ts src/test/publicDisclosureTrustOutcomeProjection.test.ts src/test/agency.test.ts src/test/agencyStanding.test.ts`
+- `npm run test:run -- src/test/rivalPressure.test.ts src/test/publicDisclosureTrustOutcomeProjection.test.ts src/test/publicDisclosureSegmentedTrustOutcomeProjection.test.ts src/test/publicDisclosureCampaignView.test.ts src/test/publicDisclosurePostureChoice.test.ts src/test/agency.test.ts`
 - `npm run lint`

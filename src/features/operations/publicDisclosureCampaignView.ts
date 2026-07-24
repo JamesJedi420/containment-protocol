@@ -164,13 +164,17 @@ function resolveCoverNarrativeContextLabel(
   return null
 }
 
-function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDisclosureCampaignRecordView {
+function toRecordView(
+  game: GameState,
+  record: PublicDisclosureRecord,
+  postExposureTrustDelta: number
+): PublicDisclosureCampaignRecordView {
   const adjustedRecords = applyPostExposureComparativeTrustAdjustment(
     applyPublicDisclosurePostureTrustAdjustment(
       { [record.id]: record },
       game.publicDisclosurePostureChoices
     ),
-    buildRivalPressure(game).postExposureTrustDelta
+    postExposureTrustDelta
   )
   const effectiveRecord = adjustedRecords[record.id] ?? record
   const projection = projectDisclosureRegionalView(effectiveRecord, { redactUnknown: true })
@@ -234,6 +238,7 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
 /** Read-only player briefing over hydrated `publicDisclosureRecords`; does not mutate GameState. */
 export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosureCampaignView {
   const records = listPersistedRecords(game)
+  const postExposureTrustDelta = buildRivalPressure(game).postExposureTrustDelta
   const trustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
   const segmentedTrust = projectPublicDisclosureSegmentedTrustOutcomeFromGame(game)
 
@@ -263,6 +268,8 @@ export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosu
       segmentTrustChips,
       week: game.week,
     }),
-    records: Object.freeze(records.map((record) => toRecordView(game, record))),
+    records: Object.freeze(
+      records.map((record) => toRecordView(game, record, postExposureTrustDelta))
+    ),
   })
 }

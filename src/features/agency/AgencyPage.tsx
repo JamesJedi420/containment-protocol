@@ -72,6 +72,10 @@ export default function AgencyPage() {
               value={`${summary.pressure.score} (${summary.pressure.level})`}
             />
             <Metric
+              label="Rival pressure"
+              value={`${summary.rivalPressure.score} (${summary.rivalPressure.band})`}
+            />
+            <Metric
               label="Stability"
               value={`${summary.stability.score} (${summary.stability.level})`}
             />
@@ -95,6 +99,7 @@ export default function AgencyPage() {
               {summary.pressure.faction}, operations {summary.pressure.operations}, procurement{' '}
               {summary.pressure.market}
             </li>
+            <li>{summary.rivalPressure.summary}</li>
             <li>
               Stability split: containment {summary.stability.containment}, funding{' '}
               {summary.stability.funding}, readiness {summary.stability.readiness}, logistics{' '}

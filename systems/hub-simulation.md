@@ -160,6 +160,11 @@ Success and partial completion can add standing; failure and withdrawal/abandonm
 entering dangerous content never grants standing by itself. Campaign reward summaries retain the
 four multipliers used for each award.
 
+Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
+an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
+comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases
+both. Agency overview and report summary lines expose the pressure band for legibility.
+
 ### Stage B — Build hub opportunity pools
 
 Create possible output candidates based on:

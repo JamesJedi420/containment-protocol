@@ -94,7 +94,7 @@ interface RankingAccumulator {
   standingAwards: number
 }
 
-const RANKING_BASE_SCORE = 50
+export const RANKING_BASE_SCORE = 50
 const RESOLVED_CASE_POINTS = 4
 const PARTIAL_CASE_POINTS = 2
 const RESOLVED_MAJOR_INCIDENT_POINTS = 8

@@ -24,6 +24,11 @@ Reports and debug surfaces must distinguish **success**, **degraded success**, a
 
 Repeated verification, payments, shared danger, or betrayals move trust along **deterministic curves**; reliability may lag until competence is proven.
 
+**SPE-2700:** negative reliability drift magnitudes are scaled by ranking-derived rival comparative
+pressure (`trustFailureDriftScale`). High agency standing forgives weak outputs longer; low standing
+accelerates trust collapse for the same failure/partial/idle trigger. Positive drift is unscaled.
+No separate persisted forgiveness field.
+
 ## Non-roster semantics
 
 These assets **do not** consume normal barracks capacity but may consume **contract slots**, **legitimacy**, or **secrecy budget**. Mishandling them can trigger **SPE-87** civic pressure or **SPE-79** integrity hits.

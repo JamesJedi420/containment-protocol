@@ -83,6 +83,7 @@ export interface AgencySummary {
     summary: string
     contractRewardMultiplier: number
     recruitQualityDelta: number
+    trustFailureDriftScale: number
   }
   report: AgencyReportSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
@@ -369,6 +370,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       summary: rivalPressure.summary,
       contractRewardMultiplier: rivalPressure.contractRewardMultiplier,
       recruitQualityDelta: rivalPressure.recruitQualityDelta,
+      trustFailureDriftScale: rivalPressure.trustFailureDriftScale,
     },
     report: buildAgencyReportSummary(game),
     chokepointLeverage,

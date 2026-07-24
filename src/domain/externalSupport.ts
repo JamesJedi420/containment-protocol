@@ -2,6 +2,7 @@
 // Pure, deterministic functions. No side effects — all state mutation belongs in the store.
 
 import type { ExternalSupportAsset, ExternalAssetTrustBand } from './models'
+import { applyTrustFailureDriftScale } from './rivalPressure'
 
 // ---------------------------------------------------------------------------
 // Trust band derivation (read-time, never stored)
@@ -35,16 +36,24 @@ const DRIFT_TABLE: Record<AssetDriftTrigger, number> = {
   week_idle: -3,
 }
 
+export interface AssetReliabilityDriftOptions {
+  /** Standing-shaped scale from {@link buildRivalPressure}; defaults to 1 (neutral). */
+  trustFailureDriftScale?: number
+}
+
 /**
  * Returns an updated asset after applying a reliability drift trigger.
  * Deterministic — no RNG needed; trigger table drives the delta.
+ * Negative deltas may be scaled by agency standing forgiveness (SPE-2700).
  * Returns the updated asset and a human-readable reason fragment.
  */
 export function applyAssetReliabilityDrift(
   asset: ExternalSupportAsset,
-  trigger: AssetDriftTrigger
+  trigger: AssetDriftTrigger,
+  options?: AssetReliabilityDriftOptions
 ): { asset: ExternalSupportAsset; driftReason: string } {
-  const delta = DRIFT_TABLE[trigger]
+  const baseDelta = DRIFT_TABLE[trigger]
+  const delta = applyTrustFailureDriftScale(baseDelta, options?.trustFailureDriftScale ?? 1)
   const next = Math.max(0, Math.min(100, asset.reliability + delta))
   const prevBand = deriveAssetTrustBand(asset.reliability)
   const nextBand = deriveAssetTrustBand(next)

@@ -4,11 +4,13 @@ import {
   resolveAssetSupportOutcome,
   applyAssetReliabilityDrift,
 } from '../externalSupport'
+import { buildRivalPressure } from '../rivalPressure'
 
 /**
  * Deterministic hub action: "Rally Support Staff" restores supportAvailable by a fixed amount.
  * If a contractor asset is present in externalSupportAssets, its reliability modifies the
  * amount restored and the asset's reliability drifts based on the outcome.
+ * Negative drift is standing-shaped via rival comparative pressure (SPE-2700).
  * Returns updated GameState and a note for reporting.
  */
 export function applyRallySupportStaffAction(state: GameState, amount: number = 2) {
@@ -27,7 +29,10 @@ export function applyRallySupportStaffAction(state: GameState, amount: number = 
     const outcome = resolveAssetSupportOutcome(contractor, amount)
     effectiveAmount = Math.max(0, outcome.modifiedScore)
     assetReason = outcome.outcomeReason
-    const drifted = applyAssetReliabilityDrift(contractor, outcome.driftTrigger)
+    const { trustFailureDriftScale } = buildRivalPressure(state)
+    const drifted = applyAssetReliabilityDrift(contractor, outcome.driftTrigger, {
+      trustFailureDriftScale,
+    })
     updatedAssets = { ...assets, [contractor.id]: drifted.asset }
   }
 

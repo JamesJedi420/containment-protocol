@@ -86,6 +86,23 @@ describe('applyAssetReliabilityDrift', () => {
     expect(driftReason).toContain('moderate')
     expect(driftReason).toContain('degraded')
   })
+
+  it('SPE-2700: standing-shaped scale softens or hardens negative drift only', () => {
+    const base = createContractorAsset('c1', 'Local Contractor', 50)
+    const forgiven = applyAssetReliabilityDrift(base, 'support_failed', {
+      trustFailureDriftScale: 0.88,
+    })
+    const hardened = applyAssetReliabilityDrift(base, 'support_failed', {
+      trustFailureDriftScale: 1.12,
+    })
+    const delivered = applyAssetReliabilityDrift(base, 'support_delivered', {
+      trustFailureDriftScale: 1.12,
+    })
+
+    expect(forgiven.asset.reliability).toBe(32) // 50 + round(-20 * 0.88)
+    expect(hardened.asset.reliability).toBe(28) // 50 + round(-20 * 1.12)
+    expect(delivered.asset.reliability).toBe(62) // positive drift unscaled
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -206,5 +223,43 @@ describe('SPE-93: applyRallySupportStaffAction with contractor asset', () => {
     const r2 = applyRallySupportStaffAction(state, 2)
     expect(r1.nextState.agency?.supportAvailable).toBe(r2.nextState.agency?.supportAvailable)
     expect(r1.note?.content).toBe(r2.note?.content)
+  })
+
+  it('SPE-2700: high vs low standing diverges failed-contractor reliability drift', () => {
+    const asset = createContractorAsset('c-fail', 'Failed Contractor', 25)
+    const weakReports = [
+      {
+        week: 1,
+        resolvedCases: [],
+        partialCases: [],
+        failedCases: ['f1', 'f2', 'f3', 'f4', 'f5'],
+        unresolvedTriggers: ['u1', 'u2', 'u3', 'u4'],
+      },
+    ] as GameState['reports']
+    const strongReports = [
+      {
+        week: 1,
+        resolvedCases: Array.from({ length: 10 }, (_, i) => `r${i}`),
+        partialCases: [],
+        failedCases: [],
+        unresolvedTriggers: [],
+      },
+    ] as GameState['reports']
+
+    const weakState = { ...makeState(asset), reports: weakReports, events: [] as GameState['events'] }
+    const strongState = {
+      ...makeState(asset),
+      reports: strongReports,
+      events: [] as GameState['events'],
+    }
+
+    const weakNext = applyRallySupportStaffAction(weakState, 2)
+    const strongNext = applyRallySupportStaffAction(strongState, 2)
+
+    const weakReliability = weakNext.nextState.externalSupportAssets?.['c-fail']?.reliability
+    const strongReliability = strongNext.nextState.externalSupportAssets?.['c-fail']?.reliability
+
+    // degraded → support_partial (−6 base); high standing softens, low standing hardens
+    expect(strongReliability).toBeGreaterThan(weakReliability!)
   })
 })

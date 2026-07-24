@@ -1598,6 +1598,59 @@ describe('runTransfer helpers', () => {
     })
   })
 
+  it('repairs legacy directive.applied events but drops invalid current-schema events', () => {
+    const fallback = createStartingState()
+    const imported = parseRunExport(
+      JSON.stringify({
+        kind: RUN_EXPORT_KIND,
+        version: GAME_STORE_VERSION,
+        exportedAt: new Date().toISOString(),
+        game: {
+          ...fallback,
+          week: 2,
+          events: [
+            {
+              id: 'evt-legacy-directive',
+              schemaVersion: 1,
+              type: 'directive.applied',
+              sourceSystem: 'system',
+              timestamp: '2042-01-08T00:00:00.001Z',
+              payload: {
+                week: 2,
+                directiveId: 'retired-directive',
+                directiveLabel: 'Retired Directive',
+              },
+            },
+            {
+              id: 'evt-current-directive-mismatch',
+              schemaVersion: 2,
+              type: 'directive.applied',
+              sourceSystem: 'system',
+              timestamp: '2042-01-08T00:00:00.002Z',
+              payload: {
+                week: 2,
+                directiveId: 'intel-surge',
+                directiveLabel: 'Recovery Rotation',
+              },
+            },
+          ],
+        },
+      })
+    )
+
+    expect(imported.events).toHaveLength(1)
+    expect(imported.events[0]).toMatchObject({
+      id: 'evt-legacy-directive',
+      schemaVersion: 2,
+      type: 'directive.applied',
+      payload: {
+        week: 2,
+        directiveId: 'intel-surge',
+        directiveLabel: 'Intel Surge',
+      },
+    })
+  })
+
   it('sanitizes sparse agent.training_cancelled payloads with fallback defaults', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(

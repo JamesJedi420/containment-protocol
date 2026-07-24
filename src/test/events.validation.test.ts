@@ -487,6 +487,34 @@ describe('event payload validation coverage', () => {
     expect(negativeDeltas.success).toBe(true)
   })
 
+  it('validates directive.applied against the weekly directive catalog', () => {
+    const valid = validateOperationEventPayload('directive.applied', {
+      week: 3,
+      directiveId: 'intel-surge',
+      directiveLabel: 'Intel Surge',
+    })
+    const unknownId = validateOperationEventPayload('directive.applied', {
+      week: 3,
+      directiveId: 'unknown-directive',
+      directiveLabel: 'Unknown Directive',
+    })
+    const blankLabel = validateOperationEventPayload('directive.applied', {
+      week: 3,
+      directiveId: 'intel-surge',
+      directiveLabel: '   ',
+    })
+    const mismatchedLabel = validateOperationEventPayload('directive.applied', {
+      week: 3,
+      directiveId: 'intel-surge',
+      directiveLabel: 'Recovery Rotation',
+    })
+
+    expect(valid.success).toBe(true)
+    expect(unknownId.success).toBe(false)
+    expect(blankLabel.success).toBe(false)
+    expect(mismatchedLabel.success).toBe(false)
+  })
+
   it('rejects agency.containment_updated payloads with non-finite containment or funding fields', () => {
     const base = minimalOperationEventPayloads['agency.containment_updated']
     const nanContainment = validateOperationEventPayload('agency.containment_updated', {

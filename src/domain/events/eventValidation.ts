@@ -7,6 +7,7 @@ import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitut
 import { getLevelForXp } from '../progression'
 import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
 import { EXACT_POTENTIAL_TIERS } from '../agentPotential'
+import { getWeeklyDirectiveDefinition, isWeeklyDirectiveId } from '../directives'
 import { CASE_KINDS, CASE_MODES } from '../models'
 import type { OperationEventType } from './types'
 
@@ -1096,8 +1097,27 @@ const agencyContainmentUpdatedSchema = z
 const directiveAppliedSchema = z
   .object({
     week: weekSchema,
-    directiveId: z.string(),
-    directiveLabel: z.string(),
+    directiveId: trimmedNonblankTextSchema,
+    directiveLabel: trimmedNonblankTextSchema,
+  })
+  .superRefine((payload, context) => {
+    if (!isWeeklyDirectiveId(payload.directiveId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['directiveId'],
+        message: 'directiveId must reference a known weekly directive',
+      })
+      return
+    }
+
+    const definition = getWeeklyDirectiveDefinition(payload.directiveId)
+    if (payload.directiveLabel !== definition?.label) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['directiveLabel'],
+        message: 'directiveLabel must match the catalog label for directiveId',
+      })
+    }
   })
   .strict()
 

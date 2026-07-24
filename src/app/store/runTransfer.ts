@@ -31,6 +31,7 @@ import {
 } from '../../domain/agent/deploymentMomentum'
 import {
   createDefaultWeeklyDirectiveState,
+  getWeeklyDirectiveDefinition,
   getWeeklyDirectiveDefinitions,
   isWeeklyDirectiveId,
 } from '../../domain/directives'
@@ -8343,23 +8344,35 @@ function sanitizeOperationEvents(
         break
       }
 
-      case 'directive.applied':
+      case 'directive.applied': {
+        const isLegacyEvent = schemaVersion === 1
+        const directiveId = isWeeklyDirectiveId(payload.directiveId)
+          ? payload.directiveId
+          : isLegacyEvent
+            ? FALLBACK_WEEKLY_DIRECTIVE_ID
+            : null
+        const definition = getWeeklyDirectiveDefinition(directiveId)
+
+        if (
+          !directiveId ||
+          !definition ||
+          (!isLegacyEvent && payload.directiveLabel !== definition.label)
+        ) {
+          break
+        }
+
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('directive.applied'),
             payload: {
               week,
-              directiveId: isWeeklyDirectiveId(payload.directiveId)
-                ? payload.directiveId
-                : FALLBACK_WEEKLY_DIRECTIVE_ID,
-              directiveLabel:
-                typeof payload.directiveLabel === 'string'
-                  ? payload.directiveLabel
-                  : 'Directive applied',
+              directiveId,
+              directiveLabel: definition.label,
             },
           })
         )
         break
+      }
 
       case 'support.shortfall':
         nextEvents.push(

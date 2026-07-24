@@ -43,7 +43,9 @@ export function getReportPageView(game: GameState): ReportPageView {
     `cross-jurisdiction packets ${agencySummary.crossJurisdictionCoordination.packetCount}, ` +
     `hidden-cell interference ${
       agencySummary.hiddenCellInterference.active
-        ? `${agencySummary.hiddenCellInterference.kind} ${agencySummary.hiddenCellInterference.fundingStolen}`
+        ? agencySummary.hiddenCellInterference.fundingStolen > 0
+          ? `${agencySummary.hiddenCellInterference.rivalPressureBand} theft ${agencySummary.hiddenCellInterference.fundingStolen}`
+          : `${agencySummary.hiddenCellInterference.rivalPressureBand} (no available funds)`
         : 'inactive'
     }, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +

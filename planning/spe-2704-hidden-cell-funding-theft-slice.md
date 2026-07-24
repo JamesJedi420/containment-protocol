@@ -47,6 +47,7 @@ Cell pressure active when rival-pressure band is `competitive` or `severe`. Base
 | --- | --- | --- |
 | Research rollback / panic amplification / infrastructure compromise | SPE-39 child | Separate interference surfaces |
 | Covert cell growth + detection scans | SPE-39 child | Detection layer is larger than funding hook |
+| Agency summary last-applied theft (vs prospective threat) | SPE-39 child | Durable applied amount already on weekly note / fundingHistory |
 | Legitimacy fallout tick standing scale | SPE-39 / procurement follow-up | Alternate fallout surface |
 | SPE-2702 resolved×open jurisdiction sharpening | SPE-39 child (optional) | Post-merge Bugbot follow-up; not blocking |
 

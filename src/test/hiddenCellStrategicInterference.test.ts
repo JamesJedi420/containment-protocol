@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { buildAgencySummary } from '../domain/agency'
-import { createInitialFundingState } from '../domain/funding'
+import {
+  computeWeeklyInventoryHoldingCost,
+  computeWeeklyOperatingCost,
+  createInitialFundingState,
+  hasWeeklyInventoryHoldingCostForWeek,
+  hasWeeklyOperatingCostForWeek,
+} from '../domain/funding'
 import {
   applyHiddenCellFundingTheftToFundingState,
   computeHiddenCellFundingTheftBaseAmount,
@@ -227,15 +233,23 @@ describe('hidden-cell strategic interference (SPE-2704)', () => {
     )
     expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
 
-    const fundingBefore = state.funding
-    const expectedTheft = resolveHiddenCellFundingTheftFromPressure(pressureBefore, fundingBefore)
+    const closedWeek = state.week
+    const operatingCost = hasWeeklyOperatingCostForWeek(state.agency?.fundingState, closedWeek)
+      ? 0
+      : computeWeeklyOperatingCost(state, closedWeek)
+    const holdingCost = hasWeeklyInventoryHoldingCostForWeek(state.agency?.fundingState, closedWeek)
+      ? 0
+      : computeWeeklyInventoryHoldingCost(state, closedWeek)
+    // advanceWeek resolves theft against post-ops/holding funding (fundingDelta ~0 for quiet week).
+    const fundingBasis = Math.max(0, state.funding - operatingCost - holdingCost)
+    const expectedTheft = resolveHiddenCellFundingTheftFromPressure(pressureBefore, fundingBasis)
       .fundingStolen
     expect(expectedTheft).toBeGreaterThan(0)
 
     const nextState = advanceWeek(state)
     const applied = findHiddenCellFundingTheftAmountForWeek(
       nextState.agency?.fundingState,
-      state.week
+      closedWeek
     )
     expect(applied).toBe(expectedTheft)
 

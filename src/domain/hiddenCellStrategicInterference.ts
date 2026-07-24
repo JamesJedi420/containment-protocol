@@ -163,14 +163,15 @@ export function applyHiddenCellFundingTheftToFundingState(
   closedWeek: number
 ): { state: FundingState; appliedAmount: number; effect: HiddenCellInterferenceEffect } {
   const week = Math.max(1, Math.trunc(closedWeek))
+  const cappedTheft = Math.max(0, Math.min(effect.fundingStolen, Math.trunc(state.funding)))
 
-  if (effect.fundingStolen <= 0 || hasHiddenCellFundingTheftForWeek(state, week)) {
+  if (cappedTheft <= 0 || hasHiddenCellFundingTheftForWeek(state, week)) {
     return { state, appliedAmount: 0, effect }
   }
 
   const withExpense = applyFundingExpense(
     state,
-    effect.fundingStolen,
+    cappedTheft,
     HIDDEN_CELL_FUNDING_THEFT_REASON,
     week,
     HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID
@@ -178,7 +179,7 @@ export function applyHiddenCellFundingTheftToFundingState(
 
   return {
     state: recomputeBudgetPressure(withExpense, week),
-    appliedAmount: effect.fundingStolen,
+    appliedAmount: cappedTheft,
     effect,
   }
 }

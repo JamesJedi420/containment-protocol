@@ -123,6 +123,16 @@ describe('hidden-cell strategic interference (SPE-2704)', () => {
     )
   })
 
+  it('clamps apply-time theft to fundingState.funding when caller state drifts', () => {
+    const effect = resolveHiddenCellFundingTheftFromRankingScore(15, 800)
+    expect(effect.fundingStolen).toBeGreaterThan(10)
+    const driftedState = createInitialFundingState(100, 50, 25, 10, 10)
+
+    const applied = applyHiddenCellFundingTheftToFundingState(driftedState, effect, 4)
+    expect(applied.appliedAmount).toBe(10)
+    expect(applied.state.funding).toBe(0)
+  })
+
   it('applies funding theft idempotently once per closed week', () => {
     const effect = resolveHiddenCellFundingTheftFromRankingScore(15, 800)
     const fundingState = createInitialFundingState(100, 50, 25, 10, 800)

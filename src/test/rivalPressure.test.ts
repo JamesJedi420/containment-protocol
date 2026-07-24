@@ -5,10 +5,13 @@ import { getContractOffers, refreshContractBoard } from '../domain/contracts'
 import {
   applyRivalPressureToContractScalar,
   applyRivalPressureToRecruitQuality,
+  applyTrustFailureDriftScale,
   buildRivalPressure,
   buildRivalPressureFromRankingScore,
 } from '../domain/rivalPressure'
+import { applyAssetReliabilityDrift, createContractorAsset } from '../domain/externalSupport'
 import { buildRecruitmentGenerationState } from '../domain/sim/candidateGenerator'
+import { getReportPageView } from '../features/report/reportView'
 import type { WeeklyReport } from '../domain/models'
 
 function reportWithFailures(week: number, failures: number, unresolved: number): WeeklyReport {
@@ -46,17 +49,20 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(balanced.band).toBe('balanced')
     expect(balanced.contractRewardMultiplier).toBe(1)
     expect(balanced.recruitQualityDelta).toBe(0)
+    expect(balanced.trustFailureDriftScale).toBe(1)
     expect(Object.is(balanced.recruitQualityDelta, -0)).toBe(false)
 
     expect(weak.score).toBeGreaterThan(balanced.score)
     expect(weak.band).toBe('severe')
     expect(weak.contractRewardMultiplier).toBeLessThan(balanced.contractRewardMultiplier)
     expect(weak.recruitQualityDelta).toBeLessThan(balanced.recruitQualityDelta)
+    expect(weak.trustFailureDriftScale).toBeGreaterThan(balanced.trustFailureDriftScale)
 
     expect(strong.score).toBeLessThan(balanced.score)
     expect(strong.band).toBe('suppressed')
     expect(strong.contractRewardMultiplier).toBeGreaterThan(balanced.contractRewardMultiplier)
     expect(strong.recruitQualityDelta).toBeGreaterThan(balanced.recruitQualityDelta)
+    expect(strong.trustFailureDriftScale).toBeLessThan(balanced.trustFailureDriftScale)
 
     expect(applyRivalPressureToContractScalar(1, weak)).toBeLessThan(
       applyRivalPressureToContractScalar(1, strong)
@@ -64,6 +70,47 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(applyRivalPressureToRecruitQuality(50, weak)).toBeLessThan(
       applyRivalPressureToRecruitQuality(50, strong)
     )
+    expect(applyTrustFailureDriftScale(-20, weak.trustFailureDriftScale)).toBeLessThan(
+      applyTrustFailureDriftScale(-20, strong.trustFailureDriftScale)
+    )
+    expect(applyTrustFailureDriftScale(12, weak.trustFailureDriftScale)).toBe(12)
+    expect(applyTrustFailureDriftScale(12, strong.trustFailureDriftScale)).toBe(12)
+  })
+
+  it('softens negative reliability drift under high standing vs low standing', () => {
+    const contractor = createContractorAsset('c1', 'Local Contractor', 50)
+    const weak = buildRivalPressureFromRankingScore(20)
+    const strong = buildRivalPressureFromRankingScore(80)
+
+    const weakDrift = applyAssetReliabilityDrift(contractor, 'support_failed', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const strongDrift = applyAssetReliabilityDrift(contractor, 'support_failed', {
+      trustFailureDriftScale: strong.trustFailureDriftScale,
+    })
+    const neutralDrift = applyAssetReliabilityDrift(contractor, 'support_failed')
+
+    expect(strongDrift.asset.reliability).toBeGreaterThan(neutralDrift.asset.reliability)
+    expect(weakDrift.asset.reliability).toBeLessThan(neutralDrift.asset.reliability)
+    expect(strongDrift.asset.reliability).toBeGreaterThan(weakDrift.asset.reliability)
+
+    const weakPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const strongPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
+      trustFailureDriftScale: strong.trustFailureDriftScale,
+    })
+    const neutralPartial = applyAssetReliabilityDrift(contractor, 'support_partial')
+    expect(strongPartial.asset.reliability).toBeGreaterThan(neutralPartial.asset.reliability)
+    expect(weakPartial.asset.reliability).toBeLessThan(neutralPartial.asset.reliability)
+
+    const identicalA = applyAssetReliabilityDrift(contractor, 'week_idle', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const identicalB = applyAssetReliabilityDrift(contractor, 'week_idle', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    expect(identicalA.asset.reliability).toBe(identicalB.asset.reliability)
   })
 
   it('compresses contract payouts under severe rival pressure vs suppressed', () => {
@@ -126,6 +173,24 @@ describe('rival comparative pressure (SPE-2699)', () => {
 
   it('exposes rival pressure on agency summary for player-facing surfaces', () => {
     const game = createStartingState()
+    game.reports = [
+      {
+        week: 1,
+        rngStateBefore: 1,
+        rngStateAfter: 2,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+    ]
     const summary = buildAgencySummary(game)
 
     expect(summary.rivalPressure).toEqual({
@@ -134,7 +199,16 @@ describe('rival comparative pressure (SPE-2699)', () => {
       summary: buildRivalPressure(game).summary,
       contractRewardMultiplier: buildRivalPressure(game).contractRewardMultiplier,
       recruitQualityDelta: buildRivalPressure(game).recruitQualityDelta,
+      trustFailureDriftScale: buildRivalPressure(game).trustFailureDriftScale,
     })
     expect(summary.rivalPressure.summary).toMatch(/Comparative pressure/)
+    expect(summary.rivalPressure.summary).toMatch(/external-support failure drift/)
+
+    const reportLine = getReportPageView(game).summary?.agencySummaryLine ?? ''
+    expect(reportLine).toMatch(
+      new RegExp(
+        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; trust-failure drift ${summary.rivalPressure.trustFailureDriftScale}×\\)`
+      )
+    )
   })
 })

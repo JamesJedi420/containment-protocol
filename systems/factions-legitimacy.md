@@ -313,8 +313,9 @@ Examples:
 - weakness may embolden interference
 - successful intervention may change power posture in a region or district
 
-**Implemented hook (SPE-2699):** ranking-derived comparative pressure (`buildRivalPressure`) adjusts
-contract payout scalars and recruit quality deltas. Abstract peer baseline only — no per-rival squad
+**Implemented hooks (SPE-2699 / SPE-2700):** ranking-derived comparative pressure (`buildRivalPressure`)
+adjusts contract payout scalars and recruit quality deltas, and scales negative external-support
+reliability drift (standing-shaped forgiveness). Abstract peer baseline only — no per-rival squad
 simulation. Standing award math remains separate.
 
 ---

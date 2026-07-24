@@ -17,6 +17,11 @@ export interface RivalPressureView {
   contractRewardMultiplier: number
   /** Additive delta applied to recruit overall quality. */
   recruitQualityDelta: number
+  /**
+   * Multiplier on negative external-support reliability drift (SPE-93).
+   * <1 = standing-shaped forgiveness; >1 = accelerated trust collapse.
+   */
+  trustFailureDriftScale: number
   summary: string
 }
 
@@ -33,16 +38,31 @@ function getRivalPressureBand(score: number): RivalPressureBand {
   return 'balanced'
 }
 
-function buildRivalPressureSummary(band: RivalPressureBand, rankingScore: number): string {
+function buildForgivenessNote(trustFailureDriftScale: number): string {
+  if (trustFailureDriftScale < 1) {
+    return `external-support failure drift softened (${trustFailureDriftScale}×).`
+  }
+  if (trustFailureDriftScale > 1) {
+    return `external-support failure drift hardened (${trustFailureDriftScale}×).`
+  }
+  return `external-support failure drift neutral (${trustFailureDriftScale}×).`
+}
+
+function buildRivalPressureSummary(
+  band: RivalPressureBand,
+  rankingScore: number,
+  trustFailureDriftScale: number
+): string {
+  const forgiveness = buildForgivenessNote(trustFailureDriftScale)
   switch (band) {
     case 'suppressed':
-      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable.`
+      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable; ${forgiveness}`
     case 'balanced':
-      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew.`
+      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew; ${forgiveness}`
     case 'competitive':
-      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten.`
+      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten; ${forgiveness}`
     case 'severe':
-      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress.`
+      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress; ${forgiveness}`
     default: {
       const _exhaustive: never = band
       return _exhaustive
@@ -63,6 +83,8 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
     clamp(1 - deltaFromPeer * 0.002, 0.88, 1.06).toFixed(3)
   )
   const recruitQualityDelta = clamp(Math.round(-deltaFromPeer * 0.12), -6, 4) + 0
+  // High standing (negative deltaFromPeer) softens trust collapse; low standing hardens it.
+  const trustFailureDriftScale = Number(clamp(1 + deltaFromPeer * 0.004, 0.7, 1.3).toFixed(3))
 
   return {
     score,
@@ -71,8 +93,21 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
     peerBaseline: RIVAL_PRESSURE_PEER_BASELINE,
     contractRewardMultiplier,
     recruitQualityDelta,
-    summary: buildRivalPressureSummary(band, clampedRanking),
+    trustFailureDriftScale,
+    summary: buildRivalPressureSummary(band, clampedRanking, trustFailureDriftScale),
   }
+}
+
+/** Scale a negative reliability drift by standing-shaped forgiveness; positive deltas pass through. */
+export function applyTrustFailureDriftScale(
+  baseDelta: number,
+  trustFailureDriftScale: number
+): number {
+  if (baseDelta >= 0) {
+    return baseDelta
+  }
+  const scale = clamp(trustFailureDriftScale, 0.7, 1.3)
+  return Math.round(baseDelta * scale)
 }
 
 /** Read-time rival/comparative pressure from agency ranking. No persisted fields. */

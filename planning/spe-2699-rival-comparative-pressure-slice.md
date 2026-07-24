@@ -42,7 +42,7 @@ Peer baseline = ranking base score (50). Pressure inverts ranking delta; multipl
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Forgiveness thresholds from standing | SPE-39 child | Separate AC; posture math |
+| Forgiveness thresholds from standing | SPE-2700 | Shipped: trustFailureDriftScale → SPE-93 negative drift |
 | Cross-jurisdiction coordination packets | SPE-39 + SPE-854 | Intake pairing |
 | Hidden-cell strategic interference | SPE-39 child | Larger adversary layer |
 | Protective-coercive rival posture after exposure | SPE-39 child | Harvest fold-in C23/C26 |

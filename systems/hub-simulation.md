@@ -163,7 +163,9 @@ four multipliers used for each award.
 Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
 an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
 comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases
-both. Agency overview and report summary lines expose the pressure band for legibility.
+both. The same pressure also scales **negative** external-support reliability drift (SPE-93): high
+standing softens trust collapse after weak outputs; low standing accelerates it. Agency overview and
+report summary lines expose the pressure band and forgiveness scale for legibility.
 
 ### Stage B — Build hub opportunity pools
 

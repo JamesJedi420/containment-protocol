@@ -10,8 +10,11 @@ import {
   AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION,
   resolveEmergencyGrayMarketWaiverAuthority,
 } from './procurementEmergencyAuthority'
-import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from './procurementEmergencyFallout'
+import {
+  getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
+} from './procurementEmergencyFallout'
 import { getEmergencyProcurementInstitutionAuditKey } from './procurementEmergencyInstitution'
+import { buildRivalPressure } from './rivalPressure'
 import { buildMajorIncidentState } from './strategicState'
 import { normalizeGameState } from './teamSimulation'
 
@@ -143,6 +146,11 @@ export function applyEmergencyGrayMarketFalloutTick(
   const precedentPenaltyMultiplier = getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
     waiverPrecedentCount
   )
+  // Standing scale from source-week ranking; compose with precedent (do not fold into it).
+  const rivalPressure = buildRivalPressure(sourceState)
+  const rankingScore = rivalPressure.rankingScore
+  const standingFalloutPenaltyScale = rivalPressure.falloutPenaltyScale
+  const combinedPenaltyMultiplier = precedentPenaltyMultiplier * standingFalloutPenaltyScale
 
   const baseLegitimacy: LegitimacyState = {
     sanctionLevel: nextStateDraft.legitimacy?.sanctionLevel ?? 'tolerated',
@@ -152,13 +160,13 @@ export function applyEmergencyGrayMarketFalloutTick(
   }
 
   if (falloutRisk === 'risk') {
-    const rawPenalty = Math.floor(fundingBefore * 0.052 * precedentPenaltyMultiplier)
+    const rawPenalty = Math.floor(fundingBefore * 0.052 * combinedPenaltyMultiplier)
     const fundingPenalty = Math.min(
       fundingBefore,
       clamp(rawPenalty, fundingBefore > 0 ? 1 : 0, 320)
     )
     const fundingAfter = Math.max(0, fundingBefore - fundingPenalty)
-    const containmentMagnitude = Math.ceil((containmentBefore / 28) * precedentPenaltyMultiplier)
+    const containmentMagnitude = Math.ceil((containmentBefore / 28) * combinedPenaltyMultiplier)
     const containmentDelta = -clamp(containmentMagnitude, 1, 4)
     const containmentAfter = clamp(containmentBefore + containmentDelta, 0, 100)
 
@@ -176,6 +184,8 @@ export function applyEmergencyGrayMarketFalloutTick(
         containmentRatingAfter: containmentAfter,
         waiverPrecedentCount,
         precedentPenaltyMultiplier,
+        rankingScore,
+        standingFalloutPenaltyScale,
         institutionKey,
       },
     }
@@ -194,13 +204,13 @@ export function applyEmergencyGrayMarketFalloutTick(
     }
   }
 
-  const rawPenalty = Math.floor(fundingBefore * 0.088 * precedentPenaltyMultiplier)
+  const rawPenalty = Math.floor(fundingBefore * 0.088 * combinedPenaltyMultiplier)
   const fundingPenalty = Math.min(
     fundingBefore,
     clamp(rawPenalty, fundingBefore > 0 ? 2 : 0, 520)
   )
   const fundingAfter = Math.max(0, fundingBefore - fundingPenalty)
-  const containmentMagnitude = Math.ceil((containmentBefore / 20) * precedentPenaltyMultiplier)
+  const containmentMagnitude = Math.ceil((containmentBefore / 20) * combinedPenaltyMultiplier)
   const containmentDelta = -clamp(containmentMagnitude, 2, 6)
   const containmentAfter = clamp(containmentBefore + containmentDelta, 0, 100)
 
@@ -218,6 +228,8 @@ export function applyEmergencyGrayMarketFalloutTick(
       containmentRatingAfter: containmentAfter,
       waiverPrecedentCount,
       precedentPenaltyMultiplier,
+      rankingScore,
+      standingFalloutPenaltyScale,
       institutionKey,
     },
   }

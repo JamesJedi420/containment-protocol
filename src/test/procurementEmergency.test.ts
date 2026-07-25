@@ -19,8 +19,33 @@ import {
   resolveEmergencyWaiverRegulatoryArbitrageSignal,
   resolveEmergencyWaiverRuleConflictSignal,
 } from '../domain/procurementEmergency'
+import type { WeeklyReport } from '../domain/models'
+import { buildRivalPressureFromRankingScore } from '../domain/rivalPressure'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { buildMajorIncidentState } from '../domain/strategicState'
+
+function reportWithFailures(week: number, failures: number, unresolved: number): WeeklyReport {
+  return {
+    week,
+    resolvedCases: [],
+    partialCases: [],
+    failedCases: Array.from({ length: failures }, (_, index) => `fail-${week}-${index}`),
+    unresolvedTriggers: Array.from(
+      { length: unresolved },
+      (_, index) => `unresolved-${week}-${index}`
+    ),
+  } as unknown as WeeklyReport
+}
+
+function reportWithResolutions(week: number, resolved: number): WeeklyReport {
+  return {
+    week,
+    resolvedCases: Array.from({ length: resolved }, (_, index) => `resolved-${week}-${index}`),
+    partialCases: [],
+    failedCases: [],
+    unresolvedTriggers: [],
+  } as unknown as WeeklyReport
+}
 
 /** Single high-stage major incident so aggregate pressure crosses crisis threshold (≥120). */
 function crisisSanctionedGame(): ReturnType<typeof createStartingState> {
@@ -284,11 +309,92 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
     if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
       expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
       expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+      expect(drafts[0].payload.rankingScore).toBe(50)
+      expect(drafts[0].payload.standingFalloutPenaltyScale).toBe(1)
     }
     expect(nextState.funding).toBe(105)
     expect(nextState.containmentRating).toBe(69)
     expect(nextState.legitimacy?.falloutRisk).toBe('costly')
     expect(nextState.legitimacy?.sanctionLevel).toBe('sanctioned')
+  })
+
+  it('applies no tick when fallout is inactive (SPE-2705)', () => {
+    const source = createStartingState()
+    source.week = 3
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'none' }
+    const draftNext = { ...source, week: 4, funding: 200 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    expect(drafts).toHaveLength(0)
+    expect(nextState.funding).toBe(200)
+    expect(nextState.legitimacy?.falloutRisk).toBe('none')
+  })
+
+  it('scales fallout penalties by standing while keeping SPE-2699–2704 pressure formulas unchanged', () => {
+    const weakPressure = buildRivalPressureFromRankingScore(20)
+    const strongPressure = buildRivalPressureFromRankingScore(80)
+    expect(weakPressure.contractRewardMultiplier).toBe(
+      buildRivalPressureFromRankingScore(20).contractRewardMultiplier
+    )
+    expect(weakPressure.recruitQualityDelta).toBe(
+      buildRivalPressureFromRankingScore(20).recruitQualityDelta
+    )
+    expect(weakPressure.trustFailureDriftScale).toBe(
+      buildRivalPressureFromRankingScore(20).trustFailureDriftScale
+    )
+    expect(weakPressure.postExposureTrustDelta).toBe(
+      buildRivalPressureFromRankingScore(20).postExposureTrustDelta
+    )
+    expect(weakPressure.falloutPenaltyScale).toBeGreaterThan(strongPressure.falloutPenaltyScale)
+
+    const makeSource = (rankingReports: WeeklyReport[]) => {
+      const source = createStartingState()
+      source.week = 3
+      source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'risk' }
+      source.funding = 200
+      source.containmentRating = 70
+      source.reports = rankingReports
+      source.events = []
+      return source
+    }
+
+    const weakSource = makeSource([reportWithFailures(1, 5, 4), reportWithFailures(2, 4, 3)])
+    const strongSource = makeSource([reportWithResolutions(1, 8), reportWithResolutions(2, 8)])
+
+    const weakTick = applyEmergencyGrayMarketFalloutTick(weakSource, {
+      ...weakSource,
+      week: 4,
+    })
+    const strongTick = applyEmergencyGrayMarketFalloutTick(strongSource, {
+      ...strongSource,
+      week: 4,
+    })
+    const weakTickAgain = applyEmergencyGrayMarketFalloutTick(weakSource, {
+      ...weakSource,
+      week: 4,
+    })
+
+    expect(weakTick.nextState.funding).toBe(weakTickAgain.nextState.funding)
+    expect(weakTick.nextState.containmentRating).toBe(weakTickAgain.nextState.containmentRating)
+    expect(weakTick.nextState.funding).toBeLessThan(strongTick.nextState.funding)
+    expect(weakTick.nextState.containmentRating).toBeLessThanOrEqual(
+      strongTick.nextState.containmentRating ?? 0
+    )
+
+    if (
+      weakTick.drafts[0]?.type === 'market.emergency_gray_market_fallout_tick' &&
+      strongTick.drafts[0]?.type === 'market.emergency_gray_market_fallout_tick'
+    ) {
+      expect(weakTick.drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+      expect(strongTick.drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+      expect(weakTick.drafts[0].payload.standingFalloutPenaltyScale).toBeGreaterThan(
+        strongTick.drafts[0].payload.standingFalloutPenaltyScale
+      )
+      expect(weakTick.drafts[0].payload.standingFalloutPenaltyScale).toBe(
+        buildRivalPressureFromRankingScore(weakTick.drafts[0].payload.rankingScore)
+          .falloutPenaltyScale
+      )
+    }
   })
 
   it('scales fallout risk-phase penalties with waiver precedent count (bounded multiplier)', () => {
@@ -323,6 +429,8 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
       expect(drafts[0].payload.falloutRiskAfter).toBe('none')
       expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
       expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+      expect(drafts[0].payload.rankingScore).toBe(50)
+      expect(drafts[0].payload.standingFalloutPenaltyScale).toBe(1)
     }
     expect(nextState.funding).toBe(96)
     expect(nextState.containmentRating).toBe(65)

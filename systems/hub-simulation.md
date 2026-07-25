@@ -163,12 +163,14 @@ four multipliers used for each award.
 Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
 an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
 comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases
-both. The same pressure also scales **negative** external-support reliability drift (SPE-93): high
-standing softens trust collapse after weak outputs; low standing accelerates it. After public
-disclosure exposure (awareness ≠ secrecy-intact), ranking also supplies a bounded
-`postExposureTrustDelta` into regional trust → cooperation bands: high standing is protective, low
-standing is coercive. Agency overview and report summary lines expose the pressure band, forgiveness
-scale, and post-exposure posture for legibility.
+both. The same standing-shaped scale also scales **negative** external-support reliability drift
+(SPE-93) and composes with emergency gray-market fallout tick precedent multipliers (SPE-1184 /
+SPE-2705): high standing softens trust collapse and waiver fallout penalties; low standing hardens
+both. Precedent multipliers stay independent of standing. After public disclosure exposure
+(awareness ≠ secrecy-intact), ranking also supplies a bounded `postExposureTrustDelta` into
+regional trust → cooperation bands: high standing is protective, low standing is coercive. Agency
+overview and report summary lines expose the pressure band, standing scale, and post-exposure
+posture for legibility.
 
 Cross-jurisdiction coordination packets are a separate **read-time** projection
 (`src/domain/crossJurisdictionCoordinationPacket.ts`): when SPE-854 `archive_signature` intake

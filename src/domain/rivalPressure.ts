@@ -25,6 +25,12 @@ export interface RivalPressureView {
    */
   trustFailureDriftScale: number
   /**
+   * Multiplier on emergency gray-market fallout tick penalty bands (SPE-2705).
+   * Same standing-shaped inputs as {@link trustFailureDriftScale}; composed with precedent.
+   * <1 = soften funding/containment fallout; >1 = harden.
+   */
+  falloutPenaltyScale: number
+  /**
    * Additive regional-trust delta after public exposure (SPE-2701).
    * Applied only when disclosure awareness is active; high standing protective, low coercive.
    */
@@ -47,14 +53,14 @@ function getRivalPressureBand(score: number): RivalPressureBand {
   return 'balanced'
 }
 
-function buildForgivenessNote(trustFailureDriftScale: number): string {
-  if (trustFailureDriftScale < 1) {
-    return `external-support failure drift softened (${trustFailureDriftScale}×).`
+function buildStandingScaleNote(standingScale: number): string {
+  if (standingScale < 1) {
+    return `standing scale softens trust-failure drift and emergency fallout (${standingScale}×).`
   }
-  if (trustFailureDriftScale > 1) {
-    return `external-support failure drift hardened (${trustFailureDriftScale}×).`
+  if (standingScale > 1) {
+    return `standing scale hardens trust-failure drift and emergency fallout (${standingScale}×).`
   }
-  return `external-support failure drift neutral (${trustFailureDriftScale}×).`
+  return `standing scale neutral for trust-failure drift and emergency fallout (${standingScale}×).`
 }
 
 export function resolveRivalPostExposurePosture(
@@ -90,21 +96,21 @@ function buildPostExposurePostureNote(
 function buildRivalPressureSummary(
   band: RivalPressureBand,
   rankingScore: number,
-  trustFailureDriftScale: number,
+  standingScale: number,
   postExposurePosture: RivalPostExposurePosture,
   postExposureTrustDelta: number
 ): string {
-  const forgiveness = buildForgivenessNote(trustFailureDriftScale)
+  const standing = buildStandingScaleNote(standingScale)
   const exposure = buildPostExposurePostureNote(postExposurePosture, postExposureTrustDelta)
   switch (band) {
     case 'suppressed':
-      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable; ${forgiveness} ${exposure}`
+      return `Comparative pressure suppressed (rank ${rankingScore}): peer agencies lag; contract terms and recruit quality tilt favorable; ${standing} ${exposure}`
     case 'balanced':
-      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew; ${forgiveness} ${exposure}`
+      return `Comparative pressure balanced (rank ${rankingScore}): peer agencies track evenly; no rival payout or staffing skew; ${standing} ${exposure}`
     case 'competitive':
-      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten; ${forgiveness} ${exposure}`
+      return `Comparative pressure competitive (rank ${rankingScore}): peer agencies press for share; contract payouts and recruit quality tighten; ${standing} ${exposure}`
     case 'severe':
-      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress; ${forgiveness} ${exposure}`
+      return `Comparative pressure severe (rank ${rankingScore}): peer agencies dominate optics; contract payouts and recruit quality compress; ${standing} ${exposure}`
     default: {
       const _exhaustive: never = band
       return _exhaustive
@@ -125,8 +131,10 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
     clamp(1 - deltaFromPeer * 0.002, 0.88, 1.06).toFixed(3)
   )
   const recruitQualityDelta = clamp(Math.round(-deltaFromPeer * 0.12), -6, 4) + 0
-  // High standing (negative deltaFromPeer) softens trust collapse; low standing hardens it.
-  const trustFailureDriftScale = Number(clamp(1 + deltaFromPeer * 0.004, 0.7, 1.3).toFixed(3))
+  // High standing (negative deltaFromPeer) softens trust collapse / fallout; low standing hardens.
+  const standingScale = Number(clamp(1 + deltaFromPeer * 0.004, 0.7, 1.3).toFixed(3))
+  const trustFailureDriftScale = standingScale
+  const falloutPenaltyScale = standingScale
   // High standing protects regional trust after exposure; low standing coerces it downward.
   const postExposureTrustDelta = Number(clamp(-deltaFromPeer * 0.0025, -0.1, 0.1).toFixed(2)) + 0
   const postExposurePosture = resolveRivalPostExposurePosture(postExposureTrustDelta)
@@ -139,12 +147,13 @@ export function buildRivalPressureFromRankingScore(rankingScore: number): RivalP
     contractRewardMultiplier,
     recruitQualityDelta,
     trustFailureDriftScale,
+    falloutPenaltyScale,
     postExposureTrustDelta,
     postExposurePosture,
     summary: buildRivalPressureSummary(
       band,
       clampedRanking,
-      trustFailureDriftScale,
+      standingScale,
       postExposurePosture,
       postExposureTrustDelta
     ),

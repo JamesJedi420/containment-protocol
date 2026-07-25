@@ -394,6 +394,8 @@ export const minimalOperationEventPayloads = {
     containmentRatingAfter: 55,
     waiverPrecedentCount: 1,
     precedentPenaltyMultiplier: 1,
+    rankingScore: 50,
+    standingFalloutPenaltyScale: 1,
     institutionKey: 'containment_protocol',
   },
   'faction.standing_changed': {

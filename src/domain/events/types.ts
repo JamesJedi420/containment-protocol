@@ -492,8 +492,12 @@ export interface OperationEventPayloadMap {
     containmentRatingAfter: number
     /** Count of emergency waiver grants driving precedent pressure on this tick. */
     waiverPrecedentCount: number
-    /** Bounded multiplier applied to base fallout penalty bands (deterministic from precedent). */
+    /** Bounded multiplier from waiver precedent only (not standing). */
     precedentPenaltyMultiplier: number
+    /** Agency ranking score that produced {@link standingFalloutPenaltyScale}. */
+    rankingScore: number
+    /** Standing-shaped scale composed with precedent on penalty bands (SPE-2705). */
+    standingFalloutPenaltyScale: number
     institutionKey: string
   }
   'faction.standing_changed': {

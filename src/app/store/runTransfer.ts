@@ -52,6 +52,7 @@ import {
   HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
   HIDDEN_CELL_COVERT_GROWTH_MAX,
   HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
   HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX,
 } from '../../domain/hiddenCellStrategicInterference'
 import { normalizeRuntimeState, reconcileRuntimeUiSelections } from '../../domain/gameStateManager'
@@ -6269,7 +6270,7 @@ function sanitizeAgencyState(
       ? Math.max(
           0,
           Math.min(
-            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
             Math.round(raw.lastHiddenCellDetectionNarrowingAmount)
           )
         )

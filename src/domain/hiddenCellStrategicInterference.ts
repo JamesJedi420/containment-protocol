@@ -42,6 +42,10 @@ export const HIDDEN_CELL_DETECTION_NARROWING_MAX = 100
 /** Narrowing progress points per unit of applied covert growth. */
 export const HIDDEN_CELL_DETECTION_NARROWING_PER_GROWTH = 8
 
+/** Max narrowing points one closed-week tick may apply. */
+export const HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX =
+  HIDDEN_CELL_COVERT_GROWTH_MAX * HIDDEN_CELL_DETECTION_NARROWING_PER_GROWTH
+
 export type HiddenCellInterferenceKind =
   | 'funding_theft'
   | 'research_rollback'

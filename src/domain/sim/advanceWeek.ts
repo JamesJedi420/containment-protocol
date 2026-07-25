@@ -344,7 +344,9 @@ import {
   findHiddenCellFundingTheftAmountForWeek,
   findHiddenCellInfrastructureCompromiseAmountForWeek,
   HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
   HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
   resolveHiddenCellCovertGrowthFromPressure,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellInfrastructureCompromiseFromPressure,
@@ -737,12 +739,21 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
   const lastHiddenCellCovertGrowthAmount =
     typeof base?.lastHiddenCellCovertGrowthAmount === 'number' &&
     Number.isFinite(base.lastHiddenCellCovertGrowthAmount)
-      ? Math.max(0, Math.trunc(base.lastHiddenCellCovertGrowthAmount))
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_MAX, Math.trunc(base.lastHiddenCellCovertGrowthAmount))
+        )
       : undefined
   const lastHiddenCellDetectionNarrowingAmount =
     typeof base?.lastHiddenCellDetectionNarrowingAmount === 'number' &&
     Number.isFinite(base.lastHiddenCellDetectionNarrowingAmount)
-      ? Math.max(0, Math.trunc(base.lastHiddenCellDetectionNarrowingAmount))
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+            Math.trunc(base.lastHiddenCellDetectionNarrowingAmount)
+          )
+        )
       : undefined
   // SPE-2714: week marker requires at least one applied amount so a week cannot lock without a note.
   const hasCompleteCovertGrowthMarkers =

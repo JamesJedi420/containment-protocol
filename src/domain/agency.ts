@@ -92,6 +92,7 @@ export interface AgencySummary {
     contractRewardMultiplier: number
     recruitQualityDelta: number
     trustFailureDriftScale: number
+    falloutPenaltyScale: number
     postExposureTrustDelta: number
     postExposurePosture: RivalPostExposurePosture
   }
@@ -388,6 +389,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       contractRewardMultiplier: rivalPressure.contractRewardMultiplier,
       recruitQualityDelta: rivalPressure.recruitQualityDelta,
       trustFailureDriftScale: rivalPressure.trustFailureDriftScale,
+      falloutPenaltyScale: rivalPressure.falloutPenaltyScale,
       postExposureTrustDelta: rivalPressure.postExposureTrustDelta,
       postExposurePosture: rivalPressure.postExposurePosture,
     },

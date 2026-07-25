@@ -103,6 +103,9 @@ describe('hidden-cell strategic interference (SPE-2704)', () => {
     expect(pressure.trustFailureDriftScale).toBe(
       buildRivalPressureFromRankingScore(20).trustFailureDriftScale
     )
+    expect(pressure.falloutPenaltyScale).toBe(
+      buildRivalPressureFromRankingScore(20).falloutPenaltyScale
+    )
     expect(pressure.postExposureTrustDelta).toBe(
       buildRivalPressureFromRankingScore(20).postExposureTrustDelta
     )

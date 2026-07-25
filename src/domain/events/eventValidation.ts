@@ -2,7 +2,10 @@
 import { z } from 'zod'
 import { getProductionRecipe } from '../../data/production'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
-import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../procurementEmergencyFallout'
+import {
+  getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
+  getEmergencyWaiverFalloutStandingPenaltyScale,
+} from '../procurementEmergencyFallout'
 import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
 import { getLevelForXp } from '../progression'
 import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
@@ -868,6 +871,8 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
     containmentRatingAfter: finiteNonNegativeNumberSchema,
     waiverPrecedentCount: z.number().int().min(1).max(50000),
     precedentPenaltyMultiplier: z.number().finite(),
+    rankingScore: z.number().int().min(0).max(100),
+    standingFalloutPenaltyScale: z.number().finite(),
     institutionKey: z
       .string()
       .min(1)
@@ -924,6 +929,17 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
         code: z.ZodIssueCode.custom,
         message: `precedentPenaltyMultiplier must equal ${expectedMultiplier} for waiverPrecedentCount`,
         path: ['precedentPenaltyMultiplier'],
+      })
+    }
+
+    const expectedStandingScale = getEmergencyWaiverFalloutStandingPenaltyScale(
+      payload.rankingScore
+    )
+    if (payload.standingFalloutPenaltyScale !== expectedStandingScale) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `standingFalloutPenaltyScale must equal ${expectedStandingScale} for rankingScore`,
+        path: ['standingFalloutPenaltyScale'],
       })
     }
   })

@@ -13572,6 +13572,8 @@ describe('runTransfer import sanitization (326-332)', () => {
         containmentRatingAfter: 59,
         waiverPrecedentCount: 1,
         precedentPenaltyMultiplier: 1,
+        rankingScore: 50,
+        standingFalloutPenaltyScale: 1,
       })
       expect(hydrated.events[1]?.payload).toMatchObject({
         outcome: 'resolved_closed',
@@ -13583,6 +13585,8 @@ describe('runTransfer import sanitization (326-332)', () => {
         containmentRatingAfter: 54,
         waiverPrecedentCount: 2,
         precedentPenaltyMultiplier: 1.06,
+        rankingScore: 50,
+        standingFalloutPenaltyScale: 1,
       })
     })
 

@@ -52,6 +52,8 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(balanced.contractRewardMultiplier).toBe(1)
     expect(balanced.recruitQualityDelta).toBe(0)
     expect(balanced.trustFailureDriftScale).toBe(1)
+    expect(balanced.falloutPenaltyScale).toBe(1)
+    expect(balanced.falloutPenaltyScale).toBe(balanced.trustFailureDriftScale)
     expect(balanced.postExposureTrustDelta).toBe(0)
     expect(balanced.postExposurePosture).toBe('neutral')
     expect(Object.is(balanced.recruitQualityDelta, -0)).toBe(false)
@@ -62,6 +64,8 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(weak.contractRewardMultiplier).toBeLessThan(balanced.contractRewardMultiplier)
     expect(weak.recruitQualityDelta).toBeLessThan(balanced.recruitQualityDelta)
     expect(weak.trustFailureDriftScale).toBeGreaterThan(balanced.trustFailureDriftScale)
+    expect(weak.falloutPenaltyScale).toBe(weak.trustFailureDriftScale)
+    expect(weak.falloutPenaltyScale).toBeGreaterThan(balanced.falloutPenaltyScale)
     expect(weak.postExposureTrustDelta).toBeLessThan(balanced.postExposureTrustDelta)
     expect(weak.postExposurePosture).toBe('coercive')
 
@@ -70,6 +74,8 @@ describe('rival comparative pressure (SPE-2699)', () => {
     expect(strong.contractRewardMultiplier).toBeGreaterThan(balanced.contractRewardMultiplier)
     expect(strong.recruitQualityDelta).toBeGreaterThan(balanced.recruitQualityDelta)
     expect(strong.trustFailureDriftScale).toBeLessThan(balanced.trustFailureDriftScale)
+    expect(strong.falloutPenaltyScale).toBe(strong.trustFailureDriftScale)
+    expect(strong.falloutPenaltyScale).toBeLessThan(balanced.falloutPenaltyScale)
     expect(strong.postExposureTrustDelta).toBeGreaterThan(balanced.postExposureTrustDelta)
     expect(strong.postExposurePosture).toBe('protective')
 
@@ -209,17 +215,19 @@ describe('rival comparative pressure (SPE-2699)', () => {
       contractRewardMultiplier: buildRivalPressure(game).contractRewardMultiplier,
       recruitQualityDelta: buildRivalPressure(game).recruitQualityDelta,
       trustFailureDriftScale: buildRivalPressure(game).trustFailureDriftScale,
+      falloutPenaltyScale: buildRivalPressure(game).falloutPenaltyScale,
       postExposureTrustDelta: buildRivalPressure(game).postExposureTrustDelta,
       postExposurePosture: buildRivalPressure(game).postExposurePosture,
     })
     expect(summary.rivalPressure.summary).toMatch(/Comparative pressure/)
-    expect(summary.rivalPressure.summary).toMatch(/external-support failure drift/)
+    expect(summary.rivalPressure.summary).toMatch(/standing scale/)
+    expect(summary.rivalPressure.summary).toMatch(/emergency fallout/)
     expect(summary.rivalPressure.summary).toMatch(/post-exposure rival posture/)
 
     const reportLine = getReportPageView(game).summary?.agencySummaryLine ?? ''
     expect(reportLine).toMatch(
       new RegExp(
-        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; trust-failure drift ${summary.rivalPressure.trustFailureDriftScale}×; post-exposure ${summary.rivalPressure.postExposurePosture} ${summary.rivalPressure.postExposureTrustDelta > 0 ? '\\+' : ''}${summary.rivalPressure.postExposureTrustDelta}\\)`
+        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; standing scale ${summary.rivalPressure.falloutPenaltyScale}×; post-exposure ${summary.rivalPressure.postExposurePosture} ${summary.rivalPressure.postExposureTrustDelta > 0 ? '\\+' : ''}${summary.rivalPressure.postExposureTrustDelta}\\)`
       )
     )
   })

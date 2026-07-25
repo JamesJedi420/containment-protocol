@@ -728,6 +728,8 @@ describe('buildEventFeedView', () => {
       containmentRatingAfter: 69,
       waiverPrecedentCount: 1,
       precedentPenaltyMultiplier: 1,
+      rankingScore: 50,
+      standingFalloutPenaltyScale: 1,
       institutionKey: 'containment_protocol',
     })
     const view = buildEventFeedView(event)
@@ -736,6 +738,7 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('escalated')
     expect(view.detail).toContain('110→105')
     expect(view.detail).toContain('Precedent 1 ×1')
+    expect(view.detail).toContain('Standing scale 1× (rank 50)')
   })
 
   it('market.emergency_gray_market_fallout_tick — warning when resolved closed', () => {
@@ -750,6 +753,8 @@ describe('buildEventFeedView', () => {
       containmentRatingAfter: 65,
       waiverPrecedentCount: 2,
       precedentPenaltyMultiplier: 1.06,
+      rankingScore: 20,
+      standingFalloutPenaltyScale: 1.12,
       institutionKey: 'containment_protocol',
     })
     const view = buildEventFeedView(event)
@@ -758,6 +763,7 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('closed')
     expect(view.detail).toContain('resolved closed')
     expect(view.detail).toContain('Precedent 2 ×1.06')
+    expect(view.detail).toContain('Standing scale 1.12× (rank 20)')
   })
 
   it('faction.standing_changed — posture tone and standing range in detail', () => {

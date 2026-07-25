@@ -1,4 +1,5 @@
 import { clamp } from './math'
+import { buildRivalPressureFromRankingScore } from './rivalPressure'
 
 /** Max extra precedent steps that tighten fallout beyond the first waiver. */
 export const EMERGENCY_WAIVER_FALLOUT_PRECEDENT_MAX_EXTRA_STEPS = 6
@@ -18,4 +19,12 @@ export function getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
   return Math.round(
     (1 + EMERGENCY_WAIVER_FALLOUT_PRECEDENT_MULTIPLIER_STEP * extraSteps) * 1000
   ) / 1000
+}
+
+/**
+ * Standing-shaped fallout penalty scale (SPE-2705).
+ * Canonical value for a tick payload — must match {@link buildRivalPressureFromRankingScore}.
+ */
+export function getEmergencyWaiverFalloutStandingPenaltyScale(rankingScore: number): number {
+  return buildRivalPressureFromRankingScore(rankingScore).falloutPenaltyScale
 }

@@ -187,7 +187,11 @@ import {
   AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
   LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
 } from '../../domain/procurementEmergencyAuthority'
-import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from '../../domain/procurementEmergencyFallout'
+import {
+  getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
+  getEmergencyWaiverFalloutStandingPenaltyScale,
+} from '../../domain/procurementEmergencyFallout'
+import { RIVAL_PRESSURE_PEER_BASELINE } from '../../domain/rivalPressure'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import {
   reconcileMarketShiftedFields,
@@ -2540,6 +2544,17 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
   )
   const precedentPenaltyMultiplier =
     getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(waiverPrecedentCount)
+  const rankingScore = clamp(
+    sanitizeInteger(
+      payload.rankingScore as number | undefined,
+      RIVAL_PRESSURE_PEER_BASELINE,
+      RIVAL_PRESSURE_PEER_BASELINE
+    ),
+    0,
+    100
+  )
+  const standingFalloutPenaltyScale =
+    getEmergencyWaiverFalloutStandingPenaltyScale(rankingScore)
 
   return {
     outcome,
@@ -2551,6 +2566,8 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
     containmentRatingAfter,
     waiverPrecedentCount,
     precedentPenaltyMultiplier,
+    rankingScore,
+    standingFalloutPenaltyScale,
   }
 }
 
@@ -8262,6 +8279,8 @@ function sanitizeOperationEvents(
               ),
               waiverPrecedentCount: fallout.waiverPrecedentCount,
               precedentPenaltyMultiplier: fallout.precedentPenaltyMultiplier,
+              rankingScore: fallout.rankingScore,
+              standingFalloutPenaltyScale: fallout.standingFalloutPenaltyScale,
             },
           })
         )

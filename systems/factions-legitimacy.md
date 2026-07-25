@@ -313,16 +313,18 @@ Examples:
 - weakness may embolden interference
 - successful intervention may change power posture in a region or district
 
-**Implemented hooks (SPE-2699 / SPE-2700 / SPE-2701 / SPE-2702 / SPE-2704):** ranking-derived
+**Implemented hooks (SPE-2699 / SPE-2700 / SPE-2701 / SPE-2702 / SPE-2704 / SPE-2705):** ranking-derived
 comparative pressure (`buildRivalPressure`) adjusts contract payout scalars and recruit quality
-deltas, scales negative external-support reliability drift (standing-shaped forgiveness), and after
-public disclosure exposure applies a protective/coercive `postExposureTrustDelta` into regional
-trust → cooperation bands. Distant archive-signature reappearance (SPE-854) projects a bounded
-cross-jurisdiction coordination packet / shared signature alert for agency and weekly report
-surfaces. Competitive/severe rival pressure also drives bounded hidden-cell **funding theft** at
-week-close (`hiddenCellStrategicInterference`) with a player-legible interference note — not a full
-adversary-org or detection sim. Abstract peer baseline only — no per-rival squad or full
-multi-region org simulation. Standing award math remains separate.
+deltas, scales negative external-support reliability drift (standing-shaped forgiveness), composes
+a standing fallout-penalty scale onto emergency gray-market waiver fallout ticks (funding/containment
+bands; precedent multiplier unchanged), and after public disclosure exposure applies a
+protective/coercive `postExposureTrustDelta` into regional trust → cooperation bands. Distant
+archive-signature reappearance (SPE-854) projects a bounded cross-jurisdiction coordination packet /
+shared signature alert for agency and weekly report surfaces. Competitive/severe rival pressure also
+drives bounded hidden-cell **funding theft** at week-close (`hiddenCellStrategicInterference`) with
+a player-legible interference note — not a full adversary-org or detection sim. Abstract peer
+baseline only — no per-rival squad or full multi-region org simulation. Standing award math remains
+separate.
 
 ---
 

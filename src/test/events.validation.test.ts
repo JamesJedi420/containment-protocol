@@ -300,10 +300,23 @@ describe('event payload validation coverage', () => {
       containmentRatingAfter: 69,
       waiverPrecedentCount: 3,
       precedentPenaltyMultiplier: 1.12,
+      rankingScore: 50,
+      standingFalloutPenaltyScale: 1,
       institutionKey: 'containment_protocol',
     })
 
     expect(validation.success).toBe(true)
+  })
+
+  it('rejects market.emergency_gray_market_fallout_tick when standing scale does not match ranking', () => {
+    const base = minimalOperationEventPayloads['market.emergency_gray_market_fallout_tick']
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      ...base,
+      rankingScore: 20,
+      standingFalloutPenaltyScale: 1,
+    })
+
+    expect(validation.success).toBe(false)
   })
 
   it('rejects market.emergency_gray_market_fallout_tick with a risk transition that contradicts the outcome', () => {

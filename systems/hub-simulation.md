@@ -174,10 +174,12 @@ posture for legibility.
 
 Cross-jurisdiction coordination packets are a separate **read-time** projection
 (`src/domain/crossJurisdictionCoordinationPacket.ts`): when SPE-854 `archive_signature` intake
-reaches a tentative or strong match band and linked cases show two distinct `regionTag`
-jurisdictions (distant reappearance), week-close emits a bounded liaison/shared-signature alert note
-(`agency.cross_jurisdiction_coordination`) and agency/report summaries surface the packet count.
-Weak signature matches and same-jurisdiction reappearance do not emit a packet.
+reaches a tentative or strong match band and linked cases include a **resolved × open** distant
+`regionTag` pair (prior resolved site → current open reappearance), week-close emits a bounded
+liaison/shared-signature alert note (`agency.cross_jurisdiction_coordination`) and agency/report
+summaries surface the packet count. Weak signature matches, same-jurisdiction pairs, and
+concurrent open×open or resolved×resolved multi-region sets (no resolved→open pair) do not emit
+a packet.
 
 Hidden-cell strategic interference is a bounded week-close hook
 (`src/domain/hiddenCellStrategicInterference.ts`): when rival-pressure band is competitive or

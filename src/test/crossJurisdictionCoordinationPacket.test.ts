@@ -47,7 +47,7 @@ function weakArchiveSignature(): InformationIntakeReportRecord {
   }
 }
 
-describe('crossJurisdictionCoordinationPacket (SPE-2702)', () => {
+describe('crossJurisdictionCoordinationPacket (SPE-2702 / SPE-2716)', () => {
   it('resolves archive_signature match bands', () => {
     expect(resolveSignatureMatchBand(IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE)).toBe('tentative')
     expect(resolveSignatureMatchBand(weakArchiveSignature())).toBe('weak')
@@ -188,6 +188,54 @@ describe('crossJurisdictionCoordinationPacket (SPE-2702)', () => {
       projectCrossJurisdictionCoordinationPackets({
         reports: { [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE },
         cases: { [prior.id]: prior, [current.id]: current },
+      })
+    ).toEqual([])
+  })
+
+  it('emits no packet for open×open distant multi-region (no resolved prior)', () => {
+    const openWest = makeCase({
+      id: 'case-open-west',
+      title: 'Open canal site',
+      status: 'open',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:canal-west',
+    })
+    const openEast = makeCase({
+      id: 'case-open-east',
+      title: 'Open harbor site',
+      status: 'open',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:harbor-east',
+    })
+
+    expect(
+      projectCrossJurisdictionCoordinationPackets({
+        reports: { [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE },
+        cases: { [openWest.id]: openWest, [openEast.id]: openEast },
+      })
+    ).toEqual([])
+  })
+
+  it('emits no packet for resolved×resolved distant multi-region (no open current)', () => {
+    const resolvedWest = makeCase({
+      id: 'case-resolved-west',
+      title: 'Closed canal site',
+      status: 'resolved',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:canal-west',
+    })
+    const resolvedEast = makeCase({
+      id: 'case-resolved-east',
+      title: 'Closed harbor site',
+      status: 'resolved',
+      tags: ['topic:canal-bridge-incident'],
+      regionTag: 'region:harbor-east',
+    })
+
+    expect(
+      projectCrossJurisdictionCoordinationPackets({
+        reports: { [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE },
+        cases: { [resolvedWest.id]: resolvedWest, [resolvedEast.id]: resolvedEast },
       })
     ).toEqual([])
   })

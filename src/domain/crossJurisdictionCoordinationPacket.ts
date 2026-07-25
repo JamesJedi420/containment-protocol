@@ -1,5 +1,6 @@
 /**
- * SPE-2702 / SPE-39: bounded cross-jurisdiction coordination packets on distant reappearance.
+ * SPE-2702 / SPE-2716 / SPE-39: bounded cross-jurisdiction coordination packets on distant
+ * reappearance (resolved × open jurisdiction pair only).
  *
  * Read-time projection from SPE-854 archive-signature intake + case regionTags —
  * no new GameState persistence.
@@ -187,6 +188,11 @@ function listCasesLinkedToTopic(
   return linked.sort((left, right) => left.id.localeCompare(right.id))
 }
 
+/**
+ * Prefer a prior-resolved → current-open distant regionTag pair.
+ * Returns null when no such pair exists (including open×open or resolved×resolved
+ * multi-region sets — SPE-2716 drops the former lex-min regionTag fallback).
+ */
 function pickJurisdictionPair(
   linkedCases: readonly CaseRegionSlice[]
 ): {
@@ -219,33 +225,7 @@ function pickJurisdictionPair(
     }
   }
 
-  const uniqueRegions = [
-    ...new Set(
-      linkedCases
-        .map((currentCase) => normalizeToken(currentCase.regionTag ?? ''))
-        .filter((region) => region.length > 0)
-    ),
-  ].sort((left, right) => left.localeCompare(right))
-
-  if (uniqueRegions.length < 2) {
-    return null
-  }
-
-  const priorJurisdictionRef = uniqueRegions[0]
-  const currentJurisdictionRef = uniqueRegions[1]
-  const priorCase = linkedCases.find(
-    (currentCase) => normalizeToken(currentCase.regionTag ?? '') === priorJurisdictionRef
-  )
-  const currentCase = linkedCases.find(
-    (currentCase) => normalizeToken(currentCase.regionTag ?? '') === currentJurisdictionRef
-  )
-
-  return {
-    priorJurisdictionRef,
-    currentJurisdictionRef,
-    priorSiteLabel: priorCase?.title,
-    currentSiteLabel: currentCase?.title,
-  }
+  return null
 }
 
 /** Compose distant-reappearance signals from intake archive signatures + case region tags. */

@@ -1593,6 +1593,7 @@ export type ReportNoteType =
   | 'agency.containment_updated'
   | 'agency.cross_jurisdiction_coordination'
   | 'agency.hidden_cell_interference'
+  | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'
@@ -2394,6 +2395,17 @@ export interface AgencyState {
   lastHiddenCellCovertGrowthAmount?: number
   /** SPE-2714: narrowing points applied on lastHiddenCellCovertGrowthWeek. */
   lastHiddenCellDetectionNarrowingAmount?: number
+  /**
+   * SPE-2718: closed week when status upkeep / public-display adequacy was last assessed.
+   * Captured from pre-operating-cost funding (advanceWeek clamps post-cost funding to ≥ 0).
+   */
+  lastStatusUpkeepWeek?: number
+  /** SPE-2718: adequacy band for lastStatusUpkeepWeek. */
+  lastStatusUpkeepBand?: 'maintained' | 'underfunded' | 'neutral'
+  /** SPE-2718: funding available before operating cost on lastStatusUpkeepWeek. */
+  lastStatusUpkeepFundingBefore?: number
+  /** SPE-2718: SPE-28 operating-cost amount assessed on lastStatusUpkeepWeek. */
+  lastStatusUpkeepOperatingCost?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**

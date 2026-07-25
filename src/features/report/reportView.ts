@@ -81,6 +81,11 @@ export function getReportPageView(game: GameState): ReportPageView {
           })()
         : 'inactive'
     }, ` +
+    `status upkeep ${agencySummary.statusUpkeepDisplay.band}` +
+    (agencySummary.statusUpkeepDisplay.rankingDelta !== 0
+      ? ` (${agencySummary.statusUpkeepDisplay.rankingDelta})`
+      : '') +
+    `, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

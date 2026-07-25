@@ -67,6 +67,12 @@ export default function RankingsPage() {
             impact={`-${ranking.breakdown.unresolved.penalty}`}
             detail={ranking.breakdown.unresolved.detail}
           />
+          <FactorMetric
+            label={ranking.breakdown.statusUpkeep.label}
+            value={`${ranking.breakdown.statusUpkeep.underfundedWeeks} underfunded week(s)`}
+            impact={`${ranking.breakdown.statusUpkeep.points >= 0 ? '+' : ''}${ranking.breakdown.statusUpkeep.points}`}
+            detail={ranking.breakdown.statusUpkeep.detail}
+          />
         </div>
       </article>
 
@@ -99,7 +105,9 @@ export default function RankingsPage() {
                   {entry.summary.reputationDelta >= 0 ? '+' : ''}
                   {entry.summary.reputationDelta}, standing{' '}
                   {entry.summary.agencyStanding >= 0 ? '+' : ''}
-                  {entry.summary.agencyStanding}.
+                  {entry.summary.agencyStanding}, status upkeep{' '}
+                  {entry.summary.statusUpkeep >= 0 ? '+' : ''}
+                  {entry.summary.statusUpkeep}.
                 </p>
               </li>
             ))}

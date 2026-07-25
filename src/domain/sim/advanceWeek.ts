@@ -333,6 +333,8 @@ import {
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../hiddenCellInterferenceWeeklyReportNotes'
+import { buildWeeklyStatusUpkeepDisplayReportNotes } from '../statusUpkeepDisplayWeeklyReportNotes'
+import { resolveStatusUpkeepDisplayEffectFromAffordability } from '../statusUpkeepDisplayCost'
 import {
   applyHiddenCellCovertGrowthToAgencyState,
   applyHiddenCellFundingTheftToFundingState,
@@ -4589,12 +4591,24 @@ function updateAgencyMetrics(
     })
   }
 
+  // SPE-2718: capture public-display upkeep adequacy from pre-cost funding (post-cost is clamped ≥ 0).
+  const fundingBeforeOperatingCost = context.nextState.funding + fundingDelta
+  const statusUpkeepEffect = resolveStatusUpkeepDisplayEffectFromAffordability(
+    fundingBeforeOperatingCost,
+    operatingCost,
+    closedWeek
+  )
+
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
     funding: fundingAfterHiddenCellTheft,
     fundingState: fundingStateAfterHiddenCellTheft,
+    lastStatusUpkeepWeek: closedWeek,
+    lastStatusUpkeepBand: statusUpkeepEffect.band,
+    lastStatusUpkeepFundingBefore: fundingBeforeOperatingCost,
+    lastStatusUpkeepOperatingCost: operatingCost,
     ...(infrastructureCompromiseApplied.appliedAmount > 0
       ? {
           maintenanceSpecialistsAvailable:
@@ -5652,6 +5666,55 @@ export function advanceWeek(
         notes: [...(lastReport.notes ?? []), ...hiddenCellNotes],
       }
       result.reports = reports
+    }
+  }
+
+  // SPE-2718 / SPE-39: status upkeep / public-display costs → weekly note when underfunded.
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForStatusUpkeep = sourceState.week
+    const statusUpkeepNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: result.agency,
+      fundingState: result.agency?.fundingState,
+      week: closedWeekForStatusUpkeep,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (statusUpkeepNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      const nextNotes = [...(lastReport.notes ?? []), ...statusUpkeepNotes]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: nextNotes,
+      }
+      result.reports = reports
+
+      // Keep intel.report_generated.noteCount aligned with post-emit weekly notes.
+      const closedWeek = lastReport.week
+      const events = [...result.events]
+      for (let i = events.length - 1; i >= 0; i -= 1) {
+        const event = events[i]
+        if (
+          event.type === 'intel.report_generated' &&
+          event.payload &&
+          typeof event.payload === 'object' &&
+          'week' in event.payload &&
+          event.payload.week === closedWeek
+        ) {
+          events[i] = {
+            ...event,
+            payload: {
+              ...event.payload,
+              noteCount: nextNotes.length,
+            },
+          }
+          result.events = events
+          break
+        }
+      }
     }
   }
 

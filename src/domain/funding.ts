@@ -513,7 +513,8 @@ export function applyFundingExpense(
   }
 }
 
-const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
+/** SPE-28 / SPE-2718: stable sourceId for weekly payroll + facility operating-cost expenses. */
+export const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
 const WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID = 'weekly-inventory-holding-cost'
 
 function countSupportStaffHeadcount(supportStaff: SupportStaffSummary | undefined) {

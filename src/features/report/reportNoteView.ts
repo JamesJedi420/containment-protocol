@@ -69,6 +69,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'agency.containment_updated',
   'agency.cross_jurisdiction_coordination',
   'agency.hidden_cell_interference',
+  'agency.status_upkeep_display',
   'directive.applied',
   'support.shortfall',
   'support.restored',

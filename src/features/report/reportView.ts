@@ -43,9 +43,25 @@ export function getReportPageView(game: GameState): ReportPageView {
     `cross-jurisdiction packets ${agencySummary.crossJurisdictionCoordination.packetCount}, ` +
     `hidden-cell interference ${
       agencySummary.hiddenCellInterference.active
-        ? agencySummary.hiddenCellInterference.fundingStolen > 0
-          ? `${agencySummary.hiddenCellInterference.rivalPressureBand} theft ${agencySummary.hiddenCellInterference.fundingStolen}`
-          : `${agencySummary.hiddenCellInterference.rivalPressureBand} (no available funds)`
+        ? (() => {
+            const parts: string[] = []
+            if (agencySummary.hiddenCellInterference.fundingStolen > 0) {
+              parts.push(`theft ${agencySummary.hiddenCellInterference.fundingStolen}`)
+            }
+            if (
+              agencySummary.hiddenCellInterference.progressTimeRolledBack > 0 &&
+              agencySummary.hiddenCellInterference.researchProjectId
+            ) {
+              parts.push(
+                `research -${agencySummary.hiddenCellInterference.progressTimeRolledBack}wk ` +
+                  `(${agencySummary.hiddenCellInterference.researchProjectId})`
+              )
+            }
+            if (parts.length === 0) {
+              return `${agencySummary.hiddenCellInterference.rivalPressureBand} (no diversion)`
+            }
+            return `${agencySummary.hiddenCellInterference.rivalPressureBand} ${parts.join('; ')}`
+          })()
         : 'inactive'
     }, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +

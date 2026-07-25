@@ -601,6 +601,8 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
   'agency.hidden_cell_interference': [
     'kind',
     'fundingStolen',
+    'progressTimeRolledBack',
+    'researchProjectId',
     'rivalPressureBand',
     'rivalPressureScore',
     'week',
@@ -6556,6 +6558,22 @@ function sanitizeResearchState(
 
   const base = fallback ?? createInitialResearchState()
 
+  const lastHiddenCellRollbackWeek =
+    typeof value.lastHiddenCellRollbackWeek === 'number' &&
+    Number.isFinite(value.lastHiddenCellRollbackWeek)
+      ? clamp(Math.round(value.lastHiddenCellRollbackWeek), 1, campaignWeek)
+      : undefined
+  const lastHiddenCellRollbackProjectId =
+    typeof value.lastHiddenCellRollbackProjectId === 'string' &&
+    value.lastHiddenCellRollbackProjectId.trim().length > 0
+      ? value.lastHiddenCellRollbackProjectId.trim()
+      : undefined
+  const lastHiddenCellRollbackAmount =
+    typeof value.lastHiddenCellRollbackAmount === 'number' &&
+    Number.isFinite(value.lastHiddenCellRollbackAmount)
+      ? clamp(Math.round(value.lastHiddenCellRollbackAmount), 0, 2)
+      : undefined
+
   const sanitized = stripUndefinedFields({
     projects: filterResearchProjectPrerequisiteIds(projects),
     activeProjectIds: [],
@@ -6592,6 +6610,11 @@ function sanitizeResearchState(
       0,
       MAX_RESEARCH_POOL
     ),
+    ...(lastHiddenCellRollbackWeek !== undefined ? { lastHiddenCellRollbackWeek } : {}),
+    ...(lastHiddenCellRollbackProjectId !== undefined
+      ? { lastHiddenCellRollbackProjectId }
+      : {}),
+    ...(lastHiddenCellRollbackAmount !== undefined ? { lastHiddenCellRollbackAmount } : {}),
   }) as ResearchState
 
   const reconciled = applyHydratedFacilityResearchScalars(

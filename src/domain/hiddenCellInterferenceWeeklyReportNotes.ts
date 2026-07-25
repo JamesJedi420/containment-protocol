@@ -1,20 +1,35 @@
 /**
- * SPE-2704: weekly report notes for hidden-cell strategic interference (funding theft).
+ * SPE-2704 / SPE-2706: weekly report notes for hidden-cell strategic interference.
  *
- * Emits notes from applied fundingHistory theft entries — no new GameState persistence.
+ * Emits notes from applied fundingHistory theft and research-rollback markers —
+ * no parallel persistence beyond those existing surfaces.
  */
 
 import {
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellResearchRollbackAmountForWeek,
+  findHiddenCellResearchRollbackProjectIdForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellResearchRollbackFromPressure,
   type HiddenCellInterferenceEffect,
+  type HiddenCellResearchRollbackEffect,
 } from './hiddenCellStrategicInterference'
-import type { FundingState, ReportNote } from './models'
+import type { FundingState, ReportNote, ResearchState } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import type { RivalPressureView } from './rivalPressure'
 
 export function formatHiddenCellInterferenceNoteContent(
   effect: Pick<HiddenCellInterferenceEffect, 'summary' | 'fundingStolen' | 'rivalPressureBand'>,
+  week: number
+): string {
+  return `Week ${week} — ${effect.summary}`
+}
+
+export function formatHiddenCellResearchRollbackNoteContent(
+  effect: Pick<
+    HiddenCellResearchRollbackEffect,
+    'summary' | 'progressTimeRolledBack' | 'rivalPressureBand' | 'targetProjectId'
+  >,
   week: number
 ): string {
   return `Week ${week} — ${effect.summary}`
@@ -56,6 +71,75 @@ export function buildWeeklyHiddenCellInterferenceReportNotes(input: {
         fundingStolen: effect.fundingStolen,
         rivalPressureBand: effect.rivalPressureBand,
         rivalPressureScore: effect.rivalPressureScore,
+        week: input.week,
+      }
+    ),
+  ]
+}
+
+/** Builds weekly report notes when hidden-cell research rollback was applied for the closed week. */
+export function buildWeeklyHiddenCellResearchRollbackReportNotes(input: {
+  researchState: ResearchState | null | undefined
+  rivalPressure: Pick<RivalPressureView, 'score' | 'band'>
+  week: number
+  sequenceStart: number
+  baseTimestamp?: number
+}): ReportNote[] {
+  const appliedAmount = findHiddenCellResearchRollbackAmountForWeek(
+    input.researchState ?? undefined,
+    input.week
+  )
+  const projectId = findHiddenCellResearchRollbackProjectIdForWeek(
+    input.researchState ?? undefined,
+    input.week
+  )
+  if (appliedAmount <= 0 || !projectId) {
+    return []
+  }
+
+  const effect = resolveHiddenCellResearchRollbackFromPressure(
+    input.rivalPressure,
+    input.researchState ?? undefined
+  )
+
+  // After apply, progress is already reduced — rebuild summary from applied markers.
+  const noteEffect: Pick<
+    HiddenCellResearchRollbackEffect,
+    | 'summary'
+    | 'progressTimeRolledBack'
+    | 'rivalPressureBand'
+    | 'targetProjectId'
+    | 'kind'
+    | 'rivalPressureScore'
+    | 'active'
+    | 'baseRollbackAmount'
+  > = {
+    active: true,
+    kind: 'research_rollback',
+    rivalPressureScore: input.rivalPressure.score,
+    rivalPressureBand: input.rivalPressure.band,
+    baseRollbackAmount: effect.baseRollbackAmount,
+    progressTimeRolledBack: appliedAmount,
+    targetProjectId: projectId,
+    summary:
+      `Hidden-cell interference rolled back ${appliedAmount} week` +
+      `${appliedAmount === 1 ? '' : 's'} of research on ${projectId} ` +
+      `(${input.rivalPressure.band} cell pressure; strategic sabotage before open confrontation).`,
+  }
+
+  return [
+    createDeterministicReportNote(
+      formatHiddenCellResearchRollbackNoteContent(noteEffect, input.week),
+      input.week,
+      input.sequenceStart,
+      input.baseTimestamp,
+      'agency.hidden_cell_interference',
+      {
+        kind: 'research_rollback',
+        progressTimeRolledBack: appliedAmount,
+        researchProjectId: projectId,
+        rivalPressureBand: input.rivalPressure.band,
+        rivalPressureScore: input.rivalPressure.score,
         week: input.week,
       }
     ),

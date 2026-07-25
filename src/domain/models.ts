@@ -2120,6 +2120,12 @@ export interface ResearchState {
   researchSpeedMultiplier: number
   researchDataPool: number
   researchMaterialsPool: number
+  /** SPE-2706: closed week of last applied hidden-cell research rollback (idempotency). */
+  lastHiddenCellRollbackWeek?: number
+  /** SPE-2706: project targeted by last applied research rollback. */
+  lastHiddenCellRollbackProjectId?: string
+  /** SPE-2706: progressTime weeks removed by last applied research rollback. */
+  lastHiddenCellRollbackAmount?: number
 }
 
 export type AgentAttritionStatus = 'active' | 'at_risk' | 'temporarily_unavailable' | 'lost'

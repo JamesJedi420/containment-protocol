@@ -326,11 +326,16 @@ import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureW
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
-import { buildWeeklyHiddenCellInterferenceReportNotes } from '../hiddenCellInterferenceWeeklyReportNotes'
+import {
+  buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellResearchRollbackReportNotes,
+} from '../hiddenCellInterferenceWeeklyReportNotes'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellResearchRollbackToResearchState,
   findHiddenCellFundingTheftAmountForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellResearchRollbackFromPressure,
 } from '../hiddenCellStrategicInterference'
 import { buildRivalPressure } from '../rivalPressure'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
@@ -4383,6 +4388,20 @@ function updateAgencyMetrics(
     )
   const fundingAfterHiddenCellTheft = Math.max(0, fundingStateAfterHiddenCellTheft.funding)
 
+  // SPE-2706 / SPE-39: hidden-cell research rollback (independent of funding theft).
+  const researchStateBeforeRollback = context.nextState.researchState
+  const hiddenCellResearchRollback = resolveHiddenCellResearchRollbackFromPressure(
+    rivalPressureForInterference,
+    researchStateBeforeRollback
+  )
+  const researchStateAfterHiddenCellRollback = researchStateBeforeRollback
+    ? applyHiddenCellResearchRollbackToResearchState(
+        researchStateBeforeRollback,
+        hiddenCellResearchRollback,
+        closedWeek
+      ).state
+    : researchStateBeforeRollback
+
   if (
     fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
@@ -4433,6 +4452,7 @@ function updateAgencyMetrics(
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,
+      researchState: researchStateAfterHiddenCellRollback,
       reports: [...context.sourceState.reports, report],
     },
   }
@@ -5338,8 +5358,8 @@ export function advanceWeek(
     }
   }
 
-  // SPE-2704 / SPE-39: hidden-cell funding theft → weekly interference note.
-  // Funding history + report notes key off the closed week (sourceState.week), not result.week.
+  // SPE-2704 / SPE-2706 / SPE-39: hidden-cell interference → weekly notes.
+  // Funding history + research rollback markers key off the closed week (sourceState.week).
   if (result.reports.length > 0) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
     const closedWeekForInterference = sourceState.week
@@ -5350,7 +5370,7 @@ export function advanceWeek(
       closedWeekForInterference
     )
     const fundingBeforeTheft = result.funding + appliedTheft
-    const hiddenCellNotes = buildWeeklyHiddenCellInterferenceReportNotes({
+    const hiddenCellFundingNotes = buildWeeklyHiddenCellInterferenceReportNotes({
       fundingState: result.agency?.fundingState,
       rivalPressure: rivalPressureForNotes,
       fundingBeforeTheft,
@@ -5358,6 +5378,14 @@ export function advanceWeek(
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
     })
+    const hiddenCellResearchNotes = buildWeeklyHiddenCellResearchRollbackReportNotes({
+      researchState: result.researchState,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + hiddenCellFundingNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellNotes = [...hiddenCellFundingNotes, ...hiddenCellResearchNotes]
 
     if (hiddenCellNotes.length > 0) {
       const reports = [...result.reports]

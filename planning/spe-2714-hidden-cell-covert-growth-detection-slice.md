@@ -45,7 +45,7 @@ Cell pressure active when rival-pressure band is `competitive` or `severe`. Grow
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Optional SPE-2702 resolved×open jurisdiction sharpening | SPE-39 child | Post-merge Bugbot follow-up; not blocking |
+| Optional SPE-2702 resolved×open jurisdiction sharpening | SPE-2716 | Post-merge Bugbot follow-up — owned by SPE-2716 |
 | Open confrontation / cell raid ops after imminent narrowing | SPE-39 / ops follow-up | Larger mission surface than growth/narrowing signal |
 | Player-initiated intel scan actions | intel follow-up | Avoid scans UX sprawl in this slice |
 

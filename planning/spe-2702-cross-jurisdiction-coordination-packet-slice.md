@@ -30,7 +30,7 @@ One deterministic bounded cross-jurisdiction liaison/coordination packet (shared
 | Docs | `systems/hub-simulation.md` |
 | Tests | `src/test/crossJurisdictionCoordinationPacket.test.ts` |
 
-Compose rule: `archive_signature` intake with tentative/strong match band + linked cases (topic keys) with **two distinct** `regionTag` values → packet (lex-min prior, next current). Weak/none match or single jurisdiction → no packet.
+Compose rule: `archive_signature` intake with tentative/strong match band + linked cases (topic keys) with a **resolved × open** distant `regionTag` pair → packet. Weak/none match, same jurisdiction, or open×open / resolved×resolved multi-region without a resolved→open pair → no packet. (SPE-2716 dropped the former lex-min unique-regions fallback.)
 
 ## Out of scope
 
@@ -44,8 +44,9 @@ Compose rule: `archive_signature` intake with tentative/strong match band + link
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Hidden-cell strategic interference | SPE-39 child | Larger adversary layer |
-| Legitimacy fallout tick standing scale | SPE-39 / procurement follow-up | Alternate fallout surface |
+| Hidden-cell strategic interference | SPE-39 children (SPE-2704+) | Larger adversary layer — owned elsewhere |
+| Legitimacy fallout tick standing scale | SPE-2705 | Alternate fallout surface — shipped |
+| Resolved×open jurisdiction sharpening (drop lex-min fallback) | SPE-2716 | Post-merge Bugbot residual — owned by child |
 | Richer jurisdiction distance graph (route hops) | SPE-49 / SPE-558 follow-up | RegionTag inequality is enough for parent AC |
 
 ## Validation

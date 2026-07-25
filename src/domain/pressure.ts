@@ -1,6 +1,7 @@
 // cspell:words psionic
 import type { CaseInstance, CaseTemplate, GameState } from './models'
 import { getAgencyProgressionUnlockDefinition, getAgencyProgressionUnlockIds } from './agencyProgression'
+import { HIDDEN_CELL_PANIC_AMPLIFICATION_MAX } from './hiddenCellStrategicInterference'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
 import { getBeliefDrivenCasePressure } from './beliefTracks'
 import type { BeliefTrackState } from './beliefTracks'
@@ -255,9 +256,18 @@ export function sanitizePersistedGlobalPressureScalars(raw: {
   globalEscalationLevel?: unknown
   globalThreatDrift?: unknown
   globalTimePressure?: unknown
+  lastHiddenCellPanicAmplificationWeek?: unknown
+  lastHiddenCellPanicAmplificationAmount?: unknown
+  /** Campaign week ceiling for SPE-2707 panic-amplification markers (defaults to unbounded). */
+  campaignWeek?: unknown
 }): Pick<
   GameState,
-  'globalPressure' | 'globalEscalationLevel' | 'globalThreatDrift' | 'globalTimePressure'
+  | 'globalPressure'
+  | 'globalEscalationLevel'
+  | 'globalThreatDrift'
+  | 'globalTimePressure'
+  | 'lastHiddenCellPanicAmplificationWeek'
+  | 'lastHiddenCellPanicAmplificationAmount'
 > {
   const globalPressure = sanitizeNonNegativeInteger(raw.globalPressure, MAX_PERSISTED_GLOBAL_PRESSURE)
   const globalEscalationLevel = sanitizeNonNegativeInteger(
@@ -273,10 +283,35 @@ export function sanitizePersistedGlobalPressureScalars(raw: {
     PRESSURE_CALIBRATION.maxCaseTimePressure
   )
 
+  const campaignWeekCeiling =
+    typeof raw.campaignWeek === 'number' && Number.isFinite(raw.campaignWeek)
+      ? Math.max(1, Math.round(raw.campaignWeek))
+      : MAX_PERSISTED_GLOBAL_PRESSURE
+  const lastHiddenCellPanicAmplificationWeek = sanitizeNonNegativeInteger(
+    raw.lastHiddenCellPanicAmplificationWeek,
+    campaignWeekCeiling
+  )
+  const lastHiddenCellPanicAmplificationAmount = sanitizeNonNegativeInteger(
+    raw.lastHiddenCellPanicAmplificationAmount,
+    HIDDEN_CELL_PANIC_AMPLIFICATION_MAX
+  )
+  // SPE-2707: all-or-nothing markers — incomplete pair must not lock a week without a note.
+  const hasCompletePanicMarkers =
+    lastHiddenCellPanicAmplificationWeek !== undefined &&
+    lastHiddenCellPanicAmplificationWeek >= 1 &&
+    lastHiddenCellPanicAmplificationAmount !== undefined &&
+    lastHiddenCellPanicAmplificationAmount > 0
+
   return {
     ...(globalPressure !== undefined ? { globalPressure } : {}),
     ...(globalEscalationLevel !== undefined ? { globalEscalationLevel } : {}),
     ...(globalThreatDrift !== undefined ? { globalThreatDrift } : {}),
     ...(globalTimePressure !== undefined ? { globalTimePressure } : {}),
+    ...(hasCompletePanicMarkers
+      ? {
+          lastHiddenCellPanicAmplificationWeek,
+          lastHiddenCellPanicAmplificationAmount,
+        }
+      : {}),
   }
 }

@@ -1,9 +1,10 @@
 /**
- * SPE-2704 / SPE-2706 / SPE-39: bounded hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707 / SPE-39: bounded hidden-cell strategic interference.
  *
  * Derives cell-pressure activity from rival-pressure band and applies:
  * - funding theft (SPE-2704) through existing FundingState history
  * - research rollback (SPE-2706) against active ResearchState progress
+ * - panic amplification (SPE-2707) into ambient GameState.globalPressure
  *
  * No per-cell entities; no detection layer.
  */
@@ -21,7 +22,14 @@ import {
 export const HIDDEN_CELL_FUNDING_THEFT_REASON = 'hidden_cell_funding_theft'
 export const HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID = 'hidden-cell-funding-theft'
 
-export type HiddenCellInterferenceKind = 'funding_theft' | 'research_rollback' | 'none'
+/** Max ambient pressure points one panic-amplification tick may add. */
+export const HIDDEN_CELL_PANIC_AMPLIFICATION_MAX = 4
+
+export type HiddenCellInterferenceKind =
+  | 'funding_theft'
+  | 'research_rollback'
+  | 'panic_amplification'
+  | 'none'
 
 export interface HiddenCellInterferenceEffect {
   readonly active: boolean
@@ -48,12 +56,25 @@ export interface HiddenCellResearchRollbackEffect {
   readonly summary: string
 }
 
+export interface HiddenCellPanicAmplificationEffect {
+  readonly active: boolean
+  readonly kind: HiddenCellInterferenceKind
+  readonly rivalPressureScore: number
+  readonly rivalPressureBand: RivalPressureBand
+  /** Base amplification before apply (0 when inactive). */
+  readonly baseAmplificationAmount: number
+  /** Applied globalPressure delta (0 when inactive). */
+  readonly pressureAmplified: number
+  readonly summary: string
+}
+
 export interface HiddenCellInterferenceSummary {
   readonly active: boolean
   readonly kind: HiddenCellInterferenceKind
   readonly fundingStolen: number
   readonly progressTimeRolledBack: number
   readonly researchProjectId: string | null
+  readonly pressureAmplified: number
   readonly rivalPressureBand: RivalPressureBand
   readonly summary: string
 }
@@ -91,6 +112,25 @@ export function computeHiddenCellResearchRollbackBaseAmount(
   }
 
   return clamp(Math.round((clamp(Math.round(score), 0, 100) - 50) / 25), 1, 2)
+}
+
+/**
+ * Base panic-amplification points from rival pressure score alone.
+ * Inactive bands → 0. Active: 1–4 ambient globalPressure points above peer-balanced floor.
+ */
+export function computeHiddenCellPanicAmplificationBaseAmount(
+  score: number,
+  band: RivalPressureBand
+): number {
+  if (!isHiddenCellPressureActive(band)) {
+    return 0
+  }
+
+  return clamp(
+    Math.round((clamp(Math.round(score), 0, 100) - 50) / 12.5),
+    1,
+    HIDDEN_CELL_PANIC_AMPLIFICATION_MAX
+  )
 }
 
 function buildFundingInterferenceSummary(input: {
@@ -142,14 +182,39 @@ function buildResearchRollbackSummary(input: {
   )
 }
 
+function buildPanicAmplificationSummary(input: {
+  active: boolean
+  band: RivalPressureBand
+  pressureAmplified: number
+  baseAmplificationAmount: number
+}): string {
+  if (!input.active) {
+    return `Hidden-cell panic interference inactive (${input.band}): no panic amplification this week.`
+  }
+
+  if (input.pressureAmplified <= 0) {
+    return (
+      `Hidden-cell panic interference active (${input.band}): panic amplification blocked ` +
+      `(base claim ${input.baseAmplificationAmount}).`
+    )
+  }
+
+  return (
+    `Hidden-cell interference amplified ambient panic pressure by ${input.pressureAmplified} ` +
+    `(${input.band} cell pressure; strategic unrest before open confrontation).`
+  )
+}
+
 function composeInterferenceSummary(input: {
   active: boolean
   band: RivalPressureBand
   fundingStolen: number
   progressTimeRolledBack: number
   researchProjectId: string | null
+  pressureAmplified: number
   fundingSummary: string
   researchSummary: string
+  panicSummary: string
 }): string {
   if (!input.active) {
     return `Hidden-cell interference inactive (${input.band}): no strategic diversion this week.`
@@ -162,13 +227,16 @@ function composeInterferenceSummary(input: {
   if (input.progressTimeRolledBack > 0 && input.researchProjectId) {
     parts.push(input.researchSummary)
   }
+  if (input.pressureAmplified > 0) {
+    parts.push(input.panicSummary)
+  }
 
   if (parts.length > 0) {
     return parts.join(' ')
   }
 
   return (
-    `Hidden-cell interference active (${input.band}): no funding or research diversion applied this week.`
+    `Hidden-cell interference active (${input.band}): no funding, research, or panic diversion applied this week.`
   )
 }
 
@@ -309,6 +377,54 @@ export function resolveHiddenCellResearchRollbackFromRankingScore(
   return resolveHiddenCellResearchRollbackFromPressure(pressure, researchState)
 }
 
+/** Pure resolve: identical pressure inputs → identical panic-amplification effect. */
+export function resolveHiddenCellPanicAmplification(input: {
+  rivalPressureScore: number
+  rivalPressureBand: RivalPressureBand
+}): HiddenCellPanicAmplificationEffect {
+  const rivalPressureScore = clamp(Math.round(input.rivalPressureScore), 0, 100)
+  const rivalPressureBand = input.rivalPressureBand
+  const active = isHiddenCellPressureActive(rivalPressureBand)
+  const baseAmplificationAmount = computeHiddenCellPanicAmplificationBaseAmount(
+    rivalPressureScore,
+    rivalPressureBand
+  )
+  const pressureAmplified = active ? baseAmplificationAmount : 0
+  const kind: HiddenCellInterferenceKind =
+    pressureAmplified > 0 ? 'panic_amplification' : 'none'
+
+  return {
+    active,
+    kind,
+    rivalPressureScore,
+    rivalPressureBand,
+    baseAmplificationAmount,
+    pressureAmplified,
+    summary: buildPanicAmplificationSummary({
+      active,
+      band: rivalPressureBand,
+      pressureAmplified,
+      baseAmplificationAmount,
+    }),
+  }
+}
+
+export function resolveHiddenCellPanicAmplificationFromPressure(
+  pressure: Pick<RivalPressureView, 'score' | 'band'>
+): HiddenCellPanicAmplificationEffect {
+  return resolveHiddenCellPanicAmplification({
+    rivalPressureScore: pressure.score,
+    rivalPressureBand: pressure.band,
+  })
+}
+
+export function resolveHiddenCellPanicAmplificationFromRankingScore(
+  rankingScore: number
+): HiddenCellPanicAmplificationEffect {
+  const pressure = buildRivalPressureFromRankingScore(rankingScore)
+  return resolveHiddenCellPanicAmplificationFromPressure(pressure)
+}
+
 export function hasHiddenCellFundingTheftForWeek(
   fundingState: FundingState | undefined,
   closedWeek: number
@@ -340,6 +456,20 @@ export function hasHiddenCellResearchRollbackForWeek(
     typeof researchState.lastHiddenCellRollbackProjectId === 'string' &&
     researchState.lastHiddenCellRollbackProjectId.length > 0 &&
     Math.max(0, Math.trunc(researchState.lastHiddenCellRollbackAmount ?? 0)) > 0
+  )
+}
+
+export function hasHiddenCellPanicAmplificationForWeek(
+  state: Pick<
+    GameState,
+    'lastHiddenCellPanicAmplificationWeek' | 'lastHiddenCellPanicAmplificationAmount'
+  >,
+  closedWeek: number
+): boolean {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  return (
+    state.lastHiddenCellPanicAmplificationWeek === week &&
+    Math.max(0, Math.trunc(state.lastHiddenCellPanicAmplificationAmount ?? 0)) > 0
   )
 }
 
@@ -428,7 +558,49 @@ export function applyHiddenCellResearchRollbackToResearchState(
   }
 }
 
-/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research. */
+/**
+ * Apply panic amplification to ambient globalPressure once per closed week.
+ * Composes into existing pressure score; does not spawn incidents in-band.
+ */
+export function applyHiddenCellPanicAmplificationToGameState(
+  state: Pick<
+    GameState,
+    | 'globalPressure'
+    | 'lastHiddenCellPanicAmplificationWeek'
+    | 'lastHiddenCellPanicAmplificationAmount'
+  >,
+  effect: HiddenCellPanicAmplificationEffect,
+  closedWeek: number
+): {
+  state: Pick<
+    GameState,
+    | 'globalPressure'
+    | 'lastHiddenCellPanicAmplificationWeek'
+    | 'lastHiddenCellPanicAmplificationAmount'
+  >
+  appliedAmount: number
+  effect: HiddenCellPanicAmplificationEffect
+} {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  const appliedAmount = Math.max(0, Math.trunc(effect.pressureAmplified))
+
+  if (appliedAmount <= 0 || hasHiddenCellPanicAmplificationForWeek(state, week)) {
+    return { state, appliedAmount: 0, effect }
+  }
+
+  const currentPressure = Math.max(0, Math.trunc(state.globalPressure ?? 0))
+  return {
+    state: {
+      globalPressure: currentPressure + appliedAmount,
+      lastHiddenCellPanicAmplificationWeek: week,
+      lastHiddenCellPanicAmplificationAmount: appliedAmount,
+    },
+    appliedAmount,
+    effect,
+  }
+}
+
+/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research + panic. */
 export function buildHiddenCellInterferenceSummary(
   game: Pick<GameState, 'reports' | 'events' | 'funding' | 'agency' | 'researchState'>
 ): HiddenCellInterferenceSummary {
@@ -436,16 +608,20 @@ export function buildHiddenCellInterferenceSummary(
   const funding = game.agency?.funding ?? game.funding
   const fundingEffect = resolveHiddenCellFundingTheftFromPressure(pressure, funding)
   const researchEffect = resolveHiddenCellResearchRollbackFromPressure(pressure, game.researchState)
+  const panicEffect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
   const active = fundingEffect.active
   const fundingStolen = fundingEffect.fundingStolen
   const progressTimeRolledBack = researchEffect.progressTimeRolledBack
   const researchProjectId = researchEffect.targetProjectId
+  const pressureAmplified = panicEffect.pressureAmplified
   const kind: HiddenCellInterferenceKind =
     fundingStolen > 0
       ? 'funding_theft'
       : progressTimeRolledBack > 0
         ? 'research_rollback'
-        : 'none'
+        : pressureAmplified > 0
+          ? 'panic_amplification'
+          : 'none'
 
   return {
     active,
@@ -453,6 +629,7 @@ export function buildHiddenCellInterferenceSummary(
     fundingStolen,
     progressTimeRolledBack,
     researchProjectId,
+    pressureAmplified,
     rivalPressureBand: pressure.band,
     summary: composeInterferenceSummary({
       active,
@@ -460,8 +637,10 @@ export function buildHiddenCellInterferenceSummary(
       fundingStolen,
       progressTimeRolledBack,
       researchProjectId,
+      pressureAmplified,
       fundingSummary: fundingEffect.summary,
       researchSummary: researchEffect.summary,
+      panicSummary: panicEffect.summary,
     }),
   }
 }
@@ -512,4 +691,19 @@ export function findHiddenCellResearchRollbackProjectIdForWeek(
 
   const projectId = researchState?.lastHiddenCellRollbackProjectId
   return typeof projectId === 'string' && projectId.length > 0 ? projectId : null
+}
+
+/** Locate applied panic amplification amount for a closed week (note surfacing / tests). */
+export function findHiddenCellPanicAmplificationAmountForWeek(
+  state: Pick<
+    GameState,
+    'lastHiddenCellPanicAmplificationWeek' | 'lastHiddenCellPanicAmplificationAmount'
+  >,
+  closedWeek: number
+): number {
+  if (!hasHiddenCellPanicAmplificationForWeek(state, closedWeek)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(state.lastHiddenCellPanicAmplificationAmount ?? 0))
 }

@@ -1,20 +1,23 @@
 /**
- * SPE-2704 / SPE-2706: weekly report notes for hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707: weekly report notes for hidden-cell strategic interference.
  *
- * Emits notes from applied fundingHistory theft and research-rollback markers —
- * no parallel persistence beyond those existing surfaces.
+ * Emits notes from applied fundingHistory theft, research-rollback markers, and
+ * panic-amplification markers — no parallel panic sim beyond ambient globalPressure.
  */
 
 import {
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellResearchRollbackFromPressure,
   type HiddenCellInterferenceEffect,
+  type HiddenCellPanicAmplificationEffect,
   type HiddenCellResearchRollbackEffect,
 } from './hiddenCellStrategicInterference'
-import type { FundingState, ReportNote, ResearchState } from './models'
+import type { FundingState, GameState, ReportNote, ResearchState } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import type { RivalPressureView } from './rivalPressure'
 
@@ -29,6 +32,16 @@ export function formatHiddenCellResearchRollbackNoteContent(
   effect: Pick<
     HiddenCellResearchRollbackEffect,
     'summary' | 'progressTimeRolledBack' | 'rivalPressureBand' | 'targetProjectId'
+  >,
+  week: number
+): string {
+  return `Week ${week} — ${effect.summary}`
+}
+
+export function formatHiddenCellPanicAmplificationNoteContent(
+  effect: Pick<
+    HiddenCellPanicAmplificationEffect,
+    'summary' | 'pressureAmplified' | 'rivalPressureBand'
   >,
   week: number
 ): string {
@@ -138,6 +151,62 @@ export function buildWeeklyHiddenCellResearchRollbackReportNotes(input: {
         kind: 'research_rollback',
         progressTimeRolledBack: appliedAmount,
         researchProjectId: projectId,
+        rivalPressureBand: input.rivalPressure.band,
+        rivalPressureScore: input.rivalPressure.score,
+        week: input.week,
+      }
+    ),
+  ]
+}
+
+/** Builds weekly report notes when hidden-cell panic amplification was applied for the closed week. */
+export function buildWeeklyHiddenCellPanicAmplificationReportNotes(input: {
+  gameState: Pick<
+    GameState,
+    'lastHiddenCellPanicAmplificationWeek' | 'lastHiddenCellPanicAmplificationAmount'
+  >
+  rivalPressure: Pick<RivalPressureView, 'score' | 'band'>
+  week: number
+  sequenceStart: number
+  baseTimestamp?: number
+}): ReportNote[] {
+  const appliedAmount = findHiddenCellPanicAmplificationAmountForWeek(input.gameState, input.week)
+  if (appliedAmount <= 0) {
+    return []
+  }
+
+  const effect = resolveHiddenCellPanicAmplificationFromPressure(input.rivalPressure)
+  const noteEffect: Pick<
+    HiddenCellPanicAmplificationEffect,
+    | 'summary'
+    | 'pressureAmplified'
+    | 'rivalPressureBand'
+    | 'kind'
+    | 'rivalPressureScore'
+    | 'active'
+    | 'baseAmplificationAmount'
+  > = {
+    active: true,
+    kind: 'panic_amplification',
+    rivalPressureScore: input.rivalPressure.score,
+    rivalPressureBand: input.rivalPressure.band,
+    baseAmplificationAmount: effect.baseAmplificationAmount,
+    pressureAmplified: appliedAmount,
+    summary:
+      `Hidden-cell interference amplified ambient panic pressure by ${appliedAmount} ` +
+      `(${input.rivalPressure.band} cell pressure; strategic unrest before open confrontation).`,
+  }
+
+  return [
+    createDeterministicReportNote(
+      formatHiddenCellPanicAmplificationNoteContent(noteEffect, input.week),
+      input.week,
+      input.sequenceStart,
+      input.baseTimestamp,
+      'agency.hidden_cell_interference',
+      {
+        kind: 'panic_amplification',
+        pressureAmplified: appliedAmount,
         rivalPressureBand: input.rivalPressure.band,
         rivalPressureScore: input.rivalPressure.score,
         week: input.week,

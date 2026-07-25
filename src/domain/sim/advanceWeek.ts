@@ -328,13 +328,16 @@ import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../
 import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
 import {
   buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../hiddenCellInterferenceWeeklyReportNotes'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
   findHiddenCellFundingTheftAmountForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellResearchRollbackFromPressure,
 } from '../hiddenCellStrategicInterference'
 import { buildRivalPressure } from '../rivalPressure'
@@ -4402,6 +4405,22 @@ function updateAgencyMetrics(
       ).state
     : researchStateBeforeRollback
 
+  // SPE-2707 / SPE-39: hidden-cell panic amplification into ambient globalPressure
+  // (after pressure pipeline — bump carries forward; no same-tick major-incident spawn).
+  const hiddenCellPanicAmplification = resolveHiddenCellPanicAmplificationFromPressure(
+    rivalPressureForInterference
+  )
+  const panicAmplificationApplied = applyHiddenCellPanicAmplificationToGameState(
+    {
+      globalPressure: context.nextState.globalPressure,
+      lastHiddenCellPanicAmplificationWeek: context.nextState.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        context.nextState.lastHiddenCellPanicAmplificationAmount,
+    },
+    hiddenCellPanicAmplification,
+    closedWeek
+  )
+
   if (
     fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
@@ -4453,6 +4472,11 @@ function updateAgencyMetrics(
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,
       researchState: researchStateAfterHiddenCellRollback,
+      globalPressure: panicAmplificationApplied.state.globalPressure,
+      lastHiddenCellPanicAmplificationWeek:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationAmount,
       reports: [...context.sourceState.reports, report],
     },
   }
@@ -5358,8 +5382,8 @@ export function advanceWeek(
     }
   }
 
-  // SPE-2704 / SPE-2706 / SPE-39: hidden-cell interference → weekly notes.
-  // Funding history + research rollback markers key off the closed week (sourceState.week).
+  // SPE-2704 / SPE-2706 / SPE-2707 / SPE-39: hidden-cell interference → weekly notes.
+  // Funding history + research/panic markers key off the closed week (sourceState.week).
   if (result.reports.length > 0) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
     const closedWeekForInterference = sourceState.week
@@ -5370,22 +5394,35 @@ export function advanceWeek(
       closedWeekForInterference
     )
     const fundingBeforeTheft = result.funding + appliedTheft
+    const noteSequenceBase = lastWeeklyReport?.notes?.length ?? 0
     const hiddenCellFundingNotes = buildWeeklyHiddenCellInterferenceReportNotes({
       fundingState: result.agency?.fundingState,
       rivalPressure: rivalPressureForNotes,
       fundingBeforeTheft,
       week: closedWeekForInterference,
-      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      sequenceStart: noteSequenceBase + 1,
       baseTimestamp: noteBaseTimestamp,
     })
     const hiddenCellResearchNotes = buildWeeklyHiddenCellResearchRollbackReportNotes({
       researchState: result.researchState,
       rivalPressure: rivalPressureForNotes,
       week: closedWeekForInterference,
-      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + hiddenCellFundingNotes.length + 1,
+      sequenceStart: noteSequenceBase + hiddenCellFundingNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,
     })
-    const hiddenCellNotes = [...hiddenCellFundingNotes, ...hiddenCellResearchNotes]
+    const hiddenCellPanicNotes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: result,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase + hiddenCellFundingNotes.length + hiddenCellResearchNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellNotes = [
+      ...hiddenCellFundingNotes,
+      ...hiddenCellResearchNotes,
+      ...hiddenCellPanicNotes,
+    ]
 
     if (hiddenCellNotes.length > 0) {
       const reports = [...result.reports]

@@ -46,6 +46,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'agency.containment_updated': 'system',
   'agency.cross_jurisdiction_coordination': 'system',
   'agency.hidden_cell_interference': 'system',
+  'agency.status_upkeep_display': 'system',
   'directive.applied': 'system',
   'support.shortfall': 'system',
   'support.restored': 'system',

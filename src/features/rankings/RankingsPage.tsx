@@ -67,6 +67,12 @@ export default function RankingsPage() {
             impact={`-${ranking.breakdown.unresolved.penalty}`}
             detail={ranking.breakdown.unresolved.detail}
           />
+          <FactorMetric
+            label={ranking.breakdown.statusUpkeep.label}
+            value={`${ranking.breakdown.statusUpkeep.underfundedWeeks} underfunded week(s)`}
+            impact={`${ranking.breakdown.statusUpkeep.points >= 0 ? '+' : ''}${ranking.breakdown.statusUpkeep.points}`}
+            detail={ranking.breakdown.statusUpkeep.detail}
+          />
         </div>
       </article>
 

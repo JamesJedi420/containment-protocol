@@ -17,6 +17,10 @@ import {
   type HiddenCellInterferenceSummary,
 } from './hiddenCellStrategicInterference'
 import { buildRivalPressure, type RivalPressureBand, type RivalPostExposurePosture } from './rivalPressure'
+import {
+  buildStatusUpkeepDisplaySummary,
+  type StatusUpkeepDisplaySummary,
+} from './statusUpkeepDisplayCost'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
 
 const DEFAULT_AGENCY_NAME = 'Containment Protocol'
@@ -98,6 +102,7 @@ export interface AgencySummary {
   }
   crossJurisdictionCoordination: CrossJurisdictionCoordinationSummary
   hiddenCellInterference: HiddenCellInterferenceSummary
+  statusUpkeepDisplay: StatusUpkeepDisplaySummary
   report: AgencyReportSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
   chokepointLeverage: number // 0-100, deterministic
@@ -326,6 +331,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
     cases: game.cases,
   })
   const hiddenCellInterference = buildHiddenCellInterferenceSummary(game)
+  const statusUpkeepDisplay = buildStatusUpkeepDisplaySummary(game)
   const averageFactionStanding = (() => {
     const factions = buildFactionStates(game)
     if (factions.length === 0) {
@@ -395,6 +401,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
     },
     crossJurisdictionCoordination,
     hiddenCellInterference,
+    statusUpkeepDisplay,
     report: buildAgencyReportSummary(game),
     chokepointLeverage,
     councilPowerDistribution,

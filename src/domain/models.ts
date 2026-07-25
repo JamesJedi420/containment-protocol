@@ -1593,6 +1593,7 @@ export type ReportNoteType =
   | 'agency.containment_updated'
   | 'agency.cross_jurisdiction_coordination'
   | 'agency.hidden_cell_interference'
+  | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'

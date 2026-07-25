@@ -333,6 +333,7 @@ import {
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../hiddenCellInterferenceWeeklyReportNotes'
+import { buildWeeklyStatusUpkeepDisplayReportNotes } from '../statusUpkeepDisplayWeeklyReportNotes'
 import {
   applyHiddenCellCovertGrowthToAgencyState,
   applyHiddenCellFundingTheftToFundingState,
@@ -5650,6 +5651,29 @@ export function advanceWeek(
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...hiddenCellNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2718 / SPE-39: status upkeep / public-display costs → weekly note when underfunded.
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForStatusUpkeep = sourceState.week
+    const statusUpkeepNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      fundingState: result.agency?.fundingState,
+      week: closedWeekForStatusUpkeep,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (statusUpkeepNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...statusUpkeepNotes],
       }
       result.reports = reports
     }

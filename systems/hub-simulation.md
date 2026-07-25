@@ -160,6 +160,16 @@ Success and partial completion can add standing; failure and withdrawal/abandonm
 entering dangerous content never grants standing by itself. Campaign reward summaries retain the
 four multipliers used for each award.
 
+Status upkeep / public-display costs (SPE-2718) compose a separate **read-time** ranking factor
+from SPE-28 weekly operating-cost funding history (`src/domain/statusUpkeepDisplayCost.ts`).
+The facility upkeep base + spike is the public-presentation cost anchor (payroll excluded).
+When funding immediately after that week's `operating_cost` entry is negative, ranking applies a
+bounded penalty and blocks that week's positive standing award points in comparative standing
+composition only — SPE-2696 award records on events are not rewritten. Maintained weeks are
+neutral (no penalty). This is ranking presentation cost, not a new `legitimacy.sanctionLevel` /
+operational-cover field. Week-close emits `agency.status_upkeep_display` when underfunded;
+agency/report summaries expose the band.
+
 Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
 an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
 comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases

@@ -187,15 +187,20 @@ severe, abstract cell pressure may (1) divert a deterministic funding amount thr
 `ResearchState.lastHiddenCellRollbackWeek`), (3) amplify ambient panic/unrest by adding
 bounded points to `GameState.globalPressure` (SPE-2707; idempotent via
 `lastHiddenCellPanicAmplificationWeek` / `Amount`; applied after the pressure pipeline so the
-bump carries into later weeks rather than spawning same-tick major incidents), and/or
+bump carries into later weeks rather than spawning same-tick major incidents),
 (4) compromise facility/ops infrastructure by draining SPE-94
 `AgencyState.maintenanceSpecialistsAvailable` (SPE-2710; idempotent via
 `lastHiddenCellInfrastructureCompromiseWeek` / `Amount`; drain carries into the next week's
-equipment-recovery bottleneck).
+equipment-recovery bottleneck), and/or (5) expand abstract covert-network pressure while
+advancing an intelligence-driven detection-narrowing band
+(`vague` → `regional` → `sector` → `imminent`) on
+`AgencyState.hiddenCellCovertGrowthLevel` / `hiddenCellDetectionNarrowing` (SPE-2714;
+idempotent via `lastHiddenCellCovertGrowthWeek` + applied amounts; no per-cell entities,
+no SPE-854 verification-core changes, no scan UX).
 Suppressed/balanced pressure is inactive. Week-close emits `agency.hidden_cell_interference`
-when funding theft, research rollback, panic amplification, and/or infrastructure compromise
-applies; agency/report summaries expose the active/inactive signal. This is not a full
-adversary-org sim and does not include cell detection.
+when funding theft, research rollback, panic amplification, infrastructure compromise, and/or
+covert growth/detection narrowing applies; agency/report summaries expose the active/inactive
+signal. This is not a full adversary-org sim and does not open confrontation ops.
 
 ### Stage B — Build hub opportunity pools
 

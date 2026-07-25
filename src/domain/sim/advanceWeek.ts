@@ -327,18 +327,27 @@ import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDis
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
 import {
+  buildWeeklyHiddenCellCovertGrowthReportNotes,
   buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
   buildWeeklyHiddenCellInterferenceReportNotes,
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../hiddenCellInterferenceWeeklyReportNotes'
 import {
+  applyHiddenCellCovertGrowthToAgencyState,
   applyHiddenCellFundingTheftToFundingState,
   applyHiddenCellInfrastructureCompromiseToAgencyState,
   applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
+  findHiddenCellCovertGrowthAmountForWeek,
+  findHiddenCellDetectionNarrowingAmountForWeek,
   findHiddenCellFundingTheftAmountForWeek,
   findHiddenCellInfrastructureCompromiseAmountForWeek,
+  HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+  resolveHiddenCellCovertGrowthFromPressure,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellInfrastructureCompromiseFromPressure,
   resolveHiddenCellPanicAmplificationFromPressure,
@@ -703,6 +712,56 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
     lastHiddenCellInfrastructureCompromiseAmount > 0
 
+  const hiddenCellCovertGrowthLevel =
+    typeof base?.hiddenCellCovertGrowthLevel === 'number' &&
+    Number.isFinite(base.hiddenCellCovertGrowthLevel)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX, Math.trunc(base.hiddenCellCovertGrowthLevel))
+        )
+      : undefined
+  const hiddenCellDetectionNarrowing =
+    typeof base?.hiddenCellDetectionNarrowing === 'number' &&
+    Number.isFinite(base.hiddenCellDetectionNarrowing)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            Math.trunc(base.hiddenCellDetectionNarrowing)
+          )
+        )
+      : undefined
+  const lastHiddenCellCovertGrowthWeek =
+    typeof base?.lastHiddenCellCovertGrowthWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellCovertGrowthWeek))
+      : undefined
+  const lastHiddenCellCovertGrowthAmount =
+    typeof base?.lastHiddenCellCovertGrowthAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthAmount)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_MAX, Math.trunc(base.lastHiddenCellCovertGrowthAmount))
+        )
+      : undefined
+  const lastHiddenCellDetectionNarrowingAmount =
+    typeof base?.lastHiddenCellDetectionNarrowingAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellDetectionNarrowingAmount)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+            Math.trunc(base.lastHiddenCellDetectionNarrowingAmount)
+          )
+        )
+      : undefined
+  // SPE-2714: week marker requires at least one applied amount so a week cannot lock without a note.
+  const hasCompleteCovertGrowthMarkers =
+    lastHiddenCellCovertGrowthWeek !== undefined &&
+    ((lastHiddenCellCovertGrowthAmount !== undefined && lastHiddenCellCovertGrowthAmount > 0) ||
+      (lastHiddenCellDetectionNarrowingAmount !== undefined &&
+        lastHiddenCellDetectionNarrowingAmount > 0))
+
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
     clearanceLevel: safeNumber(base?.clearanceLevel, 1),
@@ -715,6 +774,19 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
       ? {
           lastHiddenCellInfrastructureCompromiseWeek,
           lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(hiddenCellCovertGrowthLevel !== undefined
+      ? { hiddenCellCovertGrowthLevel }
+      : {}),
+    ...(hiddenCellDetectionNarrowing !== undefined
+      ? { hiddenCellDetectionNarrowing }
+      : {}),
+    ...(hasCompleteCovertGrowthMarkers
+      ? {
+          lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount: lastHiddenCellCovertGrowthAmount ?? 0,
+          lastHiddenCellDetectionNarrowingAmount: lastHiddenCellDetectionNarrowingAmount ?? 0,
         }
       : {}),
     ...(typeof base?.protocolSelectionLimit === 'number'
@@ -4469,6 +4541,32 @@ function updateAgencyMetrics(
     closedWeek
   )
 
+  // SPE-2714 / SPE-39: covert cell growth + detection narrowing (abstract agency counters).
+  const covertGrowthLevelBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellCovertGrowthLevel ?? 0)
+  )
+  const detectionNarrowingBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellDetectionNarrowing ?? 0)
+  )
+  const hiddenCellCovertGrowth = resolveHiddenCellCovertGrowthFromPressure(
+    rivalPressureForInterference,
+    covertGrowthLevelBefore,
+    detectionNarrowingBefore
+  )
+  const covertGrowthApplied = applyHiddenCellCovertGrowthToAgencyState(
+    {
+      hiddenCellCovertGrowthLevel: prevAgency.hiddenCellCovertGrowthLevel,
+      hiddenCellDetectionNarrowing: prevAgency.hiddenCellDetectionNarrowing,
+      lastHiddenCellCovertGrowthWeek: prevAgency.lastHiddenCellCovertGrowthWeek,
+      lastHiddenCellCovertGrowthAmount: prevAgency.lastHiddenCellCovertGrowthAmount,
+      lastHiddenCellDetectionNarrowingAmount: prevAgency.lastHiddenCellDetectionNarrowingAmount,
+    },
+    hiddenCellCovertGrowth,
+    closedWeek
+  )
+
   if (
     fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
@@ -4505,6 +4603,17 @@ function updateAgencyMetrics(
             infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseWeek,
           lastHiddenCellInfrastructureCompromiseAmount:
             infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(covertGrowthApplied.appliedGrowth > 0 || covertGrowthApplied.appliedNarrowing > 0
+      ? {
+          hiddenCellCovertGrowthLevel: covertGrowthApplied.state.hiddenCellCovertGrowthLevel,
+          hiddenCellDetectionNarrowing: covertGrowthApplied.state.hiddenCellDetectionNarrowing,
+          lastHiddenCellCovertGrowthWeek: covertGrowthApplied.state.lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount:
+            covertGrowthApplied.state.lastHiddenCellCovertGrowthAmount,
+          lastHiddenCellDetectionNarrowingAmount:
+            covertGrowthApplied.state.lastHiddenCellDetectionNarrowingAmount,
         }
       : {}),
   }
@@ -5498,11 +5607,40 @@ export function advanceWeek(
         baseTimestamp: noteBaseTimestamp,
       }
     )
+    const appliedCovertGrowth = findHiddenCellCovertGrowthAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const appliedDetectionNarrowing = findHiddenCellDetectionNarrowingAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const covertGrowthLevelBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellCovertGrowthLevel ?? 0)) - appliedCovertGrowth
+    const detectionNarrowingBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellDetectionNarrowing ?? 0)) -
+      appliedDetectionNarrowing
+    const hiddenCellCovertGrowthNotes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: result.agency,
+      rivalPressure: rivalPressureForNotes,
+      covertGrowthLevelBefore: Math.max(0, covertGrowthLevelBefore),
+      detectionNarrowingBefore: Math.max(0, detectionNarrowingBefore),
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase +
+        hiddenCellFundingNotes.length +
+        hiddenCellResearchNotes.length +
+        hiddenCellPanicNotes.length +
+        hiddenCellInfrastructureNotes.length +
+        1,
+      baseTimestamp: noteBaseTimestamp,
+    })
     const hiddenCellNotes = [
       ...hiddenCellFundingNotes,
       ...hiddenCellResearchNotes,
       ...hiddenCellPanicNotes,
       ...hiddenCellInfrastructureNotes,
+      ...hiddenCellCovertGrowthNotes,
     ]
 
     if (hiddenCellNotes.length > 0) {

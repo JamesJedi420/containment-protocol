@@ -47,7 +47,7 @@ Cell pressure active when rival-pressure band is `competitive` or `severe`. Ampl
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
 | Infrastructure compromise | SPE-2710 | Separate interference surface (opened) |
-| Covert cell growth + detection scans | SPE-39 child | Detection layer larger than pressure hook |
+| Covert cell growth + detection scans | SPE-2714 | Detection layer larger than pressure hook |
 | Optional SPE-2702 resolved×open jurisdiction sharpening | SPE-39 child | Post-merge Bugbot follow-up; not blocking |
 
 ## Validation

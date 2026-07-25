@@ -1,21 +1,27 @@
 /**
- * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710: weekly report notes for hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-2714: weekly report notes for hidden-cell strategic interference.
  *
  * Emits notes from applied fundingHistory theft, research-rollback markers,
- * panic-amplification markers, and infrastructure-compromise markers —
- * no parallel sabotage sim beyond SPE-94 maintenance capacity.
+ * panic-amplification markers, infrastructure-compromise markers, and
+ * covert-growth / detection-narrowing markers — no parallel sabotage sim
+ * beyond SPE-94 maintenance capacity and abstract agency counters.
  */
 
 import {
+  detectionNarrowingBandFromProgress,
+  findHiddenCellCovertGrowthAmountForWeek,
+  findHiddenCellDetectionNarrowingAmountForWeek,
   findHiddenCellFundingTheftAmountForWeek,
   findHiddenCellInfrastructureCompromiseAmountForWeek,
   findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
+  resolveHiddenCellCovertGrowthFromPressure,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellInfrastructureCompromiseFromPressure,
   resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellResearchRollbackFromPressure,
+  type HiddenCellCovertGrowthEffect,
   type HiddenCellInfrastructureCompromiseEffect,
   type HiddenCellInterferenceEffect,
   type HiddenCellPanicAmplificationEffect,
@@ -56,6 +62,16 @@ export function formatHiddenCellInfrastructureCompromiseNoteContent(
   effect: Pick<
     HiddenCellInfrastructureCompromiseEffect,
     'summary' | 'maintenanceCompromised' | 'rivalPressureBand'
+  >,
+  week: number
+): string {
+  return `Week ${week} — ${effect.summary}`
+}
+
+export function formatHiddenCellCovertGrowthNoteContent(
+  effect: Pick<
+    HiddenCellCovertGrowthEffect,
+    'summary' | 'growthApplied' | 'narrowingApplied' | 'detectionNarrowingBand' | 'rivalPressureBand'
   >,
   week: number
 ): string {
@@ -288,6 +304,94 @@ export function buildWeeklyHiddenCellInfrastructureCompromiseReportNotes(input: 
       {
         kind: 'infrastructure_compromise',
         maintenanceCompromised: appliedAmount,
+        rivalPressureBand: input.rivalPressure.band,
+        rivalPressureScore: input.rivalPressure.score,
+        week: input.week,
+      }
+    ),
+  ]
+}
+
+/** Builds weekly report notes when hidden-cell covert growth / detection narrowing was applied. */
+export function buildWeeklyHiddenCellCovertGrowthReportNotes(input: {
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+    | 'hiddenCellCovertGrowthLevel'
+    | 'hiddenCellDetectionNarrowing'
+  > | null | undefined
+  rivalPressure: Pick<RivalPressureView, 'score' | 'band'>
+  /** Pre-apply growth/narrowing used to rebuild the effect summary deterministically. */
+  covertGrowthLevelBefore: number
+  detectionNarrowingBefore: number
+  week: number
+  sequenceStart: number
+  baseTimestamp?: number
+}): ReportNote[] {
+  const appliedGrowth = findHiddenCellCovertGrowthAmountForWeek(
+    input.agency ?? undefined,
+    input.week
+  )
+  const appliedNarrowing = findHiddenCellDetectionNarrowingAmountForWeek(
+    input.agency ?? undefined,
+    input.week
+  )
+  if (appliedGrowth <= 0 && appliedNarrowing <= 0) {
+    return []
+  }
+
+  const effect = resolveHiddenCellCovertGrowthFromPressure(
+    input.rivalPressure,
+    input.covertGrowthLevelBefore,
+    input.detectionNarrowingBefore
+  )
+  const detectionNarrowingBand = detectionNarrowingBandFromProgress(
+    Math.max(0, Math.trunc(input.detectionNarrowingBefore)) + appliedNarrowing
+  )
+  const noteEffect: Pick<
+    HiddenCellCovertGrowthEffect,
+    | 'summary'
+    | 'growthApplied'
+    | 'narrowingApplied'
+    | 'detectionNarrowingBand'
+    | 'rivalPressureBand'
+    | 'kind'
+    | 'rivalPressureScore'
+    | 'active'
+    | 'baseGrowthAmount'
+    | 'baseNarrowingAmount'
+  > = {
+    active: true,
+    kind: 'covert_cell_growth',
+    rivalPressureScore: input.rivalPressure.score,
+    rivalPressureBand: input.rivalPressure.band,
+    baseGrowthAmount: effect.baseGrowthAmount,
+    growthApplied: appliedGrowth,
+    baseNarrowingAmount: effect.baseNarrowingAmount,
+    narrowingApplied: appliedNarrowing,
+    detectionNarrowingBand,
+    summary:
+      appliedGrowth > 0
+        ? `Hidden-cell interference expanded covert network pressure by ${appliedGrowth} ` +
+          `(${input.rivalPressure.band} cell pressure; intel narrowing advanced to ${detectionNarrowingBand} before open confrontation).`
+        : `Hidden-cell interference held covert network pressure at cap ` +
+          `(${input.rivalPressure.band} cell pressure; intel narrowing advanced to ${detectionNarrowingBand} before open confrontation).`,
+  }
+
+  return [
+    createDeterministicReportNote(
+      formatHiddenCellCovertGrowthNoteContent(noteEffect, input.week),
+      input.week,
+      input.sequenceStart,
+      input.baseTimestamp,
+      'agency.hidden_cell_interference',
+      {
+        kind: 'covert_cell_growth',
+        covertGrowthApplied: appliedGrowth,
+        detectionNarrowingApplied: appliedNarrowing,
+        detectionNarrowingBand,
         rivalPressureBand: input.rivalPressure.band,
         rivalPressureScore: input.rivalPressure.score,
         week: input.week,

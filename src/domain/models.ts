@@ -2375,6 +2375,25 @@ export interface AgencyState {
   lastHiddenCellInfrastructureCompromiseWeek?: number
   /** SPE-2710: specialists drained on lastHiddenCellInfrastructureCompromiseWeek. */
   lastHiddenCellInfrastructureCompromiseAmount?: number
+  /**
+   * SPE-2714: cumulative abstract covert-cell growth level (0–20).
+   * Not a per-cell entity count — pressure intensity only.
+   */
+  hiddenCellCovertGrowthLevel?: number
+  /**
+   * SPE-2714: cumulative intelligence-driven detection-narrowing progress (0–100).
+   * Maps to vague/regional/sector/imminent bands; no location truth.
+   */
+  hiddenCellDetectionNarrowing?: number
+  /**
+   * SPE-2714: closed week when covert growth / detection narrowing last applied.
+   * Paired with lastHiddenCellCovertGrowthAmount / lastHiddenCellDetectionNarrowingAmount.
+   */
+  lastHiddenCellCovertGrowthWeek?: number
+  /** SPE-2714: growth points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellCovertGrowthAmount?: number
+  /** SPE-2714: narrowing points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellDetectionNarrowingAmount?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**

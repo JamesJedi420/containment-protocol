@@ -47,7 +47,7 @@ Cell pressure active when rival-pressure band is `competitive` or `severe`. Targ
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
 | Panic amplification / infrastructure compromise | SPE-39 child | Separate interference surfaces |
-| Covert cell growth + detection scans | SPE-39 child | Detection layer larger than research hook |
+| Covert cell growth + detection scans | SPE-2714 | Detection layer larger than research hook |
 | Optional SPE-2702 resolved×open jurisdiction sharpening | SPE-39 child | Post-merge Bugbot follow-up; not blocking |
 
 ## Validation

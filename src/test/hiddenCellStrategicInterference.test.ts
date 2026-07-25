@@ -10,24 +10,36 @@ import {
 } from '../domain/funding'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellResearchRollbackToResearchState,
   computeHiddenCellFundingTheftBaseAmount,
+  computeHiddenCellResearchRollbackBaseAmount,
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellResearchRollbackAmountForWeek,
+  findHiddenCellResearchRollbackProjectIdForWeek,
   hasHiddenCellFundingTheftForWeek,
+  hasHiddenCellResearchRollbackForWeek,
   HIDDEN_CELL_FUNDING_THEFT_REASON,
   HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID,
   isHiddenCellPressureActive,
   resolveHiddenCellFundingTheft,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellFundingTheftFromRankingScore,
+  resolveHiddenCellResearchRollbackFromPressure,
+  resolveHiddenCellResearchRollbackFromRankingScore,
+  selectHiddenCellResearchRollbackTarget,
 } from '../domain/hiddenCellStrategicInterference'
-import { buildWeeklyHiddenCellInterferenceReportNotes } from '../domain/hiddenCellInterferenceWeeklyReportNotes'
+import {
+  buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellResearchRollbackReportNotes,
+} from '../domain/hiddenCellInterferenceWeeklyReportNotes'
+import { createInitialResearchState } from '../domain/research'
 import {
   buildRivalPressureFromRankingScore,
   type RivalPressureBand,
 } from '../domain/rivalPressure'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { getReportPageView } from '../features/report/reportView'
-import type { WeeklyReport } from '../domain/models'
+import type { ResearchState, WeeklyReport } from '../domain/models'
 
 function reportWithFailures(week: number, failures: number, unresolved: number): WeeklyReport {
   return {
@@ -53,7 +65,33 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
-describe('hidden-cell strategic interference (SPE-2704)', () => {
+function researchStateWithActiveProgress(input?: {
+  projectIds?: string[]
+  progressTime?: number
+}): ResearchState {
+  const projectIds = input?.projectIds ?? ['proj-b', 'proj-a']
+  const progressTime = input?.progressTime ?? 3
+  const projects: ResearchState['projects'] = {}
+  for (const projectId of projectIds) {
+    projects[projectId] = {
+      projectId,
+      status: 'active',
+      costTime: 6,
+      costData: 0,
+      costMaterials: 0,
+      progressTime,
+      unlocks: [],
+      startedWeek: 1,
+    }
+  }
+  return {
+    ...createInitialResearchState(),
+    projects,
+    activeProjectIds: [...projectIds],
+  }
+}
+
+describe('hidden-cell strategic interference (SPE-2704 / SPE-2706)', () => {
   it('gates cell pressure on competitive/severe rival bands only', () => {
     const bands: RivalPressureBand[] = ['suppressed', 'balanced', 'competitive', 'severe']
     expect(bands.map(isHiddenCellPressureActive)).toEqual([false, false, true, true])
@@ -282,6 +320,7 @@ describe('hidden-cell strategic interference (SPE-2704)', () => {
     if (state.agency) {
       state.agency.funding = 2000
     }
+    state.researchState = researchStateWithActiveProgress()
 
     const pressure = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
     expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
@@ -290,10 +329,180 @@ describe('hidden-cell strategic interference (SPE-2704)', () => {
     expect(findHiddenCellFundingTheftAmountForWeek(nextState.agency?.fundingState, state.week)).toBe(
       0
     )
+    expect(
+      findHiddenCellResearchRollbackAmountForWeek(nextState.researchState, state.week)
+    ).toBe(0)
 
     const lastReport = nextState.reports[nextState.reports.length - 1]
     const interferenceNotes =
       lastReport?.notes?.filter((note) => note.type === 'agency.hidden_cell_interference') ?? []
     expect(interferenceNotes).toHaveLength(0)
+  })
+
+  it('selects lex-min active project with progress for research rollback', () => {
+    expect(selectHiddenCellResearchRollbackTarget(researchStateWithActiveProgress())).toBe('proj-a')
+    expect(
+      selectHiddenCellResearchRollbackTarget(
+        researchStateWithActiveProgress({ projectIds: ['proj-z'], progressTime: 0 })
+      )
+    ).toBeNull()
+  })
+
+  it('derives identical research-rollback outcomes for identical inputs', () => {
+    const research = researchStateWithActiveProgress({ progressTime: 4 })
+    const left = resolveHiddenCellResearchRollbackFromRankingScore(20, research)
+    const right = resolveHiddenCellResearchRollbackFromRankingScore(20, research)
+
+    expect(left).toEqual(right)
+    expect(left.active).toBe(true)
+    expect(left.kind).toBe('research_rollback')
+    expect(left.targetProjectId).toBe('proj-a')
+    expect(left.progressTimeRolledBack).toBeGreaterThan(0)
+    expect(left.summary).toMatch(/rolled back/)
+    expect(left.summary).toMatch(/proj-a/)
+  })
+
+  it('applies no research rollback when cell pressure is inactive', () => {
+    const research = researchStateWithActiveProgress()
+    const balanced = resolveHiddenCellResearchRollbackFromRankingScore(50, research)
+    const suppressed = resolveHiddenCellResearchRollbackFromRankingScore(80, research)
+
+    expect(balanced.active).toBe(false)
+    expect(balanced.progressTimeRolledBack).toBe(0)
+    expect(balanced.kind).toBe('none')
+    expect(suppressed.active).toBe(false)
+    expect(suppressed.progressTimeRolledBack).toBe(0)
+  })
+
+  it('clamps research rollback to available progressTime and never un-completes', () => {
+    const research = researchStateWithActiveProgress({
+      projectIds: ['proj-a'],
+      progressTime: 1,
+    })
+    const effect = resolveHiddenCellResearchRollbackFromRankingScore(10, research)
+    expect(effect.baseRollbackAmount).toBeGreaterThanOrEqual(1)
+    expect(effect.progressTimeRolledBack).toBe(1)
+
+    const applied = applyHiddenCellResearchRollbackToResearchState(research, effect, 5)
+    expect(applied.appliedAmount).toBe(1)
+    expect(applied.state.projects['proj-a']?.progressTime).toBe(0)
+    expect(applied.state.projects['proj-a']?.status).toBe('active')
+    expect(applied.state.completedProjectIds).not.toContain('proj-a')
+  })
+
+  it('applies research rollback idempotently once per closed week', () => {
+    const research = researchStateWithActiveProgress({ progressTime: 4 })
+    const effect = resolveHiddenCellResearchRollbackFromRankingScore(15, research)
+
+    const first = applyHiddenCellResearchRollbackToResearchState(research, effect, 3)
+    expect(first.appliedAmount).toBe(effect.progressTimeRolledBack)
+    expect(first.state.projects['proj-a']?.progressTime).toBe(4 - effect.progressTimeRolledBack)
+    expect(hasHiddenCellResearchRollbackForWeek(first.state, 3)).toBe(true)
+    expect(findHiddenCellResearchRollbackAmountForWeek(first.state, 3)).toBe(effect.progressTimeRolledBack)
+    expect(findHiddenCellResearchRollbackProjectIdForWeek(first.state, 3)).toBe('proj-a')
+
+    const second = applyHiddenCellResearchRollbackToResearchState(first.state, effect, 3)
+    expect(second.appliedAmount).toBe(0)
+    expect(second.state.projects['proj-a']?.progressTime).toBe(
+      first.state.projects['proj-a']?.progressTime
+    )
+  })
+
+  it('keeps SPE-2704 funding-theft outcomes unchanged for the same pressure + funding inputs', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const fundingEffect = resolveHiddenCellFundingTheftFromPressure(pressure, 900)
+    const research = researchStateWithActiveProgress()
+    const researchEffect = resolveHiddenCellResearchRollbackFromPressure(pressure, research)
+
+    // Research path must not alter funding-theft resolve.
+    expect(fundingEffect.fundingStolen).toBe(
+      resolveHiddenCellFundingTheftFromPressure(pressure, 900).fundingStolen
+    )
+    expect(fundingEffect.kind).toBe('funding_theft')
+    expect(researchEffect.kind).toBe('research_rollback')
+    expect(computeHiddenCellResearchRollbackBaseAmount(pressure.score, pressure.band)).toBe(
+      researchEffect.baseRollbackAmount
+    )
+  })
+
+  it('builds weekly research-rollback notes only when rollback was applied', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const research = researchStateWithActiveProgress({ progressTime: 4 })
+    const effect = resolveHiddenCellResearchRollbackFromPressure(pressure, research)
+    const applied = applyHiddenCellResearchRollbackToResearchState(research, effect, 2)
+
+    const notes = buildWeeklyHiddenCellResearchRollbackReportNotes({
+      researchState: applied.state,
+      rivalPressure: pressure,
+      week: 2,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.type).toBe('agency.hidden_cell_interference')
+    expect(notes[0]?.content).toMatch(/rolled back/)
+    expect(notes[0]?.metadata).toMatchObject({
+      kind: 'research_rollback',
+      progressTimeRolledBack: effect.progressTimeRolledBack,
+      researchProjectId: 'proj-a',
+      rivalPressureBand: pressure.band,
+      week: 2,
+    })
+
+    const inactiveNotes = buildWeeklyHiddenCellResearchRollbackReportNotes({
+      researchState: researchStateWithActiveProgress(),
+      rivalPressure: buildRivalPressureFromRankingScore(50),
+      week: 2,
+      sequenceStart: 1,
+    })
+    expect(inactiveNotes).toHaveLength(0)
+  })
+
+  it('advanceWeek rolls back research and emits interference note under severe cell pressure', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+    }
+    state.researchState = researchStateWithActiveProgress({ progressTime: 4 })
+
+    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
+    const expectedRollback = resolveHiddenCellResearchRollbackFromPressure(
+      pressureBefore,
+      state.researchState
+    ).progressTimeRolledBack
+    expect(expectedRollback).toBeGreaterThan(0)
+
+    const closedWeek = state.week
+    const nextState = advanceWeek(state)
+    expect(findHiddenCellResearchRollbackAmountForWeek(nextState.researchState, closedWeek)).toBe(
+      expectedRollback
+    )
+    expect(nextState.researchState?.projects['proj-a']?.progressTime).toBe(4 - expectedRollback)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const researchNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'research_rollback'
+      ) ?? []
+    expect(researchNotes.length).toBeGreaterThanOrEqual(1)
+    expect(researchNotes[0]?.content).toMatch(/rolled back/)
   })
 })

@@ -1,17 +1,18 @@
 /**
- * SPE-2704 / SPE-2706 / SPE-2707 / SPE-39: bounded hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-39: bounded hidden-cell strategic interference.
  *
  * Derives cell-pressure activity from rival-pressure band and applies:
  * - funding theft (SPE-2704) through existing FundingState history
  * - research rollback (SPE-2706) against active ResearchState progress
  * - panic amplification (SPE-2707) into ambient GameState.globalPressure
+ * - infrastructure compromise (SPE-2710) against maintenance specialist capacity
  *
  * No per-cell entities; no detection layer.
  */
 
 import { applyFundingExpense, recomputeBudgetPressure } from './funding'
 import { clamp } from './math'
-import type { FundingState, GameState, ResearchState } from './models'
+import type { AgencyState, FundingState, GameState, ResearchState } from './models'
 import {
   buildRivalPressure,
   buildRivalPressureFromRankingScore,
@@ -25,10 +26,14 @@ export const HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID = 'hidden-cell-funding-theft'
 /** Max ambient pressure points one panic-amplification tick may add. */
 export const HIDDEN_CELL_PANIC_AMPLIFICATION_MAX = 4
 
+/** Max maintenance specialists one infrastructure-compromise tick may drain. */
+export const HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX = 2
+
 export type HiddenCellInterferenceKind =
   | 'funding_theft'
   | 'research_rollback'
   | 'panic_amplification'
+  | 'infrastructure_compromise'
   | 'none'
 
 export interface HiddenCellInterferenceEffect {
@@ -68,6 +73,18 @@ export interface HiddenCellPanicAmplificationEffect {
   readonly summary: string
 }
 
+export interface HiddenCellInfrastructureCompromiseEffect {
+  readonly active: boolean
+  readonly kind: HiddenCellInterferenceKind
+  readonly rivalPressureScore: number
+  readonly rivalPressureBand: RivalPressureBand
+  /** Base compromise before capacity clamp (0 when inactive). */
+  readonly baseCompromiseAmount: number
+  /** Applied maintenance-specialist drain (0 when inactive or no capacity). */
+  readonly maintenanceCompromised: number
+  readonly summary: string
+}
+
 export interface HiddenCellInterferenceSummary {
   readonly active: boolean
   readonly kind: HiddenCellInterferenceKind
@@ -75,6 +92,7 @@ export interface HiddenCellInterferenceSummary {
   readonly progressTimeRolledBack: number
   readonly researchProjectId: string | null
   readonly pressureAmplified: number
+  readonly maintenanceCompromised: number
   readonly rivalPressureBand: RivalPressureBand
   readonly summary: string
 }
@@ -130,6 +148,25 @@ export function computeHiddenCellPanicAmplificationBaseAmount(
     Math.round((clamp(Math.round(score), 0, 100) - 50) / 12.5),
     1,
     HIDDEN_CELL_PANIC_AMPLIFICATION_MAX
+  )
+}
+
+/**
+ * Base infrastructure-compromise specialists from rival pressure score alone (capacity clamp applied separately).
+ * Inactive bands → 0. Active: 1–2 maintenance specialists above peer-balanced floor.
+ */
+export function computeHiddenCellInfrastructureCompromiseBaseAmount(
+  score: number,
+  band: RivalPressureBand
+): number {
+  if (!isHiddenCellPressureActive(band)) {
+    return 0
+  }
+
+  return clamp(
+    Math.round((clamp(Math.round(score), 0, 100) - 50) / 25),
+    1,
+    HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX
   )
 }
 
@@ -205,6 +242,33 @@ function buildPanicAmplificationSummary(input: {
   )
 }
 
+function buildInfrastructureCompromiseSummary(input: {
+  active: boolean
+  band: RivalPressureBand
+  maintenanceCompromised: number
+  baseCompromiseAmount: number
+}): string {
+  if (!input.active) {
+    return (
+      `Hidden-cell infrastructure interference inactive (${input.band}): ` +
+      `no infrastructure compromise this week.`
+    )
+  }
+
+  if (input.maintenanceCompromised <= 0) {
+    return (
+      `Hidden-cell infrastructure interference active (${input.band}): infrastructure compromise blocked ` +
+      `(no available maintenance capacity; base claim ${input.baseCompromiseAmount}).`
+    )
+  }
+
+  return (
+    `Hidden-cell interference compromised ${input.maintenanceCompromised} maintenance specialist` +
+    `${input.maintenanceCompromised === 1 ? '' : 's'} ` +
+    `(${input.band} cell pressure; strategic infrastructure sabotage before open confrontation).`
+  )
+}
+
 function composeInterferenceSummary(input: {
   active: boolean
   band: RivalPressureBand
@@ -212,9 +276,11 @@ function composeInterferenceSummary(input: {
   progressTimeRolledBack: number
   researchProjectId: string | null
   pressureAmplified: number
+  maintenanceCompromised: number
   fundingSummary: string
   researchSummary: string
   panicSummary: string
+  infrastructureSummary: string
 }): string {
   if (!input.active) {
     return `Hidden-cell interference inactive (${input.band}): no strategic diversion this week.`
@@ -230,13 +296,16 @@ function composeInterferenceSummary(input: {
   if (input.pressureAmplified > 0) {
     parts.push(input.panicSummary)
   }
+  if (input.maintenanceCompromised > 0) {
+    parts.push(input.infrastructureSummary)
+  }
 
   if (parts.length > 0) {
     return parts.join(' ')
   }
 
   return (
-    `Hidden-cell interference active (${input.band}): no funding, research, or panic diversion applied this week.`
+    `Hidden-cell interference active (${input.band}): no funding, research, panic, or infrastructure diversion applied this week.`
   )
 }
 
@@ -425,6 +494,62 @@ export function resolveHiddenCellPanicAmplificationFromRankingScore(
   return resolveHiddenCellPanicAmplificationFromPressure(pressure)
 }
 
+/** Pure resolve: identical pressure + maintenance-capacity inputs → identical compromise effect. */
+export function resolveHiddenCellInfrastructureCompromise(input: {
+  rivalPressureScore: number
+  rivalPressureBand: RivalPressureBand
+  maintenanceSpecialistsAvailable: number
+}): HiddenCellInfrastructureCompromiseEffect {
+  const rivalPressureScore = clamp(Math.round(input.rivalPressureScore), 0, 100)
+  const rivalPressureBand = input.rivalPressureBand
+  const active = isHiddenCellPressureActive(rivalPressureBand)
+  const baseCompromiseAmount = computeHiddenCellInfrastructureCompromiseBaseAmount(
+    rivalPressureScore,
+    rivalPressureBand
+  )
+  const available = Math.max(0, Math.trunc(input.maintenanceSpecialistsAvailable))
+  const maintenanceCompromised = active ? Math.min(available, baseCompromiseAmount) : 0
+  const kind: HiddenCellInterferenceKind =
+    maintenanceCompromised > 0 ? 'infrastructure_compromise' : 'none'
+
+  return {
+    active,
+    kind,
+    rivalPressureScore,
+    rivalPressureBand,
+    baseCompromiseAmount,
+    maintenanceCompromised,
+    summary: buildInfrastructureCompromiseSummary({
+      active,
+      band: rivalPressureBand,
+      maintenanceCompromised,
+      baseCompromiseAmount,
+    }),
+  }
+}
+
+export function resolveHiddenCellInfrastructureCompromiseFromPressure(
+  pressure: Pick<RivalPressureView, 'score' | 'band'>,
+  maintenanceSpecialistsAvailable: number
+): HiddenCellInfrastructureCompromiseEffect {
+  return resolveHiddenCellInfrastructureCompromise({
+    rivalPressureScore: pressure.score,
+    rivalPressureBand: pressure.band,
+    maintenanceSpecialistsAvailable,
+  })
+}
+
+export function resolveHiddenCellInfrastructureCompromiseFromRankingScore(
+  rankingScore: number,
+  maintenanceSpecialistsAvailable: number
+): HiddenCellInfrastructureCompromiseEffect {
+  const pressure = buildRivalPressureFromRankingScore(rankingScore)
+  return resolveHiddenCellInfrastructureCompromiseFromPressure(
+    pressure,
+    maintenanceSpecialistsAvailable
+  )
+}
+
 export function hasHiddenCellFundingTheftForWeek(
   fundingState: FundingState | undefined,
   closedWeek: number
@@ -470,6 +595,25 @@ export function hasHiddenCellPanicAmplificationForWeek(
   return (
     state.lastHiddenCellPanicAmplificationWeek === week &&
     Math.max(0, Math.trunc(state.lastHiddenCellPanicAmplificationAmount ?? 0)) > 0
+  )
+}
+
+export function hasHiddenCellInfrastructureCompromiseForWeek(
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellInfrastructureCompromiseWeek'
+    | 'lastHiddenCellInfrastructureCompromiseAmount'
+  > | undefined,
+  closedWeek: number
+): boolean {
+  if (!agency) {
+    return false
+  }
+
+  const week = Math.max(1, Math.trunc(closedWeek))
+  return (
+    agency.lastHiddenCellInfrastructureCompromiseWeek === week &&
+    Math.max(0, Math.trunc(agency.lastHiddenCellInfrastructureCompromiseAmount ?? 0)) > 0
   )
 }
 
@@ -600,7 +744,49 @@ export function applyHiddenCellPanicAmplificationToGameState(
   }
 }
 
-/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research + panic. */
+/**
+ * Apply infrastructure compromise to maintenance specialist capacity once per closed week.
+ * Composes into SPE-94 recovery bottleneck; does not invent a parallel sabotage sim.
+ */
+export function applyHiddenCellInfrastructureCompromiseToAgencyState(
+  agency: Pick<
+    AgencyState,
+    | 'maintenanceSpecialistsAvailable'
+    | 'lastHiddenCellInfrastructureCompromiseWeek'
+    | 'lastHiddenCellInfrastructureCompromiseAmount'
+  >,
+  effect: HiddenCellInfrastructureCompromiseEffect,
+  closedWeek: number
+): {
+  state: Pick<
+    AgencyState,
+    | 'maintenanceSpecialistsAvailable'
+    | 'lastHiddenCellInfrastructureCompromiseWeek'
+    | 'lastHiddenCellInfrastructureCompromiseAmount'
+  >
+  appliedAmount: number
+  effect: HiddenCellInfrastructureCompromiseEffect
+} {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  const available = Math.max(0, Math.trunc(agency.maintenanceSpecialistsAvailable ?? 0))
+  const appliedAmount = Math.max(0, Math.min(available, Math.trunc(effect.maintenanceCompromised)))
+
+  if (appliedAmount <= 0 || hasHiddenCellInfrastructureCompromiseForWeek(agency, week)) {
+    return { state: agency, appliedAmount: 0, effect }
+  }
+
+  return {
+    state: {
+      maintenanceSpecialistsAvailable: available - appliedAmount,
+      lastHiddenCellInfrastructureCompromiseWeek: week,
+      lastHiddenCellInfrastructureCompromiseAmount: appliedAmount,
+    },
+    appliedAmount,
+    effect,
+  }
+}
+
+/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research + panic + infra. */
 export function buildHiddenCellInterferenceSummary(
   game: Pick<GameState, 'reports' | 'events' | 'funding' | 'agency' | 'researchState'>
 ): HiddenCellInterferenceSummary {
@@ -609,11 +795,17 @@ export function buildHiddenCellInterferenceSummary(
   const fundingEffect = resolveHiddenCellFundingTheftFromPressure(pressure, funding)
   const researchEffect = resolveHiddenCellResearchRollbackFromPressure(pressure, game.researchState)
   const panicEffect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
+  const maintenanceAvailable = game.agency?.maintenanceSpecialistsAvailable ?? 0
+  const infrastructureEffect = resolveHiddenCellInfrastructureCompromiseFromPressure(
+    pressure,
+    maintenanceAvailable
+  )
   const active = fundingEffect.active
   const fundingStolen = fundingEffect.fundingStolen
   const progressTimeRolledBack = researchEffect.progressTimeRolledBack
   const researchProjectId = researchEffect.targetProjectId
   const pressureAmplified = panicEffect.pressureAmplified
+  const maintenanceCompromised = infrastructureEffect.maintenanceCompromised
   const kind: HiddenCellInterferenceKind =
     fundingStolen > 0
       ? 'funding_theft'
@@ -621,7 +813,9 @@ export function buildHiddenCellInterferenceSummary(
         ? 'research_rollback'
         : pressureAmplified > 0
           ? 'panic_amplification'
-          : 'none'
+          : maintenanceCompromised > 0
+            ? 'infrastructure_compromise'
+            : 'none'
 
   return {
     active,
@@ -630,6 +824,7 @@ export function buildHiddenCellInterferenceSummary(
     progressTimeRolledBack,
     researchProjectId,
     pressureAmplified,
+    maintenanceCompromised,
     rivalPressureBand: pressure.band,
     summary: composeInterferenceSummary({
       active,
@@ -638,9 +833,11 @@ export function buildHiddenCellInterferenceSummary(
       progressTimeRolledBack,
       researchProjectId,
       pressureAmplified,
+      maintenanceCompromised,
       fundingSummary: fundingEffect.summary,
       researchSummary: researchEffect.summary,
       panicSummary: panicEffect.summary,
+      infrastructureSummary: infrastructureEffect.summary,
     }),
   }
 }
@@ -706,4 +903,20 @@ export function findHiddenCellPanicAmplificationAmountForWeek(
   }
 
   return Math.max(0, Math.trunc(state.lastHiddenCellPanicAmplificationAmount ?? 0))
+}
+
+/** Locate applied infrastructure compromise amount for a closed week (note surfacing / tests). */
+export function findHiddenCellInfrastructureCompromiseAmountForWeek(
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellInfrastructureCompromiseWeek'
+    | 'lastHiddenCellInfrastructureCompromiseAmount'
+  > | undefined,
+  closedWeek: number
+): number {
+  if (!hasHiddenCellInfrastructureCompromiseForWeek(agency, closedWeek)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(agency?.lastHiddenCellInfrastructureCompromiseAmount ?? 0))
 }

@@ -2368,6 +2368,13 @@ export interface AgencyState {
    * Each damaged item or recovery job consumes 1 maintenance specialist per week.
    */
   maintenanceSpecialistsAvailable?: number
+  /**
+   * SPE-2710: closed week when hidden-cell infrastructure compromise last drained maintenance capacity.
+   * Paired with lastHiddenCellInfrastructureCompromiseAmount for per-week idempotency.
+   */
+  lastHiddenCellInfrastructureCompromiseWeek?: number
+  /** SPE-2710: specialists drained on lastHiddenCellInfrastructureCompromiseWeek. */
+  lastHiddenCellInfrastructureCompromiseAmount?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**

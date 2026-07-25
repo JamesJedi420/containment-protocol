@@ -89,6 +89,7 @@ Documents the versioned serialization format for the full game store state.
 - Optional `MissionRewardBreakdown.agencyStanding` on case-outcome event payloads and weekly `caseSnapshots` is sanitized by `sanitizeMissionRewardBreakdownSnapshot` / `sanitizeAgencyStandingAward` (SPE-2696 / SPE-2697); missing awards stay legacy-compatible
 - Optional `ResearchState.lastHiddenCellRollbackWeek` / `lastHiddenCellRollbackProjectId` / `lastHiddenCellRollbackAmount` (SPE-2706) are sanitized in `sanitizeResearchState`; missing markers stay legacy-compatible (no rollback applied for that load)
 - Optional `GameState.lastHiddenCellPanicAmplificationWeek` / `lastHiddenCellPanicAmplificationAmount` (SPE-2707) are sanitized with global pressure scalars; incomplete pairs are dropped so a week cannot lock without a matching applied amount
+- Optional `AgencyState.lastHiddenCellInfrastructureCompromiseWeek` / `lastHiddenCellInfrastructureCompromiseAmount` (SPE-2710) are sanitized in `sanitizeAgencyState`; incomplete pairs are dropped so a week cannot lock without a matching applied amount
 
 ---
 

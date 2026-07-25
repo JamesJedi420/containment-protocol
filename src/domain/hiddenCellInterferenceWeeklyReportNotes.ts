@@ -1,23 +1,27 @@
 /**
- * SPE-2704 / SPE-2706 / SPE-2707: weekly report notes for hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710: weekly report notes for hidden-cell strategic interference.
  *
- * Emits notes from applied fundingHistory theft, research-rollback markers, and
- * panic-amplification markers — no parallel panic sim beyond ambient globalPressure.
+ * Emits notes from applied fundingHistory theft, research-rollback markers,
+ * panic-amplification markers, and infrastructure-compromise markers —
+ * no parallel sabotage sim beyond SPE-94 maintenance capacity.
  */
 
 import {
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellInfrastructureCompromiseAmountForWeek,
   findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellInfrastructureCompromiseFromPressure,
   resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellResearchRollbackFromPressure,
+  type HiddenCellInfrastructureCompromiseEffect,
   type HiddenCellInterferenceEffect,
   type HiddenCellPanicAmplificationEffect,
   type HiddenCellResearchRollbackEffect,
 } from './hiddenCellStrategicInterference'
-import type { FundingState, GameState, ReportNote, ResearchState } from './models'
+import type { AgencyState, FundingState, GameState, ReportNote, ResearchState } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import type { RivalPressureView } from './rivalPressure'
 
@@ -42,6 +46,16 @@ export function formatHiddenCellPanicAmplificationNoteContent(
   effect: Pick<
     HiddenCellPanicAmplificationEffect,
     'summary' | 'pressureAmplified' | 'rivalPressureBand'
+  >,
+  week: number
+): string {
+  return `Week ${week} — ${effect.summary}`
+}
+
+export function formatHiddenCellInfrastructureCompromiseNoteContent(
+  effect: Pick<
+    HiddenCellInfrastructureCompromiseEffect,
+    'summary' | 'maintenanceCompromised' | 'rivalPressureBand'
   >,
   week: number
 ): string {
@@ -207,6 +221,73 @@ export function buildWeeklyHiddenCellPanicAmplificationReportNotes(input: {
       {
         kind: 'panic_amplification',
         pressureAmplified: appliedAmount,
+        rivalPressureBand: input.rivalPressure.band,
+        rivalPressureScore: input.rivalPressure.score,
+        week: input.week,
+      }
+    ),
+  ]
+}
+
+/** Builds weekly report notes when hidden-cell infrastructure compromise was applied for the closed week. */
+export function buildWeeklyHiddenCellInfrastructureCompromiseReportNotes(input: {
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellInfrastructureCompromiseWeek'
+    | 'lastHiddenCellInfrastructureCompromiseAmount'
+    | 'maintenanceSpecialistsAvailable'
+  > | null | undefined
+  rivalPressure: Pick<RivalPressureView, 'score' | 'band'>
+  /** Pre-compromise maintenance capacity used to rebuild the effect summary deterministically. */
+  maintenanceBeforeCompromise: number
+  week: number
+  sequenceStart: number
+  baseTimestamp?: number
+}): ReportNote[] {
+  const appliedAmount = findHiddenCellInfrastructureCompromiseAmountForWeek(
+    input.agency ?? undefined,
+    input.week
+  )
+  if (appliedAmount <= 0) {
+    return []
+  }
+
+  const effect = resolveHiddenCellInfrastructureCompromiseFromPressure(
+    input.rivalPressure,
+    input.maintenanceBeforeCompromise
+  )
+  const noteEffect: Pick<
+    HiddenCellInfrastructureCompromiseEffect,
+    | 'summary'
+    | 'maintenanceCompromised'
+    | 'rivalPressureBand'
+    | 'kind'
+    | 'rivalPressureScore'
+    | 'active'
+    | 'baseCompromiseAmount'
+  > = {
+    active: true,
+    kind: 'infrastructure_compromise',
+    rivalPressureScore: input.rivalPressure.score,
+    rivalPressureBand: input.rivalPressure.band,
+    baseCompromiseAmount: effect.baseCompromiseAmount,
+    maintenanceCompromised: appliedAmount,
+    summary:
+      `Hidden-cell interference compromised ${appliedAmount} maintenance specialist` +
+      `${appliedAmount === 1 ? '' : 's'} ` +
+      `(${input.rivalPressure.band} cell pressure; strategic infrastructure sabotage before open confrontation).`,
+  }
+
+  return [
+    createDeterministicReportNote(
+      formatHiddenCellInfrastructureCompromiseNoteContent(noteEffect, input.week),
+      input.week,
+      input.sequenceStart,
+      input.baseTimestamp,
+      'agency.hidden_cell_interference',
+      {
+        kind: 'infrastructure_compromise',
+        maintenanceCompromised: appliedAmount,
         rivalPressureBand: input.rivalPressure.band,
         rivalPressureScore: input.rivalPressure.score,
         week: input.week,

@@ -48,7 +48,12 @@ import {
   sanitizeSupportStaffSummary,
 } from '../../domain/funding'
 import { sanitizeProgressionUnlockIds } from '../../domain/agencyProgression'
-import { HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX } from '../../domain/hiddenCellStrategicInterference'
+import {
+  HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX,
+} from '../../domain/hiddenCellStrategicInterference'
 import { normalizeRuntimeState, reconcileRuntimeUiSelections } from '../../domain/gameStateManager'
 import { normalizeCaseInstance } from '../../domain/case/normalizeCase'
 import { sanitizeDistrictScheduleState } from '../../domain/districtSchedule'
@@ -606,6 +611,9 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'researchProjectId',
     'pressureAmplified',
     'maintenanceCompromised',
+    'covertGrowthApplied',
+    'detectionNarrowingApplied',
+    'detectionNarrowingBand',
     'rivalPressureBand',
     'rivalPressureScore',
     'week',
@@ -6225,6 +6233,53 @@ function sanitizeAgencyState(
     lastHiddenCellInfrastructureCompromiseWeek !== undefined &&
     lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
     lastHiddenCellInfrastructureCompromiseAmount > 0
+
+  const hiddenCellCovertGrowthLevel =
+    typeof raw.hiddenCellCovertGrowthLevel === 'number' &&
+    Number.isFinite(raw.hiddenCellCovertGrowthLevel)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX, Math.round(raw.hiddenCellCovertGrowthLevel))
+        )
+      : undefined
+  const hiddenCellDetectionNarrowing =
+    typeof raw.hiddenCellDetectionNarrowing === 'number' &&
+    Number.isFinite(raw.hiddenCellDetectionNarrowing)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_DETECTION_NARROWING_MAX, Math.round(raw.hiddenCellDetectionNarrowing))
+        )
+      : undefined
+  const lastHiddenCellCovertGrowthWeek =
+    typeof raw.lastHiddenCellCovertGrowthWeek === 'number' &&
+    Number.isFinite(raw.lastHiddenCellCovertGrowthWeek)
+      ? Math.max(1, Math.min(campaignWeek, Math.round(raw.lastHiddenCellCovertGrowthWeek)))
+      : undefined
+  const lastHiddenCellCovertGrowthAmount =
+    typeof raw.lastHiddenCellCovertGrowthAmount === 'number' &&
+    Number.isFinite(raw.lastHiddenCellCovertGrowthAmount)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_MAX, Math.round(raw.lastHiddenCellCovertGrowthAmount))
+        )
+      : undefined
+  const lastHiddenCellDetectionNarrowingAmount =
+    typeof raw.lastHiddenCellDetectionNarrowingAmount === 'number' &&
+    Number.isFinite(raw.lastHiddenCellDetectionNarrowingAmount)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            Math.round(raw.lastHiddenCellDetectionNarrowingAmount)
+          )
+        )
+      : undefined
+  // SPE-2714: week marker requires at least one positive applied amount.
+  const hasCompleteCovertGrowthMarkers =
+    lastHiddenCellCovertGrowthWeek !== undefined &&
+    ((lastHiddenCellCovertGrowthAmount !== undefined && lastHiddenCellCovertGrowthAmount > 0) ||
+      (lastHiddenCellDetectionNarrowingAmount !== undefined &&
+        lastHiddenCellDetectionNarrowingAmount > 0))
   const courierShellFront = sanitizeCourierShellFrontState(raw.courierShellFront, campaignWeek)
   const progressionUnlockIds = sanitizeProgressionUnlockIds(raw.progressionUnlockIds)
 
@@ -6262,6 +6317,15 @@ function sanitizeAgencyState(
       ? {
           lastHiddenCellInfrastructureCompromiseWeek,
           lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(hiddenCellCovertGrowthLevel !== undefined ? { hiddenCellCovertGrowthLevel } : {}),
+    ...(hiddenCellDetectionNarrowing !== undefined ? { hiddenCellDetectionNarrowing } : {}),
+    ...(hasCompleteCovertGrowthMarkers
+      ? {
+          lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount: lastHiddenCellCovertGrowthAmount ?? 0,
+          lastHiddenCellDetectionNarrowingAmount: lastHiddenCellDetectionNarrowingAmount ?? 0,
         }
       : {}),
     ...(typeof mirrors.coordinationFrictionActive === 'boolean'

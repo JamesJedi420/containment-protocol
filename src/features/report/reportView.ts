@@ -65,6 +65,15 @@ export function getReportPageView(game: GameState): ReportPageView {
                 `infra -${agencySummary.hiddenCellInterference.maintenanceCompromised} maint`
               )
             }
+            if (
+              agencySummary.hiddenCellInterference.covertGrowthApplied > 0 ||
+              agencySummary.hiddenCellInterference.detectionNarrowingApplied > 0
+            ) {
+              parts.push(
+                `covert +${agencySummary.hiddenCellInterference.covertGrowthApplied}` +
+                  ` (${agencySummary.hiddenCellInterference.detectionNarrowingBand})`
+              )
+            }
             if (parts.length === 0) {
               return `${agencySummary.hiddenCellInterference.rivalPressureBand} (no diversion)`
             }

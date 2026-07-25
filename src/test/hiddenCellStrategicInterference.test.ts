@@ -10,28 +10,38 @@ import {
   hasWeeklyOperatingCostForWeek,
 } from '../domain/funding'
 import {
+  applyHiddenCellCovertGrowthToAgencyState,
   applyHiddenCellFundingTheftToFundingState,
   applyHiddenCellInfrastructureCompromiseToAgencyState,
   applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
+  computeHiddenCellCovertGrowthBaseAmount,
   computeHiddenCellFundingTheftBaseAmount,
   computeHiddenCellInfrastructureCompromiseBaseAmount,
   computeHiddenCellPanicAmplificationBaseAmount,
   computeHiddenCellResearchRollbackBaseAmount,
+  detectionNarrowingBandFromProgress,
+  findHiddenCellCovertGrowthAmountForWeek,
+  findHiddenCellDetectionNarrowingAmountForWeek,
   findHiddenCellFundingTheftAmountForWeek,
   findHiddenCellInfrastructureCompromiseAmountForWeek,
   findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
+  hasHiddenCellCovertGrowthForWeek,
   hasHiddenCellFundingTheftForWeek,
   hasHiddenCellInfrastructureCompromiseForWeek,
   hasHiddenCellPanicAmplificationForWeek,
   hasHiddenCellResearchRollbackForWeek,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_MAX,
   HIDDEN_CELL_FUNDING_THEFT_REASON,
   HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID,
   HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX,
   HIDDEN_CELL_PANIC_AMPLIFICATION_MAX,
   isHiddenCellPressureActive,
+  resolveHiddenCellCovertGrowthFromPressure,
+  resolveHiddenCellCovertGrowthFromRankingScore,
   resolveHiddenCellFundingTheft,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellFundingTheftFromRankingScore,
@@ -44,6 +54,7 @@ import {
   selectHiddenCellResearchRollbackTarget,
 } from '../domain/hiddenCellStrategicInterference'
 import {
+  buildWeeklyHiddenCellCovertGrowthReportNotes,
   buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
   buildWeeklyHiddenCellInterferenceReportNotes,
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
@@ -108,7 +119,7 @@ function researchStateWithActiveProgress(input?: {
   }
 }
 
-describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710)', () => {
+describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-2714)', () => {
   it('gates cell pressure on competitive/severe rival bands only', () => {
     const bands: RivalPressureBand[] = ['suppressed', 'balanced', 'competitive', 'severe']
     expect(bands.map(isHiddenCellPressureActive)).toEqual([false, false, true, true])
@@ -1024,6 +1035,324 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(afterSecond.agency?.lastHiddenCellInfrastructureCompromiseAmount).toBe(applied)
     expect(afterSecond.agency?.maintenanceSpecialistsAvailable).toBe(
       afterFirst.agency?.maintenanceSpecialistsAvailable
+    )
+  })
+
+  it('derives identical covert-growth / detection-narrowing outcomes for identical inputs', () => {
+    const left = resolveHiddenCellCovertGrowthFromRankingScore(20, 0, 0)
+    const right = resolveHiddenCellCovertGrowthFromRankingScore(20, 0, 0)
+
+    expect(left).toEqual(right)
+    expect(left.active).toBe(true)
+    expect(left.kind).toBe('covert_cell_growth')
+    expect(left.growthApplied).toBeGreaterThan(0)
+    expect(left.growthApplied).toBeLessThanOrEqual(HIDDEN_CELL_COVERT_GROWTH_MAX)
+    expect(left.narrowingApplied).toBeGreaterThan(0)
+    expect(left.detectionNarrowingBand).not.toBe('none')
+    expect(left.summary).toMatch(/expanded covert network pressure/)
+    expect(left.summary).toMatch(/intel narrowing advanced/)
+  })
+
+  it('applies no covert growth when cell pressure is inactive', () => {
+    const balanced = resolveHiddenCellCovertGrowthFromRankingScore(50, 0, 0)
+    const suppressed = resolveHiddenCellCovertGrowthFromRankingScore(80, 0, 0)
+
+    expect(balanced.active).toBe(false)
+    expect(balanced.growthApplied).toBe(0)
+    expect(balanced.narrowingApplied).toBe(0)
+    expect(balanced.kind).toBe('none')
+    expect(suppressed.active).toBe(false)
+    expect(suppressed.growthApplied).toBe(0)
+  })
+
+  it('maps detection-narrowing progress to player-facing bands without location truth', () => {
+    expect(detectionNarrowingBandFromProgress(0)).toBe('none')
+    expect(detectionNarrowingBandFromProgress(10)).toBe('vague')
+    expect(detectionNarrowingBandFromProgress(30)).toBe('regional')
+    expect(detectionNarrowingBandFromProgress(60)).toBe('sector')
+    expect(detectionNarrowingBandFromProgress(90)).toBe('imminent')
+    expect(detectionNarrowingBandFromProgress(HIDDEN_CELL_DETECTION_NARROWING_MAX)).toBe(
+      'imminent'
+    )
+  })
+
+  it('applies covert growth idempotently once per closed week', () => {
+    const effect = resolveHiddenCellCovertGrowthFromRankingScore(15, 2, 8)
+    expect(effect.growthApplied).toBeGreaterThan(0)
+
+    const first = applyHiddenCellCovertGrowthToAgencyState(
+      { hiddenCellCovertGrowthLevel: 2, hiddenCellDetectionNarrowing: 8 },
+      effect,
+      3
+    )
+    expect(first.appliedGrowth).toBe(effect.growthApplied)
+    expect(first.appliedNarrowing).toBe(effect.narrowingApplied)
+    expect(first.state.hiddenCellCovertGrowthLevel).toBe(2 + effect.growthApplied)
+    expect(first.state.hiddenCellDetectionNarrowing).toBe(8 + effect.narrowingApplied)
+    expect(hasHiddenCellCovertGrowthForWeek(first.state, 3)).toBe(true)
+    expect(findHiddenCellCovertGrowthAmountForWeek(first.state, 3)).toBe(effect.growthApplied)
+    expect(findHiddenCellDetectionNarrowingAmountForWeek(first.state, 3)).toBe(
+      effect.narrowingApplied
+    )
+
+    const second = applyHiddenCellCovertGrowthToAgencyState(first.state, effect, 3)
+    expect(second.appliedGrowth).toBe(0)
+    expect(second.appliedNarrowing).toBe(0)
+    expect(second.state.hiddenCellCovertGrowthLevel).toBe(first.state.hiddenCellCovertGrowthLevel)
+  })
+
+  it('does not alter SPE-2704/2706/2707/2710 resolve outputs when resolving covert growth', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const research = researchStateWithActiveProgress()
+    const fundingBefore = resolveHiddenCellFundingTheftFromPressure(pressure, 900).fundingStolen
+    const researchBefore = resolveHiddenCellResearchRollbackFromPressure(
+      pressure,
+      research
+    ).progressTimeRolledBack
+    const panicBefore = resolveHiddenCellPanicAmplificationFromPressure(pressure).pressureAmplified
+    const infraBefore = resolveHiddenCellInfrastructureCompromiseFromPressure(
+      pressure,
+      4
+    ).maintenanceCompromised
+
+    const covertEffect = resolveHiddenCellCovertGrowthFromPressure(pressure, 0, 0)
+    expect(covertEffect.kind).toBe('covert_cell_growth')
+    expect(computeHiddenCellCovertGrowthBaseAmount(pressure.score, pressure.band)).toBe(
+      covertEffect.baseGrowthAmount
+    )
+
+    expect(resolveHiddenCellFundingTheftFromPressure(pressure, 900).fundingStolen).toBe(
+      fundingBefore
+    )
+    expect(
+      resolveHiddenCellResearchRollbackFromPressure(pressure, research).progressTimeRolledBack
+    ).toBe(researchBefore)
+    expect(resolveHiddenCellPanicAmplificationFromPressure(pressure).pressureAmplified).toBe(
+      panicBefore
+    )
+    expect(
+      resolveHiddenCellInfrastructureCompromiseFromPressure(pressure, 4).maintenanceCompromised
+    ).toBe(infraBefore)
+  })
+
+  it('builds weekly covert-growth notes only when growth or narrowing was applied', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellCovertGrowthFromPressure(pressure, 0, 0)
+    const applied = applyHiddenCellCovertGrowthToAgencyState(
+      { hiddenCellCovertGrowthLevel: 0, hiddenCellDetectionNarrowing: 0 },
+      effect,
+      2
+    )
+
+    const notes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: applied.state,
+      rivalPressure: pressure,
+      covertGrowthLevelBefore: 0,
+      detectionNarrowingBefore: 0,
+      week: 2,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.type).toBe('agency.hidden_cell_interference')
+    expect(notes[0]?.content).toMatch(/expanded covert network pressure/)
+    expect(notes[0]?.metadata).toMatchObject({
+      kind: 'covert_cell_growth',
+      covertGrowthApplied: effect.growthApplied,
+      detectionNarrowingApplied: effect.narrowingApplied,
+      rivalPressureBand: pressure.band,
+      week: 2,
+    })
+
+    const inactiveNotes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: { hiddenCellCovertGrowthLevel: 0, hiddenCellDetectionNarrowing: 0 },
+      rivalPressure: buildRivalPressureFromRankingScore(50),
+      covertGrowthLevelBefore: 0,
+      detectionNarrowingBefore: 0,
+      week: 2,
+      sequenceStart: 1,
+    })
+    expect(inactiveNotes).toHaveLength(0)
+  })
+
+  it('retains covert-growth note metadata and markers through hydrateGame', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellCovertGrowthFromPressure(pressure, 0, 0)
+    const applied = applyHiddenCellCovertGrowthToAgencyState(
+      { hiddenCellCovertGrowthLevel: 0, hiddenCellDetectionNarrowing: 0 },
+      effect,
+      4
+    )
+    const notes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: applied.state,
+      rivalPressure: pressure,
+      covertGrowthLevelBefore: 0,
+      detectionNarrowingBefore: 0,
+      week: 4,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    const state = createStartingState()
+    state.week = 5
+    if (state.agency) {
+      state.agency.hiddenCellCovertGrowthLevel = applied.state.hiddenCellCovertGrowthLevel
+      state.agency.hiddenCellDetectionNarrowing = applied.state.hiddenCellDetectionNarrowing
+      state.agency.lastHiddenCellCovertGrowthWeek = applied.state.lastHiddenCellCovertGrowthWeek
+      state.agency.lastHiddenCellCovertGrowthAmount = applied.state.lastHiddenCellCovertGrowthAmount
+      state.agency.lastHiddenCellDetectionNarrowingAmount =
+        applied.state.lastHiddenCellDetectionNarrowingAmount
+    }
+    state.reports = [
+      {
+        week: 4,
+        resolvedCases: [],
+        partialCases: [],
+        failedCases: [],
+        unresolvedTriggers: [],
+        notes,
+      } as unknown as WeeklyReport,
+    ]
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+    expect(hydrated.agency?.lastHiddenCellCovertGrowthWeek).toBe(4)
+    expect(hydrated.agency?.lastHiddenCellCovertGrowthAmount).toBe(effect.growthApplied)
+    expect(hydrated.agency?.lastHiddenCellDetectionNarrowingAmount).toBe(effect.narrowingApplied)
+    expect(hydrated.agency?.hiddenCellCovertGrowthLevel).toBe(
+      applied.state.hiddenCellCovertGrowthLevel
+    )
+    expect(hydrated.reports[0]?.notes?.[0]?.metadata).toMatchObject({
+      kind: 'covert_cell_growth',
+      covertGrowthApplied: effect.growthApplied,
+      detectionNarrowingApplied: effect.narrowingApplied,
+      rivalPressureBand: pressure.band,
+      week: 4,
+    })
+  })
+
+  it('advanceWeek grows covert pressure and emits note under severe cell pressure', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+      state.agency.hiddenCellCovertGrowthLevel = 0
+      state.agency.hiddenCellDetectionNarrowing = 0
+    }
+
+    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
+    const expected = resolveHiddenCellCovertGrowthFromPressure(pressureBefore, 0, 0)
+    expect(expected.growthApplied).toBeGreaterThan(0)
+
+    const closedWeek = state.week
+    const nextState = advanceWeek(state)
+    expect(findHiddenCellCovertGrowthAmountForWeek(nextState.agency, closedWeek)).toBe(
+      expected.growthApplied
+    )
+    expect(findHiddenCellDetectionNarrowingAmountForWeek(nextState.agency, closedWeek)).toBe(
+      expected.narrowingApplied
+    )
+    expect(nextState.agency?.hiddenCellCovertGrowthLevel).toBe(expected.growthApplied)
+    expect(nextState.agency?.hiddenCellDetectionNarrowing).toBe(expected.narrowingApplied)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const covertNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'covert_cell_growth'
+      ) ?? []
+    expect(covertNotes.length).toBeGreaterThanOrEqual(1)
+    expect(covertNotes[0]?.content).toMatch(/expanded covert network pressure/)
+  })
+
+  it('advanceWeek emits no covert-growth note when cell pressure is inactive', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = []
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.hiddenCellCovertGrowthLevel = 0
+      state.agency.hiddenCellDetectionNarrowing = 0
+    }
+
+    const pressure = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
+
+    const nextState = advanceWeek(state)
+    expect(findHiddenCellCovertGrowthAmountForWeek(nextState.agency, state.week)).toBe(0)
+    expect(nextState.agency?.hiddenCellCovertGrowthLevel ?? 0).toBe(0)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const covertNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'covert_cell_growth'
+      ) ?? []
+    expect(covertNotes).toHaveLength(0)
+  })
+
+  it('preserves covert-growth markers through a second advanceWeek canonicalize', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+    }
+
+    const closedWeek = state.week
+    const afterFirst = advanceWeek(state)
+    const appliedGrowth = findHiddenCellCovertGrowthAmountForWeek(afterFirst.agency, closedWeek)
+    const appliedNarrowing = findHiddenCellDetectionNarrowingAmountForWeek(
+      afterFirst.agency,
+      closedWeek
+    )
+    expect(appliedGrowth).toBeGreaterThan(0)
+    expect(afterFirst.agency?.lastHiddenCellCovertGrowthWeek).toBe(closedWeek)
+    expect(afterFirst.agency?.lastHiddenCellCovertGrowthAmount).toBe(appliedGrowth)
+    expect(afterFirst.agency?.lastHiddenCellDetectionNarrowingAmount).toBe(appliedNarrowing)
+
+    freezeCasesForQuietWeek(afterFirst)
+    afterFirst.reports = []
+    const afterSecond = advanceWeek(afterFirst)
+    expect(isHiddenCellPressureActive(
+      buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
+    )).toBe(false)
+    expect(afterSecond.agency?.lastHiddenCellCovertGrowthWeek).toBe(closedWeek)
+    expect(afterSecond.agency?.lastHiddenCellCovertGrowthAmount).toBe(appliedGrowth)
+    expect(afterSecond.agency?.hiddenCellCovertGrowthLevel).toBe(
+      afterFirst.agency?.hiddenCellCovertGrowthLevel
+    )
+    expect(afterSecond.agency?.hiddenCellDetectionNarrowing).toBe(
+      afterFirst.agency?.hiddenCellDetectionNarrowing
     )
   })
 })

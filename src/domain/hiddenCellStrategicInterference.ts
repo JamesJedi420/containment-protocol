@@ -1,13 +1,14 @@
 /**
- * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-39: bounded hidden-cell strategic interference.
+ * SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-2714 / SPE-39: bounded hidden-cell strategic interference.
  *
  * Derives cell-pressure activity from rival-pressure band and applies:
  * - funding theft (SPE-2704) through existing FundingState history
  * - research rollback (SPE-2706) against active ResearchState progress
  * - panic amplification (SPE-2707) into ambient GameState.globalPressure
  * - infrastructure compromise (SPE-2710) against maintenance specialist capacity
+ * - covert cell growth + detection narrowing (SPE-2714) on agency abstract counters
  *
- * No per-cell entities; no detection layer.
+ * No per-cell entities; detection is abstract narrowing bands only (no SPE-854 / scan UX).
  */
 
 import { applyFundingExpense, recomputeBudgetPressure } from './funding'
@@ -29,12 +30,33 @@ export const HIDDEN_CELL_PANIC_AMPLIFICATION_MAX = 4
 /** Max maintenance specialists one infrastructure-compromise tick may drain. */
 export const HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX = 2
 
+/** Max covert-growth points one tick may add. */
+export const HIDDEN_CELL_COVERT_GROWTH_MAX = 3
+
+/** Cap on cumulative abstract covert-growth level. */
+export const HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX = 20
+
+/** Cap on cumulative detection-narrowing progress (0–100). */
+export const HIDDEN_CELL_DETECTION_NARROWING_MAX = 100
+
+/** Narrowing progress points per unit of applied covert growth. */
+export const HIDDEN_CELL_DETECTION_NARROWING_PER_GROWTH = 8
+
 export type HiddenCellInterferenceKind =
   | 'funding_theft'
   | 'research_rollback'
   | 'panic_amplification'
   | 'infrastructure_compromise'
+  | 'covert_cell_growth'
   | 'none'
+
+/** Player-facing detection-narrowing band — no coordinates / full cell truth. */
+export type HiddenCellDetectionNarrowingBand =
+  | 'none'
+  | 'vague'
+  | 'regional'
+  | 'sector'
+  | 'imminent'
 
 export interface HiddenCellInterferenceEffect {
   readonly active: boolean
@@ -85,6 +107,24 @@ export interface HiddenCellInfrastructureCompromiseEffect {
   readonly summary: string
 }
 
+export interface HiddenCellCovertGrowthEffect {
+  readonly active: boolean
+  readonly kind: HiddenCellInterferenceKind
+  readonly rivalPressureScore: number
+  readonly rivalPressureBand: RivalPressureBand
+  /** Base growth before cumulative-level clamp (0 when inactive). */
+  readonly baseGrowthAmount: number
+  /** Applied growth after clamp to remaining room (0 when inactive or at cap). */
+  readonly growthApplied: number
+  /** Base narrowing before progress clamp (0 when inactive). */
+  readonly baseNarrowingAmount: number
+  /** Applied narrowing after clamp (0 when inactive or at cap). */
+  readonly narrowingApplied: number
+  /** Detection band after applying this tick's narrowing to current progress. */
+  readonly detectionNarrowingBand: HiddenCellDetectionNarrowingBand
+  readonly summary: string
+}
+
 export interface HiddenCellInterferenceSummary {
   readonly active: boolean
   readonly kind: HiddenCellInterferenceKind
@@ -93,6 +133,11 @@ export interface HiddenCellInterferenceSummary {
   readonly researchProjectId: string | null
   readonly pressureAmplified: number
   readonly maintenanceCompromised: number
+  readonly covertGrowthApplied: number
+  readonly detectionNarrowingApplied: number
+  readonly detectionNarrowingBand: HiddenCellDetectionNarrowingBand
+  readonly covertGrowthLevel: number
+  readonly detectionNarrowing: number
   readonly rivalPressureBand: RivalPressureBand
   readonly summary: string
 }
@@ -168,6 +213,65 @@ export function computeHiddenCellInfrastructureCompromiseBaseAmount(
     1,
     HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX
   )
+}
+
+/**
+ * Base covert-growth points from rival pressure score alone (cumulative clamp applied separately).
+ * Inactive bands → 0. Active: 1–3 growth points above peer-balanced floor.
+ */
+export function computeHiddenCellCovertGrowthBaseAmount(
+  score: number,
+  band: RivalPressureBand
+): number {
+  if (!isHiddenCellPressureActive(band)) {
+    return 0
+  }
+
+  return clamp(
+    Math.round((clamp(Math.round(score), 0, 100) - 50) / 16.5),
+    1,
+    HIDDEN_CELL_COVERT_GROWTH_MAX
+  )
+}
+
+/**
+ * Base detection-narrowing progress from applied (or prospective) growth amount.
+ * Inactive / zero growth → 0. Active: growth × HIDDEN_CELL_DETECTION_NARROWING_PER_GROWTH.
+ */
+export function computeHiddenCellDetectionNarrowingBaseAmount(
+  growthAmount: number,
+  band: RivalPressureBand
+): number {
+  if (!isHiddenCellPressureActive(band)) {
+    return 0
+  }
+
+  const growth = Math.max(0, Math.trunc(growthAmount))
+  if (growth <= 0) {
+    return 0
+  }
+
+  return clamp(growth * HIDDEN_CELL_DETECTION_NARROWING_PER_GROWTH, 1, HIDDEN_CELL_DETECTION_NARROWING_MAX)
+}
+
+/** Map cumulative narrowing progress to a player-facing band (no location truth). */
+export function detectionNarrowingBandFromProgress(
+  narrowing: number
+): HiddenCellDetectionNarrowingBand {
+  const progress = clamp(Math.trunc(narrowing), 0, HIDDEN_CELL_DETECTION_NARROWING_MAX)
+  if (progress <= 0) {
+    return 'none'
+  }
+  if (progress < 25) {
+    return 'vague'
+  }
+  if (progress < 50) {
+    return 'regional'
+  }
+  if (progress < 75) {
+    return 'sector'
+  }
+  return 'imminent'
 }
 
 function buildFundingInterferenceSummary(input: {
@@ -269,6 +373,43 @@ function buildInfrastructureCompromiseSummary(input: {
   )
 }
 
+function buildCovertGrowthSummary(input: {
+  active: boolean
+  band: RivalPressureBand
+  growthApplied: number
+  baseGrowthAmount: number
+  narrowingApplied: number
+  detectionNarrowingBand: HiddenCellDetectionNarrowingBand
+}): string {
+  if (!input.active) {
+    return (
+      `Hidden-cell covert growth inactive (${input.band}): ` +
+      `no covert network expansion or detection narrowing this week.`
+    )
+  }
+
+  if (input.growthApplied <= 0 && input.narrowingApplied <= 0) {
+    return (
+      `Hidden-cell covert growth active (${input.band}): covert expansion blocked ` +
+      `(growth/narrowing at cap; base claim ${input.baseGrowthAmount}).`
+    )
+  }
+
+  const growthPart =
+    input.growthApplied > 0
+      ? `expanded covert network pressure by ${input.growthApplied}`
+      : 'held covert network pressure at cap'
+  const narrowingPart =
+    input.narrowingApplied > 0
+      ? `intel narrowing advanced to ${input.detectionNarrowingBand}`
+      : `intel narrowing held at ${input.detectionNarrowingBand}`
+
+  return (
+    `Hidden-cell interference ${growthPart} ` +
+    `(${input.band} cell pressure; ${narrowingPart} before open confrontation).`
+  )
+}
+
 function composeInterferenceSummary(input: {
   active: boolean
   band: RivalPressureBand
@@ -277,10 +418,13 @@ function composeInterferenceSummary(input: {
   researchProjectId: string | null
   pressureAmplified: number
   maintenanceCompromised: number
+  growthApplied: number
+  narrowingApplied: number
   fundingSummary: string
   researchSummary: string
   panicSummary: string
   infrastructureSummary: string
+  covertGrowthSummary: string
 }): string {
   if (!input.active) {
     return `Hidden-cell interference inactive (${input.band}): no strategic diversion this week.`
@@ -299,13 +443,16 @@ function composeInterferenceSummary(input: {
   if (input.maintenanceCompromised > 0) {
     parts.push(input.infrastructureSummary)
   }
+  if (input.growthApplied > 0 || input.narrowingApplied > 0) {
+    parts.push(input.covertGrowthSummary)
+  }
 
   if (parts.length > 0) {
     return parts.join(' ')
   }
 
   return (
-    `Hidden-cell interference active (${input.band}): no funding, research, panic, or infrastructure diversion applied this week.`
+    `Hidden-cell interference active (${input.band}): no funding, research, panic, infrastructure, or covert diversion applied this week.`
   )
 }
 
@@ -550,6 +697,104 @@ export function resolveHiddenCellInfrastructureCompromiseFromRankingScore(
   )
 }
 
+/**
+ * Pure resolve: identical pressure + prior growth/narrowing → identical covert-growth effect.
+ * Detection narrowing is derived from the prospective growth tick (not a separate scan UX).
+ */
+export function resolveHiddenCellCovertGrowth(input: {
+  rivalPressureScore: number
+  rivalPressureBand: RivalPressureBand
+  covertGrowthLevel: number
+  detectionNarrowing: number
+}): HiddenCellCovertGrowthEffect {
+  const rivalPressureScore = clamp(Math.round(input.rivalPressureScore), 0, 100)
+  const rivalPressureBand = input.rivalPressureBand
+  const active = isHiddenCellPressureActive(rivalPressureBand)
+  const baseGrowthAmount = computeHiddenCellCovertGrowthBaseAmount(
+    rivalPressureScore,
+    rivalPressureBand
+  )
+  const currentLevel = clamp(
+    Math.trunc(input.covertGrowthLevel),
+    0,
+    HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX
+  )
+  const growthRoom = HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX - currentLevel
+  const growthApplied = active ? Math.min(growthRoom, baseGrowthAmount) : 0
+
+  // When growth is at cap but pressure is still active, allow a residual narrowing tick
+  // so intel can still advance without inventing a second pressure formula.
+  const prospectiveGrowthForNarrowing = active
+    ? growthApplied > 0
+      ? growthApplied
+      : baseGrowthAmount > 0
+        ? 1
+        : 0
+    : 0
+  const baseNarrowingAmount = computeHiddenCellDetectionNarrowingBaseAmount(
+    prospectiveGrowthForNarrowing,
+    rivalPressureBand
+  )
+  const currentNarrowing = clamp(
+    Math.trunc(input.detectionNarrowing),
+    0,
+    HIDDEN_CELL_DETECTION_NARROWING_MAX
+  )
+  const narrowingRoom = HIDDEN_CELL_DETECTION_NARROWING_MAX - currentNarrowing
+  const narrowingApplied = active ? Math.min(narrowingRoom, baseNarrowingAmount) : 0
+  const detectionNarrowingBand = detectionNarrowingBandFromProgress(
+    currentNarrowing + narrowingApplied
+  )
+  const kind: HiddenCellInterferenceKind =
+    growthApplied > 0 || narrowingApplied > 0 ? 'covert_cell_growth' : 'none'
+
+  return {
+    active,
+    kind,
+    rivalPressureScore,
+    rivalPressureBand,
+    baseGrowthAmount,
+    growthApplied,
+    baseNarrowingAmount,
+    narrowingApplied,
+    detectionNarrowingBand,
+    summary: buildCovertGrowthSummary({
+      active,
+      band: rivalPressureBand,
+      growthApplied,
+      baseGrowthAmount,
+      narrowingApplied,
+      detectionNarrowingBand,
+    }),
+  }
+}
+
+export function resolveHiddenCellCovertGrowthFromPressure(
+  pressure: Pick<RivalPressureView, 'score' | 'band'>,
+  covertGrowthLevel: number,
+  detectionNarrowing: number
+): HiddenCellCovertGrowthEffect {
+  return resolveHiddenCellCovertGrowth({
+    rivalPressureScore: pressure.score,
+    rivalPressureBand: pressure.band,
+    covertGrowthLevel,
+    detectionNarrowing,
+  })
+}
+
+export function resolveHiddenCellCovertGrowthFromRankingScore(
+  rankingScore: number,
+  covertGrowthLevel: number,
+  detectionNarrowing: number
+): HiddenCellCovertGrowthEffect {
+  const pressure = buildRivalPressureFromRankingScore(rankingScore)
+  return resolveHiddenCellCovertGrowthFromPressure(
+    pressure,
+    covertGrowthLevel,
+    detectionNarrowing
+  )
+}
+
 export function hasHiddenCellFundingTheftForWeek(
   fundingState: FundingState | undefined,
   closedWeek: number
@@ -614,6 +859,30 @@ export function hasHiddenCellInfrastructureCompromiseForWeek(
   return (
     agency.lastHiddenCellInfrastructureCompromiseWeek === week &&
     Math.max(0, Math.trunc(agency.lastHiddenCellInfrastructureCompromiseAmount ?? 0)) > 0
+  )
+}
+
+export function hasHiddenCellCovertGrowthForWeek(
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+  > | undefined,
+  closedWeek: number
+): boolean {
+  if (!agency) {
+    return false
+  }
+
+  const week = Math.max(1, Math.trunc(closedWeek))
+  if (agency.lastHiddenCellCovertGrowthWeek !== week) {
+    return false
+  }
+
+  return (
+    Math.max(0, Math.trunc(agency.lastHiddenCellCovertGrowthAmount ?? 0)) > 0 ||
+    Math.max(0, Math.trunc(agency.lastHiddenCellDetectionNarrowingAmount ?? 0)) > 0
   )
 }
 
@@ -786,7 +1055,84 @@ export function applyHiddenCellInfrastructureCompromiseToAgencyState(
   }
 }
 
-/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research + panic + infra. */
+/**
+ * Apply covert growth + detection narrowing once per closed week.
+ * Abstract counters only — no per-cell entities or SPE-854 scan UX.
+ */
+export function applyHiddenCellCovertGrowthToAgencyState(
+  agency: Pick<
+    AgencyState,
+    | 'hiddenCellCovertGrowthLevel'
+    | 'hiddenCellDetectionNarrowing'
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+  >,
+  effect: HiddenCellCovertGrowthEffect,
+  closedWeek: number
+): {
+  state: Pick<
+    AgencyState,
+    | 'hiddenCellCovertGrowthLevel'
+    | 'hiddenCellDetectionNarrowing'
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+  >
+  appliedGrowth: number
+  appliedNarrowing: number
+  effect: HiddenCellCovertGrowthEffect
+} {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  const currentLevel = clamp(
+    Math.trunc(agency.hiddenCellCovertGrowthLevel ?? 0),
+    0,
+    HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX
+  )
+  const currentNarrowing = clamp(
+    Math.trunc(agency.hiddenCellDetectionNarrowing ?? 0),
+    0,
+    HIDDEN_CELL_DETECTION_NARROWING_MAX
+  )
+  const appliedGrowth = Math.max(
+    0,
+    Math.min(HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX - currentLevel, Math.trunc(effect.growthApplied))
+  )
+  const appliedNarrowing = Math.max(
+    0,
+    Math.min(
+      HIDDEN_CELL_DETECTION_NARROWING_MAX - currentNarrowing,
+      Math.trunc(effect.narrowingApplied)
+    )
+  )
+
+  if (
+    (appliedGrowth <= 0 && appliedNarrowing <= 0) ||
+    hasHiddenCellCovertGrowthForWeek(agency, week)
+  ) {
+    return {
+      state: agency,
+      appliedGrowth: 0,
+      appliedNarrowing: 0,
+      effect,
+    }
+  }
+
+  return {
+    state: {
+      hiddenCellCovertGrowthLevel: currentLevel + appliedGrowth,
+      hiddenCellDetectionNarrowing: currentNarrowing + appliedNarrowing,
+      lastHiddenCellCovertGrowthWeek: week,
+      lastHiddenCellCovertGrowthAmount: appliedGrowth,
+      lastHiddenCellDetectionNarrowingAmount: appliedNarrowing,
+    },
+    appliedGrowth,
+    appliedNarrowing,
+    effect,
+  }
+}
+
+/** Read-time summary for agency/report surfaces from current ranking pressure + funding + research + panic + infra + covert. */
 export function buildHiddenCellInterferenceSummary(
   game: Pick<GameState, 'reports' | 'events' | 'funding' | 'agency' | 'researchState'>
 ): HiddenCellInterferenceSummary {
@@ -800,12 +1146,21 @@ export function buildHiddenCellInterferenceSummary(
     pressure,
     maintenanceAvailable
   )
+  const covertGrowthLevel = game.agency?.hiddenCellCovertGrowthLevel ?? 0
+  const detectionNarrowing = game.agency?.hiddenCellDetectionNarrowing ?? 0
+  const covertGrowthEffect = resolveHiddenCellCovertGrowthFromPressure(
+    pressure,
+    covertGrowthLevel,
+    detectionNarrowing
+  )
   const active = fundingEffect.active
   const fundingStolen = fundingEffect.fundingStolen
   const progressTimeRolledBack = researchEffect.progressTimeRolledBack
   const researchProjectId = researchEffect.targetProjectId
   const pressureAmplified = panicEffect.pressureAmplified
   const maintenanceCompromised = infrastructureEffect.maintenanceCompromised
+  const covertGrowthApplied = covertGrowthEffect.growthApplied
+  const detectionNarrowingApplied = covertGrowthEffect.narrowingApplied
   const kind: HiddenCellInterferenceKind =
     fundingStolen > 0
       ? 'funding_theft'
@@ -815,7 +1170,9 @@ export function buildHiddenCellInterferenceSummary(
           ? 'panic_amplification'
           : maintenanceCompromised > 0
             ? 'infrastructure_compromise'
-            : 'none'
+            : covertGrowthApplied > 0 || detectionNarrowingApplied > 0
+              ? 'covert_cell_growth'
+              : 'none'
 
   return {
     active,
@@ -825,6 +1182,11 @@ export function buildHiddenCellInterferenceSummary(
     researchProjectId,
     pressureAmplified,
     maintenanceCompromised,
+    covertGrowthApplied,
+    detectionNarrowingApplied,
+    detectionNarrowingBand: covertGrowthEffect.detectionNarrowingBand,
+    covertGrowthLevel,
+    detectionNarrowing,
     rivalPressureBand: pressure.band,
     summary: composeInterferenceSummary({
       active,
@@ -834,10 +1196,13 @@ export function buildHiddenCellInterferenceSummary(
       researchProjectId,
       pressureAmplified,
       maintenanceCompromised,
+      growthApplied: covertGrowthApplied,
+      narrowingApplied: detectionNarrowingApplied,
       fundingSummary: fundingEffect.summary,
       researchSummary: researchEffect.summary,
       panicSummary: panicEffect.summary,
       infrastructureSummary: infrastructureEffect.summary,
+      covertGrowthSummary: covertGrowthEffect.summary,
     }),
   }
 }
@@ -919,4 +1284,38 @@ export function findHiddenCellInfrastructureCompromiseAmountForWeek(
   }
 
   return Math.max(0, Math.trunc(agency?.lastHiddenCellInfrastructureCompromiseAmount ?? 0))
+}
+
+/** Locate applied covert-growth amount for a closed week (note surfacing / tests). */
+export function findHiddenCellCovertGrowthAmountForWeek(
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+  > | undefined,
+  closedWeek: number
+): number {
+  if (!hasHiddenCellCovertGrowthForWeek(agency, closedWeek)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(agency?.lastHiddenCellCovertGrowthAmount ?? 0))
+}
+
+/** Locate applied detection-narrowing amount for a closed week (note surfacing / tests). */
+export function findHiddenCellDetectionNarrowingAmountForWeek(
+  agency: Pick<
+    AgencyState,
+    | 'lastHiddenCellCovertGrowthWeek'
+    | 'lastHiddenCellCovertGrowthAmount'
+    | 'lastHiddenCellDetectionNarrowingAmount'
+  > | undefined,
+  closedWeek: number
+): number {
+  if (!hasHiddenCellCovertGrowthForWeek(agency, closedWeek)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(agency?.lastHiddenCellDetectionNarrowingAmount ?? 0))
 }

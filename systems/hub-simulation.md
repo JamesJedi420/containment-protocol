@@ -182,12 +182,16 @@ Weak signature matches and same-jurisdiction reappearance do not emit a packet.
 Hidden-cell strategic interference is a bounded week-close hook
 (`src/domain/hiddenCellStrategicInterference.ts`): when rival-pressure band is competitive or
 severe, abstract cell pressure may (1) divert a deterministic funding amount through existing
-`FundingState` history (`hidden_cell_funding_theft`) and/or (2) roll back bounded active-research
+`FundingState` history (`hidden_cell_funding_theft`), (2) roll back bounded active-research
 `progressTime` on a lex-min eligible project (SPE-2706; idempotent via
-`ResearchState.lastHiddenCellRollbackWeek`). Suppressed/balanced pressure is inactive.
-Week-close emits `agency.hidden_cell_interference` when funding theft and/or research rollback
-applies; agency/report summaries expose the active/inactive signal. This is not a full
-adversary-org sim and does not include cell detection.
+`ResearchState.lastHiddenCellRollbackWeek`), and/or (3) amplify ambient panic/unrest by adding
+bounded points to `GameState.globalPressure` (SPE-2707; idempotent via
+`lastHiddenCellPanicAmplificationWeek` / `Amount`; applied after the pressure pipeline so the
+bump carries into later weeks rather than spawning same-tick major incidents).
+Suppressed/balanced pressure is inactive. Week-close emits `agency.hidden_cell_interference`
+when funding theft, research rollback, and/or panic amplification applies; agency/report
+summaries expose the active/inactive signal. This is not a full adversary-org sim and does not
+include cell detection.
 
 ### Stage B — Build hub opportunity pools
 

@@ -10,26 +10,34 @@ import {
 } from '../domain/funding'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
   computeHiddenCellFundingTheftBaseAmount,
+  computeHiddenCellPanicAmplificationBaseAmount,
   computeHiddenCellResearchRollbackBaseAmount,
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
   hasHiddenCellFundingTheftForWeek,
+  hasHiddenCellPanicAmplificationForWeek,
   hasHiddenCellResearchRollbackForWeek,
   HIDDEN_CELL_FUNDING_THEFT_REASON,
   HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID,
+  HIDDEN_CELL_PANIC_AMPLIFICATION_MAX,
   isHiddenCellPressureActive,
   resolveHiddenCellFundingTheft,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellFundingTheftFromRankingScore,
+  resolveHiddenCellPanicAmplificationFromPressure,
+  resolveHiddenCellPanicAmplificationFromRankingScore,
   resolveHiddenCellResearchRollbackFromPressure,
   resolveHiddenCellResearchRollbackFromRankingScore,
   selectHiddenCellResearchRollbackTarget,
 } from '../domain/hiddenCellStrategicInterference'
 import {
   buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../domain/hiddenCellInterferenceWeeklyReportNotes'
 import { createInitialResearchState } from '../domain/research'
@@ -91,7 +99,7 @@ function researchStateWithActiveProgress(input?: {
   }
 }
 
-describe('hidden-cell strategic interference (SPE-2704 / SPE-2706)', () => {
+describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707)', () => {
   it('gates cell pressure on competitive/severe rival bands only', () => {
     const bands: RivalPressureBand[] = ['suppressed', 'balanced', 'competitive', 'severe']
     expect(bands.map(isHiddenCellPressureActive)).toEqual([false, false, true, true])
@@ -504,5 +512,176 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706)', () => {
       ) ?? []
     expect(researchNotes.length).toBeGreaterThanOrEqual(1)
     expect(researchNotes[0]?.content).toMatch(/rolled back/)
+  })
+
+  it('derives identical panic-amplification outcomes for identical inputs', () => {
+    const left = resolveHiddenCellPanicAmplificationFromRankingScore(20)
+    const right = resolveHiddenCellPanicAmplificationFromRankingScore(20)
+
+    expect(left).toEqual(right)
+    expect(left.active).toBe(true)
+    expect(left.kind).toBe('panic_amplification')
+    expect(left.pressureAmplified).toBeGreaterThan(0)
+    expect(left.pressureAmplified).toBeLessThanOrEqual(HIDDEN_CELL_PANIC_AMPLIFICATION_MAX)
+    expect(left.summary).toMatch(/amplified ambient panic pressure/)
+  })
+
+  it('applies no panic amplification when cell pressure is inactive', () => {
+    const balanced = resolveHiddenCellPanicAmplificationFromRankingScore(50)
+    const suppressed = resolveHiddenCellPanicAmplificationFromRankingScore(80)
+
+    expect(balanced.active).toBe(false)
+    expect(balanced.pressureAmplified).toBe(0)
+    expect(balanced.kind).toBe('none')
+    expect(suppressed.active).toBe(false)
+    expect(suppressed.pressureAmplified).toBe(0)
+  })
+
+  it('applies panic amplification idempotently once per closed week', () => {
+    const effect = resolveHiddenCellPanicAmplificationFromRankingScore(15)
+    expect(effect.pressureAmplified).toBeGreaterThan(0)
+
+    const first = applyHiddenCellPanicAmplificationToGameState(
+      { globalPressure: 10 },
+      effect,
+      3
+    )
+    expect(first.appliedAmount).toBe(effect.pressureAmplified)
+    expect(first.state.globalPressure).toBe(10 + effect.pressureAmplified)
+    expect(hasHiddenCellPanicAmplificationForWeek(first.state, 3)).toBe(true)
+    expect(findHiddenCellPanicAmplificationAmountForWeek(first.state, 3)).toBe(
+      effect.pressureAmplified
+    )
+
+    const second = applyHiddenCellPanicAmplificationToGameState(first.state, effect, 3)
+    expect(second.appliedAmount).toBe(0)
+    expect(second.state.globalPressure).toBe(first.state.globalPressure)
+  })
+
+  it('keeps SPE-2704/2706 outcomes unchanged for the same pressure inputs', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const fundingEffect = resolveHiddenCellFundingTheftFromPressure(pressure, 900)
+    const research = researchStateWithActiveProgress()
+    const researchEffect = resolveHiddenCellResearchRollbackFromPressure(pressure, research)
+    const panicEffect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
+
+    expect(fundingEffect.fundingStolen).toBe(
+      resolveHiddenCellFundingTheftFromPressure(pressure, 900).fundingStolen
+    )
+    expect(researchEffect.progressTimeRolledBack).toBe(
+      resolveHiddenCellResearchRollbackFromPressure(pressure, research).progressTimeRolledBack
+    )
+    expect(computeHiddenCellPanicAmplificationBaseAmount(pressure.score, pressure.band)).toBe(
+      panicEffect.baseAmplificationAmount
+    )
+    expect(panicEffect.kind).toBe('panic_amplification')
+  })
+
+  it('builds weekly panic-amplification notes only when amplification was applied', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
+    const applied = applyHiddenCellPanicAmplificationToGameState(
+      { globalPressure: 5 },
+      effect,
+      2
+    )
+
+    const notes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: applied.state,
+      rivalPressure: pressure,
+      week: 2,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.type).toBe('agency.hidden_cell_interference')
+    expect(notes[0]?.content).toMatch(/amplified ambient panic pressure/)
+    expect(notes[0]?.metadata).toMatchObject({
+      kind: 'panic_amplification',
+      pressureAmplified: effect.pressureAmplified,
+      rivalPressureBand: pressure.band,
+      week: 2,
+    })
+
+    const inactiveNotes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: { globalPressure: 5 },
+      rivalPressure: buildRivalPressureFromRankingScore(50),
+      week: 2,
+      sequenceStart: 1,
+    })
+    expect(inactiveNotes).toHaveLength(0)
+  })
+
+  it('advanceWeek amplifies globalPressure and emits panic note under severe cell pressure', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    state.globalPressure = 8
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+    }
+
+    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
+    const expectedAmplification =
+      resolveHiddenCellPanicAmplificationFromPressure(pressureBefore).pressureAmplified
+    expect(expectedAmplification).toBeGreaterThan(0)
+
+    const closedWeek = state.week
+    const nextState = advanceWeek(state)
+    expect(findHiddenCellPanicAmplificationAmountForWeek(nextState, closedWeek)).toBe(
+      expectedAmplification
+    )
+    // Pressure pipeline may decay/add before amplification; markers prove the applied delta.
+    expect(nextState.lastHiddenCellPanicAmplificationAmount).toBe(expectedAmplification)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const panicNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'panic_amplification'
+      ) ?? []
+    expect(panicNotes.length).toBeGreaterThanOrEqual(1)
+    expect(panicNotes[0]?.content).toMatch(/amplified ambient panic pressure/)
+  })
+
+  it('advanceWeek emits no panic note when cell pressure is inactive', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = []
+    state.funding = 2000
+    state.globalPressure = 8
+    if (state.agency) {
+      state.agency.funding = 2000
+    }
+
+    const pressure = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
+
+    const nextState = advanceWeek(state)
+    expect(findHiddenCellPanicAmplificationAmountForWeek(nextState, state.week)).toBe(0)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const panicNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'panic_amplification'
+      ) ?? []
+    expect(panicNotes).toHaveLength(0)
   })
 })

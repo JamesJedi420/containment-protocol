@@ -2644,6 +2644,13 @@ export interface GameState {
   productionQueue: ProductionQueueEntry[]
   market: MarketState
   globalPressure?: number
+  /**
+   * SPE-2707: closed week when hidden-cell panic amplification last applied to globalPressure.
+   * Paired with lastHiddenCellPanicAmplificationAmount for per-week idempotency.
+   */
+  lastHiddenCellPanicAmplificationWeek?: number
+  /** SPE-2707: ambient pressure points added on lastHiddenCellPanicAmplificationWeek. */
+  lastHiddenCellPanicAmplificationAmount?: number
   globalEscalationLevel?: number
   globalThreatDrift?: number
   globalTimePressure?: number

@@ -57,6 +57,9 @@ export function getReportPageView(game: GameState): ReportPageView {
                   `(${agencySummary.hiddenCellInterference.researchProjectId})`
               )
             }
+            if (agencySummary.hiddenCellInterference.pressureAmplified > 0) {
+              parts.push(`panic +${agencySummary.hiddenCellInterference.pressureAmplified}`)
+            }
             if (parts.length === 0) {
               return `${agencySummary.hiddenCellInterference.rivalPressureBand} (no diversion)`
             }

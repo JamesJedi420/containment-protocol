@@ -9497,6 +9497,9 @@ export function hydrateGame(
     globalEscalationLevel: game.globalEscalationLevel,
     globalThreatDrift: game.globalThreatDrift,
     globalTimePressure: game.globalTimePressure,
+    lastHiddenCellPanicAmplificationWeek: game.lastHiddenCellPanicAmplificationWeek,
+    lastHiddenCellPanicAmplificationAmount: game.lastHiddenCellPanicAmplificationAmount,
+    campaignWeek: typeof game.week === 'number' && Number.isFinite(game.week) ? game.week : undefined,
   })
 
   const agency = hydrationAgency
@@ -9551,6 +9554,8 @@ export function hydrateGame(
     'globalEscalationLevel',
     'globalThreatDrift',
     'globalTimePressure',
+    'lastHiddenCellPanicAmplificationWeek',
+    'lastHiddenCellPanicAmplificationAmount',
   ] as const) {
     if (!(key in globalPressureScalars)) {
       delete hydrated[key]

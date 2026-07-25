@@ -1,16 +1,20 @@
 /**
  * SPE-2718 / SPE-39: status upkeep / public-display costs for agency ranking.
  *
- * Derives weekly display-upkeep adequacy from SPE-28 operating-cost funding history
+ * Derives weekly display-upkeep adequacy from SPE-28 operating-cost affordability
  * (facility upkeep portion as the public-presentation cost anchor) and composes a
  * bounded ranking penalty + standing-gain scale. Does not mutate SPE-2696 award records.
  *
  * Distinct from legitimacy.sanctionLevel (institutional sanction / cover posture gating).
+ *
+ * Production week-close captures affordability from pre-cost funding (advanceWeek clamps
+ * post-cost funding to ≥ 0). Ranking prefers report-note metadata; funding-history resolve
+ * remains a test/legacy fallback using funding before the operating_cost entry.
  */
 
 import { WEEKLY_OPERATING_COST_SOURCE_ID } from './funding'
 import { clamp } from './math'
-import type { FundingState, GameState } from './models'
+import type { FundingState, GameState, ReportNote } from './models'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
 /** Bounded ranking penalty when display/upkeep is underfunded. */
@@ -23,8 +27,10 @@ export interface StatusUpkeepDisplayEffect {
   readonly week: number
   /** Facility/public-display cost slice for the week (payroll excluded). */
   readonly displayCost: number
-  /** Funding immediately after that week's operating_cost entry; null when not charged. */
-  readonly fundingAfterOperatingCost: number | null
+  /** Full SPE-28 operating-cost amount used for affordability (0 when not charged). */
+  readonly operatingCostAmount: number
+  /** Funding available before operating cost; null when not assessed. */
+  readonly fundingBeforeOperatingCost: number | null
   /** Ranking score delta composed for this week (0 maintained/neutral, negative when underfunded). */
   readonly rankingDelta: number
   /**
@@ -67,11 +73,110 @@ function findOperatingCostEntryIndex(
   )
 }
 
+function buildSummary(input: {
+  band: StatusUpkeepBand
+  displayCost: number
+  operatingCostAmount: number
+  fundingBeforeOperatingCost: number | null
+  rankingDelta: number
+}): string {
+  if (input.band === 'underfunded') {
+    return (
+      `Public-display upkeep underfunded ` +
+      `(funding ${input.fundingBeforeOperatingCost ?? 0} could not cover weekly operating cost ${input.operatingCostAmount}; ` +
+      `facility display slice ${input.displayCost}); ` +
+      `ranking ${input.rankingDelta} and week standing gains blocked in comparative standing.`
+    )
+  }
+
+  if (input.band === 'maintained') {
+    return (
+      `Public-display upkeep maintained ` +
+      `(funding ${input.fundingBeforeOperatingCost ?? 0} covered weekly operating cost ${input.operatingCostAmount}; ` +
+      `facility display slice ${input.displayCost}); ` +
+      `no ranking penalty.`
+    )
+  }
+
+  return 'Public-display upkeep not assessed for this week (no operating-cost charge).'
+}
+
 /**
- * Reconstruct absolute funding immediately after the week's operating_cost entry.
+ * Pure resolve from pre-cost funding vs operating-cost amount.
+ * Underfunded when the agency cannot cover the week's SPE-28 operating cost.
+ */
+export function resolveStatusUpkeepDisplayEffectFromAffordability(
+  fundingBeforeOperatingCost: number,
+  operatingCostAmount: number,
+  week: number
+): StatusUpkeepDisplayEffect {
+  const closedWeek = Math.max(1, Math.trunc(week))
+  const displayCost = computeWeeklyPublicDisplayCost(closedWeek)
+  const cost = Math.max(0, Math.trunc(operatingCostAmount))
+  const fundingBefore = Math.trunc(fundingBeforeOperatingCost)
+
+  if (cost <= 0) {
+    return {
+      band: 'neutral',
+      week: closedWeek,
+      displayCost,
+      operatingCostAmount: 0,
+      fundingBeforeOperatingCost: fundingBefore,
+      rankingDelta: 0,
+      standingGainScale: 1,
+      summary: buildSummary({
+        band: 'neutral',
+        displayCost,
+        operatingCostAmount: 0,
+        fundingBeforeOperatingCost: fundingBefore,
+        rankingDelta: 0,
+      }),
+    }
+  }
+
+  if (fundingBefore < cost) {
+    const rankingDelta = -STATUS_UPKEEP_RANKING_PENALTY
+    return {
+      band: 'underfunded',
+      week: closedWeek,
+      displayCost,
+      operatingCostAmount: cost,
+      fundingBeforeOperatingCost: fundingBefore,
+      rankingDelta,
+      standingGainScale: 0,
+      summary: buildSummary({
+        band: 'underfunded',
+        displayCost,
+        operatingCostAmount: cost,
+        fundingBeforeOperatingCost: fundingBefore,
+        rankingDelta,
+      }),
+    }
+  }
+
+  return {
+    band: 'maintained',
+    week: closedWeek,
+    displayCost,
+    operatingCostAmount: cost,
+    fundingBeforeOperatingCost: fundingBefore,
+    rankingDelta: 0,
+    standingGainScale: 1,
+    summary: buildSummary({
+      band: 'maintained',
+      displayCost,
+      operatingCostAmount: cost,
+      fundingBeforeOperatingCost: fundingBefore,
+      rankingDelta: 0,
+    }),
+  }
+}
+
+/**
+ * Reconstruct funding immediately before the week's operating_cost entry.
  * Uses current funding + full history to recover the pre-history baseline.
  */
-export function reconstructFundingAfterOperatingCost(
+export function reconstructFundingBeforeOperatingCost(
   fundingState: FundingState | undefined,
   week: number
 ): number | null {
@@ -86,106 +191,144 @@ export function reconstructFundingAfterOperatingCost(
 
   const historySum = fundingState.fundingHistory.reduce((sum, entry) => sum + entry.delta, 0)
   let funding = fundingState.funding - historySum
-  for (let index = 0; index <= opIndex; index += 1) {
+  for (let index = 0; index < opIndex; index += 1) {
     funding += fundingState.fundingHistory[index]!.delta
   }
 
   return funding
 }
 
-function buildSummary(input: {
-  band: StatusUpkeepBand
-  displayCost: number
-  fundingAfterOperatingCost: number | null
-  rankingDelta: number
-  standingGainScale: number
-}): string {
-  if (input.band === 'underfunded') {
-    return (
-      `Public-display upkeep underfunded ` +
-      `(funding ${input.fundingAfterOperatingCost ?? 0} after facility display cost ${input.displayCost}); ` +
-      `ranking ${input.rankingDelta} and week standing gains blocked in comparative standing.`
-    )
+export function findWeeklyOperatingCostAmount(
+  fundingState: FundingState | undefined,
+  week: number
+): number | null {
+  if (!fundingState) {
+    return null
   }
 
-  if (input.band === 'maintained') {
-    return (
-      `Public-display upkeep maintained ` +
-      `(funding ${input.fundingAfterOperatingCost ?? 0} after facility display cost ${input.displayCost}); ` +
-      `no ranking penalty.`
-    )
+  const opIndex = findOperatingCostEntryIndex(fundingState, week)
+  if (opIndex < 0) {
+    return null
   }
 
-  return 'Public-display upkeep not assessed for this week (no operating-cost charge).'
+  return Math.max(0, -fundingState.fundingHistory[opIndex]!.delta)
+}
+
+/** @deprecated Prefer reconstructFundingBeforeOperatingCost; kept for call-site clarity in tests. */
+export function reconstructFundingAfterOperatingCost(
+  fundingState: FundingState | undefined,
+  week: number
+): number | null {
+  const before = reconstructFundingBeforeOperatingCost(fundingState, week)
+  const amount = findWeeklyOperatingCostAmount(fundingState, week)
+  if (before === null || amount === null) {
+    return null
+  }
+  return before - amount
 }
 
 /**
- * Pure resolve: identical funding-history + week → identical upkeep/display effect.
- * Underfunded when funding after operating cost is negative.
+ * Funding-history fallback: identical history + week → identical effect.
+ * Prefer report-note metadata after real advanceWeek (post-cost funding is clamped).
  */
 export function resolveStatusUpkeepDisplayEffect(
   fundingState: FundingState | undefined,
   week: number
 ): StatusUpkeepDisplayEffect {
   const closedWeek = Math.max(1, Math.trunc(week))
-  const displayCost = computeWeeklyPublicDisplayCost(closedWeek)
-  const fundingAfterOperatingCost = reconstructFundingAfterOperatingCost(
-    fundingState,
-    closedWeek
-  )
+  const fundingBefore = reconstructFundingBeforeOperatingCost(fundingState, closedWeek)
+  const operatingCostAmount = findWeeklyOperatingCostAmount(fundingState, closedWeek)
 
-  if (fundingAfterOperatingCost === null) {
+  if (fundingBefore === null || operatingCostAmount === null) {
+    const displayCost = computeWeeklyPublicDisplayCost(closedWeek)
     return {
       band: 'neutral',
       week: closedWeek,
       displayCost,
-      fundingAfterOperatingCost: null,
+      operatingCostAmount: 0,
+      fundingBeforeOperatingCost: null,
       rankingDelta: 0,
       standingGainScale: 1,
       summary: buildSummary({
         band: 'neutral',
         displayCost,
-        fundingAfterOperatingCost: null,
+        operatingCostAmount: 0,
+        fundingBeforeOperatingCost: null,
         rankingDelta: 0,
-        standingGainScale: 1,
       }),
     }
   }
 
-  if (fundingAfterOperatingCost < 0) {
-    const rankingDelta = -STATUS_UPKEEP_RANKING_PENALTY
-    return {
-      band: 'underfunded',
-      week: closedWeek,
-      displayCost,
-      fundingAfterOperatingCost,
-      rankingDelta,
-      standingGainScale: 0,
-      summary: buildSummary({
-        band: 'underfunded',
-        displayCost,
-        fundingAfterOperatingCost,
-        rankingDelta,
-        standingGainScale: 0,
-      }),
-    }
+  return resolveStatusUpkeepDisplayEffectFromAffordability(
+    fundingBefore,
+    operatingCostAmount,
+    closedWeek
+  )
+}
+
+export function readStatusUpkeepEffectFromReportNotes(
+  notes: readonly ReportNote[] | undefined,
+  week: number
+): StatusUpkeepDisplayEffect | null {
+  const note = (notes ?? []).find(
+    (entry) =>
+      entry.type === 'agency.status_upkeep_display' &&
+      (entry.metadata?.week === week || entry.metadata?.week === undefined)
+  )
+  if (!note?.metadata) {
+    return null
   }
+
+  const band = note.metadata.band
+  if (band !== 'maintained' && band !== 'underfunded' && band !== 'neutral') {
+    return null
+  }
+
+  const rankingDelta =
+    typeof note.metadata.rankingDelta === 'number' ? note.metadata.rankingDelta : 0
+  const standingGainScale =
+    typeof note.metadata.standingGainScale === 'number' ? note.metadata.standingGainScale : 1
+  const displayCost =
+    typeof note.metadata.displayCost === 'number'
+      ? note.metadata.displayCost
+      : computeWeeklyPublicDisplayCost(week)
+  const operatingCostAmount =
+    typeof note.metadata.operatingCostAmount === 'number' ? note.metadata.operatingCostAmount : 0
+  const fundingBeforeOperatingCost =
+    typeof note.metadata.fundingBeforeOperatingCost === 'number'
+      ? note.metadata.fundingBeforeOperatingCost
+      : null
 
   return {
-    band: 'maintained',
-    week: closedWeek,
+    band,
+    week,
     displayCost,
-    fundingAfterOperatingCost,
-    rankingDelta: 0,
-    standingGainScale: 1,
-    summary: buildSummary({
-      band: 'maintained',
-      displayCost,
-      fundingAfterOperatingCost,
-      rankingDelta: 0,
-      standingGainScale: 1,
-    }),
+    operatingCostAmount,
+    fundingBeforeOperatingCost,
+    rankingDelta,
+    standingGainScale,
+    summary:
+      typeof note.content === 'string' && note.content.length > 0
+        ? note.content.replace(/^Week \d+ — /, '')
+        : buildSummary({
+            band,
+            displayCost,
+            operatingCostAmount,
+            fundingBeforeOperatingCost,
+            rankingDelta,
+          }),
   }
+}
+
+/** Ranking week resolve: report notes (production) then funding-history fallback. */
+export function resolveStatusUpkeepForRankingWeek(
+  report: Pick<GameState['reports'][number], 'week' | 'notes'>,
+  fundingState: FundingState | undefined
+): StatusUpkeepDisplayEffect {
+  return (
+    readStatusUpkeepEffectFromReportNotes(report.notes, report.week) ??
+    resolveStatusUpkeepDisplayEffect(fundingState, report.week)
+  )
 }
 
 /** Compose standing award points for ranking: block positive gains when scale is 0. */
@@ -200,10 +343,26 @@ export function composeStandingPointsForRanking(
   return awardPoints
 }
 
+export function findStatusUpkeepMarkersForWeek(
+  agency: GameState['agency'] | undefined,
+  week: number
+): StatusUpkeepDisplayEffect | null {
+  if (!agency || agency.lastStatusUpkeepWeek !== week || !agency.lastStatusUpkeepBand) {
+    return null
+  }
+
+  return resolveStatusUpkeepDisplayEffectFromAffordability(
+    agency.lastStatusUpkeepFundingBefore ?? 0,
+    agency.lastStatusUpkeepOperatingCost ?? 0,
+    week
+  )
+}
+
 export function buildStatusUpkeepDisplaySummary(
   game: Pick<GameState, 'agency' | 'reports'>
 ): StatusUpkeepDisplaySummary {
-  const latestWeek = game.reports.at(-1)?.week ?? null
+  const latestReport = game.reports.at(-1)
+  const latestWeek = latestReport?.week ?? null
   if (latestWeek === null) {
     return {
       band: 'neutral',
@@ -214,7 +373,12 @@ export function buildStatusUpkeepDisplaySummary(
     }
   }
 
-  const effect = resolveStatusUpkeepDisplayEffect(game.agency?.fundingState, latestWeek)
+  const fromMarkers = findStatusUpkeepMarkersForWeek(game.agency, latestWeek)
+  const effect =
+    fromMarkers ??
+    readStatusUpkeepEffectFromReportNotes(latestReport?.notes, latestWeek) ??
+    resolveStatusUpkeepDisplayEffect(game.agency?.fundingState, latestWeek)
+
   return {
     band: effect.band,
     rankingDelta: effect.rankingDelta,

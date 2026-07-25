@@ -623,7 +623,8 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
   'agency.status_upkeep_display': [
     'band',
     'displayCost',
-    'fundingAfterOperatingCost',
+    'operatingCostAmount',
+    'fundingBeforeOperatingCost',
     'rankingDelta',
     'standingGainScale',
     'week',
@@ -6290,6 +6291,32 @@ function sanitizeAgencyState(
     ((lastHiddenCellCovertGrowthAmount !== undefined && lastHiddenCellCovertGrowthAmount > 0) ||
       (lastHiddenCellDetectionNarrowingAmount !== undefined &&
         lastHiddenCellDetectionNarrowingAmount > 0))
+  const lastStatusUpkeepWeek =
+    typeof raw.lastStatusUpkeepWeek === 'number' && Number.isFinite(raw.lastStatusUpkeepWeek)
+      ? Math.max(1, Math.min(campaignWeek, Math.round(raw.lastStatusUpkeepWeek)))
+      : undefined
+  const lastStatusUpkeepBand =
+    raw.lastStatusUpkeepBand === 'maintained' ||
+    raw.lastStatusUpkeepBand === 'underfunded' ||
+    raw.lastStatusUpkeepBand === 'neutral'
+      ? raw.lastStatusUpkeepBand
+      : undefined
+  const lastStatusUpkeepFundingBefore =
+    typeof raw.lastStatusUpkeepFundingBefore === 'number' &&
+    Number.isFinite(raw.lastStatusUpkeepFundingBefore)
+      ? Math.round(raw.lastStatusUpkeepFundingBefore)
+      : undefined
+  const lastStatusUpkeepOperatingCost =
+    typeof raw.lastStatusUpkeepOperatingCost === 'number' &&
+    Number.isFinite(raw.lastStatusUpkeepOperatingCost)
+      ? Math.max(0, Math.round(raw.lastStatusUpkeepOperatingCost))
+      : undefined
+  // SPE-2718: week marker requires band + funding-before + operating-cost fields together.
+  const hasCompleteStatusUpkeepMarkers =
+    lastStatusUpkeepWeek !== undefined &&
+    lastStatusUpkeepBand !== undefined &&
+    lastStatusUpkeepFundingBefore !== undefined &&
+    lastStatusUpkeepOperatingCost !== undefined
   const courierShellFront = sanitizeCourierShellFrontState(raw.courierShellFront, campaignWeek)
   const progressionUnlockIds = sanitizeProgressionUnlockIds(raw.progressionUnlockIds)
 
@@ -6336,6 +6363,14 @@ function sanitizeAgencyState(
           lastHiddenCellCovertGrowthWeek,
           lastHiddenCellCovertGrowthAmount: lastHiddenCellCovertGrowthAmount ?? 0,
           lastHiddenCellDetectionNarrowingAmount: lastHiddenCellDetectionNarrowingAmount ?? 0,
+        }
+      : {}),
+    ...(hasCompleteStatusUpkeepMarkers
+      ? {
+          lastStatusUpkeepWeek,
+          lastStatusUpkeepBand,
+          lastStatusUpkeepFundingBefore,
+          lastStatusUpkeepOperatingCost,
         }
       : {}),
     ...(typeof mirrors.coordinationFrictionActive === 'boolean'

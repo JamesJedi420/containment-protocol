@@ -4,6 +4,7 @@ import { buildAgencySummary } from '../domain/agency'
 import {
   applyFundingExpense,
   applyFundingIncome,
+  computeWeeklyOperatingCost,
   createInitialFundingState,
   WEEKLY_OPERATING_COST_SOURCE_ID,
 } from '../domain/funding'
@@ -11,11 +12,13 @@ import { buildMissionRewardBreakdown } from '../domain/missionResults'
 import type { CaseInstance, FundingState, GameState, OperationEvent } from '../domain/models'
 import { buildAgencyRanking } from '../domain/rankings'
 import { buildRivalPressure } from '../domain/rivalPressure'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   composeStandingPointsForRanking,
   computeWeeklyPublicDisplayCost,
-  reconstructFundingAfterOperatingCost,
+  reconstructFundingBeforeOperatingCost,
   resolveStatusUpkeepDisplayEffect,
+  resolveStatusUpkeepDisplayEffectFromAffordability,
   STATUS_UPKEEP_RANKING_PENALTY,
 } from '../domain/statusUpkeepDisplayCost'
 import { buildWeeklyStatusUpkeepDisplayReportNotes } from '../domain/statusUpkeepDisplayWeeklyReportNotes'
@@ -72,6 +75,13 @@ function emptyWeekReport(week: number): GameState['reports'][number] {
   }
 }
 
+function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
+  for (const currentCase of Object.values(state.cases)) {
+    currentCase.status = 'resolved'
+    currentCase.deadlineRemaining = 99
+  }
+}
+
 describe('statusUpkeepDisplayCost (SPE-2718)', () => {
   it('computes public-display cost from facility upkeep base + spike (payroll excluded)', () => {
     const cal = FUNDING_CALIBRATION.weeklyOperatingCost
@@ -79,7 +89,7 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(computeWeeklyPublicDisplayCost(4)).toBe(cal.facilityUpkeepBase + cal.upkeepSpikeAmount)
   })
 
-  it('treats post-operating-cost funding >= 0 as maintained (no penalty)', () => {
+  it('treats pre-operating-cost funding >= cost as maintained (no penalty)', () => {
     let funding = createInitialFundingState(10, 10, 10, 10, 100)
     funding = withOperatingCost(funding, 1, 20)
     const effect = resolveStatusUpkeepDisplayEffect(funding, 1)
@@ -87,11 +97,12 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(effect.band).toBe('maintained')
     expect(effect.rankingDelta).toBe(0)
     expect(effect.standingGainScale).toBe(1)
-    expect(effect.fundingAfterOperatingCost).toBe(80)
+    expect(effect.fundingBeforeOperatingCost).toBe(100)
+    expect(reconstructFundingBeforeOperatingCost(funding, 1)).toBe(100)
     expect(effect.summary).toContain('maintained')
   })
 
-  it('treats post-operating-cost funding < 0 as underfunded (penalty + blocked gains)', () => {
+  it('treats pre-operating-cost funding < cost as underfunded (penalty + blocked gains)', () => {
     let funding = createInitialFundingState(10, 10, 10, 10, 10)
     funding = withOperatingCost(funding, 1, 40)
     const effect = resolveStatusUpkeepDisplayEffect(funding, 1)
@@ -99,8 +110,10 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(effect.band).toBe('underfunded')
     expect(effect.rankingDelta).toBe(-STATUS_UPKEEP_RANKING_PENALTY)
     expect(effect.standingGainScale).toBe(0)
-    expect(effect.fundingAfterOperatingCost).toBe(-30)
-    expect(reconstructFundingAfterOperatingCost(funding, 1)).toBe(-30)
+    expect(effect.fundingBeforeOperatingCost).toBe(10)
+    expect(
+      resolveStatusUpkeepDisplayEffectFromAffordability(10, 40, 1).band
+    ).toBe('underfunded')
   })
 
   it('is deterministic for identical funding history', () => {
@@ -122,6 +135,7 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     funded = withOperatingCost(funded, 1, 20)
     expect(
       buildWeeklyStatusUpkeepDisplayReportNotes({
+        agency: undefined,
         fundingState: funded,
         week: 1,
         sequenceStart: 1,
@@ -131,6 +145,7 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     let broke = createInitialFundingState(10, 10, 10, 10, 5)
     broke = withOperatingCost(broke, 1, 40)
     const notes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: undefined,
       fundingState: broke,
       week: 1,
       sequenceStart: 1,
@@ -139,6 +154,7 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(notes[0]?.type).toBe('agency.status_upkeep_display')
     expect(notes[0]?.content).toContain('underfunded')
     expect(notes[0]?.metadata?.rankingDelta).toBe(-STATUS_UPKEEP_RANKING_PENALTY)
+    expect(notes[0]?.metadata?.fundingBeforeOperatingCost).toBe(5)
   })
 
   it('lowers ranking when underfunded and blocks that week standing gains', () => {
@@ -180,8 +196,15 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
 
     let underfundedFunding = createInitialFundingState(10, 10, 10, 10, 5)
     underfundedFunding = withOperatingCost(underfundedFunding, 1, 40)
+    const underfundedNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: undefined,
+      fundingState: underfundedFunding,
+      week: 1,
+      sequenceStart: 1,
+    })
     const underfundedGame: GameState = {
       ...maintainedGame,
+      reports: [{ ...report, notes: underfundedNotes }],
       agency: {
         ...game.agency!,
         fundingState: underfundedFunding,
@@ -233,13 +256,81 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
   it('exposes status upkeep band on agency summary', () => {
     const game = createStartingState()
     game.reports = [emptyWeekReport(1)]
-    let funding = createInitialFundingState(10, 10, 10, 10, 3)
-    funding = withOperatingCost(funding, 1, 30)
-    game.agency = { ...game.agency!, fundingState: funding }
+    game.agency = {
+      ...game.agency!,
+      lastStatusUpkeepWeek: 1,
+      lastStatusUpkeepBand: 'underfunded',
+      lastStatusUpkeepFundingBefore: 3,
+      lastStatusUpkeepOperatingCost: 30,
+    }
 
     const summary = buildAgencySummary(game)
     expect(summary.statusUpkeepDisplay.band).toBe('underfunded')
     expect(summary.statusUpkeepDisplay.rankingDelta).toBe(-STATUS_UPKEEP_RANKING_PENALTY)
     expect(summary.statusUpkeepDisplay.summary).toContain('underfunded')
+  })
+
+  it('advanceWeek marks underfunded when pre-cost funding cannot cover operating cost', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = []
+    const closedWeek = state.week
+    const operatingCost = computeWeeklyOperatingCost(state, closedWeek)
+    expect(operatingCost).toBeGreaterThan(0)
+
+    // Leave less funding than the week's operating cost (post-cost clamp would hide negatives).
+    const shortFunding = Math.max(1, Math.floor(operatingCost / 2))
+    state.funding = shortFunding
+    if (state.agency) {
+      state.agency.funding = shortFunding
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        shortFunding
+      )
+    }
+
+    const nextState = advanceWeek(state)
+    expect(nextState.agency?.lastStatusUpkeepWeek).toBe(closedWeek)
+    expect(nextState.agency?.lastStatusUpkeepBand).toBe('underfunded')
+    expect(nextState.agency?.lastStatusUpkeepOperatingCost).toBe(operatingCost)
+    expect(nextState.agency?.lastStatusUpkeepFundingBefore).toBeLessThan(operatingCost)
+    // Post-cost funding is clamped ≥ 0 — markers must still detect the shortfall.
+    expect(nextState.funding).toBeGreaterThanOrEqual(0)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const upkeepNotes =
+      lastReport?.notes?.filter((note) => note.type === 'agency.status_upkeep_display') ?? []
+    expect(upkeepNotes).toHaveLength(1)
+    expect(upkeepNotes[0]?.metadata?.band).toBe('underfunded')
+
+    const summary = buildAgencySummary(nextState)
+    expect(summary.statusUpkeepDisplay.band).toBe('underfunded')
+  })
+
+  it('advanceWeek marks maintained when funding covers operating cost', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = []
+    state.funding = 5000
+    if (state.agency) {
+      state.agency.funding = 5000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        5000
+      )
+    }
+
+    const nextState = advanceWeek(state)
+    expect(nextState.agency?.lastStatusUpkeepBand).toBe('maintained')
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const upkeepNotes =
+      lastReport?.notes?.filter((note) => note.type === 'agency.status_upkeep_display') ?? []
+    expect(upkeepNotes).toHaveLength(0)
   })
 })

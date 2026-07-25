@@ -3,7 +3,7 @@ import type { FundingState, GameState } from './models'
 import type { OperationEvent } from './events/types'
 import {
   composeStandingPointsForRanking,
-  resolveStatusUpkeepDisplayEffect,
+  resolveStatusUpkeepForRankingWeek,
 } from './statusUpkeepDisplayCost'
 
 export interface RankingScoreFactor {
@@ -393,7 +393,7 @@ function accumulateReportWeek(
   accumulator.failedCases += report.failedCases.length
   accumulator.unresolvedCases += report.unresolvedTriggers.length
 
-  const upkeepEffect = resolveStatusUpkeepDisplayEffect(fundingState, report.week)
+  const upkeepEffect = resolveStatusUpkeepForRankingWeek(report, fundingState)
   accumulator.statusUpkeepDelta += upkeepEffect.rankingDelta
   if (upkeepEffect.band === 'underfunded') {
     accumulator.statusUpkeepUnderfundedWeeks += 1

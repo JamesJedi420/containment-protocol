@@ -2,11 +2,13 @@
  * SPE-2718: weekly report notes for status upkeep / public-display ranking costs.
  *
  * Emits when underfunded so the player sees why comparative standing shifted.
+ * Prefers agency week-close markers (pre-cost affordability); funding-history is fallback.
  */
 
-import type { FundingState, ReportNote } from './models'
+import type { AgencyState, FundingState, ReportNote } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import {
+  findStatusUpkeepMarkersForWeek,
   resolveStatusUpkeepDisplayEffect,
   type StatusUpkeepDisplayEffect,
 } from './statusUpkeepDisplayCost'
@@ -20,12 +22,16 @@ export function formatStatusUpkeepDisplayNoteContent(
 
 /** Builds weekly report notes when public-display upkeep underfunding affects ranking. */
 export function buildWeeklyStatusUpkeepDisplayReportNotes(input: {
+  agency: AgencyState | null | undefined
   fundingState: FundingState | null | undefined
   week: number
   sequenceStart: number
   baseTimestamp?: number
 }): ReportNote[] {
-  const effect = resolveStatusUpkeepDisplayEffect(input.fundingState ?? undefined, input.week)
+  const effect =
+    findStatusUpkeepMarkersForWeek(input.agency ?? undefined, input.week) ??
+    resolveStatusUpkeepDisplayEffect(input.fundingState ?? undefined, input.week)
+
   if (effect.band !== 'underfunded') {
     return []
   }
@@ -40,7 +46,8 @@ export function buildWeeklyStatusUpkeepDisplayReportNotes(input: {
       {
         band: effect.band,
         displayCost: effect.displayCost,
-        fundingAfterOperatingCost: effect.fundingAfterOperatingCost,
+        operatingCostAmount: effect.operatingCostAmount,
+        fundingBeforeOperatingCost: effect.fundingBeforeOperatingCost,
         rankingDelta: effect.rankingDelta,
         standingGainScale: effect.standingGainScale,
         week: input.week,

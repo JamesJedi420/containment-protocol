@@ -91,6 +91,7 @@ Documents the versioned serialization format for the full game store state.
 - Optional `GameState.lastHiddenCellPanicAmplificationWeek` / `lastHiddenCellPanicAmplificationAmount` (SPE-2707) are sanitized with global pressure scalars; incomplete pairs are dropped so a week cannot lock without a matching applied amount
 - Optional `AgencyState.lastHiddenCellInfrastructureCompromiseWeek` / `lastHiddenCellInfrastructureCompromiseAmount` (SPE-2710) are sanitized in `sanitizeAgencyState`; incomplete pairs are dropped so a week cannot lock without a matching applied amount
 - Optional `AgencyState.hiddenCellCovertGrowthLevel` / `hiddenCellDetectionNarrowing` / `lastHiddenCellCovertGrowthWeek` / `lastHiddenCellCovertGrowthAmount` / `lastHiddenCellDetectionNarrowingAmount` (SPE-2714) are sanitized in `sanitizeAgencyState`; week markers require at least one positive applied amount so a week cannot lock without a matching note
+- Optional `AgencyState.lastStatusUpkeepWeek` / `lastStatusUpkeepBand` / `lastStatusUpkeepFundingBefore` / `lastStatusUpkeepOperatingCost` (SPE-2718) are sanitized in `sanitizeAgencyState`; incomplete marker sets are dropped so adequacy cannot hydrate without the pre-cost funding snapshot
 
 ---
 

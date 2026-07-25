@@ -11,25 +11,32 @@ import {
 } from '../domain/funding'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellInfrastructureCompromiseToAgencyState,
   applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
   computeHiddenCellFundingTheftBaseAmount,
+  computeHiddenCellInfrastructureCompromiseBaseAmount,
   computeHiddenCellPanicAmplificationBaseAmount,
   computeHiddenCellResearchRollbackBaseAmount,
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellInfrastructureCompromiseAmountForWeek,
   findHiddenCellPanicAmplificationAmountForWeek,
   findHiddenCellResearchRollbackAmountForWeek,
   findHiddenCellResearchRollbackProjectIdForWeek,
   hasHiddenCellFundingTheftForWeek,
+  hasHiddenCellInfrastructureCompromiseForWeek,
   hasHiddenCellPanicAmplificationForWeek,
   hasHiddenCellResearchRollbackForWeek,
   HIDDEN_CELL_FUNDING_THEFT_REASON,
   HIDDEN_CELL_FUNDING_THEFT_SOURCE_ID,
+  HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX,
   HIDDEN_CELL_PANIC_AMPLIFICATION_MAX,
   isHiddenCellPressureActive,
   resolveHiddenCellFundingTheft,
   resolveHiddenCellFundingTheftFromPressure,
   resolveHiddenCellFundingTheftFromRankingScore,
+  resolveHiddenCellInfrastructureCompromiseFromPressure,
+  resolveHiddenCellInfrastructureCompromiseFromRankingScore,
   resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellPanicAmplificationFromRankingScore,
   resolveHiddenCellResearchRollbackFromPressure,
@@ -37,6 +44,7 @@ import {
   selectHiddenCellResearchRollbackTarget,
 } from '../domain/hiddenCellStrategicInterference'
 import {
+  buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
   buildWeeklyHiddenCellInterferenceReportNotes,
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
@@ -100,7 +108,7 @@ function researchStateWithActiveProgress(input?: {
   }
 }
 
-describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707)', () => {
+describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710)', () => {
   it('gates cell pressure on competitive/severe rival bands only', () => {
     const bands: RivalPressureBand[] = ['suppressed', 'balanced', 'competitive', 'severe']
     expect(bands.map(isHiddenCellPressureActive)).toEqual([false, false, true, true])
@@ -728,5 +736,249 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707)', 
           note.metadata?.kind === 'panic_amplification'
       ) ?? []
     expect(panicNotes).toHaveLength(0)
+  })
+
+  it('derives identical infrastructure-compromise outcomes for identical inputs', () => {
+    const left = resolveHiddenCellInfrastructureCompromiseFromRankingScore(20, 4)
+    const right = resolveHiddenCellInfrastructureCompromiseFromRankingScore(20, 4)
+
+    expect(left).toEqual(right)
+    expect(left.active).toBe(true)
+    expect(left.kind).toBe('infrastructure_compromise')
+    expect(left.maintenanceCompromised).toBeGreaterThan(0)
+    expect(left.maintenanceCompromised).toBeLessThanOrEqual(HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX)
+    expect(left.summary).toMatch(/compromised .* maintenance specialist/)
+  })
+
+  it('applies no infrastructure compromise when cell pressure is inactive', () => {
+    const balanced = resolveHiddenCellInfrastructureCompromiseFromRankingScore(50, 4)
+    const suppressed = resolveHiddenCellInfrastructureCompromiseFromRankingScore(80, 4)
+
+    expect(balanced.active).toBe(false)
+    expect(balanced.maintenanceCompromised).toBe(0)
+    expect(balanced.kind).toBe('none')
+    expect(suppressed.active).toBe(false)
+    expect(suppressed.maintenanceCompromised).toBe(0)
+  })
+
+  it('clamps infrastructure compromise to available maintenance capacity', () => {
+    const effect = resolveHiddenCellInfrastructureCompromiseFromRankingScore(10, 1)
+    expect(effect.active).toBe(true)
+    expect(effect.baseCompromiseAmount).toBeGreaterThanOrEqual(1)
+    expect(effect.maintenanceCompromised).toBe(1)
+  })
+
+  it('applies infrastructure compromise idempotently once per closed week', () => {
+    const effect = resolveHiddenCellInfrastructureCompromiseFromRankingScore(15, 5)
+    expect(effect.maintenanceCompromised).toBeGreaterThan(0)
+
+    const first = applyHiddenCellInfrastructureCompromiseToAgencyState(
+      { maintenanceSpecialistsAvailable: 5 },
+      effect,
+      3
+    )
+    expect(first.appliedAmount).toBe(effect.maintenanceCompromised)
+    expect(first.state.maintenanceSpecialistsAvailable).toBe(5 - effect.maintenanceCompromised)
+    expect(hasHiddenCellInfrastructureCompromiseForWeek(first.state, 3)).toBe(true)
+    expect(findHiddenCellInfrastructureCompromiseAmountForWeek(first.state, 3)).toBe(
+      effect.maintenanceCompromised
+    )
+
+    const second = applyHiddenCellInfrastructureCompromiseToAgencyState(first.state, effect, 3)
+    expect(second.appliedAmount).toBe(0)
+    expect(second.state.maintenanceSpecialistsAvailable).toBe(
+      first.state.maintenanceSpecialistsAvailable
+    )
+  })
+
+  it('keeps SPE-2704/2706/2707 outcomes unchanged for the same pressure inputs', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const fundingEffect = resolveHiddenCellFundingTheftFromPressure(pressure, 900)
+    const research = researchStateWithActiveProgress()
+    const researchEffect = resolveHiddenCellResearchRollbackFromPressure(pressure, research)
+    const panicEffect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
+    const infraEffect = resolveHiddenCellInfrastructureCompromiseFromPressure(pressure, 4)
+
+    expect(fundingEffect.fundingStolen).toBe(
+      resolveHiddenCellFundingTheftFromPressure(pressure, 900).fundingStolen
+    )
+    expect(researchEffect.progressTimeRolledBack).toBe(
+      resolveHiddenCellResearchRollbackFromPressure(pressure, research).progressTimeRolledBack
+    )
+    expect(panicEffect.pressureAmplified).toBe(
+      resolveHiddenCellPanicAmplificationFromPressure(pressure).pressureAmplified
+    )
+    expect(computeHiddenCellInfrastructureCompromiseBaseAmount(pressure.score, pressure.band)).toBe(
+      infraEffect.baseCompromiseAmount
+    )
+    expect(infraEffect.kind).toBe('infrastructure_compromise')
+  })
+
+  it('builds weekly infrastructure-compromise notes only when compromise was applied', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellInfrastructureCompromiseFromPressure(pressure, 4)
+    const applied = applyHiddenCellInfrastructureCompromiseToAgencyState(
+      { maintenanceSpecialistsAvailable: 4 },
+      effect,
+      2
+    )
+
+    const notes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes({
+      agency: applied.state,
+      rivalPressure: pressure,
+      maintenanceBeforeCompromise: 4,
+      week: 2,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.type).toBe('agency.hidden_cell_interference')
+    expect(notes[0]?.content).toMatch(/compromised .* maintenance specialist/)
+    expect(notes[0]?.metadata).toMatchObject({
+      kind: 'infrastructure_compromise',
+      maintenanceCompromised: effect.maintenanceCompromised,
+      rivalPressureBand: pressure.band,
+      week: 2,
+    })
+
+    const inactiveNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes({
+      agency: { maintenanceSpecialistsAvailable: 4 },
+      rivalPressure: buildRivalPressureFromRankingScore(50),
+      maintenanceBeforeCompromise: 4,
+      week: 2,
+      sequenceStart: 1,
+    })
+    expect(inactiveNotes).toHaveLength(0)
+  })
+
+  it('retains infrastructure-compromise note metadata and markers through hydrateGame', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellInfrastructureCompromiseFromPressure(pressure, 4)
+    const applied = applyHiddenCellInfrastructureCompromiseToAgencyState(
+      { maintenanceSpecialistsAvailable: 4 },
+      effect,
+      4
+    )
+    const notes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes({
+      agency: applied.state,
+      rivalPressure: pressure,
+      maintenanceBeforeCompromise: 4,
+      week: 4,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    const state = createStartingState()
+    state.week = 5
+    if (state.agency) {
+      state.agency.maintenanceSpecialistsAvailable =
+        applied.state.maintenanceSpecialistsAvailable
+      state.agency.lastHiddenCellInfrastructureCompromiseWeek =
+        applied.state.lastHiddenCellInfrastructureCompromiseWeek
+      state.agency.lastHiddenCellInfrastructureCompromiseAmount =
+        applied.state.lastHiddenCellInfrastructureCompromiseAmount
+    }
+    state.reports = [
+      {
+        week: 4,
+        resolvedCases: [],
+        partialCases: [],
+        failedCases: [],
+        unresolvedTriggers: [],
+        notes,
+      } as unknown as WeeklyReport,
+    ]
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+    expect(hydrated.agency?.lastHiddenCellInfrastructureCompromiseWeek).toBe(4)
+    expect(hydrated.agency?.lastHiddenCellInfrastructureCompromiseAmount).toBe(
+      effect.maintenanceCompromised
+    )
+    expect(hydrated.agency?.maintenanceSpecialistsAvailable).toBe(
+      applied.state.maintenanceSpecialistsAvailable
+    )
+    expect(hydrated.reports[0]?.notes?.[0]?.metadata).toMatchObject({
+      kind: 'infrastructure_compromise',
+      maintenanceCompromised: effect.maintenanceCompromised,
+      rivalPressureBand: pressure.band,
+      week: 4,
+    })
+  })
+
+  it('advanceWeek drains maintenance capacity and emits infra note under severe cell pressure', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+      state.agency.maintenanceSpecialistsAvailable = 4
+    }
+
+    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
+    const expectedCompromise = resolveHiddenCellInfrastructureCompromiseFromPressure(
+      pressureBefore,
+      4
+    ).maintenanceCompromised
+    expect(expectedCompromise).toBeGreaterThan(0)
+
+    const closedWeek = state.week
+    const nextState = advanceWeek(state)
+    expect(
+      findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, closedWeek)
+    ).toBe(expectedCompromise)
+    expect(nextState.agency?.maintenanceSpecialistsAvailable).toBe(4 - expectedCompromise)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const infraNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'infrastructure_compromise'
+      ) ?? []
+    expect(infraNotes.length).toBeGreaterThanOrEqual(1)
+    expect(infraNotes[0]?.content).toMatch(/compromised .* maintenance specialist/)
+  })
+
+  it('advanceWeek emits no infrastructure note when cell pressure is inactive', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = []
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.maintenanceSpecialistsAvailable = 4
+    }
+
+    const pressure = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
+
+    const nextState = advanceWeek(state)
+    expect(
+      findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, state.week)
+    ).toBe(0)
+    expect(nextState.agency?.maintenanceSpecialistsAvailable).toBe(4)
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const infraNotes =
+      lastReport?.notes?.filter(
+        (note) =>
+          note.type === 'agency.hidden_cell_interference' &&
+          note.metadata?.kind === 'infrastructure_compromise'
+      ) ?? []
+    expect(infraNotes).toHaveLength(0)
   })
 })

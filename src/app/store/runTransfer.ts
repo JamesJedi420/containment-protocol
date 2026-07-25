@@ -48,6 +48,7 @@ import {
   sanitizeSupportStaffSummary,
 } from '../../domain/funding'
 import { sanitizeProgressionUnlockIds } from '../../domain/agencyProgression'
+import { HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX } from '../../domain/hiddenCellStrategicInterference'
 import { normalizeRuntimeState, reconcileRuntimeUiSelections } from '../../domain/gameStateManager'
 import { normalizeCaseInstance } from '../../domain/case/normalizeCase'
 import { sanitizeDistrictScheduleState } from '../../domain/districtSchedule'
@@ -604,6 +605,7 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'progressTimeRolledBack',
     'researchProjectId',
     'pressureAmplified',
+    'maintenanceCompromised',
     'rivalPressureBand',
     'rivalPressureScore',
     'week',
@@ -6202,6 +6204,27 @@ function sanitizeAgencyState(
   const maintenanceSpecialistsAvailable = sanitizeMaintenanceSpecialistsAvailable(
     raw.maintenanceSpecialistsAvailable
   )
+  const lastHiddenCellInfrastructureCompromiseWeek =
+    typeof raw.lastHiddenCellInfrastructureCompromiseWeek === 'number' &&
+    Number.isFinite(raw.lastHiddenCellInfrastructureCompromiseWeek)
+      ? Math.max(1, Math.min(campaignWeek, Math.round(raw.lastHiddenCellInfrastructureCompromiseWeek)))
+      : undefined
+  const lastHiddenCellInfrastructureCompromiseAmount =
+    typeof raw.lastHiddenCellInfrastructureCompromiseAmount === 'number' &&
+    Number.isFinite(raw.lastHiddenCellInfrastructureCompromiseAmount)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX,
+            Math.round(raw.lastHiddenCellInfrastructureCompromiseAmount)
+          )
+        )
+      : undefined
+  // SPE-2710: all-or-nothing markers — incomplete pair must not lock a week without a note.
+  const hasCompleteInfrastructureCompromiseMarkers =
+    lastHiddenCellInfrastructureCompromiseWeek !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount > 0
   const courierShellFront = sanitizeCourierShellFrontState(raw.courierShellFront, campaignWeek)
   const progressionUnlockIds = sanitizeProgressionUnlockIds(raw.progressionUnlockIds)
 
@@ -6235,6 +6258,12 @@ function sanitizeAgencyState(
         }
       : {}),
     ...(maintenanceSpecialistsAvailable !== undefined ? { maintenanceSpecialistsAvailable } : {}),
+    ...(hasCompleteInfrastructureCompromiseMarkers
+      ? {
+          lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
     ...(typeof mirrors.coordinationFrictionActive === 'boolean'
       ? { coordinationFrictionActive: mirrors.coordinationFrictionActive }
       : {}),

@@ -327,16 +327,20 @@ import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDis
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
 import {
+  buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
   buildWeeklyHiddenCellInterferenceReportNotes,
   buildWeeklyHiddenCellPanicAmplificationReportNotes,
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../hiddenCellInterferenceWeeklyReportNotes'
 import {
   applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellInfrastructureCompromiseToAgencyState,
   applyHiddenCellPanicAmplificationToGameState,
   applyHiddenCellResearchRollbackToResearchState,
   findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellInfrastructureCompromiseAmountForWeek,
   resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellInfrastructureCompromiseFromPressure,
   resolveHiddenCellPanicAmplificationFromPressure,
   resolveHiddenCellResearchRollbackFromPressure,
 } from '../hiddenCellStrategicInterference'
@@ -4421,6 +4425,28 @@ function updateAgencyMetrics(
     closedWeek
   )
 
+  // SPE-2710 / SPE-39: hidden-cell infrastructure compromise into SPE-94 maintenance capacity
+  // (after panic — drain carries into next week's equipment-recovery bottleneck).
+  const maintenanceBeforeCompromise = Math.max(
+    0,
+    Math.trunc(prevAgency.maintenanceSpecialistsAvailable ?? 0)
+  )
+  const hiddenCellInfrastructureCompromise = resolveHiddenCellInfrastructureCompromiseFromPressure(
+    rivalPressureForInterference,
+    maintenanceBeforeCompromise
+  )
+  const infrastructureCompromiseApplied = applyHiddenCellInfrastructureCompromiseToAgencyState(
+    {
+      maintenanceSpecialistsAvailable: prevAgency.maintenanceSpecialistsAvailable,
+      lastHiddenCellInfrastructureCompromiseWeek:
+        prevAgency.lastHiddenCellInfrastructureCompromiseWeek,
+      lastHiddenCellInfrastructureCompromiseAmount:
+        prevAgency.lastHiddenCellInfrastructureCompromiseAmount,
+    },
+    hiddenCellInfrastructureCompromise,
+    closedWeek
+  )
+
   if (
     fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
@@ -4449,6 +4475,16 @@ function updateAgencyMetrics(
     clearanceLevel: nextClearanceLevel,
     funding: fundingAfterHiddenCellTheft,
     fundingState: fundingStateAfterHiddenCellTheft,
+    ...(infrastructureCompromiseApplied.appliedAmount > 0
+      ? {
+          maintenanceSpecialistsAvailable:
+            infrastructureCompromiseApplied.state.maintenanceSpecialistsAvailable,
+          lastHiddenCellInfrastructureCompromiseWeek:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
   }
   return {
     weekScore,
@@ -5382,8 +5418,8 @@ export function advanceWeek(
     }
   }
 
-  // SPE-2704 / SPE-2706 / SPE-2707 / SPE-39: hidden-cell interference → weekly notes.
-  // Funding history + research/panic markers key off the closed week (sourceState.week).
+  // SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-39: hidden-cell interference → weekly notes.
+  // Funding history + research/panic/infra markers key off the closed week (sourceState.week).
   if (result.reports.length > 0) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
     const closedWeekForInterference = sourceState.week
@@ -5394,6 +5430,13 @@ export function advanceWeek(
       closedWeekForInterference
     )
     const fundingBeforeTheft = result.funding + appliedTheft
+    const appliedInfraCompromise = findHiddenCellInfrastructureCompromiseAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const maintenanceBeforeCompromise =
+      Math.max(0, Math.trunc(result.agency?.maintenanceSpecialistsAvailable ?? 0)) +
+      appliedInfraCompromise
     const noteSequenceBase = lastWeeklyReport?.notes?.length ?? 0
     const hiddenCellFundingNotes = buildWeeklyHiddenCellInterferenceReportNotes({
       fundingState: result.agency?.fundingState,
@@ -5418,10 +5461,26 @@ export function advanceWeek(
         noteSequenceBase + hiddenCellFundingNotes.length + hiddenCellResearchNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,
     })
+    const hiddenCellInfrastructureNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes(
+      {
+        agency: result.agency,
+        rivalPressure: rivalPressureForNotes,
+        maintenanceBeforeCompromise,
+        week: closedWeekForInterference,
+        sequenceStart:
+          noteSequenceBase +
+          hiddenCellFundingNotes.length +
+          hiddenCellResearchNotes.length +
+          hiddenCellPanicNotes.length +
+          1,
+        baseTimestamp: noteBaseTimestamp,
+      }
+    )
     const hiddenCellNotes = [
       ...hiddenCellFundingNotes,
       ...hiddenCellResearchNotes,
       ...hiddenCellPanicNotes,
+      ...hiddenCellInfrastructureNotes,
     ]
 
     if (hiddenCellNotes.length > 0) {

@@ -184,14 +184,18 @@ Hidden-cell strategic interference is a bounded week-close hook
 severe, abstract cell pressure may (1) divert a deterministic funding amount through existing
 `FundingState` history (`hidden_cell_funding_theft`), (2) roll back bounded active-research
 `progressTime` on a lex-min eligible project (SPE-2706; idempotent via
-`ResearchState.lastHiddenCellRollbackWeek`), and/or (3) amplify ambient panic/unrest by adding
+`ResearchState.lastHiddenCellRollbackWeek`), (3) amplify ambient panic/unrest by adding
 bounded points to `GameState.globalPressure` (SPE-2707; idempotent via
 `lastHiddenCellPanicAmplificationWeek` / `Amount`; applied after the pressure pipeline so the
-bump carries into later weeks rather than spawning same-tick major incidents).
+bump carries into later weeks rather than spawning same-tick major incidents), and/or
+(4) compromise facility/ops infrastructure by draining SPE-94
+`AgencyState.maintenanceSpecialistsAvailable` (SPE-2710; idempotent via
+`lastHiddenCellInfrastructureCompromiseWeek` / `Amount`; drain carries into the next week's
+equipment-recovery bottleneck).
 Suppressed/balanced pressure is inactive. Week-close emits `agency.hidden_cell_interference`
-when funding theft, research rollback, and/or panic amplification applies; agency/report
-summaries expose the active/inactive signal. This is not a full adversary-org sim and does not
-include cell detection.
+when funding theft, research rollback, panic amplification, and/or infrastructure compromise
+applies; agency/report summaries expose the active/inactive signal. This is not a full
+adversary-org sim and does not include cell detection.
 
 ### Stage B — Build hub opportunity pools
 

@@ -60,6 +60,11 @@ export function getReportPageView(game: GameState): ReportPageView {
             if (agencySummary.hiddenCellInterference.pressureAmplified > 0) {
               parts.push(`panic +${agencySummary.hiddenCellInterference.pressureAmplified}`)
             }
+            if (agencySummary.hiddenCellInterference.maintenanceCompromised > 0) {
+              parts.push(
+                `infra -${agencySummary.hiddenCellInterference.maintenanceCompromised} maint`
+              )
+            }
             if (parts.length === 0) {
               return `${agencySummary.hiddenCellInterference.rivalPressureBand} (no diversion)`
             }

@@ -6573,6 +6573,12 @@ function sanitizeResearchState(
     Number.isFinite(value.lastHiddenCellRollbackAmount)
       ? clamp(Math.round(value.lastHiddenCellRollbackAmount), 0, 2)
       : undefined
+  // SPE-2706: all-or-nothing markers — incomplete triad must not lock a week without a note.
+  const hasCompleteRollbackMarkers =
+    lastHiddenCellRollbackWeek !== undefined &&
+    lastHiddenCellRollbackProjectId !== undefined &&
+    lastHiddenCellRollbackAmount !== undefined &&
+    lastHiddenCellRollbackAmount > 0
 
   const sanitized = stripUndefinedFields({
     projects: filterResearchProjectPrerequisiteIds(projects),
@@ -6610,11 +6616,13 @@ function sanitizeResearchState(
       0,
       MAX_RESEARCH_POOL
     ),
-    ...(lastHiddenCellRollbackWeek !== undefined ? { lastHiddenCellRollbackWeek } : {}),
-    ...(lastHiddenCellRollbackProjectId !== undefined
-      ? { lastHiddenCellRollbackProjectId }
+    ...(hasCompleteRollbackMarkers
+      ? {
+          lastHiddenCellRollbackWeek,
+          lastHiddenCellRollbackProjectId,
+          lastHiddenCellRollbackAmount,
+        }
       : {}),
-    ...(lastHiddenCellRollbackAmount !== undefined ? { lastHiddenCellRollbackAmount } : {}),
   }) as ResearchState
 
   const reconciled = applyHydratedFacilityResearchScalars(

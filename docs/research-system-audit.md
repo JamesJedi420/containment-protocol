@@ -95,5 +95,5 @@ research-progress rollback through `src/domain/hiddenCellStrategicInterference.t
 
 ### Summary
 - **Files created:** `docs/research-system-audit.md`
-- **Runtime code changed:** No
-- **Overlap risks:** None; documentation-only, no symbol or logic changes, no test edits.
+- **Runtime code changed:** Yes (SPE-2706 research-rollback interference path; see §11)
+- **Overlap risks:** Hidden-cell rollback composes rival pressure only; does not merge research with funding or detection systems.

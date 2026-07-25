@@ -330,11 +330,17 @@ export function hasHiddenCellResearchRollbackForWeek(
   researchState: ResearchState | undefined,
   closedWeek: number
 ): boolean {
-  if (!researchState || researchState.lastHiddenCellRollbackWeek === undefined) {
+  if (!researchState) {
     return false
   }
 
-  return researchState.lastHiddenCellRollbackWeek === Math.max(1, Math.trunc(closedWeek))
+  const week = Math.max(1, Math.trunc(closedWeek))
+  return (
+    researchState.lastHiddenCellRollbackWeek === week &&
+    typeof researchState.lastHiddenCellRollbackProjectId === 'string' &&
+    researchState.lastHiddenCellRollbackProjectId.length > 0 &&
+    Math.max(0, Math.trunc(researchState.lastHiddenCellRollbackAmount ?? 0)) > 0
+  )
 }
 
 /**

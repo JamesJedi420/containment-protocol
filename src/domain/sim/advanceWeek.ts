@@ -5685,11 +5685,36 @@ export function advanceWeek(
       const reports = [...result.reports]
       const lastReportIndex = reports.length - 1
       const lastReport = reports[lastReportIndex]
+      const nextNotes = [...(lastReport.notes ?? []), ...statusUpkeepNotes]
       reports[lastReportIndex] = {
         ...lastReport,
-        notes: [...(lastReport.notes ?? []), ...statusUpkeepNotes],
+        notes: nextNotes,
       }
       result.reports = reports
+
+      // Keep intel.report_generated.noteCount aligned with post-emit weekly notes.
+      const closedWeek = lastReport.week
+      const events = [...result.events]
+      for (let i = events.length - 1; i >= 0; i -= 1) {
+        const event = events[i]
+        if (
+          event.type === 'intel.report_generated' &&
+          event.payload &&
+          typeof event.payload === 'object' &&
+          'week' in event.payload &&
+          event.payload.week === closedWeek
+        ) {
+          events[i] = {
+            ...event,
+            payload: {
+              ...event.payload,
+              noteCount: nextNotes.length,
+            },
+          }
+          result.events = events
+          break
+        }
+      }
     }
   }
 

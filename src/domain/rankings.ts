@@ -3,7 +3,9 @@ import type { FundingState, GameState } from './models'
 import type { OperationEvent } from './events/types'
 import {
   composeStandingPointsForRanking,
-  resolveStatusUpkeepForRankingWeek,
+  readStatusUpkeepEffectFromReportNotes,
+  resolveStatusUpkeepDisplayEffect,
+  type StatusUpkeepDisplayEffect,
 } from './statusUpkeepDisplayCost'
 
 export interface RankingScoreFactor {
@@ -393,7 +395,11 @@ function accumulateReportWeek(
   accumulator.failedCases += report.failedCases.length
   accumulator.unresolvedCases += report.unresolvedTriggers.length
 
-  const upkeepEffect = resolveStatusUpkeepForRankingWeek(report, fundingState)
+  // Prefer durable week-close note metadata; funding-history fallback is test-only
+  // when notes are absent (later funding sync must not reclassify noted weeks).
+  const upkeepEffect: StatusUpkeepDisplayEffect =
+    readStatusUpkeepEffectFromReportNotes(report.notes, report.week) ??
+    resolveStatusUpkeepDisplayEffect(fundingState, report.week)
   accumulator.statusUpkeepDelta += upkeepEffect.rankingDelta
   if (upkeepEffect.band === 'underfunded') {
     accumulator.statusUpkeepUnderfundedWeeks += 1

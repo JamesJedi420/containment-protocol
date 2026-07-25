@@ -105,7 +105,9 @@ export default function RankingsPage() {
                   {entry.summary.reputationDelta >= 0 ? '+' : ''}
                   {entry.summary.reputationDelta}, standing{' '}
                   {entry.summary.agencyStanding >= 0 ? '+' : ''}
-                  {entry.summary.agencyStanding}.
+                  {entry.summary.agencyStanding}, status upkeep{' '}
+                  {entry.summary.statusUpkeep >= 0 ? '+' : ''}
+                  {entry.summary.statusUpkeep}.
                 </p>
               </li>
             ))}

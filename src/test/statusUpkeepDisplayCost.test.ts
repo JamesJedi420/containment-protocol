@@ -130,17 +130,28 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(composeStandingPointsForRanking(-4, 0)).toBe(-4)
   })
 
-  it('emits week-close note only when underfunded', () => {
+  it('emits week-close note for maintained and underfunded (not neutral)', () => {
     let funded = createInitialFundingState(10, 10, 10, 10, 100)
     funded = withOperatingCost(funded, 1, 20)
-    expect(
-      buildWeeklyStatusUpkeepDisplayReportNotes({
-        agency: undefined,
-        fundingState: funded,
-        week: 1,
-        sequenceStart: 1,
-      })
-    ).toHaveLength(0)
+    const maintainedNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: undefined,
+      fundingState: funded,
+      week: 1,
+      sequenceStart: 1,
+    })
+    expect(maintainedNotes).toHaveLength(1)
+    expect(maintainedNotes[0]?.metadata?.band).toBe('maintained')
+    expect(maintainedNotes[0]?.metadata?.rankingDelta).toBe(0)
+
+    let exactlyFunded = createInitialFundingState(10, 10, 10, 10, 40)
+    exactlyFunded = withOperatingCost(exactlyFunded, 1, 40)
+    const exactNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: undefined,
+      fundingState: exactlyFunded,
+      week: 1,
+      sequenceStart: 1,
+    })
+    expect(exactNotes[0]?.metadata?.band).toBe('maintained')
 
     let broke = createInitialFundingState(10, 10, 10, 10, 5)
     broke = withOperatingCost(broke, 1, 40)
@@ -155,6 +166,15 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     expect(notes[0]?.content).toContain('underfunded')
     expect(notes[0]?.metadata?.rankingDelta).toBe(-STATUS_UPKEEP_RANKING_PENALTY)
     expect(notes[0]?.metadata?.fundingBeforeOperatingCost).toBe(5)
+
+    expect(
+      buildWeeklyStatusUpkeepDisplayReportNotes({
+        agency: undefined,
+        fundingState: createInitialFundingState(10, 10, 10, 10, 50),
+        week: 1,
+        sequenceStart: 1,
+      })
+    ).toHaveLength(0)
   })
 
   it('lowers ranking when underfunded and blocks that week standing gains', () => {
@@ -331,6 +351,7 @@ describe('statusUpkeepDisplayCost (SPE-2718)', () => {
     const lastReport = nextState.reports[nextState.reports.length - 1]
     const upkeepNotes =
       lastReport?.notes?.filter((note) => note.type === 'agency.status_upkeep_display') ?? []
-    expect(upkeepNotes).toHaveLength(0)
+    expect(upkeepNotes).toHaveLength(1)
+    expect(upkeepNotes[0]?.metadata?.band).toBe('maintained')
   })
 })

@@ -28,7 +28,7 @@ One deterministic bounded status upkeep / public-display cost path from SPE-28 w
 | Domain | `src/domain/statusUpkeepDisplayCost.ts` — affordability from pre-operating-cost funding |
 | Ranking | `src/domain/rankings.ts` — note metadata first, then funding-history fallback |
 | Agency markers | `lastStatusUpkeepWeek` / `Band` / `FundingBefore` / `OperatingCost` |
-| Week-close notes | `statusUpkeepDisplayWeeklyReportNotes` — `agency.status_upkeep_display` when underfunded |
+| Week-close notes | `statusUpkeepDisplayWeeklyReportNotes` — `agency.status_upkeep_display` for maintained + underfunded |
 | Agency / UI | `buildAgencySummary`, `reportView`, `RankingsPage` breakdown row |
 | Docs | `systems/hub-simulation.md`, `SCHEMA_REGISTRY.md` |
 | Tests | `src/test/statusUpkeepDisplayCost.test.ts` (+ rankings / rivalPressure + advanceWeek) |

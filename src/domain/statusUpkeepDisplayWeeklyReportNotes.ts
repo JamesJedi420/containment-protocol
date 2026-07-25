@@ -32,7 +32,9 @@ export function buildWeeklyStatusUpkeepDisplayReportNotes(input: {
     findStatusUpkeepMarkersForWeek(input.agency ?? undefined, input.week) ??
     resolveStatusUpkeepDisplayEffect(input.fundingState ?? undefined, input.week)
 
-  if (effect.band !== 'underfunded') {
+  // Emit for maintained and underfunded so ranking history cannot be retroactively
+  // reclassified by later funding-history reconstruction (neutral = no assessment).
+  if (effect.band === 'neutral') {
     return []
   }
 

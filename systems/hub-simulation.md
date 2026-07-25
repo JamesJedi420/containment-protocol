@@ -164,10 +164,11 @@ Status upkeep / public-display costs (SPE-2718) compose a separate ranking facto
 weekly operating-cost affordability (`src/domain/statusUpkeepDisplayCost.ts`). The facility
 upkeep base + spike is the public-presentation cost anchor (payroll excluded). Week-close
 captures whether pre-cost funding covers the full operating cost (post-cost funding is clamped
-≥ 0) onto agency markers and, when underfunded, emits `agency.status_upkeep_display`. Ranking
+≥ 0) onto agency markers and emits `agency.status_upkeep_display` for maintained and underfunded
+weeks (durable note metadata so later funding sync cannot reclassify earlier weeks). Ranking
 applies a bounded penalty and blocks that week's positive standing award points in comparative
 standing composition only — SPE-2696 award records on events are not rewritten. Maintained weeks
-are neutral (no penalty). This is ranking presentation cost, not a new `legitimacy.sanctionLevel`
+have no ranking penalty. This is ranking presentation cost, not a new `legitimacy.sanctionLevel`
 / operational-cover field. Agency/report summaries expose the band.
 
 Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus

@@ -981,4 +981,49 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
       ) ?? []
     expect(infraNotes).toHaveLength(0)
   })
+
+  it('preserves infrastructure-compromise markers through a second advanceWeek canonicalize', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.reports = [
+      reportWithFailures(1, 5, 4),
+      reportWithFailures(2, 5, 4),
+      reportWithFailures(3, 5, 4),
+    ]
+    state.funding = 2000
+    if (state.agency) {
+      state.agency.funding = 2000
+      state.agency.fundingState = createInitialFundingState(
+        state.config.fundingBasePerWeek,
+        state.config.fundingPerResolution,
+        state.config.fundingPenaltyPerFail,
+        state.config.fundingPenaltyPerUnresolved,
+        2000
+      )
+      state.agency.maintenanceSpecialistsAvailable = 4
+    }
+
+    const closedWeek = state.week
+    const afterFirst = advanceWeek(state)
+    const applied = findHiddenCellInfrastructureCompromiseAmountForWeek(
+      afterFirst.agency,
+      closedWeek
+    )
+    expect(applied).toBeGreaterThan(0)
+    expect(afterFirst.agency?.lastHiddenCellInfrastructureCompromiseWeek).toBe(closedWeek)
+    expect(afterFirst.agency?.lastHiddenCellInfrastructureCompromiseAmount).toBe(applied)
+
+    // Inactive second week: no new apply. canonicalizeAgencyState must keep prior markers.
+    freezeCasesForQuietWeek(afterFirst)
+    afterFirst.reports = []
+    const afterSecond = advanceWeek(afterFirst)
+    expect(isHiddenCellPressureActive(
+      buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
+    )).toBe(false)
+    expect(afterSecond.agency?.lastHiddenCellInfrastructureCompromiseWeek).toBe(closedWeek)
+    expect(afterSecond.agency?.lastHiddenCellInfrastructureCompromiseAmount).toBe(applied)
+    expect(afterSecond.agency?.maintenanceSpecialistsAvailable).toBe(
+      afterFirst.agency?.maintenanceSpecialistsAvailable
+    )
+  })
 })

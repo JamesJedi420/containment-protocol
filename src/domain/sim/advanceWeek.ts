@@ -687,6 +687,22 @@ function cloneFundingStateForCanonicalize(
 }
 
 function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined): AgencyState {
+  const lastHiddenCellInfrastructureCompromiseWeek =
+    typeof base?.lastHiddenCellInfrastructureCompromiseWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellInfrastructureCompromiseWeek))
+      : undefined
+  const lastHiddenCellInfrastructureCompromiseAmount =
+    typeof base?.lastHiddenCellInfrastructureCompromiseAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseAmount)
+      ? Math.max(0, Math.trunc(base.lastHiddenCellInfrastructureCompromiseAmount))
+      : undefined
+  // SPE-2710: all-or-nothing — incomplete pairs must not lock a week without a note.
+  const hasCompleteInfrastructureCompromiseMarkers =
+    lastHiddenCellInfrastructureCompromiseWeek !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount > 0
+
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
     clearanceLevel: safeNumber(base?.clearanceLevel, 1),
@@ -694,6 +710,12 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     supportAvailable: safeNumber(base?.supportAvailable, 0),
     ...(typeof base?.maintenanceSpecialistsAvailable === 'number'
       ? { maintenanceSpecialistsAvailable: base.maintenanceSpecialistsAvailable }
+      : {}),
+    ...(hasCompleteInfrastructureCompromiseMarkers
+      ? {
+          lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount,
+        }
       : {}),
     ...(typeof base?.protocolSelectionLimit === 'number'
       ? { protocolSelectionLimit: base.protocolSelectionLimit }

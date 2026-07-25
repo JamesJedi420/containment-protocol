@@ -395,6 +395,38 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
           .falloutPenaltyScale
       )
     }
+
+    const weakCostlySource = {
+      ...weakSource,
+      legitimacy: { sanctionLevel: 'sanctioned' as const, falloutRisk: 'costly' as const },
+    }
+    const strongCostlySource = {
+      ...strongSource,
+      legitimacy: { sanctionLevel: 'sanctioned' as const, falloutRisk: 'costly' as const },
+    }
+    const weakCostlyTick = applyEmergencyGrayMarketFalloutTick(weakCostlySource, {
+      ...weakCostlySource,
+      week: 4,
+    })
+    const strongCostlyTick = applyEmergencyGrayMarketFalloutTick(strongCostlySource, {
+      ...strongCostlySource,
+      week: 4,
+    })
+
+    expect(weakCostlyTick.nextState.funding).toBeLessThan(strongCostlyTick.nextState.funding)
+    expect(weakCostlyTick.nextState.containmentRating).toBeLessThanOrEqual(
+      strongCostlyTick.nextState.containmentRating ?? 0
+    )
+    if (
+      weakCostlyTick.drafts[0]?.type === 'market.emergency_gray_market_fallout_tick' &&
+      strongCostlyTick.drafts[0]?.type === 'market.emergency_gray_market_fallout_tick'
+    ) {
+      expect(weakCostlyTick.drafts[0].payload.outcome).toBe('resolved_closed')
+      expect(strongCostlyTick.drafts[0].payload.outcome).toBe('resolved_closed')
+      expect(weakCostlyTick.drafts[0].payload.standingFalloutPenaltyScale).toBeGreaterThan(
+        strongCostlyTick.drafts[0].payload.standingFalloutPenaltyScale
+      )
+    }
   })
 
   it('scales fallout risk-phase penalties with waiver precedent count (bounded multiplier)', () => {

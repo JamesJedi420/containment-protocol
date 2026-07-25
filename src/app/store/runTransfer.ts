@@ -603,6 +603,7 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'fundingStolen',
     'progressTimeRolledBack',
     'researchProjectId',
+    'pressureAmplified',
     'rivalPressureBand',
     'rivalPressureScore',
     'week',

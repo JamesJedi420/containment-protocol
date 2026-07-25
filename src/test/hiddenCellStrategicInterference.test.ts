@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import { buildAgencySummary } from '../domain/agency'
 import {
@@ -611,6 +612,50 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707)', 
       sequenceStart: 1,
     })
     expect(inactiveNotes).toHaveLength(0)
+  })
+
+  it('retains panic-amplification note metadata and markers through hydrateGame', () => {
+    const pressure = buildRivalPressureFromRankingScore(20)
+    const effect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
+    const applied = applyHiddenCellPanicAmplificationToGameState(
+      { globalPressure: 12 },
+      effect,
+      4
+    )
+    const notes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: applied.state,
+      rivalPressure: pressure,
+      week: 4,
+      sequenceStart: 1,
+      baseTimestamp: 1_700_000_000_000,
+    })
+
+    const state = createStartingState()
+    state.week = 5
+    state.globalPressure = applied.state.globalPressure
+    state.lastHiddenCellPanicAmplificationWeek = applied.state.lastHiddenCellPanicAmplificationWeek
+    state.lastHiddenCellPanicAmplificationAmount =
+      applied.state.lastHiddenCellPanicAmplificationAmount
+    state.reports = [
+      {
+        week: 4,
+        resolvedCases: [],
+        partialCases: [],
+        failedCases: [],
+        unresolvedTriggers: [],
+        notes,
+      } as unknown as WeeklyReport,
+    ]
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+    expect(hydrated.lastHiddenCellPanicAmplificationWeek).toBe(4)
+    expect(hydrated.lastHiddenCellPanicAmplificationAmount).toBe(effect.pressureAmplified)
+    expect(hydrated.reports[0]?.notes?.[0]?.metadata).toMatchObject({
+      kind: 'panic_amplification',
+      pressureAmplified: effect.pressureAmplified,
+      rivalPressureBand: pressure.band,
+      week: 4,
+    })
   })
 
   it('advanceWeek amplifies globalPressure and emits panic note under severe cell pressure', () => {

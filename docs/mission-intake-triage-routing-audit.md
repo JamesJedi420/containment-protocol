@@ -147,6 +147,25 @@ Where:
   - keep mission in queue with explicit blocker codes
   - do not auto-assign or silently mutate constraints
 
+### Persisted authority mission-access boundary (SPE-2725)
+
+A faction-linked, unassigned mission may consume one sanitized persisted authority edge after
+candidate ranking:
+
+- resolve the case faction through an authority node/alias or an explicit linked faction ID that
+  has a live faction record
+- consider explicit `mission_access` edges in deterministic code-unit ID order
+- map the first eligible existing `deny` consequence to `blocked`
+- map the first eligible existing `delay` consequence to `deferred`
+- surface `authority-mission-access-restricted` without changing candidate scores, validity, or
+  order
+
+Missing/legacy graphs, missing faction or node references, positive grants, unrevealed hidden
+claims, contradicted claims, resolved missions, and already-assigned missions retain the existing
+route. The read seam is pure: persisted routing changes only through existing normalization or
+recompute boundaries. At week-close, routing is recomputed after the authority graph mutation so
+the next-week route agrees with the persisted post-mutation graph.
+
 ## 5) Team-readiness and time-pressure integration guidance
 
 ### Team-readiness integration
@@ -171,6 +190,7 @@ Routing should consume explicit readiness surfaces, not inferred hidden scores.
 - `training-blocked`
 - `invalid-loadout-gate`
 - `missing-certification`
+- `authority-mission-access-restricted`
 - `fatigue-over-threshold`
 - `no-eligible-teams`
 - `capacity-locked`

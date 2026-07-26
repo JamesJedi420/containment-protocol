@@ -8,6 +8,12 @@ import {
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
 import {
+  normalizeAuthorityNodeId,
+  resolveAuthorityGraphConsequences,
+} from './authorityGraph'
+import type { AuthorityGraph, AuthorityGraphEdge } from './authorityGraph'
+import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
+import {
   INTEL_CALIBRATION,
   isSecondEscalationBandWeek,
   PRESSURE_CALIBRATION,
@@ -350,17 +356,198 @@ export interface MissionRoutingResult {
   timeCostSummary?: MissionRoutingRecord['timeCostSummary']
 }
 
+export interface MissionAccessAuthorityRoutingConsequence {
+  missionId: Id
+  factionId: Id
+  authorityNodeId: Id
+  edgeId: Id
+  routingState: Extract<MissionRoutingStateKind, 'blocked' | 'deferred'>
+  blockerCode: Extract<MissionRoutingBlockerCode, 'authority-mission-access-restricted'>
+  reasonCode: string
+  magnitude: number
+}
+
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
+  return (
+    edge.fromNodeId === nodeId ||
+    edge.toNodeId === nodeId ||
+    edge.representsNodeId === nodeId
+  )
+}
+
+function resolveMissionFactionAuthorityNode(
+  graph: AuthorityGraph,
+  factions: NonNullable<GameState['factions']>,
+  factionRef: string
+) {
+  const directNodeId = normalizeAuthorityNodeId(graph, factionRef)
+  const factionNodes = graph.nodes
+    .filter(
+      (node) =>
+        node.nodeType === 'faction' &&
+        (node.id === directNodeId || (node.linkedFactionIds ?? []).includes(factionRef))
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const node of factionNodes) {
+    const factionId = factions[factionRef]
+      ? factionRef
+      : factions[node.id]
+        ? node.id
+        : [...(node.linkedFactionIds ?? [])]
+            .sort(compareCodeUnits)
+            .find((linkedFactionId) => factions[linkedFactionId])
+
+    if (factionId) {
+      return { factionId, authorityNodeId: node.id }
+    }
+  }
+
+  return null
+}
+
+/**
+ * SPE-2725: sanitized, read-only graph seam for one faction-linked mission route.
+ *
+ * One explicit `mission_access` edge is considered at a time in code-unit ID order. Hidden
+ * unrevealed and contradicted evidence is not allowed to alter command routing, and positive
+ * access remains a no-op because this slice only owns blocked/deferred consequences.
+ */
+export function resolvePersistedMissionAccessAuthorityRoutingConsequence(
+  state: Pick<GameState, 'week' | 'authorityGraphState' | 'factions'>,
+  currentCase: Pick<CaseInstance, 'id' | 'status' | 'factionId' | 'assignedTeamIds'>
+): MissionAccessAuthorityRoutingConsequence | null {
+  if (
+    currentCase.status === 'resolved' ||
+    !currentCase.factionId ||
+    currentCase.assignedTeamIds.length > 0
+  ) {
+    return null
+  }
+
+  const authorityGraphState = sanitizeAuthorityGraphState(state.authorityGraphState)
+  const graph = authorityGraphState.graph
+  const factions = state.factions ?? {}
+  const factionAuthority = resolveMissionFactionAuthorityNode(
+    graph,
+    factions,
+    currentCase.factionId
+  )
+  if (!factionAuthority) {
+    return null
+  }
+
+  const query = {
+    actorNodeId: factionAuthority.authorityNodeId,
+    channel: 'mission_access' as const,
+    asOfWeek: state.week,
+  }
+  const contradictedEdgeIds = new Set(
+    resolveAuthorityGraphConsequences(graph, query)
+      .filter((consequence) => consequence.contradicted)
+      .flatMap((consequence) => consequence.edgeIds)
+  )
+  const eligibleEdges = graph.edges
+    .filter(
+      (edge) =>
+        edge.pressureChannels?.includes('mission_access') &&
+        edgeInvolvesNode(edge, factionAuthority.authorityNodeId) &&
+        !contradictedEdgeIds.has(edge.id)
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const edge of eligibleEdges) {
+    const consequence = resolveAuthorityGraphConsequences(
+      { nodes: graph.nodes, edges: [edge] },
+      query
+    ).find(
+      (entry) =>
+        entry.edgeIds.includes(edge.id) &&
+        entry.magnitude !== 0 &&
+        !entry.delayed &&
+        !entry.contradicted &&
+        (entry.effect === 'deny' || entry.effect === 'delay')
+    )
+    if (!consequence) {
+      continue
+    }
+
+    return Object.freeze({
+      missionId: currentCase.id,
+      factionId: factionAuthority.factionId,
+      authorityNodeId: factionAuthority.authorityNodeId,
+      edgeId: edge.id,
+      routingState: consequence.effect === 'deny' ? 'blocked' : 'deferred',
+      blockerCode: 'authority-mission-access-restricted',
+      reasonCode: consequence.reasonCode,
+      magnitude: consequence.magnitude,
+    })
+  }
+
+  return null
+}
+
+function withoutPriorAuthorityMissionAccessRoutingGate(
+  state: GameState,
+  missionId: Id
+): GameState {
+  const mission = state.missionRouting?.missions[missionId]
+  if (
+    !mission ||
+    !mission.routingBlockers.includes('authority-mission-access-restricted') ||
+    isMissionTriageDispositionActive(mission, state.week)
+  ) {
+    return state
+  }
+
+  // The authority consequence is mission-wide and is reapplied after canonical team ranking.
+  // Remove only its prior routing overlay while assessing candidates to avoid self-blocking on
+  // later recomputes without changing readiness or player-disposition gates.
+  return {
+    ...state,
+    missionRouting: {
+      ...state.missionRouting!,
+      missions: {
+        ...state.missionRouting!.missions,
+        [missionId]: {
+          ...mission,
+          routingState: 'queued',
+          routingBlockers: mission.routingBlockers.filter(
+            (blocker) => blocker !== 'authority-mission-access-restricted'
+          ),
+        },
+      },
+    },
+  }
+}
+
 function buildMissionRoutingCandidate(
   currentCase: CaseInstance,
   team: Team,
   state: GameState
 ): MissionTeamRoutingCandidate {
+  const candidateAssessmentState = withoutPriorAuthorityMissionAccessRoutingGate(
+    state,
+    currentCase.id
+  )
   const validation = validateTeamComposition(team, state.agents, state.teams, {
     requiredRoles: currentCase.requiredRoles,
   })
   const composition = buildTeamCompositionState(team, state.agents, state.teams)
-  const eligibility = evaluateDeploymentEligibility(state, currentCase.id, team.id)
-  const readinessState = buildTeamDeploymentReadinessState(state, team.id, currentCase.id)
+  const eligibility = evaluateDeploymentEligibility(
+    candidateAssessmentState,
+    currentCase.id,
+    team.id
+  )
+  const readinessState = buildTeamDeploymentReadinessState(
+    candidateAssessmentState,
+    team.id,
+    currentCase.id
+  )
   const members = getTeamMembers(team, state.agents)
   const loadoutBlocked = members.some(
     (member) => buildAgentLoadoutReadinessSummary(member, { state }).readiness === 'blocked'
@@ -508,6 +695,26 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
   const assignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
     Boolean(state.teams[teamId])
   )
+  const authorityConsequence = resolvePersistedMissionAccessAuthorityRoutingConsequence(
+    state,
+    currentCase
+  )
+  if (authorityConsequence) {
+    return {
+      missionId,
+      routingState: authorityConsequence.routingState,
+      routingBlockers: [authorityConsequence.blockerCode],
+      candidateTeamIds: validCandidates.map((candidate) => candidate.teamId),
+      rejectedTeams: [],
+      rankedCandidates,
+      timeCostSummary: evaluateDeploymentEligibility(
+        withoutPriorAuthorityMissionAccessRoutingGate(state, missionId),
+        missionId,
+        validCandidates[0]!.teamId
+      ).timeCostSummary,
+    }
+  }
+
   const routingState: MissionRoutingStateKind =
     currentCase.status === 'in_progress' && assignedTeamIds.length > 0
       ? 'assigned'
@@ -532,6 +739,7 @@ const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
   'training-blocked',
   'missing-certification',
   'invalid-loadout-gate',
+  'authority-mission-access-restricted',
   'site-clearance-required',
   'dual-loyalty-restricted',
   'protected-status-restricted',
@@ -991,7 +1199,10 @@ export function routeMissionToTeam(state: GameState, missionId: Id, teamId: Id) 
   }
 
   const routed = routeMission(state, missionId)
-  if (!routed.candidateTeamIds.includes(teamId)) {
+  if (
+    routed.routingBlockers.includes('authority-mission-access-restricted') ||
+    !routed.candidateTeamIds.includes(teamId)
+  ) {
     return {
       state,
       assigned: false,

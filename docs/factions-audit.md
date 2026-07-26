@@ -231,10 +231,18 @@ and consume one eligible `aid` edge in code-unit order. Only that faction's repu
 by at most one point, and `ExternalSupportAsset.lastAuthorityConsequenceWeek` blocks duplicate
 application during the same week.
 
-Neither seam mutates the graph or changes its week-close ordering. Negotiation remains read-only,
-and the contractor consequence does not write faction standing, institutional legitimacy,
-operational cover, market state, command propagation, department/council politics, secrecy,
-media, commerce, SPE-39 calculations, or UI.
+SPE-2725 adds one read-only mission-routing boundary. A faction-linked, unassigned mission
+resolves its live faction through a sanitized authority node, alias, or explicit linked faction
+ID, then considers one explicit `mission_access` edge at a time in code-unit order. An existing
+`deny` consequence blocks the route; an existing `delay` consequence defers it. The consequence
+does not modify triage, team readiness, candidate validity, candidate score, or candidate order.
+Unrevealed hidden and contradicted claims are ignored. Week-close recomputes routing after the
+graph mutation so the next-week routing snapshot and persisted graph agree.
+
+None of these seams changes faction standing, institutional legitimacy, operational cover,
+market state, broader command propagation, department/council politics, secrecy, media,
+commerce, SPE-39 calculations, or UI. Negotiation and mission routing remain read-only graph
+consumers; the contractor support seam owns only its bounded faction-reputation write.
 
 ---
 
@@ -250,3 +258,4 @@ media, commerce, SPE-39 calculations, or UI.
 | Treating authority negotiation as faction standing/reputation mutation | The SPE-2721 seam is a pure read from the separately persisted authority graph | Apply faction changes only through their owning event/runtime paths |
 | Applying contractor authority pressure before support resolution | The graph consequence would feed back into the action that triggered it | Resolve support amount and reliability first; apply the bounded faction movement afterward |
 | Reapplying a contractor authority edge in one week | Repeated hub actions would duplicate faction pressure | Respect `lastAuthorityConsequenceWeek` and only mark an actually applied movement |
+| Treating mission-access authority as a team-quality modifier | Authority pressure would silently reorder or alter readiness candidates | Apply the mission-wide blocked/deferred state only after canonical candidate ranking |

@@ -385,6 +385,7 @@ export type DepartmentAuthorizationHandoffBlockerCode =
   | 'permission-not-active'
   | 'permission-denied'
   | 'missing-approver'
+  | 'mission-fit-mismatch'
   | 'unit-unavailable'
   | 'council-direct-out-of-scope'
 
@@ -470,6 +471,19 @@ function resolveUnitAuthorityNode(
     )
     .sort((left, right) => compareCodeUnits(left.id, right.id))
 
+  const explicitlyRequestedUnit = unitById.get(token)
+  if (
+    explicitlyRequestedUnit &&
+    candidateNodes.some((node) => node.id === token || (node.linkedUnitIds ?? []).includes(token))
+  ) {
+    return {
+      authorityNodeId: candidateNodes.find(
+        (node) => node.id === token || (node.linkedUnitIds ?? []).includes(token)
+      )!.id,
+      unit: explicitlyRequestedUnit,
+    }
+  }
+
   for (const node of candidateNodes) {
     const linkedUnitId = [...new Set([...(node.linkedUnitIds ?? []), node.id, token])]
       .sort(compareCodeUnits)
@@ -483,6 +497,98 @@ function resolveUnitAuthorityNode(
   }
 
   return null
+}
+
+function deriveDepartmentMissionPosture(
+  currentCase: CaseInstance
+): IncidentMissionFitPacket['missionPosture'] {
+  switch (deriveMissionCategory(currentCase)) {
+    case 'containment_breach':
+    case 'faction_hostile_activity':
+      return 'containment_response'
+    case 'civilian_infrastructure_incident':
+      return 'routine_security'
+    case 'investigation_lead':
+    case 'strategic_opportunity':
+      return 'research_forward'
+  }
+}
+
+function buildDepartmentMissionFitPacket(
+  currentCase: CaseInstance,
+  registry: SpecialistUnitRegistry,
+  week: number
+): IncidentMissionFitPacket {
+  const missionTags = [
+    ...currentCase.tags,
+    ...currentCase.requiredTags,
+    ...currentCase.preferredTags,
+  ]
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+  const registryHazards = new Set(
+    registry.units.flatMap((unit) => unit.hazardProfileTags).map((tag) => tag.toLowerCase())
+  )
+  const registryEnvironments = new Set(
+    registry.units.flatMap((unit) => unit.environmentClasses).map((tag) => tag.toLowerCase())
+  )
+
+  return {
+    incidentId: currentCase.id,
+    week,
+    missionPosture: deriveDepartmentMissionPosture(currentCase),
+    requiredSuitabilityTags: [...new Set(currentCase.requiredTags.map((tag) => tag.trim()))]
+      .filter((tag) => tag.length > 0)
+      .sort(compareCodeUnits),
+    requiredHazardProfiles: [...new Set(missionTags)]
+      .filter((tag) => registryHazards.has(tag.toLowerCase()))
+      .sort(compareCodeUnits),
+    requiredEnvironmentClasses: [...new Set(missionTags)]
+      .filter((tag) => registryEnvironments.has(tag.toLowerCase()))
+      .sort(compareCodeUnits),
+    jurisdictionId: currentCase.regionTag?.trim() ?? '',
+    commandMode: 'departmental',
+    minimumAuthorityTier: 'department',
+    handoffRequired: true,
+  }
+}
+
+function sameStringList(left: readonly string[] | undefined, right: readonly string[] | undefined) {
+  if (left === undefined || right === undefined) {
+    return left === right
+  }
+  const normalizedLeft = [...new Set(left.map((entry) => entry.trim()))]
+    .filter((entry) => entry.length > 0)
+    .sort(compareCodeUnits)
+  const normalizedRight = [...new Set(right.map((entry) => entry.trim()))]
+    .filter((entry) => entry.length > 0)
+    .sort(compareCodeUnits)
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((entry, index) => entry === normalizedRight[index])
+  )
+}
+
+function missionFitMatchesCanonical(
+  asserted: DepartmentAuthorizationHandoffRequest['missionFit'],
+  canonical: IncidentMissionFitPacket
+) {
+  return (
+    asserted.missionPosture === canonical.missionPosture &&
+    sameStringList(asserted.requiredSuitabilityTags, canonical.requiredSuitabilityTags) &&
+    sameStringList(asserted.requiredHazardProfiles, canonical.requiredHazardProfiles) &&
+    sameStringList(asserted.requiredEnvironmentClasses, canonical.requiredEnvironmentClasses) &&
+    asserted.jurisdictionId.trim() === canonical.jurisdictionId &&
+    asserted.commandMode === canonical.commandMode &&
+    asserted.minimumAuthorityTier === canonical.minimumAuthorityTier &&
+    asserted.clearanceCeiling === canonical.clearanceCeiling &&
+    sameStringList(asserted.coverHostForbiddenTags, canonical.coverHostForbiddenTags) &&
+    sameStringList(asserted.requiredEquipmentTags, canonical.requiredEquipmentTags) &&
+    asserted.estimatedSecrecyCost === canonical.estimatedSecrecyCost &&
+    asserted.secrecyCostLimit === canonical.secrecyCostLimit &&
+    asserted.allowProvisionalUnits === canonical.allowProvisionalUnits &&
+    asserted.handoffRequired === canonical.handoffRequired
+  )
 }
 
 /**
@@ -502,6 +608,8 @@ export function authorizeDepartmentUnitHandoff(
   if (
     !Number.isFinite(request.validFromWeek) ||
     !Number.isFinite(request.expiresAfterWeek) ||
+    !Number.isInteger(request.validFromWeek) ||
+    !Number.isInteger(request.expiresAfterWeek) ||
     validFromWeek < 1 ||
     expiresAfterWeek < validFromWeek
   ) {
@@ -520,9 +628,11 @@ export function authorizeDepartmentUnitHandoff(
     return deniedDepartmentAuthorizationHandoff('invalid-clearance')
   }
 
-  const missionScope = uniqueSortedStrings(
-    request.missionScope.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
-  )
+  const missionScope = [
+    ...new Set(
+      request.missionScope.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
+    ),
+  ].sort(compareCodeUnits)
   if (missionScope.length === 0) {
     return deniedDepartmentAuthorizationHandoff('empty-mission-scope')
   }
@@ -551,27 +661,25 @@ export function authorizeDepartmentUnitHandoff(
     return deniedDepartmentAuthorizationHandoff('missing-unit-reference')
   }
 
+  const canonicalMissionFit = buildDepartmentMissionFitPacket(currentCase, registry, state.week)
+  if (!missionFitMatchesCanonical(request.missionFit, canonicalMissionFit)) {
+    return deniedDepartmentAuthorizationHandoff('mission-fit-mismatch')
+  }
+
   const query = {
     actorNodeId: unitAuthority.authorityNodeId,
     counterpartyNodeId: departmentNode.id,
     channel: 'permission' as const,
     asOfWeek: state.week,
   }
-  const contradictedEdgeIds = new Set(
-    resolveAuthorityGraphConsequences(graph, {
-      ...query,
-      includeContradictedClaims: true,
-    })
-      .filter((consequence) => consequence.contradicted)
-      .flatMap((consequence) => consequence.edgeIds)
-  )
   const permissionEdges = graph.edges
     .filter(
       (edge) =>
         edge.pressureChannels?.includes('permission') &&
         edgeInvolvesNode(edge, departmentNode.id) &&
         edgeInvolvesNode(edge, unitAuthority.authorityNodeId) &&
-        !contradictedEdgeIds.has(edge.id)
+        edge.status !== 'contradicted' &&
+        edge.sourceConfidence !== 'contradicted'
     )
     .sort((left, right) => compareCodeUnits(left.id, right.id))
 
@@ -604,13 +712,12 @@ export function authorizeDepartmentUnitHandoff(
 
   const unitFit = resolveUnitForMission({
     packet: {
-      ...request.missionFit,
-      incidentId: request.missionId,
-      week: state.week,
+      ...canonicalMissionFit,
+      handoffRequired: false,
     },
-    registry: { units: [unitAuthority.unit] },
-    options: { includeBlocked: true, maxResults: 1 },
-  }).ranked[0]
+    registry,
+    options: { includeBlocked: true },
+  }).ranked.find((result) => result.unitId === unitAuthority.unit.id)
   if (!unitFit || unitFit.hardBlocked) {
     return deniedDepartmentAuthorizationHandoff('unit-unavailable')
   }

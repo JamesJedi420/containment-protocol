@@ -32,6 +32,9 @@ authorization gate for one bounded mission-to-specialist-unit handoff.
   order.
 - Require an explicit grant, approver provenance, active authorization window,
   and an available mission-fit specialist unit.
+- Derive deployability requirements from the canonical case and validated unit
+  registry; treat the request mission-fit packet as a fail-closed assertion and
+  clear only the satisfied branch-handoff prerequisite after authorization.
 - Return an immutable audit record containing mission, department, unit,
   approver, clearance, scope, window, and permission edge.
 - Preserve existing mission candidate readiness and SPE-2725
@@ -59,6 +62,8 @@ authorization gate for one bounded mission-to-specialist-unit handoff.
 - [x] Missing references, invalid unit registries, malformed legacy graphs,
       hidden/contradicted edges, missing approvers, expired windows, and
       unavailable units fail closed.
+- [x] Fractional windows and caller mission-fit mismatches fail closed; a
+      contradicted historical edge does not suppress a distinct current grant.
 - [x] Save hydration and deterministic replay preserve the result.
 - [x] Authorization evaluation changes only when the campaign week crosses the
       declared window; it does not mutate routing mid-week.

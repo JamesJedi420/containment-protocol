@@ -52,6 +52,7 @@ function missionFit(
     jurisdictionId: 'district:north',
     commandMode: 'departmental',
     minimumAuthorityTier: 'department',
+    handoffRequired: true,
     ...overrides,
   }
 }
@@ -137,7 +138,9 @@ function stateWithAuthorization(
     status: 'open',
     assignedTeamIds: [],
     requiredRoles: [],
-    requiredTags: [],
+    requiredTags: ['records_review'],
+    tags: [...state.cases['case-001'].tags, 'analysis', 'digital', 'closed_environment'],
+    regionTag: 'district:north',
   }
   state.authorityGraphState = authorityState(edgeOverrides)
   return state
@@ -209,6 +212,46 @@ describe('SPE-2088 department authorization to deployable unit handoff', () => {
     )
 
     expect(aliasResult).toEqual(linkedIdResult)
+  })
+
+  it('preserves an explicitly requested unit when one authority node links multiple units', () => {
+    const state = stateWithAuthorization()
+    state.authorityGraphState = {
+      ...state.authorityGraphState!,
+      graph: {
+        ...state.authorityGraphState!.graph,
+        nodes: state.authorityGraphState!.graph.nodes.map((node) =>
+          node.id === 'authority-unit:records-research'
+            ? { ...node, linkedUnitIds: ['unit:a-first', 'unit:records-research'] }
+            : node
+        ),
+      },
+    }
+    const registry: SpecialistUnitRegistry = {
+      units: [unitProfile({ id: 'unit:a-first', designationCode: 'AA-1' }), unitProfile()],
+    }
+
+    const result = authorizeDepartmentUnitHandoff(
+      state,
+      registry,
+      request(state, { targetUnitRef: 'unit:records-research' })
+    )
+
+    expect(result.approved).toBe(true)
+    expect(result.record?.targetUnitId).toBe('unit:records-research')
+  })
+
+  it('orders the audit mission scope by code unit rather than host locale', () => {
+    const state = stateWithAuthorization()
+    const registry: SpecialistUnitRegistry = { units: [unitProfile()] }
+
+    const result = authorizeDepartmentUnitHandoff(
+      state,
+      registry,
+      request(state, { missionScope: ['ä-scope', 'z-scope', 'ä-scope'] })
+    )
+
+    expect(result.record?.missionScope).toEqual(['z-scope', 'ä-scope'])
   })
 
   it('denies missing department and unit references independently', () => {
@@ -294,6 +337,13 @@ describe('SPE-2088 department authorization to deployable unit handoff', () => {
       authorizeDepartmentUnitHandoff(
         state,
         registry,
+        request(state, { validFromWeek: state.week + 0.5 })
+      ).blockerCodes
+    ).toEqual(['invalid-authorization-window'])
+    expect(
+      authorizeDepartmentUnitHandoff(
+        state,
+        registry,
         request(state, {
           validFromWeek: state.week + 1,
           expiresAfterWeek: state.week + 2,
@@ -338,6 +388,13 @@ describe('SPE-2088 department authorization to deployable unit handoff', () => {
         request(state, { missionFit: missionFit({ commandMode: 'council_direct' }) })
       ).blockerCodes
     ).toEqual(['council-direct-out-of-scope'])
+    expect(
+      authorizeDepartmentUnitHandoff(
+        state,
+        registry,
+        request(state, { missionFit: missionFit({ requiredHazardProfiles: [] }) })
+      ).blockerCodes
+    ).toEqual(['mission-fit-mismatch'])
 
     const resolved = structuredClone(state)
     resolved.cases['case-001'].status = 'resolved'
@@ -383,12 +440,56 @@ describe('SPE-2088 department authorization to deployable unit handoff', () => {
 
     const next = advanceWeek(structuredClone(state), 1_900_000_000_000)
     const replay = advanceWeek(structuredClone(state), 1_900_000_000_000)
+    const nextCandidatesBefore = shortlistMissionCandidateTeams(next, 'case-001')
     const nextResult = authorizeDepartmentUnitHandoff(next, registry, nextWeekRequest)
 
     expect(next.week).toBe(state.week + 1)
     expect(nextResult.approved).toBe(true)
     expect(nextResult).toEqual(authorizeDepartmentUnitHandoff(replay, registry, nextWeekRequest))
-    expect(shortlistMissionCandidateTeams(state, 'case-001')).toEqual(candidatesBefore)
+    expect(shortlistMissionCandidateTeams(next, 'case-001')).toEqual(nextCandidatesBefore)
+  })
+
+  it('ignores a contradicted historical edge when a current grant remains usable', () => {
+    const state = stateWithAuthorization()
+    state.authorityGraphState = {
+      ...state.authorityGraphState!,
+      graph: {
+        ...state.authorityGraphState!.graph,
+        edges: [
+          {
+            ...state.authorityGraphState!.graph.edges[0]!,
+            id: 'a-contradicted-history',
+            status: 'contradicted',
+          },
+          state.authorityGraphState!.graph.edges[0]!,
+        ],
+      },
+    }
+    const registry: SpecialistUnitRegistry = { units: [unitProfile()] }
+
+    expect(authorizeDepartmentUnitHandoff(state, registry, request(state)).approved).toBe(true)
+  })
+
+  it('clears the satisfied handoff prerequisite and preserves designation collision context', () => {
+    const state = stateWithAuthorization()
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        unitProfile(),
+        unitProfile({
+          id: 'unit:records-research-south',
+          branchId: 'branch:south',
+          eraBand: 'modern',
+        }),
+      ],
+    }
+
+    const result = authorizeDepartmentUnitHandoff(state, registry, request(state))
+
+    expect(result.approved).toBe(true)
+    expect(result.unitFit?.blockers).not.toContainEqual(
+      expect.objectContaining({ code: 'branch_handoff_required' })
+    )
+    expect(result.unitFit?.designationResolved).toContain('@branch:records:')
   })
 
   it('selects the first usable edge in code-unit order and does not fall through a denial', () => {

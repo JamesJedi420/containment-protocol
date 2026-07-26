@@ -11,6 +11,14 @@ import { normalizeAuthorityNodeId, resolveAuthorityGraphConsequences } from './a
 import type { AuthorityGraph, AuthorityGraphEdge } from './authorityGraph'
 import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
 import {
+  DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  resolveDepartments,
+} from './departmentCapabilities'
+import type {
+  DepartmentCapabilityRegistry,
+  DepartmentResolutionResult,
+} from './departmentCapabilities'
+import {
   INTEL_CALIBRATION,
   isSecondEscalationBandWeek,
   PRESSURE_CALIBRATION,
@@ -94,7 +102,10 @@ function clampInteger(value: number, min: number, max: number) {
 export function deriveMissionCategory(currentCase: CaseInstance): MissionCategory {
   const tagSet = new Set(
     [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].map((tag) =>
-      tag.toLowerCase()
+      tag
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_')
     )
   )
 
@@ -102,6 +113,7 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
     currentCase.kind === 'raid' ||
     tagSet.has('breach') ||
     tagSet.has('containment') ||
+    tagSet.has('containment_breach') ||
     currentCase.stage >= 4
   ) {
     return 'containment_breach'
@@ -125,6 +137,29 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
   }
 
   return 'strategic_opportunity'
+}
+
+/**
+ * SPE-2083: read-only composition seam from canonical mission intake data to
+ * the pure authored department resolver.
+ *
+ * The result is advisory ownership only. It does not mutate mission routing,
+ * team candidates, department authorization, queues, or persistence.
+ */
+export function resolveMissionIntakeDepartments(
+  currentCase: CaseInstance,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentResolutionResult {
+  return resolveDepartments(
+    {
+      caseId: currentCase.id,
+      missionCategory: deriveMissionCategory(currentCase),
+      caseTags: [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags],
+    },
+    registry,
+    authorityGraph
+  )
 }
 
 export function deriveMissionIntakeSource(

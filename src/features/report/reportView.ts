@@ -86,6 +86,8 @@ export function getReportPageView(game: GameState): ReportPageView {
       ? ` (${agencySummary.statusUpkeepDisplay.rankingDelta})`
       : '') +
     `, ` +
+    `institutional legitimacy ${agencySummary.legitimacyCover.institutionalLabel}, ` +
+    `operational cover ${agencySummary.legitimacyCover.coverLabel}, ` +
     `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
     `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
     `council power [${councilPower}], ` +

@@ -171,6 +171,15 @@ standing composition only — SPE-2696 award records on events are not rewritten
 have no ranking penalty. This is ranking presentation cost, not a new `legitimacy.sanctionLevel`
 / operational-cover field. Agency/report summaries expose the band.
 
+Institutional legitimacy and operational cover are separate bounded campaign axes (SPE-2719).
+`legitimacy.sanctionLevel` remains the stable institutional authorization enum; optional
+`operationalCoverLevel` records whether current operations are open, deniable, or compromised.
+Legacy state derives covert sanction as deniable cover and other sanctions as open cover. The
+gray-market broker reads both axes: sanctioned + open/compromised remains audit-blocked,
+sanctioned + deniable is available, and the existing crisis waiver remains the explicit
+fallout-bearing override when deniable cover is absent. Agency and report summaries expose both
+labels so access differences are attributable.
+
 Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
 an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
 comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases

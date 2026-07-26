@@ -24,6 +24,13 @@ import {
   deriveMissionIntakeInformationSignals,
   missionHasLinkedIntakeReports,
 } from './missionIntakeInformationRouting'
+import { resolveUnitForMission, validateSpecialistUnitRegistry } from './specialistUnits'
+import type {
+  IncidentMissionFitPacket,
+  SpecialistUnitRegistry,
+  UnitMissionFitResult,
+  UnitProfile,
+} from './specialistUnits'
 import type {
   Agent,
   CaseInstance,
@@ -364,12 +371,271 @@ export interface MissionAccessAuthorityRoutingConsequence {
   magnitude: number
 }
 
+export type DepartmentAuthorizationHandoffBlockerCode =
+  | 'invalid-authorization-window'
+  | 'authorization-not-yet-active'
+  | 'authorization-expired'
+  | 'invalid-clearance'
+  | 'empty-mission-scope'
+  | 'mission-not-handoff-eligible'
+  | 'missing-department-reference'
+  | 'missing-unit-reference'
+  | 'invalid-unit-registry'
+  | 'missing-permission-edge'
+  | 'permission-not-active'
+  | 'permission-denied'
+  | 'missing-approver'
+  | 'unit-unavailable'
+  | 'council-direct-out-of-scope'
+
+export interface DepartmentAuthorizationHandoffRequest {
+  missionId: Id
+  authorizingDepartmentRef: string
+  targetUnitRef: string
+  missionScope: readonly string[]
+  clearanceLevel: number
+  validFromWeek: number
+  expiresAfterWeek: number
+  missionFit: Omit<IncidentMissionFitPacket, 'incidentId' | 'week'>
+}
+
+export interface DepartmentAuthorizationHandoffRecord {
+  id: Id
+  missionId: Id
+  authorizingDepartmentId: Id
+  targetUnitId: Id
+  approverId: Id
+  permissionEdgeId: Id
+  permissionReasonCode: string
+  authorizedWeek: number
+  validFromWeek: number
+  expiresAfterWeek: number
+  clearanceLevel: number
+  missionScope: readonly string[]
+}
+
+export interface DepartmentAuthorizationHandoffResult {
+  approved: boolean
+  blockerCodes: readonly DepartmentAuthorizationHandoffBlockerCode[]
+  record?: DepartmentAuthorizationHandoffRecord
+  unitFit?: UnitMissionFitResult
+}
+
 function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
 }
 
 function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
   return edge.fromNodeId === nodeId || edge.toNodeId === nodeId || edge.representsNodeId === nodeId
+}
+
+function deniedDepartmentAuthorizationHandoff(
+  ...blockerCodes: DepartmentAuthorizationHandoffBlockerCode[]
+): DepartmentAuthorizationHandoffResult {
+  return Object.freeze({
+    approved: false,
+    blockerCodes: Object.freeze(
+      [...new Set(blockerCodes)].sort((left, right) => compareCodeUnits(left, right))
+    ),
+  })
+}
+
+function resolveDepartmentAuthorityNode(graph: AuthorityGraph, departmentRef: string) {
+  const token = departmentRef.trim()
+  const directNodeId = normalizeAuthorityNodeId(graph, token)
+
+  return (
+    graph.nodes
+      .filter(
+        (node) =>
+          node.nodeType === 'department' &&
+          (node.id === directNodeId || (node.linkedDepartmentIds ?? []).includes(token))
+      )
+      .sort((left, right) => compareCodeUnits(left.id, right.id))[0] ?? null
+  )
+}
+
+function resolveUnitAuthorityNode(
+  graph: AuthorityGraph,
+  registry: SpecialistUnitRegistry,
+  unitRef: string
+): { authorityNodeId: string; unit: UnitProfile } | null {
+  const token = unitRef.trim()
+  const directNodeId = normalizeAuthorityNodeId(graph, token)
+  const unitById = new Map(registry.units.map((unit) => [unit.id, unit]))
+  const candidateNodes = graph.nodes
+    .filter(
+      (node) =>
+        node.id === directNodeId || node.id === token || (node.linkedUnitIds ?? []).includes(token)
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const node of candidateNodes) {
+    const linkedUnitId = [...new Set([...(node.linkedUnitIds ?? []), node.id, token])]
+      .sort(compareCodeUnits)
+      .find((unitId) => unitById.has(unitId))
+    if (linkedUnitId) {
+      return {
+        authorityNodeId: node.id,
+        unit: unitById.get(linkedUnitId)!,
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * SPE-2088: pure department authorization gate for one mission-to-specialist-unit handoff.
+ *
+ * The gate reads a sanitized authority graph, selects the first applicable permission edge in
+ * code-unit ID order, and fails closed unless that edge yields an active explicit grant with
+ * approver provenance. It returns an audit record but does not persist or mutate routing state.
+ */
+export function authorizeDepartmentUnitHandoff(
+  state: Pick<GameState, 'week' | 'cases' | 'authorityGraphState'>,
+  registry: SpecialistUnitRegistry,
+  request: DepartmentAuthorizationHandoffRequest
+): DepartmentAuthorizationHandoffResult {
+  const validFromWeek = Math.trunc(request.validFromWeek)
+  const expiresAfterWeek = Math.trunc(request.expiresAfterWeek)
+  if (
+    !Number.isFinite(request.validFromWeek) ||
+    !Number.isFinite(request.expiresAfterWeek) ||
+    validFromWeek < 1 ||
+    expiresAfterWeek < validFromWeek
+  ) {
+    return deniedDepartmentAuthorizationHandoff('invalid-authorization-window')
+  }
+
+  if (state.week < validFromWeek) {
+    return deniedDepartmentAuthorizationHandoff('authorization-not-yet-active')
+  }
+
+  if (state.week > expiresAfterWeek) {
+    return deniedDepartmentAuthorizationHandoff('authorization-expired')
+  }
+
+  if (!Number.isFinite(request.clearanceLevel) || request.clearanceLevel < 0) {
+    return deniedDepartmentAuthorizationHandoff('invalid-clearance')
+  }
+
+  const missionScope = uniqueSortedStrings(
+    request.missionScope.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
+  )
+  if (missionScope.length === 0) {
+    return deniedDepartmentAuthorizationHandoff('empty-mission-scope')
+  }
+
+  const currentCase = state.cases[request.missionId]
+  if (!currentCase || currentCase.status === 'resolved' || currentCase.assignedTeamIds.length > 0) {
+    return deniedDepartmentAuthorizationHandoff('mission-not-handoff-eligible')
+  }
+
+  if (request.missionFit.commandMode === 'council_direct') {
+    return deniedDepartmentAuthorizationHandoff('council-direct-out-of-scope')
+  }
+
+  if (!validateSpecialistUnitRegistry(registry).valid) {
+    return deniedDepartmentAuthorizationHandoff('invalid-unit-registry')
+  }
+
+  const graph = sanitizeAuthorityGraphState(state.authorityGraphState).graph
+  const departmentNode = resolveDepartmentAuthorityNode(graph, request.authorizingDepartmentRef)
+  if (!departmentNode) {
+    return deniedDepartmentAuthorizationHandoff('missing-department-reference')
+  }
+
+  const unitAuthority = resolveUnitAuthorityNode(graph, registry, request.targetUnitRef)
+  if (!unitAuthority) {
+    return deniedDepartmentAuthorizationHandoff('missing-unit-reference')
+  }
+
+  const query = {
+    actorNodeId: unitAuthority.authorityNodeId,
+    counterpartyNodeId: departmentNode.id,
+    channel: 'permission' as const,
+    asOfWeek: state.week,
+  }
+  const contradictedEdgeIds = new Set(
+    resolveAuthorityGraphConsequences(graph, {
+      ...query,
+      includeContradictedClaims: true,
+    })
+      .filter((consequence) => consequence.contradicted)
+      .flatMap((consequence) => consequence.edgeIds)
+  )
+  const permissionEdges = graph.edges
+    .filter(
+      (edge) =>
+        edge.pressureChannels?.includes('permission') &&
+        edgeInvolvesNode(edge, departmentNode.id) &&
+        edgeInvolvesNode(edge, unitAuthority.authorityNodeId) &&
+        !contradictedEdgeIds.has(edge.id)
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  const selected = permissionEdges
+    .map((edge) => ({
+      edge,
+      consequence: resolveAuthorityGraphConsequences(
+        { nodes: graph.nodes, edges: [edge] },
+        query
+      ).find((entry) => entry.edgeIds.includes(edge.id)),
+    }))
+    .find((entry) => entry.consequence !== undefined)
+
+  if (!selected?.consequence) {
+    return deniedDepartmentAuthorizationHandoff('missing-permission-edge')
+  }
+
+  if (selected.consequence.delayed || selected.consequence.contradicted) {
+    return deniedDepartmentAuthorizationHandoff('permission-not-active')
+  }
+
+  if (selected.consequence.effect !== 'grant' || selected.consequence.magnitude <= 0) {
+    return deniedDepartmentAuthorizationHandoff('permission-denied')
+  }
+
+  const approverId = selected.edge.provenance.recorderId?.trim()
+  if (!approverId) {
+    return deniedDepartmentAuthorizationHandoff('missing-approver')
+  }
+
+  const unitFit = resolveUnitForMission({
+    packet: {
+      ...request.missionFit,
+      incidentId: request.missionId,
+      week: state.week,
+    },
+    registry: { units: [unitAuthority.unit] },
+    options: { includeBlocked: true, maxResults: 1 },
+  }).ranked[0]
+  if (!unitFit || unitFit.hardBlocked) {
+    return deniedDepartmentAuthorizationHandoff('unit-unavailable')
+  }
+
+  const record = Object.freeze({
+    id: `department-unit-handoff:${request.missionId}:${departmentNode.id}:${unitAuthority.unit.id}:${selected.edge.id}`,
+    missionId: request.missionId,
+    authorizingDepartmentId: departmentNode.id,
+    targetUnitId: unitAuthority.unit.id,
+    approverId,
+    permissionEdgeId: selected.edge.id,
+    permissionReasonCode: selected.consequence.reasonCode,
+    authorizedWeek: state.week,
+    validFromWeek,
+    expiresAfterWeek,
+    clearanceLevel: Math.trunc(request.clearanceLevel),
+    missionScope: Object.freeze(missionScope),
+  }) satisfies DepartmentAuthorizationHandoffRecord
+
+  return Object.freeze({
+    approved: true,
+    blockerCodes: Object.freeze([]),
+    record,
+    unitFit,
+  })
 }
 
 function resolveMissionFactionAuthorityNode(

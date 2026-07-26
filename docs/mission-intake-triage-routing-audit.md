@@ -168,6 +168,26 @@ route. The read seam is pure: persisted routing changes only through existing no
 recompute boundaries. At week-close, routing is recomputed after the authority graph mutation so
 the next-week route agrees with the persisted post-mutation graph.
 
+### Department-to-specialist-unit authorization boundary (SPE-2088)
+
+`authorizeDepartmentUnitHandoff` composes the existing authority and specialist-unit owners
+without inserting unit fit into canonical team candidate ranking:
+
+- resolve one department authority node by node ID, alias, or linked department registry ID
+- resolve one specialist-unit authority node by node ID, alias, or linked unit registry ID
+- consume the first applicable sanitized `permission` edge in deterministic code-unit ID order
+- require an active explicit grant plus `provenance.recorderId` as the approver
+- validate the declared authorization window and the target unit through the existing
+  specialist-unit mission-fit/lifecycle resolver
+- return an immutable audit record with mission scope, clearance, department, unit, approver,
+  window, and permission-edge evidence
+
+Missing or legacy graphs, missing references, invalid unit registries, hidden or contradicted
+permission, denial, missing approver provenance, expired windows, and unavailable units fail
+closed. The result is a pure handoff decision, not a persisted handoff ledger: it does not change
+mission routing, team-readiness math, candidate validity, scores, or ranking. Week changes are
+observed only through the existing campaign week boundary.
+
 ## 5) Team-readiness and time-pressure integration guidance
 
 ### Team-readiness integration

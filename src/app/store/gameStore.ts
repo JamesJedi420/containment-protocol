@@ -149,6 +149,7 @@ import {
   applyMissionTriageDisposition,
   clearMissionTriageDisposition,
   recomputeMissionRouting,
+  routeMission,
   routeMissionToTeam,
 } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
@@ -1209,7 +1210,20 @@ export const useGameStore = create<GameStore>()(
           game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
         })),
 
-      assign: (caseId, teamId) => set((s) => ({ game: assignTeam(s.game, caseId, teamId) })),
+      assign: (caseId, teamId) =>
+        set((s) => {
+          const routed = routeMissionToTeam(s.game, caseId, teamId)
+          if (
+            !routed.assigned &&
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: routed.state }
+          }
+
+          return { game: assignTeam(s.game, caseId, teamId) }
+        }),
 
       unassign: (caseId, teamId) => set((s) => ({ game: unassignTeam(s.game, caseId, teamId) })),
 

@@ -289,18 +289,38 @@ function sanitizeGraph(value: unknown): AuthorityGraph {
     return EMPTY_AUTHORITY_GRAPH_STATE.graph
   }
 
-  const nodes = value.nodes
-    .map(sanitizeNode)
-    .filter((entry): entry is AuthorityGraphNode => !!entry)
-  const edges = value.edges
+  const nodeById = new Map<string, AuthorityGraphNode>()
+  for (const rawNode of value.nodes) {
+    const node = sanitizeNode(rawNode)
+    if (node && !nodeById.has(node.id)) {
+      nodeById.set(node.id, node)
+    }
+  }
+
+  const nodes = [...nodeById.values()].sort((left, right) => compareCodeUnits(left.id, right.id))
+  const edges: AuthorityGraphEdge[] = []
+  const seenEdgeIds = new Set<string>()
+  const candidates = value.edges
     .map(sanitizeEdge)
     .filter((entry): entry is AuthorityGraphEdge => !!entry)
-  const graph: AuthorityGraph = Object.freeze({
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const edge of candidates) {
+    if (seenEdgeIds.has(edge.id)) {
+      continue
+    }
+
+    const candidateGraph: AuthorityGraph = { nodes, edges: [...edges, edge] }
+    if (validateAuthorityGraph(candidateGraph).valid) {
+      seenEdgeIds.add(edge.id)
+      edges.push(edge)
+    }
+  }
+
+  return Object.freeze({
     nodes: Object.freeze(nodes),
     edges: Object.freeze(edges),
   })
-
-  return validateAuthorityGraph(graph).valid ? graph : EMPTY_AUTHORITY_GRAPH_STATE.graph
 }
 
 function sanitizeHistoryEntry(

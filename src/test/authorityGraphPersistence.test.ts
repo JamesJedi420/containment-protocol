@@ -109,7 +109,19 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
           ...createAuthorityGraphState().graph.nodes,
           { id: '', nodeType: 'agency', label: 'Dropped malformed node' },
         ],
-        edges: createAuthorityGraphState().graph.edges,
+        edges: [
+          ...createAuthorityGraphState().graph.edges,
+          {
+            id: 'invalid-unknown-node',
+            kind: 'dependency',
+            fromNodeId: 'agency-core',
+            toNodeId: 'missing-node',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'malformed-fixture' },
+            pressureChannels: ['permission'],
+          },
+        ],
       },
       mutationHistory: [
         {
@@ -137,6 +149,7 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
     })
 
     expect(sanitized.graph.nodes).toHaveLength(2)
+    expect(sanitized.graph.edges.map((edge) => edge.id)).toEqual(['permission-dependency'])
     expect(sanitized.mutationHistory.map((entry) => entry.week)).toEqual([4])
     expect(sanitized.lastMutationWeek).toBe(4)
     expect(sanitizeAuthorityGraphState({ graph: 'bad' })).toEqual({

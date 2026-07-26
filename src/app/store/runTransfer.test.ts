@@ -8572,6 +8572,20 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(hydrated.legitimacy).toBeUndefined()
 
+      const invalidCover = hydrateGame({
+        ...stripGameTemplates(fallback),
+        legitimacy: {
+          sanctionLevel: 'sanctioned',
+          operationalCoverLevel: 'invisible',
+          falloutRisk: 'risk',
+        },
+      })
+
+      expect(invalidCover.legitimacy).toEqual({
+        sanctionLevel: 'sanctioned',
+        falloutRisk: 'risk',
+      })
+
       const valid = hydrateGame({
         ...stripGameTemplates(fallback),
         legitimacy: {

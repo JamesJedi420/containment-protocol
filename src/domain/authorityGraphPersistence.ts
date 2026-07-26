@@ -2,7 +2,8 @@
  * SPE-2720: persisted authority-graph state and one bounded week-close mutation.
  *
  * The state is deliberately graph-local. It does not project into commerce, missions,
- * operational cover, negotiation, or UI. A graph without an eligible active edge is a no-op.
+ * operational cover, or UI. SPE-2721 exposes one pure negotiation read seam; a graph without
+ * an eligible active edge remains a no-op for week-close mutation.
  */
 
 import {

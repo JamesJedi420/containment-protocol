@@ -216,7 +216,21 @@ Each faction has pre-defined `Contact` entries created via `createContact`. A co
 
 ---
 
-## 13. Common Pitfalls
+## 13. Persisted Authority Graph Boundary
+
+`GameState.authorityGraphState` is a separate durable authority-relationship substrate. The
+SPE-2721 integration exposes one pure negotiation read through
+`resolvePersistedAuthorityNegotiation`: it sanitizes missing or legacy state, then delegates to
+the existing authority negotiation and consequence resolvers. Alias lookup and deterministic
+consequence order remain owned by the authority graph helpers.
+
+This seam does not write faction standing or reputation, mutate the graph, change week-close
+ordering, or project negotiation into market, operational cover, command propagation,
+department/council politics, secrecy, media, or UI.
+
+---
+
+## 14. Common Pitfalls
 
 | Pitfall | Consequence | Guard |
 | --- | --- | --- |
@@ -225,3 +239,4 @@ Each faction has pre-defined `Contact` entries created via `createContact`. A co
 | Assuming all factions get cohesion/reliability/distortion | Only the anchor faction (first in sorted output) has non-zero compact state | Always check `idx === 0` path in `buildFactionStates` |
 | Calling `getFactionRecruitUnlocks` before contacts are activated | Returns empty — contacts must have `status === 'active'` and `relationship >= 15` | Activate contacts via `applyFactionRecruitInteraction` first |
 | Treating standing and reputation as equivalent in UI | They update at different rates and represent different histories | Standing is per-session event-driven; reputation is cumulative across the runtime record |
+| Treating authority negotiation as faction standing/reputation mutation | The SPE-2721 seam is a pure read from the separately persisted authority graph | Apply faction changes only through their owning event/runtime paths |

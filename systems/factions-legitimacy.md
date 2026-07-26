@@ -464,6 +464,15 @@ Treat **SPE-50** as the shared **legitimacy / sanction / authorization policy** 
 
 Legacy saves infer `covert` sanction as deniable cover and every other sanction as open cover. Explicit cover can therefore diverge under the same institutional posture without renaming sanction values. The first bounded gate is sanctioned gray-market procurement: open or compromised cover remains audit-blocked, while deniable cover can reach the broker without creating an emergency-waiver record or its fallout. The emergency waiver remains a separate crisis response for sanctioned operations that lack deniable cover.
 
+### Persisted authority graph foundation
+
+SPE-2720 adds a graph-local persistence seam beneath the broader SPE-788 politics layer. An
+authored authority graph may advance one eligible relationship strength at week-close using the
+existing consequence resolver. Selection is deterministic by edge and pressure-channel ID,
+movement is capped at five points, the same closed week cannot apply twice, and history retains 52
+entries. This state does not alter faction standing, negotiation, commerce, operational cover, or
+SPE-39 rival/interference/upkeep calculations.
+
 ### Patron obligations and symbolic social debt (SPE-51)
 
 Gifts, hospitality, aid, ritual participation, favors, promises, tribute, and sponsor-routed boons should materialize as **durable obligation objects** with negotiation posture, hidden leverage, inheritance constraints, and relationship-specific fallout. This is closer to **contracted social debt** than “reputation with flavor text.”

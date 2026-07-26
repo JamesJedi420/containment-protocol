@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2720",
     "SPE-2719",
     "SPE-2647",
     "SPE-2649",
@@ -16,6 +17,7 @@
     "SPE-2639"
   ],
   "sliceDocStatus": {
+    "planning/spe-2720-authority-graph-week-close-persistence-slice.md": "Shipped",
     "planning/spe-2719-institutional-legitimacy-operational-cover-slice.md": "Shipped",
     "planning/spe-2650-post-spe-2647-handoff-reconciliation-slice-1.md": "In progress",
     "planning/spe-2649-post-spe-2646-handoff-reconciliation-slice-1.md": "Shipped",

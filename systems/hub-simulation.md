@@ -453,6 +453,11 @@ This should make the player interpret, not just consume.
 
 Hub simulation should react to what happened last week.
 
+SPE-2720 provides a separate persisted authority-relationship graph seam at week-close. When an
+authored graph has an eligible pressure-channel edge, one deterministic consequence-driven
+strength mutation is recorded with bounded history. Empty or legacy graph state is a no-op, and
+the seam does not feed ordinary hub commerce, facilities, debriefing, or operational-cover gates.
+
 Examples:
 
 - failed containment increases local fear and rumor distortion

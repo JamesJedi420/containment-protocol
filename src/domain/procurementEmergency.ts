@@ -10,13 +10,12 @@ import {
   AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION,
   resolveEmergencyGrayMarketWaiverAuthority,
 } from './procurementEmergencyAuthority'
-import {
-  getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
-} from './procurementEmergencyFallout'
+import { getEmergencyWaiverFalloutPrecedentPenaltyMultiplier } from './procurementEmergencyFallout'
 import { getEmergencyProcurementInstitutionAuditKey } from './procurementEmergencyInstitution'
 import { buildRivalPressure } from './rivalPressure'
 import { buildMajorIncidentState } from './strategicState'
 import { normalizeGameState } from './teamSimulation'
+import { hasDeniableOperationalCover } from './operationalCover'
 
 function isSanctionedPosture(game: Pick<GameState, 'legitimacy'>): boolean {
   return (game.legitimacy?.sanctionLevel ?? 'tolerated') === 'sanctioned'
@@ -34,9 +33,7 @@ export function resolveEmergencyWaiverRegulatoryArbitrageSignal(
 }
 
 /** SPE-1184: bounded rule-conflict surfacing (sanctioned procurement channel vs crisis waiver — not a general engine). */
-export type EmergencyWaiverRuleConflictSignal =
-  | 'none'
-  | 'sanctioned_procurement_vs_crisis_waiver'
+export type EmergencyWaiverRuleConflictSignal = 'none' | 'sanctioned_procurement_vs_crisis_waiver'
 
 export function resolveEmergencyWaiverRuleConflictSignal(
   majorIncidentSeverity: 'watch' | 'danger' | 'crisis',
@@ -51,6 +48,9 @@ export function resolveEmergencyWaiverRuleConflictSignal(
 /** True when crisis pressure qualifies and posture is sanctioned; waiver not yet granted this week. */
 export function canInvokeEmergencyGrayMarketWaiver(game: GameState): boolean {
   if (game.legitimacy?.falloutRisk === 'costly') {
+    return false
+  }
+  if (hasDeniableOperationalCover(game.legitimacy)) {
     return false
   }
   const authority = resolveEmergencyGrayMarketWaiverAuthority(game)
@@ -142,10 +142,13 @@ export function applyEmergencyGrayMarketFalloutTick(
   const fundingBefore = nextStateDraft.funding
   const containmentBefore = nextStateDraft.containmentRating ?? 0
   const institutionKey = getEmergencyProcurementInstitutionAuditKey(nextStateDraft)
-  const waiverPrecedentCount = clamp(nextStateDraft.emergencyGrayMarketWaiverPrecedentCount ?? 1, 1, 50000)
-  const precedentPenaltyMultiplier = getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
-    waiverPrecedentCount
+  const waiverPrecedentCount = clamp(
+    nextStateDraft.emergencyGrayMarketWaiverPrecedentCount ?? 1,
+    1,
+    50000
   )
+  const precedentPenaltyMultiplier =
+    getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(waiverPrecedentCount)
   // Standing scale from source-week ranking; compose with precedent (do not fold into it).
   const rivalPressure = buildRivalPressure(sourceState)
   const rankingScore = rivalPressure.rankingScore
@@ -154,6 +157,9 @@ export function applyEmergencyGrayMarketFalloutTick(
 
   const baseLegitimacy: LegitimacyState = {
     sanctionLevel: nextStateDraft.legitimacy?.sanctionLevel ?? 'tolerated',
+    ...(nextStateDraft.legitimacy?.operationalCoverLevel !== undefined
+      ? { operationalCoverLevel: nextStateDraft.legitimacy.operationalCoverLevel }
+      : {}),
     ...(nextStateDraft.legitimacy?.accessReason !== undefined
       ? { accessReason: nextStateDraft.legitimacy.accessReason }
       : {}),
@@ -205,10 +211,7 @@ export function applyEmergencyGrayMarketFalloutTick(
   }
 
   const rawPenalty = Math.floor(fundingBefore * 0.088 * combinedPenaltyMultiplier)
-  const fundingPenalty = Math.min(
-    fundingBefore,
-    clamp(rawPenalty, fundingBefore > 0 ? 2 : 0, 520)
-  )
+  const fundingPenalty = Math.min(fundingBefore, clamp(rawPenalty, fundingBefore > 0 ? 2 : 0, 520))
   const fundingAfter = Math.max(0, fundingBefore - fundingPenalty)
   const containmentMagnitude = Math.ceil((containmentBefore / 20) * combinedPenaltyMultiplier)
   const containmentDelta = -clamp(containmentMagnitude, 2, 6)

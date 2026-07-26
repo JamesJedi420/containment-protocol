@@ -39,7 +39,7 @@ Legacy inference is `covert` sanction → deniable cover; every other sanction �
 ## Tests
 
 - `src/test/operationalCover.test.ts`
-- `src/app/store/runTransfer.test.ts` hydration problem 470
+- `src/app/store/runTransfer.test.ts` — `470 sanitizes legitimacy sanctionLevel, operationalCoverLevel, falloutRisk, and accessReason`
 - existing procurement-emergency, market, ranking/rival/upkeep tests as regression coverage
 
 ## Deferred

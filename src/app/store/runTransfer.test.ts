@@ -6088,6 +6088,48 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('422a sanitizes the external-support authority consequence week marker', () => {
+      const fallback = createStartingState()
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 6,
+        externalSupportAssets: {
+          valid: {
+            id: 'valid',
+            label: 'Valid Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 6,
+          },
+          future: {
+            id: 'future',
+            label: 'Future Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 7,
+          },
+          malformed: {
+            id: 'malformed',
+            label: 'Malformed Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 2.5,
+          },
+        },
+      })
+
+      expect(hydrated.externalSupportAssets?.valid?.lastAuthorityConsequenceWeek).toBe(6)
+      expect(hydrated.externalSupportAssets?.future).not.toHaveProperty(
+        'lastAuthorityConsequenceWeek'
+      )
+      expect(hydrated.externalSupportAssets?.malformed).not.toHaveProperty(
+        'lastAuthorityConsequenceWeek'
+      )
+    })
+
     it('423 sanitizes faction reputation, contacts, history, favors, recruitUnlocks, and lore', () => {
       const fallback = createStartingState()
 

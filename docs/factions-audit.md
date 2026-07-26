@@ -224,9 +224,17 @@ SPE-2721 integration exposes one pure negotiation read through
 the existing authority negotiation and consequence resolvers. Alias lookup and deterministic
 consequence order remain owned by the authority graph helpers.
 
-This seam does not write faction standing or reputation, mutate the graph, change week-close
-ordering, or project negotiation into market, operational cover, command propagation,
-department/council politics, secrecy, media, or UI.
+SPE-2722 adds one separate write boundary in the existing contractor support action. It resolves
+the support outcome first, then uses `resolvePersistedExternalSupportAuthorityConsequence` to
+sanitize the graph, match the contractor node/alias, select one explicitly linked live faction,
+and consume one eligible `aid` edge in code-unit order. Only that faction's reputation may move,
+by at most one point, and `ExternalSupportAsset.lastAuthorityConsequenceWeek` blocks duplicate
+application during the same week.
+
+Neither seam mutates the graph or changes its week-close ordering. Negotiation remains read-only,
+and the contractor consequence does not write faction standing, institutional legitimacy,
+operational cover, market state, command propagation, department/council politics, secrecy,
+media, commerce, SPE-39 calculations, or UI.
 
 ---
 
@@ -240,3 +248,5 @@ department/council politics, secrecy, media, or UI.
 | Calling `getFactionRecruitUnlocks` before contacts are activated | Returns empty — contacts must have `status === 'active'` and `relationship >= 15` | Activate contacts via `applyFactionRecruitInteraction` first |
 | Treating standing and reputation as equivalent in UI | They update at different rates and represent different histories | Standing is per-session event-driven; reputation is cumulative across the runtime record |
 | Treating authority negotiation as faction standing/reputation mutation | The SPE-2721 seam is a pure read from the separately persisted authority graph | Apply faction changes only through their owning event/runtime paths |
+| Applying contractor authority pressure before support resolution | The graph consequence would feed back into the action that triggered it | Resolve support amount and reliability first; apply the bounded faction movement afterward |
+| Reapplying a contractor authority edge in one week | Repeated hub actions would duplicate faction pressure | Respect `lastAuthorityConsequenceWeek` and only mark an actually applied movement |

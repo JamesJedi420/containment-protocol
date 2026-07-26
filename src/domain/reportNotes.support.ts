@@ -1,5 +1,6 @@
 // SPE-38: Add support shortfall and restoration notes to report output
 import type { CaseInstance, ReportNote } from './models'
+import { buildReportNoteTimestamp } from './reportNotes'
 
 /**
  * If a case suffered a support shortfall, surface a deterministic report note.
@@ -26,7 +27,7 @@ export function buildSupportRestoredNote(amount: number, prev: number, next: num
   return {
     id: `note-support-restored-${week}`,
     content: `Support staff rallied: +${amount} support restored (now ${next}).`,
-    timestamp: Date.now(),
+    timestamp: buildReportNoteTimestamp(week, 0),
     type: 'support.restored',
     metadata: { prev, next, amount, week },
   }

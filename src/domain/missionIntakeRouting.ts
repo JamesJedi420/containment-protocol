@@ -102,7 +102,10 @@ function clampInteger(value: number, min: number, max: number) {
 export function deriveMissionCategory(currentCase: CaseInstance): MissionCategory {
   const tagSet = new Set(
     [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].map((tag) =>
-      tag.toLowerCase()
+      tag
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_')
     )
   )
 
@@ -110,6 +113,7 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
     currentCase.kind === 'raid' ||
     tagSet.has('breach') ||
     tagSet.has('containment') ||
+    tagSet.has('containment_breach') ||
     currentCase.stage >= 4
   ) {
     return 'containment_breach'
@@ -151,11 +155,7 @@ export function resolveMissionIntakeDepartments(
     {
       caseId: currentCase.id,
       missionCategory: deriveMissionCategory(currentCase),
-      caseTags: [
-        ...currentCase.tags,
-        ...currentCase.requiredTags,
-        ...currentCase.preferredTags,
-      ],
+      caseTags: [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags],
     },
     registry,
     authorityGraph

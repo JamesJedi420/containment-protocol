@@ -131,6 +131,30 @@ describe('department capability registry and resolver (SPE-2083)', () => {
     })
   })
 
+  it('does not treat generic capability aliases as specialist doctrine', () => {
+    const genericResearchExtension = department('department:generic-research-extension', {
+      doctrineTags: ['research'],
+      reputation: 100,
+      fundingTier: 5,
+    })
+    const extendedRegistry: DepartmentCapabilityRegistry = {
+      departments: [
+        ...DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments,
+        genericResearchExtension,
+      ],
+      fallbackDepartmentRefs: DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.fallbackDepartmentRefs,
+    }
+    const result = resolveDepartments(
+      packet({
+        missionCategory: 'investigation_lead',
+        caseTags: ['biohazard', 'research'],
+      }),
+      extendedRegistry
+    )
+
+    expect(result.primaryDepartment?.departmentId).toBe('department:biohazard-response')
+  })
+
   it('routes concept-embodiment research through the authored specialist profile', () => {
     const result = resolveDepartments(
       packet({
@@ -307,6 +331,33 @@ describe('department capability registry and resolver (SPE-2083)', () => {
       misfitRoute: null,
       blockerCodes: ['invalid-case-packet'],
     })
+  })
+
+  it('fails closed when legacy case tags are missing or malformed', () => {
+    const malformedPackets = [
+      {
+        caseId: 'case:missing-tags',
+        missionCategory: 'investigation_lead',
+      },
+      {
+        caseId: 'case:non-array-tags',
+        missionCategory: 'investigation_lead',
+        caseTags: 'biohazard',
+      },
+    ] as unknown as Parameters<typeof resolveDepartments>[0][]
+
+    for (const malformedPacket of malformedPackets) {
+      expect(
+        resolveDepartments(malformedPacket, DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY)
+      ).toMatchObject({
+        caseId: malformedPacket.caseId,
+        routeKind: 'blocked',
+        primaryDepartment: null,
+        supportingDepartments: [],
+        misfitRoute: null,
+        blockerCodes: ['invalid-case-packet'],
+      })
+    }
   })
 
   it('resolves department node IDs, aliases, and linked IDs to one definition', () => {

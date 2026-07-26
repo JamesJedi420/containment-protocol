@@ -204,6 +204,27 @@ const MISSION_CATEGORY_SET = new Set<string>([
   'strategic_opportunity',
 ])
 const RESEARCH_HAZARD_TAGS = new Set(['cognitive_hazard', 'conceptual_hazard', 'semantic_hazard'])
+const GENERIC_CAPABILITY_BY_CASE_TAG: Readonly<Record<string, DepartmentCapability>> = {
+  analysis: 'research',
+  archive: 'records',
+  breach: 'containment',
+  containment: 'containment',
+  containment_breach: 'containment',
+  emergency: 'emergency_response',
+  emergency_response: 'emergency_response',
+  equipment_request: 'procurement',
+  ethics: 'ethics_review',
+  ethics_veto: 'ethics_review',
+  hazard: 'containment',
+  investigation: 'research',
+  procurement: 'procurement',
+  records: 'records',
+  records_review: 'records',
+  rescue: 'emergency_response',
+  research: 'research',
+  supply: 'procurement',
+  welfare_review: 'ethics_review',
+}
 
 const TASK_TYPE_BY_CAPABILITY: Readonly<Record<DepartmentCapability, DepartmentTaskType>> = {
   research: 'research_case',
@@ -793,7 +814,7 @@ export function validateDepartmentCapabilityRegistry(
   })
 }
 
-function capabilitiesFromCaseTags(tags: readonly string[]) {
+function capabilitiesFromCaseTags(tags: readonly unknown[]) {
   const capabilities = new Set<DepartmentCapability>()
 
   for (const rawTag of tags) {
@@ -804,43 +825,41 @@ function capabilitiesFromCaseTags(tags: readonly string[]) {
 
     if (RESEARCH_HAZARD_TAGS.has(tag)) {
       capabilities.add('research')
-    } else if (
-      tag === 'containment' ||
-      tag === 'breach' ||
-      tag === 'hazard' ||
-      tag.endsWith('_hazard') ||
-      tag.endsWith('hazard')
-    ) {
+    } else if (tag.endsWith('_hazard') || tag.endsWith('hazard')) {
       capabilities.add('containment')
     }
-    if (tag === 'research' || tag === 'analysis' || tag === 'investigation') {
-      capabilities.add('research')
-    }
-    if (tag === 'records' || tag === 'records_review' || tag === 'archive') {
-      capabilities.add('records')
-    }
-    if (tag === 'procurement' || tag === 'equipment_request' || tag === 'supply') {
-      capabilities.add('procurement')
-    }
-    if (tag === 'ethics' || tag === 'ethics_veto' || tag === 'welfare_review') {
-      capabilities.add('ethics_review')
-    }
-    if (tag === 'emergency' || tag === 'emergency_response' || tag === 'rescue') {
-      capabilities.add('emergency_response')
+
+    const genericCapability = GENERIC_CAPABILITY_BY_CASE_TAG[tag]
+    if (genericCapability) {
+      capabilities.add(genericCapability)
     }
   }
 
   return [...capabilities].sort(compareCodeUnits)
 }
 
+function safePacketCaseTags(packet: DepartmentCasePacket): readonly unknown[] {
+  return Array.isArray(packet?.caseTags) ? packet.caseTags : []
+}
+
+function isValidDepartmentCasePacket(packet: DepartmentCasePacket) {
+  return (
+    Boolean(packet && typeof packet === 'object') &&
+    normalizeToken(packet.caseId).length > 0 &&
+    MISSION_CATEGORY_SET.has(packet.missionCategory) &&
+    Array.isArray(packet.caseTags) &&
+    packet.caseTags.every((tag) => typeof tag === 'string')
+  )
+}
+
 export function deriveDepartmentCaseRequirements(
   packet: DepartmentCasePacket
 ): DepartmentCaseRequirements {
   const categoryRequirements =
-    CATEGORY_REQUIREMENTS[packet.missionCategory] ?? CATEGORY_REQUIREMENTS.strategic_opportunity
-  const tagCapabilities = capabilitiesFromCaseTags(packet.caseTags)
+    CATEGORY_REQUIREMENTS[packet?.missionCategory] ?? CATEGORY_REQUIREMENTS.strategic_opportunity
+  const tagCapabilities = capabilitiesFromCaseTags(safePacketCaseTags(packet))
   const primaryCapability =
-    packet.missionCategory === 'strategic_opportunity' && tagCapabilities.length > 0
+    packet?.missionCategory === 'strategic_opportunity' && tagCapabilities.length > 0
       ? tagCapabilities[0]
       : categoryRequirements.primaryCapability
   const supportingCapabilities = uniqueCodeUnitSorted([
@@ -856,7 +875,11 @@ export function deriveDepartmentCaseRequirements(
 }
 
 function normalizedCaseTags(packet: DepartmentCasePacket) {
-  return uniqueCodeUnitSorted(packet.caseTags.map(normalizeCaseTag).filter((tag) => tag.length > 0))
+  return uniqueCodeUnitSorted(
+    safePacketCaseTags(packet)
+      .map(normalizeCaseTag)
+      .filter((tag) => tag.length > 0)
+  )
 }
 
 function departmentExcludedFromCase(
@@ -914,14 +937,10 @@ function doctrineMatches(department: DepartmentDefinition, caseTags: readonly st
 }
 
 const GENERIC_DOCTRINE_TAGS = new Set([
-  'analysis',
-  'containment',
-  'emergency',
+  ...Object.keys(GENERIC_CAPABILITY_BY_CASE_TAG),
   'evidence',
   'hostile',
   'infrastructure',
-  'records_review',
-  'supply',
 ])
 
 function doctrineMatchScore(department: DepartmentDefinition, caseTags: readonly string[]) {
@@ -983,12 +1002,12 @@ function makeAssignment(
 }
 
 function blockedResolution(
-  packet: DepartmentCasePacket,
+  caseId: string,
   requirements: DepartmentCaseRequirements,
   blockerCode: DepartmentRoutingBlockerCode
 ): DepartmentResolutionResult {
   return Object.freeze({
-    caseId: packet.caseId,
+    caseId,
     routeKind: 'blocked',
     requirements,
     primaryDepartment: null,
@@ -1003,13 +1022,21 @@ export function resolveDepartments(
   registry: DepartmentCapabilityRegistry,
   authorityGraph?: AuthorityGraph
 ): DepartmentResolutionResult {
-  const requirements = deriveDepartmentCaseRequirements(packet)
-  if (!MISSION_CATEGORY_SET.has(packet.missionCategory)) {
-    return blockedResolution(packet, requirements, 'invalid-case-packet')
+  if (!isValidDepartmentCasePacket(packet)) {
+    const safeMissionCategory = MISSION_CATEGORY_SET.has(packet?.missionCategory)
+      ? packet.missionCategory
+      : 'strategic_opportunity'
+    const requirements = deriveDepartmentCaseRequirements({
+      caseId: normalizeToken(packet?.caseId),
+      missionCategory: safeMissionCategory,
+      caseTags: [],
+    })
+    return blockedResolution(normalizeToken(packet?.caseId), requirements, 'invalid-case-packet')
   }
 
+  const requirements = deriveDepartmentCaseRequirements(packet)
   if (!validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {
-    return blockedResolution(packet, requirements, 'invalid-department-registry')
+    return blockedResolution(packet.caseId, requirements, 'invalid-department-registry')
   }
 
   const caseTags = normalizedCaseTags(packet)
@@ -1027,7 +1054,7 @@ export function resolveDepartments(
       .find((department): department is DepartmentDefinition => Boolean(department))
 
     if (!fallback) {
-      return blockedResolution(packet, requirements, 'invalid-department-registry')
+      return blockedResolution(packet.caseId, requirements, 'invalid-department-registry')
     }
 
     const authorityNodeId = resolveAuthorityNodeId(authorityGraph, fallback.id)

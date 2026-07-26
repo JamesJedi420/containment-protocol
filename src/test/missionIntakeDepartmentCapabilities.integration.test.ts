@@ -30,6 +30,26 @@ describe('SPE-2083 mission-intake department resolution seam', () => {
     expect(result.primaryDepartment?.departmentId).toBe('department:biohazard-response')
   })
 
+  it('recognizes the canonical containment-breach compound tag', () => {
+    const state = createStartingState()
+    const currentCase = {
+      ...state.cases['case-001'],
+      kind: 'case' as const,
+      status: 'open' as const,
+      assignedTeamIds: [],
+      tags: ['containment-breach'],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+    }
+
+    const result = resolveMissionIntakeDepartments(currentCase)
+
+    expect(result.routeKind).toBe('matched')
+    expect(result.requirements.primaryCapability).toBe('containment')
+    expect(result.primaryDepartment?.departmentId).toBe('department:field-containment')
+  })
+
   it('is read-only and leaves canonical team candidate ranking unchanged', () => {
     const state = createStartingState()
     const missionId = 'case-001'

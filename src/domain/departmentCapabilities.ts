@@ -178,7 +178,7 @@ export interface DepartmentMisfitRoute {
   readonly stigmaTag: 'capability-misfit'
 }
 
-export type DepartmentRoutingBlockerCode = 'invalid-department-registry'
+export type DepartmentRoutingBlockerCode = 'invalid-department-registry' | 'invalid-case-packet'
 
 export interface DepartmentResolutionResult {
   readonly caseId: string
@@ -753,6 +753,10 @@ export function validateDepartmentCapabilityRegistry(
 
     const departmentIdsByNode = new Map<string, string[]>()
     for (const department of departments) {
+      if (!department || typeof department !== 'object' || !normalizeToken(department.id)) {
+        continue
+      }
+
       const matchingNodes = authorityNodesMatchingRef(authorityGraph, department.id)
       if (matchingNodes.length !== 1) {
         continue
@@ -829,7 +833,8 @@ function capabilitiesFromCaseTags(tags: readonly string[]) {
 export function deriveDepartmentCaseRequirements(
   packet: DepartmentCasePacket
 ): DepartmentCaseRequirements {
-  const categoryRequirements = CATEGORY_REQUIREMENTS[packet.missionCategory]
+  const categoryRequirements =
+    CATEGORY_REQUIREMENTS[packet.missionCategory] ?? CATEGORY_REQUIREMENTS.strategic_opportunity
   const tagCapabilities = capabilitiesFromCaseTags(packet.caseTags)
   const primaryCapability =
     packet.missionCategory === 'strategic_opportunity' && tagCapabilities.length > 0
@@ -962,7 +967,8 @@ function makeAssignment(
 
 function blockedResolution(
   packet: DepartmentCasePacket,
-  requirements: DepartmentCaseRequirements
+  requirements: DepartmentCaseRequirements,
+  blockerCode: DepartmentRoutingBlockerCode
 ): DepartmentResolutionResult {
   return Object.freeze({
     caseId: packet.caseId,
@@ -971,7 +977,7 @@ function blockedResolution(
     primaryDepartment: null,
     supportingDepartments: Object.freeze([]),
     misfitRoute: null,
-    blockerCodes: Object.freeze(['invalid-department-registry'] as const),
+    blockerCodes: Object.freeze([blockerCode]),
   })
 }
 
@@ -981,8 +987,12 @@ export function resolveDepartments(
   authorityGraph?: AuthorityGraph
 ): DepartmentResolutionResult {
   const requirements = deriveDepartmentCaseRequirements(packet)
+  if (!MISSION_CATEGORY_SET.has(packet.missionCategory)) {
+    return blockedResolution(packet, requirements, 'invalid-case-packet')
+  }
+
   if (!validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {
-    return blockedResolution(packet, requirements)
+    return blockedResolution(packet, requirements, 'invalid-department-registry')
   }
 
   const caseTags = normalizedCaseTags(packet)
@@ -1000,7 +1010,7 @@ export function resolveDepartments(
       .find((department): department is DepartmentDefinition => Boolean(department))
 
     if (!fallback) {
-      return blockedResolution(packet, requirements)
+      return blockedResolution(packet, requirements, 'invalid-department-registry')
     }
 
     const authorityNodeId = resolveAuthorityNodeId(authorityGraph, fallback.id)

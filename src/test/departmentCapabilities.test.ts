@@ -265,14 +265,31 @@ describe('department capability registry and resolver (SPE-2083)', () => {
       fallbackDepartmentRefs: [],
     } as unknown as DepartmentCapabilityRegistry
 
-    expect(validateDepartmentCapabilityRegistry(malformed)).toMatchObject({
+    expect(validateDepartmentCapabilityRegistry(malformed, authorityGraph())).toMatchObject({
       valid: false,
       issues: expect.arrayContaining([
         expect.objectContaining({ code: 'invalid_department_definition' }),
         expect.objectContaining({ code: 'missing_fallback_route' }),
       ]),
     })
-    expect(resolveDepartments(packet(), malformed).routeKind).toBe('blocked')
+    expect(resolveDepartments(packet(), malformed, authorityGraph()).routeKind).toBe('blocked')
+  })
+
+  it('fails closed for an unrecognized runtime mission category', () => {
+    const malformedPacket = packet({
+      missionCategory: 'legacy_unknown' as Parameters<
+        typeof resolveDepartments
+      >[0]['missionCategory'],
+    })
+
+    expect(
+      resolveDepartments(malformedPacket, DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY)
+    ).toMatchObject({
+      routeKind: 'blocked',
+      primaryDepartment: null,
+      misfitRoute: null,
+      blockerCodes: ['invalid-case-packet'],
+    })
   })
 
   it('resolves department node IDs, aliases, and linked IDs to one definition', () => {

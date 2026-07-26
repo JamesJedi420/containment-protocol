@@ -5,10 +5,12 @@ import {
   applyAssetReliabilityDrift,
   resolveAssetSupportOutcome,
   createContractorAsset,
+  resolvePersistedExternalSupportAuthorityConsequence,
 } from '../domain/externalSupport'
 import { applyRallySupportStaffAction } from '../domain/hub/supportActions'
 import { createStartingState } from '../data/startingState'
 import type { ExternalSupportAsset, GameState } from '../domain/models'
+import type { AuthorityGraphState } from '../domain/authorityGraphPersistence'
 
 // ---------------------------------------------------------------------------
 // Trust band derivation
@@ -226,7 +228,7 @@ describe('SPE-93: applyRallySupportStaffAction with contractor asset', () => {
     const r1 = applyRallySupportStaffAction(state, 2)
     const r2 = applyRallySupportStaffAction(state, 2)
     expect(r1.nextState.agency?.supportAvailable).toBe(r2.nextState.agency?.supportAvailable)
-    expect(r1.note?.content).toBe(r2.note?.content)
+    expect(r1.note).toEqual(r2.note)
   })
 
   it('SPE-2700: high vs low standing diverges failed-contractor reliability drift', () => {
@@ -265,5 +267,366 @@ describe('SPE-93: applyRallySupportStaffAction with contractor asset', () => {
 
     // degraded → support_partial (−6 base); high standing softens, low standing hardens
     expect(strongReliability).toBeGreaterThan(weakReliability!)
+  })
+})
+
+describe('SPE-2722: persisted authority consequence for contractor support', () => {
+  function authorityGraphState(
+    options: {
+      assetNodeId?: string
+      assetAliasId?: string
+      factionAliasId?: string
+      linkedFactionIds?: string[]
+      edges?: AuthorityGraphState['graph']['edges']
+    } = {}
+  ): AuthorityGraphState {
+    const assetNodeId = options.assetNodeId ?? 'contractor-node'
+    return {
+      graph: {
+        nodes: [
+          {
+            id: assetNodeId,
+            nodeType: 'contractor',
+            label: 'Regional Support Contractor',
+            aliases: options.assetAliasId
+              ? [
+                  {
+                    aliasId: options.assetAliasId,
+                    label: 'Support Asset Alias',
+                    confidence: 'verified',
+                  },
+                ]
+              : undefined,
+            linkedFactionIds: options.linkedFactionIds ?? ['faction-civic'],
+          },
+          {
+            id: 'faction-civic',
+            nodeType: 'faction',
+            label: 'Civic Coordination Union',
+            aliases: options.factionAliasId
+              ? [
+                  {
+                    aliasId: options.factionAliasId,
+                    label: 'Civic Union Alias',
+                    confidence: 'verified',
+                  },
+                ]
+              : undefined,
+          },
+        ],
+        edges: options.edges ?? [
+          {
+            id: 'contractor-alliance',
+            kind: 'alliance',
+            fromNodeId: assetNodeId,
+            toNodeId: 'faction-civic',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-test' },
+            strength: 70,
+            pressureChannels: ['aid'],
+          },
+        ],
+      },
+      mutationHistory: [],
+    }
+  }
+
+  function authorityState(
+    asset = createContractorAsset('contractor-node', 'Regional Contractor', 80),
+    graphState: AuthorityGraphState | unknown = authorityGraphState()
+  ): GameState {
+    const base = createStartingState()
+    return {
+      ...base,
+      agency: {
+        ...base.agency!,
+        supportAvailable: 3,
+      },
+      supportAvailable: 3,
+      externalSupportAssets: { [asset.id]: asset },
+      factions: {
+        'faction-civic': {
+          id: 'faction-civic',
+          name: 'Civic Coordination Union',
+          reputation: 10,
+        },
+      },
+      authorityGraphState: graphState as AuthorityGraphState,
+      legitimacy: {
+        sanctionLevel: 'sanctioned',
+        operationalCoverLevel: 'deniable',
+        falloutRisk: 'none',
+      },
+    }
+  }
+
+  it('derives one bounded faction consequence from a sanitized persisted edge', () => {
+    const state = authorityState()
+    const asset = state.externalSupportAssets!['contractor-node']
+
+    expect(resolvePersistedExternalSupportAuthorityConsequence(state, asset)).toEqual({
+      assetId: 'contractor-node',
+      authorityNodeId: 'contractor-node',
+      factionId: 'faction-civic',
+      edgeId: 'contractor-alliance',
+      reasonCode: 'alliance_aid',
+      magnitude: 70,
+      reputationDelta: 1,
+    })
+
+    const result = applyRallySupportStaffAction(state, 2)
+    expect(result.nextState.factions?.['faction-civic']?.reputation).toBe(11)
+    expect(result.nextState.factions?.['faction-civic']?.reputationTier).toBe('neutral')
+    expect(result.nextState.externalSupportAssets?.['contractor-node']).toMatchObject({
+      reliability: 92,
+      lastAuthorityConsequenceWeek: state.week,
+    })
+    expect(result.note?.content).toContain('Authority edge contractor-alliance')
+    expect(result.note?.metadata).toMatchObject({
+      authorityEdgeId: 'contractor-alliance',
+      authorityFactionId: 'faction-civic',
+      authorityReputationDelta: 1,
+    })
+  })
+
+  it('maps a denying aid edge to one bounded negative reputation point', () => {
+    const asset = createContractorAsset('contractor-node', 'Regional Contractor', 80)
+    const state = authorityState(
+      asset,
+      authorityGraphState({
+        edges: [
+          {
+            id: 'contractor-rivalry',
+            kind: 'rivalry',
+            fromNodeId: 'contractor-node',
+            toNodeId: 'faction-civic',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-rivalry-test' },
+            strength: 70,
+            pressureChannels: ['aid'],
+          },
+        ],
+      })
+    )
+
+    const result = applyRallySupportStaffAction(state, 2)
+
+    expect(result.nextState.factions?.['faction-civic']?.reputation).toBe(9)
+    expect(result.note?.metadata.authorityReputationDelta).toBe(-1)
+  })
+
+  it('uses the empty fallback for missing assets, graph nodes, faction refs, and legacy graphs', () => {
+    const noAsset = authorityState()
+    noAsset.externalSupportAssets = undefined
+    expect(applyRallySupportStaffAction(noAsset, 2).nextState.factions).toEqual(noAsset.factions)
+
+    const missingNode = authorityState(
+      createContractorAsset('missing-contractor', 'Missing Contractor', 80)
+    )
+    expect(
+      resolvePersistedExternalSupportAuthorityConsequence(
+        missingNode,
+        missingNode.externalSupportAssets!['missing-contractor']
+      )
+    ).toBeNull()
+
+    const missingFaction = authorityState(
+      createContractorAsset('contractor-node', 'Regional Contractor', 80),
+      authorityGraphState({ linkedFactionIds: ['missing-faction'] })
+    )
+    expect(
+      resolvePersistedExternalSupportAuthorityConsequence(
+        missingFaction,
+        missingFaction.externalSupportAssets!['contractor-node']
+      )
+    ).toBeNull()
+
+    const legacy = authorityState(
+      createContractorAsset('contractor-node', 'Regional Contractor', 80),
+      { graph: 'legacy-malformed' }
+    )
+    expect(
+      resolvePersistedExternalSupportAuthorityConsequence(
+        legacy,
+        legacy.externalSupportAssets!['contractor-node']
+      )
+    ).toBeNull()
+
+    const informant = {
+      ...createContractorAsset('contractor-node', 'Informant', 80),
+      assetClass: 'informant' as const,
+    }
+    expect(
+      resolvePersistedExternalSupportAuthorityConsequence(authorityState(informant), informant)
+    ).toBeNull()
+  })
+
+  it('does not apply hidden future or contradicted authority claims', () => {
+    const asset = createContractorAsset('contractor-node', 'Regional Contractor', 80)
+    const hidden = authorityState(
+      asset,
+      authorityGraphState({
+        edges: [
+          {
+            id: 'hidden-alliance',
+            kind: 'alliance',
+            fromNodeId: 'contractor-node',
+            toNodeId: 'faction-civic',
+            status: 'hidden',
+            hiddenUntilWeek: 10_000,
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-hidden-test' },
+            strength: 70,
+            pressureChannels: ['aid'],
+          },
+        ],
+      })
+    )
+    const contradicted = authorityState(
+      asset,
+      authorityGraphState({
+        edges: [
+          {
+            id: 'contradicted-alliance',
+            kind: 'alliance',
+            fromNodeId: 'contractor-node',
+            toNodeId: 'faction-civic',
+            status: 'contradicted',
+            sourceConfidence: 'contradicted',
+            provenance: { sourceTag: 'spe-2722-contradicted-test' },
+            strength: 70,
+            pressureChannels: ['aid'],
+          },
+        ],
+      })
+    )
+
+    expect(resolvePersistedExternalSupportAuthorityConsequence(hidden, asset)).toBeNull()
+    expect(resolvePersistedExternalSupportAuthorityConsequence(contradicted, asset)).toBeNull()
+  })
+
+  it('resolves the contractor ID through a persisted authority-node alias', () => {
+    const aliasAsset = createContractorAsset('contractor-alias', 'Alias Contractor', 80)
+    const state = authorityState(
+      aliasAsset,
+      authorityGraphState({
+        assetNodeId: 'contractor-canonical',
+        assetAliasId: 'contractor-alias',
+        edges: [
+          {
+            id: 'alias-patronage',
+            kind: 'patronage',
+            fromNodeId: 'contractor-canonical',
+            toNodeId: 'faction-civic',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-alias-test' },
+            strength: 60,
+            pressureChannels: ['aid'],
+          },
+        ],
+      })
+    )
+
+    expect(resolvePersistedExternalSupportAuthorityConsequence(state, aliasAsset)).toMatchObject({
+      authorityNodeId: 'contractor-canonical',
+      factionId: 'faction-civic',
+      edgeId: 'alias-patronage',
+      reputationDelta: 1,
+    })
+  })
+
+  it('resolves an explicitly linked faction alias to the live faction record', () => {
+    const asset = createContractorAsset('contractor-node', 'Regional Contractor', 80)
+    const state = authorityState(
+      asset,
+      authorityGraphState({
+        factionAliasId: 'civic-union-alias',
+        linkedFactionIds: ['civic-union-alias'],
+      })
+    )
+
+    expect(resolvePersistedExternalSupportAuthorityConsequence(state, asset)).toMatchObject({
+      authorityNodeId: 'contractor-node',
+      factionId: 'faction-civic',
+      edgeId: 'contractor-alliance',
+    })
+  })
+
+  it('selects the first eligible edge in code-unit order and replays without input mutation', () => {
+    const state = authorityState(
+      createContractorAsset('contractor-node', 'Regional Contractor', 80),
+      authorityGraphState({
+        edges: [
+          {
+            id: 'z-rivalry',
+            kind: 'rivalry',
+            fromNodeId: 'contractor-node',
+            toNodeId: 'faction-civic',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-z' },
+            strength: 90,
+            pressureChannels: ['aid'],
+          },
+          {
+            id: 'a-alliance',
+            kind: 'alliance',
+            fromNodeId: 'contractor-node',
+            toNodeId: 'faction-civic',
+            status: 'current',
+            sourceConfidence: 'verified',
+            provenance: { sourceTag: 'spe-2722-a' },
+            strength: 40,
+            pressureChannels: ['aid'],
+          },
+        ],
+      })
+    )
+    const before = structuredClone(state)
+    const asset = state.externalSupportAssets!['contractor-node']
+
+    const first = resolvePersistedExternalSupportAuthorityConsequence(state, asset)
+    const second = resolvePersistedExternalSupportAuthorityConsequence(
+      structuredClone(state),
+      structuredClone(asset)
+    )
+
+    expect(first).toEqual(second)
+    expect(first).toMatchObject({ edgeId: 'a-alliance', reputationDelta: 1 })
+    expect(state).toEqual(before)
+  })
+
+  it('isolates the triggering support amount and blocks duplicate faction application in one week', () => {
+    const state = authorityState()
+    const emptyGraphState = {
+      ...state,
+      authorityGraphState: { graph: { nodes: [], edges: [] }, mutationHistory: [] },
+    }
+
+    const graphBacked = applyRallySupportStaffAction(state, 2)
+    const emptyFallback = applyRallySupportStaffAction(emptyGraphState, 2)
+    expect(graphBacked.nextState.agency?.supportAvailable).toBe(
+      emptyFallback.nextState.agency?.supportAvailable
+    )
+    expect(graphBacked.nextState.agency?.supportAvailable).toBe(7)
+
+    const repeated = applyRallySupportStaffAction(graphBacked.nextState, 2)
+    expect(repeated.nextState.factions?.['faction-civic']?.reputation).toBe(11)
+    expect(repeated.note?.metadata.authorityEdgeId).toBeNull()
+    expect(repeated.note?.metadata.authorityReputationDelta).toBe(0)
+  })
+
+  it('does not change market or institutional-legitimacy/operational-cover state', () => {
+    const state = authorityState()
+    const marketBefore = structuredClone(state.market)
+    const legitimacyBefore = structuredClone(state.legitimacy)
+
+    const result = applyRallySupportStaffAction(state, 2)
+
+    expect(result.nextState.market).toEqual(marketBefore)
+    expect(result.nextState.legitimacy).toEqual(legitimacyBefore)
   })
 })

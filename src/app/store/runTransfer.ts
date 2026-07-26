@@ -689,7 +689,16 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
   ],
   'directive.applied': ['directiveId', 'directiveLabel'],
   'support.shortfall': ['caseId', 'caseTitle', 'remainingSupport', 'week'],
-  'support.restored': ['prev', 'next', 'amount', 'week'],
+  'support.restored': [
+    'prev',
+    'next',
+    'amount',
+    'week',
+    'contractorAssetId',
+    'authorityEdgeId',
+    'authorityFactionId',
+    'authorityReputationDelta',
+  ],
   'system.equipment_recovered': [
     'recovered',
     'delayed',
@@ -5880,7 +5889,8 @@ function sanitizeHydratedContractSystemState(
 }
 
 function sanitizeExternalSupportAssetsMap(
-  value: unknown
+  value: unknown,
+  week: number
 ): GameState['externalSupportAssets'] | undefined {
   if (!isRecord(value)) {
     return undefined
@@ -5924,6 +5934,12 @@ function sanitizeExternalSupportAssetsMap(
       tags,
       ...(typeof entry.lastDriftReason === 'string' && entry.lastDriftReason.trim().length > 0
         ? { lastDriftReason: entry.lastDriftReason.trim() }
+        : {}),
+      ...(typeof entry.lastAuthorityConsequenceWeek === 'number' &&
+      Number.isInteger(entry.lastAuthorityConsequenceWeek) &&
+      entry.lastAuthorityConsequenceWeek >= 1 &&
+      entry.lastAuthorityConsequenceWeek <= week
+        ? { lastAuthorityConsequenceWeek: entry.lastAuthorityConsequenceWeek }
         : {}),
     }) as ExternalSupportAsset
   }
@@ -9373,7 +9389,7 @@ export function hydrateGame(
       })
     : undefined
   const externalSupportAssets = hasPersistedExternalSupport
-    ? sanitizeExternalSupportAssetsMap(game.externalSupportAssets)
+    ? sanitizeExternalSupportAssetsMap(game.externalSupportAssets, week)
     : undefined
   const { rngSeed, rngState: hydratedRngState } = reconcileHydratedRngState(
     (game.rngSeed as number | undefined) ?? fallback.rngSeed,

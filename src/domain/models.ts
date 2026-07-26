@@ -2469,6 +2469,8 @@ export interface ExternalSupportAsset {
   tags: string[]
   /** Optional free-text reason for the last reliability change, for report surfacing. */
   lastDriftReason?: string
+  /** SPE-2722: campaign week of the last applied authority-backed faction consequence. */
+  lastAuthorityConsequenceWeek?: number
 }
 
 // ── SPE-109: District time-cadence encounter scheduling ──────────────────────

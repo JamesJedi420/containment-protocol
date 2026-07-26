@@ -473,6 +473,17 @@ movement is capped at five points, the same closed week cannot apply twice, and 
 entries. This state does not alter faction standing, negotiation, commerce, operational cover, or
 SPE-39 rival/interference/upkeep calculations.
 
+SPE-2722 adds one bounded consumer without turning the graph into a general faction simulator.
+When Rally Support Staff uses a contractor, the contractor may resolve one persisted `aid` edge
+to an explicitly linked live faction after the support amount is fixed. A positive edge moves
+faction reputation by `+1`; a denying edge moves it by `-1`. Alias resolution and graph
+sanitization use the authority helpers, selection is deterministic, and an asset/week marker
+prevents duplicate same-week application. Empty/legacy graphs and missing asset, node, or faction
+references are no-ops. Institutional legitimacy and operational cover are not rewritten, and
+market, negotiation, command/council, secrecy/media, commerce, and SPE-39 paths remain isolated.
+Delayed hidden and contradicted claims remain explanatory graph output and do not apply this
+durable reputation movement.
+
 ### Patron obligations and symbolic social debt (SPE-51)
 
 Gifts, hospitality, aid, ritual participation, favors, promises, tribute, and sponsor-routed boons should materialize as **durable obligation objects** with negotiation posture, hidden leverage, inheritance constraints, and relationship-specific fallout. This is closer to **contracted social debt** than “reputation with flavor text.”

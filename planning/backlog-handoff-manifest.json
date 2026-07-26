@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2722",
     "SPE-2721",
     "SPE-2720",
     "SPE-2719",
@@ -12,10 +13,10 @@
     "SPE-2644",
     "SPE-2645",
     "SPE-2643",
-    "SPE-2642",
-    "SPE-2641"
+    "SPE-2642"
   ],
   "sliceDocStatus": {
+    "planning/spe-2722-external-support-authority-consequence-slice.md": "Shipped",
     "planning/spe-2721-persisted-authority-graph-negotiation-slice.md": "Shipped",
     "planning/spe-2720-authority-graph-week-close-persistence-slice.md": "Shipped",
     "planning/spe-2719-institutional-legitimacy-operational-cover-slice.md": "Shipped",

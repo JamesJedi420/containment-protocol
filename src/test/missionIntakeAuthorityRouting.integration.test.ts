@@ -124,6 +124,30 @@ describe('SPE-2725 persisted mission_access authority routing', () => {
     expect(routeMissionToTeam(state, 'case-001', routed.candidateTeamIds[0]!).assigned).toBe(false)
   })
 
+  it('applies the authority consequence when every ranked team is otherwise ineligible', () => {
+    const state = createAuthorityRoutingState()
+    for (const agent of Object.values(state.agents)) {
+      agent.fatigue = 100
+    }
+    const baseline = {
+      ...state,
+      authorityGraphState: undefined,
+    }
+    const baselineCandidates = shortlistMissionCandidateTeams(baseline, 'case-001')
+
+    expect(baselineCandidates.length).toBeGreaterThan(0)
+    expect(baselineCandidates.every((candidate) => !candidate.valid)).toBe(true)
+    expect(routeMission(baseline, 'case-001').routingBlockers).toContain('no-eligible-teams')
+    expect(routeMission(state, 'case-001')).toMatchObject({
+      routingState: 'blocked',
+      routingBlockers: ['authority-mission-access-restricted'],
+      candidateTeamIds: [],
+      rejectedTeams: [],
+      rankedCandidates: baselineCandidates,
+      timeCostSummary: undefined,
+    })
+  })
+
   it('maps a current low-strength delay to deferred while grants remain an empty fallback', () => {
     const deferred = createAuthorityRoutingState({ edgeStrength: 30 })
     const granted = createAuthorityRoutingState({ edgeStrength: 70 })

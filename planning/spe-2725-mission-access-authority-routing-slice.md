@@ -30,6 +30,8 @@ faction-linked mission can become blocked or deferred without changing team cand
 ## Acceptance
 
 - A sanitized persisted dependency edge blocks or defers one faction-linked mission.
+- The mission-wide authority consequence still applies when every ranked team is independently
+  ineligible, without changing the ranked candidate records.
 - Empty and legacy graphs retain the existing route.
 - Authority aliases and linked live-faction IDs resolve deterministically.
 - Identical state replays produce identical consequences and candidate order.

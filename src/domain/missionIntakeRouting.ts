@@ -7,10 +7,7 @@ import {
 } from './deploymentReadiness'
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
-import {
-  normalizeAuthorityNodeId,
-  resolveAuthorityGraphConsequences,
-} from './authorityGraph'
+import { normalizeAuthorityNodeId, resolveAuthorityGraphConsequences } from './authorityGraph'
 import type { AuthorityGraph, AuthorityGraphEdge } from './authorityGraph'
 import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
 import {
@@ -372,11 +369,7 @@ function compareCodeUnits(left: string, right: string) {
 }
 
 function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
-  return (
-    edge.fromNodeId === nodeId ||
-    edge.toNodeId === nodeId ||
-    edge.representsNodeId === nodeId
-  )
+  return edge.fromNodeId === nodeId || edge.toNodeId === nodeId || edge.representsNodeId === nodeId
 }
 
 function resolveMissionFactionAuthorityNode(
@@ -491,10 +484,7 @@ export function resolvePersistedMissionAccessAuthorityRoutingConsequence(
   return null
 }
 
-function withoutPriorAuthorityMissionAccessRoutingGate(
-  state: GameState,
-  missionId: Id
-): GameState {
+function withoutPriorAuthorityMissionAccessRoutingGate(state: GameState, missionId: Id): GameState {
   const mission = state.missionRouting?.missions[missionId]
   if (
     !mission ||
@@ -528,12 +518,9 @@ function withoutPriorAuthorityMissionAccessRoutingGate(
 function buildMissionRoutingCandidate(
   currentCase: CaseInstance,
   team: Team,
-  state: GameState
+  state: GameState,
+  candidateAssessmentState: GameState
 ): MissionTeamRoutingCandidate {
-  const candidateAssessmentState = withoutPriorAuthorityMissionAccessRoutingGate(
-    state,
-    currentCase.id
-  )
   const validation = validateTeamComposition(team, state.agents, state.teams, {
     requiredRoles: currentCase.requiredRoles,
   })
@@ -612,8 +599,9 @@ export function shortlistMissionCandidateTeams(state: GameState, missionId: Id) 
     }
   )
   const rankedMap = new Map(rankedByComposition.map((entry, index) => [entry.teamId, index]))
+  const candidateAssessmentState = withoutPriorAuthorityMissionAccessRoutingGate(state, missionId)
   const candidates = Object.values(state.teams)
-    .map((team) => buildMissionRoutingCandidate(currentCase, team, state))
+    .map((team) => buildMissionRoutingCandidate(currentCase, team, state, candidateAssessmentState))
     .sort((left, right) => {
       if (left.completeness !== right.completeness) {
         return right.completeness - left.completeness
@@ -664,6 +652,27 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
 
   const rankedCandidates = shortlistMissionCandidateTeams(state, missionId)
   const validCandidates = rankedCandidates.filter((candidate) => candidate.valid)
+  const authorityConsequence = resolvePersistedMissionAccessAuthorityRoutingConsequence(
+    state,
+    currentCase
+  )
+  if (authorityConsequence) {
+    return {
+      missionId,
+      routingState: authorityConsequence.routingState,
+      routingBlockers: [authorityConsequence.blockerCode],
+      candidateTeamIds: validCandidates.map((candidate) => candidate.teamId),
+      rejectedTeams: [],
+      rankedCandidates,
+      timeCostSummary: validCandidates[0]
+        ? evaluateDeploymentEligibility(
+            withoutPriorAuthorityMissionAccessRoutingGate(state, missionId),
+            missionId,
+            validCandidates[0].teamId
+          ).timeCostSummary
+        : undefined,
+    }
+  }
 
   if (validCandidates.length === 0) {
     const rejectedTeams: MissionRejectedTeamRecord[] = rankedCandidates.flatMap((candidate) =>
@@ -695,26 +704,6 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
   const assignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
     Boolean(state.teams[teamId])
   )
-  const authorityConsequence = resolvePersistedMissionAccessAuthorityRoutingConsequence(
-    state,
-    currentCase
-  )
-  if (authorityConsequence) {
-    return {
-      missionId,
-      routingState: authorityConsequence.routingState,
-      routingBlockers: [authorityConsequence.blockerCode],
-      candidateTeamIds: validCandidates.map((candidate) => candidate.teamId),
-      rejectedTeams: [],
-      rankedCandidates,
-      timeCostSummary: evaluateDeploymentEligibility(
-        withoutPriorAuthorityMissionAccessRoutingGate(state, missionId),
-        missionId,
-        validCandidates[0]!.teamId
-      ).timeCostSummary,
-    }
-  }
-
   const routingState: MissionRoutingStateKind =
     currentCase.status === 'in_progress' && assignedTeamIds.length > 0
       ? 'assigned'

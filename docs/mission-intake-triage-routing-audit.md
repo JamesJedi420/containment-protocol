@@ -8,7 +8,7 @@
 
 **Mission intake, triage, and routing are canonical simulation state**, not a disposable UI wizard. Priority scores, routing blockers, deferred queues, and assignment decisions are persisted (or safely derivable) inputs to the same weekly machine as escalation, scheduling, and outcome registration.
 
-Front-end flows may *edit* that state, but they do not *own* it. Any architecture doc that still frames intake as “front-end orchestration” understates how tightly intake feeds **escalation pressure**, **scheduler cadence**, and **post-mission outcome bookkeeping**.
+Front-end flows may _edit_ that state, but they do not _own_ it. Any architecture doc that still frames intake as “front-end orchestration” understates how tightly intake feeds **escalation pressure**, **scheduler cadence**, and **post-mission outcome bookkeeping**.
 
 ## 1) Mission categories
 
@@ -159,6 +159,8 @@ candidate ranking:
 - map the first eligible existing `delay` consequence to `deferred`
 - surface `authority-mission-access-restricted` without changing candidate scores, validity, or
   order
+- prefer that mission-wide authority consequence over the generic no-eligible-team route when
+  every ranked candidate is independently invalid
 
 Missing/legacy graphs, missing faction or node references, positive grants, unrevealed hidden
 claims, contradicted claims, resolved missions, and already-assigned missions retain the existing

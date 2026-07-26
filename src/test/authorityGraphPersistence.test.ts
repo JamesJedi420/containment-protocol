@@ -6,6 +6,7 @@ import {
   AUTHORITY_GRAPH_MUTATION_HISTORY_LIMIT,
   sanitizeAuthorityGraphState,
 } from '../domain/authorityGraphPersistence'
+import { resolvePersistedAuthorityNegotiation } from '../domain/authorityNegotiation'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { hydrateGame } from '../app/store/runTransfer'
 
@@ -174,9 +175,20 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
     const hydrated = hydrateGame(raw, fallback)
     const marketBefore = structuredClone(hydrated.market)
     const coverBefore = hydrated.legitimacy?.operationalCoverLevel
+    const graphBeforeNegotiation = structuredClone(hydrated.authorityGraphState)
+    const negotiation = resolvePersistedAuthorityNegotiation(hydrated, {
+      actorNodeId: 'agency-core',
+      counterpartyNodeId: 'regional-office',
+      channel: 'permission',
+      asOfWeek: hydrated.week,
+      stance: 'cooperate',
+      offerStrength: 55,
+    })
 
     const next = advanceWeek(hydrated, 1_700_000_000_000)
 
+    expect(negotiation.outcome).toBe('partial_cooperation')
+    expect(hydrated.authorityGraphState).toEqual(graphBeforeNegotiation)
     expect(next.authorityGraphState?.mutationHistory).toHaveLength(1)
     expect(next.authorityGraphState?.lastMutationWeek).toBe(next.week)
     expect(next.legitimacy?.operationalCoverLevel).toBe(coverBefore)

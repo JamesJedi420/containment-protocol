@@ -15,6 +15,7 @@ import type {
   AuthoritySourceConfidence,
 } from './authorityGraph'
 import { normalizeAuthorityNodeId, resolveAuthorityGraphConsequences } from './authorityGraph'
+import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
 
 export type AuthorityBargainingOutcome =
   | 'partial_cooperation'
@@ -59,6 +60,10 @@ export interface AuthorityNegotiationResult {
   reasonCodes: readonly string[]
   contradicted: boolean
   delayed: boolean
+}
+
+export interface PersistedAuthorityNegotiationState {
+  authorityGraphState?: unknown
 }
 
 const ACTIVE_STATUSES = new Set(['current', 'hidden'])
@@ -712,4 +717,18 @@ export function resolveAuthorityNegotiation(
       effectiveDelayed ||
       adjustmentDelayed,
   })
+}
+
+/**
+ * SPE-2721: one bounded runtime read seam from persisted GameState-shaped input.
+ *
+ * Hydration normally canonicalizes authorityGraphState, but normalization remains here so
+ * direct and legacy states receive the same empty-graph fallback without mutating the save.
+ */
+export function resolvePersistedAuthorityNegotiation(
+  state: PersistedAuthorityNegotiationState,
+  request: AuthorityNegotiationRequest
+): AuthorityNegotiationResult {
+  const authorityGraphState = sanitizeAuthorityGraphState(state.authorityGraphState)
+  return resolveAuthorityNegotiation(authorityGraphState.graph, request)
 }

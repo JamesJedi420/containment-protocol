@@ -203,6 +203,7 @@ const MISSION_CATEGORY_SET = new Set<string>([
   'faction_hostile_activity',
   'strategic_opportunity',
 ])
+const RESEARCH_HAZARD_TAGS = new Set(['cognitive_hazard', 'conceptual_hazard', 'semantic_hazard'])
 
 const TASK_TYPE_BY_CAPABILITY: Readonly<Record<DepartmentCapability, DepartmentTaskType>> = {
   research: 'research_case',
@@ -801,7 +802,9 @@ function capabilitiesFromCaseTags(tags: readonly string[]) {
       continue
     }
 
-    if (
+    if (RESEARCH_HAZARD_TAGS.has(tag)) {
+      capabilities.add('research')
+    } else if (
       tag === 'containment' ||
       tag === 'breach' ||
       tag === 'hazard' ||

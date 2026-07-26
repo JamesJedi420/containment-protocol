@@ -118,7 +118,8 @@ describe('department capability registry and resolver (SPE-2083)', () => {
   it('routes concept-embodiment research through the authored specialist profile', () => {
     const result = resolveDepartments(
       packet({
-        caseTags: ['analysis', 'concept-embodiment', 'cognitive-hazard'],
+        missionCategory: 'strategic_opportunity',
+        caseTags: ['concept-embodiment', 'cognitive-hazard'],
       }),
       DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY
     )

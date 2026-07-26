@@ -4868,6 +4868,13 @@ export function advanceWeek(
   ) {
     outputWeeklyState.authorityGraphState = nextAuthorityGraphState
   }
+  const authorityMissionAccessMutated =
+    nextAuthorityGraphState.lastMutationWeek === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.week === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.channel === 'mission_access'
+  if (outputWeeklyState.missionRouting && authorityMissionAccessMutated) {
+    outputWeeklyState.missionRouting = recomputeMissionRouting(outputWeeklyState, result.week)
+  }
 
   if (inputWeeklyState.civicConsequencePackets !== undefined) {
     outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]

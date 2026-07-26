@@ -43,6 +43,7 @@ export type MissionRoutingBlockerCode =
   | 'training-blocked'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'authority-mission-access-restricted'
   | 'site-clearance-required'
   | 'dual-loyalty-restricted'
   | 'protected-status-restricted'

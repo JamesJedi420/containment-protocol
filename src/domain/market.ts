@@ -18,6 +18,7 @@ import {
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 import { getCanonicalFundingState, sumInventoryStock } from './funding'
+import { hasDeniableOperationalCover } from './operationalCover'
 import {
   assessCompromisedAuthorityProcurementDiversion,
   type ProcurementCorruptionRoutingReason,
@@ -497,6 +498,15 @@ function buildMarketPacket(
   const definition = PROCUREMENT_MARKET_PACKET_DEFINITIONS[packetId]
   const sanctionLevel = getSanctionLevel(game)
   let blocked = definition.blockedSanctionLevels?.includes(sanctionLevel) ?? false
+
+  if (
+    blocked &&
+    packetId === 'gray_market_broker' &&
+    sanctionLevel === 'sanctioned' &&
+    hasDeniableOperationalCover(game.legitimacy)
+  ) {
+    blocked = false
+  }
 
   if (
     blocked &&

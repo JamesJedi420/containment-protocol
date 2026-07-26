@@ -136,7 +136,9 @@ describe('SPE-849 explicit emergency authorization routing', () => {
     const audit = next.events[next.events.length - 1]
     expect(audit?.type).toBe('market.emergency_gray_market_waiver_granted')
     if (audit?.type === 'market.emergency_gray_market_waiver_granted') {
-      expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
+      expect(audit.payload.authorityRoute).toBe(
+        AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION
+      )
       expect(audit.payload.institutionKey).toBe(INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT)
       expect(audit.payload.regulatoryArbitrageSignal).toBe('cross_institution_clearance_route')
       expect(audit.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
@@ -169,6 +171,24 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     const priorEvents = game.events.length
     const next = invokeEmergencyGrayMarketWaiver(game)
     expect(next.events.length).toBe(priorEvents)
+  })
+
+  it('does not offer or record a waiver when deniable cover already opens the broker', () => {
+    const game = crisisSanctionedGame()
+    game.legitimacy = {
+      sanctionLevel: 'sanctioned',
+      operationalCoverLevel: 'deniable',
+      falloutRisk: 'none',
+    }
+
+    expect(
+      getProcurementMarketPackets(game).find((packet) => packet.id === 'gray_market_broker')
+        ?.available
+    ).toBe(true)
+    expect(canInvokeEmergencyGrayMarketWaiver(game)).toBe(false)
+    expect(invokeEmergencyGrayMarketWaiver(game)).toBe(game)
+    expect(game.emergencyGrayMarketWaiverPrecedentCount).toBeUndefined()
+    expect(game.legitimacy.falloutRisk).toBe('none')
   })
 
   it('grants waiver, emits audit event, marks fallout, and unlocks gray-market broker for the week', () => {
@@ -274,9 +294,11 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     base.week = 12
     base.emergencyGrayMarketWaiverWeek = 9
     const next = advanceWeek(base)
-    expect(next.events.filter((e) => e.type === 'market.emergency_gray_market_waiver_accountability_closed')).toHaveLength(
-      0
-    )
+    expect(
+      next.events.filter(
+        (e) => e.type === 'market.emergency_gray_market_waiver_accountability_closed'
+      )
+    ).toHaveLength(0)
   })
 
   it('advanceWeek clears stale emergencyGrayMarketWaiverWeek from older saves', () => {
@@ -316,6 +338,36 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
     expect(nextState.containmentRating).toBe(69)
     expect(nextState.legitimacy?.falloutRisk).toBe('costly')
     expect(nextState.legitimacy?.sanctionLevel).toBe('sanctioned')
+  })
+
+  it('preserves explicit operational cover through both fallout phases', () => {
+    const source = createStartingState()
+    source.week = 3
+    source.legitimacy = {
+      sanctionLevel: 'sanctioned',
+      operationalCoverLevel: 'compromised',
+      falloutRisk: 'risk',
+    }
+
+    const escalated = applyEmergencyGrayMarketFalloutTick(source, {
+      ...source,
+      week: 4,
+    }).nextState
+    expect(escalated.legitimacy).toMatchObject({
+      sanctionLevel: 'sanctioned',
+      operationalCoverLevel: 'compromised',
+      falloutRisk: 'costly',
+    })
+
+    const cleared = applyEmergencyGrayMarketFalloutTick(escalated, {
+      ...escalated,
+      week: 5,
+    }).nextState
+    expect(cleared.legitimacy).toMatchObject({
+      sanctionLevel: 'sanctioned',
+      operationalCoverLevel: 'compromised',
+      falloutRisk: 'none',
+    })
   })
 
   it('applies no tick when fallout is inactive (SPE-2705)', () => {
@@ -500,7 +552,9 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
     const afterSecondAdvance = advanceWeek(afterFirstAdvance)
     expect(afterSecondAdvance.legitimacy?.falloutRisk).toBe('none')
     expect(
-      afterSecondAdvance.events.filter((e) => e.type === 'market.emergency_gray_market_fallout_tick')
+      afterSecondAdvance.events.filter(
+        (e) => e.type === 'market.emergency_gray_market_fallout_tick'
+      )
     ).toHaveLength(2)
   })
 })
@@ -533,9 +587,13 @@ describe('SPE-1184 emergency waiver precedent counter', () => {
 
 describe('SPE-1184 regulatory arbitrage signal on waiver audit', () => {
   it('maps authority routes to bounded regulatoryArbitrageSignal values', () => {
-    expect(resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)).toBe('none')
     expect(
-      resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
+      resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
+    ).toBe('none')
+    expect(
+      resolveEmergencyWaiverRegulatoryArbitrageSignal(
+        AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION
+      )
     ).toBe('cross_institution_clearance_route')
     expect(resolveEmergencyWaiverRegulatoryArbitrageSignal('unknown_route')).toBe('none')
   })

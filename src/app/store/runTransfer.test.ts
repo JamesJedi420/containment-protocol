@@ -8557,13 +8557,14 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 470-477', () => {
-    it('470 sanitizes legitimacy sanctionLevel, falloutRisk, and accessReason', () => {
+    it('470 sanitizes legitimacy sanctionLevel, operationalCoverLevel, falloutRisk, and accessReason', () => {
       const fallback = createStartingState()
 
       const hydrated = hydrateGame({
         ...stripGameTemplates(fallback),
         legitimacy: {
           sanctionLevel: 'bogus',
+          operationalCoverLevel: 'invisible',
           falloutRisk: 'explosive',
           accessReason: '  audit posture  ',
         },
@@ -8571,10 +8572,25 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(hydrated.legitimacy).toBeUndefined()
 
+      const invalidCover = hydrateGame({
+        ...stripGameTemplates(fallback),
+        legitimacy: {
+          sanctionLevel: 'sanctioned',
+          operationalCoverLevel: 'invisible',
+          falloutRisk: 'risk',
+        },
+      })
+
+      expect(invalidCover.legitimacy).toEqual({
+        sanctionLevel: 'sanctioned',
+        falloutRisk: 'risk',
+      })
+
       const valid = hydrateGame({
         ...stripGameTemplates(fallback),
         legitimacy: {
           sanctionLevel: 'sanctioned',
+          operationalCoverLevel: 'deniable',
           falloutRisk: 'risk',
           accessReason: '  audit posture  ',
         },
@@ -8582,6 +8598,7 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(valid.legitimacy).toEqual({
         sanctionLevel: 'sanctioned',
+        operationalCoverLevel: 'deniable',
         falloutRisk: 'risk',
         accessReason: 'audit posture',
       })

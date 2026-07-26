@@ -228,7 +228,10 @@ export interface IncidentToCampaignPacket {
 
 // Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass)
 export interface LegitimacyState {
+  /** Institutional authorization posture. Existing values remain stable for persisted campaigns. */
   sanctionLevel: 'sanctioned' | 'covert' | 'tolerated' | 'unsanctioned'
+  /** Operational exposure posture, distinct from institutional authorization (SPE-2719). */
+  operationalCoverLevel?: 'open' | 'deniable' | 'compromised'
   accessReason?: string
   falloutRisk?: 'none' | 'risk' | 'costly'
 }

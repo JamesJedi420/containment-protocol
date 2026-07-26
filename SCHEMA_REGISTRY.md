@@ -92,6 +92,7 @@ Documents the versioned serialization format for the full game store state.
 - Optional `AgencyState.lastHiddenCellInfrastructureCompromiseWeek` / `lastHiddenCellInfrastructureCompromiseAmount` (SPE-2710) are sanitized in `sanitizeAgencyState`; incomplete pairs are dropped so a week cannot lock without a matching applied amount
 - Optional `AgencyState.hiddenCellCovertGrowthLevel` / `hiddenCellDetectionNarrowing` / `lastHiddenCellCovertGrowthWeek` / `lastHiddenCellCovertGrowthAmount` / `lastHiddenCellDetectionNarrowingAmount` (SPE-2714) are sanitized in `sanitizeAgencyState`; week markers require at least one positive applied amount so a week cannot lock without a matching note
 - Optional `AgencyState.lastStatusUpkeepWeek` / `lastStatusUpkeepBand` / `lastStatusUpkeepFundingBefore` / `lastStatusUpkeepOperatingCost` (SPE-2718) are sanitized in `sanitizeAgencyState`; incomplete marker sets are dropped so adequacy cannot hydrate without the pre-cost funding snapshot
+- Optional `LegitimacyState.operationalCoverLevel` (`open` / `deniable` / `compromised`, SPE-2719) is sanitized with the existing legitimacy state. Missing legacy values are derived at read time (`covert` → `deniable`; otherwise `open`), so existing `sanctionLevel` values require no migration.
 
 ---
 
@@ -182,21 +183,21 @@ Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializat
 
 ### GameState fields
 
-| Field                               | Evaluator           | Notes                                                                                                                                                                              |
-| ----------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spe947PlatformRecords`             | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics; optional SPE-2577 `weeklyViewDelta` / `weeklyUptimeState` / `lastWeeklyTickWeek` |
-| `spe947OperationRecords`            | SPE-2569            | Operation requests keyed by operation id                                                                                                                                           |
-| `spe947ContentArtifacts`            | SPE-2571            | Footage/post artifacts keyed by artifact id                                                                                                                                        |
-| `spe947CounterMemeticPlans`         | SPE-2570            | Counter-memetic plans keyed by plan id; optional SPE-2577 `lastWeeklyTickWeek`                                                                                                     |
-| `spe947ContentOwners`               | SPE-2572            | Content owners keyed by owner id                                                                                                                                                   |
-| `spe947PostCaseMediaCases`          | SPE-2573 / SPE-2606 | Post-case media inputs keyed by case id (`hazardous_content` \| `mirror` \| `derivative` \| `adaptation` \| `commercialization`)                                                   |
-| `spe947FootageExposureBindings`     | SPE-2571            | Optional baseline bindings keyed by artifact id                                                                                                                                    |
-| `spe947TakedownResistanceBindings`  | SPE-2572            | Threshold bindings keyed by owner id                                                                                                                                               |
-| `spe947VisualTriggerHazardBindings` | SPE-2602            | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
-| `spe947MediaEconomyWeights` | SPE-2609 / SPE-2610 / SPE-2617 | Authored continuity weights (`continuityFactor` + optional incentive peers); optional SPE-2617 `weeklyContinuityFactorDelta`; sanitize in `spe947MediaEconomyContinuity.ts` |
-| `spe947MediaEconomyContinuityBindings` | SPE-2609 / SPE-2610 / SPE-2617 | Authored case → economy-weight bindings (optional `mediaArtifactId`); optional SPE-2617 `weeklyEconomyWeightId`; week-close apply in `spe947MediaEconomyWeeklyOrchestration.ts` |
-| `spe947MediaEconomyCommercializationActors` | SPE-2611–2615 / SPE-2616 | Authored commercialization actors keyed by actor id; sanitize in `spe947MediaEconomySimulator.ts` |
-| `spe947MediaEconomyLastWeeklyTickWeek` | SPE-2615 / SPE-2616 | Week-close idempotency stamp for media-economy orchestration tick |
+| Field                                       | Evaluator                      | Notes                                                                                                                                                                              |
+| ------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spe947PlatformRecords`                     | SPE-2568 / SPE-2569            | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics; optional SPE-2577 `weeklyViewDelta` / `weeklyUptimeState` / `lastWeeklyTickWeek` |
+| `spe947OperationRecords`                    | SPE-2569                       | Operation requests keyed by operation id                                                                                                                                           |
+| `spe947ContentArtifacts`                    | SPE-2571                       | Footage/post artifacts keyed by artifact id                                                                                                                                        |
+| `spe947CounterMemeticPlans`                 | SPE-2570                       | Counter-memetic plans keyed by plan id; optional SPE-2577 `lastWeeklyTickWeek`                                                                                                     |
+| `spe947ContentOwners`                       | SPE-2572                       | Content owners keyed by owner id                                                                                                                                                   |
+| `spe947PostCaseMediaCases`                  | SPE-2573 / SPE-2606            | Post-case media inputs keyed by case id (`hazardous_content` \| `mirror` \| `derivative` \| `adaptation` \| `commercialization`)                                                   |
+| `spe947FootageExposureBindings`             | SPE-2571                       | Optional baseline bindings keyed by artifact id                                                                                                                                    |
+| `spe947TakedownResistanceBindings`          | SPE-2572                       | Threshold bindings keyed by owner id                                                                                                                                               |
+| `spe947VisualTriggerHazardBindings`         | SPE-2602                       | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords`                                                               |
+| `spe947MediaEconomyWeights`                 | SPE-2609 / SPE-2610 / SPE-2617 | Authored continuity weights (`continuityFactor` + optional incentive peers); optional SPE-2617 `weeklyContinuityFactorDelta`; sanitize in `spe947MediaEconomyContinuity.ts`        |
+| `spe947MediaEconomyContinuityBindings`      | SPE-2609 / SPE-2610 / SPE-2617 | Authored case → economy-weight bindings (optional `mediaArtifactId`); optional SPE-2617 `weeklyEconomyWeightId`; week-close apply in `spe947MediaEconomyWeeklyOrchestration.ts`    |
+| `spe947MediaEconomyCommercializationActors` | SPE-2611–2615 / SPE-2616       | Authored commercialization actors keyed by actor id; sanitize in `spe947MediaEconomySimulator.ts`                                                                                  |
+| `spe947MediaEconomyLastWeeklyTickWeek`      | SPE-2615 / SPE-2616            | Week-close idempotency stamp for media-economy orchestration tick                                                                                                                  |
 
 ### Hydration
 
@@ -216,7 +217,7 @@ Optional SPE-2616 commercialization-actor map: `spe947MediaEconomyCommercializat
 ## SPE-956 propagation graph persistence (spe-956-propagation-graph.v1)
 
 Documents compact GameState map for authored SPE-956 propagation graphs (SPE-2621 slice 2, SPE-2624 slice 3).
-Compose helper wires persisted graph + spe947* maps via `composeSpe956PropagationGraphFromGameState`.
+Compose helper wires persisted graph + spe947\* maps via `composeSpe956PropagationGraphFromGameState`.
 Optional week-close orchestration fields follow SPE-2577 pattern; no evaluator contract changes.
 
 **Current version**: `spe-956-propagation-graph.v1` — exported as `SPE_956_PROPAGATION_GRAPH_PERSISTENCE_SCHEMA_VERSION`
@@ -225,19 +226,19 @@ Optional week-close orchestration fields follow SPE-2577 pattern; no evaluator c
 
 ### GameState fields
 
-| Field                           | Notes                                                                 |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `spe956PropagationGraphRecords` | Authored graph id + nested nodes/edges; keyed by graph id             |
+| Field                           | Notes                                                     |
+| ------------------------------- | --------------------------------------------------------- |
+| `spe956PropagationGraphRecords` | Authored graph id + nested nodes/edges; keyed by graph id |
 
 ### Optional weekly orchestration fields (SPE-2624)
 
 On each persisted graph record when explicitly authored:
 
-| Field                      | Notes                                                                 |
-| -------------------------- | --------------------------------------------------------------------- |
-| `elapsedPropagationWeeks`  | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` (SPE-2625) |
-| `weeklyElapsedWeeksDelta`  | Non-negative additive delta applied once per week on week-close       |
-| `lastWeeklyTickWeek`       | Idempotency marker; same-week re-tick is a no-op                      |
+| Field                     | Notes                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `elapsedPropagationWeeks` | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` (SPE-2625) |
+| `weeklyElapsedWeeksDelta` | Non-negative additive delta applied once per week on week-close                                         |
+| `lastWeeklyTickWeek`      | Idempotency marker; same-week re-tick is a no-op                                                        |
 
 Tick wired from `advanceWeek` via `applyWeeklySpe956PropagationGraphTick`. Graphs without `weeklyElapsedWeeksDelta` are unchanged.
 
@@ -281,13 +282,13 @@ without changing the evaluator contracts.
 
 ### GameState fields
 
-| Field                                   | Notes                                                                                              |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id                |
-| `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id                     |
-| `spe956HotlineChannelRecords`           | Authored channel id + unit intervals + boolean + unanswered/anger enums + escalation rules string |
-| `spe956AsyncDiscussionSurfaceRecords`   | Authored surface id + nested participation window + retention/widening enums + memoryStabilization |
-| `spe956CommunityAdvisoryBodyRecords`    | Authored body id + mission/membership/criteria strings + stakeholder string array + scope enums + positive unit-interval influenceThreshold |
+| Field                                   | Notes                                                                                                                                               |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spe956SurvivorInformalRegistryRecords` | Authored registry id + recognition/catalog/band/ceiling enums; keyed by registry id                                                                 |
+| `spe956CollectiveMemoryChannelRecords`  | Authored channel id + narrative/recall/ceiling/rule enums; keyed by channel id                                                                      |
+| `spe956HotlineChannelRecords`           | Authored channel id + unit intervals + boolean + unanswered/anger enums + escalation rules string                                                   |
+| `spe956AsyncDiscussionSurfaceRecords`   | Authored surface id + nested participation window + retention/widening enums + memoryStabilization                                                  |
+| `spe956CommunityAdvisoryBodyRecords`    | Authored body id + mission/membership/criteria strings + stakeholder string array + scope enums + positive unit-interval influenceThreshold         |
 | `spe956IncidentBaselineRecords`         | SPE-2644: authored incident-lane baselines keyed by incident id; optional advisory / hotline / asyncDiscussion / survivorSupport / collectiveMemory |
 
 ### Hydration
@@ -307,11 +308,11 @@ without changing the evaluator contracts.
 
 ### Optional weekly orchestration fields (SPE-2643)
 
-| Field                      | Notes                                                                 |
-| -------------------------- | --------------------------------------------------------------------- |
-| `elapsedChannelWeeks`      | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` |
-| `weeklyElapsedWeeksDelta`  | Non-negative additive delta applied once per week on week-close       |
-| `lastWeeklyTickWeek`       | Idempotency marker; same-week re-tick is a no-op                      |
+| Field                     | Notes                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| `elapsedChannelWeeks`     | Running counter; defaults to 0 when delta applies; overflow sums clamp to `Number.MAX_VALUE` |
+| `weeklyElapsedWeeksDelta` | Non-negative additive delta applied once per week on week-close                              |
+| `lastWeeklyTickWeek`      | Idempotency marker; same-week re-tick is a no-op                                             |
 
 Tick wired from `advanceWeek` via `applyWeeklySpe956ParticipatoryChannelTick` over all five maps. Channels without `weeklyElapsedWeeksDelta` are unchanged. Does **not** reopen SPE-956 AC (parent Done via SPE-2642).
 

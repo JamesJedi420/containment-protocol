@@ -89,6 +89,23 @@ describe('AgencyPage', () => {
     expect(screen.getByText(/containment protocol/i)).toBeInTheDocument()
   })
 
+  it('renders institutional legitimacy and operational cover as separate posture metrics', () => {
+    const game = createStartingState()
+    game.legitimacy = {
+      sanctionLevel: 'sanctioned',
+      operationalCoverLevel: 'deniable',
+    }
+    useGameStore.setState({ game })
+
+    renderAgencyPage()
+
+    expect(screen.getByText('Institutional legitimacy')).toBeInTheDocument()
+    expect(screen.getByText('Operational cover')).toBeInTheDocument()
+    expect(
+      screen.getByText('Institutional legitimacy: sanctioned; operational cover: deniable.')
+    ).toBeInTheDocument()
+  })
+
   it('renders the canonical outcome-band summary from the shared report formatter', () => {
     const game = createStartingState()
     game.reports = [
@@ -114,7 +131,9 @@ describe('AgencyPage', () => {
     renderAgencyPage()
 
     expect(
-      screen.getByText(`Outcomes: ${formatOutcomeCountSummary(buildAgencyOverview(game).summary.report)}`)
+      screen.getByText(
+        `Outcomes: ${formatOutcomeCountSummary(buildAgencyOverview(game).summary.report)}`
+      )
     ).toBeInTheDocument()
   })
 })

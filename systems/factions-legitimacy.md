@@ -167,12 +167,12 @@ A faction should have conceptually:
 
 ```ts
 interface FactionState {
-  id: string;
-  relationship: number;
-  pressure: number;
-  presence?: Record<string, number>;
-  tags?: string[];
-  knownToPlayer?: boolean;
+  id: string
+  relationship: number
+  pressure: number
+  presence?: Record<string, number>
+  tags?: string[]
+  knownToPlayer?: boolean
 }
 ```
 
@@ -194,13 +194,13 @@ Conceptually:
 
 ```ts
 interface AgencyState {
-  legitimacy: number;
+  legitimacy: number
 }
 
 interface LegitimacyState {
-  current: number;
-  pressureActive?: boolean;
-  recentLossReason?: string;
+  current: number
+  pressureActive?: boolean
+  recentLossReason?: string
 }
 ```
 
@@ -456,6 +456,13 @@ Faction stance is **not** a single friendliness scalar. Canonical relationship m
 ### Legitimacy policy shell (SPE-50)
 
 Treat **SPE-50** as the shared **legitimacy / sanction / authorization policy** parent: sanction levels, legal cover, consent, credentials, protocol correctness, and doctrine fluency. Route specialized access work to child issues instead of bloating the parent — for example credential transit (**SPE-600**), rank/quarter/audience rules (**SPE-601**), jurisdiction admission matrices (**SPE-602**), and magical access-state grammar (**SPE-406**).
+
+`LegitimacyState` separates two bounded axes (SPE-2719):
+
+- `sanctionLevel` is **institutional legitimacy**: sanctioned, covert, tolerated, or unsanctioned authorization.
+- `operationalCoverLevel` is **operational exposure**: open, deniable, or compromised.
+
+Legacy saves infer `covert` sanction as deniable cover and every other sanction as open cover. Explicit cover can therefore diverge under the same institutional posture without renaming sanction values. The first bounded gate is sanctioned gray-market procurement: open or compromised cover remains audit-blocked, while deniable cover can reach the broker without creating an emergency-waiver record or its fallout. The emergency waiver remains a separate crisis response for sanctioned operations that lack deniable cover.
 
 ### Patron obligations and symbolic social debt (SPE-51)
 

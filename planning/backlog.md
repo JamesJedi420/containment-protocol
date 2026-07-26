@@ -16,6 +16,8 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
+**Recently shipped:** [SPE-2088](https://linear.app/spectranoir/issue/SPE-2088/department-authorization-to-deployable-unit-handoff) department authorization to deployable unit handoff — pure sanitized permission-edge gate with immutable department/unit/approver audit record, specialist-unit availability validation, and unchanged team candidate ranking; see `planning/spe-2088-department-authorization-handoff-slice.md`. Parent [SPE-1320](https://linear.app/spectranoir/issue/SPE-1320) stays **Backlog**.
+
 **Recently shipped:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment on `main` @ `14b3f29a`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) historical chain (now **Done**).
 
 **Recently shipped:** SPE-1046 file work queue file-content release delivery (slice 1) - persisted metadata-only file-release delivery receipts after safe package handoff; landed on `main` @ `97da46e3`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
@@ -72,9 +74,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** (none) — SPE-2725 is shipped-ready; select the next bounded SPE-788 child only after merge closeout. Parent [SPE-788](https://linear.app/spectranoir/issue/SPE-788) remains **Backlog** for the broader politics layer.
+**Current handoff (primary):** (none) — SPE-2088 is shipped-ready; select the next bounded SPE-1320 child only after merge closeout. Parent [SPE-1320](https://linear.app/spectranoir/issue/SPE-1320) remains **Backlog**.
 
 **In progress:** (none)
+
+**Recently shipped:** [SPE-2088](https://linear.app/spectranoir/issue/SPE-2088/department-authorization-to-deployable-unit-handoff) department authorization to deployable unit handoff — pure sanitized permission-edge gate with immutable department/unit/approver audit record, specialist-unit availability validation, and unchanged team candidate ranking; see `planning/spe-2088-department-authorization-handoff-slice.md`. Parent [SPE-1320](https://linear.app/spectranoir/issue/SPE-1320) remains **Backlog**.
 
 **Recently shipped:** [SPE-2725](https://linear.app/spectranoir/issue/SPE-2725/consume-persisted-mission-access-authority-edge-in-mission-command) mission-access authority routing — one sanitized persisted edge blocks or defers a faction-linked, unassigned mission without changing canonical candidate ranking; see `planning/spe-2725-mission-access-authority-routing-slice.md`. Parent [SPE-788](https://linear.app/spectranoir/issue/SPE-788) remains **Backlog** for the broader politics layer.
 
@@ -482,6 +486,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-2720-authority-graph-week-close-persistence-slice.md`                | **Shipped**     | [SPE-2720](https://linear.app/spectranoir/issue/SPE-2720) — deterministic persisted authority graph mutation/history foundation; parent SPE-788 remains Backlog for broader politics.                                                                                                                 |
 | `spe-2722-external-support-authority-consequence-slice.md`                | **Shipped**     | [SPE-2722](https://linear.app/spectranoir/issue/SPE-2722) — one sanitized persisted authority edge consumed by the contractor support path; parent SPE-788 remains Backlog for broader politics.                                                                                                      |
 | `spe-2725-mission-access-authority-routing-slice.md`                      | **Shipped**     | [SPE-2725](https://linear.app/spectranoir/issue/SPE-2725) — one sanitized persisted mission-access authority edge blocks or defers a faction-linked mission without changing candidate ranking; parent SPE-788 remains Backlog.                                                                    |
+| `spe-2088-department-authorization-handoff-slice.md`                      | **Shipped**     | [SPE-2088](https://linear.app/spectranoir/issue/SPE-2088) — one sanitized permission edge gates a bounded department-to-specialist-unit handoff without changing team candidate ranking; parent SPE-1320 remains Backlog.                                                                           |
 | `spe-2650-post-spe-2647-handoff-reconciliation-slice-1.md`                | **In progress** | [SPE-2650](https://linear.app/spectranoir/issue/SPE-2650) — post-SPE-2647 handoff reconciliation (docs); primary → (none).                                                                                                                                                                            |
 | `spe-2649-post-spe-2646-handoff-reconciliation-slice-1.md`                | **Shipped**     | [SPE-2649](https://linear.app/spectranoir/issue/SPE-2649) — post-SPE-2646 handoff reconciliation (docs); primary → EXAMPLE path baseline resolve wire.                                                                                                                                                |
 | `spe-2647-example-incident-path-baseline-resolve-wire-slice-1.md`         | **Shipped**     | [SPE-2647](https://linear.app/spectranoir/issue/SPE-2647) — SPE-956 EXAMPLE incident-path baseline resolve wire (post-Done follow-on); PR #3208 @ `2640db8c`; parent SPE-956 remains **Done**.                                                                                                        |

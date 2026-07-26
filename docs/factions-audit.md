@@ -239,6 +239,15 @@ does not modify triage, team readiness, candidate validity, candidate score, or 
 Unrevealed hidden and contradicted claims are ignored. Week-close recomputes routing after the
 graph mutation so the next-week routing snapshot and persisted graph agree.
 
+SPE-2088 adds a separate pure department-to-specialist-unit handoff gate. Department and unit
+authority nodes may carry explicit linked registry IDs, and the gate consumes at most one
+sanitized `permission` edge in deterministic code-unit order. Approval requires an active grant,
+approver provenance, an integer-bounded active request window, and a deployable unit evaluated
+against mission fit derived from the canonical case and validated registry. Caller fit assertions
+must match that canonical packet; the confirmed grant clears only its handoff prerequisite.
+The returned audit record is not persisted and does not alter mission candidate ranking or
+SPE-2725 routing.
+
 None of these seams changes faction standing, institutional legitimacy, operational cover,
 market state, broader command propagation, department/council politics, secrecy, media,
 commerce, SPE-39 calculations, or UI. Negotiation and mission routing remain read-only graph

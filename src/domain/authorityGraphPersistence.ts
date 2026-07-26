@@ -210,6 +210,7 @@ function sanitizeNode(value: unknown): AuthorityGraphNode | null {
   const linkedFactionIds = stringList(value.linkedFactionIds)
   const linkedPopulationIds = stringList(value.linkedPopulationIds)
   const linkedDepartmentIds = stringList(value.linkedDepartmentIds)
+  const linkedUnitIds = stringList(value.linkedUnitIds)
   const linkedSiteIds = stringList(value.linkedSiteIds)
   const metadata = scalarMetadata(value.metadata)
 
@@ -222,6 +223,7 @@ function sanitizeNode(value: unknown): AuthorityGraphNode | null {
     ...(linkedFactionIds ? { linkedFactionIds } : {}),
     ...(linkedPopulationIds ? { linkedPopulationIds } : {}),
     ...(linkedDepartmentIds ? { linkedDepartmentIds } : {}),
+    ...(linkedUnitIds ? { linkedUnitIds } : {}),
     ...(linkedSiteIds ? { linkedSiteIds } : {}),
     ...(metadata ? { metadata } : {}),
   })

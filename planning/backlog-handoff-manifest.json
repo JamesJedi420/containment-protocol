@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2088",
     "SPE-2725",
     "SPE-2722",
     "SPE-2721",
@@ -16,6 +17,7 @@
     "SPE-2643"
   ],
   "sliceDocStatus": {
+    "planning/spe-2088-department-authorization-handoff-slice.md": "Shipped",
     "planning/spe-2725-mission-access-authority-routing-slice.md": "Shipped",
     "planning/spe-2722-external-support-authority-consequence-slice.md": "Shipped",
     "planning/spe-2721-persisted-authority-graph-negotiation-slice.md": "Shipped",

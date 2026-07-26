@@ -159,6 +159,36 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
     })
   })
 
+  it('sanitizes linked unit identifiers and ignores malformed persisted field shapes', () => {
+    const sanitized = sanitizeAuthorityGraphState({
+      graph: {
+        nodes: [
+          {
+            id: 'unit-node',
+            nodeType: 'institution',
+            label: 'Unit Registry Node',
+            linkedUnitIds: [{ bad: true }, null, 42, ' unit:records-research '],
+          },
+          {
+            id: 'legacy-unit-node',
+            nodeType: 'institution',
+            label: 'Legacy Unit Registry Node',
+            linkedUnitIds: 'unit:legacy',
+          },
+        ],
+        edges: [],
+      },
+      mutationHistory: [],
+    })
+
+    expect(
+      sanitized.graph.nodes.find((node) => node.id === 'unit-node')?.linkedUnitIds
+    ).toEqual(['unit:records-research'])
+    expect(
+      sanitized.graph.nodes.find((node) => node.id === 'legacy-unit-node')?.linkedUnitIds
+    ).toBeUndefined()
+  })
+
   it('hydrates canonical graph state and advances it without changing market or cover', () => {
     const fallback = createStartingState()
     const raw = {

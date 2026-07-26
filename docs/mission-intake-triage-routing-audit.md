@@ -168,6 +168,32 @@ route. The read seam is pure: persisted routing changes only through existing no
 recompute boundaries. At week-close, routing is recomputed after the authority graph mutation so
 the next-week route agrees with the persisted post-mutation graph.
 
+### Department-to-specialist-unit authorization boundary (SPE-2088)
+
+`authorizeDepartmentUnitHandoff` composes the existing authority and specialist-unit owners
+without inserting unit fit into canonical team candidate ranking:
+
+- resolve one department authority node by node ID, alias, or linked department registry ID
+- resolve one specialist-unit authority node by node ID, alias, or linked unit registry ID
+- consume the first applicable sanitized `permission` edge in deterministic code-unit ID order
+- require an active explicit grant plus `provenance.recorderId` as the approver
+- derive the mission-fit packet from the canonical case plus validated unit registry
+  (mission category, required tags, registry-recognized hazard/environment tags, region,
+  departmental command, department authority tier, and required handoff), rejecting any
+  mismatched caller assertion
+- after the grant and approver are confirmed, clear only the satisfied handoff prerequisite
+  and validate the target against the full specialist-unit mission-fit/lifecycle registry
+- return an immutable audit record with mission scope, clearance, department, unit, approver,
+  window, and permission-edge evidence
+
+Missing or legacy graphs, missing references, invalid unit registries, hidden or contradicted
+permission, denial, missing approver provenance, fractional or expired windows, mission-fit
+assertion mismatch, and unavailable units fail closed. Contradiction is evaluated per edge so a
+historical contradicted claim cannot suppress a separate current grant. The result is a pure
+handoff decision, not a persisted handoff ledger: it does not change mission routing,
+team-readiness math, candidate validity, scores, or ranking. Week changes are observed only
+through the existing campaign week boundary.
+
 ## 5) Team-readiness and time-pressure integration guidance
 
 ### Team-readiness integration

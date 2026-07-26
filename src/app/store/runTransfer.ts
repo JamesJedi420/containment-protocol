@@ -289,6 +289,7 @@ import {
   sanitizeSpe947MediaEconomyLastWeeklyTickWeek,
 } from '../../domain/spe947MediaEconomySimulator'
 import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
+import { sanitizeAuthorityGraphState } from '../../domain/authorityGraphPersistence'
 import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
@@ -9226,6 +9227,7 @@ export function hydrateGame(
     game.spe956PropagationGraphRecords,
     fallback.spe956PropagationGraphRecords ?? {}
   )
+  const authorityGraphState = sanitizeAuthorityGraphState(game.authorityGraphState)
   const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
@@ -9555,6 +9557,7 @@ export function hydrateGame(
     events,
     inventory,
     damagedEquipmentQueue,
+    authorityGraphState,
     runtimeState,
     globalFlags,
     researchState: sanitizeResearchState(

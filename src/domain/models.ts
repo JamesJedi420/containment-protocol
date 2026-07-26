@@ -324,6 +324,7 @@ import type {
 } from './spe947MediaEconomyContinuity'
 import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
 import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
+import type { AuthorityGraphState } from './authorityGraphPersistence'
 import type {
   Spe956AsyncDiscussionSurfaceRecordsMap,
   Spe956CollectiveMemoryChannelRecordsMap,
@@ -2668,6 +2669,11 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /**
+   * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
+   * Optional for direct legacy states; hydration supplies a canonical empty foundation.
+   */
+  authorityGraphState?: AuthorityGraphState
   /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
   districtScheduleState?: DistrictScheduleState
   /** Agency-side external support assets with reliability/trust state (SPE-93). */

@@ -93,6 +93,7 @@ Documents the versioned serialization format for the full game store state.
 - Optional `AgencyState.hiddenCellCovertGrowthLevel` / `hiddenCellDetectionNarrowing` / `lastHiddenCellCovertGrowthWeek` / `lastHiddenCellCovertGrowthAmount` / `lastHiddenCellDetectionNarrowingAmount` (SPE-2714) are sanitized in `sanitizeAgencyState`; week markers require at least one positive applied amount so a week cannot lock without a matching note
 - Optional `AgencyState.lastStatusUpkeepWeek` / `lastStatusUpkeepBand` / `lastStatusUpkeepFundingBefore` / `lastStatusUpkeepOperatingCost` (SPE-2718) are sanitized in `sanitizeAgencyState`; incomplete marker sets are dropped so adequacy cannot hydrate without the pre-cost funding snapshot
 - Optional `LegitimacyState.operationalCoverLevel` (`open` / `deniable` / `compromised`, SPE-2719) is sanitized with the existing legitimacy state. Missing legacy values are derived at read time (`covert` → `deniable`; otherwise `open`), so existing `sanctionLevel` values require no migration.
+- Optional `GameState.authorityGraphState` (SPE-2720) is sanitized by `sanitizeAuthorityGraphState`; missing or malformed state becomes an empty graph/history foundation. Valid state persists the graph, at most 52 mutation-history entries, and a `lastMutationWeek` reconciled to the newest retained history week. Week-close rejects same-week/stale reapplication, selects one eligible edge in deterministic code-unit ID order, and clamps its consequence-driven strength delta to five points.
 
 ---
 

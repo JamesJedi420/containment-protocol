@@ -269,6 +269,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
+import { applyAuthorityGraphWeekClose } from '../authorityGraphPersistence'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -4854,6 +4855,19 @@ export function advanceWeek(
 
   const inputWeeklyState = state as AdvanceWeekState
   const outputWeeklyState = resultWithUnknownFields as unknown as AdvanceWeekState
+
+  // SPE-2720: one graph-local consequence-driven mutation at week-close.
+  // Missing/empty legacy state remains a no-op and does not couple into other systems.
+  const nextAuthorityGraphState = applyAuthorityGraphWeekClose(
+    inputWeeklyState.authorityGraphState,
+    result.week
+  )
+  if (
+    inputWeeklyState.authorityGraphState !== undefined ||
+    nextAuthorityGraphState.graph.edges.length > 0
+  ) {
+    outputWeeklyState.authorityGraphState = nextAuthorityGraphState
+  }
 
   if (inputWeeklyState.civicConsequencePackets !== undefined) {
     outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]

@@ -168,6 +168,32 @@ route. The read seam is pure: persisted routing changes only through existing no
 recompute boundaries. At week-close, routing is recomputed after the authority graph mutation so
 the next-week route agrees with the persisted post-mutation graph.
 
+### Department capability ownership boundary (SPE-2083)
+
+`resolveMissionIntakeDepartments` is a separate advisory read seam over the canonical case. It
+derives a mission category with `deriveMissionCategory`, combines authored, required, and
+preferred case tags, and delegates to the pure `departmentCapabilities.ts` registry/resolver:
+
+- a primary owner must declare both the required capability and matching task type
+- `support_only` and `denied` capability limits cannot silently become primary eligibility
+- exact doctrine-tag fit ranks before reputation and funding; equal candidates use code-unit
+  department ID order
+- supporting departments cover secondary capabilities, then use doctrine, reputation, funding,
+  and code-unit ID as deterministic ordering keys
+- a capability gap produces an explicit authored fallback route with `lowPriority: true` and
+  `capability-misfit` stigma instead of assigning an ineligible generic primary
+
+The registry validates department IDs, capability/task/review vocabularies, numeric bands,
+limits, fallback references, and authority identity conflicts. When an authority graph is
+provided, department node IDs, aliases, and linked department IDs may resolve the same authored
+definition; ambiguous aliases or multiple authored definitions for one authority node fail
+closed. Missing legacy authority nodes do not invalidate an otherwise self-contained authored
+pack.
+
+This seam does not persist the ownership result and does not insert department fit into mission
+triage, routing state, team readiness, or candidate scores/order. It also does not grant the
+department-to-unit permission owned by SPE-2088.
+
 ### Department-to-specialist-unit authorization boundary (SPE-2088)
 
 `authorizeDepartmentUnitHandoff` composes the existing authority and specialist-unit owners

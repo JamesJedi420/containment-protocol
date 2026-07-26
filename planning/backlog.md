@@ -76,7 +76,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **In progress:** (none)
 
-**Recently shipped:** [SPE-2720](https://linear.app/spectranoir/issue/SPE-2720/persist-deterministic-authority-graph-mutation-history-at-week-close) SPE-788 persisted authority graph week-close foundation — sanitized graph state, deterministic consequence-driven bounded edge mutation, same-week idempotency, and capped history; see `planning/spe-2720-authority-graph-week-close-persistence-slice.md`. Parent [SPE-788](https://linear.app/spectranoir/issue/SPE-788) remains **Backlog** for the broader politics layer.
+**Recently shipped:** [SPE-2720](https://linear.app/spectranoir/issue/SPE-2720/persist-deterministic-authority-graph-mutation-history-at-week-close) persisted authority graph week-close foundation — sanitized graph state, deterministic consequence-driven bounded edge mutation, same-week idempotency, and capped history; see `planning/spe-2720-authority-graph-week-close-persistence-slice.md`. Parent [SPE-788](https://linear.app/spectranoir/issue/SPE-788) remains **Backlog** for the broader politics layer.
 
 **Recently shipped:** [SPE-2719](https://linear.app/spectranoir/issue/SPE-2719/spe-39-institutional-legitimacy-vs-operational-cover-gate) SPE-39 institutional legitimacy vs operational cover gate — optional sanitized cover level, legacy inference, sanctioned gray-market access divergence, and agency/report summary; see `planning/spe-2719-institutional-legitimacy-operational-cover-slice.md`. Parent [SPE-39](https://linear.app/spectranoir/issue/SPE-39) pending final acceptance reconciliation.
 

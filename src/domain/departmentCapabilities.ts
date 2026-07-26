@@ -931,11 +931,25 @@ function doctrineMatchScore(department: DepartmentDefinition, caseTags: readonly
   )
 }
 
+function doctrineSpecialistMatchCount(
+  department: DepartmentDefinition,
+  caseTags: readonly string[]
+) {
+  return doctrineMatches(department, caseTags).filter((tag) => !GENERIC_DOCTRINE_TAGS.has(tag))
+    .length
+}
+
 function comparePrimaryCandidates(
   left: DepartmentDefinition,
   right: DepartmentDefinition,
   caseTags: readonly string[]
 ) {
+  const specialistDelta =
+    doctrineSpecialistMatchCount(right, caseTags) - doctrineSpecialistMatchCount(left, caseTags)
+  if (specialistDelta !== 0) {
+    return specialistDelta
+  }
+
   const doctrineDelta = doctrineMatchScore(right, caseTags) - doctrineMatchScore(left, caseTags)
   if (doctrineDelta !== 0) {
     return doctrineDelta

@@ -115,6 +115,22 @@ describe('department capability registry and resolver (SPE-2083)', () => {
     ])
   })
 
+  it('prioritizes a specialist match over accumulated generic doctrine tags', () => {
+    const result = resolveDepartments(
+      packet({
+        missionCategory: 'investigation_lead',
+        caseTags: ['biohazard', 'analysis', 'evidence'],
+      }),
+      DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY
+    )
+
+    expect(result.primaryDepartment).toMatchObject({
+      departmentId: 'department:biohazard-response',
+      matchedCapabilities: ['research'],
+      doctrineMatches: ['biohazard'],
+    })
+  })
+
   it('routes concept-embodiment research through the authored specialist profile', () => {
     const result = resolveDepartments(
       packet({

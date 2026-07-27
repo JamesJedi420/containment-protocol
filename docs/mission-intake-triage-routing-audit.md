@@ -217,8 +217,12 @@ caller-owned ordered queue/capacity snapshots and delegates to the pure
   work with available capacity is `aligned`
 - structured reason codes and immutable inputs/results keep replay independent of caller ordering
 
-This is a read seam, not a new queue owner. SPE-1028 owns any future durable department workshop
-queues, enqueue/dequeue policy, capacity progression, and week-close advancement. SPE-1200 owns
+This is a read seam, not a new queue owner. SPE-2745 provides a pure caller-owned workshop
+queue/slot kernel whose projection orders active slot occupancy before queued cases and maps slot
+capacity to this evaluator's weekly capacity. Paused work is excluded because it does not consume
+a slot; duplicate projected case IDs fail closed. The kernel does not persist, enqueue through
+`GameState`, or run at week-close. Future SPE-1028 children own durable workshop state,
+enqueue/dequeue policy, capacity progression, facility effects, and week-close advancement. SPE-1200 owns
 interdisciplinary scientific model conflict, synthesis, and persisted case policy; SPE-2084 only
 reports conflicts already implied by authored department doctrine. The evaluator does not read or
 write the global case queue, mission routing state, team ranking, SPE-2088 authorization, or

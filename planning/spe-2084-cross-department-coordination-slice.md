@@ -72,7 +72,8 @@ conflicting pairs; every pair remains present as an ordered reason.
 ## Out of scope
 
 - UI or player-facing text
-- Durable department queue or workshop state (SPE-1028)
+- Durable department queue or workshop state (future SPE-1028 child). SPE-2745
+  supplies a caller-owned pure queue/slot kernel and workload projection only.
 - Scientific model selection, synthesis, or interdisciplinary case persistence
   (SPE-1200)
 - Global case-queue mutation, priority semantics, or insertion order
@@ -125,8 +126,9 @@ conflicting pairs; every pair remains present as an ordered reason.
 
 ## Deferred
 
-| Item                                     | Owner     | Boundary                                                                                                               |
-| ---------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Durable department workshop queues       | SPE-1028  | SPE-2084 accepts ordered queue/capacity snapshots but does not store, enqueue, dequeue, prioritize, or advance them.   |
-| Interdisciplinary scientific case policy | SPE-1200  | SPE-2084 reports authored doctrine conflict only; it does not choose models, synthesize evidence, or persist disputes. |
-| Persisted coordination history           | New child | Results are immutable read models; add a scoped child before introducing save state or week-close mutation.            |
+| Item                                     | Owner          | Boundary                                                                                                               |
+| ---------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Caller-owned workshop queue/slot kernel  | SPE-2745       | Projects active occupancy plus queued cases into this evaluator without giving SPE-2084 queue mutation ownership.      |
+| Durable department workshop queues       | SPE-1028 child | SPE-2084 accepts ordered queue/capacity snapshots but does not store, hydrate, enqueue, prioritize, or advance them.   |
+| Interdisciplinary scientific case policy | SPE-1200       | SPE-2084 reports authored doctrine conflict only; it does not choose models, synthesize evidence, or persist disputes. |
+| Persisted coordination history           | New child      | Results are immutable read models; add a scoped child before introducing save state or week-close mutation.            |

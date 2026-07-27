@@ -77,11 +77,12 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       pacePenalty: 0,
     })
     const [casualtyClue, searchClue] = alphaAdvance.clueSignals
-    const lost = advanceRivalExpeditionProgress(initializePacket('lost'), {
+    const lostAdvance = advanceRivalExpeditionProgress(initializePacket('lost'), {
       week: 5,
       casualties: 3,
       pacePenalty: 0,
-    }).packet
+    })
+    const lost = lostAdvance.packet
 
     const packets = normalizeRivalExpeditionProgressRegistry({
       bravo,
@@ -124,6 +125,32 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(
       normalizeRivalExpeditionClueRegistry({ [searchClue!.id]: searchClue }, { alpha })
     ).toEqual({})
+
+    const preDepartureClue = {
+      ...casualtyClue!,
+      id: 'alpha:clue:4:casualty_trace',
+      week: 4,
+    }
+    const conflictingTerminalClue = {
+      ...casualtyClue!,
+      id: 'alpha:clue:5:loss_site',
+      kind: 'loss_site' as const,
+      phase: 'lost' as const,
+      progressBand: 'terminal' as const,
+    }
+    expect(
+      normalizeRivalExpeditionClueRegistry(
+        {
+          [preDepartureClue.id]: preDepartureClue,
+          [conflictingTerminalClue.id]: conflictingTerminalClue,
+        },
+        { alpha: alphaAdvance.packet }
+      )
+    ).toEqual({})
+    const validLostClues = Object.fromEntries(
+      lostAdvance.clueSignals.map((signal) => [signal.id, signal])
+    )
+    expect(normalizeRivalExpeditionClueRegistry(validLostClues, { lost })).toEqual(validLostClues)
 
     const packetCollisionA = normalizeRivalExpeditionProgressRegistry({
       alpha,

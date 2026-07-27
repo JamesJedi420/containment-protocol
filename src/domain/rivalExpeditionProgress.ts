@@ -519,6 +519,37 @@ function compareClueSignals(
   )
 }
 
+function clueMatchesOwningPacket(
+  signal: RivalExpeditionClueSignal,
+  packet: RivalExpeditionProgressPacket
+): boolean {
+  if (signal.week < packet.departedWeek || signal.week > packet.lastAdvancedWeek) {
+    return false
+  }
+
+  switch (signal.kind) {
+    case 'casualty_trace':
+      if (packet.cumulativeCasualties === 0) {
+        return false
+      }
+      if (signal.phase === 'lost') {
+        return packet.phase === 'lost' && signal.week === packet.lostWeek
+      }
+      if (signal.phase === 'completed') {
+        return packet.phase === 'completed' && signal.week === packet.completedWeek
+      }
+      return true
+    case 'search_trace':
+      return packet.searchProgress === packet.definition.searchWorkRequired
+    case 'extraction_trace':
+      return packet.extractionWeeksElapsed === packet.definition.extractionWeeksRequired
+    case 'retreat_trace':
+      return packet.phase === 'completed' && signal.week === packet.completedWeek
+    case 'loss_site':
+      return packet.phase === 'lost' && signal.week === packet.lostWeek
+  }
+}
+
 /**
  * Normalize and deduplicate persisted clues in expedition/week/kind order.
  * When packets are supplied, orphaned or definition-mismatched clues fail closed.
@@ -544,7 +575,7 @@ export function normalizeRivalExpeditionClueRegistry(
         packet !== undefined &&
         packet.definition.routeId === signal.routeId &&
         packet.definition.objectiveId === signal.objectiveId &&
-        signal.week <= packet.lastAdvancedWeek)
+        clueMatchesOwningPacket(signal, packet))
     if (signal && matchesPacket && registryId === signal.id && !clueById.has(signal.id)) {
       clueById.set(signal.id, signal)
     }

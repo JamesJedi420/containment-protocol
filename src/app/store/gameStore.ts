@@ -1206,9 +1206,19 @@ export const useGameStore = create<GameStore>()(
       clearContractNextIntent: () => set((s) => ({ game: clearContractNextIntent(s.game) })),
 
       launchMajorIncident: (caseId, teamIds, strategy = 'balanced', provisions = []) =>
-        set((s) => ({
-          game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
-        })),
+        set((s) => {
+          if (
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: s.game }
+          }
+
+          return {
+            game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
+          }
+        }),
 
       assign: (caseId, teamId) =>
         set((s) => {

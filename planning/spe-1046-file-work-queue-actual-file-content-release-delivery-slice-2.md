@@ -3,10 +3,10 @@
 One-page implementation plan. This slice follows metadata-only delivery receipts shipped in `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
 
 - **Linear:** [SPE-2542](https://linear.app/spectranoir/issue/SPE-2542/file-work-queue-actual-file-content-release-delivery-slice-2)
-- **Status:** In Progress
-- **Parent context:** [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) historical chain
+- **Status:** Shipped
+- **Parent context:** [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) historical chain (parent **Done**; do not reopen)
 - **Branch:** `spe-file-work-queue-actual-file-content-release-delivery-slice-2`
-- **Base `main` SHA:** `b177998e`
+- **Base `main` SHA:** `b177998e` (merged PR #3021 @ `e28042c5`)
 
 ## Goal
 
@@ -26,12 +26,12 @@ Add a deterministic, durable actual file-content release delivery workflow on to
 
 ## Acceptance
 
-- [ ] A new release package or delivery mapping exists for actual file-content release and is deterministic.
-- [ ] Delivery id/ref format remains stable and sanitizer rejects malformed or mismatched records.
-- [ ] Store action only records delivery when prerequisites exist; otherwise no-op with no ledger mutation.
-- [ ] Existing metadata-only delivery behavior remains unchanged.
-- [ ] Operations mirror displays clear action availability and post-delivery status text for actual content release.
-- [ ] No mission routing/procurement/weekly progression/SPE-947 behavior changes occur.
+- [x] A new release package or delivery mapping exists for actual file-content release and is deterministic.
+- [x] Delivery id/ref format remains stable and sanitizer rejects malformed or mismatched records.
+- [x] Store action only records delivery when prerequisites exist; otherwise no-op with no ledger mutation.
+- [x] Existing metadata-only delivery behavior remains unchanged.
+- [x] Operations mirror displays clear action availability and post-delivery status text for actual content release.
+- [x] No mission routing/procurement/weekly progression/SPE-947 behavior changes occur.
 
 ## Validation
 

@@ -929,6 +929,24 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review disposal compliance, exposure-chain risk, and awareness escalation projections.',
     },
     {
+      label: 'Open hazardous content propagation mirror',
+      href: APP_ROUTES.hazardousContentPropagation,
+      description:
+        'Review persisted SPE-947 platforms, counter-memetic plans, content owners, and post-case media cases.',
+    },
+    {
+      label: 'Open propagation graph mirror',
+      href: APP_ROUTES.propagationGraph,
+      description:
+        'Review persisted SPE-956 propagation graph structure, nodes, edges, and week-close orchestration fields.',
+    },
+    {
+      label: 'Open participatory channel mirror',
+      href: APP_ROUTES.participatoryChannels,
+      description:
+        'Review persisted SPE-956 survivor registries, memory channels, hotlines, async surfaces, and advisory bodies.',
+    },
+    {
       label: 'Open entity welfare reclassification mirror',
       href: APP_ROUTES.entityWelfareReclassification,
       description:

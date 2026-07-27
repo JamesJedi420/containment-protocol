@@ -120,7 +120,7 @@ Next issue implementation plan:
 
 ### Phase B — After merge
 
-Use when the PR is **merged**, the slice issue is **Done**, the merge comment is on Linear, and the agent has run **`git checkout main` && `git pull origin main`**.
+Use when the PR is **merged**, the slice issue is **Done**, the merge comment is on Linear, the agent has run **`git checkout main` && `git pull origin main`**, and backlog handoff updates are **on `main`** (`npm run verify:backlog-handoff` passes).
 
 ```text
 Merge closeout:

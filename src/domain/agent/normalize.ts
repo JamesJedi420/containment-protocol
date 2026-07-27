@@ -16,20 +16,32 @@ import {
   deriveDomainStatsFromBase,
 } from '../agentDefaults'
 import { clamp } from '../math'
-import { synchronizeProgressionState } from '../progression'
+import {
+  PROGRESSION_MAX_LEVEL,
+  PROGRESSION_MIN_LEVEL,
+  reconcileAgentPromotedFields,
+  reconcileProgressionXpGainedFields,
+  synchronizeProgressionState,
+} from '../progression'
 import { cloneDomainStats } from '../statDomains'
 import { createDefaultFatigueChannels } from '../agentFatigueChannels'
 import { normalizeEnergyBudget } from '../responderEnergyBudget'
 import { isAgentAttritionUnavailable } from './attrition'
 import { getEquipmentCatalogEntries } from '../equipment'
-import { PERFORMANCE_PENALTY_MULTIPLIER } from '../sim/betrayal'
+import {
+  PERFORMANCE_PENALTY_MULTIPLIER,
+  reconcileAgentBetrayedFields,
+} from '../sim/betrayal'
+import { reconcileAgentInstructorAssignmentFields } from '../sim/instructorAssignment'
+import { reconcileAgentRelationshipChangedFields } from '../sim/relationshipProjection'
+import {
+  reconcileAgentTrainingCancelledFields,
+  reconcileAgentTrainingCompletedFields,
+  reconcileAgentTrainingStartedFields,
+} from '../sim/training'
 import { ATTRITION_CALIBRATION } from '../sim/calibration'
 import { getTrainingProgram, trainingCatalog } from '../../data/training'
 import { getCertificationDefinitions } from '../sim/training-compat'
-import {
-  PROGRESSION_MAX_LEVEL,
-  PROGRESSION_MIN_LEVEL,
-} from '../progression'
 import type {
   AgentAttritionCategory,
   AgentAttritionState,
@@ -1154,7 +1166,73 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
   }
 
   const eventType = entry.type as OperationEventType
-  const validation = validateOperationEventPayload(eventType, entry.payload)
+  const trimmedProgressionReason =
+    typeof entry.payload.reason === 'string' ? entry.payload.reason.trim() : ''
+  const trimmedPromotionRole =
+    typeof entry.payload.newRole === 'string' ? entry.payload.newRole.trim() : ''
+  const payload =
+    eventType === 'progression.xp_gained'
+      ? {
+          ...entry.payload,
+          ...reconcileProgressionXpGainedFields(entry.payload),
+          reason: trimmedProgressionReason.length > 0 ? trimmedProgressionReason : 'unknown',
+        }
+      : eventType === 'agent.promoted'
+        ? {
+            ...entry.payload,
+            ...reconcileAgentPromotedFields(entry.payload),
+            newRole: AGENT_ROLES.has(trimmedPromotionRole as AgentRole)
+              ? (trimmedPromotionRole as AgentRole)
+              : 'hunter',
+          }
+        : eventType === 'agent.betrayed'
+          ? {
+              ...entry.payload,
+              ...reconcileAgentBetrayedFields(entry.payload),
+              triggeredConsequences: Array.isArray(entry.payload.triggeredConsequences)
+                ? entry.payload.triggeredConsequences.filter(
+                    (
+                      consequence
+                    ): consequence is
+                      | 'benching'
+                      | 'performance_penalty'
+                      | 'disciplinary'
+                      | 'resignation' =>
+                      consequence === 'benching' ||
+                      consequence === 'performance_penalty' ||
+                      consequence === 'disciplinary' ||
+                      consequence === 'resignation'
+                  )
+                : entry.payload.triggeredConsequences,
+            }
+          : eventType === 'agent.relationship_changed'
+            ? {
+                ...entry.payload,
+                ...reconcileAgentRelationshipChangedFields(entry.payload),
+              }
+            : eventType === 'agent.instructor_assigned' ||
+                eventType === 'agent.instructor_unassigned'
+              ? {
+                  ...entry.payload,
+                  ...reconcileAgentInstructorAssignmentFields(entry.payload),
+                }
+              : eventType === 'agent.training_started'
+                ? {
+                    ...entry.payload,
+                    ...reconcileAgentTrainingStartedFields(entry.payload),
+                  }
+                : eventType === 'agent.training_completed'
+                  ? {
+                      ...entry.payload,
+                      ...reconcileAgentTrainingCompletedFields(entry.payload),
+                    }
+                  : eventType === 'agent.training_cancelled'
+                    ? {
+                        ...entry.payload,
+                        ...reconcileAgentTrainingCancelledFields(entry.payload),
+                      }
+                    : entry.payload
+  const validation = validateOperationEventPayload(eventType, payload)
 
   if (!validation.success) {
     return null
@@ -1170,7 +1248,7 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     timestamp: entry.timestamp,
     schemaVersion: entry.schemaVersion,
     sourceSystem: entry.sourceSystem,
-    payload: entry.payload,
+    payload,
   })
 
   if (!migrated) {

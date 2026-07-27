@@ -33,11 +33,17 @@ jobs:
       - name: Verify design audits index
         run: npm run verify:audits-index
 
+      - name: Verify backlog handoff
+        run: npm run verify:backlog-handoff
+
       - name: Verify external theme contracts
         run: npm run verify:theme-contracts
 
       - name: Run tests (non-watch)
         run: npm run test:run:ci
 
+      # Coverage re-runs the full suite under instrumentation (~as long as the test
+      # step). Keep it on main pushes only so PR babysit stays one suite deep.
       - name: Coverage
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: npm run coverage:ci

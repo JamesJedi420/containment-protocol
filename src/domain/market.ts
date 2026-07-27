@@ -18,6 +18,7 @@ import {
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 import { getCanonicalFundingState, sumInventoryStock } from './funding'
+import { hasDeniableOperationalCover } from './operationalCover'
 import {
   assessCompromisedAuthorityProcurementDiversion,
   type ProcurementCorruptionRoutingReason,
@@ -497,6 +498,15 @@ function buildMarketPacket(
   const definition = PROCUREMENT_MARKET_PACKET_DEFINITIONS[packetId]
   const sanctionLevel = getSanctionLevel(game)
   let blocked = definition.blockedSanctionLevels?.includes(sanctionLevel) ?? false
+
+  if (
+    blocked &&
+    packetId === 'gray_market_broker' &&
+    sanctionLevel === 'sanctioned' &&
+    hasDeniableOperationalCover(game.legitimacy)
+  ) {
+    blocked = false
+  }
 
   if (
     blocked &&
@@ -1514,6 +1524,46 @@ export function sanitizeFeaturedRecipeId(value: unknown, fallbackRecipeId: strin
   }
 
   return productionCatalog[0]?.recipeId ?? 'ward-seals'
+}
+
+/**
+ * Hydration 586–587 / SPE-2660: catalog featured recipe + canonical pressure multiplier.
+ * Aligns with sanitizePersistedMarketState (SPE-454) and validateOperationEventPayload.
+ */
+export function reconcileMarketShiftedFields(
+  payload: {
+    featuredRecipeId?: unknown
+    featuredRecipeName?: unknown
+    pressure?: unknown
+    costMultiplier?: unknown
+  },
+  fallbackFeaturedRecipeId: string
+) {
+  const pressure = isMarketPressure(payload.pressure) ? payload.pressure : 'stable'
+  const featuredRecipeId = sanitizeFeaturedRecipeId(
+    payload.featuredRecipeId,
+    fallbackFeaturedRecipeId
+  )
+  const recipe = getProductionRecipe(featuredRecipeId)
+  const catalogName = recipe?.name ?? featuredRecipeId
+  const featuredRecipeName =
+    typeof payload.featuredRecipeName === 'string' &&
+    payload.featuredRecipeName.trim() === catalogName
+      ? payload.featuredRecipeName.trim()
+      : catalogName
+  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
+  const boundedCostMultiplier = sanitizeMarketDecimal(
+    typeof payload.costMultiplier === 'number' ? payload.costMultiplier : undefined,
+    canonicalCostMultiplier,
+    0.5,
+    2
+  )
+  const costMultiplier =
+    boundedCostMultiplier === canonicalCostMultiplier
+      ? boundedCostMultiplier
+      : canonicalCostMultiplier
+
+  return { featuredRecipeId, featuredRecipeName, pressure, costMultiplier }
 }
 
 /**

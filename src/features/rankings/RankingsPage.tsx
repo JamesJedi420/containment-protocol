@@ -11,7 +11,8 @@ export default function RankingsPage() {
         <h2 className="text-lg font-semibold">Agency Rankings</h2>
         <p className="text-sm opacity-60">
           Standing is derived from contained operations, major-incident response, failure penalties,
-          agency reputation, and roster progression.
+          agency reputation, and roster progression. New operation awards are risk-weighted and
+          normalized for commitment and repeats.
         </p>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -24,6 +25,12 @@ export default function RankingsPage() {
       <article className="panel space-y-3">
         <h3 className="text-base font-semibold">Ranking breakdown</h3>
         <div className="grid gap-3 xl:grid-cols-2">
+          <FactorMetric
+            label={ranking.breakdown.agencyStanding.label}
+            value={`${ranking.breakdown.agencyStanding.awards} awards`}
+            impact={`${ranking.breakdown.agencyStanding.points >= 0 ? '+' : ''}${ranking.breakdown.agencyStanding.points}`}
+            detail={ranking.breakdown.agencyStanding.detail}
+          />
           <FactorMetric
             label={ranking.breakdown.casesResolved.label}
             value={`${ranking.breakdown.casesResolved.resolvedCases} resolved / ${ranking.breakdown.casesResolved.partialCases} partial`}
@@ -60,6 +67,12 @@ export default function RankingsPage() {
             impact={`-${ranking.breakdown.unresolved.penalty}`}
             detail={ranking.breakdown.unresolved.detail}
           />
+          <FactorMetric
+            label={ranking.breakdown.statusUpkeep.label}
+            value={`${ranking.breakdown.statusUpkeep.underfundedWeeks} underfunded week(s)`}
+            impact={`${ranking.breakdown.statusUpkeep.points >= 0 ? '+' : ''}${ranking.breakdown.statusUpkeep.points}`}
+            detail={ranking.breakdown.statusUpkeep.detail}
+          />
         </div>
       </article>
 
@@ -90,7 +103,11 @@ export default function RankingsPage() {
                   {entry.summary.majorIncidentsHandled}, failures {entry.summary.failures},
                   unresolved {entry.summary.unresolved}, reputation{' '}
                   {entry.summary.reputationDelta >= 0 ? '+' : ''}
-                  {entry.summary.reputationDelta}.
+                  {entry.summary.reputationDelta}, standing{' '}
+                  {entry.summary.agencyStanding >= 0 ? '+' : ''}
+                  {entry.summary.agencyStanding}, status upkeep{' '}
+                  {entry.summary.statusUpkeep >= 0 ? '+' : ''}
+                  {entry.summary.statusUpkeep}.
                 </p>
               </li>
             ))}

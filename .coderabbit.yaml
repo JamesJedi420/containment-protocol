@@ -121,9 +121,28 @@ reviews:
         New docs/*audit*.md must update docs/design-audits-index.md in strict alphabetical order.
         Flag stale docs contradicting src/ in the same PR.
 
+    - path: "package.json"
+      instructions: |
+        Dependency changes (with package-lock.json). Flag P1 if a new or upgraded package lands without
+        slice justification, or without evidence of required Sonatype /check-dependency (or MCP
+        getComponentVersion) per docs/agent-cursor-plugins.md. Snyk package health is optional and
+        must not replace Sonatype.
+
+    - path: "package-lock.json"
+      instructions: |
+        Same dependency policy as package.json. Flag unexplained lockfile churn without package.json
+        or slice justification.
+
+    - path: "src/**"
+      instructions: |
+        Flag P1 if the PR wires vendor search/scan/SaaS SDKs into src/ without an explicit Linear slice
+        (docs/agent-cursor-plugins.md). Still apply existing domain/store/UI path instructions above.
+
     - path: ".github/workflows/**"
       instructions: |
         Flag P1 if CI weakened, STRICT_TEST_CONSOLE removed, or Node version is not 22.
+        Flag P1 if a vendor scan/search API is added to CI without an explicit Linear slice
+        (see docs/agent-cursor-plugins.md).
 
   labeling_instructions:
     - label: bug

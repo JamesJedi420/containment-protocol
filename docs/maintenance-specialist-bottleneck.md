@@ -18,6 +18,9 @@ SPE-94 introduces a bounded, deterministic support specialist system for equipme
 - The specialist field is canonical and not duplicated.
 - No non-canonical or parallel state is introduced for tests.
 - The pass is strictly limited to equipment recovery; no procurement or readiness logic is affected.
+- SPE-2710 may drain this pool under competitive/severe hidden-cell pressure (week-close
+  infrastructure compromise). That compose path lives in
+  `src/domain/hiddenCellStrategicInterference.ts` and does not invent a parallel sabotage sim.
 
 ## Example Output
 

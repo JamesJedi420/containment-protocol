@@ -56,6 +56,21 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     category: 'system',
   },
   'agency.containment_updated': { status: 'active', producer: 'advanceWeek', category: 'system' },
+  'agency.cross_jurisdiction_coordination': {
+    status: 'active',
+    producer: 'crossJurisdictionCoordinationWeeklyReportNotes',
+    category: 'system',
+  },
+  'agency.hidden_cell_interference': {
+    status: 'active',
+    producer: 'hiddenCellInterferenceWeeklyReportNotes',
+    category: 'system',
+  },
+  'agency.status_upkeep_display': {
+    status: 'active',
+    producer: 'statusUpkeepDisplayWeeklyReportNotes',
+    category: 'system',
+  },
   'system.week_delta': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'system.recruitment_expired': {
     status: 'active',
@@ -212,6 +227,16 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'visualTriggerHazardWeeklyReportNotes',
     category: 'system',
   },
+  'spe947_evaluator.weekly_transition': {
+    status: 'active',
+    producer: 'spe947EvaluatorWeeklyReportNotes',
+    category: 'system',
+  },
+  'spe956_participatory_channel.weekly_transition': {
+    status: 'active',
+    producer: 'spe956ParticipatoryChannelWeeklyReportNotes',
+    category: 'system',
+  },
   'entity_welfare_reclassification.weekly_transition': {
     status: 'active',
     producer: 'entityWelfareReclassificationWeeklyReportNotes',
@@ -238,7 +263,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(57)
+    expect(entries).toHaveLength(62)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

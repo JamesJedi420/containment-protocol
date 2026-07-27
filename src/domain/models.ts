@@ -43,6 +43,7 @@ export type MissionRoutingBlockerCode =
   | 'training-blocked'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'authority-mission-access-restricted'
   | 'site-clearance-required'
   | 'dual-loyalty-restricted'
   | 'protected-status-restricted'
@@ -228,7 +229,10 @@ export interface IncidentToCampaignPacket {
 
 // Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass)
 export interface LegitimacyState {
+  /** Institutional authorization posture. Existing values remain stable for persisted campaigns. */
   sanctionLevel: 'sanctioned' | 'covert' | 'tolerated' | 'unsanctioned'
+  /** Operational exposure posture, distinct from institutional authorization (SPE-2719). */
+  operationalCoverLevel?: 'open' | 'deniable' | 'compromised'
   accessReason?: string
   falloutRisk?: 'none' | 'risk' | 'costly'
 }
@@ -304,6 +308,32 @@ import type { SurveillanceInterventionTuningRecord } from './surveillanceCapacit
 import type { PsychologicalResilienceRecord } from './psychologicalResilienceRegistry'
 import type { CognitiveHazardExposureRecord } from './cognitiveHazardEngine'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
+import type {
+  Spe947ContentArtifactRecordsMap,
+  Spe947ContentOwnerRecordsMap,
+  Spe947CounterMemeticPlanRecordsMap,
+  Spe947FootageExposureBindingRecordsMap,
+  Spe947OperationRecordsMap,
+  Spe947PlatformRecordsMap,
+  Spe947PostCaseMediaCaseRecordsMap,
+  Spe947TakedownResistanceBindingRecordsMap,
+  Spe947VisualTriggerHazardBindingRecordsMap,
+} from './spe947EvaluatorPersistence'
+import type {
+  Spe947MediaEconomyContinuityBindingRecordsMap,
+  Spe947MediaEconomyWeightRecordsMap,
+} from './spe947MediaEconomyContinuity'
+import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
+import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
+import type { AuthorityGraphState } from './authorityGraphPersistence'
+import type {
+  Spe956AsyncDiscussionSurfaceRecordsMap,
+  Spe956CollectiveMemoryChannelRecordsMap,
+  Spe956CommunityAdvisoryBodyRecordsMap,
+  Spe956HotlineChannelRecordsMap,
+  Spe956SurvivorInformalRegistryRecordsMap,
+} from './spe956ParticipatoryChannelPersistence'
+import type { Spe956IncidentBaselineRecordsMap } from './spe956IncidentBaselinePersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -453,8 +483,10 @@ export type StatBlock = Record<StatKey, number> & Record<string, number>
 export type WeightBlock = Record<StatKey, number> & Record<string, number>
 export const BASE_STAT_MAX = 100
 
-export type CaseMode = 'threshold' | 'probability' | 'deterministic' | 'standard'
-export type CaseKind = 'case' | 'raid' | 'standard' | 'anomaly'
+export const CASE_MODES = ['threshold', 'probability', 'deterministic', 'standard'] as const
+export type CaseMode = (typeof CASE_MODES)[number]
+export const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const
+export type CaseKind = (typeof CASE_KINDS)[number]
 export type CaseStatus = 'open' | 'in_progress' | 'resolved'
 
 export type AgentAssignmentStateKind = 'idle' | 'assigned' | 'recovery' | 'training'
@@ -793,6 +825,31 @@ export interface MissionRewardFactionStanding {
   overlapTags: string[]
 }
 
+export type AgencyStandingDangerBand = 'routine' | 'elevated' | 'high' | 'extreme'
+
+export interface AgencyStandingFactor {
+  id: 'danger' | 'outcome' | 'duration' | 'repeat'
+  label: string
+  multiplier: number
+  detail: string
+}
+
+export interface AgencyStandingAward {
+  points: number
+  rawPoints: number
+  basePoints: number
+  dangerScore: number
+  dangerBand: AgencyStandingDangerBand
+  dangerMultiplier: number
+  outcomeMultiplier: number
+  durationMultiplier: number
+  repeatMultiplier: number
+  priorSimilarCompletions: number
+  repeatKey: string
+  factors: readonly AgencyStandingFactor[]
+  summary: string
+}
+
 export interface MissionRewardBreakdown {
   outcome: MissionResolutionKind
   caseType: string
@@ -810,6 +867,8 @@ export interface MissionRewardBreakdown {
   containmentDelta: number
   strategicValueDelta: number
   reputationDelta: number
+  /** Present on newly resolved operations; optional for legacy persisted reports. */
+  agencyStanding?: AgencyStandingAward
   inventoryRewards: readonly MissionRewardInventoryGrant[]
   factionStanding: readonly MissionRewardFactionStanding[]
   label: string
@@ -1537,6 +1596,9 @@ export type ReportNoteType =
   | 'faction.standing_changed'
   | 'faction.unlock_available'
   | 'agency.containment_updated'
+  | 'agency.cross_jurisdiction_coordination'
+  | 'agency.hidden_cell_interference'
+  | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'
@@ -1578,6 +1640,8 @@ export type ReportNoteType =
   | 'contribution_release.modifiable_data_pack_governance'
   | 'contribution_release.modifiable_data_pack_publish_enqueue'
   | 'visual_trigger_hazard.weekly_transition'
+  | 'spe947_evaluator.weekly_transition'
+  | 'spe956_participatory_channel.weekly_transition'
   | 'entity_welfare_reclassification.weekly_transition'
   | 'affiliation_person_status.weekly_progression'
   | 'pattern_source_series.weekly_transition'
@@ -2062,6 +2126,12 @@ export interface ResearchState {
   researchSpeedMultiplier: number
   researchDataPool: number
   researchMaterialsPool: number
+  /** SPE-2706: closed week of last applied hidden-cell research rollback (idempotency). */
+  lastHiddenCellRollbackWeek?: number
+  /** SPE-2706: project targeted by last applied research rollback. */
+  lastHiddenCellRollbackProjectId?: string
+  /** SPE-2706: progressTime weeks removed by last applied research rollback. */
+  lastHiddenCellRollbackAmount?: number
 }
 
 export type AgentAttritionStatus = 'active' | 'at_risk' | 'temporarily_unavailable' | 'lost'
@@ -2304,6 +2374,43 @@ export interface AgencyState {
    * Each damaged item or recovery job consumes 1 maintenance specialist per week.
    */
   maintenanceSpecialistsAvailable?: number
+  /**
+   * SPE-2710: closed week when hidden-cell infrastructure compromise last drained maintenance capacity.
+   * Paired with lastHiddenCellInfrastructureCompromiseAmount for per-week idempotency.
+   */
+  lastHiddenCellInfrastructureCompromiseWeek?: number
+  /** SPE-2710: specialists drained on lastHiddenCellInfrastructureCompromiseWeek. */
+  lastHiddenCellInfrastructureCompromiseAmount?: number
+  /**
+   * SPE-2714: cumulative abstract covert-cell growth level (0–20).
+   * Not a per-cell entity count — pressure intensity only.
+   */
+  hiddenCellCovertGrowthLevel?: number
+  /**
+   * SPE-2714: cumulative intelligence-driven detection-narrowing progress (0–100).
+   * Maps to vague/regional/sector/imminent bands; no location truth.
+   */
+  hiddenCellDetectionNarrowing?: number
+  /**
+   * SPE-2714: closed week when covert growth / detection narrowing last applied.
+   * Paired with lastHiddenCellCovertGrowthAmount / lastHiddenCellDetectionNarrowingAmount.
+   */
+  lastHiddenCellCovertGrowthWeek?: number
+  /** SPE-2714: growth points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellCovertGrowthAmount?: number
+  /** SPE-2714: narrowing points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellDetectionNarrowingAmount?: number
+  /**
+   * SPE-2718: closed week when status upkeep / public-display adequacy was last assessed.
+   * Captured from pre-operating-cost funding (advanceWeek clamps post-cost funding to ≥ 0).
+   */
+  lastStatusUpkeepWeek?: number
+  /** SPE-2718: adequacy band for lastStatusUpkeepWeek. */
+  lastStatusUpkeepBand?: 'maintained' | 'underfunded' | 'neutral'
+  /** SPE-2718: funding available before operating cost on lastStatusUpkeepWeek. */
+  lastStatusUpkeepFundingBefore?: number
+  /** SPE-2718: SPE-28 operating-cost amount assessed on lastStatusUpkeepWeek. */
+  lastStatusUpkeepOperatingCost?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**
@@ -2363,6 +2470,8 @@ export interface ExternalSupportAsset {
   tags: string[]
   /** Optional free-text reason for the last reliability change, for report surfacing. */
   lastDriftReason?: string
+  /** SPE-2722: campaign week of the last applied authority-backed faction consequence. */
+  lastAuthorityConsequenceWeek?: number
 }
 
 // ── SPE-109: District time-cadence encounter scheduling ──────────────────────
@@ -2563,6 +2672,11 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /**
+   * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
+   * Optional for direct legacy states; hydration supplies a canonical empty foundation.
+   */
+  authorityGraphState?: AuthorityGraphState
   /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
   districtScheduleState?: DistrictScheduleState
   /** Agency-side external support assets with reliability/trust state (SPE-93). */
@@ -2580,6 +2694,13 @@ export interface GameState {
   productionQueue: ProductionQueueEntry[]
   market: MarketState
   globalPressure?: number
+  /**
+   * SPE-2707: closed week when hidden-cell panic amplification last applied to globalPressure.
+   * Paired with lastHiddenCellPanicAmplificationAmount for per-week idempotency.
+   */
+  lastHiddenCellPanicAmplificationWeek?: number
+  /** SPE-2707: ambient pressure points added on lastHiddenCellPanicAmplificationWeek. */
+  lastHiddenCellPanicAmplificationAmount?: number
   globalEscalationLevel?: number
   globalThreatDrift?: number
   globalTimePressure?: number
@@ -2773,6 +2894,119 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   visualTriggerHazardRecords?: Record<string, VisualTriggerHazardRecord>
+
+  /**
+   * SPE-2576 slice 1: compact platform inputs for SPE-2568 reach and SPE-2569 operation evaluators.
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  spe947PlatformRecords?: Spe947PlatformRecordsMap
+
+  /**
+   * SPE-2576 slice 1: compact operation requests for SPE-2569 platform-operation degrade evaluator.
+   */
+  spe947OperationRecords?: Spe947OperationRecordsMap
+
+  /**
+   * SPE-2576 slice 1: footage/post artifacts for SPE-2571 exposure-traffic evaluator.
+   */
+  spe947ContentArtifacts?: Spe947ContentArtifactRecordsMap
+
+  /**
+   * SPE-2576 slice 1: counter-memetic plans for SPE-2570 uptake-gate evaluator.
+   */
+  spe947CounterMemeticPlans?: Spe947CounterMemeticPlanRecordsMap
+
+  /**
+   * SPE-2576 slice 1: content owners for SPE-2572 takedown-resistance evaluator.
+   */
+  spe947ContentOwners?: Spe947ContentOwnerRecordsMap
+
+  /**
+   * SPE-2576 slice 1: post-case media persistence inputs for SPE-2573 evaluator (keyed by case id).
+   */
+  spe947PostCaseMediaCases?: Spe947PostCaseMediaCaseRecordsMap
+
+  /**
+   * SPE-2576 slice 1: optional footage-exposure baseline bindings keyed by artifact id.
+   */
+  spe947FootageExposureBindings?: Spe947FootageExposureBindingRecordsMap
+
+  /**
+   * SPE-2576 slice 1: takedown-resistance threshold bindings keyed by owner id.
+   */
+  spe947TakedownResistanceBindings?: Spe947TakedownResistanceBindingRecordsMap
+
+  /**
+   * SPE-2602 slice 1: authored spe947* entity → visualTriggerHazardId bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe947VisualTriggerHazardBindings?: Spe947VisualTriggerHazardBindingRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 media-economy continuity weights (keyed by weight id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyWeights?: Spe947MediaEconomyWeightRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 case → economy-weight continuity bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyContinuityBindings?: Spe947MediaEconomyContinuityBindingRecordsMap
+
+  /**
+   * SPE-2616 slice 1: authored commercialization actors for SPE-2611–2615 media-economy paths (keyed by actor id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyCommercializationActors?: Spe947MediaEconomyCommercializationActorRecordsMap
+
+  /**
+   * SPE-2616 slice 1: last week the SPE-2615 media-economy week-close tick ran; idempotency marker.
+   */
+  spe947MediaEconomyLastWeeklyTickWeek?: number
+
+  /**
+   * SPE-2621 slice 2: authored SPE-956 propagation graphs (keyed by graph id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap
+
+  /**
+   * SPE-2632 slice 1: authored SPE-956 survivor informal registry channels (keyed by registry id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956SurvivorInformalRegistryRecords?: Spe956SurvivorInformalRegistryRecordsMap
+
+  /**
+   * SPE-2633 slice 2: authored SPE-956 collective memory channels (keyed by channel id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956CollectiveMemoryChannelRecords?: Spe956CollectiveMemoryChannelRecordsMap
+
+  /**
+   * SPE-2634 slice 3: authored SPE-956 hotline channels (keyed by channel id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+
+  /**
+   * SPE-2635 slice 4: authored SPE-956 async discussion surfaces (keyed by surface id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+
+  /**
+   * SPE-2636 slice 5: authored SPE-956 community advisory bodies (keyed by body id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+
+  /**
+   * SPE-2644: authored SPE-956 incident-lane baselines (keyed by incident id).
+   * Optional advisory/hotline/async/survivor/memory lanes per incident.
+   * Hydration drops invalid, mismatched-key, and empty-lane entries without throwing.
+   */
+  spe956IncidentBaselineRecords?: Spe956IncidentBaselineRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

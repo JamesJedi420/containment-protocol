@@ -5,15 +5,20 @@ import {
   type PublicDisclosureRecord,
 } from '../../domain/publicDisclosureStateRegistry'
 import { resolveTruthLayerDualIncidentPairing } from '../../domain/truthLayerCoverNarrativePairing'
-import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
+import {
+  applyPostExposureComparativeTrustAdjustment,
+  projectPublicDisclosureTrustOutcomeFromGame,
+} from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 import {
+  applyPublicDisclosurePostureTrustAdjustment,
   canApplyPublicDisclosurePostureChoiceOnRecord,
   listPublicDisclosurePostureChoiceOptions,
   readPublicDisclosurePostureChoice,
   formatPublicDisclosurePostureChoiceLabel,
   type PublicDisclosurePostureChoice,
 } from '../../domain/publicDisclosurePostureChoice'
+import { buildRivalPressure } from '../../domain/rivalPressure'
 import { formatPublicDisclosureEnumLabel } from './publicDisclosureMirrorView'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
@@ -159,8 +164,20 @@ function resolveCoverNarrativeContextLabel(
   return null
 }
 
-function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDisclosureCampaignRecordView {
-  const projection = projectDisclosureRegionalView(record, { redactUnknown: true })
+function toRecordView(
+  game: GameState,
+  record: PublicDisclosureRecord,
+  postExposureTrustDelta: number
+): PublicDisclosureCampaignRecordView {
+  const adjustedRecords = applyPostExposureComparativeTrustAdjustment(
+    applyPublicDisclosurePostureTrustAdjustment(
+      { [record.id]: record },
+      game.publicDisclosurePostureChoices
+    ),
+    postExposureTrustDelta
+  )
+  const effectiveRecord = adjustedRecords[record.id] ?? record
+  const projection = projectDisclosureRegionalView(effectiveRecord, { redactUnknown: true })
   const allowsPostureChoice = canApplyPublicDisclosurePostureChoiceOnRecord(record)
   const selectedPostureChoice = readPublicDisclosurePostureChoice(game, record.id) ?? null
   const postureChoiceOptions = allowsPostureChoice
@@ -221,6 +238,7 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
 /** Read-only player briefing over hydrated `publicDisclosureRecords`; does not mutate GameState. */
 export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosureCampaignView {
   const records = listPersistedRecords(game)
+  const postExposureTrustDelta = buildRivalPressure(game).postExposureTrustDelta
   const trustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
   const segmentedTrust = projectPublicDisclosureSegmentedTrustOutcomeFromGame(game)
 
@@ -250,6 +268,8 @@ export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosu
       segmentTrustChips,
       week: game.week,
     }),
-    records: Object.freeze(records.map((record) => toRecordView(game, record))),
+    records: Object.freeze(
+      records.map((record) => toRecordView(game, record, postExposureTrustDelta))
+    ),
   })
 }

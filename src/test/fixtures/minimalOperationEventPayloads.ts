@@ -76,7 +76,7 @@ export const minimalOperationEventPayloads = {
     mode: 'threshold',
     kind: 'case',
     fromStage: 2,
-    toStage: 1,
+    toStage: 2,
     teamIds: ['team-min'],
   },
   'case.failed': {
@@ -248,7 +248,7 @@ export const minimalOperationEventPayloads = {
     xpAmount: 10,
     reason: 'mission_success',
     totalXp: 100,
-    level: 2,
+    level: 1,
     levelsGained: 0,
   },
   'agent.hired': {
@@ -304,10 +304,12 @@ export const minimalOperationEventPayloads = {
   'production.queue_started': {
     week: WEEK,
     queueId: 'queue-min',
-    queueName: 'Minimal Queue',
-    recipeId: 'recipe-min',
-    outputId: 'output-min',
-    outputName: 'Minimal Output',
+    queueName: 'Ward Seal Batch',
+    // SPE-2664: validate requires productionCatalog membership (not opaque recipe-min).
+    // Producer: outputId/outputName = catalog outputItemId/outputItemName (not recipe id/name).
+    recipeId: 'ward-seals',
+    outputId: 'ward_seals',
+    outputName: 'Ward Seals',
     outputQuantity: 1,
     etaWeeks: 1,
     fundingCost: 10,
@@ -322,10 +324,11 @@ export const minimalOperationEventPayloads = {
   'production.queue_completed': {
     week: WEEK,
     queueId: 'queue-min',
-    queueName: 'Minimal Queue',
-    recipeId: 'recipe-min',
-    outputId: 'output-min',
-    outputName: 'Minimal Output',
+    queueName: 'Ward Seal Batch',
+    // SPE-2664: validate requires productionCatalog membership (not opaque recipe-min).
+    recipeId: 'ward-seals',
+    outputId: 'ward_seals',
+    outputName: 'Ward Seals',
     outputQuantity: 1,
     fundingCost: 10,
     inputMaterials: [
@@ -338,8 +341,9 @@ export const minimalOperationEventPayloads = {
   },
   'market.shifted': {
     week: WEEK,
-    featuredRecipeId: 'recipe-min',
-    featuredRecipeName: 'Minimal Recipe',
+    // SPE-2661: validate requires productionCatalog membership (not opaque recipe-min).
+    featuredRecipeId: 'ward-seals',
+    featuredRecipeName: 'Ward Seal Batch',
     pressure: 'stable',
     costMultiplier: 1,
   },
@@ -375,8 +379,8 @@ export const minimalOperationEventPayloads = {
     ruleConflictSignal: 'none',
   },
   'market.emergency_gray_market_waiver_accountability_closed': {
-    week: WEEK,
-    waiverGrantWeek: WEEK,
+    week: 2,
+    waiverGrantWeek: 1,
     institutionKey: 'containment_protocol',
   },
   'market.emergency_gray_market_fallout_tick': {
@@ -390,12 +394,14 @@ export const minimalOperationEventPayloads = {
     containmentRatingAfter: 55,
     waiverPrecedentCount: 1,
     precedentPenaltyMultiplier: 1,
+    rankingScore: 50,
+    standingFalloutPenaltyScale: 1,
     institutionKey: 'containment_protocol',
   },
   'faction.standing_changed': {
     week: WEEK,
-    factionId: 'faction-min',
-    factionName: 'Minimal Faction',
+    factionId: 'oversight',
+    factionName: 'Oversight Bureau',
     delta: 1,
     standingBefore: 0,
     standingAfter: 1,
@@ -403,8 +409,10 @@ export const minimalOperationEventPayloads = {
   },
   'faction.unlock_available': {
     week: WEEK,
-    factionId: 'faction-min',
-    factionName: 'Minimal Faction',
+    factionId: 'institutions',
+    factionName: 'Academic Institutions',
+    contactId: 'institutions-halden',
+    contactName: 'Miren Halden',
     label: 'Minimal unlock',
     summary: 'Minimal unlock summary.',
     disposition: 'supportive',

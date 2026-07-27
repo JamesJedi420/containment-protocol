@@ -73,7 +73,18 @@ Research is the **canonical unlock path**, not a flat tech tree checkbox.
 - Unclear prerequisites or unlocks.
 - Overlapping unlocks with other systems (gear, training, facilities).
 
-## 11. Open Questions
+## 11. Hidden-cell research rollback (SPE-2706 / SPE-39)
+
+When rival-pressure band is `competitive` or `severe`, week-close may apply one bounded
+research-progress rollback through `src/domain/hiddenCellStrategicInterference.ts`:
+
+- Target: lex-min `activeProjectIds` entry with `progressTime > 0` (never completed projects)
+- Amount: deterministic 1–2 weeks of `progressTime`, clamped to available progress
+- Idempotency: `ResearchState.lastHiddenCellRollbackWeek` (+ project id / amount markers)
+- Player-facing: `agency.hidden_cell_interference` note with `kind: research_rollback`
+- Independent of SPE-2704 funding theft; does not un-complete finished research
+
+## 12. Open Questions
 - Should research be cancelable or only pausable?
 - How are hybrid (occult + technical) projects handled for slot allocation?
 - Can research be accelerated by staff assignment or only by facilities?
@@ -84,5 +95,5 @@ Research is the **canonical unlock path**, not a flat tech tree checkbox.
 
 ### Summary
 - **Files created:** `docs/research-system-audit.md`
-- **Runtime code changed:** No
-- **Overlap risks:** None; documentation-only, no symbol or logic changes, no test edits.
+- **Runtime code changed:** Yes (SPE-2706 research-rollback interference path; see §11)
+- **Overlap risks:** Hidden-cell rollback composes rival pressure only; does not merge research with funding or detection systems.

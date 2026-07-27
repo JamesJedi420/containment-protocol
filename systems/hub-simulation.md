@@ -152,6 +152,78 @@ Hub simulation should read:
 
 This determines what the hub can plausibly surface.
 
+Agency standing awards are resolved separately from funding, salvage, faction standing, and
+tactical momentum. New operation results use a bounded deterministic contract: authoritative
+operation danger (difficulty, escalation, raid coordination, and deadline pressure), terminal
+outcome, expected-duration commitment, and prior completions of the same case/contract template.
+Success and partial completion can add standing; failure and withdrawal/abandonment remove it, so
+entering dangerous content never grants standing by itself. Campaign reward summaries retain the
+four multipliers used for each award.
+
+Status upkeep / public-display costs (SPE-2718) compose a separate ranking factor from SPE-28
+weekly operating-cost affordability (`src/domain/statusUpkeepDisplayCost.ts`). The facility
+upkeep base + spike is the public-presentation cost anchor (payroll excluded). Week-close
+captures whether pre-cost funding covers the full operating cost (post-cost funding is clamped
+≥ 0) onto agency markers and emits `agency.status_upkeep_display` for maintained and underfunded
+weeks (durable note metadata so later funding sync cannot reclassify earlier weeks). Ranking
+applies a bounded penalty and blocks that week's positive standing award points in comparative
+standing composition only — SPE-2696 award records on events are not rewritten. Maintained weeks
+have no ranking penalty. This is ranking presentation cost, not a new `legitimacy.sanctionLevel`
+/ operational-cover field. Agency/report summaries expose the band.
+
+Institutional legitimacy and operational cover are separate bounded campaign axes (SPE-2719).
+`legitimacy.sanctionLevel` remains the stable institutional authorization enum; optional
+`operationalCoverLevel` records whether current operations are open, deniable, or compromised.
+Legacy state derives covert sanction as deniable cover and other sanctions as open cover. The
+gray-market broker reads both axes: sanctioned + open/compromised remains audit-blocked,
+sanctioned + deniable is available, and the existing crisis waiver remains the explicit
+fallout-bearing override when deniable cover is absent. Agency and report summaries expose both
+labels so access differences are attributable.
+
+Comparative rival pressure is a separate **read-time** derivation from agency ranking score versus
+an abstract peer baseline (`src/domain/rivalPressure.ts`). It does not mutate standing awards. Weak
+comparative rank compresses contract reward scalars and recruit overall quality; strong rank eases
+both. The same standing-shaped scale also scales **negative** external-support reliability drift
+(SPE-93) and composes with emergency gray-market fallout tick precedent multipliers (SPE-1184 /
+SPE-2705): high standing softens trust collapse and waiver fallout penalties; low standing hardens
+both. Precedent multipliers stay independent of standing. After public disclosure exposure
+(awareness ≠ secrecy-intact), ranking also supplies a bounded `postExposureTrustDelta` into
+regional trust → cooperation bands: high standing is protective, low standing is coercive. Agency
+overview and report summary lines expose the pressure band, standing scale, and post-exposure
+posture for legibility.
+
+Cross-jurisdiction coordination packets are a separate **read-time** projection
+(`src/domain/crossJurisdictionCoordinationPacket.ts`): when SPE-854 `archive_signature` intake
+reaches a tentative or strong match band and linked cases include a **resolved × open** distant
+`regionTag` pair (prior resolved site → current open reappearance), week-close emits a bounded
+liaison/shared-signature alert note (`agency.cross_jurisdiction_coordination`) and agency/report
+summaries surface the packet count. Weak signature matches, same-jurisdiction pairs, and
+concurrent open×open or resolved×resolved multi-region sets (no resolved→open pair) do not emit
+a packet.
+
+Hidden-cell strategic interference is a bounded week-close hook
+(`src/domain/hiddenCellStrategicInterference.ts`): when rival-pressure band is competitive or
+severe, abstract cell pressure may (1) divert a deterministic funding amount through existing
+`FundingState` history (`hidden_cell_funding_theft`), (2) roll back bounded active-research
+`progressTime` on a lex-min eligible project (SPE-2706; idempotent via
+`ResearchState.lastHiddenCellRollbackWeek`), (3) amplify ambient panic/unrest by adding
+bounded points to `GameState.globalPressure` (SPE-2707; idempotent via
+`lastHiddenCellPanicAmplificationWeek` / `Amount`; applied after the pressure pipeline so the
+bump carries into later weeks rather than spawning same-tick major incidents),
+(4) compromise facility/ops infrastructure by draining SPE-94
+`AgencyState.maintenanceSpecialistsAvailable` (SPE-2710; idempotent via
+`lastHiddenCellInfrastructureCompromiseWeek` / `Amount`; drain carries into the next week's
+equipment-recovery bottleneck), and/or (5) expand abstract covert-network pressure while
+advancing an intelligence-driven detection-narrowing band
+(`vague` → `regional` → `sector` → `imminent`) on
+`AgencyState.hiddenCellCovertGrowthLevel` / `hiddenCellDetectionNarrowing` (SPE-2714;
+idempotent via `lastHiddenCellCovertGrowthWeek` + applied amounts; no per-cell entities,
+no SPE-854 verification-core changes, no scan UX).
+Suppressed/balanced pressure is inactive. Week-close emits `agency.hidden_cell_interference`
+when funding theft, research rollback, panic amplification, infrastructure compromise, and/or
+covert growth/detection narrowing applies; agency/report summaries expose the active/inactive
+signal. This is not a full adversary-org sim and does not open confrontation ops.
+
 ### Stage B — Build hub opportunity pools
 
 Create possible output candidates based on:
@@ -380,6 +452,11 @@ This should make the player interpret, not just consume.
 ## 12. Hub and campaign feedback
 
 Hub simulation should react to what happened last week.
+
+SPE-2720 provides a separate persisted authority-relationship graph seam at week-close. When an
+authored graph has an eligible pressure-channel edge, one deterministic consequence-driven
+strength mutation is recorded with bounded history. Empty or legacy graph state is a no-op, and
+the seam does not feed ordinary hub commerce, facilities, debriefing, or operational-cover gates.
 
 Examples:
 

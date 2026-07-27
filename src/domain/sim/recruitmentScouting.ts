@@ -63,7 +63,10 @@ function createCandidateScoutEventDraft(
   }
 
   if (report.exactKnown) {
-    return createRecruitmentIntelConfirmedDraft(payload)
+    return createRecruitmentIntelConfirmedDraft({
+      ...payload,
+      confirmedTier: report.confirmedTier ?? report.projectedTier,
+    })
   }
 
   if (report.stage === 1) {
@@ -134,10 +137,10 @@ export function scoutCandidate(state: GameState, candidateId: Id): GameState {
       return candidate
     }
 
-    const revealedCandidate = revealCandidate(
-      candidate,
-      1 + scoutSupport.revealBoost
-    ) as Extract<GameState['candidates'][number], { category: 'agent' }>
+    const revealedCandidate = revealCandidate(candidate, 1 + scoutSupport.revealBoost) as Extract<
+      GameState['candidates'][number],
+      { category: 'agent' }
+    >
     const nextScoutReport = buildCandidateScoutReport(revealedCandidate, rng.next, {
       clearanceLevel: state.agency?.clearanceLevel ?? state.clearanceLevel,
       week: state.week,

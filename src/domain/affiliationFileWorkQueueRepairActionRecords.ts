@@ -218,6 +218,27 @@ function findCandidate(candidates: readonly Candidate[] | undefined, candidateId
   return (candidates ?? []).find((candidate) => candidate.id === candidateId)
 }
 
+function findCandidateAcrossPools(state: GameState, candidateId: string) {
+  const candidates = state.candidates.length > 0 ? state.candidates : state.recruitmentPool
+  return findCandidate(candidates, candidateId)
+}
+
+function upsertCandidate(candidates: readonly Candidate[] | undefined, nextCandidate: Candidate) {
+  return hasCandidate(candidates, nextCandidate.id)
+    ? replaceCandidateIfPresent(candidates, nextCandidate)
+    : appendCandidateIfMissing(candidates, nextCandidate)
+}
+
+function buildCandidatePoolRepair(state: GameState, nextCandidate: Candidate) {
+  const baseCandidates = state.candidates.length > 0 ? state.candidates : state.recruitmentPool
+  const nextCandidates = upsertCandidate(baseCandidates, nextCandidate)
+
+  return {
+    candidates: nextCandidates,
+    recruitmentPool: nextCandidates,
+  }
+}
+
 export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
   readonly state: GameState
   readonly workQueueEntryId: string
@@ -320,18 +341,14 @@ export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
             ...(input.state.affiliationPersonStatusRecords ?? {}),
             [nextRecord.id]: nextRecord,
           },
-          candidates: appendCandidateIfMissing(input.state.candidates, candidate),
-          recruitmentPool: appendCandidateIfMissing(input.state.recruitmentPool, candidate),
+          ...buildCandidatePoolRepair(input.state, candidate),
         },
         applied: true,
         reason: 'applied',
       })
     }
 
-    const currentCandidate = findCandidate(
-      input.state.recruitmentPool ?? input.state.candidates,
-      candidateRef
-    )
+    const currentCandidate = findCandidateAcrossPools(input.state, candidateRef)
     if (!currentCandidate) {
       return Object.freeze({
         state: input.state,
@@ -361,12 +378,7 @@ export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
           ...(input.state.affiliationPersonStatusRecords ?? {}),
           [nextRecord.id]: nextRecord,
         },
-        candidates: hasCandidate(input.state.candidates, nextCandidate.id)
-          ? replaceCandidateIfPresent(input.state.candidates, nextCandidate)
-          : input.state.candidates,
-        recruitmentPool: hasCandidate(input.state.recruitmentPool, nextCandidate.id)
-          ? replaceCandidateIfPresent(input.state.recruitmentPool, nextCandidate)
-          : input.state.recruitmentPool,
+        ...buildCandidatePoolRepair(input.state, nextCandidate),
       },
       applied: true,
       reason: 'applied',
@@ -410,8 +422,7 @@ export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
   return Object.freeze({
     state: {
       ...input.state,
-      candidates: appendCandidateIfMissing(input.state.candidates, candidate),
-      recruitmentPool: appendCandidateIfMissing(input.state.recruitmentPool, candidate),
+      ...buildCandidatePoolRepair(input.state, candidate),
     },
     applied: true,
     reason: 'applied',

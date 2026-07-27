@@ -269,6 +269,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
+import { applyAuthorityGraphWeekClose } from '../authorityGraphPersistence'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -325,6 +326,37 @@ import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '..
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
+import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
+import {
+  buildWeeklyHiddenCellCovertGrowthReportNotes,
+  buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
+  buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellPanicAmplificationReportNotes,
+  buildWeeklyHiddenCellResearchRollbackReportNotes,
+} from '../hiddenCellInterferenceWeeklyReportNotes'
+import { buildWeeklyStatusUpkeepDisplayReportNotes } from '../statusUpkeepDisplayWeeklyReportNotes'
+import { resolveStatusUpkeepDisplayEffectFromAffordability } from '../statusUpkeepDisplayCost'
+import {
+  applyHiddenCellCovertGrowthToAgencyState,
+  applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellInfrastructureCompromiseToAgencyState,
+  applyHiddenCellPanicAmplificationToGameState,
+  applyHiddenCellResearchRollbackToResearchState,
+  findHiddenCellCovertGrowthAmountForWeek,
+  findHiddenCellDetectionNarrowingAmountForWeek,
+  findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellInfrastructureCompromiseAmountForWeek,
+  HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+  resolveHiddenCellCovertGrowthFromPressure,
+  resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellInfrastructureCompromiseFromPressure,
+  resolveHiddenCellPanicAmplificationFromPressure,
+  resolveHiddenCellResearchRollbackFromPressure,
+} from '../hiddenCellStrategicInterference'
+import { buildRivalPressure } from '../rivalPressure'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
@@ -667,6 +699,72 @@ function cloneFundingStateForCanonicalize(
 }
 
 function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined): AgencyState {
+  const lastHiddenCellInfrastructureCompromiseWeek =
+    typeof base?.lastHiddenCellInfrastructureCompromiseWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellInfrastructureCompromiseWeek))
+      : undefined
+  const lastHiddenCellInfrastructureCompromiseAmount =
+    typeof base?.lastHiddenCellInfrastructureCompromiseAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseAmount)
+      ? Math.max(0, Math.trunc(base.lastHiddenCellInfrastructureCompromiseAmount))
+      : undefined
+  // SPE-2710: all-or-nothing — incomplete pairs must not lock a week without a note.
+  const hasCompleteInfrastructureCompromiseMarkers =
+    lastHiddenCellInfrastructureCompromiseWeek !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount > 0
+
+  const hiddenCellCovertGrowthLevel =
+    typeof base?.hiddenCellCovertGrowthLevel === 'number' &&
+    Number.isFinite(base.hiddenCellCovertGrowthLevel)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX, Math.trunc(base.hiddenCellCovertGrowthLevel))
+        )
+      : undefined
+  const hiddenCellDetectionNarrowing =
+    typeof base?.hiddenCellDetectionNarrowing === 'number' &&
+    Number.isFinite(base.hiddenCellDetectionNarrowing)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            Math.trunc(base.hiddenCellDetectionNarrowing)
+          )
+        )
+      : undefined
+  const lastHiddenCellCovertGrowthWeek =
+    typeof base?.lastHiddenCellCovertGrowthWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellCovertGrowthWeek))
+      : undefined
+  const lastHiddenCellCovertGrowthAmount =
+    typeof base?.lastHiddenCellCovertGrowthAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthAmount)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_MAX, Math.trunc(base.lastHiddenCellCovertGrowthAmount))
+        )
+      : undefined
+  const lastHiddenCellDetectionNarrowingAmount =
+    typeof base?.lastHiddenCellDetectionNarrowingAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellDetectionNarrowingAmount)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+            Math.trunc(base.lastHiddenCellDetectionNarrowingAmount)
+          )
+        )
+      : undefined
+  // SPE-2714: week marker requires at least one applied amount so a week cannot lock without a note.
+  const hasCompleteCovertGrowthMarkers =
+    lastHiddenCellCovertGrowthWeek !== undefined &&
+    ((lastHiddenCellCovertGrowthAmount !== undefined && lastHiddenCellCovertGrowthAmount > 0) ||
+      (lastHiddenCellDetectionNarrowingAmount !== undefined &&
+        lastHiddenCellDetectionNarrowingAmount > 0))
+
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
     clearanceLevel: safeNumber(base?.clearanceLevel, 1),
@@ -674,6 +772,25 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     supportAvailable: safeNumber(base?.supportAvailable, 0),
     ...(typeof base?.maintenanceSpecialistsAvailable === 'number'
       ? { maintenanceSpecialistsAvailable: base.maintenanceSpecialistsAvailable }
+      : {}),
+    ...(hasCompleteInfrastructureCompromiseMarkers
+      ? {
+          lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(hiddenCellCovertGrowthLevel !== undefined
+      ? { hiddenCellCovertGrowthLevel }
+      : {}),
+    ...(hiddenCellDetectionNarrowing !== undefined
+      ? { hiddenCellDetectionNarrowing }
+      : {}),
+    ...(hasCompleteCovertGrowthMarkers
+      ? {
+          lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount: lastHiddenCellCovertGrowthAmount ?? 0,
+          lastHiddenCellDetectionNarrowingAmount: lastHiddenCellDetectionNarrowingAmount ?? 0,
+        }
       : {}),
     ...(typeof base?.protocolSelectionLimit === 'number'
       ? { protocolSelectionLimit: base.protocolSelectionLimit }
@@ -1691,6 +1808,23 @@ interface WeeklyCaseResolutionStrategy {
 
 type SeededRng = ReturnType<typeof createSeededRng>
 
+function buildMissionRewardGameContext(
+  nextState: GameState,
+  rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>>,
+  excludeCaseId?: string
+) {
+  const pendingAgencyStandingAwards = Object.entries(rewardByCaseId)
+    .filter(([caseId]) => caseId !== excludeCaseId)
+    .map(([, reward]) => reward?.agencyStanding)
+    .filter((award): award is NonNullable<typeof award> => award !== undefined)
+    .map((award) => ({ repeatKey: award.repeatKey }))
+
+  return {
+    ...nextState,
+    pendingAgencyStandingAwards,
+  }
+}
+
 interface WeeklyExecutionContext {
   sourceState: GameState
   nextState: GameState
@@ -2671,7 +2805,7 @@ function resolveAssignments(
         effectiveCase,
         'success',
         context.nextState.config,
-        context.nextState
+        buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
       )
 
       if (!willDegrade) {
@@ -2905,7 +3039,7 @@ function resolveAssignments(
       escalatedCase,
       outcome.result,
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.rewardByCaseId[caseId] = rewardBreakdown
     const hiddenFields = getMissionResultHiddenStateFields(escalatedCase)
@@ -3072,7 +3206,7 @@ function downgradeResolvedCaseToPartial(
     downgradedCase,
     'partial',
     nextState.config,
-    nextState
+    buildMissionRewardGameContext(nextState, context.rewardByCaseId, caseId)
   )
   const instabilityObjectiveDrift = buildExecutionInstabilityObjectiveDriftConsequence(
     sourceCase,
@@ -3198,7 +3332,7 @@ function escalateCases(
       escalatedCase,
       'unresolved',
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.nextState.cases[caseId] = escalatedCase
     context.rewardByCaseId[caseId] = rewardBreakdown
@@ -4340,8 +4474,104 @@ function updateAgencyMetrics(
   const fundingStateAfterBacklog =
     stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterHoldingCost
 
+  // SPE-2704 / SPE-39: hidden-cell funding theft from rival/cell pressure (after ops/holding).
+  const rivalPressureForInterference = buildRivalPressure(context.sourceState)
+  const hiddenCellInterference = resolveHiddenCellFundingTheftFromPressure(
+    rivalPressureForInterference,
+    nextFunding
+  )
+  const fundingStateSyncedForTheft = {
+    ...fundingStateAfterBacklog,
+    funding: nextFunding,
+  }
+  const { state: fundingStateAfterHiddenCellTheft, appliedAmount: hiddenCellTheftAmount } =
+    applyHiddenCellFundingTheftToFundingState(
+      fundingStateSyncedForTheft,
+      hiddenCellInterference,
+      closedWeek
+    )
+  const fundingAfterHiddenCellTheft = Math.max(0, fundingStateAfterHiddenCellTheft.funding)
+
+  // SPE-2706 / SPE-39: hidden-cell research rollback (independent of funding theft).
+  const researchStateBeforeRollback = context.nextState.researchState
+  const hiddenCellResearchRollback = resolveHiddenCellResearchRollbackFromPressure(
+    rivalPressureForInterference,
+    researchStateBeforeRollback
+  )
+  const researchStateAfterHiddenCellRollback = researchStateBeforeRollback
+    ? applyHiddenCellResearchRollbackToResearchState(
+        researchStateBeforeRollback,
+        hiddenCellResearchRollback,
+        closedWeek
+      ).state
+    : researchStateBeforeRollback
+
+  // SPE-2707 / SPE-39: hidden-cell panic amplification into ambient globalPressure
+  // (after pressure pipeline — bump carries forward; no same-tick major-incident spawn).
+  const hiddenCellPanicAmplification = resolveHiddenCellPanicAmplificationFromPressure(
+    rivalPressureForInterference
+  )
+  const panicAmplificationApplied = applyHiddenCellPanicAmplificationToGameState(
+    {
+      globalPressure: context.nextState.globalPressure,
+      lastHiddenCellPanicAmplificationWeek: context.nextState.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        context.nextState.lastHiddenCellPanicAmplificationAmount,
+    },
+    hiddenCellPanicAmplification,
+    closedWeek
+  )
+
+  // SPE-2710 / SPE-39: hidden-cell infrastructure compromise into SPE-94 maintenance capacity
+  // (after panic — drain carries into next week's equipment-recovery bottleneck).
+  const maintenanceBeforeCompromise = Math.max(
+    0,
+    Math.trunc(prevAgency.maintenanceSpecialistsAvailable ?? 0)
+  )
+  const hiddenCellInfrastructureCompromise = resolveHiddenCellInfrastructureCompromiseFromPressure(
+    rivalPressureForInterference,
+    maintenanceBeforeCompromise
+  )
+  const infrastructureCompromiseApplied = applyHiddenCellInfrastructureCompromiseToAgencyState(
+    {
+      maintenanceSpecialistsAvailable: prevAgency.maintenanceSpecialistsAvailable,
+      lastHiddenCellInfrastructureCompromiseWeek:
+        prevAgency.lastHiddenCellInfrastructureCompromiseWeek,
+      lastHiddenCellInfrastructureCompromiseAmount:
+        prevAgency.lastHiddenCellInfrastructureCompromiseAmount,
+    },
+    hiddenCellInfrastructureCompromise,
+    closedWeek
+  )
+
+  // SPE-2714 / SPE-39: covert cell growth + detection narrowing (abstract agency counters).
+  const covertGrowthLevelBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellCovertGrowthLevel ?? 0)
+  )
+  const detectionNarrowingBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellDetectionNarrowing ?? 0)
+  )
+  const hiddenCellCovertGrowth = resolveHiddenCellCovertGrowthFromPressure(
+    rivalPressureForInterference,
+    covertGrowthLevelBefore,
+    detectionNarrowingBefore
+  )
+  const covertGrowthApplied = applyHiddenCellCovertGrowthToAgencyState(
+    {
+      hiddenCellCovertGrowthLevel: prevAgency.hiddenCellCovertGrowthLevel,
+      hiddenCellDetectionNarrowing: prevAgency.hiddenCellDetectionNarrowing,
+      lastHiddenCellCovertGrowthWeek: prevAgency.lastHiddenCellCovertGrowthWeek,
+      lastHiddenCellCovertGrowthAmount: prevAgency.lastHiddenCellCovertGrowthAmount,
+      lastHiddenCellDetectionNarrowingAmount: prevAgency.lastHiddenCellDetectionNarrowingAmount,
+    },
+    hiddenCellCovertGrowth,
+    closedWeek
+  )
+
   if (
-    nextFunding !== context.nextState.funding ||
+    fundingAfterHiddenCellTheft !== context.nextState.funding ||
     nextContainmentRating !== context.nextState.containmentRating ||
     nextClearanceLevel !== context.nextState.clearanceLevel
   ) {
@@ -4356,18 +4586,51 @@ function updateAgencyMetrics(
         clearanceLevelBefore: context.nextState.clearanceLevel,
         clearanceLevelAfter: nextClearanceLevel,
         fundingBefore: context.nextState.funding,
-        fundingAfter: nextFunding,
-        fundingDelta,
+        fundingAfter: fundingAfterHiddenCellTheft,
+        fundingDelta: fundingDelta - hiddenCellTheftAmount,
       },
     })
   }
+
+  // SPE-2718: capture public-display upkeep adequacy from pre-cost funding (post-cost is clamped ≥ 0).
+  const fundingBeforeOperatingCost = context.nextState.funding + fundingDelta
+  const statusUpkeepEffect = resolveStatusUpkeepDisplayEffectFromAffordability(
+    fundingBeforeOperatingCost,
+    operatingCost,
+    closedWeek
+  )
 
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
-    funding: nextFunding,
-    fundingState: fundingStateAfterBacklog,
+    funding: fundingAfterHiddenCellTheft,
+    fundingState: fundingStateAfterHiddenCellTheft,
+    lastStatusUpkeepWeek: closedWeek,
+    lastStatusUpkeepBand: statusUpkeepEffect.band,
+    lastStatusUpkeepFundingBefore: fundingBeforeOperatingCost,
+    lastStatusUpkeepOperatingCost: operatingCost,
+    ...(infrastructureCompromiseApplied.appliedAmount > 0
+      ? {
+          maintenanceSpecialistsAvailable:
+            infrastructureCompromiseApplied.state.maintenanceSpecialistsAvailable,
+          lastHiddenCellInfrastructureCompromiseWeek:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(covertGrowthApplied.appliedGrowth > 0 || covertGrowthApplied.appliedNarrowing > 0
+      ? {
+          hiddenCellCovertGrowthLevel: covertGrowthApplied.state.hiddenCellCovertGrowthLevel,
+          hiddenCellDetectionNarrowing: covertGrowthApplied.state.hiddenCellDetectionNarrowing,
+          lastHiddenCellCovertGrowthWeek: covertGrowthApplied.state.lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount:
+            covertGrowthApplied.state.lastHiddenCellCovertGrowthAmount,
+          lastHiddenCellDetectionNarrowingAmount:
+            covertGrowthApplied.state.lastHiddenCellDetectionNarrowingAmount,
+        }
+      : {}),
   }
   return {
     weekScore,
@@ -4384,12 +4647,18 @@ function updateAgencyMetrics(
         : capacityExceeded
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
-      funding: nextFunding,
+      funding: fundingAfterHiddenCellTheft,
       inventory: stateAfterBacklogFulfillment.inventory,
       events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,
+      researchState: researchStateAfterHiddenCellRollback,
+      globalPressure: panicAmplificationApplied.state.globalPressure,
+      lastHiddenCellPanicAmplificationWeek:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationAmount,
       reports: [...context.sourceState.reports, report],
     },
   }
@@ -4586,6 +4855,26 @@ export function advanceWeek(
 
   const inputWeeklyState = state as AdvanceWeekState
   const outputWeeklyState = resultWithUnknownFields as unknown as AdvanceWeekState
+
+  // SPE-2720: one graph-local consequence-driven mutation at week-close.
+  // Missing/empty legacy state remains a no-op and does not couple into other systems.
+  const nextAuthorityGraphState = applyAuthorityGraphWeekClose(
+    inputWeeklyState.authorityGraphState,
+    result.week
+  )
+  if (
+    inputWeeklyState.authorityGraphState !== undefined ||
+    nextAuthorityGraphState.graph.edges.length > 0
+  ) {
+    outputWeeklyState.authorityGraphState = nextAuthorityGraphState
+  }
+  const authorityMissionAccessMutated =
+    nextAuthorityGraphState.lastMutationWeek === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.week === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.channel === 'mission_access'
+  if (outputWeeklyState.missionRouting && authorityMissionAccessMutated) {
+    outputWeeklyState.missionRouting = recomputeMissionRouting(outputWeeklyState, result.week)
+  }
 
   if (inputWeeklyState.civicConsequencePackets !== undefined) {
     outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]
@@ -5271,6 +5560,185 @@ export function advanceWeek(
     }
   }
 
+  // SPE-2702 / SPE-39: distant archive-signature reappearance → cross-jurisdiction coordination packets.
+  const nextIntakeReportsForCoordination = outputWeeklyState.informationIntakeReports ?? {}
+  if (Object.keys(nextIntakeReportsForCoordination).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const coordinationNotes = buildWeeklyCrossJurisdictionCoordinationReportNotes({
+      reports: nextIntakeReportsForCoordination,
+      cases: result.cases,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (coordinationNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...coordinationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-39: hidden-cell interference → weekly notes.
+  // Funding history + research/panic/infra markers key off the closed week (sourceState.week).
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForInterference = sourceState.week
+    // Same pressure inputs as updateAgencyMetrics apply path (pre-append ranking).
+    const rivalPressureForNotes = buildRivalPressure(sourceState)
+    const appliedTheft = findHiddenCellFundingTheftAmountForWeek(
+      result.agency?.fundingState,
+      closedWeekForInterference
+    )
+    const fundingBeforeTheft = result.funding + appliedTheft
+    const appliedInfraCompromise = findHiddenCellInfrastructureCompromiseAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const maintenanceBeforeCompromise =
+      Math.max(0, Math.trunc(result.agency?.maintenanceSpecialistsAvailable ?? 0)) +
+      appliedInfraCompromise
+    const noteSequenceBase = lastWeeklyReport?.notes?.length ?? 0
+    const hiddenCellFundingNotes = buildWeeklyHiddenCellInterferenceReportNotes({
+      fundingState: result.agency?.fundingState,
+      rivalPressure: rivalPressureForNotes,
+      fundingBeforeTheft,
+      week: closedWeekForInterference,
+      sequenceStart: noteSequenceBase + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellResearchNotes = buildWeeklyHiddenCellResearchRollbackReportNotes({
+      researchState: result.researchState,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart: noteSequenceBase + hiddenCellFundingNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellPanicNotes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: result,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase + hiddenCellFundingNotes.length + hiddenCellResearchNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellInfrastructureNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes(
+      {
+        agency: result.agency,
+        rivalPressure: rivalPressureForNotes,
+        maintenanceBeforeCompromise,
+        week: closedWeekForInterference,
+        sequenceStart:
+          noteSequenceBase +
+          hiddenCellFundingNotes.length +
+          hiddenCellResearchNotes.length +
+          hiddenCellPanicNotes.length +
+          1,
+        baseTimestamp: noteBaseTimestamp,
+      }
+    )
+    const appliedCovertGrowth = findHiddenCellCovertGrowthAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const appliedDetectionNarrowing = findHiddenCellDetectionNarrowingAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const covertGrowthLevelBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellCovertGrowthLevel ?? 0)) - appliedCovertGrowth
+    const detectionNarrowingBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellDetectionNarrowing ?? 0)) -
+      appliedDetectionNarrowing
+    const hiddenCellCovertGrowthNotes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: result.agency,
+      rivalPressure: rivalPressureForNotes,
+      covertGrowthLevelBefore: Math.max(0, covertGrowthLevelBefore),
+      detectionNarrowingBefore: Math.max(0, detectionNarrowingBefore),
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase +
+        hiddenCellFundingNotes.length +
+        hiddenCellResearchNotes.length +
+        hiddenCellPanicNotes.length +
+        hiddenCellInfrastructureNotes.length +
+        1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellNotes = [
+      ...hiddenCellFundingNotes,
+      ...hiddenCellResearchNotes,
+      ...hiddenCellPanicNotes,
+      ...hiddenCellInfrastructureNotes,
+      ...hiddenCellCovertGrowthNotes,
+    ]
+
+    if (hiddenCellNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...hiddenCellNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2718 / SPE-39: status upkeep / public-display costs → weekly note when underfunded.
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForStatusUpkeep = sourceState.week
+    const statusUpkeepNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: result.agency,
+      fundingState: result.agency?.fundingState,
+      week: closedWeekForStatusUpkeep,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (statusUpkeepNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      const nextNotes = [...(lastReport.notes ?? []), ...statusUpkeepNotes]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: nextNotes,
+      }
+      result.reports = reports
+
+      // Keep intel.report_generated.noteCount aligned with post-emit weekly notes.
+      const closedWeek = lastReport.week
+      const events = [...result.events]
+      for (let i = events.length - 1; i >= 0; i -= 1) {
+        const event = events[i]
+        if (
+          event.type === 'intel.report_generated' &&
+          event.payload &&
+          typeof event.payload === 'object' &&
+          'week' in event.payload &&
+          event.payload.week === closedWeek
+        ) {
+          events[i] = {
+            ...event,
+            payload: {
+              ...event.payload,
+              noteCount: nextNotes.length,
+            },
+          }
+          result.events = events
+          break
+        }
+      }
+    }
+  }
+
   // SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: surface coercive protocol ↔ integrated health cross-reconciliation in weekly report notes.
   const nextCoerciveProtocolsForReconciliation =
     outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
@@ -5719,9 +6187,11 @@ export function advanceWeek(
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const postExposureTrustDelta = buildRivalPressure(result).postExposureTrustDelta
     const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
@@ -5732,6 +6202,7 @@ export function advanceWeek(
     const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
       postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,

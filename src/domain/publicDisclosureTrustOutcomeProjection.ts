@@ -16,6 +16,11 @@ import {
   type PublicDisclosureRecord,
   type PublicDisclosureRecordsMap,
 } from './publicDisclosureStateRegistry'
+import {
+  buildRivalPressure,
+  resolveRivalPostExposurePosture,
+  type RivalPostExposurePosture,
+} from './rivalPressure'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
   'secrecy_intact',
@@ -42,6 +47,14 @@ export interface PublicDisclosureTrustOutcomeProjection {
   readonly cooperationBandLabel: string
   readonly frontDeskAttentionTone: PublicDisclosureTrustOutcomeAttentionTone
   readonly frontDeskAttentionSummary: string
+  /** Standing-shaped trust delta applied only when exposure is active (SPE-2701). */
+  readonly postExposureTrustDeltaApplied: number
+  /** Protective / coercive / neutral when exposure active; inactive otherwise. */
+  readonly rivalPosture: RivalPostExposurePosture | 'inactive'
+}
+
+export interface ProjectPublicDisclosureTrustOutcomeOptions {
+  readonly postExposureTrustDelta?: number
 }
 
 const COOPERATION_BAND_LABELS: Record<PublicDisclosureCooperationBand, string> = {
@@ -204,23 +217,89 @@ function formatRegionalTrustBandLabel(
   return `${band.charAt(0).toUpperCase()}${band.slice(1)} regional trust`
 }
 
+function clampTrustScore(score: number): number {
+  const clamped = Math.min(1, Math.max(0, score))
+  return Math.round(clamped * 100) / 100
+}
+
+/**
+ * Applies standing-shaped post-exposure comparative trust only to active exposure campaigns.
+ * Secrecy-intact / empty maps are unchanged. Does not mutate persisted registry records.
+ */
+export function applyPostExposureComparativeTrustAdjustment(
+  records: PublicDisclosureRecordsMap | null | undefined,
+  postExposureTrustDelta: number
+): PublicDisclosureRecordsMap {
+  const sourceRecords = records ?? {}
+  const delta = Number.isFinite(postExposureTrustDelta) ? postExposureTrustDelta : 0
+
+  if (delta === 0 || Object.keys(sourceRecords).length === 0) {
+    return sourceRecords
+  }
+
+  let changed = false
+  const nextRecords: PublicDisclosureRecordsMap = {}
+
+  for (const [recordId, record] of Object.entries(sourceRecords).sort(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    if (
+      record.awarenessLevel === 'secrecy_intact' ||
+      !record.trustByRegion ||
+      record.trustByRegion.length === 0
+    ) {
+      nextRecords[recordId] = record
+      continue
+    }
+
+    changed = true
+    nextRecords[recordId] = Object.freeze({
+      ...record,
+      trustByRegion: Object.freeze(
+        record.trustByRegion.map((entry) =>
+          Object.freeze({
+            ...entry,
+            trustScore: clampTrustScore(entry.trustScore + delta),
+          })
+        )
+      ),
+    })
+  }
+
+  return changed ? nextRecords : sourceRecords
+}
+
 function buildFrontDeskAttentionSummary(input: {
   activeCampaignCount: number
   dominantAwarenessBandLabel: string
   cooperationBandLabel: string
   aggregateRegionalTrustBand: PublicDisclosureRegionalTrustBand | null
+  rivalPosture: RivalPostExposurePosture | 'inactive'
+  postExposureTrustDeltaApplied: number
 }): string {
   const trustLabel = formatRegionalTrustBandLabel(input.aggregateRegionalTrustBand)
+  const postureNote =
+    input.rivalPosture === 'inactive'
+      ? 'rival posture inactive'
+      : `rival posture ${input.rivalPosture} (trust ${
+          input.postExposureTrustDeltaApplied > 0 ? '+' : ''
+        }${input.postExposureTrustDeltaApplied})`
 
-  return `${input.activeCampaignCount} active disclosure campaign(s); dominant awareness band: ${input.dominantAwarenessBandLabel}; ${input.cooperationBandLabel.toLowerCase()}; ${trustLabel.toLowerCase()}.`
+  return `${input.activeCampaignCount} active disclosure campaign(s); dominant awareness band: ${input.dominantAwarenessBandLabel}; ${input.cooperationBandLabel.toLowerCase()}; ${trustLabel.toLowerCase()}; ${postureNote}.`
 }
 
 /** Projects compliance/cooperation bands from hydrated disclosure records. */
 export function projectPublicDisclosureTrustOutcome(
   records: PublicDisclosureRecordsMap | null | undefined,
-  postureChoices?: PublicDisclosurePostureChoicesMap | null
+  postureChoices?: PublicDisclosurePostureChoicesMap | null,
+  options?: ProjectPublicDisclosureTrustOutcomeOptions | null
 ): PublicDisclosureTrustOutcomeProjection {
-  const effectiveRecords = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const postureAdjusted = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const requestedDelta = options?.postExposureTrustDelta ?? 0
+  const effectiveRecords = applyPostExposureComparativeTrustAdjustment(
+    postureAdjusted,
+    requestedDelta
+  )
   const persistedRecords = listPersistedRecords(effectiveRecords)
   const activeCampaignCount = persistedRecords.filter(
     (record) => record.awarenessLevel !== 'secrecy_intact'
@@ -237,6 +316,12 @@ export function projectPublicDisclosureTrustOutcome(
     activeCampaignCount,
   })
   const cooperationBandLabel = COOPERATION_BAND_LABELS[cooperationBand]
+  const postExposureTrustDeltaApplied =
+    activeCampaignCount > 0 && Number.isFinite(requestedDelta) ? requestedDelta + 0 : 0
+  const rivalPosture: RivalPostExposurePosture | 'inactive' =
+    activeCampaignCount === 0
+      ? 'inactive'
+      : resolveRivalPostExposurePosture(postExposureTrustDeltaApplied)
 
   return Object.freeze({
     isEmpty: persistedRecords.length === 0,
@@ -252,16 +337,24 @@ export function projectPublicDisclosureTrustOutcome(
       dominantAwarenessBandLabel,
       cooperationBandLabel,
       aggregateRegionalTrustBand,
+      rivalPosture,
+      postExposureTrustDeltaApplied,
     }),
+    postExposureTrustDeltaApplied,
+    rivalPosture,
   })
 }
 
 export function projectPublicDisclosureTrustOutcomeFromGame(
-  game: Pick<GameState, 'publicDisclosureRecords' | 'publicDisclosurePostureChoices'>
+  game: Pick<
+    GameState,
+    'publicDisclosureRecords' | 'publicDisclosurePostureChoices' | 'reports' | 'events'
+  >
 ): PublicDisclosureTrustOutcomeProjection {
   return projectPublicDisclosureTrustOutcome(
     game.publicDisclosureRecords,
-    game.publicDisclosurePostureChoices
+    game.publicDisclosurePostureChoices,
+    { postExposureTrustDelta: buildRivalPressure(game).postExposureTrustDelta }
   )
 }
 
@@ -274,6 +367,12 @@ export function formatPublicDisclosureTrustOutcomeNoteContent(
   }
 
   const trustLabel = formatRegionalTrustBandLabel(projection.aggregateRegionalTrustBand)
+  const postureNote =
+    projection.rivalPosture === 'inactive'
+      ? 'rival posture inactive'
+      : `rival posture ${projection.rivalPosture} (trust ${
+          projection.postExposureTrustDeltaApplied > 0 ? '+' : ''
+        }${projection.postExposureTrustDeltaApplied})`
 
-  return `Public disclosure trust outcome — W${week}: ${projection.activeCampaignCount} active campaign(s); dominant awareness ${projection.dominantAwarenessBandLabel}; ${projection.cooperationBandLabel}; ${trustLabel}.`
+  return `Public disclosure trust outcome — W${week}: ${projection.activeCampaignCount} active campaign(s); dominant awareness ${projection.dominantAwarenessBandLabel}; ${projection.cooperationBandLabel}; ${trustLabel}; ${postureNote}.`
 }

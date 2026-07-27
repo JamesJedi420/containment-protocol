@@ -50,9 +50,7 @@ export function getKnownProcurementItemIds(): Set<string> {
 function getKnownProcurementListingItemIds(): Map<string, string> {
   if (!knownProcurementListingItemIdsCache) {
     knownProcurementListingItemIdsCache = new Map([
-      ...productionCatalog.map(
-        (recipe) => [recipe.recipeId, recipe.outputItemId] as const
-      ),
+      ...productionCatalog.map((recipe) => [recipe.recipeId, recipe.outputItemId] as const),
       ...productionMaterialCatalog.map(
         (material) => [`material:${material.materialId}`, material.materialId] as const
       ),
@@ -90,7 +88,8 @@ export interface FundingPressureAssessment {
 }
 
 function sanitizeInteger(value: number | undefined, fallback: number, min?: number) {
-  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
+  const finiteValue =
+    typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
 
   if (typeof min === 'number') {
     return Math.max(min, finiteValue)
@@ -154,9 +153,7 @@ export function sanitizeCourierShellFrontState(
       : undefined
 
   const collapseReason =
-    status === 'collapsed' && value.collapseReason === 'overstretched'
-      ? 'overstretched'
-      : undefined
+    status === 'collapsed' && value.collapseReason === 'overstretched' ? 'overstretched' : undefined
 
   return {
     type: 'courierShell',
@@ -285,8 +282,7 @@ function sanitizeFundingHistory(
       const key = `${entry.week}:${entry.reason}:${entry.sourceId ?? ''}`
       return (
         entries.findIndex(
-          (candidate) =>
-            `${candidate.week}:${candidate.reason}:${candidate.sourceId ?? ''}` === key
+          (candidate) => `${candidate.week}:${candidate.reason}:${candidate.sourceId ?? ''}` === key
         ) === index
       )
     })
@@ -331,7 +327,11 @@ function sanitizeProcurementBacklogEntry(
     return null
   }
 
-  if (typeof entry.quantity !== 'number' || !Number.isFinite(entry.quantity) || entry.quantity < 1) {
+  if (
+    typeof entry.quantity !== 'number' ||
+    !Number.isFinite(entry.quantity) ||
+    entry.quantity < 1
+  ) {
     return null
   }
 
@@ -380,10 +380,7 @@ function sanitizeProcurementBacklogEntry(
 
   const delayWeeks =
     typeof entry.delayWeeks === 'number' && Number.isFinite(entry.delayWeeks)
-      ? Math.min(
-          PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT,
-          Math.max(0, Math.trunc(entry.delayWeeks))
-        )
+      ? Math.min(PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT, Math.max(0, Math.trunc(entry.delayWeeks)))
       : undefined
 
   return {
@@ -513,7 +510,8 @@ export function applyFundingExpense(
   }
 }
 
-const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
+/** SPE-28 / SPE-2718: stable sourceId for weekly payroll + facility operating-cost expenses. */
+export const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
 const WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID = 'weekly-inventory-holding-cost'
 
 function countSupportStaffHeadcount(supportStaff: SupportStaffSummary | undefined) {
@@ -543,8 +541,7 @@ export function computeWeeklyOperatingCost(
   const agentCount = Object.keys(game.agents).length
   const payroll = agentCount * cal.payrollPerAgent
   const staffOverhead = countSupportStaffHeadcount(game.supportStaff) * cal.payrollPerSupportRole
-  const upkeepSpike =
-    week % cal.upkeepSpikeEveryWeeks === 0 ? cal.upkeepSpikeAmount : 0
+  const upkeepSpike = week % cal.upkeepSpikeEveryWeeks === 0 ? cal.upkeepSpikeAmount : 0
 
   return payroll + staffOverhead + cal.facilityUpkeepBase + upkeepSpike
 }
@@ -604,7 +601,11 @@ export function sumInventoryStock(inventory: GameState['inventory'] | undefined)
 
   return Object.values(inventory).reduce(
     (sum, quantity) =>
-      sum + Math.max(0, Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)),
+      sum +
+      Math.max(
+        0,
+        Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)
+      ),
     0
   )
 }
@@ -707,7 +708,13 @@ export function placeProcurementOrder(
   // Validate affordability at placement
   if (entry.cost > state.funding) throw new Error('Insufficient funds for procurement order')
   // Deduct cost at placement (policy: deterministic)
-  const updatedState = applyFundingExpense(state, entry.cost, 'market_transaction', entry.requestedWeek, entry.requestId)
+  const updatedState = applyFundingExpense(
+    state,
+    entry.cost,
+    'market_transaction',
+    entry.requestedWeek,
+    entry.requestId
+  )
   const backlogEntry: ProcurementBacklogEntry = {
     ...entry,
     status: 'pending',
@@ -811,18 +818,15 @@ export function recomputeBudgetPressure(state: FundingState, currentWeek?: numbe
     penaltyRelevantHistory
       .slice(-FUNDING_CALIBRATION.budgetPressure.recentPenaltyWindow)
       .filter(
-        (h) =>
-          h.delta < 0 && (h.reason === 'failure_penalty' || h.reason === 'unresolved_penalty')
+        (h) => h.delta < 0 && (h.reason === 'failure_penalty' || h.reason === 'unresolved_penalty')
       ).length >= FUNDING_CALIBRATION.budgetPressure.recentPenaltyCountThreshold
   )
     pressure += 1
-  const shellDebt = sanitizeCourierShellBudgetPressureDebt(state.courierShellBudgetPressureDebt) ?? 0
+  const shellDebt =
+    sanitizeCourierShellBudgetPressureDebt(state.courierShellBudgetPressureDebt) ?? 0
   return {
     ...state,
-    budgetPressure: Math.min(
-      FUNDING_CALIBRATION.budgetPressure.maxPressure,
-      pressure + shellDebt
-    ),
+    budgetPressure: Math.min(FUNDING_CALIBRATION.budgetPressure.maxPressure, pressure + shellDebt),
   }
 }
 
@@ -836,13 +840,15 @@ export function normalizeFundingState(
     typeof currentWeek === 'number' && Number.isFinite(currentWeek)
       ? Math.max(1, Math.trunc(currentWeek))
       : 1
-  const baseline = existing ?? createInitialFundingState(
-    config.fundingBasePerWeek,
-    config.fundingPerResolution,
-    config.fundingPenaltyPerFail,
-    config.fundingPenaltyPerUnresolved,
-    funding
-  )
+  const baseline =
+    existing ??
+    createInitialFundingState(
+      config.fundingBasePerWeek,
+      config.fundingPerResolution,
+      config.fundingPenaltyPerFail,
+      config.fundingPenaltyPerUnresolved,
+      funding
+    )
   const knownItemIds = getKnownProcurementItemIds()
   const procurementBacklog = sanitizeProcurementBacklog(
     existing?.procurementBacklog,
@@ -890,9 +896,7 @@ export function normalizeFundingState(
 
   return {
     ...normalized,
-    budgetPressure: Number.isFinite(normalized.budgetPressure)
-      ? normalized.budgetPressure
-      : 0,
+    budgetPressure: Number.isFinite(normalized.budgetPressure) ? normalized.budgetPressure : 0,
   }
 }
 
@@ -973,9 +977,7 @@ export function assessFundingPressure(
         entry.delta < 0
     )
     .sort((left, right) => right.week - left.week)[0]
-  const recentHoldingDrain = recentHoldingCostEntry
-    ? Math.abs(recentHoldingCostEntry.delta)
-    : 0
+  const recentHoldingDrain = recentHoldingCostEntry ? Math.abs(recentHoldingCostEntry.delta) : 0
   const holdingCostSignalsProcurementTiming =
     recentHoldingCostEntry !== undefined &&
     game.week - recentHoldingCostEntry.week <= 1 &&
@@ -1047,6 +1049,12 @@ const LEGITIMACY_FALLOUT_RISKS = ['none', 'risk', 'costly'] as const satisfies r
   LegitimacyState['falloutRisk']
 >[]
 
+const OPERATIONAL_COVER_LEVELS = [
+  'open',
+  'deniable',
+  'compromised',
+] as const satisfies readonly NonNullable<LegitimacyState['operationalCoverLevel']>[]
+
 const MAX_LEGITIMACY_ACCESS_REASON_LENGTH = 240
 const MAX_SUPPORT_STAFF_ROLE_COUNT = 99
 const MAX_SUPPORT_STAFF_PRESSURE = 100
@@ -1084,6 +1092,12 @@ export function sanitizeLegitimacyState(raw: unknown): LegitimacyState | undefin
     ? (raw.falloutRisk as LegitimacyState['falloutRisk'])
     : undefined
 
+  const operationalCoverLevel = OPERATIONAL_COVER_LEVELS.includes(
+    raw.operationalCoverLevel as NonNullable<LegitimacyState['operationalCoverLevel']>
+  )
+    ? (raw.operationalCoverLevel as LegitimacyState['operationalCoverLevel'])
+    : undefined
+
   const accessReason =
     typeof raw.accessReason === 'string' && raw.accessReason.trim().length > 0
       ? raw.accessReason.trim().slice(0, MAX_LEGITIMACY_ACCESS_REASON_LENGTH)
@@ -1091,6 +1105,7 @@ export function sanitizeLegitimacyState(raw: unknown): LegitimacyState | undefin
 
   return {
     sanctionLevel,
+    ...(operationalCoverLevel ? { operationalCoverLevel } : {}),
     ...(falloutRisk ? { falloutRisk } : {}),
     ...(accessReason ? { accessReason } : {}),
   }

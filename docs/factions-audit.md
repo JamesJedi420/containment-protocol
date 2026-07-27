@@ -216,7 +216,59 @@ Each faction has pre-defined `Contact` entries created via `createContact`. A co
 
 ---
 
-## 13. Common Pitfalls
+## 13. Persisted Authority Graph Boundary
+
+`GameState.authorityGraphState` is a separate durable authority-relationship substrate. The
+SPE-2721 integration exposes one pure negotiation read through
+`resolvePersistedAuthorityNegotiation`: it sanitizes missing or legacy state, then delegates to
+the existing authority negotiation and consequence resolvers. Alias lookup and deterministic
+consequence order remain owned by the authority graph helpers.
+
+SPE-2722 adds one separate write boundary in the existing contractor support action. It resolves
+the support outcome first, then uses `resolvePersistedExternalSupportAuthorityConsequence` to
+sanitize the graph, match the contractor node/alias, select one explicitly linked live faction,
+and consume one eligible `aid` edge in code-unit order. Only that faction's reputation may move,
+by at most one point, and `ExternalSupportAsset.lastAuthorityConsequenceWeek` blocks duplicate
+application during the same week.
+
+SPE-2725 adds one read-only mission-routing boundary. A faction-linked, unassigned mission
+resolves its live faction through a sanitized authority node, alias, or explicit linked faction
+ID, then considers one explicit `mission_access` edge at a time in code-unit order. An existing
+`deny` consequence blocks the route; an existing `delay` consequence defers it. The consequence
+does not modify triage, team readiness, candidate validity, candidate score, or candidate order.
+Unrevealed hidden and contradicted claims are ignored. Week-close recomputes routing after the
+graph mutation so the next-week routing snapshot and persisted graph agree.
+
+SPE-2083 adds a pure authored department ownership registry alongside the authority graph.
+Registry department IDs may be authority department node IDs or explicit linked department IDs;
+lookups may also enter through an unambiguous authority alias. The authority graph remains the
+owner of identity equivalence, while `departmentCapabilities.ts` owns capability/task
+eligibility, doctrine fit, deterministic support order, and explicit fallback routing. Duplicate
+registry IDs, malformed capabilities or limits, alias conflicts, and multiple authored
+departments targeting one authority node fail closed. Missing legacy graph nodes leave the
+self-contained authored registry usable.
+
+The mission-intake adapter returns advisory primary/supporting ownership or a low-priority
+capability-misfit fallback. It does not add graph edges, persist department state, move faction
+standing, rank teams, or authorize a specialist-unit handoff.
+
+SPE-2088 adds a separate pure department-to-specialist-unit handoff gate. Department and unit
+authority nodes may carry explicit linked registry IDs, and the gate consumes at most one
+sanitized `permission` edge in deterministic code-unit order. Approval requires an active grant,
+approver provenance, an integer-bounded active request window, and a deployable unit evaluated
+against mission fit derived from the canonical case and validated registry. Caller fit assertions
+must match that canonical packet; the confirmed grant clears only its handoff prerequisite.
+The returned audit record is not persisted and does not alter mission candidate ranking or
+SPE-2725 routing.
+
+None of these seams changes faction standing, institutional legitimacy, operational cover,
+market state, broader command propagation, department/council politics, secrecy, media,
+commerce, SPE-39 calculations, or UI. Negotiation and mission routing remain read-only graph
+consumers; the contractor support seam owns only its bounded faction-reputation write.
+
+---
+
+## 14. Common Pitfalls
 
 | Pitfall | Consequence | Guard |
 | --- | --- | --- |
@@ -225,3 +277,7 @@ Each faction has pre-defined `Contact` entries created via `createContact`. A co
 | Assuming all factions get cohesion/reliability/distortion | Only the anchor faction (first in sorted output) has non-zero compact state | Always check `idx === 0` path in `buildFactionStates` |
 | Calling `getFactionRecruitUnlocks` before contacts are activated | Returns empty — contacts must have `status === 'active'` and `relationship >= 15` | Activate contacts via `applyFactionRecruitInteraction` first |
 | Treating standing and reputation as equivalent in UI | They update at different rates and represent different histories | Standing is per-session event-driven; reputation is cumulative across the runtime record |
+| Treating authority negotiation as faction standing/reputation mutation | The SPE-2721 seam is a pure read from the separately persisted authority graph | Apply faction changes only through their owning event/runtime paths |
+| Applying contractor authority pressure before support resolution | The graph consequence would feed back into the action that triggered it | Resolve support amount and reliability first; apply the bounded faction movement afterward |
+| Reapplying a contractor authority edge in one week | Repeated hub actions would duplicate faction pressure | Respect `lastAuthorityConsequenceWeek` and only mark an actually applied movement |
+| Treating mission-access authority as a team-quality modifier | Authority pressure would silently reorder or alter readiness candidates | Apply the mission-wide blocked/deferred state only after canonical candidate ranking |

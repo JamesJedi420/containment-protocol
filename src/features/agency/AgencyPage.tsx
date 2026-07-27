@@ -72,9 +72,18 @@ export default function AgencyPage() {
               value={`${summary.pressure.score} (${summary.pressure.level})`}
             />
             <Metric
+              label="Rival pressure"
+              value={`${summary.rivalPressure.score} (${summary.rivalPressure.band})`}
+            />
+            <Metric
               label="Stability"
               value={`${summary.stability.score} (${summary.stability.level})`}
             />
+            <Metric
+              label="Institutional legitimacy"
+              value={summary.legitimacyCover.institutionalLabel}
+            />
+            <Metric label="Operational cover" value={summary.legitimacyCover.coverLabel} />
             <Metric
               label="Major incidents active"
               value={String(summary.activeOperations.majorIncidents)}
@@ -95,6 +104,8 @@ export default function AgencyPage() {
               {summary.pressure.faction}, operations {summary.pressure.operations}, procurement{' '}
               {summary.pressure.market}
             </li>
+            <li>{summary.rivalPressure.summary}</li>
+            <li>{summary.legitimacyCover.summary}</li>
             <li>
               Stability split: containment {summary.stability.containment}, funding{' '}
               {summary.stability.funding}, readiness {summary.stability.readiness}, logistics{' '}
@@ -102,8 +113,12 @@ export default function AgencyPage() {
             </li>
             {summary.supportStaff && (
               <li>
-                Support staff: total {summary.supportStaff.total} (admin {summary.supportStaff.admin}, logistics {summary.supportStaff.logistics}, medical {summary.supportStaff.medical}, intel {summary.supportStaff.intel})
-                {summary.supportStaff.pressure > 0 ? ` | Pressure: ${summary.supportStaff.pressure}` : ''}
+                Support staff: total {summary.supportStaff.total} (admin{' '}
+                {summary.supportStaff.admin}, logistics {summary.supportStaff.logistics}, medical{' '}
+                {summary.supportStaff.medical}, intel {summary.supportStaff.intel})
+                {summary.supportStaff.pressure > 0
+                  ? ` | Pressure: ${summary.supportStaff.pressure}`
+                  : ''}
               </li>
             )}
           </ul>

@@ -17,13 +17,15 @@ import { createDeterministicReportNote } from './reportNotes'
 export function buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes(input: {
   nextRecords: PublicDisclosureRecordsMap | null | undefined
   postureChoices?: PublicDisclosurePostureChoicesMap | null
+  postExposureTrustDelta?: number
   week: number
   sequenceStart: number
   baseTimestamp?: number
 }): ReportNote[] {
   const projection = projectPublicDisclosureSegmentedTrustOutcome(
     input.nextRecords,
-    input.postureChoices
+    input.postureChoices,
+    { postExposureTrustDelta: input.postExposureTrustDelta ?? 0 }
   )
 
   if (projection.isInactive || !projection.hasDivergence) {

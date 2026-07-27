@@ -49,8 +49,9 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run lint`                   | Run ESLint across the repository.                                                     |
 | `npm run test:run`               | Run the full Vitest suite once using the local `vmThreads` pool.                      |
 | `npm run test`                   | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.           |
-| `npm run test:run:ci`            | Run the CI test command using the `forks` pool.                                       |
-| `npm run coverage`               | Run tests with coverage output.                                                       |
+| `npm run test:run:ci`            | Run the CI test command using the `forks` pool (PR and main).                         |
+| `npm run coverage`               | Run tests with coverage output (local `vmThreads` pool).                              |
+| `npm run coverage:ci`            | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.   |
 | `npm run format`                 | Rewrite files with Prettier.                                                          |
 | `npm run format:check`           | Check formatting without editing files.                                               |
 | `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
@@ -78,7 +79,7 @@ npm run verify:backlog-handoff
 npm run verify:theme-contracts
 ```
 
-GitHub Actions runs lint, audit verification, theme-contract verification, tests, and coverage on pull requests.
+GitHub Actions on pull requests runs lint, audit verification, theme-contract verification, and tests. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 
 ## Architecture
 

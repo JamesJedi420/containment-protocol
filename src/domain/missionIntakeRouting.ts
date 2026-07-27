@@ -7,6 +7,22 @@ import {
 } from './deploymentReadiness'
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
+import { normalizeAuthorityNodeId, resolveAuthorityGraphConsequences } from './authorityGraph'
+import type { AuthorityGraph, AuthorityGraphEdge } from './authorityGraph'
+import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
+import {
+  DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  resolveDepartments,
+} from './departmentCapabilities'
+import type {
+  DepartmentCapabilityRegistry,
+  DepartmentResolutionResult,
+} from './departmentCapabilities'
+import { evaluateDepartmentCoordination } from './departmentCoordination'
+import type {
+  DepartmentCoordinationResult,
+  DepartmentWorkloadSnapshot,
+} from './departmentCoordination'
 import {
   INTEL_CALIBRATION,
   isSecondEscalationBandWeek,
@@ -21,6 +37,13 @@ import {
   deriveMissionIntakeInformationSignals,
   missionHasLinkedIntakeReports,
 } from './missionIntakeInformationRouting'
+import { resolveUnitForMission, validateSpecialistUnitRegistry } from './specialistUnits'
+import type {
+  IncidentMissionFitPacket,
+  SpecialistUnitRegistry,
+  UnitMissionFitResult,
+  UnitProfile,
+} from './specialistUnits'
 import type {
   Agent,
   CaseInstance,
@@ -84,7 +107,10 @@ function clampInteger(value: number, min: number, max: number) {
 export function deriveMissionCategory(currentCase: CaseInstance): MissionCategory {
   const tagSet = new Set(
     [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].map((tag) =>
-      tag.toLowerCase()
+      tag
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_')
     )
   )
 
@@ -92,6 +118,7 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
     currentCase.kind === 'raid' ||
     tagSet.has('breach') ||
     tagSet.has('containment') ||
+    tagSet.has('containment_breach') ||
     currentCase.stage >= 4
   ) {
     return 'containment_breach'
@@ -115,6 +142,48 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
   }
 
   return 'strategic_opportunity'
+}
+
+/**
+ * SPE-2083: read-only composition seam from canonical mission intake data to
+ * the pure authored department resolver.
+ *
+ * The result is advisory ownership only. It does not mutate mission routing,
+ * team candidates, department authorization, queues, or persistence.
+ */
+export function resolveMissionIntakeDepartments(
+  currentCase: CaseInstance,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentResolutionResult {
+  return resolveDepartments(
+    {
+      caseId: currentCase.id,
+      missionCategory: deriveMissionCategory(currentCase),
+      caseTags: [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags],
+    },
+    registry,
+    authorityGraph
+  )
+}
+
+/**
+ * SPE-2084: read-only composition seam from canonical mission intake to the
+ * pure department coordination evaluator. Caller-owned workload snapshots are
+ * observed only; no global or department queue is mutated.
+ */
+export function evaluateMissionIntakeDepartmentCoordination(
+  currentCase: CaseInstance,
+  workloadSnapshots: readonly DepartmentWorkloadSnapshot[],
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentCoordinationResult {
+  return evaluateDepartmentCoordination(
+    resolveMissionIntakeDepartments(currentCase, registry, authorityGraph),
+    workloadSnapshots,
+    registry,
+    authorityGraph
+  )
 }
 
 export function deriveMissionIntakeSource(
@@ -350,17 +419,554 @@ export interface MissionRoutingResult {
   timeCostSummary?: MissionRoutingRecord['timeCostSummary']
 }
 
+export interface MissionAccessAuthorityRoutingConsequence {
+  missionId: Id
+  factionId: Id
+  authorityNodeId: Id
+  edgeId: Id
+  routingState: Extract<MissionRoutingStateKind, 'blocked' | 'deferred'>
+  blockerCode: Extract<MissionRoutingBlockerCode, 'authority-mission-access-restricted'>
+  reasonCode: string
+  magnitude: number
+}
+
+export type DepartmentAuthorizationHandoffBlockerCode =
+  | 'invalid-authorization-window'
+  | 'authorization-not-yet-active'
+  | 'authorization-expired'
+  | 'invalid-clearance'
+  | 'empty-mission-scope'
+  | 'mission-not-handoff-eligible'
+  | 'missing-department-reference'
+  | 'missing-unit-reference'
+  | 'invalid-unit-registry'
+  | 'missing-permission-edge'
+  | 'permission-not-active'
+  | 'permission-denied'
+  | 'missing-approver'
+  | 'mission-fit-mismatch'
+  | 'unit-unavailable'
+  | 'council-direct-out-of-scope'
+
+export interface DepartmentAuthorizationHandoffRequest {
+  missionId: Id
+  authorizingDepartmentRef: string
+  targetUnitRef: string
+  missionScope: readonly string[]
+  clearanceLevel: number
+  validFromWeek: number
+  expiresAfterWeek: number
+  missionFit: Omit<IncidentMissionFitPacket, 'incidentId' | 'week'>
+}
+
+export interface DepartmentAuthorizationHandoffRecord {
+  id: Id
+  missionId: Id
+  authorizingDepartmentId: Id
+  targetUnitId: Id
+  approverId: Id
+  permissionEdgeId: Id
+  permissionReasonCode: string
+  authorizedWeek: number
+  validFromWeek: number
+  expiresAfterWeek: number
+  clearanceLevel: number
+  missionScope: readonly string[]
+}
+
+export interface DepartmentAuthorizationHandoffResult {
+  approved: boolean
+  blockerCodes: readonly DepartmentAuthorizationHandoffBlockerCode[]
+  record?: DepartmentAuthorizationHandoffRecord
+  unitFit?: UnitMissionFitResult
+}
+
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
+  return edge.fromNodeId === nodeId || edge.toNodeId === nodeId || edge.representsNodeId === nodeId
+}
+
+function deniedDepartmentAuthorizationHandoff(
+  ...blockerCodes: DepartmentAuthorizationHandoffBlockerCode[]
+): DepartmentAuthorizationHandoffResult {
+  return Object.freeze({
+    approved: false,
+    blockerCodes: Object.freeze(
+      [...new Set(blockerCodes)].sort((left, right) => compareCodeUnits(left, right))
+    ),
+  })
+}
+
+function resolveDepartmentAuthorityNode(graph: AuthorityGraph, departmentRef: string) {
+  const token = departmentRef.trim()
+  const directNodeId = normalizeAuthorityNodeId(graph, token)
+
+  return (
+    graph.nodes
+      .filter(
+        (node) =>
+          node.nodeType === 'department' &&
+          (node.id === directNodeId || (node.linkedDepartmentIds ?? []).includes(token))
+      )
+      .sort((left, right) => compareCodeUnits(left.id, right.id))[0] ?? null
+  )
+}
+
+function resolveUnitAuthorityNode(
+  graph: AuthorityGraph,
+  registry: SpecialistUnitRegistry,
+  unitRef: string
+): { authorityNodeId: string; unit: UnitProfile } | null {
+  const token = unitRef.trim()
+  const directNodeId = normalizeAuthorityNodeId(graph, token)
+  const unitById = new Map(registry.units.map((unit) => [unit.id, unit]))
+  const candidateNodes = graph.nodes
+    .filter(
+      (node) =>
+        node.id === directNodeId || node.id === token || (node.linkedUnitIds ?? []).includes(token)
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  const explicitlyRequestedUnit = unitById.get(token)
+  if (
+    explicitlyRequestedUnit &&
+    candidateNodes.some((node) => node.id === token || (node.linkedUnitIds ?? []).includes(token))
+  ) {
+    return {
+      authorityNodeId: candidateNodes.find(
+        (node) => node.id === token || (node.linkedUnitIds ?? []).includes(token)
+      )!.id,
+      unit: explicitlyRequestedUnit,
+    }
+  }
+
+  for (const node of candidateNodes) {
+    const linkedUnitId = [...new Set([...(node.linkedUnitIds ?? []), node.id, token])]
+      .sort(compareCodeUnits)
+      .find((unitId) => unitById.has(unitId))
+    if (linkedUnitId) {
+      return {
+        authorityNodeId: node.id,
+        unit: unitById.get(linkedUnitId)!,
+      }
+    }
+  }
+
+  return null
+}
+
+function deriveDepartmentMissionPosture(
+  currentCase: CaseInstance
+): IncidentMissionFitPacket['missionPosture'] {
+  switch (deriveMissionCategory(currentCase)) {
+    case 'containment_breach':
+    case 'faction_hostile_activity':
+      return 'containment_response'
+    case 'civilian_infrastructure_incident':
+      return 'routine_security'
+    case 'investigation_lead':
+    case 'strategic_opportunity':
+      return 'research_forward'
+  }
+}
+
+function buildDepartmentMissionFitPacket(
+  currentCase: CaseInstance,
+  registry: SpecialistUnitRegistry,
+  week: number
+): IncidentMissionFitPacket {
+  const missionTags = [
+    ...currentCase.tags,
+    ...currentCase.requiredTags,
+    ...currentCase.preferredTags,
+  ]
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+  const registryHazards = new Set(
+    registry.units.flatMap((unit) => unit.hazardProfileTags).map((tag) => tag.toLowerCase())
+  )
+  const registryEnvironments = new Set(
+    registry.units.flatMap((unit) => unit.environmentClasses).map((tag) => tag.toLowerCase())
+  )
+
+  return {
+    incidentId: currentCase.id,
+    week,
+    missionPosture: deriveDepartmentMissionPosture(currentCase),
+    requiredSuitabilityTags: [...new Set(currentCase.requiredTags.map((tag) => tag.trim()))]
+      .filter((tag) => tag.length > 0)
+      .sort(compareCodeUnits),
+    requiredHazardProfiles: [...new Set(missionTags)]
+      .filter((tag) => registryHazards.has(tag.toLowerCase()))
+      .sort(compareCodeUnits),
+    requiredEnvironmentClasses: [...new Set(missionTags)]
+      .filter((tag) => registryEnvironments.has(tag.toLowerCase()))
+      .sort(compareCodeUnits),
+    jurisdictionId: currentCase.regionTag?.trim() ?? '',
+    commandMode: 'departmental',
+    minimumAuthorityTier: 'department',
+    handoffRequired: true,
+  }
+}
+
+function sameStringList(left: readonly string[] | undefined, right: readonly string[] | undefined) {
+  if (left === undefined || right === undefined) {
+    return left === right
+  }
+  const normalizedLeft = [...new Set(left.map((entry) => entry.trim()))]
+    .filter((entry) => entry.length > 0)
+    .sort(compareCodeUnits)
+  const normalizedRight = [...new Set(right.map((entry) => entry.trim()))]
+    .filter((entry) => entry.length > 0)
+    .sort(compareCodeUnits)
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((entry, index) => entry === normalizedRight[index])
+  )
+}
+
+function missionFitMatchesCanonical(
+  asserted: DepartmentAuthorizationHandoffRequest['missionFit'],
+  canonical: IncidentMissionFitPacket
+) {
+  return (
+    asserted.missionPosture === canonical.missionPosture &&
+    sameStringList(asserted.requiredSuitabilityTags, canonical.requiredSuitabilityTags) &&
+    sameStringList(asserted.requiredHazardProfiles, canonical.requiredHazardProfiles) &&
+    sameStringList(asserted.requiredEnvironmentClasses, canonical.requiredEnvironmentClasses) &&
+    asserted.jurisdictionId.trim() === canonical.jurisdictionId &&
+    asserted.commandMode === canonical.commandMode &&
+    asserted.minimumAuthorityTier === canonical.minimumAuthorityTier &&
+    asserted.clearanceCeiling === canonical.clearanceCeiling &&
+    sameStringList(asserted.coverHostForbiddenTags, canonical.coverHostForbiddenTags) &&
+    sameStringList(asserted.requiredEquipmentTags, canonical.requiredEquipmentTags) &&
+    asserted.estimatedSecrecyCost === canonical.estimatedSecrecyCost &&
+    asserted.secrecyCostLimit === canonical.secrecyCostLimit &&
+    asserted.allowProvisionalUnits === canonical.allowProvisionalUnits &&
+    asserted.handoffRequired === canonical.handoffRequired
+  )
+}
+
+/**
+ * SPE-2088: pure department authorization gate for one mission-to-specialist-unit handoff.
+ *
+ * The gate reads a sanitized authority graph, selects the first applicable permission edge in
+ * code-unit ID order, and fails closed unless that edge yields an active explicit grant with
+ * approver provenance. It returns an audit record but does not persist or mutate routing state.
+ */
+export function authorizeDepartmentUnitHandoff(
+  state: Pick<GameState, 'week' | 'cases' | 'authorityGraphState'>,
+  registry: SpecialistUnitRegistry,
+  request: DepartmentAuthorizationHandoffRequest
+): DepartmentAuthorizationHandoffResult {
+  const validFromWeek = Math.trunc(request.validFromWeek)
+  const expiresAfterWeek = Math.trunc(request.expiresAfterWeek)
+  if (
+    !Number.isFinite(request.validFromWeek) ||
+    !Number.isFinite(request.expiresAfterWeek) ||
+    !Number.isInteger(request.validFromWeek) ||
+    !Number.isInteger(request.expiresAfterWeek) ||
+    validFromWeek < 1 ||
+    expiresAfterWeek < validFromWeek
+  ) {
+    return deniedDepartmentAuthorizationHandoff('invalid-authorization-window')
+  }
+
+  if (state.week < validFromWeek) {
+    return deniedDepartmentAuthorizationHandoff('authorization-not-yet-active')
+  }
+
+  if (state.week > expiresAfterWeek) {
+    return deniedDepartmentAuthorizationHandoff('authorization-expired')
+  }
+
+  if (!Number.isFinite(request.clearanceLevel) || request.clearanceLevel < 0) {
+    return deniedDepartmentAuthorizationHandoff('invalid-clearance')
+  }
+
+  const missionScope = [
+    ...new Set(
+      request.missionScope.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
+    ),
+  ].sort(compareCodeUnits)
+  if (missionScope.length === 0) {
+    return deniedDepartmentAuthorizationHandoff('empty-mission-scope')
+  }
+
+  const currentCase = state.cases[request.missionId]
+  if (!currentCase || currentCase.status === 'resolved' || currentCase.assignedTeamIds.length > 0) {
+    return deniedDepartmentAuthorizationHandoff('mission-not-handoff-eligible')
+  }
+
+  if (request.missionFit.commandMode === 'council_direct') {
+    return deniedDepartmentAuthorizationHandoff('council-direct-out-of-scope')
+  }
+
+  if (!validateSpecialistUnitRegistry(registry).valid) {
+    return deniedDepartmentAuthorizationHandoff('invalid-unit-registry')
+  }
+
+  const graph = sanitizeAuthorityGraphState(state.authorityGraphState).graph
+  const departmentNode = resolveDepartmentAuthorityNode(graph, request.authorizingDepartmentRef)
+  if (!departmentNode) {
+    return deniedDepartmentAuthorizationHandoff('missing-department-reference')
+  }
+
+  const unitAuthority = resolveUnitAuthorityNode(graph, registry, request.targetUnitRef)
+  if (!unitAuthority) {
+    return deniedDepartmentAuthorizationHandoff('missing-unit-reference')
+  }
+
+  const canonicalMissionFit = buildDepartmentMissionFitPacket(currentCase, registry, state.week)
+  if (!missionFitMatchesCanonical(request.missionFit, canonicalMissionFit)) {
+    return deniedDepartmentAuthorizationHandoff('mission-fit-mismatch')
+  }
+
+  const query = {
+    actorNodeId: unitAuthority.authorityNodeId,
+    counterpartyNodeId: departmentNode.id,
+    channel: 'permission' as const,
+    asOfWeek: state.week,
+  }
+  const permissionEdges = graph.edges
+    .filter(
+      (edge) =>
+        edge.pressureChannels?.includes('permission') &&
+        edgeInvolvesNode(edge, departmentNode.id) &&
+        edgeInvolvesNode(edge, unitAuthority.authorityNodeId) &&
+        edge.status !== 'contradicted' &&
+        edge.sourceConfidence !== 'contradicted'
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  const selected = permissionEdges
+    .map((edge) => ({
+      edge,
+      consequence: resolveAuthorityGraphConsequences(
+        { nodes: graph.nodes, edges: [edge] },
+        query
+      ).find((entry) => entry.edgeIds.includes(edge.id)),
+    }))
+    .find((entry) => entry.consequence !== undefined)
+
+  if (!selected?.consequence) {
+    return deniedDepartmentAuthorizationHandoff('missing-permission-edge')
+  }
+
+  if (selected.consequence.delayed || selected.consequence.contradicted) {
+    return deniedDepartmentAuthorizationHandoff('permission-not-active')
+  }
+
+  if (selected.consequence.effect !== 'grant' || selected.consequence.magnitude <= 0) {
+    return deniedDepartmentAuthorizationHandoff('permission-denied')
+  }
+
+  const approverId = selected.edge.provenance.recorderId?.trim()
+  if (!approverId) {
+    return deniedDepartmentAuthorizationHandoff('missing-approver')
+  }
+
+  const unitFit = resolveUnitForMission({
+    packet: {
+      ...canonicalMissionFit,
+      handoffRequired: false,
+    },
+    registry,
+    options: { includeBlocked: true },
+  }).ranked.find((result) => result.unitId === unitAuthority.unit.id)
+  if (!unitFit || unitFit.hardBlocked) {
+    return deniedDepartmentAuthorizationHandoff('unit-unavailable')
+  }
+
+  const record = Object.freeze({
+    id: `department-unit-handoff:${request.missionId}:${departmentNode.id}:${unitAuthority.unit.id}:${selected.edge.id}`,
+    missionId: request.missionId,
+    authorizingDepartmentId: departmentNode.id,
+    targetUnitId: unitAuthority.unit.id,
+    approverId,
+    permissionEdgeId: selected.edge.id,
+    permissionReasonCode: selected.consequence.reasonCode,
+    authorizedWeek: state.week,
+    validFromWeek,
+    expiresAfterWeek,
+    clearanceLevel: Math.trunc(request.clearanceLevel),
+    missionScope: Object.freeze(missionScope),
+  }) satisfies DepartmentAuthorizationHandoffRecord
+
+  return Object.freeze({
+    approved: true,
+    blockerCodes: Object.freeze([]),
+    record,
+    unitFit,
+  })
+}
+
+function resolveMissionFactionAuthorityNode(
+  graph: AuthorityGraph,
+  factions: NonNullable<GameState['factions']>,
+  factionRef: string
+) {
+  const directNodeId = normalizeAuthorityNodeId(graph, factionRef)
+  const factionNodes = graph.nodes
+    .filter(
+      (node) =>
+        node.nodeType === 'faction' &&
+        (node.id === directNodeId || (node.linkedFactionIds ?? []).includes(factionRef))
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const node of factionNodes) {
+    const factionId = factions[factionRef]
+      ? factionRef
+      : factions[node.id]
+        ? node.id
+        : [...(node.linkedFactionIds ?? [])]
+            .sort(compareCodeUnits)
+            .find((linkedFactionId) => factions[linkedFactionId])
+
+    if (factionId) {
+      return { factionId, authorityNodeId: node.id }
+    }
+  }
+
+  return null
+}
+
+/**
+ * SPE-2725: sanitized, read-only graph seam for one faction-linked mission route.
+ *
+ * One explicit `mission_access` edge is considered at a time in code-unit ID order. Hidden
+ * unrevealed and contradicted evidence is not allowed to alter command routing, and positive
+ * access remains a no-op because this slice only owns blocked/deferred consequences.
+ */
+export function resolvePersistedMissionAccessAuthorityRoutingConsequence(
+  state: Pick<GameState, 'week' | 'authorityGraphState' | 'factions'>,
+  currentCase: Pick<CaseInstance, 'id' | 'status' | 'factionId' | 'assignedTeamIds'>
+): MissionAccessAuthorityRoutingConsequence | null {
+  if (
+    currentCase.status === 'resolved' ||
+    !currentCase.factionId ||
+    currentCase.assignedTeamIds.length > 0
+  ) {
+    return null
+  }
+
+  const authorityGraphState = sanitizeAuthorityGraphState(state.authorityGraphState)
+  const graph = authorityGraphState.graph
+  const factions = state.factions ?? {}
+  const factionAuthority = resolveMissionFactionAuthorityNode(
+    graph,
+    factions,
+    currentCase.factionId
+  )
+  if (!factionAuthority) {
+    return null
+  }
+
+  const query = {
+    actorNodeId: factionAuthority.authorityNodeId,
+    channel: 'mission_access' as const,
+    asOfWeek: state.week,
+  }
+  const contradictedEdgeIds = new Set(
+    resolveAuthorityGraphConsequences(graph, query)
+      .filter((consequence) => consequence.contradicted)
+      .flatMap((consequence) => consequence.edgeIds)
+  )
+  const eligibleEdges = graph.edges
+    .filter(
+      (edge) =>
+        edge.pressureChannels?.includes('mission_access') &&
+        edgeInvolvesNode(edge, factionAuthority.authorityNodeId) &&
+        !contradictedEdgeIds.has(edge.id)
+    )
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
+
+  for (const edge of eligibleEdges) {
+    const consequence = resolveAuthorityGraphConsequences(
+      { nodes: graph.nodes, edges: [edge] },
+      query
+    ).find(
+      (entry) =>
+        entry.edgeIds.includes(edge.id) &&
+        entry.magnitude !== 0 &&
+        !entry.delayed &&
+        !entry.contradicted &&
+        (entry.effect === 'deny' || entry.effect === 'delay')
+    )
+    if (!consequence) {
+      continue
+    }
+
+    return Object.freeze({
+      missionId: currentCase.id,
+      factionId: factionAuthority.factionId,
+      authorityNodeId: factionAuthority.authorityNodeId,
+      edgeId: edge.id,
+      routingState: consequence.effect === 'deny' ? 'blocked' : 'deferred',
+      blockerCode: 'authority-mission-access-restricted',
+      reasonCode: consequence.reasonCode,
+      magnitude: consequence.magnitude,
+    })
+  }
+
+  return null
+}
+
+function withoutPriorAuthorityMissionAccessRoutingGate(state: GameState, missionId: Id): GameState {
+  const mission = state.missionRouting?.missions[missionId]
+  if (
+    !mission ||
+    !mission.routingBlockers.includes('authority-mission-access-restricted') ||
+    isMissionTriageDispositionActive(mission, state.week)
+  ) {
+    return state
+  }
+
+  // The authority consequence is mission-wide and is reapplied after canonical team ranking.
+  // Remove only its prior routing overlay while assessing candidates to avoid self-blocking on
+  // later recomputes without changing readiness or player-disposition gates.
+  return {
+    ...state,
+    missionRouting: {
+      ...state.missionRouting!,
+      missions: {
+        ...state.missionRouting!.missions,
+        [missionId]: {
+          ...mission,
+          routingState: 'queued',
+          routingBlockers: mission.routingBlockers.filter(
+            (blocker) => blocker !== 'authority-mission-access-restricted'
+          ),
+        },
+      },
+    },
+  }
+}
+
 function buildMissionRoutingCandidate(
   currentCase: CaseInstance,
   team: Team,
-  state: GameState
+  state: GameState,
+  candidateAssessmentState: GameState
 ): MissionTeamRoutingCandidate {
   const validation = validateTeamComposition(team, state.agents, state.teams, {
     requiredRoles: currentCase.requiredRoles,
   })
   const composition = buildTeamCompositionState(team, state.agents, state.teams)
-  const eligibility = evaluateDeploymentEligibility(state, currentCase.id, team.id)
-  const readinessState = buildTeamDeploymentReadinessState(state, team.id, currentCase.id)
+  const eligibility = evaluateDeploymentEligibility(
+    candidateAssessmentState,
+    currentCase.id,
+    team.id
+  )
+  const readinessState = buildTeamDeploymentReadinessState(
+    candidateAssessmentState,
+    team.id,
+    currentCase.id
+  )
   const members = getTeamMembers(team, state.agents)
   const loadoutBlocked = members.some(
     (member) => buildAgentLoadoutReadinessSummary(member, { state }).readiness === 'blocked'
@@ -425,8 +1031,9 @@ export function shortlistMissionCandidateTeams(state: GameState, missionId: Id) 
     }
   )
   const rankedMap = new Map(rankedByComposition.map((entry, index) => [entry.teamId, index]))
+  const candidateAssessmentState = withoutPriorAuthorityMissionAccessRoutingGate(state, missionId)
   const candidates = Object.values(state.teams)
-    .map((team) => buildMissionRoutingCandidate(currentCase, team, state))
+    .map((team) => buildMissionRoutingCandidate(currentCase, team, state, candidateAssessmentState))
     .sort((left, right) => {
       if (left.completeness !== right.completeness) {
         return right.completeness - left.completeness
@@ -477,6 +1084,27 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
 
   const rankedCandidates = shortlistMissionCandidateTeams(state, missionId)
   const validCandidates = rankedCandidates.filter((candidate) => candidate.valid)
+  const authorityConsequence = resolvePersistedMissionAccessAuthorityRoutingConsequence(
+    state,
+    currentCase
+  )
+  if (authorityConsequence) {
+    return {
+      missionId,
+      routingState: authorityConsequence.routingState,
+      routingBlockers: [authorityConsequence.blockerCode],
+      candidateTeamIds: validCandidates.map((candidate) => candidate.teamId),
+      rejectedTeams: [],
+      rankedCandidates,
+      timeCostSummary: validCandidates[0]
+        ? evaluateDeploymentEligibility(
+            withoutPriorAuthorityMissionAccessRoutingGate(state, missionId),
+            missionId,
+            validCandidates[0].teamId
+          ).timeCostSummary
+        : undefined,
+    }
+  }
 
   if (validCandidates.length === 0) {
     const rejectedTeams: MissionRejectedTeamRecord[] = rankedCandidates.flatMap((candidate) =>
@@ -532,6 +1160,7 @@ const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
   'training-blocked',
   'missing-certification',
   'invalid-loadout-gate',
+  'authority-mission-access-restricted',
   'site-clearance-required',
   'dual-loyalty-restricted',
   'protected-status-restricted',
@@ -991,7 +1620,10 @@ export function routeMissionToTeam(state: GameState, missionId: Id, teamId: Id) 
   }
 
   const routed = routeMission(state, missionId)
-  if (!routed.candidateTeamIds.includes(teamId)) {
+  if (
+    routed.routingBlockers.includes('authority-mission-access-restricted') ||
+    !routed.candidateTeamIds.includes(teamId)
+  ) {
     return {
       state,
       assigned: false,

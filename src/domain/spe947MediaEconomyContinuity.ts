@@ -283,6 +283,15 @@ function roundMetric(value: number): number {
   return Math.round(scaled) / 1_000_000
 }
 
+function addNonNegativeCounters(prior: number, delta: number): number {
+  const sum = prior + delta
+  if (!Number.isFinite(sum)) {
+    return Number.MAX_VALUE
+  }
+
+  return sum
+}
+
 function readOptionalIncentive(value: unknown): { ok: boolean; value: number } {
   if (value === undefined) {
     return { ok: true, value: 0 }
@@ -626,7 +635,7 @@ export function applyWeeklySpe947MediaEconomyMapDeltas(
     }
 
     const nextContinuityFactor = roundMetric(
-      weight.continuityFactor + weight.weeklyContinuityFactorDelta!
+      addNonNegativeCounters(weight.continuityFactor, weight.weeklyContinuityFactorDelta!)
     )
     if (nextContinuityFactor === weight.continuityFactor) {
       continue

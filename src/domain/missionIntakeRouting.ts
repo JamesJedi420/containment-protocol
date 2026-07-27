@@ -18,6 +18,11 @@ import type {
   DepartmentCapabilityRegistry,
   DepartmentResolutionResult,
 } from './departmentCapabilities'
+import { evaluateDepartmentCoordination } from './departmentCoordination'
+import type {
+  DepartmentCoordinationResult,
+  DepartmentWorkloadSnapshot,
+} from './departmentCoordination'
 import {
   INTEL_CALIBRATION,
   isSecondEscalationBandWeek,
@@ -159,6 +164,24 @@ export function resolveMissionIntakeDepartments(
     },
     registry,
     authorityGraph
+  )
+}
+
+/**
+ * SPE-2084: read-only composition seam from canonical mission intake to the
+ * pure department coordination evaluator. Caller-owned workload snapshots are
+ * observed only; no global or department queue is mutated.
+ */
+export function evaluateMissionIntakeDepartmentCoordination(
+  currentCase: CaseInstance,
+  workloadSnapshots: readonly DepartmentWorkloadSnapshot[],
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentCoordinationResult {
+  return evaluateDepartmentCoordination(
+    resolveMissionIntakeDepartments(currentCase, registry, authorityGraph),
+    workloadSnapshots,
+    registry
   )
 }
 

@@ -79,7 +79,7 @@ departments, or an explicit low-priority misfit route.
 
 | Item                                      | Owner                 | Boundary                                                                                                                         |
 | ----------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Queue capacity and cross-department load  | SPE-2084              | This slice returns eligibility/order only; it owns no queues or workload.                                                        |
+| Queue capacity and cross-department load  | SPE-2084 / SPE-1028   | SPE-2084 consumes this slice's assignments plus caller-owned snapshots; durable workshop queues remain owned by SPE-1028.        |
 | Persisted department entity/runtime state | SPE-1320 or new child | Registry and resolver remain authored, pure, and read-only.                                                                      |
 | Department-to-unit authorization changes  | SPE-2088              | Existing permission-edge handoff semantics remain unchanged.                                                                     |
 | Distributed multi-cell unit content pack  | SPE-2086              | The existing `distributed` unit taxonomy remains available; this department-routing slice does not author deployable unit packs. |

@@ -147,6 +147,16 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
         { alpha: alphaAdvance.packet }
       )
     ).toEqual({})
+    const aheadOfPacketClue = {
+      ...casualtyClue!,
+      phase: 'retreating' as const,
+    }
+    expect(
+      normalizeRivalExpeditionClueRegistry(
+        { [aheadOfPacketClue.id]: aheadOfPacketClue },
+        { alpha: alphaAdvance.packet }
+      )
+    ).toEqual({})
     const validLostClues = Object.fromEntries(
       lostAdvance.clueSignals.map((signal) => [signal.id, signal])
     )
@@ -175,6 +185,10 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(clueCollisionA).toEqual({ [casualtyClue!.id]: casualtyClue })
     expect(JSON.stringify(clueCollisionA)).toBe(JSON.stringify(clueCollisionB))
 
+    const numericId = initializeRivalExpeditionProgress({ ...BASE_DEFINITION, id: '2' }, 5)
+    expect(numericId.status).toBe('blocked')
+    expect(numericId.issues.map((issue) => issue.code)).toContain('invalid_expedition_id')
+
     const normalizedState = normalizeGameState({
       ...createStartingState(),
       week: 6,
@@ -198,6 +212,65 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       casualtyClue!.id,
       searchClue!.id,
     ])
+  })
+
+  it('retains only collectively reachable clue history in deterministic order', () => {
+    const initial = initializePacket('history')
+    const searched = advanceRivalExpeditionProgress(initial, {
+      week: 5,
+      casualties: 1,
+      pacePenalty: 0,
+    })
+    const extracted = advanceRivalExpeditionProgress(searched.packet, {
+      week: 6,
+      casualties: 0,
+      pacePenalty: 0,
+    })
+    const completed = advanceRivalExpeditionProgress(extracted.packet, {
+      week: 7,
+      casualties: 0,
+      pacePenalty: 0,
+    })
+    const validSignals = [
+      ...searched.clueSignals,
+      ...extracted.clueSignals,
+      ...completed.clueSignals,
+    ]
+    const validRegistry = Object.fromEntries(validSignals.map((signal) => [signal.id, signal]))
+
+    expect(
+      normalizeRivalExpeditionClueRegistry(validRegistry, { history: completed.packet })
+    ).toEqual(validRegistry)
+
+    const casualty = searched.clueSignals.find((signal) => signal.kind === 'casualty_trace')!
+    const search = searched.clueSignals.find((signal) => signal.kind === 'search_trace')!
+    const extraction = extracted.clueSignals.find((signal) => signal.kind === 'extraction_trace')!
+    const retreat = completed.clueSignals.find((signal) => signal.kind === 'retreat_trace')!
+    const extraCasualty = {
+      ...casualty,
+      id: 'history:clue:6:casualty_trace',
+      week: 6,
+      phase: 'retreating' as const,
+    }
+    const sameWeekExtraction = {
+      ...extraction,
+      id: 'history:clue:5:extraction_trace',
+      week: 5,
+    }
+    const malformedRegistry = Object.fromEntries(
+      [casualty, search, extraCasualty, sameWeekExtraction, retreat].map((signal) => [
+        signal.id,
+        signal,
+      ])
+    )
+
+    expect(
+      Object.keys(
+        normalizeRivalExpeditionClueRegistry(malformedRegistry, {
+          history: completed.packet,
+        })
+      )
+    ).toEqual([search.id, retreat.id])
   })
 
   it('hydrates legacy state to empty registries and preserves valid siblings only', () => {
@@ -347,6 +420,18 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(result.issues.map((issue) => [issue.expeditionId, issue.code])).toEqual([
       ['active', 'missing_weekly_conditions'],
     ])
+
+    const inheritedPressure = Object.create({
+      active: { casualties: 0, pacePenalty: 0 },
+    })
+    const inheritedResult = advanceRivalExpeditionRegistryAtWeekClose(
+      { active },
+      {},
+      6,
+      inheritedPressure
+    )
+    expect(inheritedResult.packets.active).toEqual(active)
+    expect(inheritedResult.issues.map((issue) => issue.code)).toEqual(['missing_weekly_conditions'])
   })
 
   it('uses the closing week and zero pressure without changing unrelated weekly output', () => {

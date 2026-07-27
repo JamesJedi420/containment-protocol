@@ -75,6 +75,7 @@ export interface RivalExpeditionClueSignal {
 
 export type RivalExpeditionValidationCode =
   | 'missing_expedition_id'
+  | 'invalid_expedition_id'
   | 'missing_route_id'
   | 'missing_objective_id'
   | 'invalid_head_start_weeks'
@@ -165,6 +166,11 @@ const CLUE_KIND_ORDER: Readonly<Record<RivalExpeditionClueKind, number>> = Objec
   retreat_trace: 3,
   loss_site: 4,
 })
+const NONTERMINAL_PHASE_ORDER = Object.freeze({
+  searching: 0,
+  extracting: 1,
+  retreating: 2,
+} as const)
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
@@ -184,6 +190,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0
+}
+
+function isIntegerIndexId(value: string): boolean {
+  const numeric = Number(value)
+  return (
+    Number.isInteger(numeric) &&
+    numeric >= 0 &&
+    numeric < 4_294_967_295 &&
+    String(numeric) === value
+  )
 }
 
 function freezeIssues(
@@ -528,7 +544,7 @@ function clueMatchesOwningPacket(
   }
 
   switch (signal.kind) {
-    case 'casualty_trace':
+    case 'casualty_trace': {
       if (packet.cumulativeCasualties === 0) {
         return false
       }
@@ -538,7 +554,21 @@ function clueMatchesOwningPacket(
       if (signal.phase === 'completed') {
         return packet.phase === 'completed' && signal.week === packet.completedWeek
       }
-      return true
+      if (packet.phase === 'completed') {
+        return true
+      }
+      const latestNonterminalPhase =
+        packet.phase !== 'lost'
+          ? packet.phase
+          : packet.searchProgress < packet.definition.searchWorkRequired
+            ? 'searching'
+            : packet.extractionWeeksElapsed < packet.definition.extractionWeeksRequired
+              ? 'extracting'
+              : 'retreating'
+      return (
+        NONTERMINAL_PHASE_ORDER[signal.phase] <= NONTERMINAL_PHASE_ORDER[latestNonterminalPhase]
+      )
+    }
     case 'search_trace':
       return packet.searchProgress === packet.definition.searchWorkRequired
     case 'extraction_trace':
@@ -548,6 +578,65 @@ function clueMatchesOwningPacket(
     case 'loss_site':
       return packet.phase === 'lost' && signal.week === packet.lostWeek
   }
+}
+
+function filterCollectivelyValidClues(
+  signals: readonly RivalExpeditionClueSignal[],
+  packet: RivalExpeditionProgressPacket
+): readonly RivalExpeditionClueSignal[] {
+  const casualties = signals.filter((signal) => signal.kind === 'casualty_trace')
+  const search = signals.filter((signal) => signal.kind === 'search_trace')
+  const extraction = signals.filter((signal) => signal.kind === 'extraction_trace')
+  const retreat = signals.filter((signal) => signal.kind === 'retreat_trace')
+  const loss = signals.filter((signal) => signal.kind === 'loss_site')
+  const retained: RivalExpeditionClueSignal[] = []
+
+  if (casualties.length <= packet.cumulativeCasualties) {
+    retained.push(...casualties)
+  }
+
+  const searchWeeks = Math.ceil(packet.definition.searchWorkRequired / packet.definition.routePace)
+  const retreatWeeks = Math.ceil(
+    packet.definition.retreatWorkRequired / packet.definition.routePace
+  )
+  const earliestSearchWeek = packet.departedWeek + searchWeeks - 1
+  const searchSignal =
+    search.length === 1 && search[0]!.week >= earliestSearchWeek ? search[0] : undefined
+  if (searchSignal) {
+    retained.push(searchSignal)
+  }
+
+  const earliestExtractionWeek =
+    (searchSignal?.week ?? earliestSearchWeek) + packet.definition.extractionWeeksRequired
+  const extractionSignal =
+    extraction.length === 1 && extraction[0]!.week >= earliestExtractionWeek
+      ? extraction[0]
+      : undefined
+  if (extractionSignal) {
+    retained.push(extractionSignal)
+  }
+
+  const earliestRetreatWeek = (extractionSignal?.week ?? earliestExtractionWeek) + retreatWeeks
+  const retreatSignal =
+    retreat.length === 1 && retreat[0]!.week >= earliestRetreatWeek ? retreat[0] : undefined
+  if (retreatSignal) {
+    retained.push(retreatSignal)
+  }
+
+  if (loss.length === 1) {
+    retained.push(loss[0]!)
+  }
+
+  if (packet.phase === 'lost') {
+    return retained.filter(
+      (signal) =>
+        signal.kind === 'loss_site' ||
+        signal.kind === 'casualty_trace' ||
+        signal.week < packet.lostWeek!
+    )
+  }
+
+  return retained
 }
 
 /**
@@ -581,9 +670,31 @@ export function normalizeRivalExpeditionClueRegistry(
     }
   }
 
+  const sortedSignals = [...clueById.values()].sort(compareClueSignals)
+  const retainedIds = new Set<string>()
+  if (packets) {
+    const signalsByExpedition = new Map<string, RivalExpeditionClueSignal[]>()
+    for (const signal of sortedSignals) {
+      const signals = signalsByExpedition.get(signal.expeditionId) ?? []
+      signals.push(signal)
+      signalsByExpedition.set(signal.expeditionId, signals)
+    }
+    for (const [expeditionId, signals] of signalsByExpedition) {
+      const packet = packets[expeditionId]
+      if (!packet) {
+        continue
+      }
+      for (const signal of filterCollectivelyValidClues(signals, packet)) {
+        retainedIds.add(signal.id)
+      }
+    }
+  }
+
   return Object.freeze(
     Object.fromEntries(
-      [...clueById.values()].sort(compareClueSignals).map((signal) => [signal.id, signal])
+      sortedSignals
+        .filter((signal) => !packets || retainedIds.has(signal.id))
+        .map((signal) => [signal.id, signal])
     )
   )
 }
@@ -593,10 +704,16 @@ export function validateRivalExpeditionDefinition(
 ): RivalExpeditionValidationResult {
   const issues: RivalExpeditionValidationIssue[] = []
 
-  if (!normalizeId(definition.id)) {
+  const expeditionId = normalizeId(definition.id)
+  if (!expeditionId) {
     issues.push({
       code: 'missing_expedition_id',
       detail: 'Rival expedition definition requires a non-empty id.',
+    })
+  } else if (isIntegerIndexId(expeditionId)) {
+    issues.push({
+      code: 'invalid_expedition_id',
+      detail: 'Rival expedition id cannot be a JavaScript integer-index property key.',
     })
   }
   if (!normalizeId(definition.routeId)) {
@@ -1090,7 +1207,9 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
       continue
     }
 
-    const rawPressure = pressureRegistry[expeditionId]
+    const rawPressure = Object.prototype.hasOwnProperty.call(pressureRegistry, expeditionId)
+      ? pressureRegistry[expeditionId]
+      : undefined
     if (!isRecord(rawPressure)) {
       nextPackets.set(expeditionId, packet)
       issues.push(

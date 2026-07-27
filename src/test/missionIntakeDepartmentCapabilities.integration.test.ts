@@ -7,7 +7,7 @@ import {
   shortlistMissionCandidateTeams,
 } from '../domain/missionIntakeRouting'
 
-describe('SPE-2083 mission-intake department resolution seam', () => {
+describe('SPE-2083/SPE-2084 mission-intake department read seams', () => {
   it('routes from canonical case category and tags without caller-authored requirements', () => {
     const state = createStartingState()
     const currentCase = {

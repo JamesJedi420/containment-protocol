@@ -1,3 +1,8 @@
+import type {
+  RivalExpeditionClueRegistry,
+  RivalExpeditionProgressRegistry,
+} from './rivalExpeditionProgress'
+
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
   | 'missing-coverage'
@@ -2672,6 +2677,16 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /**
+   * SPE-2741: canonical offscreen rival-expedition packets keyed by embedded expedition id.
+   * Hydration and runtime normalization drop malformed siblings and preserve stable key order.
+   */
+  rivalExpeditionProgressPackets?: RivalExpeditionProgressRegistry
+  /**
+   * SPE-2741: canonical coarse rival-expedition clue signals keyed by deterministic clue id.
+   * Exact hidden progress counters and pressure inputs do not enter this collection.
+   */
+  rivalExpeditionClues?: RivalExpeditionClueRegistry
   /**
    * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
    * Optional for direct legacy states; hydration supplies a canonical empty foundation.

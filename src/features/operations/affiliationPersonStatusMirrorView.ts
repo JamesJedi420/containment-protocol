@@ -697,9 +697,10 @@ function toRecordView(
 export function getAffiliationPersonStatusMirrorView(
   game: GameState
 ): AffiliationPersonStatusMirrorView {
+  const candidates = game.candidates.length > 0 ? game.candidates : game.recruitmentPool
   const snapshots = projectAffiliationPersonStatusSnapshots({
     records: game.affiliationPersonStatusRecords,
-    candidates: game.recruitmentPool ?? game.candidates,
+    candidates,
     entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
   })
   let restrictedOrBlockedCount = 0

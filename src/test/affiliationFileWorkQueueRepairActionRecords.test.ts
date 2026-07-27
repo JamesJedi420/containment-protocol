@@ -143,4 +143,198 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
     )
     expect(result.state.affiliationPersonStatusRecords).toBe(state.affiliationPersonStatusRecords)
   })
+
+  it('repairs onboarding evidence from canonical candidates when the legacy recruitment pool is empty', () => {
+    const state = createStartingState()
+    state.week = 13
+    state.candidates = [
+      {
+        id: 'candidate:onboarding-canonical',
+        name: 'Canonical Onboarding Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 1,
+        funnelStage: 'screening',
+      },
+    ]
+    state.recruitmentPool = []
+    state.affiliationPersonStatusRecords = {
+      'person-status:onboarding-canonical': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-canonical',
+        subjectId: 'subject:onboarding-canonical',
+        subjectLabel: 'Canonical Onboarding Subject',
+        candidateRef: 'candidate:onboarding-canonical',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolution = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-canonical',
+      subjectId: 'subject:onboarding-canonical',
+      subjectLabel: 'Canonical Onboarding Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_onboarding_clearance'],
+      recordedWeek: 12,
+    })
+    state.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolution.id]: resolution,
+    }
+
+    const result = applyAffiliationFileWorkQueueEvidenceRepair({
+      state,
+      workQueueEntryId: 'person-status:onboarding-canonical',
+      reasonCode: 'missing_onboarding_clearance',
+      recordedWeek: 13,
+    })
+
+    expect(result).toMatchObject({ applied: true, reason: 'applied' })
+    expect(
+      result.state.affiliationPersonStatusRecords?.['person-status:onboarding-canonical']
+    ).toMatchObject({
+      candidateRef: 'candidate:onboarding-canonical',
+      backgroundCleared: true,
+      trainingCompleted: true,
+      oathContractSigned: true,
+    })
+    expect(result.state.candidates[0]).toMatchObject({
+      id: 'candidate:onboarding-canonical',
+      revealLevel: 2,
+      funnelStage: 'hired',
+      lastUpdatedWeek: 13,
+    })
+  })
+
+  it('preserves the full legacy candidate pool when onboarding repair promotes legacy candidates', () => {
+    const state = createStartingState()
+    state.week = 13
+    state.candidates = []
+    state.recruitmentPool = [
+      {
+        id: 'candidate:legacy-repair',
+        name: 'Legacy Repair Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 1,
+        funnelStage: 'screening',
+      },
+      {
+        id: 'candidate:legacy-other',
+        name: 'Other Legacy Subject',
+        age: 31,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 2,
+      },
+    ]
+    state.affiliationPersonStatusRecords = {
+      'person-status:legacy-repair': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:legacy-repair',
+        subjectId: 'subject:legacy-repair',
+        subjectLabel: 'Legacy Repair Subject',
+        candidateRef: 'candidate:legacy-repair',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolution = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:legacy-repair',
+      subjectId: 'subject:legacy-repair',
+      subjectLabel: 'Legacy Repair Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_onboarding_clearance'],
+      recordedWeek: 12,
+    })
+    state.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolution.id]: resolution,
+    }
+
+    const result = applyAffiliationFileWorkQueueEvidenceRepair({
+      state,
+      workQueueEntryId: 'person-status:legacy-repair',
+      reasonCode: 'missing_onboarding_clearance',
+      recordedWeek: 13,
+    })
+
+    expect(result).toMatchObject({ applied: true, reason: 'applied' })
+    expect(result.state.candidates.map((candidate) => candidate.id)).toEqual([
+      'candidate:legacy-repair',
+      'candidate:legacy-other',
+    ])
+    expect(result.state.recruitmentPool).toEqual(result.state.candidates)
+  })
+
+  it('does not repair onboarding evidence from stale legacy candidates when canonical candidates are present', () => {
+    const state = createStartingState()
+    state.week = 13
+    state.candidates = [
+      {
+        id: 'candidate:other-canonical',
+        name: 'Other Canonical Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 2,
+      },
+    ]
+    state.recruitmentPool = [
+      {
+        id: 'candidate:stale-legacy',
+        name: 'Stale Legacy Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 1,
+        funnelStage: 'screening',
+      },
+    ]
+    state.affiliationPersonStatusRecords = {
+      'person-status:stale-legacy': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:stale-legacy',
+        subjectId: 'subject:stale-legacy',
+        subjectLabel: 'Stale Legacy Subject',
+        candidateRef: 'candidate:stale-legacy',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolution = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:stale-legacy',
+      subjectId: 'subject:stale-legacy',
+      subjectLabel: 'Stale Legacy Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_onboarding_clearance'],
+      recordedWeek: 12,
+    })
+    state.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolution.id]: resolution,
+    }
+
+    const result = applyAffiliationFileWorkQueueEvidenceRepair({
+      state,
+      workQueueEntryId: 'person-status:stale-legacy',
+      reasonCode: 'missing_onboarding_clearance',
+      recordedWeek: 13,
+    })
+
+    expect(result).toMatchObject({ applied: false, reason: 'missing-candidate-ref' })
+    expect(result.state).toBe(state)
+  })
 })

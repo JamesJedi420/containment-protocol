@@ -9249,7 +9249,11 @@ export function hydrateGame(
   )
   const authorityGraphState = sanitizeAuthorityGraphState(game.authorityGraphState)
   const rivalExpeditionProgressPackets = normalizeRivalExpeditionProgressRegistry(
-    game.rivalExpeditionProgressPackets
+    game.rivalExpeditionProgressPackets,
+    {
+      campaignWeek: week,
+      maximumAdvancedWeek: week - 1,
+    }
   )
   const rivalExpeditionClues = normalizeRivalExpeditionClueRegistry(
     game.rivalExpeditionClues,
@@ -9751,8 +9755,8 @@ export function hydrateGame(
     }
   }
 
-  // Reapply SPE-956 participatory channel + incident baseline maps after stripUndefinedFields /
-  // spreads so per-entry Object.freeze from sanitize survive hydrateGame.
+  // Reapply SPE-2741 registries plus SPE-956 participatory channel + incident baseline maps after
+  // stripUndefinedFields / spreads so per-entry Object.freeze from normalization/sanitize survives.
   hydrated = {
     ...hydrated,
     rivalExpeditionProgressPackets,

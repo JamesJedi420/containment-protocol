@@ -72,10 +72,16 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       pacePenalty: 0,
     })
     const [casualtyClue, searchClue] = alphaAdvance.clueSignals
+    const lost = advanceRivalExpeditionProgress(initializePacket('lost'), {
+      week: 5,
+      casualties: 3,
+      pacePenalty: 0,
+    }).packet
 
     const packets = normalizeRivalExpeditionProgressRegistry({
       bravo,
       malformed: { ...alpha, activePersonnel: 99 },
+      'malformed-lost': { ...lost, extractionWeeksElapsed: 1 },
       alpha,
       'wrong-key': bravo,
     })
@@ -93,6 +99,18 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(Object.isFrozen(packets.alpha?.definition)).toBe(true)
     expect(Object.isFrozen(clues)).toBe(true)
     expect(Object.isFrozen(clues[casualtyClue!.id])).toBe(true)
+
+    const prototypeNamedOrphan = {
+      ...casualtyClue!,
+      id: 'toString:clue:5:casualty_trace',
+      expeditionId: 'toString',
+    }
+    expect(
+      normalizeRivalExpeditionClueRegistry(
+        { [prototypeNamedOrphan.id]: prototypeNamedOrphan },
+        packets
+      )
+    ).toEqual({})
 
     const packetCollisionA = normalizeRivalExpeditionProgressRegistry({
       alpha,
@@ -119,6 +137,7 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
 
     const normalizedState = normalizeGameState({
       ...createStartingState(),
+      week: 6,
       rivalExpeditionProgressPackets: {
         bravo,
         malformed: { ...alpha, phase: 'completed' },
@@ -151,12 +170,23 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(hydratedLegacy.rivalExpeditionProgressPackets).toEqual({})
     expect(hydratedLegacy.rivalExpeditionClues).toEqual({})
 
-    const alpha = initializePacket('alpha')
+    const alpha = initializePacket('alpha', fallback.week)
+    const futureAdvance = {
+      ...initializePacket('future-advance', fallback.week),
+      lastAdvancedWeek: fallback.week,
+    }
+    const futureDeparture = {
+      ...initializePacket('future-departure', fallback.week),
+      departedWeek: fallback.week + 1,
+      lastAdvancedWeek: fallback.week,
+    }
     const hydratedMixed = hydrateGame(
       {
         ...legacy,
         rivalExpeditionProgressPackets: {
           malformed: { ...alpha, cumulativeCasualties: 2 },
+          'future-advance': futureAdvance,
+          'future-departure': futureDeparture,
           alpha,
         },
         rivalExpeditionClues: { malformed: { id: '' } },
@@ -180,6 +210,7 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     })
     const game = {
       ...state,
+      week: state.week + 1,
       rivalExpeditionProgressPackets: { alpha: advanced.packet },
       rivalExpeditionClues: Object.fromEntries(
         advanced.clueSignals.map((signal) => [signal.id, signal])

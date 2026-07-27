@@ -1116,7 +1116,11 @@ export function ensureNormalizedGameState(state: GameState): GameState {
 export function normalizeGameState(state: GameState): GameState {
   const normalized = syncTeamSimulationState(state)
   const rivalExpeditionProgressPackets = normalizeRivalExpeditionProgressRegistry(
-    normalized.rivalExpeditionProgressPackets
+    normalized.rivalExpeditionProgressPackets,
+    {
+      campaignWeek: normalized.week,
+      maximumAdvancedWeek: normalized.week - 1,
+    }
   )
 
   return {

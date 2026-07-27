@@ -4863,7 +4863,11 @@ export function advanceWeek(
   // SPE-2741: advance persisted rivals for the week that just closed. Pressure
   // ownership remains explicit; production uses deterministic zero-pressure inputs.
   const normalizedRivalPackets = normalizeRivalExpeditionProgressRegistry(
-    inputWeeklyState.rivalExpeditionProgressPackets
+    inputWeeklyState.rivalExpeditionProgressPackets,
+    {
+      campaignWeek: sourceState.week,
+      maximumAdvancedWeek: sourceState.week - 1,
+    }
   )
   const rivalWeekClose = advanceRivalExpeditionRegistryAtWeekClose(
     normalizedRivalPackets,

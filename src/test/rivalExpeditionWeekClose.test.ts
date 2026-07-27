@@ -94,6 +94,29 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(Object.isFrozen(clues)).toBe(true)
     expect(Object.isFrozen(clues[casualtyClue!.id])).toBe(true)
 
+    const packetCollisionA = normalizeRivalExpeditionProgressRegistry({
+      alpha,
+      ' alpha ': alphaAdvance.packet,
+    })
+    const packetCollisionB = normalizeRivalExpeditionProgressRegistry({
+      ' alpha ': alphaAdvance.packet,
+      alpha,
+    })
+    expect(packetCollisionA).toEqual({ alpha })
+    expect(JSON.stringify(packetCollisionA)).toBe(JSON.stringify(packetCollisionB))
+
+    const conflictingClue = { ...casualtyClue!, progressBand: 'mid' as const }
+    const clueCollisionA = normalizeRivalExpeditionClueRegistry({
+      [casualtyClue!.id]: casualtyClue,
+      [` ${casualtyClue!.id} `]: conflictingClue,
+    })
+    const clueCollisionB = normalizeRivalExpeditionClueRegistry({
+      [` ${casualtyClue!.id} `]: conflictingClue,
+      [casualtyClue!.id]: casualtyClue,
+    })
+    expect(clueCollisionA).toEqual({ [casualtyClue!.id]: casualtyClue })
+    expect(JSON.stringify(clueCollisionA)).toBe(JSON.stringify(clueCollisionB))
+
     const normalizedState = normalizeGameState({
       ...createStartingState(),
       rivalExpeditionProgressPackets: {

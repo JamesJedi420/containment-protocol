@@ -368,7 +368,7 @@ export function normalizeRivalExpeditionProgressRegistry(
   const entries: [string, RivalExpeditionProgressPacket][] = []
   for (const [registryId, rawPacket] of Object.entries(value)) {
     const packet = normalizeRivalExpeditionProgressPacket(rawPacket)
-    if (packet && normalizeId(registryId) === packet.definition.id) {
+    if (packet && registryId === packet.definition.id) {
       entries.push([packet.definition.id, packet])
     }
   }
@@ -460,7 +460,7 @@ export function normalizeRivalExpeditionClueRegistry(
     if (
       signal &&
       matchesPacket &&
-      normalizeId(registryId) === signal.id &&
+      registryId === signal.id &&
       !clueById.has(signal.id)
     ) {
       clueById.set(signal.id, signal)

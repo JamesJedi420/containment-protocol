@@ -194,6 +194,37 @@ This seam does not persist the ownership result and does not insert department f
 triage, routing state, team readiness, or candidate scores/order. It also does not grant the
 department-to-unit permission owned by SPE-2088.
 
+### Cross-department coordination boundary (SPE-2084)
+
+`evaluateMissionIntakeDepartmentCoordination` composes the SPE-2083 advisory assignment with
+caller-owned ordered queue/capacity snapshots and delegates to the pure
+`departmentCoordination.ts` evaluator:
+
+- every assigned or fallback department requires exactly one valid snapshot with ordered,
+  duplicate-free case IDs and non-negative integer weekly capacity
+- custom fallback aliases and linked IDs are revalidated with the same authority graph used by
+  SPE-2083 assignment resolution
+- zero capacity, missing/malformed snapshots, duplicate department assignments, or unresolved
+  authored definitions fail closed as `blocked`
+- if the evaluated case is already queued, its existing position is used; otherwise it is
+  evaluated as the next queue item
+- departments work in parallel, so the maximum wait is the queue delay; equal bottlenecks use
+  code-unit department ID order
+- the exported `DEPARTMENT_DOCTRINE_CONFLICT_PAIRS` table is the bounded policy for which authored
+  biases conflict; any matching pair produces `disputed`
+- queue saturation, cooperation below the exported reputation threshold, or an explicit SPE-2083
+  fallback adds delay; when no doctrine conflict exists, the outcome is `delayed`, while compatible
+  work with available capacity is `aligned`
+- structured reason codes and immutable inputs/results keep replay independent of caller ordering
+
+This is a read seam, not a new queue owner. SPE-1028 owns any future durable department workshop
+queues, enqueue/dequeue policy, capacity progression, and week-close advancement. SPE-1200 owns
+interdisciplinary scientific model conflict, synthesis, and persisted case policy; SPE-2084 only
+reports conflicts already implied by authored department doctrine. The evaluator does not read or
+write the global case queue, mission routing state, team ranking, SPE-2088 authorization, or
+SPE-95's global `coordinationFrictionActive` outcome-downgrade lane, so callers must not add the
+SPE-2084 delay to SPE-95 as a second global penalty.
+
 ### Department-to-specialist-unit authorization boundary (SPE-2088)
 
 `authorizeDepartmentUnitHandoff` composes the existing authority and specialist-unit owners

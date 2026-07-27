@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { useGameStore } from '../app/store/gameStore'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import type { AuthorityGraphState } from '../domain/authorityGraphPersistence'
@@ -88,6 +89,27 @@ function createAuthorityRoutingState(options: AuthorityRoutingStateOptions = {})
   return state
 }
 
+function createAuthorityMajorIncidentRoutingState(
+  options: AuthorityRoutingStateOptions = {}
+): GameState {
+  const state = createAuthorityRoutingState(options)
+  state.cases['case-001'] = {
+    ...state.cases['case-001'],
+    kind: 'raid',
+    raid: { minTeams: 1, maxTeams: 1 },
+    majorIncident: {
+      incidentId: 'case-001:authority-routing-test',
+      strategy: 'balanced',
+      provisions: [],
+      durationWeeks: 2,
+      requiredTeams: 1,
+      difficulty: 1,
+      modifiers: [],
+    },
+  }
+  return state
+}
+
 describe('SPE-2725 persisted mission_access authority routing', () => {
   it('maps one sanitized denying edge to a blocked route without changing candidate ranking', () => {
     const state = createAuthorityRoutingState()
@@ -122,6 +144,70 @@ describe('SPE-2725 persisted mission_access authority routing', () => {
     expect(routed.rankedCandidates).toEqual(baselineCandidates)
     expect(triageMission(state, state.cases['case-001'])).toEqual(baselineTriage)
     expect(routeMissionToTeam(state, 'case-001', routed.candidateTeamIds[0]!).assigned).toBe(false)
+  })
+
+  it('blocks the standard store assignment action when mission_access authority denies routing', () => {
+    const state = createAuthorityRoutingState()
+    const candidateTeamId = routeMission(state, 'case-001').candidateTeamIds[0]
+
+    expect(candidateTeamId).toBeDefined()
+
+    useGameStore.setState({ game: structuredClone(state) })
+
+    useGameStore.getState().assign('case-001', candidateTeamId!)
+
+    const game = useGameStore.getState().game
+    expect(game.cases['case-001'].assignedTeamIds).toEqual([])
+    expect(game.cases['case-001'].status).toBe('open')
+    expect(game.teams[candidateTeamId!]?.status?.assignedCaseId).not.toBe('case-001')
+  })
+
+  it('keeps the standard store assignment action available when mission_access authority grants routing', () => {
+    const state = createAuthorityRoutingState({ edgeStrength: 70 })
+    const candidateTeamId = routeMission(state, 'case-001').candidateTeamIds[0]
+
+    expect(candidateTeamId).toBeDefined()
+
+    useGameStore.setState({ game: structuredClone(state) })
+
+    useGameStore.getState().assign('case-001', candidateTeamId!)
+
+    const game = useGameStore.getState().game
+    expect(game.cases['case-001'].assignedTeamIds).toEqual([candidateTeamId])
+    expect(game.cases['case-001'].status).toBe('in_progress')
+    expect(game.teams[candidateTeamId!]?.status?.assignedCaseId).toBe('case-001')
+  })
+
+  it('blocks the major-incident launch action when mission_access authority denies routing', () => {
+    const state = createAuthorityMajorIncidentRoutingState()
+    const candidateTeamId = routeMission(state, 'case-001').candidateTeamIds[0]
+
+    expect(candidateTeamId).toBeDefined()
+
+    useGameStore.setState({ game: structuredClone(state) })
+
+    useGameStore.getState().launchMajorIncident('case-001', [candidateTeamId!])
+
+    const game = useGameStore.getState().game
+    expect(game.cases['case-001'].assignedTeamIds).toEqual([])
+    expect(game.cases['case-001'].status).toBe('open')
+    expect(game.teams[candidateTeamId!]?.status?.assignedCaseId).not.toBe('case-001')
+  })
+
+  it('keeps the major-incident launch action available when mission_access authority grants routing', () => {
+    const state = createAuthorityMajorIncidentRoutingState({ edgeStrength: 70 })
+    const candidateTeamId = routeMission(state, 'case-001').candidateTeamIds[0]
+
+    expect(candidateTeamId).toBeDefined()
+
+    useGameStore.setState({ game: structuredClone(state) })
+
+    useGameStore.getState().launchMajorIncident('case-001', [candidateTeamId!])
+
+    const game = useGameStore.getState().game
+    expect(game.cases['case-001'].assignedTeamIds).toEqual([candidateTeamId])
+    expect(game.cases['case-001'].status).toBe('in_progress')
+    expect(game.teams[candidateTeamId!]?.status?.assignedCaseId).toBe('case-001')
   })
 
   it('applies the authority consequence when every ranked team is otherwise ineligible', () => {

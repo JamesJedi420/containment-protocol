@@ -149,6 +149,7 @@ import {
   applyMissionTriageDisposition,
   clearMissionTriageDisposition,
   recomputeMissionRouting,
+  routeMission,
   routeMissionToTeam,
 } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
@@ -1205,11 +1206,34 @@ export const useGameStore = create<GameStore>()(
       clearContractNextIntent: () => set((s) => ({ game: clearContractNextIntent(s.game) })),
 
       launchMajorIncident: (caseId, teamIds, strategy = 'balanced', provisions = []) =>
-        set((s) => ({
-          game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
-        })),
+        set((s) => {
+          if (
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: s.game }
+          }
 
-      assign: (caseId, teamId) => set((s) => ({ game: assignTeam(s.game, caseId, teamId) })),
+          return {
+            game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
+          }
+        }),
+
+      assign: (caseId, teamId) =>
+        set((s) => {
+          const routed = routeMissionToTeam(s.game, caseId, teamId)
+          if (
+            !routed.assigned &&
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: routed.state }
+          }
+
+          return { game: assignTeam(s.game, caseId, teamId) }
+        }),
 
       unassign: (caseId, teamId) => set((s) => ({ game: unassignTeam(s.game, caseId, teamId) })),
 

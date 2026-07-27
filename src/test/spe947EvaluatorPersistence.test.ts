@@ -210,6 +210,37 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     })
   })
 
+  it('preserves explicitly empty evaluator maps over non-empty hydrate fallback', () => {
+    const fallback = createStartingState()
+    Object.assign(fallback, SPE_947_EXAMPLE_PERSISTENCE_FIXTURE)
+
+    const hydrated = hydrateGame(
+      {
+        ...createStartingState(),
+        spe947PlatformRecords: {},
+        spe947OperationRecords: {},
+        spe947ContentArtifacts: {},
+        spe947CounterMemeticPlans: {},
+        spe947ContentOwners: {},
+        spe947PostCaseMediaCases: {},
+        spe947FootageExposureBindings: {},
+        spe947TakedownResistanceBindings: {},
+        spe947VisualTriggerHazardBindings: {},
+      },
+      fallback
+    )
+
+    expect(hydrated.spe947PlatformRecords).toEqual({})
+    expect(hydrated.spe947OperationRecords).toEqual({})
+    expect(hydrated.spe947ContentArtifacts).toEqual({})
+    expect(hydrated.spe947CounterMemeticPlans).toEqual({})
+    expect(hydrated.spe947ContentOwners).toEqual({})
+    expect(hydrated.spe947PostCaseMediaCases).toEqual({})
+    expect(hydrated.spe947FootageExposureBindings).toEqual({})
+    expect(hydrated.spe947TakedownResistanceBindings).toEqual({})
+    expect(hydrated.spe947VisualTriggerHazardBindings).toEqual({})
+  })
+
   it('feeds SPE-2568–2573 evaluators from persisted shape with EXAMPLE-equivalent decisions', () => {
     const maps = SPE_947_EXAMPLE_PERSISTENCE_FIXTURE
 
@@ -295,7 +326,7 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     ).toBeNull()
   })
 
-  it('drops invalid post-case media cases and nested artifacts without throwing', () => {
+  it('drops post-case media cases with invalid nested artifacts before evaluation', () => {
     const sanitized = sanitizeSpe947PostCaseMediaCases({
       valid: EXAMPLE_PERSISTING_POST_CASE_MEDIA,
       invalidThreshold: {
@@ -324,8 +355,16 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
 
     expect(sanitized['case:site-echo-7']).toEqual(EXAMPLE_PERSISTING_POST_CASE_MEDIA)
     expect(sanitized['case:bad-threshold']).toBeUndefined()
-    expect(sanitized['case:bad-artifact']).toBeDefined()
-    expect(sanitized['case:bad-artifact']?.mediaArtifacts).toEqual([])
+    expect(sanitized['case:bad-artifact']).toBeUndefined()
+
+    const decision = evaluatePostCaseMediaPersistence(
+      resolvePostCaseMediaPersistenceInput(
+        { spe947PostCaseMediaCases: sanitized },
+        'case:bad-artifact'
+      )
+    )
+    expect(decision.outcome).toBe('blocked')
+    expect(decision.reasonCodes).toContain('missing_evaluation_input')
   })
 
   it('round-trips adaptation and commercialization post-case media kinds through sanitize (SPE-2606)', () => {

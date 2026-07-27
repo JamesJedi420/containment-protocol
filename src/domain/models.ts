@@ -43,6 +43,7 @@ export type MissionRoutingBlockerCode =
   | 'training-blocked'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'authority-mission-access-restricted'
   | 'site-clearance-required'
   | 'dual-loyalty-restricted'
   | 'protected-status-restricted'
@@ -228,7 +229,10 @@ export interface IncidentToCampaignPacket {
 
 // Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass)
 export interface LegitimacyState {
+  /** Institutional authorization posture. Existing values remain stable for persisted campaigns. */
   sanctionLevel: 'sanctioned' | 'covert' | 'tolerated' | 'unsanctioned'
+  /** Operational exposure posture, distinct from institutional authorization (SPE-2719). */
+  operationalCoverLevel?: 'open' | 'deniable' | 'compromised'
   accessReason?: string
   falloutRisk?: 'none' | 'risk' | 'costly'
 }
@@ -321,6 +325,7 @@ import type {
 } from './spe947MediaEconomyContinuity'
 import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
 import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
+import type { AuthorityGraphState } from './authorityGraphPersistence'
 import type {
   Spe956AsyncDiscussionSurfaceRecordsMap,
   Spe956CollectiveMemoryChannelRecordsMap,
@@ -478,8 +483,10 @@ export type StatBlock = Record<StatKey, number> & Record<string, number>
 export type WeightBlock = Record<StatKey, number> & Record<string, number>
 export const BASE_STAT_MAX = 100
 
-export type CaseMode = 'threshold' | 'probability' | 'deterministic' | 'standard'
-export type CaseKind = 'case' | 'raid' | 'standard' | 'anomaly'
+export const CASE_MODES = ['threshold', 'probability', 'deterministic', 'standard'] as const
+export type CaseMode = (typeof CASE_MODES)[number]
+export const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const
+export type CaseKind = (typeof CASE_KINDS)[number]
 export type CaseStatus = 'open' | 'in_progress' | 'resolved'
 
 export type AgentAssignmentStateKind = 'idle' | 'assigned' | 'recovery' | 'training'
@@ -818,6 +825,31 @@ export interface MissionRewardFactionStanding {
   overlapTags: string[]
 }
 
+export type AgencyStandingDangerBand = 'routine' | 'elevated' | 'high' | 'extreme'
+
+export interface AgencyStandingFactor {
+  id: 'danger' | 'outcome' | 'duration' | 'repeat'
+  label: string
+  multiplier: number
+  detail: string
+}
+
+export interface AgencyStandingAward {
+  points: number
+  rawPoints: number
+  basePoints: number
+  dangerScore: number
+  dangerBand: AgencyStandingDangerBand
+  dangerMultiplier: number
+  outcomeMultiplier: number
+  durationMultiplier: number
+  repeatMultiplier: number
+  priorSimilarCompletions: number
+  repeatKey: string
+  factors: readonly AgencyStandingFactor[]
+  summary: string
+}
+
 export interface MissionRewardBreakdown {
   outcome: MissionResolutionKind
   caseType: string
@@ -835,6 +867,8 @@ export interface MissionRewardBreakdown {
   containmentDelta: number
   strategicValueDelta: number
   reputationDelta: number
+  /** Present on newly resolved operations; optional for legacy persisted reports. */
+  agencyStanding?: AgencyStandingAward
   inventoryRewards: readonly MissionRewardInventoryGrant[]
   factionStanding: readonly MissionRewardFactionStanding[]
   label: string
@@ -1562,6 +1596,9 @@ export type ReportNoteType =
   | 'faction.standing_changed'
   | 'faction.unlock_available'
   | 'agency.containment_updated'
+  | 'agency.cross_jurisdiction_coordination'
+  | 'agency.hidden_cell_interference'
+  | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'
@@ -2089,6 +2126,12 @@ export interface ResearchState {
   researchSpeedMultiplier: number
   researchDataPool: number
   researchMaterialsPool: number
+  /** SPE-2706: closed week of last applied hidden-cell research rollback (idempotency). */
+  lastHiddenCellRollbackWeek?: number
+  /** SPE-2706: project targeted by last applied research rollback. */
+  lastHiddenCellRollbackProjectId?: string
+  /** SPE-2706: progressTime weeks removed by last applied research rollback. */
+  lastHiddenCellRollbackAmount?: number
 }
 
 export type AgentAttritionStatus = 'active' | 'at_risk' | 'temporarily_unavailable' | 'lost'
@@ -2331,6 +2374,43 @@ export interface AgencyState {
    * Each damaged item or recovery job consumes 1 maintenance specialist per week.
    */
   maintenanceSpecialistsAvailable?: number
+  /**
+   * SPE-2710: closed week when hidden-cell infrastructure compromise last drained maintenance capacity.
+   * Paired with lastHiddenCellInfrastructureCompromiseAmount for per-week idempotency.
+   */
+  lastHiddenCellInfrastructureCompromiseWeek?: number
+  /** SPE-2710: specialists drained on lastHiddenCellInfrastructureCompromiseWeek. */
+  lastHiddenCellInfrastructureCompromiseAmount?: number
+  /**
+   * SPE-2714: cumulative abstract covert-cell growth level (0–20).
+   * Not a per-cell entity count — pressure intensity only.
+   */
+  hiddenCellCovertGrowthLevel?: number
+  /**
+   * SPE-2714: cumulative intelligence-driven detection-narrowing progress (0–100).
+   * Maps to vague/regional/sector/imminent bands; no location truth.
+   */
+  hiddenCellDetectionNarrowing?: number
+  /**
+   * SPE-2714: closed week when covert growth / detection narrowing last applied.
+   * Paired with lastHiddenCellCovertGrowthAmount / lastHiddenCellDetectionNarrowingAmount.
+   */
+  lastHiddenCellCovertGrowthWeek?: number
+  /** SPE-2714: growth points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellCovertGrowthAmount?: number
+  /** SPE-2714: narrowing points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellDetectionNarrowingAmount?: number
+  /**
+   * SPE-2718: closed week when status upkeep / public-display adequacy was last assessed.
+   * Captured from pre-operating-cost funding (advanceWeek clamps post-cost funding to ≥ 0).
+   */
+  lastStatusUpkeepWeek?: number
+  /** SPE-2718: adequacy band for lastStatusUpkeepWeek. */
+  lastStatusUpkeepBand?: 'maintained' | 'underfunded' | 'neutral'
+  /** SPE-2718: funding available before operating cost on lastStatusUpkeepWeek. */
+  lastStatusUpkeepFundingBefore?: number
+  /** SPE-2718: SPE-28 operating-cost amount assessed on lastStatusUpkeepWeek. */
+  lastStatusUpkeepOperatingCost?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**
@@ -2390,6 +2470,8 @@ export interface ExternalSupportAsset {
   tags: string[]
   /** Optional free-text reason for the last reliability change, for report surfacing. */
   lastDriftReason?: string
+  /** SPE-2722: campaign week of the last applied authority-backed faction consequence. */
+  lastAuthorityConsequenceWeek?: number
 }
 
 // ── SPE-109: District time-cadence encounter scheduling ──────────────────────
@@ -2590,6 +2672,11 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /**
+   * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
+   * Optional for direct legacy states; hydration supplies a canonical empty foundation.
+   */
+  authorityGraphState?: AuthorityGraphState
   /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
   districtScheduleState?: DistrictScheduleState
   /** Agency-side external support assets with reliability/trust state (SPE-93). */
@@ -2607,6 +2694,13 @@ export interface GameState {
   productionQueue: ProductionQueueEntry[]
   market: MarketState
   globalPressure?: number
+  /**
+   * SPE-2707: closed week when hidden-cell panic amplification last applied to globalPressure.
+   * Paired with lastHiddenCellPanicAmplificationAmount for per-week idempotency.
+   */
+  lastHiddenCellPanicAmplificationWeek?: number
+  /** SPE-2707: ambient pressure points added on lastHiddenCellPanicAmplificationWeek. */
+  lastHiddenCellPanicAmplificationAmount?: number
   globalEscalationLevel?: number
   globalThreatDrift?: number
   globalTimePressure?: number

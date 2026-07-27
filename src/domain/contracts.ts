@@ -5,6 +5,7 @@ import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
 import { sanitizePersistedFieldBasePacket } from './fieldBaseStaging'
 import { createMissionIntelState } from './intel'
 import { clamp, createSeededRng, normalizeSeed } from './math'
+import { applyRivalPressureToContractScalar, buildRivalPressure } from './rivalPressure'
 import { getCompletedResearchUnlockIds } from './research'
 import {
   buildContractInventoryRewards,
@@ -1596,7 +1597,8 @@ function buildRewardPackage(
   const rewardBonus = definition.modifiers
     .filter((modifier) => modifier.effect === 'reward_bonus')
     .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
-  const scalar = clamp(rewardMultiplier + rewardBonus * 0.1, 0.6, 1.9)
+  const factionScalar = clamp(rewardMultiplier + rewardBonus * 0.1, 0.6, 1.9)
+  const scalar = applyRivalPressureToContractScalar(factionScalar, buildRivalPressure(state))
 
   return {
     funding: Math.max(0, Math.round(definition.baseRewards.funding * scalar)),

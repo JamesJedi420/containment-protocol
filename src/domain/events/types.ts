@@ -16,13 +16,7 @@ import type {
 } from '../models'
 
 export type OperationEventSourceSystem =
-  | 'assignment'
-  | 'incident'
-  | 'intel'
-  | 'agent'
-  | 'production'
-  | 'faction'
-  | 'system'
+  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -35,9 +29,7 @@ export type CaseSpawnTrigger =
   | 'pressure_threshold'
 
 export type MarketTransactionListingResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -370,7 +362,7 @@ export interface OperationEventPayloadMap {
     confidence: Exclude<PotentialIntelConfidence, 'unknown'>
     previousProjectedTier?: ExactPotentialTier
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
-    confirmedTier?: ExactPotentialTier
+    confirmedTier: ExactPotentialTier
     revealLevel: number
     sourceFactionId?: string
     sourceFactionName?: string
@@ -430,10 +422,7 @@ export interface OperationEventPayloadMap {
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -448,10 +437,7 @@ export interface OperationEventPayloadMap {
     }
     allocations?: Array<{
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -506,8 +492,12 @@ export interface OperationEventPayloadMap {
     containmentRatingAfter: number
     /** Count of emergency waiver grants driving precedent pressure on this tick. */
     waiverPrecedentCount: number
-    /** Bounded multiplier applied to base fallout penalty bands (deterministic from precedent). */
+    /** Bounded multiplier from waiver precedent only (not standing). */
     precedentPenaltyMultiplier: number
+    /** Agency ranking score that produced {@link standingFalloutPenaltyScale}. */
+    rankingScore: number
+    /** Standing-shaped scale composed with precedent on penalty bands (SPE-2705). */
+    standingFalloutPenaltyScale: number
     institutionKey: string
   }
   'faction.standing_changed': {

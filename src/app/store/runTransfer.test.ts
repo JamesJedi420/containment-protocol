@@ -58,6 +58,7 @@ import { buildHavenSchedule } from '../../domain/settlements/haven'
 import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { generateHubState } from '../../domain/hub/hubState'
+import { placeDelayedMarketOrder } from '../../domain/sim/market'
 
 describe('runTransfer helpers', () => {
   it('preserves fallback affiliation file work queue evidence repair workflows for older saves', () => {
@@ -475,6 +476,49 @@ describe('runTransfer helpers', () => {
       },
     ])
     expect(roundTripped.market).toEqual(game.market)
+  })
+
+  it('preserves delayed supplier order and fulfillment actions on import hydration', () => {
+    const ordered = placeDelayedMarketOrder(createStartingState(), 'gear:field_plate', 1)
+    const orderEvent = ordered.events.at(-1)
+
+    expect(orderEvent?.type).toBe('market.transaction_recorded')
+    if (orderEvent?.type !== 'market.transaction_recorded') {
+      throw new Error('Expected delayed supplier order to record a market transaction')
+    }
+    expect(orderEvent.payload.action).toBe('order')
+
+    const fulfillmentWeek = ordered.week + 1
+    const gameWithFulfillment = {
+      ...ordered,
+      week: fulfillmentWeek,
+      market: {
+        ...ordered.market,
+        week: fulfillmentWeek,
+      },
+      events: [
+        ...ordered.events,
+        {
+          ...orderEvent,
+          id: 'event-market-fulfill-test',
+          timestamp: buildOperationEventTimestamp(fulfillmentWeek, 2),
+          payload: {
+            ...orderEvent.payload,
+            week: fulfillmentWeek,
+            marketWeek: fulfillmentWeek,
+            transactionId: 'market-fulfill-test',
+            action: 'fulfill' as const,
+          },
+        },
+      ],
+    }
+
+    const roundTripped = parseRunExport(serializeRunExport(gameWithFulfillment))
+    const marketActions = roundTripped.events
+      .filter((event) => event.type === 'market.transaction_recorded')
+      .map((event) => event.payload.action)
+
+    expect(marketActions).toEqual(['order', 'fulfill'])
   })
 
   it('round-trips agency progression unlocks and active protocols', () => {
@@ -918,6 +962,62 @@ describe('runTransfer helpers', () => {
       ])
     )
     expect(roundTripped.events).toHaveLength(game.events.length)
+  })
+
+  it('reconciles instructor assignment bonus and specialty on import hydration', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame({
+      ...stripGameTemplates(fallback),
+      events: [
+        {
+          id: 'evt-instructor-assigned-raw',
+          type: 'agent.instructor_assigned',
+          timestamp: buildOperationEventTimestamp(2, 0),
+          payload: {
+            week: 2,
+            staffId: 'staff-instructor-01',
+            instructorName: 'Iris Vale',
+            agentId: 'a_mina',
+            agentName: 'Mina Park',
+            instructorSpecialty: 'not-a-stat',
+            bonus: -1.5,
+          },
+        },
+        {
+          id: 'evt-instructor-unassigned-raw',
+          type: 'agent.instructor_unassigned',
+          timestamp: buildOperationEventTimestamp(2, 1),
+          payload: {
+            week: 2,
+            staffId: 'staff-instructor-01',
+            instructorName: 'Iris Vale',
+            agentId: 'a_mina',
+            agentName: 'Mina Park',
+            instructorSpecialty: 'utility',
+            bonus: '3.2',
+          },
+        },
+      ],
+    })
+
+    expect(hydrated.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'agent.instructor_assigned',
+          payload: expect.objectContaining({
+            instructorSpecialty: 'combat',
+            bonus: 0,
+          }),
+        }),
+        expect.objectContaining({
+          type: 'agent.instructor_unassigned',
+          payload: expect.objectContaining({
+            instructorSpecialty: 'utility',
+            bonus: 3,
+          }),
+        }),
+      ])
+    )
   })
 
   it('assigns deterministic migrated ids for legacy events missing ids', () => {
@@ -1498,6 +1598,59 @@ describe('runTransfer helpers', () => {
     })
   })
 
+  it('repairs legacy directive.applied events but drops invalid current-schema events', () => {
+    const fallback = createStartingState()
+    const imported = parseRunExport(
+      JSON.stringify({
+        kind: RUN_EXPORT_KIND,
+        version: GAME_STORE_VERSION,
+        exportedAt: new Date().toISOString(),
+        game: {
+          ...fallback,
+          week: 2,
+          events: [
+            {
+              id: 'evt-legacy-directive',
+              schemaVersion: 1,
+              type: 'directive.applied',
+              sourceSystem: 'system',
+              timestamp: '2042-01-08T00:00:00.001Z',
+              payload: {
+                week: 2,
+                directiveId: 'retired-directive',
+                directiveLabel: 'Retired Directive',
+              },
+            },
+            {
+              id: 'evt-current-directive-mismatch',
+              schemaVersion: 2,
+              type: 'directive.applied',
+              sourceSystem: 'system',
+              timestamp: '2042-01-08T00:00:00.002Z',
+              payload: {
+                week: 2,
+                directiveId: 'intel-surge',
+                directiveLabel: 'Recovery Rotation',
+              },
+            },
+          ],
+        },
+      })
+    )
+
+    expect(imported.events).toHaveLength(1)
+    expect(imported.events[0]).toMatchObject({
+      id: 'evt-legacy-directive',
+      schemaVersion: 2,
+      type: 'directive.applied',
+      payload: {
+        week: 2,
+        directiveId: 'intel-surge',
+        directiveLabel: 'Intel Surge',
+      },
+    })
+  })
+
   it('sanitizes sparse agent.training_cancelled payloads with fallback defaults', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(
@@ -1537,7 +1690,7 @@ describe('runTransfer helpers', () => {
     })
   })
 
-  it('sanitizes legacy unknown training event payloads to catalog-backed IDs/names and bounded refund', () => {
+  it('sanitizes legacy unknown training event payloads to catalog-backed IDs/names and nonnegative refund', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(
       JSON.stringify({
@@ -1595,7 +1748,7 @@ describe('runTransfer helpers', () => {
       payload: {
         trainingId: 'combat-drills',
         trainingName: 'Close-Quarters Drills',
-        refund: 10,
+        refund: 999,
       },
     })
   })
@@ -5935,6 +6088,48 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('422a sanitizes the external-support authority consequence week marker', () => {
+      const fallback = createStartingState()
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 6,
+        externalSupportAssets: {
+          valid: {
+            id: 'valid',
+            label: 'Valid Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 6,
+          },
+          future: {
+            id: 'future',
+            label: 'Future Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 7,
+          },
+          malformed: {
+            id: 'malformed',
+            label: 'Malformed Contractor',
+            assetClass: 'contractor',
+            reliability: 70,
+            tags: [],
+            lastAuthorityConsequenceWeek: 2.5,
+          },
+        },
+      })
+
+      expect(hydrated.externalSupportAssets?.valid?.lastAuthorityConsequenceWeek).toBe(6)
+      expect(hydrated.externalSupportAssets?.future).not.toHaveProperty(
+        'lastAuthorityConsequenceWeek'
+      )
+      expect(hydrated.externalSupportAssets?.malformed).not.toHaveProperty(
+        'lastAuthorityConsequenceWeek'
+      )
+    })
+
     it('423 sanitizes faction reputation, contacts, history, favors, recruitUnlocks, and lore', () => {
       const fallback = createStartingState()
 
@@ -8404,13 +8599,14 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 470-477', () => {
-    it('470 sanitizes legitimacy sanctionLevel, falloutRisk, and accessReason', () => {
+    it('470 sanitizes legitimacy sanctionLevel, operationalCoverLevel, falloutRisk, and accessReason', () => {
       const fallback = createStartingState()
 
       const hydrated = hydrateGame({
         ...stripGameTemplates(fallback),
         legitimacy: {
           sanctionLevel: 'bogus',
+          operationalCoverLevel: 'invisible',
           falloutRisk: 'explosive',
           accessReason: '  audit posture  ',
         },
@@ -8418,10 +8614,25 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(hydrated.legitimacy).toBeUndefined()
 
+      const invalidCover = hydrateGame({
+        ...stripGameTemplates(fallback),
+        legitimacy: {
+          sanctionLevel: 'sanctioned',
+          operationalCoverLevel: 'invisible',
+          falloutRisk: 'risk',
+        },
+      })
+
+      expect(invalidCover.legitimacy).toEqual({
+        sanctionLevel: 'sanctioned',
+        falloutRisk: 'risk',
+      })
+
       const valid = hydrateGame({
         ...stripGameTemplates(fallback),
         legitimacy: {
           sanctionLevel: 'sanctioned',
+          operationalCoverLevel: 'deniable',
           falloutRisk: 'risk',
           accessReason: '  audit posture  ',
         },
@@ -8429,6 +8640,7 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(valid.legitimacy).toEqual({
         sanctionLevel: 'sanctioned',
+        operationalCoverLevel: 'deniable',
         falloutRisk: 'risk',
         accessReason: 'audit posture',
       })
@@ -10173,6 +10385,68 @@ describe('runTransfer import sanitization (326-332)', () => {
       ).toBe(false)
     })
 
+    it('SPE-2659 reconciles production queue numerics and preserves scaled fundingCost', () => {
+      const fallback = createStartingState()
+      const recipe = getProductionRecipe('ward-seals')!
+      const scaledFundingCost = recipe.baseFundingCost * 3
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-production-started-2659',
+            type: 'production.queue_started',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              queueId: 'q-2659',
+              queueName: 'Queue',
+              recipeId: 'ward-seals',
+              outputId: 'stale-output',
+              outputName: 'Stale Output',
+              outputQuantity: -2.7,
+              etaWeeks: 0,
+              fundingCost: scaledFundingCost,
+              inputMaterials: [],
+            },
+          },
+          {
+            id: 'evt-production-completed-2659',
+            type: 'production.queue_completed',
+            timestamp: buildOperationEventTimestamp(2, 1),
+            payload: {
+              week: 2,
+              queueId: 'q-2659',
+              queueName: 'Queue',
+              recipeId: 'ward-seals',
+              outputId: 'stale-output',
+              outputName: 'Stale Output',
+              outputQuantity: Number.NaN,
+              fundingCost: scaledFundingCost,
+              inputMaterials: [],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events).toHaveLength(2)
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        recipeId: 'ward-seals',
+        outputId: recipe.outputItemId,
+        outputName: recipe.outputItemName,
+        outputQuantity: 1,
+        etaWeeks: 1,
+        fundingCost: scaledFundingCost,
+      })
+      expect(hydrated.events[1]?.payload).toMatchObject({
+        recipeId: 'ward-seals',
+        outputId: recipe.outputItemId,
+        outputName: recipe.outputItemName,
+        outputQuantity: 1,
+        fundingCost: scaledFundingCost,
+      })
+    })
+
     it('510b keeps only catalog-backed nonnegative integer material rows for legacy unknown-recipe production events', () => {
       const fallback = createStartingState()
 
@@ -10530,7 +10804,122 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
-    it('513 clamps emergency waiver accountability waiverGrantWeek below event week', () => {
+    it('512 preserves producer multi-bundle totalPrice (unitPrice*quantity, not *bundleCount)', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-multi',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-multi',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 3,
+              bundleCount: 3,
+              unitPrice: 10,
+              totalPrice: 30,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 3,
+        bundleCount: 3,
+        unitPrice: 10,
+        totalPrice: 30,
+      })
+    })
+
+    it('512 preserves cent unitPrice totals within bundle drift', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-cents',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-cents',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 9,
+              bundleCount: 3,
+              unitPrice: 8.33,
+              totalPrice: 75,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 9,
+        bundleCount: 3,
+        unitPrice: 8.33,
+        totalPrice: 75,
+      })
+    })
+
+    it('512 rewrites overflowed unitPrice*quantity product to finite zero totalPrice', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-512-overflow',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              marketWeek: 2,
+              transactionId: 'market-2-512-overflow',
+              action: 'buy',
+              listingId: 'mat:binding_agent',
+              itemId: 'binding_agent',
+              itemName: 'Binding Agent',
+              category: 'material',
+              quantity: 2,
+              bundleCount: 1,
+              unitPrice: 1e307,
+              totalPrice: 1e307,
+              remainingAvailability: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        quantity: 2,
+        bundleCount: 1,
+        unitPrice: 1e307,
+        totalPrice: 0,
+      })
+    })
+
+    it.each([
+      ['after the closure week', 99],
+      ['during the closure week', 5],
+      ['too early for the canonical window', 2],
+    ])('513 reconciles emergency waiver accountability grant week %s', (_case, waiverGrantWeek) => {
       const fallback = createStartingState()
 
       const hydrated = hydrateGame({
@@ -10543,7 +10932,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             timestamp: buildOperationEventTimestamp(5, 0),
             payload: {
               week: 5,
-              waiverGrantWeek: 99,
+              waiverGrantWeek,
               institutionKey: 'containment_protocol',
             },
           },
@@ -10555,6 +10944,29 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(payload.waiverGrantWeek).toBeLessThan(payload.week ?? 0)
       expect(payload.waiverGrantWeek).toBeLessThanOrEqual(hydrated.week)
       expect(payload.waiverGrantWeek).toBe(4)
+    })
+
+    it('513 drops an emergency waiver accountability closure in campaign week one', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 1,
+        events: [
+          {
+            id: 'evt-waiver-closed-513-impossible',
+            type: 'market.emergency_gray_market_waiver_accountability_closed',
+            timestamp: buildOperationEventTimestamp(1, 0),
+            payload: {
+              week: 1,
+              waiverGrantWeek: 1,
+              institutionKey: 'containment_protocol',
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events).toEqual([])
     })
 
     it('514-515 reconcile standing, reputation, and contact relationship deltas', () => {
@@ -10683,6 +11095,100 @@ describe('runTransfer import sanitization (326-332)', () => {
         previousLevel: 4,
         newLevel: 4,
         levelsGained: 0,
+      })
+    })
+
+    it('SPE-2652 trims agent.promoted newRole before role allowlist on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-promoted-role-trim',
+            type: 'agent.promoted',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              agentId: Object.keys(fallback.agents)[0]!,
+              agentName: 'Agent',
+              newRole: ' medic ',
+              previousLevel: 2,
+              newLevel: 3,
+              levelsGained: 1,
+              skillPointsGranted: 1,
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        newRole: 'medic',
+        previousLevel: 2,
+        newLevel: 3,
+        levelsGained: 1,
+        skillPointsGranted: 1,
+      })
+    })
+
+    it('SPE-2654 reconciles agent.betrayed trust damage on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-betrayed-2654',
+            type: 'agent.betrayed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              betrayerId: Object.keys(fallback.agents)[0]!,
+              betrayerName: 'Agent',
+              betrayedId: Object.keys(fallback.agents)[1] ?? 'a_counterpart',
+              betrayedName: 'Counterpart',
+              trustDamageDelta: -0.4,
+              trustDamageTotal: 0.1,
+              triggeredConsequences: ['benching'],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        trustDamageDelta: 0,
+        trustDamageTotal: 0.1,
+        triggeredConsequences: ['benching'],
+      })
+    })
+
+    it('SPE-2654 lifts agent.betrayed trustDamageTotal to trustDamageDelta on hydrate', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-betrayed-total-2654',
+            type: 'agent.betrayed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              betrayerId: Object.keys(fallback.agents)[0]!,
+              betrayerName: 'Agent',
+              betrayedId: Object.keys(fallback.agents)[1] ?? 'a_counterpart',
+              betrayedName: 'Counterpart',
+              trustDamageDelta: 0.9,
+              trustDamageTotal: 0.2,
+              triggeredConsequences: [],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        trustDamageDelta: 0.9,
+        trustDamageTotal: 0.9,
       })
     })
 
@@ -13120,18 +13626,26 @@ describe('runTransfer import sanitization (326-332)', () => {
         falloutRiskBefore: 'risk',
         falloutRiskAfter: 'costly',
         fundingBefore: 500,
-        fundingAfter: 500,
+        fundingAfter: 499,
         containmentRatingBefore: 60,
-        containmentRatingAfter: 60,
+        containmentRatingAfter: 59,
+        waiverPrecedentCount: 1,
+        precedentPenaltyMultiplier: 1,
+        rankingScore: 50,
+        standingFalloutPenaltyScale: 1,
       })
       expect(hydrated.events[1]?.payload).toMatchObject({
         outcome: 'resolved_closed',
         falloutRiskBefore: 'costly',
         falloutRiskAfter: 'none',
         fundingBefore: 400,
-        fundingAfter: 400,
+        fundingAfter: 399,
         containmentRatingBefore: 55,
-        containmentRatingAfter: 55,
+        containmentRatingAfter: 54,
+        waiverPrecedentCount: 2,
+        precedentPenaltyMultiplier: 1.06,
+        rankingScore: 50,
+        standingFalloutPenaltyScale: 1,
       })
     })
 

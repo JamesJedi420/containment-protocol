@@ -143,4 +143,21 @@ describe('publicDisclosureSegmentedTrustOutcomeProjection (SPE-861 slice 3)', ()
 
     expect(first).toBe(second)
   })
+
+  it('applies post-exposure trust delta to segment bands (SPE-2701)', () => {
+    const records = { [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE }
+    const baseline = projectPublicDisclosureSegmentedTrustOutcome(records)
+    const protective = projectPublicDisclosureSegmentedTrustOutcome(records, null, {
+      postExposureTrustDelta: 0.08,
+    })
+    const coastalBaseline = baseline.segmentEntries.find(
+      (entry) => entry.segmentLabel === 'Coastal Metro'
+    )
+    const coastalProtective = protective.segmentEntries.find(
+      (entry) => entry.segmentLabel === 'Coastal Metro'
+    )
+
+    expect(coastalBaseline?.trustBandLabel).toBe('Low')
+    expect(coastalProtective?.trustBandLabel).toBe('Moderate')
+  })
 })

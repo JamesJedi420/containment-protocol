@@ -186,9 +186,9 @@ describe('simulation validation pass', () => {
           "escalationTrend": [
             0,
             0,
-            0,
+            1,
           ],
-          "formatted": "low-intel | firstFailure=1 | dominant=intel | weeks=3 | unresolved=[3, 5, 9] | attrition=[0, 0, 0] | budget=[1, 2, 4] | escalation=[0, 0, 0] | intel=[0.18, 0.48, 0.6] | missions=success:1, partial:1, fail:0, unresolved:4",
+          "formatted": "low-intel | firstFailure=1 | dominant=intel | weeks=3 | unresolved=[3, 5, 9] | attrition=[0, 0, 0] | budget=[1, 2, 4] | escalation=[0, 0, 1] | intel=[0.18, 0.48, 0.6] | missions=success:1, partial:1, fail:0, unresolved:4",
           "intelConfidenceTrend": [
             0.18,
             0.48,
@@ -226,9 +226,9 @@ describe('simulation validation pass', () => {
           "escalationTrend": [
             24,
             36,
-            36,
+            37,
           ],
-          "formatted": "high-escalation | firstFailure=1 | dominant=escalation | weeks=3 | unresolved=[6, 7, 9] | attrition=[0, 0, 0] | budget=[2, 4, 3] | escalation=[24, 36, 36] | intel=[1, 0.97, 0.92] | missions=success:1, partial:1, fail:0, unresolved:10",
+          "formatted": "high-escalation | firstFailure=1 | dominant=escalation | weeks=3 | unresolved=[6, 7, 9] | attrition=[0, 0, 0] | budget=[2, 4, 3] | escalation=[24, 36, 37] | intel=[1, 0.97, 0.92] | missions=success:1, partial:1, fail:0, unresolved:10",
           "intelConfidenceTrend": [
             1,
             0.97,
@@ -274,13 +274,13 @@ describe('simulation validation pass', () => {
           "escalationTrend": [
             0,
             0,
-            0,
             1,
             1,
-            1,
-            1,
+            2,
+            2,
+            3,
           ],
-          "formatted": "high-budget-pressure | firstFailure=1 | dominant=budget | weeks=7 | unresolved=[3, 5, 7, 7, 7, 7, 8] | attrition=[0, 0, 0, 0, 0, 0, 0] | budget=[4, 3, 4, 4, 4, 4, 4] | escalation=[0, 0, 0, 1, 1, 1, 1] | intel=[1, 0.98, 0.94, 0.82, 0.66, 0.46, 0.32] | missions=success:1, partial:7, fail:0, unresolved:22",
+          "formatted": "high-budget-pressure | firstFailure=1 | dominant=budget | weeks=7 | unresolved=[3, 5, 7, 7, 7, 7, 8] | attrition=[0, 0, 0, 0, 0, 0, 0] | budget=[4, 3, 4, 4, 4, 4, 4] | escalation=[0, 0, 1, 1, 2, 2, 3] | intel=[1, 0.98, 0.94, 0.82, 0.66, 0.46, 0.32] | missions=success:1, partial:7, fail:0, unresolved:22",
           "intelConfidenceTrend": [
             1,
             0.98,
@@ -360,10 +360,10 @@ describe('simulation validation pass', () => {
           "endedByGameOver": true,
           "escalationTrend": [
             24,
-            40,
             41,
+            42,
           ],
-          "formatted": "mixed-pressure | firstFailure=1 | dominant=escalation | weeks=3 | unresolved=[7, 7, 8] | attrition=[3, 3, 3] | budget=[3, 4, 4] | escalation=[24, 40, 41] | intel=[0.64, 0.12, 0.2] | missions=success:0, partial:0, fail:0, unresolved:17",
+          "formatted": "mixed-pressure | firstFailure=1 | dominant=escalation | weeks=3 | unresolved=[7, 7, 8] | attrition=[3, 3, 3] | budget=[3, 4, 4] | escalation=[24, 41, 42] | intel=[0.64, 0.12, 0.2] | missions=success:0, partial:0, fail:0, unresolved:17",
           "intelConfidenceTrend": [
             0.64,
             0.12,

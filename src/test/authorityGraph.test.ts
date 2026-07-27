@@ -29,6 +29,7 @@ function node(overrides: Partial<AuthorityGraphNode> & Pick<AuthorityGraphNode, 
     linkedFactionIds: overrides.linkedFactionIds,
     linkedPopulationIds: overrides.linkedPopulationIds,
     linkedDepartmentIds: overrides.linkedDepartmentIds,
+    linkedUnitIds: overrides.linkedUnitIds,
     linkedSiteIds: overrides.linkedSiteIds,
     metadata: overrides.metadata,
   }
@@ -921,6 +922,7 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
           linkedFactionIds: ['scp-foundation-cover'],
           linkedPopulationIds: ['cohort-alpha'],
           linkedDepartmentIds: ['dept-records'],
+          linkedUnitIds: ['unit-records-research'],
           linkedSiteIds: ['site-omega'],
         }),
       ],
@@ -937,6 +939,7 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     }
 
     const tokens = collectAuthorityGraphTokens(graph)
+    expect(tokens).toContain('unit-records-research')
     expect(authorityGraphTokensContainFranchiseReferences(tokens)).toBe(true)
   })
 })

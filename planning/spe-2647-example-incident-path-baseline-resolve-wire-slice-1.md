@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2647](https://linear.app/spectranoir/
 | Field                | Value                                                                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**           | [SPE-2647 — SPE-956 EXAMPLE incident-path baseline resolve wire (post-Done follow-on)](https://linear.app/spectranoir/issue/SPE-2647) |
-| **Status**           | **In progress**                                                                                                                         |
+| **Status**           | **Shipped**                                                                                                                             |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) — remains **Done**; this issue does not reopen AC                              |
 | **Branch**           | `spe-2647-example-incident-path-baseline-resolve-wire-slice-1`                                                                          |
 | **Base `main` SHA**  | `af276547`                                                                                                                              |

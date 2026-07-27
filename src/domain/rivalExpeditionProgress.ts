@@ -452,6 +452,118 @@ function advanceValidPacket(
   })
 }
 
+function weeksUntilWorkComplete(remainingWork: number, pace: number): number {
+  return Math.floor((remainingWork - 1) / pace) + 1
+}
+
+/**
+ * Replays a zero-attrition head start by jumping over ordinary no-clue weeks.
+ * The loop is bounded by the three authored phase transitions, even when the
+ * definition uses very large safe-integer work or head-start values.
+ */
+function replayNoAttritionHeadStart(
+  initialPacket: RivalExpeditionProgressPacket,
+  currentWeek: number
+): {
+  readonly packet: RivalExpeditionProgressPacket
+  readonly clueSignals: readonly RivalExpeditionClueSignal[]
+} {
+  let packet = initialPacket
+  let nextWeek = packet.lastAdvancedWeek + 1
+  const clueSignals: RivalExpeditionClueSignal[] = []
+
+  while (nextWeek < currentWeek && !TERMINAL_PHASES.has(packet.phase)) {
+    const availableWeeks = currentWeek - nextWeek
+    let weeksToTransition: number
+    let progressBeforeTransition: number
+
+    switch (packet.phase) {
+      case 'searching': {
+        const remainingWork = packet.definition.searchWorkRequired - packet.searchProgress
+        weeksToTransition = weeksUntilWorkComplete(remainingWork, packet.definition.routePace)
+
+        if (availableWeeks < weeksToTransition) {
+          packet = freezePacket({
+            ...packet,
+            searchProgress: packet.searchProgress + availableWeeks * packet.definition.routePace,
+            lastAdvancedWeek: currentWeek - 1,
+          })
+          nextWeek = currentWeek
+          continue
+        }
+
+        progressBeforeTransition =
+          packet.searchProgress + (weeksToTransition - 1) * packet.definition.routePace
+        packet = freezePacket({
+          ...packet,
+          searchProgress: progressBeforeTransition,
+          lastAdvancedWeek: nextWeek + weeksToTransition - 2,
+        })
+        break
+      }
+      case 'extracting': {
+        weeksToTransition =
+          packet.definition.extractionWeeksRequired - packet.extractionWeeksElapsed
+
+        if (availableWeeks < weeksToTransition) {
+          packet = freezePacket({
+            ...packet,
+            extractionWeeksElapsed: packet.extractionWeeksElapsed + availableWeeks,
+            lastAdvancedWeek: currentWeek - 1,
+          })
+          nextWeek = currentWeek
+          continue
+        }
+
+        packet = freezePacket({
+          ...packet,
+          extractionWeeksElapsed: packet.extractionWeeksElapsed + weeksToTransition - 1,
+          lastAdvancedWeek: nextWeek + weeksToTransition - 2,
+        })
+        break
+      }
+      case 'retreating': {
+        const remainingWork = packet.definition.retreatWorkRequired - packet.retreatProgress
+        weeksToTransition = weeksUntilWorkComplete(remainingWork, packet.definition.routePace)
+
+        if (availableWeeks < weeksToTransition) {
+          packet = freezePacket({
+            ...packet,
+            retreatProgress: packet.retreatProgress + availableWeeks * packet.definition.routePace,
+            lastAdvancedWeek: currentWeek - 1,
+          })
+          nextWeek = currentWeek
+          continue
+        }
+
+        progressBeforeTransition =
+          packet.retreatProgress + (weeksToTransition - 1) * packet.definition.routePace
+        packet = freezePacket({
+          ...packet,
+          retreatProgress: progressBeforeTransition,
+          lastAdvancedWeek: nextWeek + weeksToTransition - 2,
+        })
+        break
+      }
+      case 'completed':
+      case 'lost':
+        continue
+    }
+
+    const transitionWeek = nextWeek + weeksToTransition - 1
+    const advanced = advanceValidPacket(packet, {
+      week: transitionWeek,
+      casualties: 0,
+      pacePenalty: 0,
+    })
+    packet = advanced.packet
+    clueSignals.push(...advanced.clueSignals)
+    nextWeek = transitionWeek + 1
+  }
+
+  return { packet, clueSignals }
+}
+
 export function advanceRivalExpeditionProgress(
   packet: RivalExpeditionProgressPacket,
   conditions: RivalExpeditionWeeklyConditions
@@ -555,26 +667,13 @@ export function initializeRivalExpeditionProgress(
     departedWeek,
     lastAdvancedWeek: departedWeek - 1,
   })
-  const clueSignals: RivalExpeditionClueSignal[] = []
-
-  for (let week = departedWeek; week < currentWeek; week += 1) {
-    const advanced = advanceValidPacket(packet, {
-      week,
-      casualties: 0,
-      pacePenalty: 0,
-    })
-    packet = advanced.packet
-    clueSignals.push(...advanced.clueSignals)
-
-    if (TERMINAL_PHASES.has(packet.phase)) {
-      break
-    }
-  }
+  const replayed = replayNoAttritionHeadStart(packet, currentWeek)
+  packet = replayed.packet
 
   return Object.freeze({
     status: 'ready',
     packet,
-    clueSignals: freezeSignals(clueSignals),
+    clueSignals: freezeSignals(replayed.clueSignals),
     issues: freezeIssues([]),
   })
 }

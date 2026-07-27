@@ -111,6 +111,32 @@ describe('rivalExpeditionProgress (SPE-2740)', () => {
     ])
   })
 
+  it('fast-forwards very large safe-integer head starts without per-week iteration', () => {
+    const result = initializeRivalExpeditionProgress(
+      {
+        ...DEFINITION,
+        headStartWeeks: Number.MAX_SAFE_INTEGER,
+        routePace: 1,
+        searchWorkRequired: Number.MAX_SAFE_INTEGER,
+        extractionWeeksRequired: Number.MAX_SAFE_INTEGER,
+        retreatWorkRequired: Number.MAX_SAFE_INTEGER,
+      },
+      Number.MAX_SAFE_INTEGER
+    )
+
+    expect(result.status).toBe('ready')
+    expect(result.packet).toMatchObject({
+      departedWeek: 0,
+      lastAdvancedWeek: Number.MAX_SAFE_INTEGER - 1,
+      phase: 'extracting',
+      searchProgress: Number.MAX_SAFE_INTEGER,
+      extractionWeeksElapsed: 0,
+    })
+    expect(result.clueSignals.map((signal) => [signal.week, signal.kind])).toEqual([
+      [Number.MAX_SAFE_INTEGER - 1, 'search_trace'],
+    ])
+  })
+
   it('advances searching through extraction and retreat on a deterministic calendar', () => {
     let packet = initialize()
 

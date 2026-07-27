@@ -29,7 +29,8 @@ casualty and pace inputs, and emits partial-information clue signals.
 - Define and validate authored expedition identity, route/objective references,
   head start, route pace, phase work, extraction duration, and personnel.
 - Initialize a self-contained immutable progress packet and replay exactly the
-  declared head-start weeks with no hidden attrition.
+  declared head-start weeks with no hidden attrition. Ordinary no-clue weeks
+  are fast-forwarded arithmetically so safe-integer inputs stay bounded.
 - Advance one contiguous campaign week per call, with casualties applied before
   phase progress and at most one phase transition in a week.
 - Use fixed search and retreat work thresholds; extraction advances by elapsed
@@ -53,7 +54,8 @@ casualty and pace inputs, and emits partial-information clue signals.
 ## Acceptance
 
 - [x] Invalid identifiers and timing/work/personnel fields fail validation.
-- [x] Head-start replay is deterministic and preserves one transition per week.
+- [x] Head-start replay is deterministic, bounded, and preserves one transition
+      per week.
 - [x] One packet advances searching → extracting → retreating → completed.
 - [x] Casualties and pace penalties are explicit, bounded, and non-mutating.
 - [x] Total-party attrition produces a terminal lost packet.

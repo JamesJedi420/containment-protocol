@@ -81,7 +81,8 @@ rival-expedition packet with `searching`, `extracting`, `retreating`,
 
 - Fixed work thresholds and caller-owned casualty/pace inputs keep progression
   deterministic and explainable.
-- Head-start weeks replay through the same single-week transition rule.
+- Head-start weeks replay through the same single-week transition rule, with
+  ordinary no-clue weeks fast-forwarded arithmetically.
 - At most one phase transition occurs per campaign week; progress never spills
   across phase boundaries.
 - Downstream systems may surface coarse clue signals for attrition or phase

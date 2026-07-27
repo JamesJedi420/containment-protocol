@@ -202,6 +202,8 @@ caller-owned ordered queue/capacity snapshots and delegates to the pure
 
 - every assigned or fallback department requires exactly one valid snapshot with ordered,
   duplicate-free case IDs and non-negative integer weekly capacity
+- custom fallback aliases and linked IDs are revalidated with the same authority graph used by
+  SPE-2083 assignment resolution
 - zero capacity, missing/malformed snapshots, duplicate department assignments, or unresolved
   authored definitions fail closed as `blocked`
 - if the evaluated case is already queued, its existing position is used; otherwise it is
@@ -211,7 +213,8 @@ caller-owned ordered queue/capacity snapshots and delegates to the pure
 - the exported `DEPARTMENT_DOCTRINE_CONFLICT_PAIRS` table is the bounded policy for which authored
   biases conflict; any matching pair produces `disputed`
 - queue saturation, cooperation below the exported reputation threshold, or an explicit SPE-2083
-  fallback produces `delayed`; compatible work with available capacity is `aligned`
+  fallback adds delay; when no doctrine conflict exists, the outcome is `delayed`, while compatible
+  work with available capacity is `aligned`
 - structured reason codes and immutable inputs/results keep replay independent of caller ordering
 
 This is a read seam, not a new queue owner. SPE-1028 owns any future durable department workshop

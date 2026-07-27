@@ -226,7 +226,9 @@ const GENERIC_CAPABILITY_BY_CASE_TAG: Readonly<Record<string, DepartmentCapabili
   welfare_review: 'ethics_review',
 }
 
-const TASK_TYPE_BY_CAPABILITY: Readonly<Record<DepartmentCapability, DepartmentTaskType>> = {
+export const DEPARTMENT_TASK_TYPE_BY_CAPABILITY: Readonly<
+  Record<DepartmentCapability, DepartmentTaskType>
+> = {
   research: 'research_case',
   containment: 'containment_response',
   records: 'records_review',
@@ -869,7 +871,7 @@ export function deriveDepartmentCaseRequirements(
 
   return Object.freeze({
     primaryCapability,
-    primaryTaskType: TASK_TYPE_BY_CAPABILITY[primaryCapability],
+    primaryTaskType: DEPARTMENT_TASK_TYPE_BY_CAPABILITY[primaryCapability],
     supportingCapabilities: Object.freeze(supportingCapabilities),
   })
 }
@@ -922,7 +924,7 @@ function canSupportCapability(
   return (
     !departmentExcludedFromCase(department, packet, caseTags) &&
     department.capabilities.includes(capability) &&
-    department.taskTypes.includes(TASK_TYPE_BY_CAPABILITY[capability]) &&
+    department.taskTypes.includes(DEPARTMENT_TASK_TYPE_BY_CAPABILITY[capability]) &&
     capabilityLimitMode(department, capability) !== 'denied'
   )
 }

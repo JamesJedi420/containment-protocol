@@ -282,6 +282,12 @@ describe('cross-department coordination evaluator (SPE-2084)', () => {
       code: 'invalid-workload-snapshot',
       departmentIds: ['department:beta'],
     },
+    {
+      label: 'sparse queue entries',
+      workloads: [snapshot('department:alpha'), snapshot('department:beta', new Array<string>(1))],
+      code: 'invalid-workload-snapshot',
+      departmentIds: ['department:beta'],
+    },
   ])('blocks malformed snapshots: $label', ({ workloads, code, departmentIds }) => {
     const alpha = department('department:alpha')
     const beta = department('department:beta')
@@ -317,15 +323,57 @@ describe('cross-department coordination evaluator (SPE-2084)', () => {
   it('fails closed for malformed assignments, registries, and missing definitions', () => {
     const alpha = department('department:alpha')
     const beta = department('department:beta')
+    const noResearchAlpha = department('department:alpha', {
+      capabilities: ['records'],
+      taskTypes: ['records_review'],
+      reviewAuthorities: ['records_release'],
+    })
     const paddedAssignment = assignment(' department:alpha', [beta.id])
     const duplicateRegistry: DepartmentCapabilityRegistry = {
       departments: [alpha, alpha, beta],
       fallbackDepartmentRefs: [alpha.id],
     }
+    const malformedPrimaryAssignment = assignment()
+    if (!malformedPrimaryAssignment.primaryDepartment) {
+      throw new Error('Expected matched assignment fixture to include a primary department.')
+    }
 
     expect(
       evaluateDepartmentCoordination(
         paddedAssignment,
+        [snapshot(alpha.id), snapshot(beta.id)],
+        registry(alpha, beta)
+      ).reasons[0].code
+    ).toBe('invalid-department-assignment')
+
+    expect(
+      evaluateDepartmentCoordination(
+        {
+          ...assignment(),
+          requirements: undefined,
+        } as unknown as DepartmentResolutionResult,
+        [snapshot(alpha.id), snapshot(beta.id)],
+        registry(alpha, beta)
+      ).reasons[0].code
+    ).toBe('invalid-department-assignment')
+
+    expect(
+      evaluateDepartmentCoordination(
+        assignment(),
+        [snapshot(alpha.id), snapshot(beta.id)],
+        registry(noResearchAlpha, beta)
+      ).reasons[0].code
+    ).toBe('invalid-department-assignment')
+
+    expect(
+      evaluateDepartmentCoordination(
+        {
+          ...malformedPrimaryAssignment,
+          primaryDepartment: {
+            ...malformedPrimaryAssignment.primaryDepartment,
+            matchedCapabilities: [],
+          },
+        },
         [snapshot(alpha.id), snapshot(beta.id)],
         registry(alpha, beta)
       ).reasons[0].code
@@ -372,6 +420,31 @@ describe('cross-department coordination evaluator (SPE-2084)', () => {
       departmentIds: [],
       bottleneckDepartmentIds: [],
       assignmentBlockerCodes: ['invalid-case-packet'],
+      reasons: [
+        {
+          code: 'assignment-blocked',
+          departmentIds: [],
+          delayWeeks: 0,
+        },
+      ],
+    })
+
+    expect(
+      evaluateDepartmentCoordination(
+        {
+          ...blockedAssignment,
+          blockerCodes: {} as unknown as DepartmentResolutionResult['blockerCodes'],
+        },
+        [],
+        registry()
+      )
+    ).toEqual({
+      caseId: 'case:test',
+      state: 'blocked',
+      delayWeeks: 0,
+      departmentIds: [],
+      bottleneckDepartmentIds: [],
+      assignmentBlockerCodes: [],
       reasons: [
         {
           code: 'assignment-blocked',

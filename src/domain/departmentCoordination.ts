@@ -7,13 +7,18 @@
  */
 
 import {
+  DEPARTMENT_CAPABILITIES,
+  DEPARTMENT_TASK_TYPE_BY_CAPABILITY,
   DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
   validateDepartmentCapabilityRegistry,
 } from './departmentCapabilities'
+import type { AuthorityGraph } from './authorityGraph'
 import type {
+  DepartmentCapability,
   DepartmentCapabilityRegistry,
   DepartmentDefinition,
   DepartmentDoctrineBias,
+  DepartmentRouteAssignment,
   DepartmentResolutionResult,
 } from './departmentCapabilities'
 
@@ -88,6 +93,28 @@ function uniqueCodeUnitSorted(values: readonly string[]) {
   return [...new Set(values)].sort(compareCodeUnits)
 }
 
+function isDenseArray(value: readonly unknown[]) {
+  for (let index = 0; index < value.length; index += 1) {
+    if (!(index in value)) {
+      return false
+    }
+  }
+  return true
+}
+
+function isNormalizedNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value === value.trim()
+}
+
+function isUniqueNormalizedStringArray(value: unknown): value is readonly string[] {
+  return (
+    Array.isArray(value) &&
+    isDenseArray(value) &&
+    value.every(isNormalizedNonEmptyString) &&
+    new Set(value).size === value.length
+  )
+}
+
 function frozenReason(
   code: DepartmentCoordinationReasonCode,
   departmentIds: readonly string[],
@@ -124,7 +151,9 @@ function blockedResult(
   assignment: DepartmentResolutionResult,
   code: DepartmentCoordinationReasonCode,
   departmentIds: readonly string[] = [],
-  assignmentBlockerCodes: readonly string[] = assignment?.blockerCodes ?? [],
+  assignmentBlockerCodes: readonly string[] = Array.isArray(assignment?.blockerCodes)
+    ? assignment.blockerCodes.filter((entry): entry is string => typeof entry === 'string')
+    : [],
   reasonDepartmentIds: readonly string[] = departmentIds
 ) {
   return frozenResult(
@@ -138,13 +167,52 @@ function blockedResult(
   )
 }
 
+const DEPARTMENT_CAPABILITY_SET = new Set<string>(DEPARTMENT_CAPABILITIES)
+
+function hasValidRequirements(assignment: DepartmentResolutionResult) {
+  const requirements = assignment.requirements
+  if (
+    !requirements ||
+    typeof requirements !== 'object' ||
+    !DEPARTMENT_CAPABILITY_SET.has(requirements.primaryCapability) ||
+    requirements.primaryTaskType !==
+      DEPARTMENT_TASK_TYPE_BY_CAPABILITY[requirements.primaryCapability as DepartmentCapability] ||
+    !Array.isArray(requirements.supportingCapabilities) ||
+    !isDenseArray(requirements.supportingCapabilities) ||
+    requirements.supportingCapabilities.some(
+      (capability) =>
+        !DEPARTMENT_CAPABILITY_SET.has(capability) || capability === requirements.primaryCapability
+    ) ||
+    new Set(requirements.supportingCapabilities).size !== requirements.supportingCapabilities.length
+  ) {
+    return false
+  }
+
+  return true
+}
+
+function hasValidRouteAssignmentShape(
+  entry: DepartmentRouteAssignment | null | undefined
+): entry is DepartmentRouteAssignment {
+  return Boolean(
+    entry &&
+    isNormalizedNonEmptyString(entry.departmentId) &&
+    (entry.authorityNodeId === undefined || isNormalizedNonEmptyString(entry.authorityNodeId)) &&
+    Array.isArray(entry.matchedCapabilities) &&
+    isDenseArray(entry.matchedCapabilities) &&
+    entry.matchedCapabilities.length > 0 &&
+    entry.matchedCapabilities.every((capability) => DEPARTMENT_CAPABILITY_SET.has(capability)) &&
+    new Set(entry.matchedCapabilities).size === entry.matchedCapabilities.length &&
+    isUniqueNormalizedStringArray(entry.doctrineMatches)
+  )
+}
+
 function assignedDepartmentIds(assignment: DepartmentResolutionResult): readonly string[] | null {
   if (
     !assignment ||
     typeof assignment !== 'object' ||
-    typeof assignment.caseId !== 'string' ||
-    assignment.caseId.length === 0 ||
-    assignment.caseId !== assignment.caseId.trim()
+    !isNormalizedNonEmptyString(assignment.caseId) ||
+    !hasValidRequirements(assignment)
   ) {
     return null
   }
@@ -154,12 +222,18 @@ function assignedDepartmentIds(assignment: DepartmentResolutionResult): readonly
       assignment.misfitRoute !== null ||
       !Array.isArray(assignment.blockerCodes) ||
       assignment.blockerCodes.length > 0 ||
-      !assignment.primaryDepartment ||
-      typeof assignment.primaryDepartment.departmentId !== 'string' ||
-      assignment.primaryDepartment.departmentId.trim().length === 0 ||
-      assignment.primaryDepartment.departmentId !==
-        assignment.primaryDepartment.departmentId.trim() ||
-      !Array.isArray(assignment.supportingDepartments)
+      !hasValidRouteAssignmentShape(assignment.primaryDepartment) ||
+      !Array.isArray(assignment.supportingDepartments) ||
+      !isDenseArray(assignment.supportingDepartments) ||
+      assignment.supportingDepartments.some((entry) => !hasValidRouteAssignmentShape(entry)) ||
+      assignment.primaryDepartment.matchedCapabilities.length !== 1 ||
+      assignment.primaryDepartment.matchedCapabilities[0] !==
+        assignment.requirements.primaryCapability ||
+      assignment.supportingDepartments.some((entry) =>
+        entry.matchedCapabilities.some(
+          (capability) => !assignment.requirements.supportingCapabilities.includes(capability)
+        )
+      )
     ) {
       return null
     }
@@ -168,9 +242,7 @@ function assignedDepartmentIds(assignment: DepartmentResolutionResult): readonly
       assignment.primaryDepartment.departmentId,
       ...assignment.supportingDepartments.map((entry) => entry?.departmentId),
     ]
-    return ids.every((id) => typeof id === 'string' && id.trim().length > 0 && id === id.trim())
-      ? (ids as string[])
-      : null
+    return ids as string[]
   }
 
   if (assignment.routeKind === 'fallback') {
@@ -181,9 +253,9 @@ function assignedDepartmentIds(assignment: DepartmentResolutionResult): readonly
       !Array.isArray(assignment.supportingDepartments) ||
       assignment.supportingDepartments.length > 0 ||
       !assignment.misfitRoute ||
-      typeof assignment.misfitRoute.departmentId !== 'string' ||
-      assignment.misfitRoute.departmentId.trim().length === 0 ||
-      assignment.misfitRoute.departmentId !== assignment.misfitRoute.departmentId.trim() ||
+      !isNormalizedNonEmptyString(assignment.misfitRoute.departmentId) ||
+      (assignment.misfitRoute.authorityNodeId !== undefined &&
+        !isNormalizedNonEmptyString(assignment.misfitRoute.authorityNodeId)) ||
       assignment.misfitRoute.reasonCode !== 'no-primary-capability-match' ||
       assignment.misfitRoute.lowPriority !== true ||
       assignment.misfitRoute.stigmaTag !== 'capability-misfit'
@@ -221,6 +293,41 @@ function conflictingDepartmentPairs(definitions: readonly DepartmentDefinition[]
   return pairs
 }
 
+function normalizeDoctrineTag(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+}
+
+function assignmentMatchesDefinitions(
+  assignment: DepartmentResolutionResult,
+  definitions: readonly DepartmentDefinition[]
+) {
+  if (assignment.routeKind !== 'matched' || !assignment.primaryDepartment) {
+    return true
+  }
+
+  const definitionsById = new Map(
+    definitions.map((definition) => [definition.id, definition] as const)
+  )
+  const routeAssignments = [assignment.primaryDepartment, ...assignment.supportingDepartments]
+
+  return routeAssignments.every((routeAssignment) => {
+    const definition = definitionsById.get(routeAssignment.departmentId)
+    if (!definition) {
+      return false
+    }
+
+    const authoredDoctrineTags = new Set(definition.doctrineTags.map(normalizeDoctrineTag))
+    return (
+      routeAssignment.matchedCapabilities.every((capability) =>
+        definition.capabilities.includes(capability)
+      ) && routeAssignment.doctrineMatches.every((tag) => authoredDoctrineTags.has(tag))
+    )
+  })
+}
+
 function isValidWorkloadSnapshot(
   snapshot: DepartmentWorkloadSnapshot,
   departmentId: string
@@ -238,9 +345,9 @@ function isValidWorkloadSnapshot(
 
   const queuedCaseIds = snapshot.queuedCaseIds
   return (
-    queuedCaseIds.every(
-      (caseId) => typeof caseId === 'string' && caseId.length > 0 && caseId === caseId.trim()
-    ) && new Set(queuedCaseIds).size === queuedCaseIds.length
+    isDenseArray(queuedCaseIds) &&
+    queuedCaseIds.every(isNormalizedNonEmptyString) &&
+    new Set(queuedCaseIds).size === queuedCaseIds.length
   )
 }
 
@@ -256,7 +363,8 @@ function isValidWorkloadSnapshot(
 export function evaluateDepartmentCoordination(
   assignment: DepartmentResolutionResult,
   workloadSnapshots: readonly DepartmentWorkloadSnapshot[],
-  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
 ): DepartmentCoordinationResult {
   if (assignment?.routeKind === 'blocked') {
     return blockedResult(assignment, 'assignment-blocked')
@@ -277,7 +385,7 @@ export function evaluateDepartmentCoordination(
     typeof registry !== 'object' ||
     !Array.isArray(registry.departments) ||
     !Array.isArray(registry.fallbackDepartmentRefs) ||
-    !validateDepartmentCapabilityRegistry(registry).valid
+    !validateDepartmentCapabilityRegistry(registry, authorityGraph).valid
   ) {
     return blockedResult(assignment, 'invalid-department-registry', orderedDepartmentIds)
   }
@@ -289,6 +397,9 @@ export function evaluateDepartmentCoordination(
     return blockedResult(assignment, 'missing-department-definition', orderedDepartmentIds)
   }
   const assignedDefinitions = definitions as DepartmentDefinition[]
+  if (!assignmentMatchesDefinitions(assignment, assignedDefinitions)) {
+    return blockedResult(assignment, 'invalid-department-assignment', orderedDepartmentIds)
+  }
 
   if (!Array.isArray(workloadSnapshots)) {
     return blockedResult(assignment, 'invalid-workload-snapshot', orderedDepartmentIds)

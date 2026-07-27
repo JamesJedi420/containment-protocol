@@ -181,7 +181,8 @@ export function evaluateMissionIntakeDepartmentCoordination(
   return evaluateDepartmentCoordination(
     resolveMissionIntakeDepartments(currentCase, registry, authorityGraph),
     workloadSnapshots,
-    registry
+    registry,
+    authorityGraph
   )
 }
 

@@ -33,6 +33,8 @@ delay and structured reason codes.
   IDs and non-negative integer weekly capacity.
 - Consume one SPE-2083 matched, fallback, or blocked assignment without
   re-resolving department eligibility.
+- Revalidate custom registry fallback identities with the same optional
+  authority graph consumed by SPE-2083.
 - Fail closed for malformed assignments, duplicate departments, invalid
   registries, missing/duplicate/malformed workload snapshots, missing
   department definitions, and zero capacity.
@@ -93,12 +95,15 @@ conflicting pairs; every pair remains present as an ordered reason.
 - [x] The evaluator does not mutate assignments, registries, snapshots,
       mission state, or global queue state.
 - [x] The mission read seam leaves team ranking unchanged.
+- [x] Authority aliases used by custom fallback routes remain valid through
+      coordination revalidation.
 - [x] Existing SPE-2088 authorization, global queue, and SPE-95 friction tests
       remain green.
 
 ## Expected files
 
 - `src/domain/departmentCoordination.ts`
+- `src/domain/departmentCapabilities.ts`
 - `src/domain/missionIntakeRouting.ts`
 - `src/test/departmentCoordination.test.ts`
 - `src/test/missionIntakeDepartmentCapabilities.integration.test.ts`

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import type { AuthorityGraph } from '../domain/authorityGraph'
+import {
+  DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  type DepartmentCapabilityRegistry,
+} from '../domain/departmentCapabilities'
 import {
   evaluateMissionIntakeDepartmentCoordination,
   resolveMissionIntakeDepartments,
@@ -49,6 +54,52 @@ describe('SPE-2083/SPE-2084 mission-intake department read seams', () => {
     expect(result.routeKind).toBe('matched')
     expect(result.requirements.primaryCapability).toBe('containment')
     expect(result.primaryDepartment?.departmentId).toBe('department:field-containment')
+  })
+
+  it('forwards authority aliases while revalidating a custom fallback route', () => {
+    const state = createStartingState()
+    const currentCase = state.cases['case-001']
+    const registry: DepartmentCapabilityRegistry = {
+      departments: DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments,
+      fallbackDepartmentRefs: ['general-intake-desk'],
+    }
+    const authorityGraph: AuthorityGraph = {
+      nodes: [
+        {
+          id: 'department:general-intake',
+          nodeType: 'department',
+          label: 'General Intake Department',
+          aliases: [
+            {
+              aliasId: 'general-intake-desk',
+              label: 'General Intake Desk',
+              confidence: 'verified',
+            },
+          ],
+        },
+      ],
+      edges: [],
+    }
+    const assignment = resolveMissionIntakeDepartments(currentCase, registry, authorityGraph)
+    const departmentIds = [
+      assignment.primaryDepartment?.departmentId,
+      assignment.misfitRoute?.departmentId,
+      ...assignment.supportingDepartments.map((entry) => entry.departmentId),
+    ].filter((departmentId): departmentId is string => Boolean(departmentId))
+
+    const result = evaluateMissionIntakeDepartmentCoordination(
+      currentCase,
+      departmentIds.map((departmentId) => ({
+        departmentId,
+        queuedCaseIds: [],
+        weeklyCapacity: 1,
+      })),
+      registry,
+      authorityGraph
+    )
+
+    expect(result.state).not.toBe('blocked')
+    expect(result.reasons.map((reason) => reason.code)).not.toContain('invalid-department-registry')
   })
 
   it('is read-only and leaves canonical team candidate ranking unchanged', () => {

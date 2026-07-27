@@ -108,7 +108,49 @@ export interface RivalExpeditionAdvanceResult {
   readonly issues: readonly RivalExpeditionValidationIssue[]
 }
 
+export type RivalExpeditionProgressRegistry = Readonly<
+  Record<string, RivalExpeditionProgressPacket>
+>
+
+export type RivalExpeditionClueRegistry = Readonly<Record<string, RivalExpeditionClueSignal>>
+
+export interface RivalExpeditionWeekClosePressure {
+  readonly casualties: number
+  readonly pacePenalty: number
+}
+
+export type RivalExpeditionWeekClosePressureRegistry = Readonly<
+  Record<string, RivalExpeditionWeekClosePressure>
+>
+
+export interface RivalExpeditionRegistryWeekCloseIssue {
+  readonly expeditionId: string
+  readonly code: 'missing_weekly_conditions' | 'blocked_transition'
+  readonly details: readonly RivalExpeditionValidationIssue[]
+}
+
+export interface RivalExpeditionRegistryWeekCloseResult {
+  readonly packets: RivalExpeditionProgressRegistry
+  readonly clues: RivalExpeditionClueRegistry
+  readonly issues: readonly RivalExpeditionRegistryWeekCloseIssue[]
+}
+
 const TERMINAL_PHASES = new Set<RivalExpeditionPhase>(['completed', 'lost'])
+const RIVAL_EXPEDITION_PHASE_SET = new Set<RivalExpeditionPhase>(RIVAL_EXPEDITION_PHASES)
+const CLUE_KINDS = new Set<RivalExpeditionClueKind>([
+  'casualty_trace',
+  'search_trace',
+  'extraction_trace',
+  'retreat_trace',
+  'loss_site',
+])
+const PROGRESS_BANDS = new Set<RivalExpeditionProgressBand>([
+  'early',
+  'mid',
+  'late',
+  'complete',
+  'terminal',
+])
 
 const CLUE_KIND_ORDER: Readonly<Record<RivalExpeditionClueKind, number>> = Object.freeze({
   casualty_trace: 0,
@@ -128,6 +170,14 @@ function isPositiveInteger(value: unknown): value is number {
 
 function normalizeId(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
 }
 
 function freezeIssues(
@@ -170,6 +220,258 @@ function normalizedDefinition(definition: RivalExpeditionDefinition): RivalExped
     routeId: normalizeId(definition.routeId),
     objectiveId: normalizeId(definition.objectiveId),
   })
+}
+
+function normalizePersistedDefinition(value: unknown): RivalExpeditionDefinition | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const candidate = {
+    id: value.id,
+    routeId: value.routeId,
+    objectiveId: value.objectiveId,
+    headStartWeeks: value.headStartWeeks,
+    routePace: value.routePace,
+    searchWorkRequired: value.searchWorkRequired,
+    extractionWeeksRequired: value.extractionWeeksRequired,
+    retreatWorkRequired: value.retreatWorkRequired,
+    startingPersonnel: value.startingPersonnel,
+  } as RivalExpeditionDefinition
+
+  return validateRivalExpeditionDefinition(candidate).valid ? normalizedDefinition(candidate) : null
+}
+
+function hasValidPhaseProgress(
+  packet: RivalExpeditionProgressPacket,
+  completedWeek: number | undefined,
+  lostWeek: number | undefined
+): boolean {
+  const definition = packet.definition
+  const commonBounds =
+    packet.searchProgress <= definition.searchWorkRequired &&
+    packet.extractionWeeksElapsed <= definition.extractionWeeksRequired &&
+    packet.retreatProgress <= definition.retreatWorkRequired &&
+    packet.activePersonnel <= definition.startingPersonnel &&
+    packet.cumulativeCasualties <= definition.startingPersonnel &&
+    packet.activePersonnel + packet.cumulativeCasualties === definition.startingPersonnel &&
+    packet.lastAdvancedWeek >= packet.departedWeek - 1
+
+  if (!commonBounds) {
+    return false
+  }
+
+  switch (packet.phase) {
+    case 'searching':
+      return (
+        packet.activePersonnel > 0 &&
+        packet.searchProgress < definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed === 0 &&
+        packet.retreatProgress === 0 &&
+        completedWeek === undefined &&
+        lostWeek === undefined
+      )
+    case 'extracting':
+      return (
+        packet.activePersonnel > 0 &&
+        packet.searchProgress === definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed < definition.extractionWeeksRequired &&
+        packet.retreatProgress === 0 &&
+        completedWeek === undefined &&
+        lostWeek === undefined
+      )
+    case 'retreating':
+      return (
+        packet.activePersonnel > 0 &&
+        packet.searchProgress === definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed === definition.extractionWeeksRequired &&
+        packet.retreatProgress < definition.retreatWorkRequired &&
+        completedWeek === undefined &&
+        lostWeek === undefined
+      )
+    case 'completed':
+      return (
+        packet.activePersonnel > 0 &&
+        packet.searchProgress === definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed === definition.extractionWeeksRequired &&
+        packet.retreatProgress === definition.retreatWorkRequired &&
+        completedWeek === packet.lastAdvancedWeek &&
+        completedWeek >= packet.departedWeek &&
+        lostWeek === undefined
+      )
+    case 'lost':
+      return (
+        packet.activePersonnel === 0 &&
+        lostWeek === packet.lastAdvancedWeek &&
+        lostWeek >= packet.departedWeek &&
+        completedWeek === undefined
+      )
+  }
+}
+
+/**
+ * Fail-closed hydration/runtime normalization for one persisted packet.
+ * Cross-field phase, personnel, counter, and terminal-week invariants must all hold.
+ */
+export function normalizeRivalExpeditionProgressPacket(
+  value: unknown
+): RivalExpeditionProgressPacket | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const definition = normalizePersistedDefinition(value.definition)
+  if (
+    !definition ||
+    !RIVAL_EXPEDITION_PHASE_SET.has(value.phase as RivalExpeditionPhase) ||
+    !isNonNegativeInteger(value.searchProgress) ||
+    !isNonNegativeInteger(value.extractionWeeksElapsed) ||
+    !isNonNegativeInteger(value.retreatProgress) ||
+    !isNonNegativeInteger(value.activePersonnel) ||
+    !isNonNegativeInteger(value.cumulativeCasualties) ||
+    !isNonNegativeInteger(value.departedWeek) ||
+    !Number.isSafeInteger(value.lastAdvancedWeek) ||
+    (value.completedWeek !== undefined && !isNonNegativeInteger(value.completedWeek)) ||
+    (value.lostWeek !== undefined && !isNonNegativeInteger(value.lostWeek))
+  ) {
+    return null
+  }
+
+  const completedWeek =
+    value.completedWeek === undefined ? undefined : (value.completedWeek as number)
+  const lostWeek = value.lostWeek === undefined ? undefined : (value.lostWeek as number)
+  const packet: RivalExpeditionProgressPacket = {
+    definition,
+    phase: value.phase as RivalExpeditionPhase,
+    searchProgress: value.searchProgress,
+    extractionWeeksElapsed: value.extractionWeeksElapsed,
+    retreatProgress: value.retreatProgress,
+    activePersonnel: value.activePersonnel,
+    cumulativeCasualties: value.cumulativeCasualties,
+    departedWeek: value.departedWeek,
+    lastAdvancedWeek: value.lastAdvancedWeek as number,
+    ...(completedWeek !== undefined ? { completedWeek } : {}),
+    ...(lostWeek !== undefined ? { lostWeek } : {}),
+  }
+
+  return hasValidPhaseProgress(packet, completedWeek, lostWeek) ? freezePacket(packet) : null
+}
+
+/** Normalize a packet map by embedded expedition id in deterministic code-unit order. */
+export function normalizeRivalExpeditionProgressRegistry(
+  value: unknown
+): RivalExpeditionProgressRegistry {
+  if (!isRecord(value)) {
+    return Object.freeze({})
+  }
+
+  const entries: [string, RivalExpeditionProgressPacket][] = []
+  for (const [registryId, rawPacket] of Object.entries(value)) {
+    const packet = normalizeRivalExpeditionProgressPacket(rawPacket)
+    if (packet && normalizeId(registryId) === packet.definition.id) {
+      entries.push([packet.definition.id, packet])
+    }
+  }
+  entries.sort(([left], [right]) => compareCodeUnits(left, right))
+
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+function normalizeRivalExpeditionClueSignal(value: unknown): RivalExpeditionClueSignal | null {
+  if (
+    !isRecord(value) ||
+    !normalizeId(value.id) ||
+    !normalizeId(value.expeditionId) ||
+    !normalizeId(value.routeId) ||
+    !normalizeId(value.objectiveId) ||
+    !isNonNegativeInteger(value.week) ||
+    !CLUE_KINDS.has(value.kind as RivalExpeditionClueKind) ||
+    !RIVAL_EXPEDITION_PHASE_SET.has(value.phase as RivalExpeditionPhase) ||
+    !PROGRESS_BANDS.has(value.progressBand as RivalExpeditionProgressBand)
+  ) {
+    return null
+  }
+
+  const signal: RivalExpeditionClueSignal = {
+    id: normalizeId(value.id),
+    expeditionId: normalizeId(value.expeditionId),
+    routeId: normalizeId(value.routeId),
+    objectiveId: normalizeId(value.objectiveId),
+    week: value.week,
+    kind: value.kind as RivalExpeditionClueKind,
+    phase: value.phase as RivalExpeditionPhase,
+    clarity: value.clarity as ClueClarity,
+    progressBand: value.progressBand as RivalExpeditionProgressBand,
+  }
+  const expectedId = `${signal.expeditionId}:clue:${signal.week}:${signal.kind}`
+  const hasValidTransitionShape =
+    signal.clarity === clueClarity(signal.kind) &&
+    (signal.kind === 'casualty_trace' ||
+      (signal.kind === 'search_trace' &&
+        signal.phase === 'extracting' &&
+        signal.progressBand === 'complete') ||
+      (signal.kind === 'extraction_trace' &&
+        signal.phase === 'retreating' &&
+        signal.progressBand === 'complete') ||
+      (signal.kind === 'retreat_trace' &&
+        signal.phase === 'completed' &&
+        signal.progressBand === 'complete') ||
+      (signal.kind === 'loss_site' &&
+        signal.phase === 'lost' &&
+        signal.progressBand === 'terminal'))
+
+  return signal.id === expectedId && hasValidTransitionShape ? Object.freeze(signal) : null
+}
+
+function compareClueSignals(
+  left: RivalExpeditionClueSignal,
+  right: RivalExpeditionClueSignal
+): number {
+  return (
+    compareCodeUnits(left.expeditionId, right.expeditionId) ||
+    left.week - right.week ||
+    CLUE_KIND_ORDER[left.kind] - CLUE_KIND_ORDER[right.kind] ||
+    compareCodeUnits(left.id, right.id)
+  )
+}
+
+/**
+ * Normalize and deduplicate persisted clues in expedition/week/kind order.
+ * When packets are supplied, orphaned or definition-mismatched clues fail closed.
+ */
+export function normalizeRivalExpeditionClueRegistry(
+  value: unknown,
+  packets?: RivalExpeditionProgressRegistry
+): RivalExpeditionClueRegistry {
+  if (!isRecord(value)) {
+    return Object.freeze({})
+  }
+
+  const clueById = new Map<string, RivalExpeditionClueSignal>()
+  for (const [registryId, rawSignal] of Object.entries(value)) {
+    const signal = normalizeRivalExpeditionClueSignal(rawSignal)
+    const packet = signal && packets ? packets[signal.expeditionId] : undefined
+    const matchesPacket =
+      !packets ||
+      (signal !== null &&
+        packet !== undefined &&
+        packet.definition.routeId === signal.routeId &&
+        packet.definition.objectiveId === signal.objectiveId)
+    if (
+      signal &&
+      matchesPacket &&
+      normalizeId(registryId) === signal.id &&
+      !clueById.has(signal.id)
+    ) {
+      clueById.set(signal.id, signal)
+    }
+  }
+
+  return Object.freeze(
+    Object.fromEntries(
+      [...clueById.values()].sort(compareClueSignals).map((signal) => [signal.id, signal])
+    )
+  )
 }
 
 export function validateRivalExpeditionDefinition(
@@ -620,6 +922,116 @@ export function advanceRivalExpeditionProgress(
     week: conditions.week,
     casualties: conditions.casualties ?? 0,
     pacePenalty: conditions.pacePenalty ?? 0,
+  })
+}
+
+function invalidExplicitPressureIssues(
+  value: Record<string, unknown>
+): readonly RivalExpeditionValidationIssue[] {
+  const issues: RivalExpeditionValidationIssue[] = []
+  if (!isNonNegativeInteger(value.casualties)) {
+    issues.push({
+      code: 'invalid_casualties',
+      detail: 'Week-close casualties must be supplied as a non-negative integer.',
+    })
+  }
+  if (!isNonNegativeInteger(value.pacePenalty)) {
+    issues.push({
+      code: 'invalid_pace_penalty',
+      detail: 'Week-close pacePenalty must be supplied as a non-negative integer.',
+    })
+  }
+  return freezeIssues(issues)
+}
+
+/**
+ * Advances every valid nonterminal packet once for the supplied closing week.
+ * Pressure is caller-owned and must be present for every eligible expedition.
+ */
+export function advanceRivalExpeditionRegistryAtWeekClose(
+  packets: unknown,
+  clues: unknown,
+  week: number,
+  conditionsByExpeditionId: unknown
+): RivalExpeditionRegistryWeekCloseResult {
+  const normalizedPackets = normalizeRivalExpeditionProgressRegistry(packets)
+  const normalizedClues = normalizeRivalExpeditionClueRegistry(clues, normalizedPackets)
+  const pressureRegistry = isRecord(conditionsByExpeditionId) ? conditionsByExpeditionId : {}
+  const nextPackets: Record<string, RivalExpeditionProgressPacket> = {}
+  const clueById = new Map(Object.entries(normalizedClues))
+  const issues: RivalExpeditionRegistryWeekCloseIssue[] = []
+
+  for (const expeditionId of Object.keys(normalizedPackets)) {
+    const packet = normalizedPackets[expeditionId]
+    if (!packet) {
+      continue
+    }
+
+    if (TERMINAL_PHASES.has(packet.phase) || week <= packet.lastAdvancedWeek) {
+      nextPackets[expeditionId] = packet
+      continue
+    }
+
+    const rawPressure = pressureRegistry[expeditionId]
+    if (!isRecord(rawPressure)) {
+      nextPackets[expeditionId] = packet
+      issues.push(
+        Object.freeze({
+          expeditionId,
+          code: 'missing_weekly_conditions',
+          details: freezeIssues([]),
+        })
+      )
+      continue
+    }
+
+    const pressureIssues = invalidExplicitPressureIssues(rawPressure)
+    if (pressureIssues.length > 0) {
+      nextPackets[expeditionId] = packet
+      issues.push(
+        Object.freeze({
+          expeditionId,
+          code: 'blocked_transition',
+          details: pressureIssues,
+        })
+      )
+      continue
+    }
+
+    const advanced = advanceRivalExpeditionProgress(packet, {
+      week,
+      casualties: rawPressure.casualties as number,
+      pacePenalty: rawPressure.pacePenalty as number,
+    })
+    nextPackets[expeditionId] = advanced.packet
+
+    if (advanced.status === 'blocked') {
+      issues.push(
+        Object.freeze({
+          expeditionId,
+          code: 'blocked_transition',
+          details: advanced.issues,
+        })
+      )
+      continue
+    }
+
+    for (const signal of advanced.clueSignals) {
+      if (!clueById.has(signal.id)) {
+        clueById.set(signal.id, signal)
+      }
+    }
+  }
+
+  const normalizedNextPackets = normalizeRivalExpeditionProgressRegistry(nextPackets)
+
+  return Object.freeze({
+    packets: normalizedNextPackets,
+    clues: normalizeRivalExpeditionClueRegistry(
+      Object.fromEntries(clueById),
+      normalizedNextPackets
+    ),
+    issues: Object.freeze(issues),
   })
 }
 

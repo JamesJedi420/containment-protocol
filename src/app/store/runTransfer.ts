@@ -291,6 +291,10 @@ import {
 import { sanitizeSpe956PropagationGraphRecords } from '../../domain/spe956PropagationGraphPersistence'
 import { sanitizeAuthorityGraphState } from '../../domain/authorityGraphPersistence'
 import {
+  normalizeRivalExpeditionClueRegistry,
+  normalizeRivalExpeditionProgressRegistry,
+} from '../../domain/rivalExpeditionProgress'
+import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
   sanitizeSpe956CommunityAdvisoryBodyRecords,
@@ -9244,6 +9248,13 @@ export function hydrateGame(
     fallback.spe956PropagationGraphRecords ?? {}
   )
   const authorityGraphState = sanitizeAuthorityGraphState(game.authorityGraphState)
+  const rivalExpeditionProgressPackets = normalizeRivalExpeditionProgressRegistry(
+    game.rivalExpeditionProgressPackets
+  )
+  const rivalExpeditionClues = normalizeRivalExpeditionClueRegistry(
+    game.rivalExpeditionClues,
+    rivalExpeditionProgressPackets
+  )
   const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
@@ -9571,6 +9582,8 @@ export function hydrateGame(
     caseQueue: sanitizeCaseQueueState(game.caseQueue, normalizedCases, fallback.caseQueue),
     reports,
     events,
+    rivalExpeditionProgressPackets,
+    rivalExpeditionClues,
     inventory,
     damagedEquipmentQueue,
     authorityGraphState,
@@ -9742,6 +9755,8 @@ export function hydrateGame(
   // spreads so per-entry Object.freeze from sanitize survive hydrateGame.
   hydrated = {
     ...hydrated,
+    rivalExpeditionProgressPackets,
+    rivalExpeditionClues,
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,

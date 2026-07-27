@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2741",
     "SPE-2740",
     "SPE-2084",
     "SPE-2083",
@@ -12,10 +13,10 @@
     "SPE-2720",
     "SPE-2719",
     "SPE-2647",
-    "SPE-2649",
-    "SPE-2646"
+    "SPE-2649"
   ],
   "sliceDocStatus": {
+    "planning/spe-2741-rival-expedition-week-close-slice.md": "Shipped",
     "planning/spe-2740-rival-expedition-progress-loop-slice.md": "Shipped",
     "planning/spe-2084-cross-department-coordination-slice.md": "Shipped",
     "planning/spe-2083-department-capability-registry-slice.md": "Shipped",

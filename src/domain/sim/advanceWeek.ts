@@ -270,6 +270,10 @@ import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestr
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
 import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
 import { applyAuthorityGraphWeekClose } from '../authorityGraphPersistence'
+import {
+  advanceRivalExpeditionRegistryAtWeekClose,
+  normalizeRivalExpeditionProgressRegistry,
+} from '../rivalExpeditionProgress'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -4855,6 +4859,25 @@ export function advanceWeek(
 
   const inputWeeklyState = state as AdvanceWeekState
   const outputWeeklyState = resultWithUnknownFields as unknown as AdvanceWeekState
+
+  // SPE-2741: advance persisted rivals for the week that just closed. Pressure
+  // ownership remains explicit; production uses deterministic zero-pressure inputs.
+  const normalizedRivalPackets = normalizeRivalExpeditionProgressRegistry(
+    inputWeeklyState.rivalExpeditionProgressPackets
+  )
+  const rivalWeekClose = advanceRivalExpeditionRegistryAtWeekClose(
+    normalizedRivalPackets,
+    inputWeeklyState.rivalExpeditionClues,
+    sourceState.week,
+    Object.fromEntries(
+      Object.keys(normalizedRivalPackets).map((expeditionId) => [
+        expeditionId,
+        { casualties: 0, pacePenalty: 0 },
+      ])
+    )
+  )
+  outputWeeklyState.rivalExpeditionProgressPackets = rivalWeekClose.packets
+  outputWeeklyState.rivalExpeditionClues = rivalWeekClose.clues
 
   // SPE-2720: one graph-local consequence-driven mutation at week-close.
   // Missing/empty legacy state remains a no-op and does not couple into other systems.

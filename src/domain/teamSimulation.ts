@@ -58,6 +58,10 @@ import {
   type TeamEquipmentSummary,
 } from './equipment'
 import type { AgencyProtocolState } from './protocols'
+import {
+  normalizeRivalExpeditionClueRegistry,
+  normalizeRivalExpeditionProgressRegistry,
+} from './rivalExpeditionProgress'
 
 export interface TeamCompositionProfile {
   members: Agent[]
@@ -1110,7 +1114,19 @@ export function ensureNormalizedGameState(state: GameState): GameState {
  * need to remember external post-processing.
  */
 export function normalizeGameState(state: GameState): GameState {
-  return syncTeamSimulationState(state)
+  const normalized = syncTeamSimulationState(state)
+  const rivalExpeditionProgressPackets = normalizeRivalExpeditionProgressRegistry(
+    normalized.rivalExpeditionProgressPackets
+  )
+
+  return {
+    ...normalized,
+    rivalExpeditionProgressPackets,
+    rivalExpeditionClues: normalizeRivalExpeditionClueRegistry(
+      normalized.rivalExpeditionClues,
+      rivalExpeditionProgressPackets
+    ),
+  }
 }
 
 function computeLeadershipDomainScore(

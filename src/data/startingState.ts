@@ -29,6 +29,8 @@ const startingStateTemplate: GameState = {
   templates: caseTemplateMap,
   reports: [],
   events: [],
+  rivalExpeditionProgressPackets: {},
+  rivalExpeditionClues: {},
   inventory: createStartingInventory(),
   damagedEquipmentQueue: [],
   caseQueue: {

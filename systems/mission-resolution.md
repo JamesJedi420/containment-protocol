@@ -88,8 +88,11 @@ rival-expedition packet with `searching`, `extracting`, `retreating`,
 - Downstream systems may surface coarse clue signals for attrition or phase
   transitions, but those signals do not reveal exact hidden progress or
   personnel counts.
-- Persistence, week-close orchestration, live encounter crossover, and
-  probabilistic search require separate integration slices.
+- Canonical packet and clue registries persist through campaign hydration and
+  advance once for the closing campaign week from explicit per-expedition
+  conditions. Production currently supplies zero casualty and pace pressure.
+- Pressure derivation, probabilistic search, live encounter crossover, objective
+  claims, and rewards require separate integration slices.
 
 This packet does not alter player mission eligibility, weakest-link scoring,
 resolution states, expedition recovery, or the global RNG stream.

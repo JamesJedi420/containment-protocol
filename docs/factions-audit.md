@@ -239,6 +239,19 @@ does not modify triage, team readiness, candidate validity, candidate score, or 
 Unrevealed hidden and contradicted claims are ignored. Week-close recomputes routing after the
 graph mutation so the next-week routing snapshot and persisted graph agree.
 
+SPE-2083 adds a pure authored department ownership registry alongside the authority graph.
+Registry department IDs may be authority department node IDs or explicit linked department IDs;
+lookups may also enter through an unambiguous authority alias. The authority graph remains the
+owner of identity equivalence, while `departmentCapabilities.ts` owns capability/task
+eligibility, doctrine fit, deterministic support order, and explicit fallback routing. Duplicate
+registry IDs, malformed capabilities or limits, alias conflicts, and multiple authored
+departments targeting one authority node fail closed. Missing legacy graph nodes leave the
+self-contained authored registry usable.
+
+The mission-intake adapter returns advisory primary/supporting ownership or a low-priority
+capability-misfit fallback. It does not add graph edges, persist department state, move faction
+standing, rank teams, or authorize a specialist-unit handoff.
+
 SPE-2088 adds a separate pure department-to-specialist-unit handoff gate. Department and unit
 authority nodes may carry explicit linked registry IDs, and the gate consumes at most one
 sanitized `permission` edge in deterministic code-unit order. Approval requires an active grant,

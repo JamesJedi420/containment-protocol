@@ -168,6 +168,63 @@ route. The read seam is pure: persisted routing changes only through existing no
 recompute boundaries. At week-close, routing is recomputed after the authority graph mutation so
 the next-week route agrees with the persisted post-mutation graph.
 
+### Department capability ownership boundary (SPE-2083)
+
+`resolveMissionIntakeDepartments` is a separate advisory read seam over the canonical case. It
+derives a mission category with `deriveMissionCategory`, combines authored, required, and
+preferred case tags, and delegates to the pure `departmentCapabilities.ts` registry/resolver:
+
+- a primary owner must declare both the required capability and matching task type
+- `support_only` and `denied` capability limits cannot silently become primary eligibility
+- exact doctrine-tag fit ranks before reputation and funding; equal candidates use code-unit
+  department ID order
+- supporting departments cover secondary capabilities, then use doctrine, reputation, funding,
+  and code-unit ID as deterministic ordering keys
+- a capability gap produces an explicit authored fallback route with `lowPriority: true` and
+  `capability-misfit` stigma instead of assigning an ineligible generic primary
+
+The registry validates department IDs, capability/task/review vocabularies, numeric bands,
+limits, fallback references, and authority identity conflicts. When an authority graph is
+provided, department node IDs, aliases, and linked department IDs may resolve the same authored
+definition; ambiguous aliases or multiple authored definitions for one authority node fail
+closed. Missing legacy authority nodes do not invalidate an otherwise self-contained authored
+pack.
+
+This seam does not persist the ownership result and does not insert department fit into mission
+triage, routing state, team readiness, or candidate scores/order. It also does not grant the
+department-to-unit permission owned by SPE-2088.
+
+### Cross-department coordination boundary (SPE-2084)
+
+`evaluateMissionIntakeDepartmentCoordination` composes the SPE-2083 advisory assignment with
+caller-owned ordered queue/capacity snapshots and delegates to the pure
+`departmentCoordination.ts` evaluator:
+
+- every assigned or fallback department requires exactly one valid snapshot with ordered,
+  duplicate-free case IDs and non-negative integer weekly capacity
+- custom fallback aliases and linked IDs are revalidated with the same authority graph used by
+  SPE-2083 assignment resolution
+- zero capacity, missing/malformed snapshots, duplicate department assignments, or unresolved
+  authored definitions fail closed as `blocked`
+- if the evaluated case is already queued, its existing position is used; otherwise it is
+  evaluated as the next queue item
+- departments work in parallel, so the maximum wait is the queue delay; equal bottlenecks use
+  code-unit department ID order
+- the exported `DEPARTMENT_DOCTRINE_CONFLICT_PAIRS` table is the bounded policy for which authored
+  biases conflict; any matching pair produces `disputed`
+- queue saturation, cooperation below the exported reputation threshold, or an explicit SPE-2083
+  fallback adds delay; when no doctrine conflict exists, the outcome is `delayed`, while compatible
+  work with available capacity is `aligned`
+- structured reason codes and immutable inputs/results keep replay independent of caller ordering
+
+This is a read seam, not a new queue owner. SPE-1028 owns any future durable department workshop
+queues, enqueue/dequeue policy, capacity progression, and week-close advancement. SPE-1200 owns
+interdisciplinary scientific model conflict, synthesis, and persisted case policy; SPE-2084 only
+reports conflicts already implied by authored department doctrine. The evaluator does not read or
+write the global case queue, mission routing state, team ranking, SPE-2088 authorization, or
+SPE-95's global `coordinationFrictionActive` outcome-downgrade lane, so callers must not add the
+SPE-2084 delay to SPE-95 as a second global penalty.
+
 ### Department-to-specialist-unit authorization boundary (SPE-2088)
 
 `authorizeDepartmentUnitHandoff` composes the existing authority and specialist-unit owners

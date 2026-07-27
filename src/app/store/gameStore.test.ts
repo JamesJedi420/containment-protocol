@@ -101,7 +101,9 @@ function makeCooperativeContractorCandidate(): Candidate {
 
 function getPersistedState() {
   return useGameStore.persist.getOptions().storage?.getItem(STORE_KEY) as
-    { state: { game: Record<string, unknown> }; version: number } | null | undefined
+    | { state: { game: Record<string, unknown> }; version: number }
+    | null
+    | undefined
 }
 
 function makeLiveSupportOperationState() {

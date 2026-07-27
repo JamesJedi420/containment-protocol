@@ -69,7 +69,10 @@ export interface AffiliationPersonStatusMirrorSummaryView {
 }
 
 export type AffiliationFileAccessWorkQueueBucket =
-  'blocked' | 'restricted' | 'missing_review' | 'allowed'
+  | 'blocked'
+  | 'restricted'
+  | 'missing_review'
+  | 'allowed'
 
 export type AffiliationFileAccessRecommendedActionKind =
   | 'resolve_missing_review'

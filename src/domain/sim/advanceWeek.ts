@@ -4866,6 +4866,7 @@ export function advanceWeek(
     inputWeeklyState.rivalExpeditionProgressPackets,
     {
       campaignWeek: sourceState.week,
+      minimumActiveAdvancedWeek: sourceState.week - 1,
       maximumAdvancedWeek: sourceState.week - 1,
     }
   )

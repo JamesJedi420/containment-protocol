@@ -46,6 +46,7 @@ export interface RivalExpeditionProgressPacket {
 
 export interface RivalExpeditionNormalizationBounds {
   readonly campaignWeek: number
+  readonly minimumActiveAdvancedWeek?: number
   readonly maximumAdvancedWeek: number
 }
 
@@ -323,6 +324,55 @@ function hasValidPhaseProgress(
   }
 }
 
+function minimumWeeksForPersistedProgress(packet: RivalExpeditionProgressPacket): number | null {
+  const definition = packet.definition
+  const searchWeeks = Math.ceil(definition.searchWorkRequired / definition.routePace)
+  const retreatWeeks = Math.ceil(definition.retreatWorkRequired / definition.routePace)
+  const searchingWeeks = Math.ceil(packet.searchProgress / definition.routePace)
+  const retreatingWeeks = Math.ceil(packet.retreatProgress / definition.routePace)
+
+  switch (packet.phase) {
+    case 'searching':
+      return searchingWeeks
+    case 'extracting':
+      return searchWeeks + packet.extractionWeeksElapsed
+    case 'retreating':
+      return searchWeeks + definition.extractionWeeksRequired + retreatingWeeks
+    case 'completed':
+      return searchWeeks + definition.extractionWeeksRequired + retreatWeeks
+    case 'lost':
+      if (
+        packet.searchProgress < definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed === 0 &&
+        packet.retreatProgress === 0
+      ) {
+        return searchingWeeks
+      }
+      if (
+        packet.searchProgress === definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed < definition.extractionWeeksRequired &&
+        packet.retreatProgress === 0
+      ) {
+        return searchWeeks + packet.extractionWeeksElapsed
+      }
+      if (
+        packet.searchProgress === definition.searchWorkRequired &&
+        packet.extractionWeeksElapsed === definition.extractionWeeksRequired &&
+        packet.retreatProgress < definition.retreatWorkRequired
+      ) {
+        return searchWeeks + definition.extractionWeeksRequired + retreatingWeeks
+      }
+      return null
+  }
+}
+
+function hasReachableProgressTimeline(packet: RivalExpeditionProgressPacket): boolean {
+  const minimumWeeks = minimumWeeksForPersistedProgress(packet)
+  const elapsedProgressWeeks =
+    packet.lastAdvancedWeek - packet.departedWeek + (packet.phase === 'lost' ? 0 : 1)
+  return minimumWeeks !== null && elapsedProgressWeeks >= minimumWeeks
+}
+
 /**
  * Fail-closed hydration/runtime normalization for one persisted packet.
  * Cross-field phase, personnel, counter, and terminal-week invariants must all hold.
@@ -373,11 +423,19 @@ export function normalizeRivalExpeditionProgressPacket(
     bounds === undefined ||
     (isNonNegativeInteger(bounds.campaignWeek) &&
       Number.isSafeInteger(bounds.maximumAdvancedWeek) &&
+      (bounds.minimumActiveAdvancedWeek === undefined ||
+        (Number.isSafeInteger(bounds.minimumActiveAdvancedWeek) &&
+          bounds.minimumActiveAdvancedWeek <= bounds.maximumAdvancedWeek)) &&
       bounds.maximumAdvancedWeek <= bounds.campaignWeek &&
       packet.departedWeek <= bounds.campaignWeek &&
-      packet.lastAdvancedWeek <= bounds.maximumAdvancedWeek)
+      packet.lastAdvancedWeek <= bounds.maximumAdvancedWeek &&
+      (TERMINAL_PHASES.has(packet.phase) ||
+        bounds.minimumActiveAdvancedWeek === undefined ||
+        packet.lastAdvancedWeek >= bounds.minimumActiveAdvancedWeek))
 
-  return hasValidPhaseProgress(packet, completedWeek, lostWeek) && isWithinCampaignTimeline
+  return hasValidPhaseProgress(packet, completedWeek, lostWeek) &&
+    hasReachableProgressTimeline(packet) &&
+    isWithinCampaignTimeline
     ? freezePacket(packet)
     : null
 }
@@ -485,7 +543,8 @@ export function normalizeRivalExpeditionClueRegistry(
       (signal !== null &&
         packet !== undefined &&
         packet.definition.routeId === signal.routeId &&
-        packet.definition.objectiveId === signal.objectiveId)
+        packet.definition.objectiveId === signal.objectiveId &&
+        signal.week <= packet.lastAdvancedWeek)
     if (signal && matchesPacket && registryId === signal.id && !clueById.has(signal.id)) {
       clueById.set(signal.id, signal)
     }
@@ -980,11 +1039,12 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
 ): RivalExpeditionRegistryWeekCloseResult {
   const normalizedPackets = normalizeRivalExpeditionProgressRegistry(packets, {
     campaignWeek: week,
+    minimumActiveAdvancedWeek: week - 1,
     maximumAdvancedWeek: week,
   })
   const normalizedClues = normalizeRivalExpeditionClueRegistry(clues, normalizedPackets)
   const pressureRegistry = isRecord(conditionsByExpeditionId) ? conditionsByExpeditionId : {}
-  const nextPackets: Record<string, RivalExpeditionProgressPacket> = {}
+  const nextPackets = new Map<string, RivalExpeditionProgressPacket>()
   const clueById = new Map(Object.entries(normalizedClues))
   const issues: RivalExpeditionRegistryWeekCloseIssue[] = []
 
@@ -995,13 +1055,13 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
     }
 
     if (TERMINAL_PHASES.has(packet.phase) || week <= packet.lastAdvancedWeek) {
-      nextPackets[expeditionId] = packet
+      nextPackets.set(expeditionId, packet)
       continue
     }
 
     const rawPressure = pressureRegistry[expeditionId]
     if (!isRecord(rawPressure)) {
-      nextPackets[expeditionId] = packet
+      nextPackets.set(expeditionId, packet)
       issues.push(
         Object.freeze({
           expeditionId,
@@ -1014,7 +1074,7 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
 
     const pressureIssues = invalidExplicitPressureIssues(rawPressure)
     if (pressureIssues.length > 0) {
-      nextPackets[expeditionId] = packet
+      nextPackets.set(expeditionId, packet)
       issues.push(
         Object.freeze({
           expeditionId,
@@ -1030,7 +1090,7 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
       casualties: rawPressure.casualties as number,
       pacePenalty: rawPressure.pacePenalty as number,
     })
-    nextPackets[expeditionId] = advanced.packet
+    nextPackets.set(expeditionId, advanced.packet)
 
     if (advanced.status === 'blocked') {
       issues.push(
@@ -1050,7 +1110,9 @@ export function advanceRivalExpeditionRegistryAtWeekClose(
     }
   }
 
-  const normalizedNextPackets = normalizeRivalExpeditionProgressRegistry(nextPackets)
+  const normalizedNextPackets = normalizeRivalExpeditionProgressRegistry(
+    Object.fromEntries(nextPackets)
+  )
 
   return Object.freeze({
     packets: normalizedNextPackets,

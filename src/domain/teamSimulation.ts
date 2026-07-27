@@ -1119,6 +1119,7 @@ export function normalizeGameState(state: GameState): GameState {
     normalized.rivalExpeditionProgressPackets,
     {
       campaignWeek: normalized.week,
+      minimumActiveAdvancedWeek: normalized.week - 1,
       maximumAdvancedWeek: normalized.week - 1,
     }
   )

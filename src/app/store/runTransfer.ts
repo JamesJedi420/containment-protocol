@@ -9252,6 +9252,7 @@ export function hydrateGame(
     game.rivalExpeditionProgressPackets,
     {
       campaignWeek: week,
+      minimumActiveAdvancedWeek: week - 1,
       maximumAdvancedWeek: week - 1,
     }
   )

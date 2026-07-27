@@ -71,6 +71,11 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       casualties: 1,
       pacePenalty: 0,
     })
+    const bravoAdvance = advanceRivalExpeditionProgress(bravo, {
+      week: 5,
+      casualties: 0,
+      pacePenalty: 0,
+    })
     const [casualtyClue, searchClue] = alphaAdvance.clueSignals
     const lost = advanceRivalExpeditionProgress(initializePacket('lost'), {
       week: 5,
@@ -82,6 +87,11 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       bravo,
       malformed: { ...alpha, activePersonnel: 99 },
       'malformed-lost': { ...lost, extractionWeeksElapsed: 1 },
+      unreachable: {
+        ...initializePacket('unreachable'),
+        phase: 'extracting',
+        searchProgress: 1,
+      },
       alpha,
       'wrong-key': bravo,
     })
@@ -111,6 +121,9 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
         packets
       )
     ).toEqual({})
+    expect(
+      normalizeRivalExpeditionClueRegistry({ [searchClue!.id]: searchClue }, { alpha })
+    ).toEqual({})
 
     const packetCollisionA = normalizeRivalExpeditionProgressRegistry({
       alpha,
@@ -139,9 +152,9 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
       ...createStartingState(),
       week: 6,
       rivalExpeditionProgressPackets: {
-        bravo,
+        bravo: bravoAdvance.packet,
         malformed: { ...alpha, phase: 'completed' },
-        alpha,
+        alpha: alphaAdvance.packet,
       } as never,
       rivalExpeditionClues: {
         [searchClue!.id]: searchClue,
@@ -198,6 +211,19 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     expect(hydratedMixed.rivalExpeditionClues).toEqual({})
     expect(Object.isFrozen(hydratedMixed.rivalExpeditionProgressPackets)).toBe(true)
     expect(Object.isFrozen(hydratedMixed.rivalExpeditionProgressPackets?.alpha)).toBe(true)
+
+    const staleCampaignWeek = 10
+    const hydratedStale = hydrateGame(
+      {
+        ...legacy,
+        week: staleCampaignWeek,
+        rivalExpeditionProgressPackets: {
+          stale: initializePacket('stale', staleCampaignWeek - 1),
+        },
+      },
+      fallback
+    )
+    expect(hydratedStale.rivalExpeditionProgressPackets).toEqual({})
   })
 
   it('round-trips packet and clue registries without a save-version change', () => {
@@ -262,12 +288,23 @@ describe('rival expedition persistence and week-close (SPE-2741)', () => {
     )
     expect(JSON.stringify(reordered)).toBe(JSON.stringify(result))
 
+    const prototypeNamedPacket = initializePacket('__proto__')
+    const prototypeNamedResult = advanceRivalExpeditionRegistryAtWeekClose(
+      Object.fromEntries([['__proto__', prototypeNamedPacket]]),
+      {},
+      5,
+      Object.fromEntries([['__proto__', { casualties: 0, pacePenalty: 0 }]])
+    )
+    expect(Object.hasOwn(prototypeNamedResult.packets, '__proto__')).toBe(true)
+    expect(prototypeNamedResult.packets.__proto__?.lastAdvancedWeek).toBe(5)
+    expect(Object.keys(prototypeNamedResult.clues)).toEqual(['__proto__:clue:5:search_trace'])
+
     const replay = advanceRivalExpeditionRegistryAtWeekClose(result.packets, result.clues, 5, {})
     expect(replay).toEqual(result)
   })
 
   it('fails closed without explicit pressure and leaves terminal packets idempotent', () => {
-    const active = initializePacket('active')
+    const active = initializePacket('active', 6)
     const lost = advanceRivalExpeditionProgress(initializePacket('lost'), {
       week: 5,
       casualties: 3,

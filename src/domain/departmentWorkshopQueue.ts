@@ -295,7 +295,10 @@ function validateWorkshop(
     workOrdersById.set(workOrder.id, workOrder)
   }
 
-  for (const workOrder of workOrdersById.values()) {
+  const orderedWorkOrders = [...workOrdersById.values()].sort((left, right) =>
+    compareCodeUnits(left.id, right.id)
+  )
+  for (const workOrder of orderedWorkOrders) {
     if (workOrder.departmentId !== snapshot.departmentId) {
       return {
         valid: false,

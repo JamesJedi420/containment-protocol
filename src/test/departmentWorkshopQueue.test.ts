@@ -152,6 +152,21 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(first.snapshot?.queued).toEqual([{ workOrderId: 'order:a', completedWork: 0 }])
   })
 
+  it('reports malformed work-order definitions independently of caller input order', () => {
+    const a = workOrder('order:a', { departmentId: 'department:other-a' })
+    const b = workOrder('order:b', { departmentId: 'department:other-b' })
+
+    const first = advanceDepartmentWorkshopQueue(snapshot(), [b, a], TEST_REGISTRY)
+    const replay = advanceDepartmentWorkshopQueue(snapshot(), [a, b], TEST_REGISTRY)
+
+    expect(replay).toEqual(first)
+    expect(first.reasons[0]).toEqual({
+      code: 'work-order-department-mismatch',
+      departmentId: DEPARTMENT_ID,
+      workOrderIds: ['order:a'],
+    })
+  })
+
   it('blocks zero capacity without discarding a valid caller snapshot', () => {
     const input = snapshot({
       slotCapacity: 0,

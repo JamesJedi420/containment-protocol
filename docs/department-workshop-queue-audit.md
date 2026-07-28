@@ -5,14 +5,15 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                      | Owner                                              |
-| -------------------------------------------- | -------------------------------------------------- |
-| Department capabilities and task eligibility | `src/domain/departmentCapabilities.ts` (SPE-2083)  |
-| Coordination delay over workload snapshots   | `src/domain/departmentCoordination.ts` (SPE-2084)  |
-| Caller-owned workshop queue/slot transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745) |
-| Global case queue                            | `src/domain/sim/queue.ts`                          |
-| Facility upgrade/effect aggregation          | `src/domain/facility.ts`                           |
-| Campaign week-close ordering                 | `src/domain/sim/advanceWeek.ts`                    |
+| Concern                                       | Owner                                              |
+| --------------------------------------------- | -------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)  |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)  |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745) |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)             |
+| Global case queue                             | `src/domain/sim/queue.ts`                          |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                           |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                    |
 
 ## Workshop snapshot invariants
 
@@ -64,9 +65,30 @@ fold remaining multi-tick work duration into SPE-2084's coarse weekly-capacity
 formula. A later SPE-1028 integration child must define that throughput policy
 before treating workshop duration as authoritative coordination delay.
 
+SPE-2747 adds `readDepartmentWorkshopState`, which sanitizes the two optional
+GameState registries before this projection is called. The read seam returns
+frozen work-order and snapshot maps, preserves lane order, and never advances
+work. SPE-2084 still owns coordination delay and receives the same validated
+snapshot/work-order contract it consumed before persistence existed.
+
+## Persistence and hydration
+
+- `departmentWorkshopWorkOrders` is keyed by embedded work-order ID.
+- `departmentWorkshopSnapshots` is keyed by embedded department ID.
+- New and legacy games receive fresh empty maps; missing fields do not inherit
+  workshop records from a hydration fallback.
+- Valid keys are inserted in code-unit order. Integer-index IDs are rejected
+  because JavaScript would enumerate them ahead of canonical insertion order.
+- Key/ID mismatches, missing departments, unsupported tasks, malformed
+  capacity/progress, lane duplicates, and foreign-department membership drop
+  only the affected registry sibling.
+- Static SPE-2083 department definitions remain authored data and are never
+  copied into GameState or manual saves.
+- `GAME_STORE_VERSION` and `GAME_SAVE_VERSION` remain unchanged.
+
 ## Isolation checks
 
-- Do not add these snapshots to `GameState` in SPE-2745.
+- SPE-2747 may persist these contracts, but must not add a processing hook.
 - Do not call workshop advancement from `advanceWeek` in SPE-2745.
 - Do not reuse or mutate `GameState.caseQueue`.
 - Do not derive workshop slots from facility effects until a later slice defines
@@ -78,6 +100,7 @@ before treating workshop duration as authoritative coordination delay.
 ## Tests
 
 - `src/test/departmentWorkshopQueue.test.ts`
+- `src/test/departmentWorkshopPersistence.test.ts`
 - `src/test/departmentCoordination.test.ts`
 - `src/test/missionIntakeDepartmentCapabilities.integration.test.ts`
 - `src/test/queue.test.ts`

@@ -35,6 +35,19 @@ export interface DepartmentWorkshopSnapshot {
   readonly paused: readonly DepartmentWorkshopWorkItem[]
 }
 
+export type DepartmentWorkshopWorkOrderRegistry = Record<string, DepartmentWorkshopWorkOrder>
+export type DepartmentWorkshopSnapshotRegistry = Record<string, DepartmentWorkshopSnapshot>
+
+export interface DepartmentWorkshopStateSource {
+  readonly departmentWorkshopWorkOrders?: unknown
+  readonly departmentWorkshopSnapshots?: unknown
+}
+
+export interface DepartmentWorkshopState {
+  readonly workOrders: DepartmentWorkshopWorkOrderRegistry
+  readonly snapshots: DepartmentWorkshopSnapshotRegistry
+}
+
 export type DepartmentWorkshopReasonCode =
   | 'invalid-department-registry'
   | 'missing-department-definition'
@@ -95,6 +108,20 @@ function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isIntegerIndexId(value: string): boolean {
+  const numeric = Number(value)
+  return (
+    Number.isInteger(numeric) &&
+    numeric >= 0 &&
+    numeric < 4_294_967_295 &&
+    String(numeric) === value
+  )
+}
+
 function isDenseArray(value: readonly unknown[]) {
   for (let index = 0; index < value.length; index += 1) {
     if (!(index in value)) {
@@ -134,6 +161,16 @@ function frozenSnapshot(snapshot: DepartmentWorkshopSnapshot): DepartmentWorksho
     queued: Object.freeze(snapshot.queued.map(frozenItem)),
     active: Object.freeze(snapshot.active.map(frozenItem)),
     paused: Object.freeze(snapshot.paused.map(frozenItem)),
+  })
+}
+
+function frozenWorkOrder(workOrder: DepartmentWorkshopWorkOrder): DepartmentWorkshopWorkOrder {
+  return Object.freeze({
+    id: workOrder.id,
+    departmentId: workOrder.departmentId,
+    caseId: workOrder.caseId,
+    taskType: workOrder.taskType,
+    requiredWork: workOrder.requiredWork,
   })
 }
 
@@ -366,6 +403,120 @@ function validateWorkshop(
       workOrdersById,
     }),
   }
+}
+
+/**
+ * Normalize persisted work orders by embedded ID. Static department definitions
+ * remain owned by SPE-2083 and are deliberately not copied into save state.
+ */
+export function sanitizeDepartmentWorkshopWorkOrders(
+  value: unknown,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopWorkOrderRegistry {
+  if (!isRecord(value) || !validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {
+    return Object.freeze({})
+  }
+
+  const departments = new Map(registry.departments.map((department) => [department.id, department]))
+  const entries: [string, DepartmentWorkshopWorkOrder][] = []
+  for (const [registryId, rawWorkOrder] of Object.entries(value)) {
+    if (
+      isIntegerIndexId(registryId) ||
+      !isValidWorkOrder(rawWorkOrder) ||
+      registryId !== rawWorkOrder.id
+    ) {
+      continue
+    }
+    const department = departments.get(rawWorkOrder.departmentId)
+    if (!department?.taskTypes.includes(rawWorkOrder.taskType)) {
+      continue
+    }
+    entries.push([registryId, frozenWorkOrder(rawWorkOrder)])
+  }
+  entries.sort(([left], [right]) => compareCodeUnits(left, right))
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+/**
+ * Normalize persisted department snapshots independently in department-ID
+ * order. A malformed sibling or a later cross-department duplicate is dropped
+ * without contaminating valid snapshots.
+ */
+export function sanitizeDepartmentWorkshopSnapshots(
+  value: unknown,
+  workOrders: DepartmentWorkshopWorkOrderRegistry,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopSnapshotRegistry {
+  if (
+    !isRecord(value) ||
+    !isRecord(workOrders) ||
+    !validateDepartmentCapabilityRegistry(registry, authorityGraph).valid
+  ) {
+    return Object.freeze({})
+  }
+
+  const entries: [string, DepartmentWorkshopSnapshot][] = []
+  const claimedWorkOrderIds = new Set<string>()
+  const orderedEntries = Object.entries(value).sort(([left], [right]) =>
+    compareCodeUnits(left, right)
+  )
+  for (const [registryId, rawSnapshot] of orderedEntries) {
+    if (
+      isIntegerIndexId(registryId) ||
+      !isRecord(rawSnapshot) ||
+      rawSnapshot.departmentId !== registryId
+    ) {
+      continue
+    }
+
+    const departmentWorkOrders = Object.values(workOrders).filter(
+      (workOrder) => workOrder.departmentId === registryId
+    )
+    const validation = validateWorkshop(
+      rawSnapshot as unknown as DepartmentWorkshopSnapshot,
+      departmentWorkOrders,
+      registry,
+      authorityGraph
+    )
+    if (!validation.valid) {
+      continue
+    }
+
+    const membershipIds = [
+      ...validation.value.snapshot.queued,
+      ...validation.value.snapshot.active,
+      ...validation.value.snapshot.paused,
+    ].map((item) => item.workOrderId)
+    if (membershipIds.some((workOrderId) => claimedWorkOrderIds.has(workOrderId))) {
+      continue
+    }
+    membershipIds.forEach((workOrderId) => claimedWorkOrderIds.add(workOrderId))
+    entries.push([registryId, validation.value.snapshot])
+  }
+
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+/** Pure GameState-shaped read seam for persistence and SPE-2084 projections. */
+export function readDepartmentWorkshopState(
+  source: DepartmentWorkshopStateSource,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopState {
+  const workOrders = sanitizeDepartmentWorkshopWorkOrders(
+    source.departmentWorkshopWorkOrders,
+    registry,
+    authorityGraph
+  )
+  const snapshots = sanitizeDepartmentWorkshopSnapshots(
+    source.departmentWorkshopSnapshots,
+    workOrders,
+    registry,
+    authorityGraph
+  )
+  return Object.freeze({ workOrders, snapshots })
 }
 
 function fillOpenSlots(

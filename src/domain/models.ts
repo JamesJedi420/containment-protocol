@@ -2,6 +2,10 @@ import type {
   RivalExpeditionClueRegistry,
   RivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
+import type {
+  DepartmentWorkshopSnapshotRegistry,
+  DepartmentWorkshopWorkOrderRegistry,
+} from './departmentWorkshopQueue'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2687,6 +2691,16 @@ export interface GameState {
    * Exact hidden progress counters and pressure inputs do not enter this collection.
    */
   rivalExpeditionClues?: RivalExpeditionClueRegistry
+  /**
+   * SPE-2747: canonical workshop work orders keyed by embedded work-order ID.
+   * Static SPE-2083 department definitions are never persisted in this map.
+   */
+  departmentWorkshopWorkOrders?: DepartmentWorkshopWorkOrderRegistry
+  /**
+   * SPE-2747: canonical per-department workshop snapshots keyed by department ID.
+   * Hydration drops malformed or cross-department duplicate siblings independently.
+   */
+  departmentWorkshopSnapshots?: DepartmentWorkshopSnapshotRegistry
   /**
    * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
    * Optional for direct legacy states; hydration supplies a canonical empty foundation.

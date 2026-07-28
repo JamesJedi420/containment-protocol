@@ -31,6 +31,8 @@ const startingStateTemplate: GameState = {
   events: [],
   rivalExpeditionProgressPackets: {},
   rivalExpeditionClues: {},
+  departmentWorkshopWorkOrders: {},
+  departmentWorkshopSnapshots: {},
   inventory: createStartingInventory(),
   damagedEquipmentQueue: [],
   caseQueue: {

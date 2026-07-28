@@ -28,8 +28,9 @@ export type DepartmentCoordinationState = (typeof DEPARTMENT_COORDINATION_STATES
 
 /**
  * Read-only workload view supplied by a queue owner. `queuedCaseIds` preserves
- * queue order. `weeklyCapacity` is the number of cases the department can begin
- * per week; zero is a valid snapshot that blocks new coordination.
+ * workload order; a bounded-slot owner may prefix current active occupancy
+ * before waiting cases. `weeklyCapacity` is the number of cases the department
+ * can begin per week; zero is a valid snapshot that blocks new coordination.
  */
 export interface DepartmentWorkloadSnapshot {
   readonly departmentId: string

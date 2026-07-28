@@ -12,6 +12,7 @@ the boundaries that later workshop slices must preserve.
 | Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)    |
 | Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                |
 | Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752) |
+| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)            |
 | Global case queue                             | `src/domain/sim/queue.ts`                             |
 | Facility upgrade/effect aggregation           | `src/domain/facility.ts`                              |
 | Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                       |
@@ -44,6 +45,14 @@ One call to `advanceDepartmentWorkshopQueue` is one abstract processing tick:
 Paused work neither consumes capacity nor advances. Pause/resume operations
 preserve progress. Resume requires an open slot and does not silently reorder the
 waiting queue.
+
+SPE-2753 owns the registry-level traversal: it sanitizes through the durable
+read seam, advances each snapshot once in code-unit department-ID order, and
+returns a new frozen registry only when an item actually starts, advances, or
+completes. `advanceWeek` calls that pure tick once after final campaign state
+preserves the canonical registries and before downstream persisted-record hooks.
+Completed definitions remain in the work-order registry but are removed from
+all snapshot lanes, so a repeat tick cannot advance them again.
 
 ## SPE-2084 compatibility
 
@@ -103,7 +112,8 @@ depend on a positive slot capacity.
 - SPE-2747 may persist these contracts, but must not add a processing hook.
 - SPE-2752 may enqueue or reorder only an existing workshop queued lane; it must
   not start, advance, pause, resume, or complete work.
-- Do not call workshop advancement from `advanceWeek` in SPE-2745.
+- `advanceWeek` calls only `processDepartmentWorkshopTick` once; do not add a
+  second hook or call per-department advancement from another week-close path.
 - Do not reuse or mutate `GameState.caseQueue`.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
 import {
+  processDepartmentWorkshopTick,
   projectDepartmentWorkshopWorkload,
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopSnapshots,
@@ -228,7 +229,7 @@ describe('department workshop persistence', () => {
     expect(useGameStore.getState().game.departmentWorkshopSnapshots).toEqual({})
   })
 
-  it('does not advance workshops or change existing week-close and global queue behavior', () => {
+  it('processes persisted workshops once per week-close without changing the global queue', () => {
     const baseline = createStartingState()
     const withWorkshops = {
       ...structuredClone(baseline),
@@ -248,8 +249,88 @@ describe('department workshop persistence', () => {
     Reflect.deleteProperty(baselineWithoutWorkshopFields, 'departmentWorkshopSnapshots')
 
     expect(persistedWorkOrders).toEqual(WORK_ORDERS)
-    expect(persistedSnapshots).toEqual(SNAPSHOTS)
+    expect(persistedSnapshots).toEqual({
+      'department:biohazard-response': {
+        ...SNAPSHOTS['department:biohazard-response'],
+        active: [],
+      },
+      'department:records-analysis': {
+        ...SNAPSHOTS['department:records-analysis'],
+        queued: [],
+        active: [{ workOrderId: 'work:zulu', completedWork: 1 }],
+      },
+    })
     expect(advancedWithoutWorkshopFields).toEqual(baselineWithoutWorkshopFields)
     expect(advancedWithWorkshops.caseQueue).toEqual(advancedBaseline.caseQueue)
+    expect(
+      loadGameSave(serializeGameSave(advancedWithWorkshops)).departmentWorkshopSnapshots
+    ).toEqual(persistedSnapshots)
+  })
+
+  it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {
+    const input = {
+      departmentWorkshopWorkOrders: {
+        'work:zulu': WORK_ORDERS['work:zulu'],
+        'work:alpha': WORK_ORDERS['work:alpha'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:records-analysis': {
+          ...SNAPSHOTS['department:records-analysis'],
+          slotCapacity: 0,
+        },
+        'department:biohazard-response': SNAPSHOTS['department:biohazard-response'],
+      },
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': WORK_ORDERS['work:alpha'],
+        'work:zulu': WORK_ORDERS['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': SNAPSHOTS['department:biohazard-response'],
+        'department:records-analysis': {
+          ...SNAPSHOTS['department:records-analysis'],
+          slotCapacity: 0,
+        },
+      },
+    }
+    const before = structuredClone(input)
+
+    const first = processDepartmentWorkshopTick(input)
+    const replay = processDepartmentWorkshopTick(reordered)
+
+    expect(first).toEqual(replay)
+    expect(input).toEqual(before)
+    expect(first.startedWorkOrderIds).toEqual([])
+    expect(first.completedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.reasons).toEqual([
+      { code: 'zero-slot-capacity', departmentId: 'department:records-analysis', workOrderIds: [] },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']).toEqual({
+      ...SNAPSHOTS['department:records-analysis'],
+      slotCapacity: 0,
+    })
+  })
+
+  it('does not advance completed work again on the next processing tick', () => {
+    const input = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 1 },
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': {
+          ...SNAPSHOTS['department:biohazard-response'],
+          active: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+        },
+      },
+    }
+
+    const completed = processDepartmentWorkshopTick(input)
+    const repeated = processDepartmentWorkshopTick(completed.workshopState)
+
+    expect(completed.completedWorkOrderIds).toEqual(['work:alpha'])
+    expect(completed.workshopState.snapshots['department:biohazard-response']?.active).toEqual([])
+    expect(repeated.state).toBe('unchanged')
+    expect(repeated.completedWorkOrderIds).toEqual([])
   })
 })

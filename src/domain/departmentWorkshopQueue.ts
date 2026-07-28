@@ -86,6 +86,19 @@ export interface DepartmentWorkshopAdvanceResult {
   readonly reasons: readonly DepartmentWorkshopReason[]
 }
 
+/**
+ * Result of the campaign-owned workshop processing tick. The tick owns only
+ * the persisted workshop registries; case queues and all workshop outcomes
+ * remain outside this seam.
+ */
+export interface DepartmentWorkshopProcessingTickResult {
+  readonly state: 'advanced' | 'unchanged'
+  readonly workshopState: DepartmentWorkshopState
+  readonly startedWorkOrderIds: readonly string[]
+  readonly completedWorkOrderIds: readonly string[]
+  readonly reasons: readonly DepartmentWorkshopReason[]
+}
+
 export interface DepartmentWorkshopTransitionResult {
   readonly state: 'updated' | 'blocked'
   readonly snapshot: DepartmentWorkshopSnapshot | null
@@ -785,6 +798,69 @@ export function advanceDepartmentWorkshopQueue(
     startedWorkOrderIds: Object.freeze([...startedWorkOrderIds]),
     completedWorkOrderIds: Object.freeze([...completedWorkOrderIds]),
     reasons: Object.freeze([]),
+  })
+}
+
+/**
+ * Advance every persisted department snapshot once in stable department-ID
+ * order. `advanceWeek` owns when this runs; this pure seam owns neither
+ * GameState nor any non-workshop queue.
+ */
+export function processDepartmentWorkshopTick(
+  source: DepartmentWorkshopStateSource,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopProcessingTickResult {
+  const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
+  let snapshots = workshopState.snapshots
+  let changed = false
+  const startedWorkOrderIds: string[] = []
+  const completedWorkOrderIds: string[] = []
+  const reasons: DepartmentWorkshopReason[] = []
+
+  for (const [departmentId, snapshot] of Object.entries(workshopState.snapshots).sort(
+    ([left], [right]) => compareCodeUnits(left, right)
+  )) {
+    const workOrders = Object.values(workshopState.workOrders).filter(
+      (workOrder) => workOrder.departmentId === departmentId
+    )
+    const advanceResult = advanceDepartmentWorkshopQueue(
+      snapshot,
+      workOrders,
+      registry,
+      authorityGraph
+    )
+    reasons.push(...advanceResult.reasons)
+
+    if (advanceResult.state !== 'advanced' || !advanceResult.snapshot) {
+      continue
+    }
+
+    const didAdvance =
+      advanceResult.startedWorkOrderIds.length > 0 ||
+      advanceResult.completedWorkOrderIds.length > 0 ||
+      snapshot.active.length > 0
+    if (!didAdvance) {
+      continue
+    }
+
+    if (!changed) {
+      snapshots = { ...snapshots }
+      changed = true
+    }
+    snapshots[departmentId] = advanceResult.snapshot
+    startedWorkOrderIds.push(...advanceResult.startedWorkOrderIds)
+    completedWorkOrderIds.push(...advanceResult.completedWorkOrderIds)
+  }
+
+  return Object.freeze({
+    state: changed ? 'advanced' : 'unchanged',
+    workshopState: changed
+      ? frozenWorkshopState(workshopState.workOrders, snapshots)
+      : workshopState,
+    startedWorkOrderIds: Object.freeze(startedWorkOrderIds),
+    completedWorkOrderIds: Object.freeze(completedWorkOrderIds),
+    reasons: Object.freeze(reasons),
   })
 }
 

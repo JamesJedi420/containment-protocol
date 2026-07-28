@@ -294,6 +294,7 @@ import {
   normalizeRivalExpeditionClueRegistry,
   normalizeRivalExpeditionProgressRegistry,
 } from '../../domain/rivalExpeditionProgress'
+import { readDepartmentWorkshopState } from '../../domain/departmentWorkshopQueue'
 import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
@@ -9260,6 +9261,7 @@ export function hydrateGame(
     game.rivalExpeditionClues,
     rivalExpeditionProgressPackets
   )
+  const departmentWorkshopState = readDepartmentWorkshopState(game)
   const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
@@ -9589,6 +9591,8 @@ export function hydrateGame(
     events,
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
+    departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
+    departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     inventory,
     damagedEquipmentQueue,
     authorityGraphState,
@@ -9762,6 +9766,8 @@ export function hydrateGame(
     ...hydrated,
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
+    departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
+    departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,

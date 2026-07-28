@@ -84,6 +84,7 @@ function applyEquipmentRecoveryBottleneck(
 import { clamp, createSeededRng } from '../math'
 import {
   processDepartmentWorkshopTick,
+  readDepartmentWorkshopState,
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
@@ -4726,13 +4727,58 @@ function finalizeEvents(
  * This is a batch simulation step: abstract case resolution, report output, and state updates.
  * It is intentionally not a visual combat loop or action-by-action playback engine.
  */
+function reconcileDepartmentWorkshopCompletionReceipts(state: GameState): GameState {
+  const workshopReceipts = sanitizeDepartmentWorkshopCompletionOutcomes(
+    state.departmentWorkshopCompletionOutcomes
+  )
+  const workOrders = readDepartmentWorkshopState(state).workOrders
+  let cases = state.cases
+  let changed = false
+  for (const receipt of Object.values(workshopReceipts)) {
+    if (!Object.hasOwn(workOrders, receipt.workOrderId)) {
+      continue
+    }
+    const workOrder = workOrders[receipt.workOrderId]
+    if (
+      !workOrder ||
+      workOrder.caseId !== receipt.caseId ||
+      workOrder.departmentId !== receipt.departmentId ||
+      workOrder.taskType !== receipt.taskType ||
+      !Object.hasOwn(cases, receipt.caseId)
+    ) {
+      continue
+    }
+    const currentCase = cases[receipt.caseId]
+    if (!currentCase || currentCase.status === 'resolved') {
+      continue
+    }
+    const existingIds = Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
+      ? currentCase.departmentWorkshopCompletionWorkOrderIds
+      : []
+    if (existingIds.includes(receipt.workOrderId)) {
+      continue
+    }
+    if (!changed) {
+      cases = { ...cases }
+      changed = true
+    }
+    cases[receipt.caseId] = {
+      ...currentCase,
+      departmentWorkshopCompletionWorkOrderIds: [
+        ...new Set([...existingIds, receipt.workOrderId]),
+      ].sort(),
+    }
+  }
+  return changed ? { ...state, cases } : state
+}
+
 export function advanceWeek(
   state: GameState,
   overrideNow?: number,
   publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
 ): GameState {
   if (state.gameOver) {
-    return ensureNormalizedGameState(state)
+    return ensureNormalizedGameState(reconcileDepartmentWorkshopCompletionReceipts(state))
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)
@@ -4876,39 +4922,9 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
   }
 
-  // SPE-2755: case records are the sole receipt consumer. Read the complete
-  // durable receipt registry so a save/load can safely finish an interrupted
-  // consumer pass; the case-local ledger makes the pass idempotent.
-  const workshopReceipts = sanitizeDepartmentWorkshopCompletionOutcomes(
-    outputWeeklyState.departmentWorkshopCompletionOutcomes
-  )
-  let casesWithWorkshopCompletions = outputWeeklyState.cases
-  let appliedWorkshopCompletionReceipt = false
-  for (const receipt of Object.values(workshopReceipts)) {
-    const currentCase = casesWithWorkshopCompletions[receipt.caseId]
-    if (!currentCase || currentCase.status === 'resolved') {
-      continue
-    }
-    const existingIds = Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
-      ? currentCase.departmentWorkshopCompletionWorkOrderIds
-      : []
-    if (existingIds.includes(receipt.workOrderId)) {
-      continue
-    }
-    if (!appliedWorkshopCompletionReceipt) {
-      casesWithWorkshopCompletions = { ...casesWithWorkshopCompletions }
-      appliedWorkshopCompletionReceipt = true
-    }
-    casesWithWorkshopCompletions[receipt.caseId] = {
-      ...currentCase,
-      departmentWorkshopCompletionWorkOrderIds: [
-        ...new Set([...existingIds, receipt.workOrderId]),
-      ].sort(),
-    }
-  }
-  if (appliedWorkshopCompletionReceipt) {
-    outputWeeklyState.cases = casesWithWorkshopCompletions
-  }
+  // SPE-2755: case records are the sole receipt consumer. Reconciliation
+  // verifies authored work-order provenance and is safe on replays/save-load.
+  Object.assign(outputWeeklyState, reconcileDepartmentWorkshopCompletionReceipts(outputWeeklyState))
 
   // SPE-2741: advance persisted rivals for the week that just closed. Pressure
   // ownership remains explicit; production uses deterministic zero-pressure inputs.

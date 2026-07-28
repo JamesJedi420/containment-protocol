@@ -5,6 +5,8 @@ import {
   processDepartmentWorkshopTick,
   projectDepartmentWorkshopWorkload,
   readDepartmentWorkshopState,
+  registerDepartmentWorkshopCompletionOutcomes,
+  sanitizeDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopSnapshots,
   sanitizeDepartmentWorkshopWorkOrders,
   type DepartmentWorkshopSnapshotRegistry,
@@ -58,6 +60,7 @@ describe('department workshop persistence', () => {
     const starting = createStartingState()
     expect(starting.departmentWorkshopWorkOrders).toEqual({})
     expect(starting.departmentWorkshopSnapshots).toEqual({})
+    expect(starting.departmentWorkshopCompletionOutcomes).toEqual({})
 
     const fallback = {
       ...starting,
@@ -75,6 +78,7 @@ describe('department workshop persistence', () => {
 
     expect(legacy.departmentWorkshopWorkOrders).toEqual({})
     expect(legacy.departmentWorkshopSnapshots).toEqual({})
+    expect(legacy.departmentWorkshopCompletionOutcomes).toEqual({})
     expect(legacy.departmentWorkshopWorkOrders).not.toBe(fallback.departmentWorkshopWorkOrders)
     expect(legacy.departmentWorkshopSnapshots).not.toBe(fallback.departmentWorkshopSnapshots)
   })
@@ -245,8 +249,10 @@ describe('department workshop persistence', () => {
     const baselineWithoutWorkshopFields = { ...advancedBaseline }
     Reflect.deleteProperty(advancedWithoutWorkshopFields, 'departmentWorkshopWorkOrders')
     Reflect.deleteProperty(advancedWithoutWorkshopFields, 'departmentWorkshopSnapshots')
+    Reflect.deleteProperty(advancedWithoutWorkshopFields, 'departmentWorkshopCompletionOutcomes')
     Reflect.deleteProperty(baselineWithoutWorkshopFields, 'departmentWorkshopWorkOrders')
     Reflect.deleteProperty(baselineWithoutWorkshopFields, 'departmentWorkshopSnapshots')
+    Reflect.deleteProperty(baselineWithoutWorkshopFields, 'departmentWorkshopCompletionOutcomes')
 
     expect(persistedWorkOrders).toEqual(WORK_ORDERS)
     expect(persistedSnapshots).toEqual({
@@ -262,9 +268,21 @@ describe('department workshop persistence', () => {
     })
     expect(advancedWithoutWorkshopFields).toEqual(baselineWithoutWorkshopFields)
     expect(advancedWithWorkshops.caseQueue).toEqual(advancedBaseline.caseQueue)
-    expect(
-      loadGameSave(serializeGameSave(advancedWithWorkshops)).departmentWorkshopSnapshots
-    ).toEqual(persistedSnapshots)
+    const loaded = loadGameSave(serializeGameSave(advancedWithWorkshops))
+    expect(loaded.departmentWorkshopSnapshots).toEqual(persistedSnapshots)
+    expect(loaded.departmentWorkshopCompletionOutcomes).toEqual({
+      'work:alpha': {
+        workOrderId: 'work:alpha',
+        departmentId: 'department:biohazard-response',
+        caseId: 'case-alpha',
+        taskType: 'containment_response',
+        completedWeek: 1,
+        outcome: 'completed',
+      },
+    })
+    expect(advanceWeek(loaded, Date.UTC(2026, 0, 8)).departmentWorkshopCompletionOutcomes).toEqual(
+      loaded.departmentWorkshopCompletionOutcomes
+    )
   })
 
   it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {
@@ -332,5 +350,41 @@ describe('department workshop persistence', () => {
     expect(completed.workshopState.snapshots['department:biohazard-response']?.active).toEqual([])
     expect(repeated.state).toBe('unchanged')
     expect(repeated.completedWorkOrderIds).toEqual([])
+  })
+
+  it('registers completion outcomes in canonical order without mutation or duplicate receipts', () => {
+    const input = {
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+      departmentWorkshopCompletionOutcomes: {
+        'work:alpha': {
+          workOrderId: 'work:alpha',
+          departmentId: 'department:biohazard-response',
+          caseId: 'case-alpha',
+          taskType: 'containment_response',
+          completedWeek: 1,
+          outcome: 'completed' as const,
+        },
+      },
+    }
+    const before = structuredClone(input)
+
+    const result = registerDepartmentWorkshopCompletionOutcomes(
+      input,
+      ['work:zulu', 'work:alpha', 'work:zulu'],
+      2
+    )
+
+    expect(result.registeredWorkOrderIds).toEqual(['work:zulu'])
+    expect(Object.keys(result.outcomes)).toEqual(['work:alpha', 'work:zulu'])
+    expect(result.outcomes['work:zulu']).toMatchObject({
+      caseId: 'case-zulu',
+      completedWeek: 2,
+      outcome: 'completed',
+    })
+    expect(input).toEqual(before)
+    expect(Object.isFrozen(result.outcomes)).toBe(true)
+    expect(Object.isFrozen(result.outcomes['work:zulu'])).toBe(true)
+    expect(sanitizeDepartmentWorkshopCompletionOutcomes({ bad: {} })).toEqual({})
   })
 })

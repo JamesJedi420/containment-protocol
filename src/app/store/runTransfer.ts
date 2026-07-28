@@ -294,7 +294,10 @@ import {
   normalizeRivalExpeditionClueRegistry,
   normalizeRivalExpeditionProgressRegistry,
 } from '../../domain/rivalExpeditionProgress'
-import { readDepartmentWorkshopState } from '../../domain/departmentWorkshopQueue'
+import {
+  readDepartmentWorkshopState,
+  sanitizeDepartmentWorkshopCompletionOutcomes,
+} from '../../domain/departmentWorkshopQueue'
 import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
@@ -7848,7 +7851,9 @@ function sanitizeOperationEvents(
                 agentId:
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
-                  typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+                  typeof payload.agentName === 'string'
+                    ? payload.agentName
+                    : `Agent ${index + 1}`,
                 trainingId: training.trainingId,
                 trainingName: training.trainingName,
                 teamName: typeof payload.teamName === 'string' ? payload.teamName : undefined,
@@ -7874,9 +7879,7 @@ function sanitizeOperationEvents(
                 agentId:
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
-                  typeof payload.agentName === 'string'
-                    ? payload.agentName
-                    : `Agent ${index + 1}`,
+                  typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
                 trainingId: training.trainingId,
                 trainingName: training.trainingName,
               },
@@ -9262,6 +9265,9 @@ export function hydrateGame(
     rivalExpeditionProgressPackets
   )
   const departmentWorkshopState = readDepartmentWorkshopState(game)
+  const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
+    game.departmentWorkshopCompletionOutcomes
+  )
   const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
@@ -9593,6 +9599,7 @@ export function hydrateGame(
     rivalExpeditionClues,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
+    departmentWorkshopCompletionOutcomes,
     inventory,
     damagedEquipmentQueue,
     authorityGraphState,
@@ -9768,6 +9775,7 @@ export function hydrateGame(
     rivalExpeditionClues,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
+    departmentWorkshopCompletionOutcomes,
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,

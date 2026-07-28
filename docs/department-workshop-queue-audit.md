@@ -5,17 +5,18 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                       | Owner                                                 |
-| --------------------------------------------- | ----------------------------------------------------- |
-| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)     |
-| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)     |
-| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)    |
-| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                |
-| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752) |
-| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)            |
-| Global case queue                             | `src/domain/sim/queue.ts`                             |
-| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                              |
-| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                       |
+| Concern                                       | Owner                                                           |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)               |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)               |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)              |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                          |
+| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)           |
+| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                      |
+| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-1028 child) |
+| Global case queue                             | `src/domain/sim/queue.ts`                                       |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                        |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                                 |
 
 ## Workshop snapshot invariants
 
@@ -53,6 +54,14 @@ completes. `advanceWeek` calls that pure tick once after final campaign state
 preserves the canonical registries and before downstream persisted-record hooks.
 Completed definitions remain in the work-order registry but are removed from
 all snapshot lanes, so a repeat tick cannot advance them again.
+
+The completion bridge runs immediately after that one tick at the same
+week-close seam. It maps each newly completed work-order ID to exactly one
+persisted `completed` receipt keyed by that ID, carrying only the authored
+department, case, task type, and closing week. Existing receipts win, so a
+replay or save/load cannot create a duplicate. The receipt is deliberately not
+a case resolution, global queue write, or quality/adjacency/safety/facility
+modifier.
 
 ## SPE-2084 compatibility
 
@@ -113,7 +122,9 @@ depend on a positive slot capacity.
 - SPE-2752 may enqueue or reorder only an existing workshop queued lane; it must
   not start, advance, pause, resume, or complete work.
 - `advanceWeek` calls only `processDepartmentWorkshopTick` once; do not add a
-  second hook or call per-department advancement from another week-close path.
+  second processing hook or call per-department advancement from another
+  week-close path. Its completion bridge consumes that one tick's completion
+  IDs only.
 - Do not reuse or mutate `GameState.caseQueue`.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.

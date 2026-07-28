@@ -38,9 +38,29 @@ export interface DepartmentWorkshopSnapshot {
 export type DepartmentWorkshopWorkOrderRegistry = Record<string, DepartmentWorkshopWorkOrder>
 export type DepartmentWorkshopSnapshotRegistry = Record<string, DepartmentWorkshopSnapshot>
 
+/**
+ * The sole downstream result emitted by this slice when a workshop order
+ * completes. It is an immutable receipt, intentionally without quality,
+ * adjacency, safety, facility, or case-queue modifiers.
+ */
+export interface DepartmentWorkshopCompletionOutcome {
+  readonly workOrderId: string
+  readonly departmentId: string
+  readonly caseId: string
+  readonly taskType: DepartmentTaskType
+  readonly completedWeek: number
+  readonly outcome: 'completed'
+}
+
+export type DepartmentWorkshopCompletionOutcomeRegistry = Record<
+  string,
+  DepartmentWorkshopCompletionOutcome
+>
+
 export interface DepartmentWorkshopStateSource {
   readonly departmentWorkshopWorkOrders?: unknown
   readonly departmentWorkshopSnapshots?: unknown
+  readonly departmentWorkshopCompletionOutcomes?: unknown
   /** Allows one pure write result to feed the next write without a GameState wrapper. */
   readonly workOrders?: unknown
   readonly snapshots?: unknown
@@ -49,6 +69,11 @@ export interface DepartmentWorkshopStateSource {
 export interface DepartmentWorkshopState {
   readonly workOrders: DepartmentWorkshopWorkOrderRegistry
   readonly snapshots: DepartmentWorkshopSnapshotRegistry
+}
+
+export interface DepartmentWorkshopCompletionOutcomeResult {
+  readonly outcomes: DepartmentWorkshopCompletionOutcomeRegistry
+  readonly registeredWorkOrderIds: readonly string[]
 }
 
 export type DepartmentWorkshopReasonCode =
@@ -575,6 +600,113 @@ export function readDepartmentWorkshopState(
     authorityGraph
   )
   return Object.freeze({ workOrders, snapshots })
+}
+
+function frozenCompletionOutcome(
+  outcome: DepartmentWorkshopCompletionOutcome
+): DepartmentWorkshopCompletionOutcome {
+  return Object.freeze({ ...outcome })
+}
+
+function isValidCompletionOutcome(
+  key: string,
+  value: unknown
+): value is DepartmentWorkshopCompletionOutcome {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const outcome = value as Partial<DepartmentWorkshopCompletionOutcome>
+  return (
+    key === outcome.workOrderId &&
+    isNormalizedNonEmptyString(outcome.workOrderId) &&
+    isNormalizedNonEmptyString(outcome.departmentId) &&
+    isNormalizedNonEmptyString(outcome.caseId) &&
+    typeof outcome.taskType === 'string' &&
+    DEPARTMENT_TASK_TYPE_SET.has(outcome.taskType) &&
+    Number.isInteger(outcome.completedWeek) &&
+    outcome.completedWeek >= 1 &&
+    outcome.outcome === 'completed'
+  )
+}
+
+/** Hydration and save boundary for immutable workshop completion receipts. */
+export function sanitizeDepartmentWorkshopCompletionOutcomes(
+  value: unknown
+): DepartmentWorkshopCompletionOutcomeRegistry {
+  if (!isRecord(value)) {
+    return Object.freeze({})
+  }
+
+  const entries: [string, DepartmentWorkshopCompletionOutcome][] = []
+  for (const [key, entry] of Object.entries(value)) {
+    if (isIntegerIndexId(key) || !isValidCompletionOutcome(key, entry)) {
+      continue
+    }
+    entries.push([key, frozenCompletionOutcome(entry)])
+  }
+
+  entries.sort(([left], [right]) => compareCodeUnits(left, right))
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+/**
+ * Register the one explicit downstream outcome for each newly completed order.
+ * The durable receipt registry is the idempotency boundary across save/load;
+ * this function never changes workshop lanes, case queues, or work orders.
+ */
+export function registerDepartmentWorkshopCompletionOutcomes(
+  source: DepartmentWorkshopStateSource,
+  completedWorkOrderIds: readonly string[],
+  completedWeek: number
+): DepartmentWorkshopCompletionOutcomeResult {
+  const existing = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source?.departmentWorkshopCompletionOutcomes
+  )
+  if (!Number.isInteger(completedWeek) || completedWeek < 1 || completedWorkOrderIds.length === 0) {
+    return Object.freeze({ outcomes: existing, registeredWorkOrderIds: Object.freeze([]) })
+  }
+
+  const workOrders = readDepartmentWorkshopState(source).workOrders
+  const candidateIds = [...new Set(completedWorkOrderIds)].sort(compareCodeUnits)
+  const additions: [string, DepartmentWorkshopCompletionOutcome][] = []
+
+  for (const workOrderId of candidateIds) {
+    if (existing[workOrderId]) {
+      continue
+    }
+    const workOrder = workOrders[workOrderId]
+    if (!workOrder) {
+      continue
+    }
+    additions.push([
+      workOrderId,
+      frozenCompletionOutcome({
+        workOrderId,
+        departmentId: workOrder.departmentId,
+        caseId: workOrder.caseId,
+        taskType: workOrder.taskType,
+        completedWeek,
+        outcome: 'completed',
+      }),
+    ])
+  }
+
+  if (additions.length === 0) {
+    return Object.freeze({ outcomes: existing, registeredWorkOrderIds: Object.freeze([]) })
+  }
+
+  const outcomes = Object.freeze(
+    Object.fromEntries(
+      [...Object.entries(existing), ...additions].sort(([left], [right]) =>
+        compareCodeUnits(left, right)
+      )
+    )
+  ) as DepartmentWorkshopCompletionOutcomeRegistry
+  return Object.freeze({
+    outcomes,
+    registeredWorkOrderIds: Object.freeze(additions.map(([workOrderId]) => workOrderId)),
+  })
 }
 
 /**

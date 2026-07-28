@@ -285,6 +285,60 @@ describe('department workshop persistence', () => {
     )
   })
 
+  it('consumes completed workshop receipts into one case ledger once, without queue mutation', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]
+    expect(caseId).toBeDefined()
+    const before = structuredClone(baseline)
+    const source = {
+      ...baseline,
+      departmentWorkshopWorkOrders: {
+        'work:case-receipt': {
+          id: 'work:case-receipt',
+          departmentId: 'department:biohazard-response',
+          caseId,
+          taskType: 'containment_response' as const,
+          requiredWork: 1,
+        },
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': {
+          departmentId: 'department:biohazard-response',
+          slotCapacity: 1,
+          queued: [],
+          active: [{ workOrderId: 'work:case-receipt', completedWork: 0 }],
+          paused: [],
+        },
+      },
+    }
+
+    const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
+    const replay = advanceWeek(advanced, Date.UTC(2026, 0, 8))
+    const loaded = loadGameSave(serializeGameSave(advanced))
+
+    expect(baseline).toEqual(before)
+    expect(advanced.cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
+      'work:case-receipt',
+    ])
+    expect(replay.cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
+      'work:case-receipt',
+    ])
+    expect(loaded.cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
+      'work:case-receipt',
+    ])
+    expect(advanced.caseQueue).toEqual(baseline.caseQueue)
+    expect(advanced.departmentWorkshopCompletionOutcomes).toEqual({
+      'work:case-receipt': {
+        workOrderId: 'work:case-receipt',
+        departmentId: 'department:biohazard-response',
+        caseId,
+        taskType: 'containment_response',
+        completedWeek: 1,
+        outcome: 'completed',
+      },
+    })
+  })
+
   it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {
     const input = {
       departmentWorkshopWorkOrders: {

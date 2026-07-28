@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Linear**          | Child creation pending (Linear create-issue tool unavailable in this session)                            |
+| **Linear**          | [SPE-2754](https://linear.app/spectranoir/issue/SPE-2754/workshop-completion-outcome-bridge)             |
 | **Status**          | **Shipped**                                                                                              |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) |
 | **Branch**          | `agent/spe-1028-workshop-completion-outcome-bridge`                                                      |
@@ -47,10 +47,10 @@ downstream `completed` receipt, with no modifiers or case-queue mutation.
 
 ## Deferred
 
-| Item                                                                                  | Suggested owner       | Boundary                                                                                      |
-| ------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
-| Applying completion receipts to case state, inventory, quality, safety, or facilities | Future SPE-1028 child | This bridge records only completion identity and timing; it deliberately applies no modifier. |
-| Duration-aware SPE-2084 coordination policy                                           | Future SPE-1028 child | SPE-2084 retains workload-delay ownership.                                                    |
+| Item                                                                      | Suggested owner       | Boundary                                                                             |
+| ------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
+| Applying completion receipts to inventory, quality, safety, or facilities | Future SPE-1028 child | SPE-2755 selects the case-record ledger only; every other consumer remains deferred. |
+| Duration-aware SPE-2084 coordination policy                               | Future SPE-1028 child | SPE-2084 retains workload-delay ownership.                                           |
 
-Parent SPE-1028 remains **Backlog** because its broader workshop acceptance
+Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
 criteria remain open.

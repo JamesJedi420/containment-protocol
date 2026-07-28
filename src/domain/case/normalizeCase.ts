@@ -6,7 +6,10 @@ import {
   isCaseLifecycleInstitutionalLabel,
   isContainmentPolicyTier,
 } from '../caseLifecycleStateMachine'
-import { sanitizePersistedFieldBasePacket, sanitizeFieldBaseQualityBands } from '../fieldBaseStaging'
+import {
+  sanitizePersistedFieldBasePacket,
+  sanitizeFieldBaseQualityBands,
+} from '../fieldBaseStaging'
 import { buildConcealmentActivationTriggersFromAuthored } from '../hiddenStateActivationAuthoring'
 import { buildInfiltrationCoverProfileFromAuthoredRecord } from '../infiltrationCoverAuthoring'
 import { buildInfiltrationProbePlanFromAuthoredRecord } from '../infiltrationProbeAuthoring'
@@ -67,7 +70,12 @@ import { normalizeSpawnRule } from '../spawnRules'
 import { getTeamMemberIds } from '../teamSimulation'
 import { PRESSURE_CALIBRATION } from '../sim/calibration'
 
-const CASE_MODES = ['threshold', 'probability', 'deterministic', 'standard'] as const satisfies readonly CaseMode[]
+const CASE_MODES = [
+  'threshold',
+  'probability',
+  'deterministic',
+  'standard',
+] as const satisfies readonly CaseMode[]
 const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const satisfies readonly CaseKind[]
 const CASE_STATUSES = ['open', 'in_progress', 'resolved'] as const satisfies readonly CaseStatus[]
 const CASE_HIDDEN_STATES = ['hidden', 'revealed', 'displaced'] as const
@@ -75,7 +83,14 @@ const INFILTRATION_STAGES = ['probing', 'exposed', 'violent'] as const
 const SITE_LAYERS = ['exterior', 'transition', 'interior'] as const
 const VISIBILITY_STATES = ['clear', 'obstructed', 'exposed'] as const
 const TRANSITION_TYPES = ['open-approach', 'threshold', 'chokepoint'] as const
-const CONTRACT_RISK_LEVELS = ['low', 'medium', 'moderate', 'high', 'severe', 'extreme'] as const satisfies readonly ContractRiskLevel[]
+const CONTRACT_RISK_LEVELS = [
+  'low',
+  'medium',
+  'moderate',
+  'high',
+  'severe',
+  'extreme',
+] as const satisfies readonly ContractRiskLevel[]
 const MAJOR_INCIDENT_STRATEGIES = [
   'aggressive',
   'balanced',
@@ -98,7 +113,12 @@ const MAJOR_INCIDENT_PROVISION_TYPES = [
   'optimization_kits',
 ] as const satisfies readonly MajorIncidentProvisionType[]
 
-const BELIEF_TIERS = ['clear', 'uncertain', 'suspected', 'condemned'] as const satisfies readonly BeliefTier[]
+const BELIEF_TIERS = [
+  'clear',
+  'uncertain',
+  'suspected',
+  'condemned',
+] as const satisfies readonly BeliefTier[]
 
 const CONTRACT_STRATEGY_TAGS = [
   'income',
@@ -109,10 +129,24 @@ const CONTRACT_STRATEGY_TAGS = [
 
 const MAP_AUTHORING_MODES = ['map-metadata-first', 'prose-key-first'] as const
 const ROUTE_CLASSES = ['open', 'choke', 'exposed', 'concealed', 'rigged'] as const
-const ZONE_DEPTH_BANDS = ['region', 'district', 'building', 'room'] as const satisfies readonly ZoneDepthBand[]
+const ZONE_DEPTH_BANDS = [
+  'region',
+  'district',
+  'building',
+  'room',
+] as const satisfies readonly ZoneDepthBand[]
 const SCALE_ACCESS_TIERS = ['open', 'restricted', 'locked'] as const
-const LOCAL_RULE_DOMAINS = ['traversal', 'perception', 'interaction', 'timing'] as const satisfies readonly LocalRuleOverrideDomain[]
-const ROOM_ESCALATION_ACTIVATORS = ['dwell', 'disturbance', 'staged_interaction'] as const satisfies readonly RoomEscalationActivator[]
+const LOCAL_RULE_DOMAINS = [
+  'traversal',
+  'perception',
+  'interaction',
+  'timing',
+] as const satisfies readonly LocalRuleOverrideDomain[]
+const ROOM_ESCALATION_ACTIVATORS = [
+  'dwell',
+  'disturbance',
+  'staged_interaction',
+] as const satisfies readonly RoomEscalationActivator[]
 const WEIRD_ROOM_KINDS = [
   'false_environment_shell',
   'shifted_affordances',
@@ -120,7 +154,12 @@ const WEIRD_ROOM_KINDS = [
   'stateful_hazard_room',
 ] as const satisfies readonly WeirdRoomStateKind[]
 
-const CASE_STAT_KEYS = ['combat', 'investigation', 'utility', 'social'] as const satisfies readonly StatKey[]
+const CASE_STAT_KEYS = [
+  'combat',
+  'investigation',
+  'utility',
+  'social',
+] as const satisfies readonly StatKey[]
 
 const OUTCOME_BANDS = [
   'catastrophic',
@@ -150,6 +189,22 @@ const MAX_CASE_TITLE_LENGTH = 120
 const MAX_CASE_DESCRIPTION_LENGTH = 2000
 const MAX_CASE_ROUTE_LENGTH = 128
 const MAX_CASE_COUNTER_EXPLANATION_LENGTH = 512
+
+function sanitizeDepartmentWorkshopCompletionWorkOrderIds(value: unknown): Id[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  const ids = [
+    ...new Set(
+      value
+        .filter((id): id is string => typeof id === 'string')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    ),
+  ].sort()
+  return ids.length > 0 ? ids : undefined
+}
 
 const THREAT_FAMILIES = [
   'deception',
@@ -281,7 +336,8 @@ function resolveHydratedThreatFamily(
       return trimmed
     }
 
-    const migrated = LEGACY_THREAT_FAMILY_ALIASES[trimmed] ?? LEGACY_THREAT_FAMILY_ALIASES[trimmed.toLowerCase()]
+    const migrated =
+      LEGACY_THREAT_FAMILY_ALIASES[trimmed] ?? LEGACY_THREAT_FAMILY_ALIASES[trimmed.toLowerCase()]
     if (migrated) {
       return migrated
     }
@@ -431,11 +487,7 @@ function sanitizeSpawnRuleField(value: unknown, fallback: SpawnRule): SpawnRule 
   }
 
   const spawnMin = isRecord(value.spawnCount)
-    ? sanitizeInteger(
-        (value.spawnCount as { min?: unknown }).min,
-        fallback.spawnCount?.min ?? 0,
-        0
-      )
+    ? sanitizeInteger((value.spawnCount as { min?: unknown }).min, fallback.spawnCount?.min ?? 0, 0)
     : (fallback.spawnCount?.min ?? 0)
   const spawnMax = isRecord(value.spawnCount)
     ? sanitizeInteger(
@@ -497,7 +549,7 @@ function sanitizeHiddenDisplacementFields(
       ? entry.displacementTarget
       : entry.displacementTarget === null
         ? null
-        : fallback.displacementTarget ?? null
+        : (fallback.displacementTarget ?? null)
 
   let route = sanitizeOptionalRouteField(entry.route, fallback.route ?? null)
   let compartment = sanitizeOptionalRouteField(entry.compartment, fallback.compartment ?? null)
@@ -576,12 +628,7 @@ function sanitizeMajorIncidentRuntime(
       ] as MajorIncidentProvisionType[])
     : (fallback?.provisions ?? [])
 
-  const durationWeeks = sanitizeInteger(
-    value.durationWeeks,
-    fallback?.durationWeeks ?? 1,
-    1,
-    52
-  )
+  const durationWeeks = sanitizeInteger(value.durationWeeks, fallback?.durationWeeks ?? 1, 1, 52)
   const requiredTeams = sanitizeInteger(value.requiredTeams, fallback?.requiredTeams ?? 1, 1, 8)
   const difficulty = sanitizeInteger(value.difficulty, fallback?.difficulty ?? 1, 0, 9999)
   const stage =
@@ -621,7 +668,11 @@ function sanitizeMajorIncidentRuntime(
         : {}),
     ...(riskLevel ? { riskLevel } : {}),
     ...(stage !== undefined ? { stage } : {}),
-    ...(isRecord(value.rewards) ? { rewards: value.rewards as ActiveMajorIncidentRuntime['rewards'] } : fallback?.rewards ? { rewards: fallback.rewards } : {}),
+    ...(isRecord(value.rewards)
+      ? { rewards: value.rewards as ActiveMajorIncidentRuntime['rewards'] }
+      : fallback?.rewards
+        ? { rewards: fallback.rewards }
+        : {}),
     ...(Array.isArray(value.modifiers)
       ? { modifiers: value.modifiers as ActiveMajorIncidentRuntime['modifiers'] }
       : fallback?.modifiers
@@ -654,7 +705,9 @@ function collectAssignedAgentIds(
   return agentIds
 }
 
-function shouldRetainDeploymentCarryIn(caseData: Pick<CaseInstance, 'status' | 'weeksRemaining' | 'durationWeeks'>) {
+function shouldRetainDeploymentCarryIn(
+  caseData: Pick<CaseInstance, 'status' | 'weeksRemaining' | 'durationWeeks'>
+) {
   return (
     caseData.status === 'in_progress' &&
     caseData.weeksRemaining !== undefined &&
@@ -691,7 +744,10 @@ function sanitizeBeliefTracks(
       value.institutionalJudgment,
       fallback?.institutionalJudgment ?? defaultTier
     ),
-    crowdConsensus: sanitizeBeliefTier(value.crowdConsensus, fallback?.crowdConsensus ?? defaultTier),
+    crowdConsensus: sanitizeBeliefTier(
+      value.crowdConsensus,
+      fallback?.crowdConsensus ?? defaultTier
+    ),
   }
 }
 
@@ -773,7 +829,8 @@ function sanitizeMapSymbol(value: unknown): MapSymbol | null {
     glyph: typeof value.glyph === 'string' && value.glyph.length > 0 ? value.glyph : '?',
     name: typeof value.name === 'string' && value.name.length > 0 ? value.name : value.id,
     interactionHint: typeof value.interactionHint === 'string' ? value.interactionHint : '',
-    hiddenUntilReveal: typeof value.hiddenUntilReveal === 'boolean' ? value.hiddenUntilReveal : false,
+    hiddenUntilReveal:
+      typeof value.hiddenUntilReveal === 'boolean' ? value.hiddenUntilReveal : false,
     routeEffect: sanitizeMapSymbolRouteEffect(value.routeEffect),
   }
 }
@@ -972,7 +1029,9 @@ function sanitizeWeirdRoomPackets(
       .map((override) => sanitizeLocalRuleOverride(override))
       .filter((override): override is LocalRuleOverride => override !== null)
 
-    const escalationTriggers = (Array.isArray(entry.escalationTriggers) ? entry.escalationTriggers : [])
+    const escalationTriggers = (
+      Array.isArray(entry.escalationTriggers) ? entry.escalationTriggers : []
+    )
       .map((trigger) => sanitizeRoomEscalationTrigger(trigger))
       .filter((trigger): trigger is RoomEscalationTrigger => trigger !== null)
 
@@ -1059,7 +1118,10 @@ function sanitizeCaseContractPayload(
     }
     if (Array.isArray(value.rewards.materials)) {
       rewards.materials = value.rewards.materials
-        .filter((drop): drop is NonNullable<typeof drop> => isRecord(drop) && typeof drop.itemId === 'string')
+        .filter(
+          (drop): drop is NonNullable<typeof drop> =>
+            isRecord(drop) && typeof drop.itemId === 'string'
+        )
         .map((drop) => ({
           itemId: drop.itemId,
           label: typeof drop.label === 'string' ? drop.label : drop.itemId,
@@ -1068,7 +1130,10 @@ function sanitizeCaseContractPayload(
     }
     if (Array.isArray(value.rewards.research)) {
       rewards.research = value.rewards.research
-        .filter((unlock): unlock is NonNullable<typeof unlock> => isRecord(unlock) && typeof unlock.id === 'string')
+        .filter(
+          (unlock): unlock is NonNullable<typeof unlock> =>
+            isRecord(unlock) && typeof unlock.id === 'string'
+        )
         .map((unlock) => ({
           id: unlock.id,
           label: typeof unlock.label === 'string' ? unlock.label : unlock.id,
@@ -1083,16 +1148,23 @@ function sanitizeCaseContractPayload(
   if (isRecord(value.requirements)) {
     next.requirements = {
       recommendedClasses: Array.isArray(value.requirements.recommendedClasses)
-        ? value.requirements.recommendedClasses.filter((entry): entry is string => typeof entry === 'string')
+        ? value.requirements.recommendedClasses.filter(
+            (entry): entry is string => typeof entry === 'string'
+          )
         : [],
       discouragedClasses: Array.isArray(value.requirements.discouragedClasses)
-        ? value.requirements.discouragedClasses.filter((entry): entry is string => typeof entry === 'string')
+        ? value.requirements.discouragedClasses.filter(
+            (entry): entry is string => typeof entry === 'string'
+          )
         : [],
     }
   }
   if (Array.isArray(value.modifiers)) {
     next.modifiers = value.modifiers
-      .filter((modifier): modifier is NonNullable<typeof modifier> => isRecord(modifier) && typeof modifier.id === 'string')
+      .filter(
+        (modifier): modifier is NonNullable<typeof modifier> =>
+          isRecord(modifier) && typeof modifier.id === 'string'
+      )
       .map((modifier) => ({
         id: modifier.id,
         label: typeof modifier.label === 'string' ? modifier.label : modifier.id,
@@ -1103,7 +1175,8 @@ function sanitizeCaseContractPayload(
     const chain: NonNullable<ActiveContractRuntime['chain']> = {}
     if (Array.isArray(value.chain.nextContracts)) {
       chain.nextContracts = value.chain.nextContracts.filter(
-        (contractId): contractId is string => typeof contractId === 'string' && contractId.length > 0
+        (contractId): contractId is string =>
+          typeof contractId === 'string' && contractId.length > 0
       )
     }
     if (Array.isArray(value.chain.unlockConditions)) {
@@ -1119,8 +1192,13 @@ function sanitizeCaseContractPayload(
   const fieldBase = sanitizePersistedFieldBasePacket(value.fieldBase)
   if (fieldBase) {
     next.fieldBase = fieldBase
-  } else if (isRecord(value.fieldBase) && isRecord((value.fieldBase as { quality?: unknown }).quality)) {
-    const quality = sanitizeFieldBaseQualityBands((value.fieldBase as { quality?: unknown }).quality)
+  } else if (
+    isRecord(value.fieldBase) &&
+    isRecord((value.fieldBase as { quality?: unknown }).quality)
+  ) {
+    const quality = sanitizeFieldBaseQualityBands(
+      (value.fieldBase as { quality?: unknown }).quality
+    )
     const label =
       typeof (value.fieldBase as { label?: unknown }).label === 'string'
         ? (value.fieldBase as { label: string }).label.trim()
@@ -1147,7 +1225,12 @@ function sanitizeCaseDifficultyBlock(value: unknown, fallback: StatBlock): StatB
 
   return {
     combat: sanitizeFiniteStatValue(raw.combat, fallback.combat, 0, BASE_STAT_MAX),
-    investigation: sanitizeFiniteStatValue(raw.investigation, fallback.investigation, 0, BASE_STAT_MAX),
+    investigation: sanitizeFiniteStatValue(
+      raw.investigation,
+      fallback.investigation,
+      0,
+      BASE_STAT_MAX
+    ),
     utility: sanitizeFiniteStatValue(raw.utility, fallback.utility, 0, BASE_STAT_MAX),
     social: sanitizeFiniteStatValue(raw.social, fallback.social, 0, BASE_STAT_MAX),
   }
@@ -1312,7 +1395,9 @@ export function sanitizeContainmentPolicyTier(
     return fallback
   }
 
-  return isContainmentPolicyTier(value) && isOneOf(value, CONTAINMENT_POLICY_TIERS) ? value : undefined
+  return isContainmentPolicyTier(value) && isOneOf(value, CONTAINMENT_POLICY_TIERS)
+    ? value
+    : undefined
 }
 
 /** SPE-1310 slice 6: accept known institutional labels; drop unknown strings without throw. */
@@ -1377,9 +1462,7 @@ function sanitizeDeploymentCarryInByAgentId(
       continue
     }
 
-    const code = isOneOf(stampValue.code, DEPLOYMENT_CARRY_IN_CODES)
-      ? stampValue.code
-      : undefined
+    const code = isOneOf(stampValue.code, DEPLOYMENT_CARRY_IN_CODES) ? stampValue.code : undefined
     const readinessDelta =
       typeof stampValue.readinessDelta === 'number' && Number.isFinite(stampValue.readinessDelta)
         ? clamp(Math.trunc(stampValue.readinessDelta), -20, 20)
@@ -1512,9 +1595,10 @@ export function normalizeCaseInstance(
   const teamIds = new Set(Object.keys(context.teams))
   let assignedTeamIds = [
     ...new Set(
-      (Array.isArray(entry.assignedTeamIds) ? entry.assignedTeamIds : fallback.assignedTeamIds).filter(
-        (teamId): teamId is string => typeof teamId === 'string' && teamIds.has(teamId)
-      )
+      (Array.isArray(entry.assignedTeamIds)
+        ? entry.assignedTeamIds
+        : fallback.assignedTeamIds
+      ).filter((teamId): teamId is string => typeof teamId === 'string' && teamIds.has(teamId))
     ),
   ]
 
@@ -1546,9 +1630,7 @@ export function normalizeCaseInstance(
     entry.infiltrationEncounterCoverStance,
     fallback.infiltrationEncounterCoverStance
   )
-  const mapLayer = catalogKnown
-    ? sanitizeMapLayer(entry.mapLayer, fallback.mapLayer)
-    : undefined
+  const mapLayer = catalogKnown ? sanitizeMapLayer(entry.mapLayer, fallback.mapLayer) : undefined
   const weirdRoomPackets = catalogKnown
     ? sanitizeWeirdRoomPackets(entry.weirdRoomPackets, fallback.weirdRoomPackets)
     : undefined
@@ -1571,12 +1653,13 @@ export function normalizeCaseInstance(
   )
   const factionId = sanitizeOptionalCaseId(entry.factionId, fallback.factionId)
   const contactId = sanitizeOptionalCaseId(entry.contactId, fallback.contactId)
-  const tags =
-    entry.tags !== undefined ? sanitizeTagList(entry.tags) : fallback.tags
+  const tags = entry.tags !== undefined ? sanitizeTagList(entry.tags) : fallback.tags
   const requiredTags =
     entry.requiredTags !== undefined ? sanitizeTagList(entry.requiredTags) : fallback.requiredTags
   const preferredTags =
-    entry.preferredTags !== undefined ? sanitizeTagList(entry.preferredTags) : fallback.preferredTags
+    entry.preferredTags !== undefined
+      ? sanitizeTagList(entry.preferredTags)
+      : fallback.preferredTags
   const spatialFlags =
     entry.spatialFlags !== undefined
       ? sanitizeSpatialFlagsList(entry.spatialFlags)
@@ -1587,6 +1670,9 @@ export function normalizeCaseInstance(
     entry.intelLastUpdatedWeek,
     context.week,
     fallback.intelLastUpdatedWeek
+  )
+  const departmentWorkshopCompletionWorkOrderIds = sanitizeDepartmentWorkshopCompletionWorkOrderIds(
+    entry.departmentWorkshopCompletionWorkOrderIds
   )
   const onFail = filterSpawnTemplateIdsToCatalog(
     sanitizeSpawnRuleField(entry.onFail, fallback.onFail),
@@ -1653,6 +1739,9 @@ export function normalizeCaseInstance(
     ...(regionTag !== undefined ? { regionTag } : {}),
     ...(intelLastUpdatedWeek !== undefined ? { intelLastUpdatedWeek } : {}),
     assignedTeamIds,
+    ...(departmentWorkshopCompletionWorkOrderIds !== undefined
+      ? { departmentWorkshopCompletionWorkOrderIds }
+      : {}),
     ...(kind === 'raid' && raid ? { raid } : {}),
     ...(isOneOf(entry.infiltrationStage, INFILTRATION_STAGES)
       ? { infiltrationStage: entry.infiltrationStage }
@@ -1674,14 +1763,8 @@ export function normalizeCaseInstance(
       : entry.transitionType === undefined && fallback.transitionType
         ? { transitionType: fallback.transitionType }
         : {}),
-    intelConfidence: sanitizeUnitInterval(
-      entry.intelConfidence,
-      fallback.intelConfidence ?? 1
-    ),
-    intelUncertainty: sanitizeUnitInterval(
-      entry.intelUncertainty,
-      fallback.intelUncertainty ?? 0
-    ),
+    intelConfidence: sanitizeUnitInterval(entry.intelConfidence, fallback.intelConfidence ?? 1),
+    intelUncertainty: sanitizeUnitInterval(entry.intelUncertainty, fallback.intelUncertainty ?? 0),
     detectionConfidence:
       hiddenFields.detectionConfidence ??
       (typeof entry.detectionConfidence === 'number'
@@ -1690,7 +1773,10 @@ export function normalizeCaseInstance(
     infiltrationProbeProgress:
       entry.infiltrationProbeProgress === undefined
         ? fallback.infiltrationProbeProgress
-        : sanitizeUnitInterval(entry.infiltrationProbeProgress, fallback.infiltrationProbeProgress ?? 0),
+        : sanitizeUnitInterval(
+            entry.infiltrationProbeProgress,
+            fallback.infiltrationProbeProgress ?? 0
+          ),
     infiltrationAwareness:
       entry.infiltrationAwareness === undefined
         ? fallback.infiltrationAwareness
@@ -1733,9 +1819,7 @@ export function normalizeCaseInstance(
     ...(infiltrationWeeklyProbeActionOverride !== undefined
       ? { infiltrationWeeklyProbeActionOverride }
       : {}),
-    ...(infiltrationEncounterCoverStance !== undefined
-      ? { infiltrationEncounterCoverStance }
-      : {}),
+    ...(infiltrationEncounterCoverStance !== undefined ? { infiltrationEncounterCoverStance } : {}),
     ...(mapLayer !== undefined ? { mapLayer } : {}),
     ...(weirdRoomPackets !== undefined ? { weirdRoomPackets } : {}),
     ...(contract !== undefined ? { contract } : {}),
@@ -1749,9 +1833,7 @@ export function normalizeCaseInstance(
     ...(lifecycleStage !== undefined ? { lifecycleStage } : {}),
     ...(containmentPolicyTier !== undefined ? { containmentPolicyTier } : {}),
     ...(lifecycleSurveillanceDueWeek !== undefined ? { lifecycleSurveillanceDueWeek } : {}),
-    ...(lifecycleBreachReadinessDueWeek !== undefined
-      ? { lifecycleBreachReadinessDueWeek }
-      : {}),
+    ...(lifecycleBreachReadinessDueWeek !== undefined ? { lifecycleBreachReadinessDueWeek } : {}),
     ...(lifecycleInstitutionalLabel !== undefined ? { lifecycleInstitutionalLabel } : {}),
     deploymentCarryInByAgentId:
       context.agents === undefined
@@ -1794,17 +1876,11 @@ export function normalizeCaseInstance(
     delete (baseCase as { siteLayer?: CaseInstance['siteLayer'] }).siteLayer
   }
 
-  if (
-    entry.visibilityState !== undefined &&
-    !isOneOf(entry.visibilityState, VISIBILITY_STATES)
-  ) {
+  if (entry.visibilityState !== undefined && !isOneOf(entry.visibilityState, VISIBILITY_STATES)) {
     delete (baseCase as { visibilityState?: CaseInstance['visibilityState'] }).visibilityState
   }
 
-  if (
-    entry.transitionType !== undefined &&
-    !isOneOf(entry.transitionType, TRANSITION_TYPES)
-  ) {
+  if (entry.transitionType !== undefined && !isOneOf(entry.transitionType, TRANSITION_TYPES)) {
     delete (baseCase as { transitionType?: CaseInstance['transitionType'] }).transitionType
   }
 
@@ -1829,24 +1905,30 @@ export function normalizeCaseInstance(
     entry.infiltrationWeeklyProbeActionOverride !== undefined &&
     infiltrationWeeklyProbeActionOverride === undefined
   ) {
-    delete (baseCase as {
-      infiltrationWeeklyProbeActionOverride?: CaseInstance['infiltrationWeeklyProbeActionOverride']
-    }).infiltrationWeeklyProbeActionOverride
+    delete (
+      baseCase as {
+        infiltrationWeeklyProbeActionOverride?: CaseInstance['infiltrationWeeklyProbeActionOverride']
+      }
+    ).infiltrationWeeklyProbeActionOverride
   }
 
   if (
     entry.infiltrationEncounterCoverStance !== undefined &&
     infiltrationEncounterCoverStance === undefined
   ) {
-    delete (baseCase as {
-      infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
-    }).infiltrationEncounterCoverStance
+    delete (
+      baseCase as {
+        infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
+      }
+    ).infiltrationEncounterCoverStance
   }
 
   if (baseCase.status === 'resolved' && baseCase.infiltrationEncounterCoverStance !== undefined) {
-    delete (baseCase as {
-      infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
-    }).infiltrationEncounterCoverStance
+    delete (
+      baseCase as {
+        infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
+      }
+    ).infiltrationEncounterCoverStance
   }
 
   if (entry.mapLayer !== undefined && mapLayer === undefined) {
@@ -1922,10 +2004,14 @@ export function normalizeCaseInstance(
   }
 
   if (entry.counterExplanation !== undefined && counterExplanation === undefined) {
-    delete (baseCase as { counterExplanation?: CaseInstance['counterExplanation'] }).counterExplanation
+    delete (baseCase as { counterExplanation?: CaseInstance['counterExplanation'] })
+      .counterExplanation
   }
 
-  if (entry.counterDetection !== undefined && sanitizeCounterDetectionField(entry.counterDetection) === undefined) {
+  if (
+    entry.counterDetection !== undefined &&
+    sanitizeCounterDetectionField(entry.counterDetection) === undefined
+  ) {
     delete (baseCase as { counterDetection?: CaseInstance['counterDetection'] }).counterDetection
   }
 
@@ -1939,21 +2025,27 @@ export function normalizeCaseInstance(
   }
 
   if (lifecycleSurveillanceDueWeek === undefined) {
-    delete (baseCase as {
-      lifecycleSurveillanceDueWeek?: CaseInstance['lifecycleSurveillanceDueWeek']
-    }).lifecycleSurveillanceDueWeek
+    delete (
+      baseCase as {
+        lifecycleSurveillanceDueWeek?: CaseInstance['lifecycleSurveillanceDueWeek']
+      }
+    ).lifecycleSurveillanceDueWeek
   }
 
   if (lifecycleBreachReadinessDueWeek === undefined) {
-    delete (baseCase as {
-      lifecycleBreachReadinessDueWeek?: CaseInstance['lifecycleBreachReadinessDueWeek']
-    }).lifecycleBreachReadinessDueWeek
+    delete (
+      baseCase as {
+        lifecycleBreachReadinessDueWeek?: CaseInstance['lifecycleBreachReadinessDueWeek']
+      }
+    ).lifecycleBreachReadinessDueWeek
   }
 
   if (lifecycleInstitutionalLabel === undefined) {
-    delete (baseCase as {
-      lifecycleInstitutionalLabel?: CaseInstance['lifecycleInstitutionalLabel']
-    }).lifecycleInstitutionalLabel
+    delete (
+      baseCase as {
+        lifecycleInstitutionalLabel?: CaseInstance['lifecycleInstitutionalLabel']
+      }
+    ).lifecycleInstitutionalLabel
   }
 
   if (!catalogKnown) {

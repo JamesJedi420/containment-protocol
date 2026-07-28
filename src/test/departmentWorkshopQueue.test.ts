@@ -167,6 +167,21 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     })
   })
 
+  it('reports every duplicate definition in code-unit order regardless of caller input order', () => {
+    const a = workOrder('order:a')
+    const b = workOrder('order:b')
+
+    const first = advanceDepartmentWorkshopQueue(snapshot(), [b, b, a, a], TEST_REGISTRY)
+    const replay = advanceDepartmentWorkshopQueue(snapshot(), [a, a, b, b], TEST_REGISTRY)
+
+    expect(replay).toEqual(first)
+    expect(first.reasons[0]).toEqual({
+      code: 'duplicate-work-order',
+      departmentId: DEPARTMENT_ID,
+      workOrderIds: ['order:a', 'order:b'],
+    })
+  })
+
   it('blocks zero capacity without discarding a valid caller snapshot', () => {
     const input = snapshot({
       slotCapacity: 0,
@@ -262,6 +277,29 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       input: snapshot(),
       workOrders: [workOrder('order:a', { requiredWork: 0 })],
       expected: 'invalid-work-orders',
+    },
+    {
+      name: 'unsafe required work',
+      input: snapshot(),
+      workOrders: [workOrder('order:a', { requiredWork: Number.MAX_SAFE_INTEGER + 1 })],
+      expected: 'invalid-work-orders',
+    },
+    {
+      name: 'unsafe completed work',
+      input: snapshot({
+        active: [
+          {
+            workOrderId: 'order:a',
+            completedWork: Number.MAX_SAFE_INTEGER + 1,
+          },
+        ],
+      }),
+      workOrders: [
+        workOrder('order:a', {
+          requiredWork: Number.MAX_SAFE_INTEGER,
+        }),
+      ],
+      expected: 'invalid-workshop-snapshot',
     },
     {
       name: 'active and queued overlap',

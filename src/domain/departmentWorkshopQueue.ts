@@ -194,7 +194,7 @@ function isValidWorkOrder(value: unknown): value is DepartmentWorkshopWorkOrder 
     typeof workOrder.taskType === 'string' &&
     DEPARTMENT_TASK_TYPE_SET.has(workOrder.taskType) &&
     typeof workOrder.requiredWork === 'number' &&
-    Number.isInteger(workOrder.requiredWork) &&
+    Number.isSafeInteger(workOrder.requiredWork) &&
     workOrder.requiredWork > 0
   )
 }
@@ -208,7 +208,7 @@ function isValidWorkItemShape(value: unknown): value is DepartmentWorkshopWorkIt
   return (
     isNormalizedNonEmptyString(item.workOrderId) &&
     typeof item.completedWork === 'number' &&
-    Number.isInteger(item.completedWork) &&
+    Number.isSafeInteger(item.completedWork) &&
     item.completedWork >= 0
   )
 }
@@ -285,14 +285,21 @@ function validateWorkshop(
   }
 
   const workOrdersById = new Map<string, DepartmentWorkshopWorkOrder>()
+  const duplicateWorkOrderIds = new Set<string>()
   for (const workOrder of workOrders) {
     if (workOrdersById.has(workOrder.id)) {
-      return {
-        valid: false,
-        reason: frozenReason('duplicate-work-order', snapshot.departmentId, [workOrder.id]),
-      }
+      duplicateWorkOrderIds.add(workOrder.id)
+      continue
     }
     workOrdersById.set(workOrder.id, workOrder)
+  }
+  if (duplicateWorkOrderIds.size > 0) {
+    return {
+      valid: false,
+      reason: frozenReason('duplicate-work-order', snapshot.departmentId, [
+        ...duplicateWorkOrderIds,
+      ]),
+    }
   }
 
   const orderedWorkOrders = [...workOrdersById.values()].sort((left, right) =>

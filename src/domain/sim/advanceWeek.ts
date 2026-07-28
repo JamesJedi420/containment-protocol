@@ -85,6 +85,7 @@ import { clamp, createSeededRng } from '../math'
 import {
   processDepartmentWorkshopTick,
   registerDepartmentWorkshopCompletionOutcomes,
+  sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
 import {
   buildAggregateBattleCampaignSummary,
@@ -728,7 +729,10 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     Number.isFinite(base.hiddenCellCovertGrowthLevel)
       ? Math.max(
           0,
-          Math.min(HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX, Math.trunc(base.hiddenCellCovertGrowthLevel))
+          Math.min(
+            HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+            Math.trunc(base.hiddenCellCovertGrowthLevel)
+          )
         )
       : undefined
   const hiddenCellDetectionNarrowing =
@@ -787,12 +791,8 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
           lastHiddenCellInfrastructureCompromiseAmount,
         }
       : {}),
-    ...(hiddenCellCovertGrowthLevel !== undefined
-      ? { hiddenCellCovertGrowthLevel }
-      : {}),
-    ...(hiddenCellDetectionNarrowing !== undefined
-      ? { hiddenCellDetectionNarrowing }
-      : {}),
+    ...(hiddenCellCovertGrowthLevel !== undefined ? { hiddenCellCovertGrowthLevel } : {}),
+    ...(hiddenCellDetectionNarrowing !== undefined ? { hiddenCellDetectionNarrowing } : {}),
     ...(hasCompleteCovertGrowthMarkers
       ? {
           lastHiddenCellCovertGrowthWeek,
@@ -2103,11 +2103,7 @@ function assertExclusiveCaseBuckets(context: WeeklyExecutionContext) {
 function getEventCaseIds(
   drafts: AnyOperationEventDraft[],
   type:
-    | 'case.resolved'
-    | 'case.failed'
-    | 'case.partially_resolved'
-    | 'case.escalated'
-    | 'case.spawned'
+    'case.resolved' | 'case.failed' | 'case.partially_resolved' | 'case.escalated' | 'case.spawned'
 ) {
   const caseIds: string[] = []
 
@@ -4205,8 +4201,7 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
       const after = clamp(before + standing.delta, -20, 20)
       standingByFactionId[standing.factionId] = after
       const sourceCase = context.sourceState.cases[missionResult.caseId] as
-        | (CaseInstance & { contactId?: string; contactName?: string })
-        | undefined
+        (CaseInstance & { contactId?: string; contactName?: string }) | undefined
       const sourceFaction = projectedFactions?.[standing.factionId]
       const sourceContact = sourceCase?.contactId
         ? (sourceFaction?.contacts ?? []).find((contact) => contact.id === sourceCase.contactId)
@@ -4881,6 +4876,40 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
   }
 
+  // SPE-2755: case records are the sole receipt consumer. Read the complete
+  // durable receipt registry so a save/load can safely finish an interrupted
+  // consumer pass; the case-local ledger makes the pass idempotent.
+  const workshopReceipts = sanitizeDepartmentWorkshopCompletionOutcomes(
+    outputWeeklyState.departmentWorkshopCompletionOutcomes
+  )
+  let casesWithWorkshopCompletions = outputWeeklyState.cases
+  let appliedWorkshopCompletionReceipt = false
+  for (const receipt of Object.values(workshopReceipts)) {
+    const currentCase = casesWithWorkshopCompletions[receipt.caseId]
+    if (!currentCase || currentCase.status === 'resolved') {
+      continue
+    }
+    const existingIds = Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
+      ? currentCase.departmentWorkshopCompletionWorkOrderIds
+      : []
+    if (existingIds.includes(receipt.workOrderId)) {
+      continue
+    }
+    if (!appliedWorkshopCompletionReceipt) {
+      casesWithWorkshopCompletions = { ...casesWithWorkshopCompletions }
+      appliedWorkshopCompletionReceipt = true
+    }
+    casesWithWorkshopCompletions[receipt.caseId] = {
+      ...currentCase,
+      departmentWorkshopCompletionWorkOrderIds: [
+        ...new Set([...existingIds, receipt.workOrderId]),
+      ].sort(),
+    }
+  }
+  if (appliedWorkshopCompletionReceipt) {
+    outputWeeklyState.cases = casesWithWorkshopCompletions
+  }
+
   // SPE-2741: advance persisted rivals for the week that just closed. Pressure
   // ownership remains explicit; production uses deterministic zero-pressure inputs.
   const normalizedRivalPackets = normalizeRivalExpeditionProgressRegistry(
@@ -5407,14 +5436,15 @@ export function advanceWeek(
   // SPE-2646: surface post-tick participatory channel elapsed-week transitions in weekly report notes.
   if (hasSpe956ChannelRecords && result.reports.length > 0) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
-    const spe956ChannelTransitionNotes =
-      buildWeeklySpe956ParticipatoryChannelTransitionReportNotes({
+    const spe956ChannelTransitionNotes = buildWeeklySpe956ParticipatoryChannelTransitionReportNotes(
+      {
         priorMaps: priorSpe956ChannelMaps,
         nextMaps: nextSpe956ChannelMapsForNotes,
         week: result.week,
         sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
         baseTimestamp: noteBaseTimestamp,
-      })
+      }
+    )
 
     if (spe956ChannelTransitionNotes.length > 0) {
       const reports = [...result.reports]
@@ -5438,8 +5468,7 @@ export function advanceWeek(
     maps: {
       spe947PostCaseMediaCases: outputWeeklyState.spe947PostCaseMediaCases,
       spe947MediaEconomyWeights: outputWeeklyState.spe947MediaEconomyWeights,
-      spe947MediaEconomyContinuityBindings:
-        outputWeeklyState.spe947MediaEconomyContinuityBindings,
+      spe947MediaEconomyContinuityBindings: outputWeeklyState.spe947MediaEconomyContinuityBindings,
     },
     week: result.week,
     lastWeeklyTickWeek: outputWeeklyState.spe947MediaEconomyLastWeeklyTickWeek,
@@ -5676,21 +5705,19 @@ export function advanceWeek(
         noteSequenceBase + hiddenCellFundingNotes.length + hiddenCellResearchNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,
     })
-    const hiddenCellInfrastructureNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes(
-      {
-        agency: result.agency,
-        rivalPressure: rivalPressureForNotes,
-        maintenanceBeforeCompromise,
-        week: closedWeekForInterference,
-        sequenceStart:
-          noteSequenceBase +
-          hiddenCellFundingNotes.length +
-          hiddenCellResearchNotes.length +
-          hiddenCellPanicNotes.length +
-          1,
-        baseTimestamp: noteBaseTimestamp,
-      }
-    )
+    const hiddenCellInfrastructureNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes({
+      agency: result.agency,
+      rivalPressure: rivalPressureForNotes,
+      maintenanceBeforeCompromise,
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase +
+        hiddenCellFundingNotes.length +
+        hiddenCellResearchNotes.length +
+        hiddenCellPanicNotes.length +
+        1,
+      baseTimestamp: noteBaseTimestamp,
+    })
     const appliedCovertGrowth = findHiddenCellCovertGrowthAmountForWeek(
       result.agency,
       closedWeekForInterference

@@ -5,18 +5,19 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                       | Owner                                                           |
-| --------------------------------------------- | --------------------------------------------------------------- |
-| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)               |
-| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)               |
-| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)              |
-| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                          |
-| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)           |
-| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                      |
-| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-1028 child) |
-| Global case queue                             | `src/domain/sim/queue.ts`                                       |
-| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                        |
-| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                                 |
+| Concern                                       | Owner                                                     |
+| --------------------------------------------- | --------------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)         |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)         |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)        |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                    |
+| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)     |
+| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                |
+| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
+| Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
+| Global case queue                             | `src/domain/sim/queue.ts`                                 |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                  |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                           |
 
 ## Workshop snapshot invariants
 
@@ -61,7 +62,12 @@ persisted `completed` receipt keyed by that ID, carrying only the authored
 department, case, task type, and closing week. Existing receipts win, so a
 replay or save/load cannot create a duplicate. The receipt is deliberately not
 a case resolution, global queue write, or quality/adjacency/safety/facility
-modifier.
+modifier. SPE-2755 then consumes the sanitized durable receipt registry into
+only the matching non-resolved case's `departmentWorkshopCompletionWorkOrderIds`
+ledger. The ledger is sorted and deduplicated, so it is the case-side
+idempotency boundary across close replays and save/load. Missing/resolved cases,
+the global queue, inventory, and every quality/safety/facility concern remain
+outside this seam.
 
 ## SPE-2084 compatibility
 
@@ -126,6 +132,8 @@ depend on a positive slot capacity.
   week-close path. Its completion bridge consumes that one tick's completion
   IDs only.
 - Do not reuse or mutate `GameState.caseQueue`.
+- Only the authored open case may consume a completion receipt; do not use this
+  case-local ledger to resolve, reprioritize, or otherwise advance case flow.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.

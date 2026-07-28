@@ -41,6 +41,9 @@ export type DepartmentWorkshopSnapshotRegistry = Record<string, DepartmentWorksh
 export interface DepartmentWorkshopStateSource {
   readonly departmentWorkshopWorkOrders?: unknown
   readonly departmentWorkshopSnapshots?: unknown
+  /** Allows one pure write result to feed the next write without a GameState wrapper. */
+  readonly workOrders?: unknown
+  readonly snapshots?: unknown
 }
 
 export interface DepartmentWorkshopState {
@@ -64,8 +67,10 @@ export type DepartmentWorkshopReasonCode =
   | 'invalid-work-order-id'
   | 'work-order-not-active'
   | 'work-order-not-paused'
+  | 'work-order-not-queued'
   | 'no-open-slot'
   | 'duplicate-case-workload'
+  | 'missing-workshop-snapshot'
 
 export interface DepartmentWorkshopReason {
   readonly code: DepartmentWorkshopReasonCode
@@ -90,6 +95,13 @@ export interface DepartmentWorkshopTransitionResult {
 export interface DepartmentWorkshopWorkloadProjectionResult {
   readonly state: 'projected' | 'blocked'
   readonly workloadSnapshot: DepartmentWorkloadSnapshot | null
+  readonly reasons: readonly DepartmentWorkshopReason[]
+}
+
+/** Result of a canonical persisted-workshop write without any processing tick. */
+export interface DepartmentWorkshopWriteResult {
+  readonly state: 'enqueued' | 'prioritized' | 'blocked'
+  readonly workshopState: DepartmentWorkshopState
   readonly reasons: readonly DepartmentWorkshopReason[]
 }
 
@@ -214,6 +226,39 @@ function blockedProjection(
   return Object.freeze({
     state: 'blocked',
     workloadSnapshot: null,
+    reasons: Object.freeze([reason]),
+  })
+}
+
+function frozenWorkshopState(
+  workOrders: DepartmentWorkshopWorkOrderRegistry,
+  snapshots: DepartmentWorkshopSnapshotRegistry
+): DepartmentWorkshopState {
+  return Object.freeze({
+    workOrders: Object.freeze(
+      Object.fromEntries(
+        Object.entries(workOrders)
+          .sort(([left], [right]) => compareCodeUnits(left, right))
+          .map(([id, workOrder]) => [id, frozenWorkOrder(workOrder)])
+      )
+    ),
+    snapshots: Object.freeze(
+      Object.fromEntries(
+        Object.entries(snapshots)
+          .sort(([left], [right]) => compareCodeUnits(left, right))
+          .map(([id, snapshot]) => [id, frozenSnapshot(snapshot)])
+      )
+    ),
+  })
+}
+
+function blockedWrite(
+  workshopState: DepartmentWorkshopState,
+  reason: DepartmentWorkshopReason
+): DepartmentWorkshopWriteResult {
+  return Object.freeze({
+    state: 'blocked',
+    workshopState,
     reasons: Object.freeze([reason]),
   })
 }
@@ -506,17 +551,155 @@ export function readDepartmentWorkshopState(
   authorityGraph?: AuthorityGraph
 ): DepartmentWorkshopState {
   const workOrders = sanitizeDepartmentWorkshopWorkOrders(
-    source.departmentWorkshopWorkOrders,
+    source?.departmentWorkshopWorkOrders ?? source?.workOrders,
     registry,
     authorityGraph
   )
   const snapshots = sanitizeDepartmentWorkshopSnapshots(
-    source.departmentWorkshopSnapshots,
+    source?.departmentWorkshopSnapshots ?? source?.snapshots,
     workOrders,
     registry,
     authorityGraph
   )
   return Object.freeze({ workOrders, snapshots })
+}
+
+/**
+ * Add one validated order to an existing department's canonical queued lane.
+ * This deliberately does not fill a slot or advance any work.
+ */
+export function enqueueDepartmentWorkshopWorkOrder(
+  source: DepartmentWorkshopStateSource,
+  workOrder: unknown,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopWriteResult {
+  const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
+  const departmentId =
+    workOrder &&
+    typeof workOrder === 'object' &&
+    isNormalizedNonEmptyString((workOrder as Partial<DepartmentWorkshopWorkOrder>).departmentId)
+      ? (workOrder as DepartmentWorkshopWorkOrder).departmentId
+      : ''
+
+  if (!isValidWorkOrder(workOrder) || isIntegerIndexId(workOrder.id)) {
+    return blockedWrite(workshopState, frozenReason('invalid-work-orders', departmentId))
+  }
+  if (!validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('invalid-department-registry', workOrder.departmentId)
+    )
+  }
+  const department = registry.departments.find(
+    (candidate) => candidate.id === workOrder.departmentId
+  )
+  if (!department) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('missing-department-definition', workOrder.departmentId)
+    )
+  }
+  if (!department.taskTypes.includes(workOrder.taskType)) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('unsupported-department-task', workOrder.departmentId, [workOrder.id])
+    )
+  }
+  if (workshopState.workOrders[workOrder.id]) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('duplicate-work-order', workOrder.departmentId, [workOrder.id])
+    )
+  }
+  if (
+    Object.values(workshopState.workOrders).some((existing) => existing.caseId === workOrder.caseId)
+  ) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('duplicate-case-workload', workOrder.departmentId, [workOrder.id])
+    )
+  }
+
+  const snapshot = workshopState.snapshots[workOrder.departmentId]
+  if (!snapshot) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('missing-workshop-snapshot', workOrder.departmentId, [workOrder.id])
+    )
+  }
+
+  const nextState = frozenWorkshopState(
+    { ...workshopState.workOrders, [workOrder.id]: workOrder },
+    {
+      ...workshopState.snapshots,
+      [snapshot.departmentId]: {
+        ...snapshot,
+        queued: [...snapshot.queued, { workOrderId: workOrder.id, completedWork: 0 }],
+      },
+    }
+  )
+  return Object.freeze({ state: 'enqueued', workshopState: nextState, reasons: Object.freeze([]) })
+}
+
+/** Move an already queued order to the front without changing any other lane. */
+export function prioritizeDepartmentWorkshopWorkOrder(
+  source: DepartmentWorkshopStateSource,
+  departmentId: unknown,
+  workOrderId: unknown,
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopWriteResult {
+  const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
+  if (!isNormalizedNonEmptyString(departmentId) || !isNormalizedNonEmptyString(workOrderId)) {
+    return blockedWrite(workshopState, frozenReason('invalid-work-orders', ''))
+  }
+  if (!validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {
+    return blockedWrite(workshopState, frozenReason('invalid-department-registry', departmentId))
+  }
+  const snapshot = workshopState.snapshots[departmentId]
+  if (!snapshot) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('missing-workshop-snapshot', departmentId, [workOrderId])
+    )
+  }
+  const workOrder = workshopState.workOrders[workOrderId]
+  if (!workOrder) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('missing-work-order', departmentId, [workOrderId])
+    )
+  }
+  if (workOrder.departmentId !== departmentId) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('work-order-department-mismatch', departmentId, [workOrderId])
+    )
+  }
+  const queuedIndex = snapshot.queued.findIndex((item) => item.workOrderId === workOrderId)
+  if (queuedIndex < 0) {
+    return blockedWrite(
+      workshopState,
+      frozenReason('work-order-not-queued', departmentId, [workOrderId])
+    )
+  }
+
+  const nextState = frozenWorkshopState(workshopState.workOrders, {
+    ...workshopState.snapshots,
+    [departmentId]: {
+      ...snapshot,
+      queued: [
+        snapshot.queued[queuedIndex],
+        ...snapshot.queued.filter((_, index) => index !== queuedIndex),
+      ],
+    },
+  })
+  return Object.freeze({
+    state: 'prioritized',
+    workshopState: nextState,
+    reasons: Object.freeze([]),
+  })
 }
 
 function fillOpenSlots(

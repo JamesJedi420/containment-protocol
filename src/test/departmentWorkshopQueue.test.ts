@@ -302,6 +302,14 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       expected: 'invalid-workshop-snapshot',
     },
     {
+      name: 'unsafe slot capacity',
+      input: snapshot({
+        slotCapacity: Number.MAX_SAFE_INTEGER + 1,
+      }),
+      workOrders: [],
+      expected: 'invalid-workshop-snapshot',
+    },
+    {
       name: 'active and queued overlap',
       input: snapshot({
         queued: [{ workOrderId: 'order:a', completedWork: 0 }],

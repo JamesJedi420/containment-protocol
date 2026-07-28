@@ -243,7 +243,7 @@ function validateWorkshop(
     !snapshot ||
     typeof snapshot !== 'object' ||
     !isNormalizedNonEmptyString(snapshot.departmentId) ||
-    !Number.isInteger(snapshot.slotCapacity) ||
+    !Number.isSafeInteger(snapshot.slotCapacity) ||
     snapshot.slotCapacity < 0 ||
     !Array.isArray(snapshot.queued) ||
     !Array.isArray(snapshot.active) ||

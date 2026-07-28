@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2752",
     "SPE-2747",
     "SPE-2745",
     "SPE-2741",
@@ -12,10 +13,10 @@
     "SPE-2725",
     "SPE-2722",
     "SPE-2721",
-    "SPE-2720",
-    "SPE-2719"
+    "SPE-2720"
   ],
   "sliceDocStatus": {
+    "planning/spe-1028-department-workshop-enqueue-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-persistence-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-queue-kernel-slice.md": "Shipped",
     "planning/spe-2741-rival-expedition-week-close-slice.md": "Shipped",

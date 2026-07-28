@@ -213,6 +213,12 @@ import {
 import type { SquadMetadata } from '../../domain/squadMetadata'
 import type { SquadKitTemplate } from '../../domain/squadKitTemplate'
 import type { SquadKitAssignment } from '../../domain/squadKitAssignment'
+import {
+  enqueueDepartmentWorkshopWorkOrder as enqueueDepartmentWorkshopWorkOrderState,
+  prioritizeDepartmentWorkshopWorkOrder as prioritizeDepartmentWorkshopWorkOrderState,
+  type DepartmentWorkshopWorkOrder,
+  type DepartmentWorkshopWriteResult,
+} from '../../domain/departmentWorkshopQueue'
 
 interface GameStore {
   game: GameState
@@ -232,6 +238,13 @@ interface GameStore {
   peekRuntimeEvent: () => string | null
   listRuntimeEventQueue: () => ReturnType<typeof listQueuedRuntimeEvents>
   clearRuntimeEventQueue: () => number
+  enqueueDepartmentWorkshopWorkOrder: (
+    workOrder: DepartmentWorkshopWorkOrder
+  ) => DepartmentWorkshopWriteResult
+  prioritizeDepartmentWorkshopWorkOrder: (
+    departmentId: string,
+    workOrderId: string
+  ) => DepartmentWorkshopWriteResult
   applyAuthoredChoice: (
     choice: AuthoredChoiceDefinition,
     context?: ScreenRouteContext
@@ -873,6 +886,46 @@ export const useGameStore = create<GameStore>()(
         })
 
         return removed
+      },
+
+      enqueueDepartmentWorkshopWorkOrder: (workOrder) => {
+        let writeResult: DepartmentWorkshopWriteResult | null = null
+        set((s) => {
+          writeResult = enqueueDepartmentWorkshopWorkOrderState(s.game, workOrder)
+          if (writeResult.state === 'blocked') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return writeResult!
+      },
+
+      prioritizeDepartmentWorkshopWorkOrder: (departmentId, workOrderId) => {
+        let writeResult: DepartmentWorkshopWriteResult | null = null
+        set((s) => {
+          writeResult = prioritizeDepartmentWorkshopWorkOrderState(
+            s.game,
+            departmentId,
+            workOrderId
+          )
+          if (writeResult.state === 'blocked') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return writeResult!
       },
 
       applyAuthoredChoice: (choice, context) => {

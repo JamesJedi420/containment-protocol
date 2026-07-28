@@ -5,15 +5,16 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                       | Owner                                              |
-| --------------------------------------------- | -------------------------------------------------- |
-| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)  |
-| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)  |
-| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745) |
-| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)             |
-| Global case queue                             | `src/domain/sim/queue.ts`                          |
-| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                           |
-| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                    |
+| Concern                                       | Owner                                                 |
+| --------------------------------------------- | ----------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)     |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)     |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)    |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                |
+| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752) |
+| Global case queue                             | `src/domain/sim/queue.ts`                             |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                              |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                       |
 
 ## Workshop snapshot invariants
 
@@ -71,6 +72,17 @@ frozen work-order and snapshot maps, preserves lane order, and never advances
 work. SPE-2084 still owns coordination delay and receives the same validated
 snapshot/work-order contract it consumed before persistence existed.
 
+## Canonical writes
+
+SPE-2752 adds `enqueueDepartmentWorkshopWorkOrder` and
+`prioritizeDepartmentWorkshopWorkOrder`. Enqueue appends a valid, eligible
+order to an existing department snapshot's queued lane; priority moves an
+existing queued order to the front while preserving the remaining lane order.
+Both write paths return frozen results, reject duplicate work-order IDs and case
+workloads, and replace only the two workshop registries through `gameStore`.
+They never fill slots, advance work, change global case-queue priorities, or
+depend on a positive slot capacity.
+
 ## Persistence and hydration
 
 - `departmentWorkshopWorkOrders` is keyed by embedded work-order ID.
@@ -89,6 +101,8 @@ snapshot/work-order contract it consumed before persistence existed.
 ## Isolation checks
 
 - SPE-2747 may persist these contracts, but must not add a processing hook.
+- SPE-2752 may enqueue or reorder only an existing workshop queued lane; it must
+  not start, advance, pause, resume, or complete work.
 - Do not call workshop advancement from `advanceWeek` in SPE-2745.
 - Do not reuse or mutate `GameState.caseQueue`.
 - Do not derive workshop slots from facility effects until a later slice defines
@@ -101,6 +115,7 @@ snapshot/work-order contract it consumed before persistence existed.
 
 - `src/test/departmentWorkshopQueue.test.ts`
 - `src/test/departmentWorkshopPersistence.test.ts`
+- `src/test/departmentWorkshopWrites.test.ts`
 - `src/test/departmentCoordination.test.ts`
 - `src/test/missionIntakeDepartmentCapabilities.integration.test.ts`
 - `src/test/queue.test.ts`

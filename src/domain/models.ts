@@ -3,6 +3,7 @@ import type {
   RivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
 import type {
+  DepartmentWorkshopCompletionOutcomeRegistry,
   DepartmentWorkshopSnapshotRegistry,
   DepartmentWorkshopWorkOrderRegistry,
 } from './departmentWorkshopQueue'
@@ -2701,6 +2702,11 @@ export interface GameState {
    * Hydration drops malformed or cross-department duplicate siblings independently.
    */
   departmentWorkshopSnapshots?: DepartmentWorkshopSnapshotRegistry
+  /**
+   * SPE-1028 completion bridge: immutable receipt for each completed workshop
+   * order. This remains a no-modifier downstream outcome, not a case mutation.
+   */
+  departmentWorkshopCompletionOutcomes?: DepartmentWorkshopCompletionOutcomeRegistry
   /**
    * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
    * Optional for direct legacy states; hydration supplies a canonical empty foundation.

@@ -17,6 +17,7 @@
   ],
   "sliceDocStatus": {
     "planning/spe-1028-department-workshop-processing-advance-slice.md": "Shipped",
+    "planning/spe-1028-department-workshop-completion-outcome-bridge-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-enqueue-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-persistence-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-queue-kernel-slice.md": "Shipped",

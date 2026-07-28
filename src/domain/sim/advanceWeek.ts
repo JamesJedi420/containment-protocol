@@ -82,7 +82,10 @@ function applyEquipmentRecoveryBottleneck(
   }
 }
 import { clamp, createSeededRng } from '../math'
-import { processDepartmentWorkshopTick } from '../departmentWorkshopQueue'
+import {
+  processDepartmentWorkshopTick,
+  registerDepartmentWorkshopCompletionOutcomes,
+} from '../departmentWorkshopQueue'
 import {
   buildAggregateBattleCampaignSummary,
   buildAggregateBattleContextFromCase,
@@ -4868,6 +4871,14 @@ export function advanceWeek(
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
+  }
+  const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
+    inputWeeklyState,
+    workshopProcessingTick.completedWorkOrderIds,
+    sourceState.week
+  )
+  if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
+    outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
   }
 
   // SPE-2741: advance persisted rivals for the week that just closed. Pressure

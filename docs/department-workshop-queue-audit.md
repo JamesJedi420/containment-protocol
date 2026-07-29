@@ -15,6 +15,7 @@ the boundaries that later workshop slices must preserve.
 | Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
+| Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)             |
 | Global case queue                             | `src/domain/sim/queue.ts`                                 |
 | Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                  |
 | Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                           |
@@ -134,6 +135,9 @@ depend on a positive slot capacity.
 - Do not reuse or mutate `GameState.caseQueue`.
 - Only the authored open case may consume a completion receipt; do not use this
   case-local ledger to resolve, reprioritize, or otherwise advance case flow.
+- `planPrerequisiteProcessing` is a pure draft planner: do not treat its stock
+  allocations as inventory reservations or its dependency IDs as persisted work
+  order lifecycle state.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.

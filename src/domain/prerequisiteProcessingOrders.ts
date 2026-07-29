@@ -32,7 +32,10 @@ export interface CaseScopedPrerequisiteProcessingReservation {
   readonly caseId: string
   readonly inputMaterials: readonly PrerequisiteProcessingMaterialQuantity[]
 }
-export type CaseScopedPrerequisiteProcessingReservationRegistry = Record<string, CaseScopedPrerequisiteProcessingReservation>
+export type CaseScopedPrerequisiteProcessingReservationRegistry = Record<
+  string,
+  CaseScopedPrerequisiteProcessingReservation
+>
 
 export type CaseScopedPrerequisiteProcessingOrderRegistry = Record<
   string,
@@ -60,8 +63,8 @@ function isSafeId(value: unknown): value is string {
     value === value.trim() &&
     value !== '__proto__' &&
     value !== 'constructor' &&
-    value !== 'prototype'
-    && !/^(0|[1-9]\d*)$/.test(value)
+    value !== 'prototype' &&
+    !/^(0|[1-9]\d*)$/.test(value)
   )
 }
 
@@ -217,17 +220,50 @@ function buildOrder(
   })
 }
 
-export function sanitizeCaseScopedPrerequisiteProcessingReservations(value: unknown, source: CaseSource): CaseScopedPrerequisiteProcessingReservationRegistry {
+export function sanitizeCaseScopedPrerequisiteProcessingReservations(
+  value: unknown,
+  source: CaseSource
+): CaseScopedPrerequisiteProcessingReservationRegistry {
   if (!isRecord(value)) return Object.freeze({})
-  const entries = Object.entries(value).flatMap(([key, raw]) => {
-    if (!isSafeId(key) || !isRecord(raw) || raw.workOrderId !== key || !isSafeId(raw.caseId) || !hasOpenCase(source, raw.caseId) || !Array.isArray(raw.inputMaterials) || raw.inputMaterials.length !== Object.keys(raw.inputMaterials).length || !raw.inputMaterials.every(isValidMaterialQuantity)) return []
-    return [[key, Object.freeze({ workOrderId: key, caseId: raw.caseId, inputMaterials: Object.freeze(raw.inputMaterials.map((input) => Object.freeze({ ...input }))) })] as const]
-  }).sort(([a], [b]) => compareCodeUnits(a, b))
+  const entries = Object.entries(value)
+    .flatMap(([key, raw]) => {
+      if (
+        !isSafeId(key) ||
+        !isRecord(raw) ||
+        raw.workOrderId !== key ||
+        !isSafeId(raw.caseId) ||
+        !hasOpenCase(source, raw.caseId) ||
+        !Array.isArray(raw.inputMaterials) ||
+        raw.inputMaterials.length !== Object.keys(raw.inputMaterials).length ||
+        !raw.inputMaterials.every(isValidMaterialQuantity)
+      )
+        return []
+      return [
+        [
+          key,
+          Object.freeze({
+            workOrderId: key,
+            caseId: raw.caseId,
+            inputMaterials: Object.freeze(
+              raw.inputMaterials.map((input) => Object.freeze({ ...input }))
+            ),
+          }),
+        ] as const,
+      ]
+    })
+    .sort(([a], [b]) => compareCodeUnits(a, b))
   return Object.freeze(Object.fromEntries(entries))
 }
 
 export type CaseScopedPrerequisiteReservationResult =
-  | { readonly state: 'reserved-and-enqueued'; readonly inventory: Record<string, number>; readonly reservations: CaseScopedPrerequisiteProcessingReservationRegistry; readonly workshopWorkOrders: unknown; readonly workshopSnapshots: unknown; readonly reasons: readonly string[] }
+  | {
+      readonly state: 'reserved-and-enqueued'
+      readonly inventory: Record<string, number>
+      readonly reservations: CaseScopedPrerequisiteProcessingReservationRegistry
+      readonly workshopWorkOrders: unknown
+      readonly workshopSnapshots: unknown
+      readonly reasons: readonly string[]
+    }
   | { readonly state: 'blocked'; readonly reasons: readonly string[] }
 
 export interface CaseScopedPrerequisiteCompletionResult {
@@ -236,11 +272,35 @@ export interface CaseScopedPrerequisiteCompletionResult {
   readonly completedWorkOrderIds: readonly string[]
 }
 
+export interface CaseScopedPrerequisiteAutomaticActivationResult {
+  readonly activatedWorkOrderIds: readonly string[]
+  readonly inventory?: Record<string, number>
+  readonly reservations?: CaseScopedPrerequisiteProcessingReservationRegistry
+  readonly workshopWorkOrders?: unknown
+  readonly workshopSnapshots?: unknown
+}
+
 /** Credits only completed, provenance-matched reserved prerequisite orders. */
-export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: CaseSource & { readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly departmentWorkshopCompletionOutcomes?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly inventory?: unknown }): CaseScopedPrerequisiteCompletionResult {
+export function reconcileCaseScopedPrerequisiteProcessingCompletions(
+  source: CaseSource & {
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+    readonly inventory?: unknown
+  }
+): CaseScopedPrerequisiteCompletionResult {
   const orders = readCaseScopedPrerequisiteProcessingOrders(source)
-  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(source.caseScopedPrerequisiteProcessingReservations, source)
-  if (!isRecord(source.inventory) || !isRecord(source.departmentWorkshopCompletionOutcomes)) return Object.freeze({ inventory: Object.freeze({ ...(isRecord(source.inventory) ? source.inventory : {}) }), reservations, completedWorkOrderIds: Object.freeze([]) })
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  if (!isRecord(source.inventory) || !isRecord(source.departmentWorkshopCompletionOutcomes))
+    return Object.freeze({
+      inventory: Object.freeze({ ...(isRecord(source.inventory) ? source.inventory : {}) }),
+      reservations,
+      completedWorkOrderIds: Object.freeze([]),
+    })
   const inventory = { ...source.inventory } as Record<string, number>
   const remaining = new Map(Object.entries(reservations))
   const completed: string[] = []
@@ -248,8 +308,24 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: Cas
     const reservation = reservations[workOrderId]
     const order = orders[workOrderId]
     const outcome = source.departmentWorkshopCompletionOutcomes[workOrderId]
-    const workshopOrder = isRecord(source.departmentWorkshopWorkOrders) ? source.departmentWorkshopWorkOrders[workOrderId] : undefined
-    if (!order || !isRecord(outcome) || !isRecord(workshopOrder) || outcome.outcome !== 'completed' || outcome.workOrderId !== workOrderId || outcome.caseId !== reservation.caseId || outcome.caseId !== order.caseId || outcome.departmentId !== order.departmentId || outcome.taskType !== order.taskType || workshopOrder.caseId !== order.caseId || workshopOrder.departmentId !== order.departmentId || workshopOrder.taskType !== order.taskType) continue
+    const workshopOrder = isRecord(source.departmentWorkshopWorkOrders)
+      ? source.departmentWorkshopWorkOrders[workOrderId]
+      : undefined
+    if (
+      !order ||
+      !isRecord(outcome) ||
+      !isRecord(workshopOrder) ||
+      outcome.outcome !== 'completed' ||
+      outcome.workOrderId !== workOrderId ||
+      outcome.caseId !== reservation.caseId ||
+      outcome.caseId !== order.caseId ||
+      outcome.departmentId !== order.departmentId ||
+      outcome.taskType !== order.taskType ||
+      workshopOrder.caseId !== order.caseId ||
+      workshopOrder.departmentId !== order.departmentId ||
+      workshopOrder.taskType !== order.taskType
+    )
+      continue
     const prior = inventory[order.outputMaterialId]
     if (prior !== undefined && (!Number.isSafeInteger(prior) || prior < 0)) continue
     const nextQuantity = (prior ?? 0) + order.outputQuantity
@@ -258,42 +334,230 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: Cas
     remaining.delete(workOrderId)
     completed.push(workOrderId)
   }
-  return Object.freeze({ inventory: Object.freeze(inventory), reservations: Object.freeze(Object.fromEntries([...remaining.entries()].sort(([a], [b]) => compareCodeUnits(a, b)))), completedWorkOrderIds: Object.freeze(completed) })
+  return Object.freeze({
+    inventory: Object.freeze(inventory),
+    reservations: Object.freeze(
+      Object.fromEntries([...remaining.entries()].sort(([a], [b]) => compareCodeUnits(a, b)))
+    ),
+    completedWorkOrderIds: Object.freeze(completed),
+  })
 }
 
-export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(source: CaseSource & { readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly inventory?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly departmentWorkshopSnapshots?: unknown }, workOrderId: unknown): CaseScopedPrerequisiteReservationResult {
+export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
+  source: CaseSource & {
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly inventory?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+    readonly departmentWorkshopSnapshots?: unknown
+  },
+  workOrderId: unknown
+): CaseScopedPrerequisiteReservationResult {
   const orders = readCaseScopedPrerequisiteProcessingOrders(source)
-  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(source.caseScopedPrerequisiteProcessingReservations, source)
-  if (!isSafeId(workOrderId) || !orders[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  if (!isSafeId(workOrderId) || !orders[workOrderId])
+    return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
   const order = orders[workOrderId]
-  if (order.prerequisiteWorkOrderIds.length > 0) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
-  if (reservations[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['already-reserved']) })
-  if (!isRecord(source.inventory)) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['invalid-inventory']) })
+  if (order.prerequisiteWorkOrderIds.length > 0)
+    return Object.freeze({
+      state: 'blocked',
+      reasons: Object.freeze(['prerequisites-not-complete']),
+    })
+  if (reservations[workOrderId])
+    return Object.freeze({ state: 'blocked', reasons: Object.freeze(['already-reserved']) })
+  if (!isRecord(source.inventory))
+    return Object.freeze({ state: 'blocked', reasons: Object.freeze(['invalid-inventory']) })
   const inventory = { ...source.inventory } as Record<string, number>
-  for (const input of order.inputMaterials) if (!isPositiveSafeInteger(inventory[input.materialId]) || inventory[input.materialId] < input.quantity) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['insufficient-inventory']) })
-  const workshop = enqueueDepartmentWorkshopWorkOrder(source, { id: order.workOrderId, departmentId: order.departmentId, caseId: order.caseId, taskType: order.taskType, requiredWork: order.requiredWork } as DepartmentWorkshopWorkOrder)
-  if (workshop.state === 'blocked') return Object.freeze({ state: 'blocked', reasons: Object.freeze(workshop.reasons.map((reason) => reason.code)) })
+  for (const input of order.inputMaterials)
+    if (
+      !isPositiveSafeInteger(inventory[input.materialId]) ||
+      inventory[input.materialId] < input.quantity
+    )
+      return Object.freeze({ state: 'blocked', reasons: Object.freeze(['insufficient-inventory']) })
+  const workshop = enqueueDepartmentWorkshopWorkOrder(source, {
+    id: order.workOrderId,
+    departmentId: order.departmentId,
+    caseId: order.caseId,
+    taskType: order.taskType,
+    requiredWork: order.requiredWork,
+  } as DepartmentWorkshopWorkOrder)
+  if (workshop.state === 'blocked')
+    return Object.freeze({
+      state: 'blocked',
+      reasons: Object.freeze(workshop.reasons.map((reason) => reason.code)),
+    })
   for (const input of order.inputMaterials) inventory[input.materialId] -= input.quantity
-  const nextReservations = Object.freeze(Object.fromEntries([...Object.entries(reservations), [workOrderId, Object.freeze({ workOrderId, caseId: order.caseId, inputMaterials: Object.freeze(order.inputMaterials.map((input) => Object.freeze({ ...input }))) })]].sort(([a], [b]) => compareCodeUnits(a, b)))) as CaseScopedPrerequisiteProcessingReservationRegistry
-  return Object.freeze({ state: 'reserved-and-enqueued', inventory: Object.freeze(inventory), reservations: nextReservations, workshopWorkOrders: workshop.workshopState.workOrders, workshopSnapshots: workshop.workshopState.snapshots, reasons: Object.freeze([]) })
+  const nextReservations = Object.freeze(
+    Object.fromEntries(
+      [
+        ...Object.entries(reservations),
+        [
+          workOrderId,
+          Object.freeze({
+            workOrderId,
+            caseId: order.caseId,
+            inputMaterials: Object.freeze(
+              order.inputMaterials.map((input) => Object.freeze({ ...input }))
+            ),
+          }),
+        ],
+      ].sort(([a], [b]) => compareCodeUnits(a, b))
+    )
+  ) as CaseScopedPrerequisiteProcessingReservationRegistry
+  return Object.freeze({
+    state: 'reserved-and-enqueued',
+    inventory: Object.freeze(inventory),
+    reservations: nextReservations,
+    workshopWorkOrders: workshop.workshopState.workOrders,
+    workshopSnapshots: workshop.workshopState.snapshots,
+    reasons: Object.freeze([]),
+  })
 }
 
 /** Explicitly activate a completed-dependency successor through the canonical reservation write. */
-export function activateCaseScopedPrerequisiteProcessingOrder(source: CaseSource & { readonly week?: unknown; readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly departmentWorkshopCompletionOutcomes?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly departmentWorkshopSnapshots?: unknown; readonly inventory?: unknown }, workOrderId: unknown): CaseScopedPrerequisiteReservationResult {
-  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
-  if (!isSafeId(workOrderId) || !orders[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
-  const order = orders[workOrderId]
-  if (order.prerequisiteWorkOrderIds.length === 0) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['no-prerequisites']) })
-  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(source.departmentWorkshopCompletionOutcomes)
+function hasCanonicalCompletedPrerequisites(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  },
+  orders: CaseScopedPrerequisiteProcessingOrderRegistry,
+  order: CaseScopedPrerequisiteProcessingOrder
+) {
+  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source.departmentWorkshopCompletionOutcomes
+  )
   const workshopWorkOrders = readDepartmentWorkshopState(source).workOrders
   for (const prerequisiteId of order.prerequisiteWorkOrderIds) {
     const prerequisite = orders[prerequisiteId]
     const outcome = outcomes[prerequisiteId]
     const workshop = workshopWorkOrders[prerequisiteId]
-    if (!prerequisite || prerequisite.caseId !== order.caseId || !outcome || !Number.isInteger(source.week) || outcome.completedWeek > (source.week as number) || !workshop || outcome.caseId !== order.caseId || outcome.departmentId !== prerequisite.departmentId || outcome.taskType !== prerequisite.taskType || workshop.id !== prerequisiteId || workshop.caseId !== order.caseId || workshop.departmentId !== prerequisite.departmentId || workshop.taskType !== prerequisite.taskType || workshop.requiredWork !== prerequisite.requiredWork) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
+    if (
+      !prerequisite ||
+      prerequisite.caseId !== order.caseId ||
+      !outcome ||
+      !Number.isInteger(source.week) ||
+      outcome.completedWeek > (source.week as number) ||
+      !workshop ||
+      outcome.caseId !== order.caseId ||
+      outcome.departmentId !== prerequisite.departmentId ||
+      outcome.taskType !== prerequisite.taskType ||
+      workshop.id !== prerequisiteId ||
+      workshop.caseId !== order.caseId ||
+      workshop.departmentId !== prerequisite.departmentId ||
+      workshop.taskType !== prerequisite.taskType ||
+      workshop.requiredWork !== prerequisite.requiredWork
+    )
+      return false
   }
-  const activatedOrders = Object.freeze({ ...orders, [workOrderId]: Object.freeze({ ...order, prerequisiteWorkOrderIds: Object.freeze([]) }) })
-  return reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder({ ...source, caseScopedPrerequisiteProcessingOrders: activatedOrders }, workOrderId)
+  return true
+}
+
+export function activateCaseScopedPrerequisiteProcessingOrder(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+    readonly departmentWorkshopSnapshots?: unknown
+    readonly inventory?: unknown
+  },
+  workOrderId: unknown
+): CaseScopedPrerequisiteReservationResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  if (!isSafeId(workOrderId) || !orders[workOrderId])
+    return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
+  const order = orders[workOrderId]
+  if (order.prerequisiteWorkOrderIds.length === 0)
+    return Object.freeze({ state: 'blocked', reasons: Object.freeze(['no-prerequisites']) })
+  if (!hasCanonicalCompletedPrerequisites(source, orders, order))
+    return Object.freeze({
+      state: 'blocked',
+      reasons: Object.freeze(['prerequisites-not-complete']),
+    })
+  const activatedOrders = Object.freeze({
+    ...orders,
+    [workOrderId]: Object.freeze({ ...order, prerequisiteWorkOrderIds: Object.freeze([]) }),
+  })
+  return reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
+    { ...source, caseScopedPrerequisiteProcessingOrders: activatedOrders },
+    workOrderId
+  )
+}
+
+/**
+ * At week close, select one stable dependency-ready successor per case and
+ * delegate the actual write to the canonical activation/reservation seam.
+ */
+export function reconcileCaseScopedPrerequisiteProcessingSuccessors(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+    readonly departmentWorkshopSnapshots?: unknown
+    readonly inventory?: unknown
+  }
+): CaseScopedPrerequisiteAutomaticActivationResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source.departmentWorkshopCompletionOutcomes
+  )
+  const candidatesByCase = new Map<string, string>()
+  for (const order of Object.values(orders).sort(
+    (left, right) =>
+      compareCodeUnits(left.caseId, right.caseId) ||
+      compareCodeUnits(left.workOrderId, right.workOrderId)
+  )) {
+    if (
+      order.prerequisiteWorkOrderIds.length === 0 ||
+      reservations[order.workOrderId] ||
+      outcomes[order.workOrderId] ||
+      !hasCanonicalCompletedPrerequisites(source, orders, order) ||
+      candidatesByCase.has(order.caseId)
+    )
+      continue
+    candidatesByCase.set(order.caseId, order.workOrderId)
+  }
+
+  let current = source
+  let lastSuccessful:
+    | Extract<CaseScopedPrerequisiteReservationResult, { readonly state: 'reserved-and-enqueued' }>
+    | undefined
+  const activatedWorkOrderIds: string[] = []
+  for (const workOrderId of [...candidatesByCase.entries()]
+    .sort(([left], [right]) => compareCodeUnits(left, right))
+    .map(([, id]) => id)) {
+    const result = activateCaseScopedPrerequisiteProcessingOrder(current, workOrderId)
+    if (result.state !== 'reserved-and-enqueued') continue
+    activatedWorkOrderIds.push(workOrderId)
+    lastSuccessful = result
+    current = {
+      ...current,
+      inventory: result.inventory,
+      caseScopedPrerequisiteProcessingReservations: result.reservations,
+      departmentWorkshopWorkOrders: result.workshopWorkOrders,
+      departmentWorkshopSnapshots: result.workshopSnapshots,
+    }
+  }
+  return Object.freeze({
+    activatedWorkOrderIds: Object.freeze(activatedWorkOrderIds),
+    ...(lastSuccessful && {
+      inventory: lastSuccessful.inventory,
+      reservations: lastSuccessful.reservations,
+      workshopWorkOrders: lastSuccessful.workshopWorkOrders,
+      workshopSnapshots: lastSuccessful.workshopSnapshots,
+    }),
+  })
 }
 
 /**
@@ -309,7 +573,10 @@ export function createCaseScopedPrerequisiteProcessingOrders(
     return Object.freeze({})
   }
   const workOrderIds = new Map(
-    plan.prerequisiteWorkOrders.map((draft) => [draft.id, toCaseScopedWorkOrderId(caseId, draft.id)])
+    plan.prerequisiteWorkOrders.map((draft) => [
+      draft.id,
+      toCaseScopedWorkOrderId(caseId, draft.id),
+    ])
   )
   if (workOrderIds.size !== plan.prerequisiteWorkOrders.length) return Object.freeze({})
   const entries = plan.prerequisiteWorkOrders

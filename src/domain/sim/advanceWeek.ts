@@ -88,7 +88,10 @@ import {
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
-import { reconcileCaseScopedPrerequisiteProcessingCompletions } from '../prerequisiteProcessingOrders'
+import {
+  reconcileCaseScopedPrerequisiteProcessingCompletions,
+  reconcileCaseScopedPrerequisiteProcessingSuccessors,
+} from '../prerequisiteProcessingOrders'
 import {
   buildAggregateBattleCampaignSummary,
   buildAggregateBattleContextFromCase,
@@ -4950,7 +4953,23 @@ export function advanceWeek(
   })
   if (prerequisiteCompletions.completedWorkOrderIds.length > 0) {
     outputWeeklyState.inventory = prerequisiteCompletions.inventory
-    outputWeeklyState.caseScopedPrerequisiteProcessingReservations = prerequisiteCompletions.reservations
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteCompletions.reservations
+  }
+
+  // SPE-2760: output credit precedes one deterministic successor attempt per
+  // case. The reconciler delegates all mutable writes to the existing atomic
+  // activation seam and is safe to replay after save/load.
+  const prerequisiteSuccessors = reconcileCaseScopedPrerequisiteProcessingSuccessors({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
+  if (prerequisiteSuccessors.activatedWorkOrderIds.length > 0) {
+    outputWeeklyState.inventory = prerequisiteSuccessors.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteSuccessors.reservations
+    outputWeeklyState.departmentWorkshopWorkOrders = prerequisiteSuccessors.workshopWorkOrders
+    outputWeeklyState.departmentWorkshopSnapshots = prerequisiteSuccessors.workshopSnapshots
   }
 
   // SPE-2755: case records are the sole receipt consumer. Reconciliation

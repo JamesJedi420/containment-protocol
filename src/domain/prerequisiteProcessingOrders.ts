@@ -235,7 +235,7 @@ export interface CaseScopedPrerequisiteCompletionResult {
 }
 
 /** Credits only completed, provenance-matched reserved prerequisite orders. */
-export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: CaseSource & { readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly departmentWorkshopCompletionOutcomes?: unknown; readonly inventory?: unknown }): CaseScopedPrerequisiteCompletionResult {
+export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: CaseSource & { readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly departmentWorkshopCompletionOutcomes?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly inventory?: unknown }): CaseScopedPrerequisiteCompletionResult {
   const orders = readCaseScopedPrerequisiteProcessingOrders(source)
   const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(source.caseScopedPrerequisiteProcessingReservations, source)
   if (!isRecord(source.inventory) || !isRecord(source.departmentWorkshopCompletionOutcomes)) return Object.freeze({ inventory: Object.freeze({ ...(isRecord(source.inventory) ? source.inventory : {}) }), reservations, completedWorkOrderIds: Object.freeze([]) })
@@ -246,7 +246,8 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: Cas
     const reservation = reservations[workOrderId]
     const order = orders[workOrderId]
     const outcome = source.departmentWorkshopCompletionOutcomes[workOrderId]
-    if (!order || !isRecord(outcome) || outcome.outcome !== 'completed' || outcome.workOrderId !== workOrderId || outcome.caseId !== reservation.caseId || outcome.caseId !== order.caseId || outcome.departmentId !== order.departmentId || outcome.taskType !== order.taskType) continue
+    const workshopOrder = isRecord(source.departmentWorkshopWorkOrders) ? source.departmentWorkshopWorkOrders[workOrderId] : undefined
+    if (!order || !isRecord(outcome) || !isRecord(workshopOrder) || outcome.outcome !== 'completed' || outcome.workOrderId !== workOrderId || outcome.caseId !== reservation.caseId || outcome.caseId !== order.caseId || outcome.departmentId !== order.departmentId || outcome.taskType !== order.taskType || workshopOrder.caseId !== order.caseId || workshopOrder.departmentId !== order.departmentId || workshopOrder.taskType !== order.taskType) continue
     const prior = inventory[order.outputMaterialId]
     if (prior !== undefined && (!Number.isSafeInteger(prior) || prior < 0)) continue
     const nextQuantity = (prior ?? 0) + order.outputQuantity

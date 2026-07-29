@@ -4944,7 +4944,10 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
   }
 
-  const prerequisiteCompletions = reconcileCaseScopedPrerequisiteProcessingCompletions(outputWeeklyState)
+  const prerequisiteCompletions = reconcileCaseScopedPrerequisiteProcessingCompletions({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
   if (prerequisiteCompletions.completedWorkOrderIds.length > 0) {
     outputWeeklyState.inventory = prerequisiteCompletions.inventory
     outputWeeklyState.caseScopedPrerequisiteProcessingReservations = prerequisiteCompletions.reservations

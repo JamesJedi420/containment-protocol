@@ -45,6 +45,7 @@ function isSafeId(value: unknown): value is string {
     value !== '__proto__' &&
     value !== 'constructor' &&
     value !== 'prototype'
+    && !/^(0|[1-9]\d*)$/.test(value)
   )
 }
 
@@ -59,14 +60,22 @@ function isPositiveSafeInteger(value: unknown): value is number {
 function hasOpenCase(source: CaseSource, caseId: string) {
   if (!isRecord(source?.cases)) return false
   const candidate = source.cases[caseId]
-  return isRecord(candidate) && candidate.id === caseId && candidate.status !== 'resolved'
+  return (
+    isRecord(candidate) &&
+    candidate.id === caseId &&
+    (candidate.status === 'open' || candidate.status === 'in_progress')
+  )
 }
 
 function frozenOrder(order: CaseScopedPrerequisiteProcessingOrder) {
   return Object.freeze({
-    ...order,
+    workOrderId: order.workOrderId,
+    caseId: order.caseId,
+    processingRecipeId: order.processingRecipeId,
     inputMaterials: Object.freeze(order.inputMaterials.map((input) => Object.freeze({ ...input }))),
     prerequisiteWorkOrderIds: Object.freeze([...order.prerequisiteWorkOrderIds]),
+    outputMaterialId: order.outputMaterialId,
+    outputQuantity: order.outputQuantity,
   })
 }
 
@@ -86,10 +95,12 @@ function isValidOrder(
     hasOpenCase(source, order.caseId) &&
     isValueId(order.processingRecipeId) &&
     Array.isArray(order.inputMaterials) &&
+    order.inputMaterials.length === Object.keys(order.inputMaterials).length &&
     order.inputMaterials.every(isValidMaterialQuantity) &&
     isValueId(order.outputMaterialId) &&
     isPositiveSafeInteger(order.outputQuantity) &&
     Array.isArray(order.prerequisiteWorkOrderIds) &&
+    order.prerequisiteWorkOrderIds.length === Object.keys(order.prerequisiteWorkOrderIds).length &&
     order.prerequisiteWorkOrderIds.every(isSafeId) &&
     new Set(order.prerequisiteWorkOrderIds).size === order.prerequisiteWorkOrderIds.length
   )

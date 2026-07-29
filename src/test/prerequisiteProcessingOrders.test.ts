@@ -6,7 +6,7 @@ import {
 } from '../domain/prerequisiteProcessingOrders'
 import { planPrerequisiteProcessing } from '../domain/prerequisiteProcessing'
 
-const source = { cases: { 'case:open': { id: 'case:open', status: 'active' } } }
+const source = { cases: { 'case:open': { id: 'case:open', status: 'open' } } }
 
 describe('case-scoped prerequisite processing orders', () => {
   it('adapts planned drafts deterministically for a real open case', () => {

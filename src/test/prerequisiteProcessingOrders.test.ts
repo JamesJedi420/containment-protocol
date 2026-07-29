@@ -3,6 +3,7 @@ import {
   createCaseScopedPrerequisiteProcessingOrders,
   readCaseScopedPrerequisiteProcessingOrders,
   reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
+  reconcileCaseScopedPrerequisiteProcessingCompletions,
   sanitizeCaseScopedPrerequisiteProcessingOrders,
 } from '../domain/prerequisiteProcessingOrders'
 import { planPrerequisiteProcessing } from '../domain/prerequisiteProcessing'
@@ -136,5 +137,16 @@ describe('case-scoped prerequisite processing orders', () => {
       expect(result.reservations[workOrderId]?.caseId).toBe(caseId)
       expect((result.workshopWorkOrders as Record<string, unknown>)[workOrderId]).toBeDefined()
     }
+  })
+
+  it('credits completed reserved output once and releases its reservation', () => {
+    const workOrderId = 'work:complete'
+    const order = { workOrderId, caseId: 'case:open', processingRecipeId: 'process', inputMaterials: [], outputMaterialId: 'processed', outputQuantity: 2, departmentId: 'department:records-analysis', taskType: 'records_review', requiredWork: 1, prerequisiteWorkOrderIds: [] }
+    const state = { ...source, inventory: {}, caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order }, caseScopedPrerequisiteProcessingReservations: { [workOrderId]: { workOrderId, caseId: 'case:open', inputMaterials: [] } }, departmentWorkshopCompletionOutcomes: { [workOrderId]: { workOrderId, caseId: 'case:open', departmentId: 'department:records-analysis', taskType: 'records_review', completedWeek: 1, outcome: 'completed' } } }
+    const first = reconcileCaseScopedPrerequisiteProcessingCompletions(state)
+    const replay = reconcileCaseScopedPrerequisiteProcessingCompletions({ ...state, inventory: first.inventory, caseScopedPrerequisiteProcessingReservations: first.reservations })
+    expect(first.inventory.processed).toBe(2)
+    expect(first.reservations).toEqual({})
+    expect(replay.inventory.processed).toBe(2)
   })
 })

@@ -88,6 +88,7 @@ import {
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
+import { reconcileCaseScopedPrerequisiteProcessingCompletions } from '../prerequisiteProcessingOrders'
 import {
   buildAggregateBattleCampaignSummary,
   buildAggregateBattleContextFromCase,
@@ -4941,6 +4942,12 @@ export function advanceWeek(
   )
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
+  }
+
+  const prerequisiteCompletions = reconcileCaseScopedPrerequisiteProcessingCompletions(outputWeeklyState)
+  if (prerequisiteCompletions.completedWorkOrderIds.length > 0) {
+    outputWeeklyState.inventory = prerequisiteCompletions.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations = prerequisiteCompletions.reservations
   }
 
   // SPE-2755: case records are the sole receipt consumer. Reconciliation

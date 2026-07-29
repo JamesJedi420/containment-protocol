@@ -58,6 +58,7 @@ export type DepartmentWorkshopCompletionOutcomeRegistry = Record<
 >
 
 export interface DepartmentWorkshopStateSource {
+  readonly week?: unknown
   readonly departmentWorkshopWorkOrders?: unknown
   readonly departmentWorkshopSnapshots?: unknown
   readonly departmentWorkshopCompletionOutcomes?: unknown
@@ -791,6 +792,8 @@ export function enqueueDepartmentWorkshopWorkOrder(
       const outcome = completionOutcomes[existing.id]
       return (
         !outcome ||
+        !Number.isInteger(source?.week) ||
+        outcome.completedWeek > (source?.week as number) ||
         outcome.caseId !== existing.caseId ||
         outcome.departmentId !== existing.departmentId ||
         outcome.taskType !== existing.taskType

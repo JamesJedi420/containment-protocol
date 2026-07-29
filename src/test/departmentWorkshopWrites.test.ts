@@ -136,6 +136,7 @@ describe('canonical department workshop writes (SPE-2752 / SPE-1028)', () => {
     const completed = order('work:completed', 'case:alpha')
     const source = {
       ...emptyWorkshopState(),
+      week: 1,
       departmentWorkshopWorkOrders: { [completed.id]: completed },
       departmentWorkshopCompletionOutcomes: {
         [completed.id]: {
@@ -154,6 +155,20 @@ describe('canonical department workshop writes (SPE-2752 / SPE-1028)', () => {
     expect(
       enqueueDepartmentWorkshopWorkOrder(
         { ...source, departmentWorkshopCompletionOutcomes: {} },
+        next
+      ).reasons[0].code
+    ).toBe('duplicate-case-workload')
+    expect(
+      enqueueDepartmentWorkshopWorkOrder(
+        {
+          ...source,
+          departmentWorkshopCompletionOutcomes: {
+            [completed.id]: {
+              ...source.departmentWorkshopCompletionOutcomes[completed.id],
+              completedWeek: 2,
+            },
+          },
+        },
         next
       ).reasons[0].code
     ).toBe('duplicate-case-workload')

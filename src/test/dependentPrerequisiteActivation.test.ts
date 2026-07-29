@@ -142,6 +142,19 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
       activateCaseScopedPrerequisiteProcessingOrder(crossCaseReceipt, SUCCESSOR_ID)
     ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
 
+    const futureReceipt = {
+      ...state,
+      departmentWorkshopCompletionOutcomes: {
+        [LEAF_ID]: {
+          ...state.departmentWorkshopCompletionOutcomes[LEAF_ID],
+          completedWeek: state.week + 1,
+        },
+      },
+    }
+    expect(
+      activateCaseScopedPrerequisiteProcessingOrder(futureReceipt, SUCCESSOR_ID)
+    ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
+
     const activePriorWork = {
       ...state,
       departmentWorkshopSnapshots: {

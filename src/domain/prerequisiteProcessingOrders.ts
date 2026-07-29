@@ -2,6 +2,10 @@ import type {
   PrerequisiteProcessingPlan,
   PrerequisiteWorkOrderDraft,
 } from './prerequisiteProcessing'
+import {
+  enqueueDepartmentWorkshopWorkOrder,
+  type DepartmentWorkshopWorkOrder,
+} from './departmentWorkshopQueue'
 
 export interface PrerequisiteProcessingMaterialQuantity {
   readonly materialId: string
@@ -15,8 +19,18 @@ export interface CaseScopedPrerequisiteProcessingOrder {
   readonly inputMaterials: readonly PrerequisiteProcessingMaterialQuantity[]
   readonly outputMaterialId: string
   readonly outputQuantity: number
+  readonly departmentId: string
+  readonly taskType: string
+  readonly requiredWork: number
   readonly prerequisiteWorkOrderIds: readonly string[]
 }
+
+export interface CaseScopedPrerequisiteProcessingReservation {
+  readonly workOrderId: string
+  readonly caseId: string
+  readonly inputMaterials: readonly PrerequisiteProcessingMaterialQuantity[]
+}
+export type CaseScopedPrerequisiteProcessingReservationRegistry = Record<string, CaseScopedPrerequisiteProcessingReservation>
 
 export type CaseScopedPrerequisiteProcessingOrderRegistry = Record<
   string,
@@ -76,6 +90,9 @@ function frozenOrder(order: CaseScopedPrerequisiteProcessingOrder) {
     prerequisiteWorkOrderIds: Object.freeze([...order.prerequisiteWorkOrderIds]),
     outputMaterialId: order.outputMaterialId,
     outputQuantity: order.outputQuantity,
+    departmentId: order.departmentId,
+    taskType: order.taskType,
+    requiredWork: order.requiredWork,
   })
 }
 
@@ -99,6 +116,9 @@ function isValidOrder(
     order.inputMaterials.every(isValidMaterialQuantity) &&
     isValueId(order.outputMaterialId) &&
     isPositiveSafeInteger(order.outputQuantity) &&
+    isValueId(order.departmentId) &&
+    isValueId(order.taskType) &&
+    isPositiveSafeInteger(order.requiredWork) &&
     Array.isArray(order.prerequisiteWorkOrderIds) &&
     order.prerequisiteWorkOrderIds.length === Object.keys(order.prerequisiteWorkOrderIds).length &&
     order.prerequisiteWorkOrderIds.every(isSafeId) &&
@@ -188,8 +208,41 @@ function buildOrder(
     inputMaterials: Object.freeze(draft.inputMaterials.map((input) => Object.freeze({ ...input }))),
     outputMaterialId: draft.outputMaterialId,
     outputQuantity: draft.outputQuantity,
+    departmentId: draft.departmentId,
+    taskType: draft.taskType,
+    requiredWork: draft.requiredWork,
     prerequisiteWorkOrderIds: Object.freeze([...prerequisiteWorkOrderIds]),
   })
+}
+
+export function sanitizeCaseScopedPrerequisiteProcessingReservations(value: unknown, source: CaseSource): CaseScopedPrerequisiteProcessingReservationRegistry {
+  if (!isRecord(value)) return Object.freeze({})
+  const entries = Object.entries(value).flatMap(([key, raw]) => {
+    if (!isSafeId(key) || !isRecord(raw) || raw.workOrderId !== key || !isSafeId(raw.caseId) || !hasOpenCase(source, raw.caseId) || !Array.isArray(raw.inputMaterials) || raw.inputMaterials.length !== Object.keys(raw.inputMaterials).length || !raw.inputMaterials.every(isValidMaterialQuantity)) return []
+    return [[key, Object.freeze({ workOrderId: key, caseId: raw.caseId, inputMaterials: Object.freeze(raw.inputMaterials.map((input) => Object.freeze({ ...input }))) })] as const]
+  }).sort(([a], [b]) => compareCodeUnits(a, b))
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+export type CaseScopedPrerequisiteReservationResult =
+  | { readonly state: 'reserved-and-enqueued'; readonly inventory: Record<string, number>; readonly reservations: CaseScopedPrerequisiteProcessingReservationRegistry; readonly workshopWorkOrders: unknown; readonly workshopSnapshots: unknown; readonly reasons: readonly string[] }
+  | { readonly state: 'blocked'; readonly reasons: readonly string[] }
+
+export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(source: CaseSource & { readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly inventory?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly departmentWorkshopSnapshots?: unknown }, workOrderId: unknown): CaseScopedPrerequisiteReservationResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(source.caseScopedPrerequisiteProcessingReservations, source)
+  if (!isSafeId(workOrderId) || !orders[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
+  const order = orders[workOrderId]
+  if (order.prerequisiteWorkOrderIds.length > 0) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
+  if (reservations[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['already-reserved']) })
+  if (!isRecord(source.inventory)) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['invalid-inventory']) })
+  const inventory = { ...source.inventory } as Record<string, number>
+  for (const input of order.inputMaterials) if (!isPositiveSafeInteger(inventory[input.materialId]) || inventory[input.materialId] < input.quantity) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['insufficient-inventory']) })
+  const workshop = enqueueDepartmentWorkshopWorkOrder(source, { id: order.workOrderId, departmentId: order.departmentId, caseId: order.caseId, taskType: order.taskType, requiredWork: order.requiredWork } as DepartmentWorkshopWorkOrder)
+  if (workshop.state === 'blocked') return Object.freeze({ state: 'blocked', reasons: Object.freeze(workshop.reasons.map((reason) => reason.code)) })
+  for (const input of order.inputMaterials) inventory[input.materialId] -= input.quantity
+  const nextReservations = Object.freeze(Object.fromEntries([...Object.entries(reservations), [workOrderId, Object.freeze({ workOrderId, caseId: order.caseId, inputMaterials: Object.freeze(order.inputMaterials.map((input) => Object.freeze({ ...input }))) })]].sort(([a], [b]) => compareCodeUnits(a, b)))) as CaseScopedPrerequisiteProcessingReservationRegistry
+  return Object.freeze({ state: 'reserved-and-enqueued', inventory: Object.freeze(inventory), reservations: nextReservations, workshopWorkOrders: workshop.workshopState.workOrders, workshopSnapshots: workshop.workshopState.snapshots, reasons: Object.freeze([]) })
 }
 
 /**

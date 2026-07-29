@@ -64,6 +64,9 @@ describe('case-scoped prerequisite processing orders', () => {
       inputMaterials: [{ materialId: 'raw', quantity: 1 }],
       outputMaterialId: 'processed',
       outputQuantity: 1,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
       prerequisiteWorkOrderIds: [],
     }
     const rawRecords = Object.assign(Object.create(null), {

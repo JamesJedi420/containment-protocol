@@ -35,6 +35,7 @@ const startingStateTemplate: GameState = {
   departmentWorkshopSnapshots: {},
   departmentWorkshopCompletionOutcomes: {},
   caseScopedPrerequisiteProcessingOrders: {},
+  caseScopedPrerequisiteProcessingReservations: {},
   inventory: createStartingInventory(),
   damagedEquipmentQueue: [],
   caseQueue: {

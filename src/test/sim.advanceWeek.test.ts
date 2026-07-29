@@ -17,6 +17,7 @@ import { buildAgencyProtocolState } from '../domain/protocols'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 import { createSeededRng } from '../domain/math'
 import { generateAmbientCases } from '../domain/caseGeneration'
+import { cancelCase } from '../domain/caseLifecycleWeeklyOrchestration'
 import {
   createCompactCivicAuthorityConsequencePacket,
   deriveCrossSiteAuthorityModifierForTargetSite,
@@ -2713,6 +2714,75 @@ describe('advanceWeek', () => {
     expect(next.inventory.medical_supplies).toBe(0)
     expect(
       next.caseScopedPrerequisiteProcessingReservations?.['work:completion-race']
+    ).toBeUndefined()
+  })
+
+  it('releases an explicitly cancelled reservation only at the existing week-close seam', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:explicit-cancellation', caseId: 'case-001', requiredWork: 3 },
+    ])
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+
+    expect(state.inventory.medical_supplies).toBe(0)
+    expect(
+      state.caseScopedPrerequisiteProcessingReservations?.['work:explicit-cancellation']
+    ).toBeDefined()
+
+    const next = advanceWeek(state)
+
+    expect(next.inventory.medical_supplies).toBe(1)
+    expect(next.inventory.warding_resin).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:explicit-cancellation']
+    ).toBeUndefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingTerminalSignals?.['work:explicit-cancellation']
+    ).toMatchObject({
+      reason: 'cancelled',
+      terminalWeek: state.week,
+    })
+  })
+
+  it('lets same-week completion win an explicit cancellation race', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:cancellation-race', caseId: 'case-001', requiredWork: 1 },
+    ])
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+
+    const next = advanceWeek(state)
+
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:cancellation-race']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: state.week,
+    })
+    expect(next.inventory.warding_resin).toBe(1)
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:cancellation-race']
     ).toBeUndefined()
   })
 

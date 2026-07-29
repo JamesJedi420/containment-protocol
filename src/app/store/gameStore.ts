@@ -207,6 +207,10 @@ import {
 } from './runTransfer'
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave, serializeGameSave } from './saveSystem'
 import {
+  cancelCase as cancelCaseState,
+  type CaseCancellationCommandResult,
+} from '../../domain/caseLifecycleWeeklyOrchestration'
+import {
   applyPreparedSupportProcedure as applyPreparedSupportProcedureState,
   refreshPreparedSupportProcedure as refreshPreparedSupportProcedureState,
 } from '../../domain/supportLoadout'
@@ -294,6 +298,8 @@ interface GameStore {
     strategy?: MajorIncidentStrategy,
     provisions?: MajorIncidentProvisionType[]
   ) => void
+  /** SPE-2763: explicitly emit cancellation proof without closing or mutating the case. */
+  cancelCase: (caseId: Id) => CaseCancellationCommandResult
   assign: (caseId: Id, teamId: Id) => void
   unassign: (caseId: Id, teamId?: Id) => void
   /** SPE-2247: set stealth leave-behind tradeoff on an eligible in-progress infiltration case. */
@@ -1294,6 +1300,24 @@ export const useGameStore = create<GameStore>()(
             game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
           }
         }),
+
+      cancelCase: (caseId) => {
+        let result: CaseCancellationCommandResult | null = null
+        set((s) => {
+          result = cancelCaseState(s.game, caseId)
+          if (result.state === 'blocked' || result.registeredWorkOrderIds.length === 0) {
+            return { game: s.game }
+          }
+
+          return {
+            game: {
+              ...s.game,
+              caseScopedPrerequisiteProcessingTerminalSignals: result.signals,
+            },
+          }
+        })
+        return result!
+      },
 
       assign: (caseId, teamId) =>
         set((s) => {

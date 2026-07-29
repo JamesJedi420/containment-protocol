@@ -33,6 +33,15 @@ import type {
   RuleDocumentComplianceRecord,
   RuleDocumentComplianceRecordsMap,
 } from './ruleDocumentComplianceContainmentRegistry'
+import {
+  readCaseScopedPrerequisiteProcessingOrders,
+  registerCaseScopedPrerequisiteProcessingTerminalSignal,
+  sanitizeCaseScopedPrerequisiteProcessingReservations,
+  sanitizeCaseScopedPrerequisiteProcessingTerminalSignals,
+  type CaseScopedPrerequisiteProcessingTerminalReason,
+  type CaseScopedPrerequisiteProcessingTerminalSignalRegistry,
+  type CaseScopedPrerequisiteTerminalSignalRegistrationResult,
+} from './prerequisiteProcessingOrders'
 
 const CREDIBILITY_REVIEW_PASSED_STATUSES: ReadonlySet<InformationVerificationStatus> = new Set([
   'verified',
@@ -74,6 +83,74 @@ export interface AppliedCaseLifecycleDisposition {
   readonly kind: 'policy_tier_upgrade'
   readonly fromTier: NonNullable<CaseInstance['containmentPolicyTier']> | 'standard'
   readonly toTier: NonNullable<CaseInstance['containmentPolicyTier']>
+}
+
+export interface CaseLifecycleTerminalDisposition {
+  readonly caseId: string
+  readonly reason: CaseScopedPrerequisiteProcessingTerminalReason
+  readonly terminalWeek: number
+}
+
+type CaseLifecycleTerminalSignalSource = {
+  readonly week?: unknown
+  readonly cases?: unknown
+  readonly caseScopedPrerequisiteProcessingOrders?: unknown
+  readonly caseScopedPrerequisiteProcessingReservations?: unknown
+  readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+  readonly departmentWorkshopCompletionOutcomes?: unknown
+  readonly departmentWorkshopWorkOrders?: unknown
+}
+
+/**
+ * Expands one explicit lifecycle disposition over that case's reserved
+ * prerequisite work orders. Ordinary case state is deliberately not inspected
+ * as terminal proof; every durable write still passes through the canonical
+ * work-order registration seam.
+ */
+export function produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
+  source: CaseLifecycleTerminalSignalSource,
+  disposition: CaseLifecycleTerminalDisposition
+): CaseScopedPrerequisiteTerminalSignalRegistrationResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  let signals: CaseScopedPrerequisiteProcessingTerminalSignalRegistry =
+    sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+      source.caseScopedPrerequisiteProcessingTerminalSignals,
+      source
+    )
+  const registeredWorkOrderIds: string[] = []
+  const reasons: string[] = []
+  const workOrderIds = Object.keys(orders)
+    .filter(
+      (workOrderId) =>
+        orders[workOrderId]?.caseId === disposition.caseId &&
+        reservations[workOrderId]?.caseId === disposition.caseId
+    )
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+
+  for (const workOrderId of workOrderIds) {
+    const registration = registerCaseScopedPrerequisiteProcessingTerminalSignal(
+      {
+        ...source,
+        caseScopedPrerequisiteProcessingTerminalSignals: signals,
+      },
+      workOrderId,
+      disposition.reason,
+      disposition.terminalWeek
+    )
+    signals = registration.signals
+    registeredWorkOrderIds.push(...registration.registeredWorkOrderIds)
+    reasons.push(...registration.reasons)
+  }
+
+  return Object.freeze({
+    signals,
+    registeredWorkOrderIds: Object.freeze(registeredWorkOrderIds),
+    reasons: Object.freeze(reasons),
+  })
 }
 
 function normalizeToken(value: string): string {

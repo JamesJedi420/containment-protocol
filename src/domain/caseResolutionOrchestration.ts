@@ -43,6 +43,7 @@ import { resolveWeakestLinkMission } from './weakestLinkResolution'
 import { resolveMajorIncidentOutcome, buildMajorIncidentEffectiveCase, isOperationalMajorIncidentCase } from './majorIncidentOperations'
 import { resolveRaid } from './sim/raid'
 import { resolveCase } from './sim/resolve'
+import type { CaseLifecycleTerminalDisposition } from './caseLifecycleWeeklyOrchestration'
 
 export interface WeeklyCaseResolutionStrategy {
   effectiveCase: CaseInstance
@@ -50,6 +51,7 @@ export interface WeeklyCaseResolutionStrategy {
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
+  terminalDisposition?: CaseLifecycleTerminalDisposition
   behaviorValidation?: DisguiseRevealIntegrationResult
   hiddenStateModalityTell?: HiddenStateModalityTellResult
   hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult
@@ -356,6 +358,14 @@ export function resolveAssignedCaseForWeek(
     assignedAgentLeaderBonuses,
     activeTeamStressModifiers,
     outcome,
+    terminalDisposition:
+      outcome.result === 'fail'
+        ? {
+            caseId: currentCase.id,
+            reason: 'failed',
+            terminalWeek: state.week,
+          }
+        : undefined,
     behaviorValidation,
     hiddenStateModalityTell,
     hiddenStateScouting,

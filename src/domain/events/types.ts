@@ -310,6 +310,13 @@ export interface OperationEventPayloadMap {
     week: number
     count: number
   }
+  'recruitment.candidate_departed': {
+    week: number
+    candidateId: Id
+    candidateName: string
+    reason: 'expired_from_consideration' | 'unknown_departure'
+    destination?: string
+  }
   'system.recruitment_generated': {
     week: number
     count: number
@@ -710,6 +717,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'agent.hired': 'agent'
   'progression.xp_gained': 'agent'
   'system.recruitment_expired': 'system'
+  'recruitment.candidate_departed': 'system'
   'system.recruitment_generated': 'system'
   'system.party_cards_drawn': 'system'
   'recruitment.scouting_initiated': 'intel'
@@ -768,6 +776,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'agent.hired': 'agent',
   'progression.xp_gained': 'agent',
   'system.recruitment_expired': 'system',
+  'recruitment.candidate_departed': 'system',
   'system.recruitment_generated': 'system',
   'system.party_cards_drawn': 'system',
   'recruitment.scouting_initiated': 'intel',

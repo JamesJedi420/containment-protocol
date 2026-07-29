@@ -544,6 +544,16 @@ const systemRecruitmentExpiredSchema = z
   })
   .strict()
 
+const recruitmentCandidateDepartedSchema = z
+  .object({
+    week: weekSchema,
+    candidateId: z.string().min(1),
+    candidateName: z.string().min(1),
+    reason: z.enum(['expired_from_consideration', 'unknown_departure']),
+    destination: z.string().min(1).optional(),
+  })
+  .strict()
+
 const systemRecruitmentGeneratedSchema = z
   .object({
     week: weekSchema,
@@ -1213,6 +1223,7 @@ export const operationEventPayloadSchemas = {
   'agent.hired': agentHiredSchema,
   'progression.xp_gained': progressionXpGainedSchema,
   'system.recruitment_expired': systemRecruitmentExpiredSchema,
+  'recruitment.candidate_departed': recruitmentCandidateDepartedSchema,
   'system.recruitment_generated': systemRecruitmentGeneratedSchema,
   'system.party_cards_drawn': systemPartyCardsDrawnSchema,
   'recruitment.scouting_initiated': recruitmentScoutingSchema,

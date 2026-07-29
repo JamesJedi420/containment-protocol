@@ -42,6 +42,7 @@ const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
 
 const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
   'system.recruitment_expired',
+  'recruitment.candidate_departed',
   'system.recruitment_generated',
   'recruitment.scouting_initiated',
   'recruitment.scouting_refined',

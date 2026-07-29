@@ -210,6 +210,7 @@ import {
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
 import { getRecruitmentPool, syncRecruitmentPoolState } from '../recruitment'
+import { getCandidateFunnelStage, isCandidateHireable } from '../recruitment/helpers'
 import {
   buildTeamCompositionProfile,
   ensureNormalizedGameState,
@@ -3859,6 +3860,13 @@ function generateRecruitmentPool(context: WeeklyExecutionContext, rng: SeededRng
 }
 
 function expireOldCandidates(context: WeeklyExecutionContext) {
+  const expiredScoutedCandidates = context.initialRecruitmentPool.filter(
+    (candidate) =>
+      context.nextState.week > candidate.expiryWeek &&
+      candidate.scoutReport !== undefined &&
+      isCandidateHireable(candidate.hireStatus) &&
+      !['hired', 'lost'].includes(getCandidateFunnelStage(candidate))
+  )
   const nonExpiredCandidates = removeExpiredCandidates(
     context.initialRecruitmentPool,
     context.nextState.week
@@ -3884,6 +3892,19 @@ function expireOldCandidates(context: WeeklyExecutionContext) {
       payload: {
         week: context.sourceState.week,
         count: expiredCandidateCount,
+      },
+    })
+  }
+
+  for (const candidate of expiredScoutedCandidates) {
+    context.eventDrafts.push({
+      type: 'recruitment.candidate_departed',
+      sourceSystem: 'system',
+      payload: {
+        week: context.sourceState.week,
+        candidateId: candidate.id,
+        candidateName: candidate.name,
+        reason: 'expired_from_consideration',
       },
     })
   }

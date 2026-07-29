@@ -1600,6 +1600,7 @@ export type ReportNoteType =
   | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
+  | 'recruitment.candidate_departed'
   | 'system.recruitment_generated'
   | 'recruitment.scouting_initiated'
   | 'recruitment.scouting_refined'

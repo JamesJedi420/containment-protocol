@@ -453,6 +453,7 @@ export const REPORT_NOTE_TYPES = [
   'agency.status_upkeep_display',
   'system.week_delta',
   'system.recruitment_expired',
+  'recruitment.candidate_departed',
   'system.recruitment_generated',
   'recruitment.scouting_initiated',
   'recruitment.scouting_refined',
@@ -640,6 +641,7 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
   ],
   'system.week_delta': ['delta'],
   'system.recruitment_expired': ['count'],
+  'recruitment.candidate_departed': ['candidateId', 'candidateName', 'destination', 'reason'],
   'system.recruitment_generated': ['count'],
   'recruitment.scouting_initiated': [
     'candidateId',
@@ -8148,6 +8150,32 @@ function sanitizeOperationEvents(
             payload: {
               week,
               count: sanitizeOperationEventAuditCount(payload.count),
+            },
+          })
+        )
+        break
+
+      case 'recruitment.candidate_departed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('recruitment.candidate_departed'),
+            payload: {
+              week,
+              candidateId:
+                typeof payload.candidateId === 'string' && payload.candidateId.trim().length > 0
+                  ? payload.candidateId.trim()
+                  : `candidate-${index + 1}`,
+              candidateName:
+                typeof payload.candidateName === 'string' && payload.candidateName.trim().length > 0
+                  ? payload.candidateName.trim()
+                  : 'Unknown candidate',
+              reason:
+                payload.reason === 'expired_from_consideration'
+                  ? 'expired_from_consideration'
+                  : 'unknown_departure',
+              ...(typeof payload.destination === 'string' && payload.destination.trim().length > 0
+                ? { destination: payload.destination.trim() }
+                : {}),
             },
           })
         )

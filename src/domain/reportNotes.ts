@@ -581,6 +581,18 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
+    case 'recruitment.candidate_departed':
+      return {
+        content: `${draft.payload.candidateName} is no longer available for recruitment.`,
+        type: 'recruitment.candidate_departed',
+        metadata: {
+          candidateId: draft.payload.candidateId,
+          candidateName: draft.payload.candidateName,
+          reason: draft.payload.reason,
+          destination: draft.payload.destination ?? null,
+        },
+      }
+
     case 'system.recruitment_generated':
       return {
         content: `Recruitment pipeline generated ${draft.payload.count} candidate(s).`,

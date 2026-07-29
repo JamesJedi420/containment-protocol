@@ -53,6 +53,25 @@ function gameWithEvents(events: OperationEvent[]): GameState {
 // ---------------------------------------------------------------------------
 
 describe('buildEventFeedView', () => {
+  it('recruitment.candidate_departed — states that the candidate is no longer available', () => {
+    const event = makeEvent(
+      'recruitment.candidate_departed',
+      {
+        week: 3,
+        candidateId: 'cand-departed',
+        candidateName: 'Morgan Vale',
+        reason: 'unknown_departure',
+      },
+      { sourceSystem: 'system' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Morgan Vale is no longer available')
+    expect(view.detail).toContain('departure reason is unknown')
+    expect(view.tone).toBe('warning')
+    expect(view.href).toBe('/recruitment')
+  })
+
   it('assignment.team_assigned — neutral tone, team and case in title', () => {
     const event = makeEvent('assignment.team_assigned', {
       week: 2,

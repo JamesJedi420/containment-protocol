@@ -30,6 +30,7 @@ export interface PrerequisiteWorkOrderDraft {
   readonly recipeId: string
   readonly outputMaterialId: string
   readonly outputQuantity: number
+  readonly inputMaterials: readonly PrerequisiteMaterialRequirement[]
   readonly batchCount: number
   readonly departmentId: string
   readonly taskType: string
@@ -158,6 +159,9 @@ function freezePlan(
       prerequisiteWorkOrders.map((order) =>
         Object.freeze({
           ...order,
+          inputMaterials: Object.freeze(
+            order.inputMaterials.map((input) => Object.freeze({ ...input }))
+          ),
           dependsOnWorkOrderIds: Object.freeze([...order.dependsOnWorkOrderIds]),
         })
       )
@@ -351,6 +355,13 @@ export function planPrerequisiteProcessing(
         recipeId: recipe.recipeId,
         outputMaterialId: recipe.outputMaterialId,
         outputQuantity,
+        inputMaterials: Object.freeze(
+          recipe.inputMaterials
+            .map((input) =>
+              Object.freeze({ materialId: input.materialId, quantity: input.quantity * batches })
+            )
+            .sort((left, right) => compareCodeUnits(left.materialId, right.materialId))
+        ),
         batchCount: batches,
         departmentId: recipe.departmentId,
         taskType: recipe.taskType,

@@ -61,6 +61,7 @@ describe('department workshop persistence', () => {
     expect(starting.departmentWorkshopWorkOrders).toEqual({})
     expect(starting.departmentWorkshopSnapshots).toEqual({})
     expect(starting.departmentWorkshopCompletionOutcomes).toEqual({})
+    expect(starting.caseScopedPrerequisiteProcessingOrders).toEqual({})
 
     const fallback = {
       ...starting,
@@ -79,8 +80,37 @@ describe('department workshop persistence', () => {
     expect(legacy.departmentWorkshopWorkOrders).toEqual({})
     expect(legacy.departmentWorkshopSnapshots).toEqual({})
     expect(legacy.departmentWorkshopCompletionOutcomes).toEqual({})
+    expect(legacy.caseScopedPrerequisiteProcessingOrders).toEqual({})
     expect(legacy.departmentWorkshopWorkOrders).not.toBe(fallback.departmentWorkshopWorkOrders)
     expect(legacy.departmentWorkshopSnapshots).not.toBe(fallback.departmentWorkshopSnapshots)
+  })
+
+  it('round-trips case-scoped processing envelopes without changing workshop or case queues', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]!
+    const game = {
+      ...baseline,
+      caseScopedPrerequisiteProcessingOrders: {
+        'work:prerequisite': {
+          workOrderId: 'work:prerequisite',
+          caseId,
+          processingRecipeId: 'recipe:processing',
+          inputMaterials: [{ materialId: 'material:raw', quantity: 1 }],
+          outputMaterialId: 'material:processed',
+          outputQuantity: 1,
+          prerequisiteWorkOrderIds: [],
+        },
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(game))
+
+    expect(loaded.caseScopedPrerequisiteProcessingOrders).toEqual(
+      game.caseScopedPrerequisiteProcessingOrders
+    )
+    expect(loaded.departmentWorkshopWorkOrders).toEqual(baseline.departmentWorkshopWorkOrders)
+    expect(loaded.departmentWorkshopSnapshots).toEqual(baseline.departmentWorkshopSnapshots)
+    expect(loaded.caseQueue).toEqual(baseline.caseQueue)
   })
 
   it('round-trips valid registries through save serialization in code-unit key order', () => {
@@ -231,6 +261,7 @@ describe('department workshop persistence', () => {
 
     expect(useGameStore.getState().game.departmentWorkshopWorkOrders).toEqual({})
     expect(useGameStore.getState().game.departmentWorkshopSnapshots).toEqual({})
+    expect(useGameStore.getState().game.caseScopedPrerequisiteProcessingOrders).toEqual({})
   })
 
   it('processes persisted workshops once per week-close without changing the global queue', () => {

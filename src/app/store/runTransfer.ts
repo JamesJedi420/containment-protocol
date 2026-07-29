@@ -298,6 +298,7 @@ import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../../domain/departmentWorkshopQueue'
+import { sanitizeCaseScopedPrerequisiteProcessingOrders } from '../../domain/prerequisiteProcessingOrders'
 import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
@@ -9437,6 +9438,10 @@ export function hydrateGame(
     sanitizeCasesMap(game.cases, teams, week, fallback.cases, agents, fallback.templates),
     factions
   )
+  const caseScopedPrerequisiteProcessingOrders = sanitizeCaseScopedPrerequisiteProcessingOrders(
+    game.caseScopedPrerequisiteProcessingOrders,
+    { cases: normalizedCases }
+  )
   const contracts = hasPersistedContracts
     ? sanitizeHydratedContractSystemState(game.contracts, week, fallback.contracts, {
         factions,
@@ -9631,6 +9636,7 @@ export function hydrateGame(
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
+    caseScopedPrerequisiteProcessingOrders,
     inventory,
     damagedEquipmentQueue,
     authorityGraphState,
@@ -9807,6 +9813,7 @@ export function hydrateGame(
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
+    caseScopedPrerequisiteProcessingOrders,
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,

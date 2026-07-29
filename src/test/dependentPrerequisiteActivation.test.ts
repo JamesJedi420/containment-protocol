@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../app/store/gameStore'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   activateCaseScopedPrerequisiteProcessingOrder,
   type CaseScopedPrerequisiteProcessingOrder,
@@ -93,9 +94,9 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
     expect(result.reservations[SUCCESSOR_ID]?.inputMaterials).toEqual([
       { materialId: 'medical-supplies', quantity: 1 },
     ])
-    expect(
-      result.workshopSnapshots[DEPARTMENT_ID]?.queued.map((item) => item.workOrderId)
-    ).toEqual([SUCCESSOR_ID])
+    expect(result.workshopSnapshots[DEPARTMENT_ID]?.queued.map((item) => item.workOrderId)).toEqual(
+      [SUCCESSOR_ID]
+    )
     expect(
       activateCaseScopedPrerequisiteProcessingOrder(
         {
@@ -124,9 +125,10 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
     })
     const withoutReceipt = { ...state, departmentWorkshopCompletionOutcomes: {} }
     const before = structuredClone(withoutReceipt)
-    expect(
-      activateCaseScopedPrerequisiteProcessingOrder(withoutReceipt, SUCCESSOR_ID)
-    ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
+    expect(activateCaseScopedPrerequisiteProcessingOrder(withoutReceipt, SUCCESSOR_ID)).toEqual({
+      state: 'blocked',
+      reasons: ['prerequisites-not-complete'],
+    })
     expect(withoutReceipt).toEqual(before)
 
     const crossCaseReceipt = {
@@ -138,9 +140,10 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
         },
       },
     }
-    expect(
-      activateCaseScopedPrerequisiteProcessingOrder(crossCaseReceipt, SUCCESSOR_ID)
-    ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
+    expect(activateCaseScopedPrerequisiteProcessingOrder(crossCaseReceipt, SUCCESSOR_ID)).toEqual({
+      state: 'blocked',
+      reasons: ['prerequisites-not-complete'],
+    })
 
     const futureReceipt = {
       ...state,
@@ -151,9 +154,10 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
         },
       },
     }
-    expect(
-      activateCaseScopedPrerequisiteProcessingOrder(futureReceipt, SUCCESSOR_ID)
-    ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
+    expect(activateCaseScopedPrerequisiteProcessingOrder(futureReceipt, SUCCESSOR_ID)).toEqual({
+      state: 'blocked',
+      reasons: ['prerequisites-not-complete'],
+    })
 
     const staleWorkload = {
       ...state,
@@ -164,9 +168,10 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
         },
       },
     }
-    expect(
-      activateCaseScopedPrerequisiteProcessingOrder(staleWorkload, SUCCESSOR_ID)
-    ).toEqual({ state: 'blocked', reasons: ['prerequisites-not-complete'] })
+    expect(activateCaseScopedPrerequisiteProcessingOrder(staleWorkload, SUCCESSOR_ID)).toEqual({
+      state: 'blocked',
+      reasons: ['prerequisites-not-complete'],
+    })
 
     const activePriorWork = {
       ...state,
@@ -177,8 +182,52 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
         },
       },
     }
+    expect(activateCaseScopedPrerequisiteProcessingOrder(activePriorWork, SUCCESSOR_ID)).toEqual({
+      state: 'blocked',
+      reasons: ['duplicate-case-workload'],
+    })
+  })
+
+  it('automatically activates one credited successor at week close without replay duplication', () => {
+    const state = createActivationState()
+    const source = {
+      ...state,
+      inventory: { ...state.inventory, raw: 0 },
+      caseScopedPrerequisiteProcessingOrders: {
+        ...state.caseScopedPrerequisiteProcessingOrders,
+        [SUCCESSOR_ID]: {
+          ...state.caseScopedPrerequisiteProcessingOrders[SUCCESSOR_ID],
+          inputMaterials: [{ materialId: 'raw', quantity: 1 }],
+        },
+      },
+      caseScopedPrerequisiteProcessingReservations: {
+        [LEAF_ID]: {
+          workOrderId: LEAF_ID,
+          caseId: state.caseScopedPrerequisiteProcessingOrders[LEAF_ID].caseId,
+          inputMaterials: [],
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {},
+      departmentWorkshopSnapshots: {
+        [DEPARTMENT_ID]: {
+          ...state.departmentWorkshopSnapshots[DEPARTMENT_ID],
+          active: [{ workOrderId: LEAF_ID, completedWork: 0 }],
+        },
+      },
+    }
+    const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
+    const loaded = loadGameSave(serializeGameSave(advanced))
+    const replay = advanceWeek(loaded, Date.UTC(2026, 0, 8))
+
+    expect(advanced.inventory.raw).toBe(0)
+    expect(advanced.caseScopedPrerequisiteProcessingReservations?.[SUCCESSOR_ID]).toBeDefined()
     expect(
-      activateCaseScopedPrerequisiteProcessingOrder(activePriorWork, SUCCESSOR_ID)
-    ).toEqual({ state: 'blocked', reasons: ['duplicate-case-workload'] })
+      advanced.departmentWorkshopSnapshots?.[DEPARTMENT_ID]?.queued.map((item) => item.workOrderId)
+    ).toEqual([SUCCESSOR_ID])
+    expect(replay.caseScopedPrerequisiteProcessingReservations?.[SUCCESSOR_ID]).toBeUndefined()
+    expect(replay.departmentWorkshopCompletionOutcomes?.[SUCCESSOR_ID]?.outcome).toBe('completed')
+    expect(
+      Object.keys(replay.departmentWorkshopWorkOrders ?? {}).filter((id) => id === SUCCESSOR_ID)
+    ).toHaveLength(1)
   })
 })

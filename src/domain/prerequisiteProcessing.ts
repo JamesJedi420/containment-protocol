@@ -69,6 +69,14 @@ function isNormalizedNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value === value.trim()
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
 function isPositiveSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
@@ -103,9 +111,7 @@ function isValidFinalRecipe(value: unknown): value is PrerequisiteFinalRecipe {
   const recipe = value as Partial<PrerequisiteFinalRecipe>
   return (
     isNormalizedNonEmptyString(recipe.recipeId) &&
-    !!recipe.inputMaterials &&
-    typeof recipe.inputMaterials === 'object' &&
-    !Array.isArray(recipe.inputMaterials) &&
+    isRecord(recipe.inputMaterials) &&
     Object.entries(recipe.inputMaterials).every(
       ([materialId, quantity]) =>
         isNormalizedNonEmptyString(materialId) && isPositiveSafeInteger(quantity)
@@ -178,7 +184,7 @@ export function planPrerequisiteProcessing(
   if (!isValidFinalRecipe(finalRecipe)) {
     return freezePlan('blocked', null, {}, [], [], [frozenReason('invalid-final-recipe', '')])
   }
-  if (!inventory || typeof inventory !== 'object' || Array.isArray(inventory)) {
+  if (!isRecord(inventory)) {
     return freezePlan(
       'blocked',
       finalRecipe.recipeId,
@@ -188,7 +194,7 @@ export function planPrerequisiteProcessing(
       [frozenReason('invalid-inventory', '')]
     )
   }
-  const inventoryEntries = Object.entries(inventory as Record<string, unknown>)
+  const inventoryEntries = Object.entries(inventory)
   if (
     !inventoryEntries.every(
       ([materialId, quantity]) =>
@@ -239,24 +245,51 @@ export function planPrerequisiteProcessing(
     )
   }
 
-  const remainingInventory = Object.fromEntries(inventoryEntries) as Record<string, number>
-  const inventoryAllocations: Record<string, number> = {}
+  const remainingInventory = new Map(inventoryEntries as [string, number][])
+  const inventoryAllocations = new Map<string, number>()
+  const plannedOutputCredits = new Map<
+    string,
+    Array<{ readonly producerId: string; quantity: number }>
+  >()
   const drafts: PrerequisiteWorkOrderDraft[] = []
   const reasons: PrerequisitePlanningReason[] = []
-  const stack: string[] = []
+  const stack: Array<{ readonly materialId: string; readonly recipeId: string }> = []
 
   function fulfill(materialId: string, quantity: number): readonly string[] | null {
-    const fromInventory = Math.min(remainingInventory[materialId] ?? 0, quantity)
+    const directProducerIds: string[] = []
+    const fromInventory = Math.min(remainingInventory.get(materialId) ?? 0, quantity)
     if (fromInventory > 0) {
-      remainingInventory[materialId] = (remainingInventory[materialId] ?? 0) - fromInventory
-      inventoryAllocations[materialId] = (inventoryAllocations[materialId] ?? 0) + fromInventory
+      remainingInventory.set(materialId, (remainingInventory.get(materialId) ?? 0) - fromInventory)
+      inventoryAllocations.set(
+        materialId,
+        (inventoryAllocations.get(materialId) ?? 0) + fromInventory
+      )
     }
-    const missingQuantity = quantity - fromInventory
+    let missingQuantity = quantity - fromInventory
+    const credits = plannedOutputCredits.get(materialId) ?? []
+    for (const credit of credits) {
+      if (missingQuantity === 0) {
+        break
+      }
+      const consumed = Math.min(credit.quantity, missingQuantity)
+      if (consumed === 0) {
+        continue
+      }
+      credit.quantity -= consumed
+      missingQuantity -= consumed
+      directProducerIds.push(credit.producerId)
+    }
     if (missingQuantity === 0) {
-      return []
+      return Object.freeze([...new Set(directProducerIds)].sort(compareCodeUnits))
     }
-    if (stack.includes(materialId)) {
-      reasons.push(frozenReason('cyclic-processing-dependency', materialId, stack))
+    if (stack.some((entry) => entry.materialId === materialId)) {
+      reasons.push(
+        frozenReason(
+          'cyclic-processing-dependency',
+          materialId,
+          stack.map((entry) => entry.recipeId)
+        )
+      )
       return null
     }
     const candidates = recipesByOutput.get(materialId) ?? []
@@ -276,8 +309,8 @@ export function planPrerequisiteProcessing(
     }
 
     const recipe = candidates[0]
-    stack.push(materialId)
-    const dependencyIds: string[] = []
+    stack.push(Object.freeze({ materialId, recipeId: recipe.recipeId }))
+    const dependencyIds = [...directProducerIds]
     const batches = Math.ceil(missingQuantity / recipe.outputQuantity)
     if (
       !Number.isSafeInteger(batches) ||
@@ -311,12 +344,13 @@ export function planPrerequisiteProcessing(
     stack.pop()
 
     const id = `${finalRecipe.recipeId}:prerequisite:${recipe.recipeId}:${drafts.length + 1}`
+    const outputQuantity = recipe.outputQuantity * batches
     drafts.push(
       Object.freeze({
         id,
         recipeId: recipe.recipeId,
         outputMaterialId: recipe.outputMaterialId,
-        outputQuantity: recipe.outputQuantity * batches,
+        outputQuantity,
         batchCount: batches,
         departmentId: recipe.departmentId,
         taskType: recipe.taskType,
@@ -324,7 +358,13 @@ export function planPrerequisiteProcessing(
         dependsOnWorkOrderIds: Object.freeze([...new Set(dependencyIds)].sort(compareCodeUnits)),
       })
     )
-    return [id]
+    const surplus = outputQuantity - missingQuantity
+    if (surplus > 0) {
+      const outputCredits = plannedOutputCredits.get(materialId) ?? []
+      outputCredits.push({ producerId: id, quantity: surplus })
+      plannedOutputCredits.set(materialId, outputCredits)
+    }
+    return Object.freeze([...new Set([...directProducerIds, id])].sort(compareCodeUnits))
   }
 
   const finalDependencies: string[] = []
@@ -340,7 +380,7 @@ export function planPrerequisiteProcessing(
   return freezePlan(
     'planned',
     finalRecipe.recipeId,
-    inventoryAllocations,
+    Object.fromEntries(inventoryAllocations),
     drafts,
     finalDependencies
   )

@@ -63,6 +63,52 @@ describe('planPrerequisiteProcessing', () => {
     expect(inventory).toEqual(before)
   })
 
+  it('reuses planned batch surplus across prerequisite branches', () => {
+    const result = planPrerequisiteProcessing(
+      { recipeId: 'final', inputMaterials: { assembled_a: 1, assembled_b: 1 } },
+      { raw: 2 },
+      [
+        {
+          recipeId: 'make-x',
+          outputMaterialId: 'processed_x',
+          outputQuantity: 2,
+          inputMaterials: [{ materialId: 'raw', quantity: 2 }],
+          departmentId: 'engineering',
+          taskType: 'repair',
+          requiredWork: 1,
+        },
+        {
+          recipeId: 'make-a',
+          outputMaterialId: 'assembled_a',
+          outputQuantity: 1,
+          inputMaterials: [{ materialId: 'processed_x', quantity: 1 }],
+          departmentId: 'engineering',
+          taskType: 'repair',
+          requiredWork: 1,
+        },
+        {
+          recipeId: 'make-b',
+          outputMaterialId: 'assembled_b',
+          outputQuantity: 1,
+          inputMaterials: [{ materialId: 'processed_x', quantity: 1 }],
+          departmentId: 'engineering',
+          taskType: 'repair',
+          requiredWork: 1,
+        },
+      ]
+    )
+
+    expect(result).toMatchObject({ state: 'planned', inventoryAllocations: { raw: 2 } })
+    expect(result.prerequisiteWorkOrders.map((order) => order.recipeId)).toEqual([
+      'make-x',
+      'make-a',
+      'make-b',
+    ])
+    expect(result.prerequisiteWorkOrders[2].dependsOnWorkOrderIds).toEqual([
+      'final:prerequisite:make-x:1',
+    ])
+  })
+
   it('fails closed for missing, ambiguous, and cyclic processing definitions', () => {
     expect(planPrerequisiteProcessing(finalRecipe, {}, [])).toMatchObject({
       state: 'blocked',
@@ -83,7 +129,13 @@ describe('planPrerequisiteProcessing', () => {
       ])
     ).toMatchObject({
       state: 'blocked',
-      reasons: [{ code: 'cyclic-processing-dependency', materialId: 'calibrated_plate' }],
+      reasons: [
+        {
+          code: 'cyclic-processing-dependency',
+          materialId: 'calibrated_plate',
+          recipeIds: ['calibrate-plate'],
+        },
+      ],
     })
   })
 
@@ -97,6 +149,26 @@ describe('planPrerequisiteProcessing', () => {
     expect(planPrerequisiteProcessing(finalRecipe, { ore: -1 }, recipes)).toMatchObject({
       state: 'blocked',
       reasons: [{ code: 'invalid-inventory' }],
+    })
+    expect(
+      planPrerequisiteProcessing(
+        { recipeId: 'bad', inputMaterials: new Map([['ore', 1]]) },
+        {},
+        recipes
+      )
+    ).toMatchObject({
+      state: 'blocked',
+      reasons: [{ code: 'invalid-final-recipe' }],
+    })
+    expect(
+      planPrerequisiteProcessing(
+        { recipeId: 'safe-key', inputMaterials: { constructor: 1 } },
+        {},
+        []
+      )
+    ).toMatchObject({
+      state: 'blocked',
+      reasons: [{ code: 'missing-processing-recipe', materialId: 'constructor' }],
     })
     expect(
       planPrerequisiteProcessing(

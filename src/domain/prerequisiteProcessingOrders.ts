@@ -248,8 +248,10 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(source: Cas
     const outcome = source.departmentWorkshopCompletionOutcomes[workOrderId]
     if (!order || !isRecord(outcome) || outcome.outcome !== 'completed' || outcome.workOrderId !== workOrderId || outcome.caseId !== reservation.caseId || outcome.caseId !== order.caseId || outcome.departmentId !== order.departmentId || outcome.taskType !== order.taskType) continue
     const prior = inventory[order.outputMaterialId]
-    if (prior !== undefined && !isPositiveSafeInteger(prior)) continue
-    inventory[order.outputMaterialId] = (prior ?? 0) + order.outputQuantity
+    if (prior !== undefined && (!Number.isSafeInteger(prior) || prior < 0)) continue
+    const nextQuantity = (prior ?? 0) + order.outputQuantity
+    if (!Number.isSafeInteger(nextQuantity)) continue
+    inventory[order.outputMaterialId] = nextQuantity
     remaining.delete(workOrderId)
     completed.push(workOrderId)
   }

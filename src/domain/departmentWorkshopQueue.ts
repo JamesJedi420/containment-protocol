@@ -660,14 +660,29 @@ export function registerDepartmentWorkshopCompletionOutcomes(
   completedWorkOrderIds: readonly string[],
   completedWeek: number
 ): DepartmentWorkshopCompletionOutcomeResult {
-  const existing = sanitizeDepartmentWorkshopCompletionOutcomes(
+  const persistedOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     source?.departmentWorkshopCompletionOutcomes
   )
+  const workOrders = readDepartmentWorkshopState(source).workOrders
+  const existing = Object.freeze(
+    Object.fromEntries(
+      Object.entries(persistedOutcomes).filter(([workOrderId, outcome]) => {
+        const workOrder = workOrders[workOrderId]
+        if (!workOrder) {
+          return false
+        }
+        return (
+          workOrder.caseId === outcome.caseId &&
+          workOrder.departmentId === outcome.departmentId &&
+          workOrder.taskType === outcome.taskType
+        )
+      })
+    )
+  ) as DepartmentWorkshopCompletionOutcomeRegistry
   if (!Number.isInteger(completedWeek) || completedWeek < 1 || completedWorkOrderIds.length === 0) {
     return Object.freeze({ outcomes: existing, registeredWorkOrderIds: Object.freeze([]) })
   }
 
-  const workOrders = readDepartmentWorkshopState(source).workOrders
   const candidateIds = [...new Set(completedWorkOrderIds)].sort(compareCodeUnits)
   const additions: [string, DepartmentWorkshopCompletionOutcome][] = []
 

@@ -459,6 +459,14 @@ describe('department workshop persistence', () => {
           completedWeek: 1,
           outcome: 'completed' as const,
         },
+        'work:zulu': {
+          workOrderId: 'work:zulu',
+          departmentId: 'department:records-analysis',
+          caseId: 'case-forged',
+          taskType: 'records_review',
+          completedWeek: 1,
+          outcome: 'completed' as const,
+        },
       },
     }
     const before = structuredClone(input)

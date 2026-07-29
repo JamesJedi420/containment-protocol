@@ -13,6 +13,16 @@
 Persist fail-closed, case-owned prerequisite-processing envelopes from planned
 SPE-2703 drafts without creating workshop work or changing inventory.
 
+## Acceptance
+
+- Valid case-owned envelopes save/load and reset correctly.
+- Hydration rejects malformed, unsafe, mismatched, closed-case, duplicate, or
+  cyclic dependency records without mutating valid input.
+- Planner adaptation is deterministic, immutable, and preserves declared
+  prerequisite order within a real open case.
+- No inventory reservation, workshop enqueue/completion, case/global queue, or
+  UI behavior changes.
+
 ## Deferred
 
 | Item | Owner | Why deferred |

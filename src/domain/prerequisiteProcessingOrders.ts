@@ -48,6 +48,10 @@ function isSafeId(value: unknown): value is string {
   )
 }
 
+function isValueId(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value === value.trim()
+}
+
 function isPositiveSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
@@ -67,7 +71,7 @@ function frozenOrder(order: CaseScopedPrerequisiteProcessingOrder) {
 }
 
 function isValidMaterialQuantity(value: unknown): value is PrerequisiteProcessingMaterialQuantity {
-  return isRecord(value) && isSafeId(value.materialId) && isPositiveSafeInteger(value.quantity)
+  return isRecord(value) && isValueId(value.materialId) && isPositiveSafeInteger(value.quantity)
 }
 
 function isValidOrder(
@@ -80,15 +84,34 @@ function isValidOrder(
     isSafeId(order.workOrderId) &&
     isSafeId(order.caseId) &&
     hasOpenCase(source, order.caseId) &&
-    isSafeId(order.processingRecipeId) &&
+    isValueId(order.processingRecipeId) &&
     Array.isArray(order.inputMaterials) &&
     order.inputMaterials.every(isValidMaterialQuantity) &&
-    isSafeId(order.outputMaterialId) &&
+    isValueId(order.outputMaterialId) &&
     isPositiveSafeInteger(order.outputQuantity) &&
     Array.isArray(order.prerequisiteWorkOrderIds) &&
     order.prerequisiteWorkOrderIds.every(isSafeId) &&
     new Set(order.prerequisiteWorkOrderIds).size === order.prerequisiteWorkOrderIds.length
   )
+}
+
+function hasPrerequisiteCycle(
+  candidates: ReadonlyMap<string, CaseScopedPrerequisiteProcessingOrder>,
+  workOrderId: string,
+  visiting = new Set<string>(),
+  visited = new Set<string>()
+): boolean {
+  if (visiting.has(workOrderId)) return true
+  if (visited.has(workOrderId)) return false
+  const order = candidates.get(workOrderId)
+  if (!order) return false
+  visiting.add(workOrderId)
+  const cyclic = order.prerequisiteWorkOrderIds.some((prerequisiteWorkOrderId) =>
+    hasPrerequisiteCycle(candidates, prerequisiteWorkOrderId, visiting, visited)
+  )
+  visiting.delete(workOrderId)
+  visited.add(workOrderId)
+  return cyclic
 }
 
 /** Hydration boundary for case-owned prerequisite processing envelopes. */
@@ -109,8 +132,11 @@ export function sanitizeCaseScopedPrerequisiteProcessingOrders(
       if (
         order.prerequisiteWorkOrderIds.includes(workOrderId) ||
         order.prerequisiteWorkOrderIds.some(
-          (prerequisiteWorkOrderId) => !candidates.has(prerequisiteWorkOrderId)
-        )
+          (prerequisiteWorkOrderId) =>
+            !candidates.has(prerequisiteWorkOrderId) ||
+            candidates.get(prerequisiteWorkOrderId)?.caseId !== order.caseId
+        ) ||
+        hasPrerequisiteCycle(candidates, workOrderId)
       ) {
         candidates.delete(workOrderId)
         removed = true
@@ -120,6 +146,10 @@ export function sanitizeCaseScopedPrerequisiteProcessingOrders(
   const entries = [...candidates.entries()]
   entries.sort(([left], [right]) => compareCodeUnits(left, right))
   return Object.freeze(Object.fromEntries(entries))
+}
+
+function toCaseScopedWorkOrderId(caseId: string, draftWorkOrderId: string) {
+  return `processing:${caseId.length}:${caseId}:${draftWorkOrderId}`
 }
 
 /** Pure read seam for the durable prerequisite-processing envelope registry. */
@@ -136,16 +166,18 @@ export function readCaseScopedPrerequisiteProcessingOrders(
 
 function buildOrder(
   draft: PrerequisiteWorkOrderDraft,
-  caseId: string
+  caseId: string,
+  workOrderId: string,
+  prerequisiteWorkOrderIds: readonly string[]
 ): CaseScopedPrerequisiteProcessingOrder {
   return frozenOrder({
-    workOrderId: draft.id,
+    workOrderId,
     caseId,
     processingRecipeId: draft.recipeId,
     inputMaterials: Object.freeze(draft.inputMaterials.map((input) => Object.freeze({ ...input }))),
     outputMaterialId: draft.outputMaterialId,
     outputQuantity: draft.outputQuantity,
-    prerequisiteWorkOrderIds: Object.freeze([...draft.dependsOnWorkOrderIds]),
+    prerequisiteWorkOrderIds: Object.freeze([...prerequisiteWorkOrderIds]),
   })
 }
 
@@ -161,8 +193,26 @@ export function createCaseScopedPrerequisiteProcessingOrders(
   if (plan?.state !== 'planned' || !isSafeId(caseId) || !hasOpenCase(source, caseId)) {
     return Object.freeze({})
   }
+  const workOrderIds = new Map(
+    plan.prerequisiteWorkOrders.map((draft) => [draft.id, toCaseScopedWorkOrderId(caseId, draft.id)])
+  )
+  if (workOrderIds.size !== plan.prerequisiteWorkOrders.length) return Object.freeze({})
   const entries = plan.prerequisiteWorkOrders
-    .map((draft) => buildOrder(draft, caseId))
+    .map((draft) => {
+      const prerequisiteWorkOrderIds = draft.dependsOnWorkOrderIds.map((prerequisiteWorkOrderId) =>
+        workOrderIds.get(prerequisiteWorkOrderId)
+      )
+      if (prerequisiteWorkOrderIds.some((prerequisiteWorkOrderId) => !prerequisiteWorkOrderId)) {
+        return undefined
+      }
+      return buildOrder(
+        draft,
+        caseId,
+        workOrderIds.get(draft.id)!,
+        prerequisiteWorkOrderIds as string[]
+      )
+    })
+    .filter((order): order is CaseScopedPrerequisiteProcessingOrder => Boolean(order))
     .filter((order) => isValidOrder(order, source))
     .map((order) => [order.workOrderId, order] as const)
     .sort(([left], [right]) => compareCodeUnits(left, right))

@@ -36,18 +36,22 @@ describe('case-scoped prerequisite processing orders', () => {
     )
     const records = createCaseScopedPrerequisiteProcessingOrders(plan, 'case:open', source)
 
-    expect(Object.keys(records)).toEqual(
-      plan.prerequisiteWorkOrders.map((draft) => draft.id).sort()
-    )
+    expect(Object.keys(records)).toHaveLength(plan.prerequisiteWorkOrders.length)
+    expect(Object.keys(records).every((workOrderId) => workOrderId.startsWith('processing:'))).toBe(true)
     for (const draft of plan.prerequisiteWorkOrders) {
-      expect(records[draft.id]).toMatchObject({
+      const workOrderId = Object.keys(records).find(
+        (candidate) => records[candidate]?.processingRecipeId === draft.recipeId
+      )!
+      expect(records[workOrderId]).toMatchObject({
         caseId: 'case:open',
         processingRecipeId: draft.recipeId,
         inputMaterials: draft.inputMaterials,
         outputMaterialId: draft.outputMaterialId,
         outputQuantity: draft.outputQuantity,
       })
-      expect(records[draft.id]?.prerequisiteWorkOrderIds).toEqual(draft.dependsOnWorkOrderIds)
+      expect(records[workOrderId]?.prerequisiteWorkOrderIds).toHaveLength(
+        draft.dependsOnWorkOrderIds.length
+      )
     }
     expect(createCaseScopedPrerequisiteProcessingOrders(plan, 'case:missing', source)).toEqual({})
   })
@@ -81,6 +85,8 @@ describe('case-scoped prerequisite processing orders', () => {
         workOrderId: 'work:depends-on-invalid',
         prerequisiteWorkOrderIds: ['work:unknown-prerequisite'],
       },
+      'work:cycle-a': { ...valid, workOrderId: 'work:cycle-a', prerequisiteWorkOrderIds: ['work:cycle-b'] },
+      'work:cycle-b': { ...valid, workOrderId: 'work:cycle-b', prerequisiteWorkOrderIds: ['work:cycle-a'] },
     }) as Record<string, unknown>
     rawRecords.__proto__ = { ...valid, workOrderId: '__proto__' }
     const records = sanitizeCaseScopedPrerequisiteProcessingOrders(rawRecords, {

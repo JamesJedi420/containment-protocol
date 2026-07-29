@@ -91,6 +91,18 @@ export interface CaseLifecycleTerminalDisposition {
   readonly terminalWeek: number
 }
 
+export type CaseCancellationCommandResult =
+  | {
+      readonly state: 'accepted'
+      readonly signals: CaseScopedPrerequisiteProcessingTerminalSignalRegistry
+      readonly registeredWorkOrderIds: readonly string[]
+      readonly reasons: readonly string[]
+    }
+  | {
+      readonly state: 'blocked'
+      readonly reasons: readonly string[]
+    }
+
 type CaseLifecycleTerminalSignalSource = {
   readonly week?: unknown
   readonly cases?: unknown
@@ -150,6 +162,54 @@ export function produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
     signals,
     registeredWorkOrderIds: Object.freeze(registeredWorkOrderIds),
     reasons: Object.freeze(reasons),
+  })
+}
+
+/**
+ * Canonical explicit case-cancellation command.
+ *
+ * Cancellation is never inferred from case status or lifecycle state. The
+ * command validates only that its authored target exists and is not already
+ * resolved, then supplies the existing lifecycle producer with a fixed
+ * `cancelled` disposition at the current campaign week.
+ */
+export function cancelCase(
+  source: CaseLifecycleTerminalSignalSource,
+  caseId: unknown
+): CaseCancellationCommandResult {
+  const blocked = (reason: string): CaseCancellationCommandResult =>
+    Object.freeze({
+      state: 'blocked',
+      reasons: Object.freeze([reason]),
+    })
+
+  if (typeof caseId !== 'string' || caseId.trim().length === 0) {
+    return blocked('invalid-case-id')
+  }
+
+  const cases =
+    typeof source.cases === 'object' && source.cases !== null && !Array.isArray(source.cases)
+      ? (source.cases as Record<string, unknown>)
+      : {}
+  const currentCase = cases[caseId]
+  if (typeof currentCase !== 'object' || currentCase === null || Array.isArray(currentCase)) {
+    return blocked('missing-case')
+  }
+  if ((currentCase as { readonly status?: unknown }).status === 'resolved') {
+    return blocked('resolved-case')
+  }
+
+  const result = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(source, {
+    caseId,
+    reason: 'cancelled',
+    terminalWeek: source.week as number,
+  })
+
+  return Object.freeze({
+    state: 'accepted',
+    signals: result.signals,
+    registeredWorkOrderIds: result.registeredWorkOrderIds,
+    reasons: result.reasons,
   })
 }
 

@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2763",
     "SPE-2762",
     "SPE-2761",
     "SPE-2760",
@@ -13,10 +14,10 @@
     "SPE-2754",
     "SPE-2753",
     "SPE-2752",
-    "SPE-2747",
     "SPE-2726"
   ],
   "sliceDocStatus": {
+    "planning/spe-2763-canonical-case-cancellation-command-slice.md": "Shipped",
     "planning/spe-2762-canonical-failure-cancellation-lifecycle-signal-producer-slice.md": "Shipped",
     "planning/scouted-free-agent-departure-events-slice.md": "Shipped",
     "planning/spe-2761-failure-cancellation-reservation-release-slice.md": "Shipped",

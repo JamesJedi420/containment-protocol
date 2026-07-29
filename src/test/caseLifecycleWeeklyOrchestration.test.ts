@@ -5,6 +5,7 @@ import {
   applyLifecycleInstitutionalLabelProjection,
   applyPresumedNeutralizedSurveillanceClocks,
   applyWeeklyCaseLifecycleTick,
+  cancelCase,
   didAdaptationDemonstratedSignal,
   didComplianceResearchInvalidationSignal,
   didIntakeCredibilityReviewPass,
@@ -139,6 +140,80 @@ function terminalSignalSource() {
 }
 
 describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 3)', () => {
+  it('executes an explicit cancellation command through the lifecycle producer', () => {
+    const source = terminalSignalSource()
+    const before = structuredClone(source)
+
+    const result = cancelCase(source, 'case:lifecycle-target')
+
+    expect(result.state).toBe('accepted')
+    if (result.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    expect(result.registeredWorkOrderIds).toEqual(['work:alpha', 'work:zulu'])
+    expect(result.reasons).toEqual([])
+    expect(result.signals['work:alpha']).toMatchObject({
+      caseId: 'case:lifecycle-target',
+      reason: 'cancelled',
+      terminalWeek: source.week,
+    })
+    expect(result.signals['work:other']).toBeUndefined()
+    expect(source).toEqual(before)
+  })
+
+  it.each([
+    { caseId: '', reason: 'invalid-case-id' },
+    { caseId: '   ', reason: 'invalid-case-id' },
+    { caseId: 'case:missing', reason: 'missing-case' },
+  ])('blocks invalid cancellation target $caseId', ({ caseId, reason }) => {
+    const source = terminalSignalSource()
+    const before = structuredClone(source)
+
+    expect(cancelCase(source, caseId)).toEqual({
+      state: 'blocked',
+      reasons: [reason],
+    })
+    expect(source).toEqual(before)
+  })
+
+  it('blocks resolved cases without inspecting or mutating their prerequisite work', () => {
+    const source = terminalSignalSource()
+    const resolvedSource = {
+      ...source,
+      cases: {
+        ...source.cases,
+        'case:lifecycle-target': {
+          ...source.cases['case:lifecycle-target'],
+          status: 'resolved' as const,
+        },
+      },
+    }
+    const before = structuredClone(resolvedSource)
+
+    expect(cancelCase(resolvedSource, 'case:lifecycle-target')).toEqual({
+      state: 'blocked',
+      reasons: ['resolved-case'],
+    })
+    expect(resolvedSource).toEqual(before)
+  })
+
+  it('accepts an identical cancellation replay as a no-op', () => {
+    const source = terminalSignalSource()
+    const first = cancelCase(source, 'case:lifecycle-target')
+    if (first.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    const withSignals = {
+      ...source,
+      caseScopedPrerequisiteProcessingTerminalSignals: first.signals,
+    }
+
+    const replay = cancelCase(withSignals, 'case:lifecycle-target')
+
+    expect(replay).toEqual({
+      state: 'accepted',
+      signals: first.signals,
+      registeredWorkOrderIds: [],
+      reasons: [],
+    })
+  })
+
   it.each(['failed', 'cancelled'] as const)(
     'produces explicit %s prerequisite terminal signals in stable work-order order',
     (reason) => {
@@ -216,22 +291,16 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 3)', () => {
         },
       },
     }
-    const target = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(isolatedSource, {
-      caseId: 'case:lifecycle-target',
-      reason: 'failed',
-      terminalWeek: 2,
-    })
-    const other = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
+    const target = cancelCase(isolatedSource, 'case:lifecycle-target')
+    if (target.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    const other = cancelCase(
       {
         ...isolatedSource,
         caseScopedPrerequisiteProcessingTerminalSignals: target.signals,
       },
-      {
-        caseId: 'case:lifecycle-other',
-        reason: 'cancelled',
-        terminalWeek: 2,
-      }
+      'case:lifecycle-other'
     )
+    if (other.state !== 'accepted') throw new Error('Expected accepted cancellation')
 
     expect(target.registeredWorkOrderIds).toEqual([])
     expect(target.reasons).toEqual(['mismatched-terminal-provenance', 'already-completed'])

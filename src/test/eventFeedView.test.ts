@@ -72,6 +72,23 @@ describe('buildEventFeedView', () => {
     expect(view.href).toBe('/recruitment')
   })
 
+  it('recruitment.candidate_departed — explains the producer-emitted expiry reason', () => {
+    const view = buildEventFeedView(
+      makeEvent(
+        'recruitment.candidate_departed',
+        {
+          week: 3,
+          candidateId: 'cand-expired',
+          candidateName: 'Morgan Vale',
+          reason: 'expired_from_consideration',
+        },
+        { sourceSystem: 'system' }
+      )
+    )
+
+    expect(view.detail).toContain('availability expired')
+  })
+
   it('assignment.team_assigned — neutral tone, team and case in title', () => {
     const event = makeEvent('assignment.team_assigned', {
       week: 2,

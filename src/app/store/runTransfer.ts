@@ -8156,19 +8156,22 @@ function sanitizeOperationEvents(
         break
 
       case 'recruitment.candidate_departed':
+        if (
+          typeof payload.candidateId !== 'string' ||
+          payload.candidateId.trim().length === 0 ||
+          typeof payload.candidateName !== 'string' ||
+          payload.candidateName.trim().length === 0
+        ) {
+          break
+        }
+
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('recruitment.candidate_departed'),
             payload: {
               week,
-              candidateId:
-                typeof payload.candidateId === 'string' && payload.candidateId.trim().length > 0
-                  ? payload.candidateId.trim()
-                  : `candidate-${index + 1}`,
-              candidateName:
-                typeof payload.candidateName === 'string' && payload.candidateName.trim().length > 0
-                  ? payload.candidateName.trim()
-                  : 'Unknown candidate',
+              candidateId: payload.candidateId.trim(),
+              candidateName: payload.candidateName.trim(),
               reason:
                 payload.reason === 'expired_from_consideration'
                   ? 'expired_from_consideration'

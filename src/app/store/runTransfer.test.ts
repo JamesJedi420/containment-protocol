@@ -14136,6 +14136,24 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.events[1]?.payload).toMatchObject({ count: 0 })
       expect(hydrated.events[2]?.payload).toMatchObject({ count: 2 })
     })
+
+    it('598a drops malformed candidate departure events rather than inventing identity', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-departed-598a',
+            type: 'recruitment.candidate_departed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: { week: 2, candidateId: '   ', candidateName: 'Known Recruit' },
+          },
+        ],
+      })
+
+      expect(hydrated.events).toEqual([])
+    })
   })
 
   describe('hydration problems 599-606', () => {

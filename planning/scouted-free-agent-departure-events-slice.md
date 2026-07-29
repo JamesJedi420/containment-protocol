@@ -33,4 +33,4 @@ Preserve a durable, player-facing event when a scouted, recruitable candidate ex
 
 | Item | Suggested owner issue | Why deferred |
 | --- | --- | --- |
-| Persisted acknowledgement/read state | SPE-2726 follow-up child | The event feed has no general acknowledgement model; adding one would be a notification subsystem, beyond this bounded event slice. |
+| Persisted acknowledgement/read state | [SPE-2756](https://linear.app/spectranoir/issue/SPE-2756/persisted-candidate-departure-notice-acknowledgement) | The event feed has no general acknowledgement model; adding one would be a notification subsystem, beyond this bounded event slice. |

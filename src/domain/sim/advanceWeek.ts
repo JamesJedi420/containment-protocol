@@ -85,10 +85,12 @@ import { clamp, createSeededRng } from '../math'
 import {
   processDepartmentWorkshopTick,
   readDepartmentWorkshopState,
+  reconcileDepartmentWorkshopTerminalLanes,
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
 import {
+  listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
   reconcileCaseScopedPrerequisiteProcessingCompletions,
   reconcileCaseScopedPrerequisiteProcessingReservationReleases,
   reconcileCaseScopedPrerequisiteProcessingSuccessors,
@@ -4983,6 +4985,22 @@ export function advanceWeek(
     outputWeeklyState.inventory = prerequisiteReleases.inventory
     outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
       prerequisiteReleases.reservations
+  }
+
+  // SPE-2764: only orders that passed canonical terminal provenance and exact
+  // reservation release leave workshop lanes. Missing reservations also admit
+  // prior-release saves. Durable provenance remains, and freed slots wait for
+  // the next workshop tick.
+  const terminalWorkshopWorkOrderIds =
+    listCanonicalTerminalPrerequisiteProcessingWorkOrderIds(outputWeeklyState).filter(
+      (workOrderId) => !prerequisiteReleases.reservations[workOrderId]
+    )
+  const workshopTerminalCleanup = reconcileDepartmentWorkshopTerminalLanes(
+    outputWeeklyState,
+    terminalWorkshopWorkOrderIds
+  )
+  if (workshopTerminalCleanup.state === 'cleaned') {
+    outputWeeklyState.departmentWorkshopSnapshots = workshopTerminalCleanup.workshopState.snapshots
   }
 
   // SPE-2760: output credit precedes one deterministic successor attempt per

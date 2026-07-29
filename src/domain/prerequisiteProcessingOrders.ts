@@ -421,6 +421,27 @@ function hasCanonicalTerminalSignal(
 }
 
 /**
+ * List terminally proven prerequisite work orders independently of reservation
+ * state so later reconcilers can repair already-released persisted saves.
+ */
+export function listCanonicalTerminalPrerequisiteProcessingWorkOrderIds(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  }
+): readonly string[] {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  return Object.freeze(
+    Object.keys(orders)
+      .sort(compareCodeUnits)
+      .filter((workOrderId) => hasCanonicalTerminalSignal(source, orders[workOrderId]))
+  )
+}
+
+/**
  * Record explicit work-order terminal proof from canonical authored provenance.
  * This does not infer lifecycle state or mutate inventory, queues, or cases.
  */

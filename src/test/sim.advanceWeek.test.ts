@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState, startingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
   advanceWeek,
   deriveWeeklyCivicConsequencePackets,
@@ -275,6 +276,73 @@ function makeMissionResultState(outcome: 'success' | 'partial' | 'fail' | 'unres
   }
 
   return assigned
+}
+
+function attachCaseScopedPrerequisiteWork(
+  state: ReturnType<typeof createStartingState>,
+  entries: readonly {
+    workOrderId: string
+    caseId: string
+    requiredWork: number
+    completedWork?: number
+  }[]
+) {
+  state.caseScopedPrerequisiteProcessingOrders = Object.fromEntries(
+    entries.map(({ workOrderId, caseId, requiredWork }) => [
+      workOrderId,
+      {
+        workOrderId,
+        caseId,
+        processingRecipeId: `recipe:${workOrderId}`,
+        inputMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+        outputMaterialId: 'warding_resin',
+        outputQuantity: 1,
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        requiredWork,
+        prerequisiteWorkOrderIds: [],
+      },
+    ])
+  )
+  state.caseScopedPrerequisiteProcessingReservations = Object.fromEntries(
+    entries.map(({ workOrderId, caseId }) => [
+      workOrderId,
+      {
+        workOrderId,
+        caseId,
+        inputMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+      },
+    ])
+  )
+  state.departmentWorkshopWorkOrders = Object.fromEntries(
+    entries.map(({ workOrderId, caseId, requiredWork }) => [
+      workOrderId,
+      {
+        id: workOrderId,
+        caseId,
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        requiredWork,
+      },
+    ])
+  )
+  state.departmentWorkshopSnapshots = {
+    'department:records-analysis': {
+      departmentId: 'department:records-analysis',
+      slotCapacity: entries.length,
+      queued: [],
+      active: entries.map(({ workOrderId, completedWork = 0 }) => ({
+        workOrderId,
+        completedWork,
+      })),
+      paused: [],
+    },
+  }
+  state.inventory = {
+    ...state.inventory,
+    medical_supplies: 0,
+    warding_resin: 0,
+  }
 }
 
 function makeAggregateBattleIntegrationState() {
@@ -2582,6 +2650,85 @@ describe('advanceWeek', () => {
     )
     expect(missionResult?.penalties.fundingLoss).toBeGreaterThan(0)
   })
+
+  it('produces terminal proof only for the canonically failed case and replays after save/load once', () => {
+    const state = makeMissionResultState('fail')
+    state.cases['case-002'] = {
+      ...state.cases['case-002'],
+      status: 'open',
+      assignedTeamIds: [],
+      deadlineRemaining: 99,
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:failed-case', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:ordinary-case', caseId: 'case-002', requiredWork: 3 },
+    ])
+
+    const next = advanceWeek(state)
+
+    expect(next.reports[0].failedCases).toContain('case-001')
+    expect(next.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({
+      'work:failed-case': {
+        workOrderId: 'work:failed-case',
+        caseId: 'case-001',
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        terminalWeek: state.week,
+        reason: 'failed',
+      },
+    })
+    expect(next.inventory.medical_supplies).toBe(1)
+    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:failed-case']).toBeUndefined()
+    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:ordinary-case']).toBeDefined()
+
+    const loaded = loadGameSave(serializeGameSave(next))
+    const replay = advanceWeek(loaded)
+
+    expect(replay.caseScopedPrerequisiteProcessingTerminalSignals).toEqual(
+      next.caseScopedPrerequisiteProcessingTerminalSignals
+    )
+    expect(replay.inventory.medical_supplies).toBe(1)
+    expect(replay.inventory.warding_resin).toBe(0)
+  })
+
+  it('lets same-week workshop completion win the explicit failure terminal race', () => {
+    const state = makeMissionResultState('fail')
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:completion-race', caseId: 'case-001', requiredWork: 1 },
+    ])
+
+    const next = advanceWeek(state)
+
+    expect(
+      next.caseScopedPrerequisiteProcessingTerminalSignals?.['work:completion-race']
+    ).toMatchObject({
+      reason: 'failed',
+      terminalWeek: state.week,
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:completion-race']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: state.week,
+    })
+    expect(next.inventory.warding_resin).toBe(1)
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:completion-race']
+    ).toBeUndefined()
+  })
+
+  it.each(['success', 'partial', 'unresolved'] as const)(
+    'does not infer prerequisite terminal proof from a %s case outcome or resulting state',
+    (outcome) => {
+      const state = makeMissionResultState(outcome)
+      attachCaseScopedPrerequisiteWork(state, [
+        { workOrderId: `work:${outcome}`, caseId: 'case-001', requiredWork: 3 },
+      ])
+
+      const next = advanceWeek(state)
+
+      expect(next.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({})
+    }
+  )
 
   it('writes a mission result snapshot for unresolved escalations', () => {
     const next = advanceWeek(makeMissionResultState('unresolved'))

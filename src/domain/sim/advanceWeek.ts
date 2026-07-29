@@ -390,7 +390,10 @@ import {
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
-import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestration'
+import {
+  applyWeeklyCaseLifecycleTick,
+  produceCaseLifecyclePrerequisiteProcessingTerminalSignals,
+} from '../caseLifecycleWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { buildWeeklyIntakeExtranormalCrossLinkReportNotes } from '../informationIntakeExtranormalCrossLinkWeeklyReportNotes'
@@ -1976,6 +1979,7 @@ function resolveAssignedCaseForWeek(
     infiltrationStageMission: canonicalResolution.infiltrationStageMission,
     stealthLeaveBehindMission: canonicalResolution.stealthLeaveBehindMission,
     weakestLinkResult: canonicalResolution.weakestLinkResult,
+    terminalDisposition: canonicalResolution.terminalDisposition,
     campaignToIncident,
     incidentToCampaign,
   }
@@ -2668,6 +2672,7 @@ function resolveAssignments(
       infiltrationStageMission,
       stealthLeaveBehindMission,
       weakestLinkResult,
+      terminalDisposition,
     } = weeklyResolution
 
     const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
@@ -3102,6 +3107,16 @@ function resolveAssignments(
         status: 'open',
         weeksRemaining: undefined,
         supportShortfall: supportShortfallCases.includes(caseId),
+      }
+      if (terminalDisposition) {
+        const terminalSignals = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
+          context.nextState,
+          terminalDisposition
+        )
+        if (terminalSignals.registeredWorkOrderIds.length > 0) {
+          context.nextState.caseScopedPrerequisiteProcessingTerminalSignals =
+            terminalSignals.signals
+        }
       }
       context.eventDrafts.push(
         buildCaseFailedEventDraft({

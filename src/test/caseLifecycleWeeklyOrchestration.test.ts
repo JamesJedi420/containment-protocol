@@ -10,6 +10,7 @@ import {
   didIntakeCredibilityReviewPass,
   didPresumedNeutralizationSignal,
   didProcedureRevisionRecover,
+  produceCaseLifecyclePrerequisiteProcessingTerminalSignals,
   resolveAdaptationDemonstratedCaseIds,
   resolveAnomalyConfirmedCaseIds,
   resolveCredibilityReviewPassedCaseIds,
@@ -76,7 +77,168 @@ function complianceRecord(
   }
 }
 
+function terminalSignalSource() {
+  const targetCase = makeCase()
+  const otherCase = makeCase({
+    id: 'case:lifecycle-other',
+    templateId: 'template:lifecycle-other',
+    title: 'Other lifecycle case',
+  })
+  const order = (workOrderId: string, caseId: string) => ({
+    workOrderId,
+    caseId,
+    processingRecipeId: `recipe:${workOrderId}`,
+    inputMaterials: [{ materialId: `material:${workOrderId}`, quantity: 1 }],
+    outputMaterialId: `output:${workOrderId}`,
+    outputQuantity: 1,
+    departmentId: 'department:records-analysis',
+    taskType: 'records_review',
+    requiredWork: 2,
+    prerequisiteWorkOrderIds: [],
+  })
+  const orders = {
+    'work:zulu': order('work:zulu', targetCase.id),
+    'work:alpha': order('work:alpha', targetCase.id),
+    'work:other': order('work:other', otherCase.id),
+  }
+  const reservations = Object.fromEntries(
+    Object.values(orders).map((entry) => [
+      entry.workOrderId,
+      {
+        workOrderId: entry.workOrderId,
+        caseId: entry.caseId,
+        inputMaterials: entry.inputMaterials,
+      },
+    ])
+  )
+  const workshopOrders = Object.fromEntries(
+    Object.values(orders).map((entry) => [
+      entry.workOrderId,
+      {
+        id: entry.workOrderId,
+        caseId: entry.caseId,
+        departmentId: entry.departmentId,
+        taskType: entry.taskType,
+        requiredWork: entry.requiredWork,
+      },
+    ])
+  )
+
+  return {
+    week: 2,
+    cases: {
+      [targetCase.id]: targetCase,
+      [otherCase.id]: otherCase,
+    },
+    caseScopedPrerequisiteProcessingOrders: orders,
+    caseScopedPrerequisiteProcessingReservations: reservations,
+    caseScopedPrerequisiteProcessingTerminalSignals: {},
+    departmentWorkshopWorkOrders: workshopOrders,
+    departmentWorkshopCompletionOutcomes: {},
+  }
+}
+
 describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 3)', () => {
+  it.each(['failed', 'cancelled'] as const)(
+    'produces explicit %s prerequisite terminal signals in stable work-order order',
+    (reason) => {
+      const source = terminalSignalSource()
+      const before = structuredClone(source)
+      const result = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(source, {
+        caseId: 'case:lifecycle-target',
+        reason,
+        terminalWeek: 2,
+      })
+
+      expect(result.registeredWorkOrderIds).toEqual(['work:alpha', 'work:zulu'])
+      expect(Object.keys(result.signals)).toEqual(['work:alpha', 'work:zulu'])
+      expect(result.signals['work:alpha']).toMatchObject({
+        workOrderId: 'work:alpha',
+        caseId: 'case:lifecycle-target',
+        terminalWeek: 2,
+        reason,
+      })
+      expect(result.signals['work:other']).toBeUndefined()
+      expect(result.reasons).toEqual([])
+      expect(source).toEqual(before)
+    }
+  )
+
+  it('keeps identical replay idempotent and rejects conflicting durable proof', () => {
+    const source = terminalSignalSource()
+    const first = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(source, {
+      caseId: 'case:lifecycle-target',
+      reason: 'failed',
+      terminalWeek: 2,
+    })
+    const withSignals = {
+      ...source,
+      caseScopedPrerequisiteProcessingTerminalSignals: first.signals,
+    }
+    const replay = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(withSignals, {
+      caseId: 'case:lifecycle-target',
+      reason: 'failed',
+      terminalWeek: 2,
+    })
+    const conflict = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(withSignals, {
+      caseId: 'case:lifecycle-target',
+      reason: 'cancelled',
+      terminalWeek: 2,
+    })
+
+    expect(replay.registeredWorkOrderIds).toEqual([])
+    expect(replay.reasons).toEqual([])
+    expect(replay.signals).toEqual(first.signals)
+    expect(conflict.registeredWorkOrderIds).toEqual([])
+    expect(conflict.reasons).toEqual(['already-terminal', 'already-terminal'])
+    expect(conflict.signals).toEqual(first.signals)
+  })
+
+  it('isolates malformed provenance and completion proof by work order and case', () => {
+    const source = terminalSignalSource()
+    const isolatedSource = {
+      ...source,
+      departmentWorkshopWorkOrders: {
+        ...source.departmentWorkshopWorkOrders,
+        'work:alpha': {
+          ...source.departmentWorkshopWorkOrders['work:alpha'],
+          caseId: 'case:lifecycle-other',
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        'work:zulu': {
+          workOrderId: 'work:zulu',
+          caseId: 'case:lifecycle-target',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          completedWeek: 2,
+          outcome: 'completed' as const,
+        },
+      },
+    }
+    const target = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(isolatedSource, {
+      caseId: 'case:lifecycle-target',
+      reason: 'failed',
+      terminalWeek: 2,
+    })
+    const other = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
+      {
+        ...isolatedSource,
+        caseScopedPrerequisiteProcessingTerminalSignals: target.signals,
+      },
+      {
+        caseId: 'case:lifecycle-other',
+        reason: 'cancelled',
+        terminalWeek: 2,
+      }
+    )
+
+    expect(target.registeredWorkOrderIds).toEqual([])
+    expect(target.reasons).toEqual(['mismatched-terminal-provenance', 'already-completed'])
+    expect(other.registeredWorkOrderIds).toEqual(['work:other'])
+    expect(other.signals['work:other']?.reason).toBe('cancelled')
+  })
+
   it('applyCaseLifecycleEventToCase advances lead to confirmation on credibility review', () => {
     const currentCase = makeCase({ lifecycleStage: 'lead' })
     const nextCase = applyCaseLifecycleEventToCase(currentCase, 'credibility_review_passed')

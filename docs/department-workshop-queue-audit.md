@@ -16,6 +16,7 @@ the boundaries that later workshop slices must preserve.
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
 | Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)             |
+| Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757) |
 | Global case queue                             | `src/domain/sim/queue.ts`                                 |
 | Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                  |
 | Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                           |
@@ -138,6 +139,9 @@ depend on a positive slot capacity.
 - `planPrerequisiteProcessing` is a pure draft planner: do not treat its stock
   allocations as inventory reservations or its dependency IDs as persisted work
   order lifecycle state.
+- SPE-2757 envelopes are durable, case-owned planner outputs only. They do not
+  reserve inventory, create workshop work orders, enqueue work, emit completion
+  output, or change the global case queue.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
@@ -149,6 +153,8 @@ depend on a positive slot capacity.
 - `src/test/departmentWorkshopQueue.test.ts`
 - `src/test/departmentWorkshopPersistence.test.ts`
 - `src/test/departmentWorkshopWrites.test.ts`
+- `src/test/prerequisiteProcessing.test.ts`
+- `src/test/prerequisiteProcessingOrders.test.ts`
 - `src/test/departmentCoordination.test.ts`
 - `src/test/missionIntakeDepartmentCapabilities.integration.test.ts`
 - `src/test/queue.test.ts`

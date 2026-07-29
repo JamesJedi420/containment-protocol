@@ -2727,10 +2727,24 @@ describe('advanceWeek', () => {
         assignedTeamIds: [],
         deadlineRemaining: 99,
       },
+      'case-002': {
+        ...state.cases['case-002'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
     }
     attachCaseScopedPrerequisiteWork(state, [
       { workOrderId: 'work:explicit-cancellation', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:unaffected-sibling', caseId: 'case-002', requiredWork: 3 },
     ])
+    state.departmentWorkshopSnapshots!['department:records-analysis'] = {
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [{ workOrderId: 'work:unaffected-sibling', completedWork: 0 }],
+      active: [{ workOrderId: 'work:explicit-cancellation', completedWork: 0 }],
+      paused: [],
+    }
     const cancellation = cancelCase(state, 'case-001')
     if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
     state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
@@ -2748,11 +2762,117 @@ describe('advanceWeek', () => {
       next.caseScopedPrerequisiteProcessingReservations?.['work:explicit-cancellation']
     ).toBeUndefined()
     expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:unaffected-sibling']
+    ).toBeDefined()
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [{ workOrderId: 'work:unaffected-sibling', completedWork: 0 }],
+      active: [],
+      paused: [],
+    })
+    expect(next.departmentWorkshopWorkOrders?.['work:explicit-cancellation']).toBeDefined()
+    expect(
       next.caseScopedPrerequisiteProcessingTerminalSignals?.['work:explicit-cancellation']
     ).toMatchObject({
       reason: 'cancelled',
       terminalWeek: state.week,
     })
+
+    const loaded = loadGameSave(serializeGameSave(next))
+    const replay = advanceWeek(loaded)
+    expect(replay.inventory.medical_supplies).toBe(1)
+    expect(replay.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [],
+      active: [{ workOrderId: 'work:unaffected-sibling', completedWork: 1 }],
+      paused: [],
+    })
+  })
+
+  it('isolates invalid terminal proof while cleaning a valid sibling case', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+      'case-002': {
+        ...state.cases['case-002'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:valid-terminal', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:invalid-terminal', caseId: 'case-002', requiredWork: 3 },
+    ])
+    state.departmentWorkshopSnapshots!['department:records-analysis'] = {
+      departmentId: 'department:records-analysis',
+      slotCapacity: 2,
+      queued: [],
+      active: [{ workOrderId: 'work:valid-terminal', completedWork: 0 }],
+      paused: [{ workOrderId: 'work:invalid-terminal', completedWork: 1 }],
+    }
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = {
+      ...cancellation.signals,
+      'work:invalid-terminal': {
+        workOrderId: 'work:invalid-terminal',
+        caseId: 'case-001',
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        terminalWeek: state.week,
+        reason: 'cancelled',
+      },
+    }
+
+    const next = advanceWeek(state)
+
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 2,
+      queued: [],
+      active: [],
+      paused: [{ workOrderId: 'work:invalid-terminal', completedWork: 1 }],
+    })
+    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:valid-terminal']).toBeUndefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:invalid-terminal']
+    ).toBeDefined()
+  })
+
+  it('cleans a save whose canonical terminal reservation was already released', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:prior-release', caseId: 'case-001', requiredWork: 3 },
+    ])
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+    state.caseScopedPrerequisiteProcessingReservations = {}
+
+    const loaded = loadGameSave(serializeGameSave(state))
+    const next = advanceWeek(loaded)
+
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']?.active).toEqual([])
+    expect(next.departmentWorkshopWorkOrders?.['work:prior-release']).toBeDefined()
   })
 
   it('lets same-week completion win an explicit cancellation race', () => {

@@ -125,6 +125,12 @@ export interface DepartmentWorkshopProcessingTickResult {
   readonly reasons: readonly DepartmentWorkshopReason[]
 }
 
+export interface DepartmentWorkshopTerminalLaneCleanupResult {
+  readonly state: 'cleaned' | 'unchanged'
+  readonly workshopState: DepartmentWorkshopState
+  readonly removedWorkOrderIds: readonly string[]
+}
+
 export interface DepartmentWorkshopTransitionResult {
   readonly state: 'updated' | 'blocked'
   readonly snapshot: DepartmentWorkshopSnapshot | null
@@ -1033,6 +1039,69 @@ export function processDepartmentWorkshopTick(
     startedWorkOrderIds: Object.freeze(startedWorkOrderIds),
     completedWorkOrderIds: Object.freeze(completedWorkOrderIds),
     reasons: Object.freeze(reasons),
+  })
+}
+
+/**
+ * Remove canonically terminalled work from persisted workshop lanes without
+ * deleting its durable work-order provenance. The caller owns terminal proof
+ * and week-close ordering; this seam only applies the proven IDs to sanitized
+ * workshop state.
+ */
+export function reconcileDepartmentWorkshopTerminalLanes(
+  source: DepartmentWorkshopStateSource,
+  terminalWorkOrderIds: readonly string[],
+  registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
+  authorityGraph?: AuthorityGraph
+): DepartmentWorkshopTerminalLaneCleanupResult {
+  const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
+  const eligibleIds = new Set(
+    Array.isArray(terminalWorkOrderIds)
+      ? terminalWorkOrderIds.filter(isNormalizedNonEmptyString)
+      : []
+  )
+  if (eligibleIds.size === 0) {
+    return Object.freeze({
+      state: 'unchanged',
+      workshopState,
+      removedWorkOrderIds: Object.freeze([]),
+    })
+  }
+
+  let snapshots = workshopState.snapshots
+  let changed = false
+  const removedWorkOrderIds = new Set<string>()
+  for (const [departmentId, snapshot] of Object.entries(workshopState.snapshots)) {
+    const removeFromLane = (items: readonly DepartmentWorkshopWorkItem[]) =>
+      items.filter((item) => {
+        if (!eligibleIds.has(item.workOrderId)) return true
+        removedWorkOrderIds.add(item.workOrderId)
+        return false
+      })
+    const queued = removeFromLane(snapshot.queued)
+    const active = removeFromLane(snapshot.active)
+    const paused = removeFromLane(snapshot.paused)
+    if (
+      queued.length === snapshot.queued.length &&
+      active.length === snapshot.active.length &&
+      paused.length === snapshot.paused.length
+    ) {
+      continue
+    }
+    if (!changed) {
+      snapshots = { ...snapshots }
+      changed = true
+    }
+    snapshots[departmentId] = frozenSnapshot({ ...snapshot, queued, active, paused })
+  }
+
+  const removed = [...removedWorkOrderIds].sort(compareCodeUnits)
+  return Object.freeze({
+    state: changed ? 'cleaned' : 'unchanged',
+    workshopState: changed
+      ? frozenWorkshopState(workshopState.workOrders, snapshots)
+      : workshopState,
+    removedWorkOrderIds: Object.freeze(removed),
   })
 }
 

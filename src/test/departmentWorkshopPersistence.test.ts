@@ -5,6 +5,7 @@ import {
   processDepartmentWorkshopTick,
   projectDepartmentWorkshopWorkload,
   readDepartmentWorkshopState,
+  reconcileDepartmentWorkshopTerminalLanes,
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopSnapshots,
@@ -528,6 +529,83 @@ describe('department workshop persistence', () => {
     expect(completed.workshopState.snapshots['department:biohazard-response']?.active).toEqual([])
     expect(repeated.state).toBe('unchanged')
     expect(repeated.completedWorkOrderIds).toEqual([])
+  })
+
+  it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
+    const recordsOrder = (id: string, caseId: string) => ({
+      id,
+      departmentId: 'department:records-analysis',
+      caseId,
+      taskType: 'records_review' as const,
+      requiredWork: 3,
+    })
+    const input = {
+      departmentWorkshopWorkOrders: {
+        'work:active-terminal': recordsOrder('work:active-terminal', 'case-terminal'),
+        'work:queued-terminal': recordsOrder('work:queued-terminal', 'case-terminal'),
+        'work:paused-terminal': recordsOrder('work:paused-terminal', 'case-terminal'),
+        'work:records-sibling': recordsOrder('work:records-sibling', 'case-sibling'),
+        'work:other-department': {
+          ...WORK_ORDERS['work:alpha'],
+          id: 'work:other-department',
+        },
+      },
+      departmentWorkshopSnapshots: {
+        'department:records-analysis': {
+          departmentId: 'department:records-analysis',
+          slotCapacity: 2,
+          queued: [
+            { workOrderId: 'work:queued-terminal', completedWork: 0 },
+            { workOrderId: 'work:records-sibling', completedWork: 0 },
+          ],
+          active: [{ workOrderId: 'work:active-terminal', completedWork: 1 }],
+          paused: [{ workOrderId: 'work:paused-terminal', completedWork: 2 }],
+        },
+        'department:biohazard-response': {
+          departmentId: 'department:biohazard-response',
+          slotCapacity: 1,
+          queued: [],
+          active: [{ workOrderId: 'work:other-department', completedWork: 1 }],
+          paused: [],
+        },
+      },
+    }
+    const before = structuredClone(input)
+
+    const cleaned = reconcileDepartmentWorkshopTerminalLanes(input, [
+      'work:paused-terminal',
+      'work:active-terminal',
+      'work:queued-terminal',
+      'work:active-terminal',
+      '',
+    ])
+
+    expect(cleaned.state).toBe('cleaned')
+    expect(cleaned.removedWorkOrderIds).toEqual([
+      'work:active-terminal',
+      'work:paused-terminal',
+      'work:queued-terminal',
+    ])
+    expect(cleaned.workshopState.snapshots['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 2,
+      queued: [{ workOrderId: 'work:records-sibling', completedWork: 0 }],
+      active: [],
+      paused: [],
+    })
+    expect(cleaned.workshopState.snapshots['department:biohazard-response']).toEqual(
+      input.departmentWorkshopSnapshots['department:biohazard-response']
+    )
+    expect(cleaned.workshopState.workOrders).toEqual(input.departmentWorkshopWorkOrders)
+    expect(input).toEqual(before)
+
+    const replay = reconcileDepartmentWorkshopTerminalLanes(
+      cleaned.workshopState,
+      cleaned.removedWorkOrderIds
+    )
+    expect(replay.state).toBe('unchanged')
+    expect(replay.removedWorkOrderIds).toEqual([])
+    expect(replay.workshopState).toEqual(cleaned.workshopState)
   })
 
   it('registers completion outcomes in canonical order without mutation or duplicate receipts', () => {

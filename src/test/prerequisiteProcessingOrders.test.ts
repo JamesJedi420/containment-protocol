@@ -36,21 +36,19 @@ describe('case-scoped prerequisite processing orders', () => {
     )
     const records = createCaseScopedPrerequisiteProcessingOrders(plan, 'case:open', source)
 
-    expect(records).toEqual({
-      'final:prerequisite:process:1:prerequisite:extract:1': expect.objectContaining({
+    expect(Object.keys(records)).toEqual(
+      plan.prerequisiteWorkOrders.map((draft) => draft.id).sort()
+    )
+    for (const draft of plan.prerequisiteWorkOrders) {
+      expect(records[draft.id]).toMatchObject({
         caseId: 'case:open',
-        processingRecipeId: 'extract',
-      }),
-      'final:prerequisite:process:1': expect.objectContaining({
-        caseId: 'case:open',
-        processingRecipeId: 'process',
-        inputMaterials: [{ materialId: 'raw', quantity: 1 }],
-        outputMaterialId: 'processed',
-      }),
-    })
-    expect(records['final:prerequisite:process:1']?.prerequisiteWorkOrderIds).toEqual([
-      'final:prerequisite:process:1:prerequisite:extract:1',
-    ])
+        processingRecipeId: draft.recipeId,
+        inputMaterials: draft.inputMaterials,
+        outputMaterialId: draft.outputMaterialId,
+        outputQuantity: draft.outputQuantity,
+      })
+      expect(records[draft.id]?.prerequisiteWorkOrderIds).toEqual(draft.dependsOnWorkOrderIds)
+    }
     expect(createCaseScopedPrerequisiteProcessingOrders(plan, 'case:missing', source)).toEqual({})
   })
 

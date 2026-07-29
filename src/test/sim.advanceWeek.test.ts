@@ -1,6 +1,7 @@
 // cspell:words cand greentape medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState, startingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
 import {
   advanceWeek,
   deriveWeeklyCivicConsequencePackets,
@@ -1238,6 +1239,94 @@ describe('advanceWeek', () => {
           event.payload.count === next.candidates.length
       )
     ).toBe(true)
+  })
+
+  it('preserves one departure event only for scouted recruitable candidates that expire', () => {
+    const state = createStartingState()
+    state.week = 4
+    state.candidates = [
+      {
+        id: 'cand-scouted',
+        name: 'Known Recruit',
+        age: 27,
+        category: 'agent',
+        hireStatus: 'available',
+        revealLevel: 1,
+        expiryWeek: 4,
+        scoutReport: {
+          stage: 1,
+          projectedTier: 'B',
+          exactKnown: false,
+          confidence: 'tentative',
+        },
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+      {
+        id: 'cand-unscouted',
+        name: 'Unknown Recruit',
+        age: 28,
+        category: 'agent',
+        hireStatus: 'available',
+        revealLevel: 0,
+        expiryWeek: 4,
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+      {
+        id: 'cand-lost',
+        name: 'Lost Recruit',
+        age: 29,
+        category: 'agent',
+        hireStatus: 'expired',
+        funnelStage: 'lost',
+        revealLevel: 1,
+        expiryWeek: 4,
+        scoutReport: {
+          stage: 1,
+          projectedTier: 'B',
+          exactKnown: false,
+          confidence: 'tentative',
+        },
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+    ]
+    state.recruitmentPool = [...state.candidates]
+
+    const next = advanceWeek(state)
+    const departureEvents = next.events.filter(
+      (event) => event.type === 'recruitment.candidate_departed'
+    )
+
+    expect(departureEvents).toEqual([
+      expect.objectContaining({
+        payload: {
+          week: 4,
+          candidateId: 'cand-scouted',
+          candidateName: 'Known Recruit',
+          reason: 'expired_from_consideration',
+        },
+      }),
+    ])
+    expect(advanceWeek(next).events.filter((event) => event.type === 'recruitment.candidate_departed')).toHaveLength(1)
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(next)), createStartingState())
+    expect(hydrated.events.filter((event) => event.type === 'recruitment.candidate_departed')).toEqual(
+      departureEvents
+    )
+  })
+
+  it('does not synthesize historical departure events while hydrating a legacy candidate pool', () => {
+    const state = createStartingState()
+    state.week = 5
+    state.candidates[0] = { ...state.candidates[0]!, expiryWeek: 1 }
+    state.recruitmentPool = [...state.candidates]
+    state.events = []
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+
+    expect(hydrated.events).toEqual([])
   })
 
   it('emits an aggregate agency containment update when progression values change', () => {

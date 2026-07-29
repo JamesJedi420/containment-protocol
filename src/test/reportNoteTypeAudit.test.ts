@@ -77,6 +77,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'advanceWeek',
     category: 'recruitment',
   },
+  'recruitment.candidate_departed': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
   'system.recruitment_generated': {
     status: 'active',
     producer: 'advanceWeek',
@@ -263,7 +268,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(62)
+    expect(entries).toHaveLength(63)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

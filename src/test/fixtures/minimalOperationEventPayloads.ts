@@ -262,6 +262,12 @@ export const minimalOperationEventPayloads = {
     week: WEEK,
     count: 1,
   },
+  'recruitment.candidate_departed': {
+    week: WEEK,
+    candidateId: 'cand-min',
+    candidateName: 'Minimal Candidate',
+    reason: 'expired_from_consideration',
+  },
   'system.recruitment_generated': {
     week: WEEK,
     count: 1,

@@ -98,6 +98,7 @@ Fields set only when defined (no `undefined` values stored):
 | --- | --- | --- |
 | `system.equipment_recovered` | Inline from draft payload | recovered[], delayed[], counts, maintenanceCapacity, damagedCount |
 | `system.recruitment_expired` | `Recruitment pipeline expired {count} candidate(s).` | count |
+| `recruitment.candidate_departed` | `{name} is no longer available for recruitment.` | candidateId, candidateName, reason, destination |
 | `system.recruitment_generated` | `Recruitment pipeline generated {count} candidate(s).` | count |
 | `system.party_cards_drawn` | `Party cards drawn: {count}.` | count |
 | `agency.containment_updated` | `Agency posture updated: containment X% → Y%, funding $A → $B.` | containmentDelta, fundingDelta, clearanceLevelAfter |

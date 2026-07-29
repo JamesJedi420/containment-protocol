@@ -24,6 +24,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'progression.xp_gained': 'covered',
   'agent.hired': 'covered',
   'system.recruitment_expired': 'covered',
+  'recruitment.candidate_departed': 'covered',
   'system.recruitment_generated': 'covered',
   'recruitment.scouting_initiated': 'covered',
   'recruitment.scouting_refined': 'covered',

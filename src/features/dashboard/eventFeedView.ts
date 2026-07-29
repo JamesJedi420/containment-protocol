@@ -205,6 +205,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'progression.xp_gained': 'XP Gained',
   'agent.hired': 'Recruitment Hire',
   'system.recruitment_expired': 'Recruitment Expired',
+  'recruitment.candidate_departed': 'Candidate Departed',
   'system.recruitment_generated': 'Recruitment Generated',
   'recruitment.scouting_initiated': 'Scouting Initiated',
   'recruitment.scouting_refined': 'Scouting Refined',
@@ -264,6 +265,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'progression.xp_gained': 'personnel',
   'agent.hired': 'personnel',
   'system.recruitment_expired': 'personnel',
+  'recruitment.candidate_departed': 'personnel',
   'system.recruitment_generated': 'personnel',
   'recruitment.scouting_initiated': 'intel_briefing',
   'recruitment.scouting_refined': 'intel_briefing',
@@ -775,6 +777,28 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'warning',
         searchText: `recruitment expired ${event.payload.count}`.toLowerCase(),
       }
+
+    case 'recruitment.candidate_departed': {
+      const reason =
+        event.payload.reason === 'expired_from_consideration'
+          ? 'Their availability expired.'
+          : 'Their departure reason is unknown.'
+      const destination = event.payload.destination ? ` / Last known destination: ${event.payload.destination}` : ''
+
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.candidateName} is no longer available`,
+        detail: `Week ${event.payload.week} / ${reason}${destination}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.recruitment,
+        searchText:
+          `${event.payload.candidateName} ${event.payload.candidateId} departed no longer available ${event.payload.reason} ${event.payload.destination ?? ''}`.toLowerCase(),
+      }
+    }
 
     case 'system.recruitment_generated':
       return {

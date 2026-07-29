@@ -13,9 +13,10 @@
     "SPE-2084",
     "SPE-2083",
     "SPE-2088",
-    "SPE-2725"
+    "SPE-2726"
   ],
   "sliceDocStatus": {
+    "planning/scouted-free-agent-departure-events-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-processing-advance-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-completion-outcome-bridge-slice.md": "Shipped",
     "planning/spe-2755-workshop-receipt-case-consumer-slice.md": "Shipped",

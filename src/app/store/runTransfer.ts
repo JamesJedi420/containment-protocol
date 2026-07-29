@@ -298,7 +298,11 @@ import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../../domain/departmentWorkshopQueue'
-import { sanitizeCaseScopedPrerequisiteProcessingOrders, sanitizeCaseScopedPrerequisiteProcessingReservations } from '../../domain/prerequisiteProcessingOrders'
+import {
+  sanitizeCaseScopedPrerequisiteProcessingOrders,
+  sanitizeCaseScopedPrerequisiteProcessingReservations,
+  sanitizeCaseScopedPrerequisiteProcessingTerminalSignals,
+} from '../../domain/prerequisiteProcessingOrders'
 import {
   sanitizeSpe956AsyncDiscussionSurfaceRecords,
   sanitizeSpe956CollectiveMemoryChannelRecords,
@@ -9442,7 +9446,16 @@ export function hydrateGame(
     game.caseScopedPrerequisiteProcessingOrders,
     { cases: normalizedCases }
   )
-  const caseScopedPrerequisiteProcessingReservations = sanitizeCaseScopedPrerequisiteProcessingReservations(game.caseScopedPrerequisiteProcessingReservations, { cases: normalizedCases })
+  const caseScopedPrerequisiteProcessingReservations =
+    sanitizeCaseScopedPrerequisiteProcessingReservations(
+      game.caseScopedPrerequisiteProcessingReservations,
+      { cases: normalizedCases }
+    )
+  const caseScopedPrerequisiteProcessingTerminalSignals =
+    sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+      game.caseScopedPrerequisiteProcessingTerminalSignals,
+      { week }
+    )
   const contracts = hasPersistedContracts
     ? sanitizeHydratedContractSystemState(game.contracts, week, fallback.contracts, {
         factions,
@@ -9639,6 +9652,7 @@ export function hydrateGame(
     departmentWorkshopCompletionOutcomes,
     caseScopedPrerequisiteProcessingOrders,
     caseScopedPrerequisiteProcessingReservations,
+    caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
     damagedEquipmentQueue,
     authorityGraphState,
@@ -9817,6 +9831,7 @@ export function hydrateGame(
     departmentWorkshopCompletionOutcomes,
     caseScopedPrerequisiteProcessingOrders,
     caseScopedPrerequisiteProcessingReservations,
+    caseScopedPrerequisiteProcessingTerminalSignals,
     spe956SurvivorInformalRegistryRecords,
     spe956CollectiveMemoryChannelRecords,
     spe956HotlineChannelRecords,

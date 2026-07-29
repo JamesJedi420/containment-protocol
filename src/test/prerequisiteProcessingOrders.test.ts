@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   createCaseScopedPrerequisiteProcessingOrders,
   readCaseScopedPrerequisiteProcessingOrders,
+  reconcileCaseScopedPrerequisiteProcessingReservationReleases,
   reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
   reconcileCaseScopedPrerequisiteProcessingCompletions,
   reconcileCaseScopedPrerequisiteProcessingSuccessors,
+  registerCaseScopedPrerequisiteProcessingTerminalSignal,
   sanitizeCaseScopedPrerequisiteProcessingOrders,
+  sanitizeCaseScopedPrerequisiteProcessingTerminalSignals,
 } from '../domain/prerequisiteProcessingOrders'
 import { planPrerequisiteProcessing } from '../domain/prerequisiteProcessing'
 import { createStartingState } from '../data/startingState'
@@ -214,6 +217,298 @@ describe('case-scoped prerequisite processing orders', () => {
     expect(replay.inventory.processed).toBe(2)
   })
 
+  it.each(['failed', 'cancelled'] as const)(
+    'registers %s proof and refunds exact reserved inputs once',
+    (reason) => {
+      const workOrderId = `work:${reason}`
+      const order = {
+        workOrderId,
+        caseId: 'case:open',
+        processingRecipeId: 'process',
+        inputMaterials: [
+          { materialId: 'raw', quantity: 2 },
+          { materialId: 'reagent', quantity: 1 },
+        ],
+        outputMaterialId: 'processed',
+        outputQuantity: 1,
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        requiredWork: 2,
+        prerequisiteWorkOrderIds: [],
+      }
+      const state = {
+        ...source,
+        week: 2,
+        inventory: { raw: 0, reagent: 3 },
+        caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order },
+        caseScopedPrerequisiteProcessingReservations: {
+          [workOrderId]: {
+            workOrderId,
+            caseId: 'case:open',
+            inputMaterials: order.inputMaterials,
+          },
+        },
+        departmentWorkshopWorkOrders: {
+          [workOrderId]: {
+            id: workOrderId,
+            caseId: 'case:open',
+            departmentId: 'department:records-analysis',
+            taskType: 'records_review',
+            requiredWork: 2,
+          },
+        },
+      }
+      const registered = registerCaseScopedPrerequisiteProcessingTerminalSignal(
+        state,
+        workOrderId,
+        reason,
+        2
+      )
+      const withSignal = {
+        ...state,
+        caseScopedPrerequisiteProcessingTerminalSignals: registered.signals,
+      }
+      const registrationReplay = registerCaseScopedPrerequisiteProcessingTerminalSignal(
+        withSignal,
+        workOrderId,
+        reason,
+        2
+      )
+      const before = structuredClone(withSignal)
+      const released = reconcileCaseScopedPrerequisiteProcessingReservationReleases(withSignal)
+      const replay = reconcileCaseScopedPrerequisiteProcessingReservationReleases({
+        ...withSignal,
+        inventory: released.inventory,
+        caseScopedPrerequisiteProcessingReservations: released.reservations,
+      })
+
+      expect(registered.registeredWorkOrderIds).toEqual([workOrderId])
+      expect(registrationReplay.registeredWorkOrderIds).toEqual([])
+      expect(registrationReplay.reasons).toEqual([])
+      expect(registrationReplay.signals).toEqual(registered.signals)
+      expect(
+        registerCaseScopedPrerequisiteProcessingTerminalSignal(
+          withSignal,
+          workOrderId,
+          reason === 'failed' ? 'cancelled' : 'failed',
+          2
+        ).reasons
+      ).toEqual(['already-terminal'])
+      expect(registered.signals[workOrderId]).toEqual({
+        workOrderId,
+        caseId: 'case:open',
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        terminalWeek: 2,
+        reason,
+      })
+      expect(released.releasedWorkOrderIds).toEqual([workOrderId])
+      expect(released.inventory).toEqual({ raw: 2, reagent: 4 })
+      expect(released.reservations).toEqual({})
+      expect(replay.releasedWorkOrderIds).toEqual([])
+      expect(replay.inventory).toEqual(released.inventory)
+      expect(withSignal).toEqual(before)
+    }
+  )
+
+  it('rejects invalid registration proof and never refunds a canonically completed order', () => {
+    const workOrderId = 'work:terminal-race'
+    const order = {
+      workOrderId,
+      caseId: 'case:open',
+      processingRecipeId: 'process',
+      inputMaterials: [{ materialId: 'raw', quantity: 1 }],
+      outputMaterialId: 'processed',
+      outputQuantity: 1,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const state = {
+      ...source,
+      week: 2,
+      inventory: { raw: 0 },
+      caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order },
+      caseScopedPrerequisiteProcessingReservations: {
+        [workOrderId]: {
+          workOrderId,
+          caseId: 'case:open',
+          inputMaterials: order.inputMaterials,
+        },
+      },
+      departmentWorkshopWorkOrders: {
+        [workOrderId]: {
+          id: workOrderId,
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          requiredWork: 1,
+        },
+      },
+    }
+    expect(
+      registerCaseScopedPrerequisiteProcessingTerminalSignal(state, workOrderId, 'abandoned', 2)
+        .reasons
+    ).toEqual(['invalid-terminal-reason'])
+    expect(
+      registerCaseScopedPrerequisiteProcessingTerminalSignal(state, workOrderId, 'failed', 3)
+        .reasons
+    ).toEqual(['invalid-terminal-week'])
+
+    const terminal = {
+      workOrderId,
+      caseId: 'case:open',
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      terminalWeek: 2,
+      reason: 'failed',
+    }
+    const completedState = {
+      ...state,
+      caseScopedPrerequisiteProcessingTerminalSignals: { [workOrderId]: terminal },
+      departmentWorkshopCompletionOutcomes: {
+        [workOrderId]: {
+          workOrderId,
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          completedWeek: 2,
+          outcome: 'completed',
+        },
+      },
+    }
+    const released = reconcileCaseScopedPrerequisiteProcessingReservationReleases(completedState)
+    expect(released.releasedWorkOrderIds).toEqual([])
+    expect(released.inventory.raw).toBe(0)
+    expect(released.reservations[workOrderId]).toBeDefined()
+    expect(
+      registerCaseScopedPrerequisiteProcessingTerminalSignal(
+        completedState,
+        workOrderId,
+        'cancelled',
+        2
+      ).reasons
+    ).toEqual(['already-completed'])
+  })
+
+  it('isolates invalid provenance, inflated inputs, and inventory overflow by work order', () => {
+    const cases = {
+      ...source.cases,
+      'case:other': { id: 'case:other', status: 'open' },
+      'case:third': { id: 'case:third', status: 'open' },
+    }
+    const order = (workOrderId: string, caseId: string, materialId: string) => ({
+      workOrderId,
+      caseId,
+      processingRecipeId: 'process',
+      inputMaterials: [{ materialId, quantity: 1 }],
+      outputMaterialId: 'processed',
+      outputQuantity: 1,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    })
+    const orders = {
+      'work:a-overflow': order('work:a-overflow', 'case:open', 'overflow'),
+      'work:m-mismatch': order('work:m-mismatch', 'case:other', 'mismatch'),
+      'work:z-valid': order('work:z-valid', 'case:third', 'valid'),
+    }
+    const workshops = Object.fromEntries(
+      Object.values(orders).map((entry) => [
+        entry.workOrderId,
+        {
+          id: entry.workOrderId,
+          caseId: entry.caseId,
+          departmentId: entry.departmentId,
+          taskType: entry.taskType,
+          requiredWork: entry.requiredWork,
+        },
+      ])
+    )
+    const signals = Object.fromEntries(
+      Object.values(orders).map((entry) => [
+        entry.workOrderId,
+        {
+          workOrderId: entry.workOrderId,
+          caseId: entry.caseId,
+          departmentId: entry.departmentId,
+          taskType: entry.taskType,
+          terminalWeek: 1,
+          reason: 'failed',
+        },
+      ])
+    )
+    const state = {
+      cases,
+      week: 1,
+      inventory: { overflow: Number.MAX_SAFE_INTEGER, mismatch: 0, valid: 0 },
+      caseScopedPrerequisiteProcessingOrders: orders,
+      caseScopedPrerequisiteProcessingReservations: {
+        'work:a-overflow': {
+          workOrderId: 'work:a-overflow',
+          caseId: 'case:open',
+          inputMaterials: orders['work:a-overflow'].inputMaterials,
+        },
+        'work:m-mismatch': {
+          workOrderId: 'work:m-mismatch',
+          caseId: 'case:other',
+          inputMaterials: [{ materialId: 'mismatch', quantity: 2 }],
+        },
+        'work:z-valid': {
+          workOrderId: 'work:z-valid',
+          caseId: 'case:third',
+          inputMaterials: orders['work:z-valid'].inputMaterials,
+        },
+      },
+      caseScopedPrerequisiteProcessingTerminalSignals: signals,
+      departmentWorkshopWorkOrders: workshops,
+    }
+    const released = reconcileCaseScopedPrerequisiteProcessingReservationReleases(state)
+    expect(released.releasedWorkOrderIds).toEqual(['work:z-valid'])
+    expect(released.inventory).toEqual({
+      overflow: Number.MAX_SAFE_INTEGER,
+      mismatch: 0,
+      valid: 1,
+    })
+    expect(Object.keys(released.reservations)).toEqual(['work:a-overflow', 'work:m-mismatch'])
+    const invalidInventory = reconcileCaseScopedPrerequisiteProcessingReservationReleases({
+      ...state,
+      inventory: undefined,
+    })
+    expect(invalidInventory.releasedWorkOrderIds).toEqual([])
+    expect(Object.keys(invalidInventory.reservations)).toEqual([
+      'work:a-overflow',
+      'work:m-mismatch',
+      'work:z-valid',
+    ])
+  })
+
+  it('sanitizes terminal signals in stable order and drops malformed or future siblings', () => {
+    const valid = {
+      workOrderId: 'work:valid',
+      caseId: 'case:open',
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      terminalWeek: 2,
+      reason: 'cancelled',
+    }
+    const sanitized = sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+      {
+        'work:zulu': { ...valid, workOrderId: 'work:zulu' },
+        'work:future': { ...valid, workOrderId: 'work:future', terminalWeek: 3 },
+        'work:bad-reason': { ...valid, workOrderId: 'work:bad-reason', reason: 'abandoned' },
+        mismatch: valid,
+        'work:valid': valid,
+      },
+      { week: 2 }
+    )
+    expect(Object.keys(sanitized)).toEqual(['work:valid', 'work:zulu'])
+    expect(Object.isFrozen(sanitized)).toBe(true)
+    expect(Object.isFrozen(sanitized['work:valid'])).toBe(true)
+  })
+
   it('selects one ready successor per case in stable order and never partially mutates a blocked case', () => {
     const leaf = {
       workOrderId: 'work:leaf',
@@ -377,5 +672,90 @@ describe('case-scoped prerequisite processing orders', () => {
       departmentWorkshopSnapshots: first.workshopSnapshots,
     })
     expect(replay.activatedWorkOrderIds).toEqual([])
+  })
+
+  it('skips a canonically terminalled successor instead of reactivating it', () => {
+    const leaf = {
+      workOrderId: 'work:leaf',
+      caseId: 'case:open',
+      processingRecipeId: 'extract',
+      inputMaterials: [],
+      outputMaterialId: 'raw',
+      outputQuantity: 1,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const terminalled = {
+      ...leaf,
+      workOrderId: 'work:a-terminalled',
+      processingRecipeId: 'process',
+      inputMaterials: [{ materialId: 'raw', quantity: 1 }],
+      outputMaterialId: 'processed',
+      prerequisiteWorkOrderIds: ['work:leaf'],
+    }
+    const eligible = { ...terminalled, workOrderId: 'work:z-eligible' }
+    const state = {
+      ...source,
+      week: 1,
+      inventory: { raw: 1 },
+      caseScopedPrerequisiteProcessingOrders: {
+        'work:leaf': leaf,
+        'work:a-terminalled': terminalled,
+        'work:z-eligible': eligible,
+      },
+      caseScopedPrerequisiteProcessingTerminalSignals: {
+        'work:a-terminalled': {
+          workOrderId: 'work:a-terminalled',
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          terminalWeek: 1,
+          reason: 'failed',
+        },
+      },
+      departmentWorkshopWorkOrders: {
+        'work:leaf': {
+          id: 'work:leaf',
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          requiredWork: 1,
+        },
+        'work:a-terminalled': {
+          id: 'work:a-terminalled',
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          requiredWork: 1,
+        },
+      },
+      departmentWorkshopSnapshots: {
+        'department:records-analysis': {
+          departmentId: 'department:records-analysis',
+          slotCapacity: 1,
+          queued: [],
+          active: [],
+          paused: [],
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        'work:leaf': {
+          workOrderId: 'work:leaf',
+          caseId: 'case:open',
+          departmentId: 'department:records-analysis',
+          taskType: 'records_review',
+          completedWeek: 1,
+          outcome: 'completed',
+        },
+      },
+    }
+    const result = reconcileCaseScopedPrerequisiteProcessingSuccessors(state)
+    expect(result.activatedWorkOrderIds).toEqual([])
+    expect(result.reservations?.['work:a-terminalled']).toBeUndefined()
+    expect(
+      reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(state, 'work:a-terminalled')
+    ).toEqual({ state: 'blocked', reasons: ['terminal-processing-order'] })
   })
 })

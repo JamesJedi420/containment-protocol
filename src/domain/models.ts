@@ -7,7 +7,11 @@ import type {
   DepartmentWorkshopSnapshotRegistry,
   DepartmentWorkshopWorkOrderRegistry,
 } from './departmentWorkshopQueue'
-import type { CaseScopedPrerequisiteProcessingOrderRegistry, CaseScopedPrerequisiteProcessingReservationRegistry } from './prerequisiteProcessingOrders'
+import type {
+  CaseScopedPrerequisiteProcessingOrderRegistry,
+  CaseScopedPrerequisiteProcessingReservationRegistry,
+  CaseScopedPrerequisiteProcessingTerminalSignalRegistry,
+} from './prerequisiteProcessingOrders'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2668,6 +2672,8 @@ export interface GameState {
   /** SPE-2757: case-owned prerequisite-processing envelopes keyed by work-order ID. */
   caseScopedPrerequisiteProcessingOrders?: CaseScopedPrerequisiteProcessingOrderRegistry
   caseScopedPrerequisiteProcessingReservations?: CaseScopedPrerequisiteProcessingReservationRegistry
+  /** SPE-2761: durable explicit failed/cancelled proof keyed by prerequisite work-order ID. */
+  caseScopedPrerequisiteProcessingTerminalSignals?: CaseScopedPrerequisiteProcessingTerminalSignalRegistry
   /**
    * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
    * Optional for direct legacy states; hydration supplies a canonical empty foundation.

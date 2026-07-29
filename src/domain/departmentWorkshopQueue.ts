@@ -58,6 +58,7 @@ export type DepartmentWorkshopCompletionOutcomeRegistry = Record<
 >
 
 export interface DepartmentWorkshopStateSource {
+  readonly week?: unknown
   readonly departmentWorkshopWorkOrders?: unknown
   readonly departmentWorkshopSnapshots?: unknown
   readonly departmentWorkshopCompletionOutcomes?: unknown
@@ -772,8 +773,32 @@ export function enqueueDepartmentWorkshopWorkOrder(
       frozenReason('duplicate-work-order', workOrder.departmentId, [workOrder.id])
     )
   }
+  const occupiedWorkOrderIds = new Set(
+    Object.values(workshopState.snapshots).flatMap((snapshot) =>
+      [...snapshot.queued, ...snapshot.active, ...snapshot.paused].map((item) => item.workOrderId)
+    )
+  )
+  const completionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source?.departmentWorkshopCompletionOutcomes
+  )
   if (
-    Object.values(workshopState.workOrders).some((existing) => existing.caseId === workOrder.caseId)
+    Object.values(workshopState.workOrders).some((existing) => {
+      if (existing.caseId !== workOrder.caseId) {
+        return false
+      }
+      if (occupiedWorkOrderIds.has(existing.id)) {
+        return true
+      }
+      const outcome = completionOutcomes[existing.id]
+      return (
+        !outcome ||
+        !Number.isInteger(source?.week) ||
+        outcome.completedWeek > (source?.week as number) ||
+        outcome.caseId !== existing.caseId ||
+        outcome.departmentId !== existing.departmentId ||
+        outcome.taskType !== existing.taskType
+      )
+    })
   ) {
     return blockedWrite(
       workshopState,

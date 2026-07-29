@@ -4,6 +4,8 @@ import type {
 } from './prerequisiteProcessing'
 import {
   enqueueDepartmentWorkshopWorkOrder,
+  readDepartmentWorkshopState,
+  sanitizeDepartmentWorkshopCompletionOutcomes,
   type DepartmentWorkshopWorkOrder,
 } from './departmentWorkshopQueue'
 
@@ -274,6 +276,24 @@ export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(source: C
   for (const input of order.inputMaterials) inventory[input.materialId] -= input.quantity
   const nextReservations = Object.freeze(Object.fromEntries([...Object.entries(reservations), [workOrderId, Object.freeze({ workOrderId, caseId: order.caseId, inputMaterials: Object.freeze(order.inputMaterials.map((input) => Object.freeze({ ...input }))) })]].sort(([a], [b]) => compareCodeUnits(a, b)))) as CaseScopedPrerequisiteProcessingReservationRegistry
   return Object.freeze({ state: 'reserved-and-enqueued', inventory: Object.freeze(inventory), reservations: nextReservations, workshopWorkOrders: workshop.workshopState.workOrders, workshopSnapshots: workshop.workshopState.snapshots, reasons: Object.freeze([]) })
+}
+
+/** Explicitly activate a completed-dependency successor through the canonical reservation write. */
+export function activateCaseScopedPrerequisiteProcessingOrder(source: CaseSource & { readonly week?: unknown; readonly caseScopedPrerequisiteProcessingOrders?: unknown; readonly caseScopedPrerequisiteProcessingReservations?: unknown; readonly departmentWorkshopCompletionOutcomes?: unknown; readonly departmentWorkshopWorkOrders?: unknown; readonly departmentWorkshopSnapshots?: unknown; readonly inventory?: unknown }, workOrderId: unknown): CaseScopedPrerequisiteReservationResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  if (!isSafeId(workOrderId) || !orders[workOrderId]) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
+  const order = orders[workOrderId]
+  if (order.prerequisiteWorkOrderIds.length === 0) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['no-prerequisites']) })
+  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(source.departmentWorkshopCompletionOutcomes)
+  const workshopWorkOrders = readDepartmentWorkshopState(source).workOrders
+  for (const prerequisiteId of order.prerequisiteWorkOrderIds) {
+    const prerequisite = orders[prerequisiteId]
+    const outcome = outcomes[prerequisiteId]
+    const workshop = workshopWorkOrders[prerequisiteId]
+    if (!prerequisite || prerequisite.caseId !== order.caseId || !outcome || !Number.isInteger(source.week) || outcome.completedWeek > (source.week as number) || !workshop || outcome.caseId !== order.caseId || outcome.departmentId !== prerequisite.departmentId || outcome.taskType !== prerequisite.taskType || workshop.id !== prerequisiteId || workshop.caseId !== order.caseId || workshop.departmentId !== prerequisite.departmentId || workshop.taskType !== prerequisite.taskType || workshop.requiredWork !== prerequisite.requiredWork) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
+  }
+  const activatedOrders = Object.freeze({ ...orders, [workOrderId]: Object.freeze({ ...order, prerequisiteWorkOrderIds: Object.freeze([]) }) })
+  return reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder({ ...source, caseScopedPrerequisiteProcessingOrders: activatedOrders }, workOrderId)
 }
 
 /**

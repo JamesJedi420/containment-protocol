@@ -2,6 +2,8 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2759",
+    "SPE-2758",
     "SPE-2757",
     "SPE-2703",
     "SPE-2755",
@@ -12,13 +14,11 @@
     "SPE-2745",
     "SPE-2741",
     "SPE-2740",
-    "SPE-2084",
-    "SPE-2083",
-    "SPE-2088",
     "SPE-2726"
   ],
   "sliceDocStatus": {
     "planning/scouted-free-agent-departure-events-slice.md": "Shipped",
+    "planning/spe-2759-dependent-prerequisite-activation-slice.md": "Shipped",
     "planning/spe-2757-processing-order-envelope-slice.md": "Shipped",
     "planning/spe-2703-prerequisite-planner-kernel-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-processing-advance-slice.md": "Shipped",

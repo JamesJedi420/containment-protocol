@@ -290,7 +290,7 @@ export function activateCaseScopedPrerequisiteProcessingOrder(source: CaseSource
     const prerequisite = orders[prerequisiteId]
     const outcome = outcomes[prerequisiteId]
     const workshop = workshopWorkOrders[prerequisiteId]
-    if (!prerequisite || prerequisite.caseId !== order.caseId || !outcome || !Number.isInteger(source.week) || outcome.completedWeek > (source.week as number) || !workshop || outcome.caseId !== order.caseId || outcome.departmentId !== prerequisite.departmentId || outcome.taskType !== prerequisite.taskType || workshop.id !== prerequisiteId || workshop.caseId !== order.caseId || workshop.departmentId !== prerequisite.departmentId || workshop.taskType !== prerequisite.taskType) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
+    if (!prerequisite || prerequisite.caseId !== order.caseId || !outcome || !Number.isInteger(source.week) || outcome.completedWeek > (source.week as number) || !workshop || outcome.caseId !== order.caseId || outcome.departmentId !== prerequisite.departmentId || outcome.taskType !== prerequisite.taskType || workshop.id !== prerequisiteId || workshop.caseId !== order.caseId || workshop.departmentId !== prerequisite.departmentId || workshop.taskType !== prerequisite.taskType || workshop.requiredWork !== prerequisite.requiredWork) return Object.freeze({ state: 'blocked', reasons: Object.freeze(['prerequisites-not-complete']) })
   }
   const activatedOrders = Object.freeze({ ...orders, [workOrderId]: Object.freeze({ ...order, prerequisiteWorkOrderIds: Object.freeze([]) }) })
   return reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder({ ...source, caseScopedPrerequisiteProcessingOrders: activatedOrders }, workOrderId)

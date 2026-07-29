@@ -230,4 +230,120 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
       Object.keys(replay.departmentWorkshopWorkOrders ?? {}).filter((id) => id === SUCCESSOR_ID)
     ).toHaveLength(1)
   })
+
+  it('releases terminal inputs before successor activation and remains idempotent after save/load', () => {
+    const game = createStartingState()
+    const [terminalCaseId, successorCaseId] = Object.keys(game.cases).sort()
+    expect(terminalCaseId).toBeDefined()
+    expect(successorCaseId).toBeDefined()
+    const terminalId = 'work:terminal'
+    const otherLeafId = 'work:other-leaf'
+    const otherSuccessorId = 'work:other-successor'
+    const terminalOrder: CaseScopedPrerequisiteProcessingOrder = {
+      workOrderId: terminalId,
+      caseId: terminalCaseId!,
+      processingRecipeId: 'terminal-process',
+      inputMaterials: [{ materialId: 'raw', quantity: 1 }],
+      outputMaterialId: 'discarded',
+      outputQuantity: 1,
+      departmentId: DEPARTMENT_ID,
+      taskType: 'records_review',
+      requiredWork: 2,
+      prerequisiteWorkOrderIds: [],
+    }
+    const otherLeaf: CaseScopedPrerequisiteProcessingOrder = {
+      ...terminalOrder,
+      workOrderId: otherLeafId,
+      caseId: successorCaseId!,
+      processingRecipeId: 'other-leaf',
+      inputMaterials: [],
+      outputMaterialId: 'leaf-output',
+      requiredWork: 1,
+    }
+    const otherSuccessor: CaseScopedPrerequisiteProcessingOrder = {
+      ...otherLeaf,
+      workOrderId: otherSuccessorId,
+      processingRecipeId: 'other-successor',
+      inputMaterials: [{ materialId: 'raw', quantity: 1 }],
+      outputMaterialId: 'other-output',
+      prerequisiteWorkOrderIds: [otherLeafId],
+    }
+    const source: GameState = {
+      ...game,
+      inventory: { ...game.inventory, raw: 0 },
+      caseScopedPrerequisiteProcessingOrders: {
+        [terminalId]: terminalOrder,
+        [otherLeafId]: otherLeaf,
+        [otherSuccessorId]: otherSuccessor,
+      },
+      caseScopedPrerequisiteProcessingReservations: {
+        [terminalId]: {
+          workOrderId: terminalId,
+          caseId: terminalCaseId!,
+          inputMaterials: terminalOrder.inputMaterials,
+        },
+      },
+      caseScopedPrerequisiteProcessingTerminalSignals: {
+        [terminalId]: {
+          workOrderId: terminalId,
+          caseId: terminalCaseId!,
+          departmentId: DEPARTMENT_ID,
+          taskType: 'records_review',
+          terminalWeek: game.week,
+          reason: 'cancelled',
+        },
+      },
+      departmentWorkshopWorkOrders: {
+        [terminalId]: {
+          id: terminalId,
+          caseId: terminalCaseId!,
+          departmentId: DEPARTMENT_ID,
+          taskType: 'records_review',
+          requiredWork: 2,
+        },
+        [otherLeafId]: {
+          id: otherLeafId,
+          caseId: successorCaseId!,
+          departmentId: DEPARTMENT_ID,
+          taskType: 'records_review',
+          requiredWork: 1,
+        },
+      },
+      departmentWorkshopSnapshots: {
+        [DEPARTMENT_ID]: {
+          departmentId: DEPARTMENT_ID,
+          slotCapacity: 2,
+          queued: [],
+          active: [{ workOrderId: terminalId, completedWork: 0 }],
+          paused: [],
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        [otherLeafId]: {
+          workOrderId: otherLeafId,
+          caseId: successorCaseId!,
+          departmentId: DEPARTMENT_ID,
+          taskType: 'records_review',
+          completedWeek: game.week,
+          outcome: 'completed',
+        },
+      },
+    }
+
+    const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
+    expect(advanced.inventory.raw).toBe(0)
+    expect(advanced.caseScopedPrerequisiteProcessingReservations?.[terminalId]).toBeUndefined()
+    expect(advanced.caseScopedPrerequisiteProcessingReservations?.[otherSuccessorId]).toBeDefined()
+    expect(advanced.caseScopedPrerequisiteProcessingTerminalSignals?.[terminalId]?.reason).toBe(
+      'cancelled'
+    )
+
+    const loaded = loadGameSave(serializeGameSave(advanced))
+    const replay = advanceWeek(loaded, Date.UTC(2026, 0, 8))
+    expect(loaded.caseScopedPrerequisiteProcessingTerminalSignals).toEqual(
+      advanced.caseScopedPrerequisiteProcessingTerminalSignals
+    )
+    expect(replay.inventory.raw ?? 0).toBe(0)
+    expect(replay.caseScopedPrerequisiteProcessingReservations?.[terminalId]).toBeUndefined()
+  })
 })

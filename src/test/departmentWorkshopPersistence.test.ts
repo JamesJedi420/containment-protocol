@@ -15,6 +15,7 @@ import {
 import { useGameStore } from '../app/store/gameStore'
 import { hydrateGame, stripGameTemplates } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import type { GameState } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 const WORK_ORDERS: DepartmentWorkshopWorkOrderRegistry = {
@@ -62,6 +63,8 @@ describe('department workshop persistence', () => {
     expect(starting.departmentWorkshopSnapshots).toEqual({})
     expect(starting.departmentWorkshopCompletionOutcomes).toEqual({})
     expect(starting.caseScopedPrerequisiteProcessingOrders).toEqual({})
+    expect(starting.caseScopedPrerequisiteProcessingReservations).toEqual({})
+    expect(starting.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({})
 
     const fallback = {
       ...starting,
@@ -81,6 +84,8 @@ describe('department workshop persistence', () => {
     expect(legacy.departmentWorkshopSnapshots).toEqual({})
     expect(legacy.departmentWorkshopCompletionOutcomes).toEqual({})
     expect(legacy.caseScopedPrerequisiteProcessingOrders).toEqual({})
+    expect(legacy.caseScopedPrerequisiteProcessingReservations).toEqual({})
+    expect(legacy.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({})
     expect(legacy.departmentWorkshopWorkOrders).not.toBe(fallback.departmentWorkshopWorkOrders)
     expect(legacy.departmentWorkshopSnapshots).not.toBe(fallback.departmentWorkshopSnapshots)
   })
@@ -114,6 +119,49 @@ describe('department workshop persistence', () => {
     expect(loaded.departmentWorkshopWorkOrders).toEqual(baseline.departmentWorkshopWorkOrders)
     expect(loaded.departmentWorkshopSnapshots).toEqual(baseline.departmentWorkshopSnapshots)
     expect(loaded.caseQueue).toEqual(baseline.caseQueue)
+  })
+
+  it('round-trips terminal signals in stable order and isolates malformed siblings', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]!
+    const terminalSignal = (workOrderId: string, reason: 'failed' | 'cancelled') => ({
+      workOrderId,
+      caseId,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      terminalWeek: baseline.week,
+      reason,
+    })
+    const rawGame = {
+      ...baseline,
+      caseScopedPrerequisiteProcessingTerminalSignals: {
+        'work:zulu': terminalSignal('work:zulu', 'cancelled'),
+        mismatch: terminalSignal('work:mismatch', 'failed'),
+        'work:alpha': terminalSignal('work:alpha', 'failed'),
+        'work:future': {
+          ...terminalSignal('work:future', 'failed'),
+          terminalWeek: baseline.week + 1,
+        },
+        'work:bad-reason': {
+          ...terminalSignal('work:bad-reason', 'failed'),
+          reason: 'abandoned',
+        },
+      },
+    } as unknown as GameState
+    const loaded = loadGameSave(serializeGameSave(rawGame))
+
+    expect(Object.keys(loaded.caseScopedPrerequisiteProcessingTerminalSignals ?? {})).toEqual([
+      'work:alpha',
+      'work:zulu',
+    ])
+    expect(loaded.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({
+      'work:alpha': terminalSignal('work:alpha', 'failed'),
+      'work:zulu': terminalSignal('work:zulu', 'cancelled'),
+    })
+    expect(Object.isFrozen(loaded.caseScopedPrerequisiteProcessingTerminalSignals)).toBe(true)
+    expect(
+      Object.isFrozen(loaded.caseScopedPrerequisiteProcessingTerminalSignals?.['work:alpha'])
+    ).toBe(true)
   })
 
   it('round-trips valid registries through save serialization in code-unit key order', () => {
@@ -265,6 +313,8 @@ describe('department workshop persistence', () => {
     expect(useGameStore.getState().game.departmentWorkshopWorkOrders).toEqual({})
     expect(useGameStore.getState().game.departmentWorkshopSnapshots).toEqual({})
     expect(useGameStore.getState().game.caseScopedPrerequisiteProcessingOrders).toEqual({})
+    expect(useGameStore.getState().game.caseScopedPrerequisiteProcessingReservations).toEqual({})
+    expect(useGameStore.getState().game.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({})
   })
 
   it('processes persisted workshops once per week-close without changing the global queue', () => {

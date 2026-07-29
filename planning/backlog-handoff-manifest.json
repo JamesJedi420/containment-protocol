@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2761",
     "SPE-2760",
     "SPE-2759",
     "SPE-2758",
@@ -17,6 +18,7 @@
   ],
   "sliceDocStatus": {
     "planning/scouted-free-agent-departure-events-slice.md": "Shipped",
+    "planning/spe-2761-failure-cancellation-reservation-release-slice.md": "Shipped",
     "planning/spe-2760-automatic-successor-activation-slice.md": "Shipped",
     "planning/spe-2759-dependent-prerequisite-activation-slice.md": "Shipped",
     "planning/spe-2757-processing-order-envelope-slice.md": "Shipped",

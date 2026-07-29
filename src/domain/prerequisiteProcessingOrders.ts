@@ -37,6 +37,22 @@ export type CaseScopedPrerequisiteProcessingReservationRegistry = Record<
   CaseScopedPrerequisiteProcessingReservation
 >
 
+export type CaseScopedPrerequisiteProcessingTerminalReason = 'failed' | 'cancelled'
+
+export interface CaseScopedPrerequisiteProcessingTerminalSignal {
+  readonly workOrderId: string
+  readonly caseId: string
+  readonly departmentId: string
+  readonly taskType: string
+  readonly terminalWeek: number
+  readonly reason: CaseScopedPrerequisiteProcessingTerminalReason
+}
+
+export type CaseScopedPrerequisiteProcessingTerminalSignalRegistry = Record<
+  string,
+  CaseScopedPrerequisiteProcessingTerminalSignal
+>
+
 export type CaseScopedPrerequisiteProcessingOrderRegistry = Record<
   string,
   CaseScopedPrerequisiteProcessingOrder
@@ -74,6 +90,10 @@ function isValueId(value: unknown): value is string {
 
 function isPositiveSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
 function hasOpenCase(source: CaseSource, caseId: string) {
@@ -255,6 +275,46 @@ export function sanitizeCaseScopedPrerequisiteProcessingReservations(
   return Object.freeze(Object.fromEntries(entries))
 }
 
+/** Hydration boundary for explicit failed/cancelled prerequisite lifecycle proof. */
+export function sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+  value: unknown,
+  source?: { readonly week?: unknown }
+): CaseScopedPrerequisiteProcessingTerminalSignalRegistry {
+  if (!isRecord(value)) return Object.freeze({})
+  const campaignWeek =
+    isPositiveSafeInteger(source?.week) && source.week >= 1 ? source.week : undefined
+  const entries = Object.entries(value)
+    .flatMap(([key, raw]) => {
+      if (
+        !isSafeId(key) ||
+        !isRecord(raw) ||
+        raw.workOrderId !== key ||
+        !isSafeId(raw.caseId) ||
+        !isValueId(raw.departmentId) ||
+        !isValueId(raw.taskType) ||
+        !isPositiveSafeInteger(raw.terminalWeek) ||
+        (campaignWeek !== undefined && raw.terminalWeek > campaignWeek) ||
+        (raw.reason !== 'failed' && raw.reason !== 'cancelled')
+      )
+        return []
+      return [
+        [
+          key,
+          Object.freeze({
+            workOrderId: key,
+            caseId: raw.caseId,
+            departmentId: raw.departmentId,
+            taskType: raw.taskType,
+            terminalWeek: raw.terminalWeek,
+            reason: raw.reason,
+          }),
+        ] as const,
+      ]
+    })
+    .sort(([a], [b]) => compareCodeUnits(a, b))
+  return Object.freeze(Object.fromEntries(entries))
+}
+
 export type CaseScopedPrerequisiteReservationResult =
   | {
       readonly state: 'reserved-and-enqueued'
@@ -280,6 +340,180 @@ export interface CaseScopedPrerequisiteAutomaticActivationResult {
   readonly workshopSnapshots?: unknown
 }
 
+export interface CaseScopedPrerequisiteTerminalSignalRegistrationResult {
+  readonly signals: CaseScopedPrerequisiteProcessingTerminalSignalRegistry
+  readonly registeredWorkOrderIds: readonly string[]
+  readonly reasons: readonly string[]
+}
+
+export interface CaseScopedPrerequisiteReservationReleaseResult {
+  readonly inventory: Record<string, number>
+  readonly reservations: CaseScopedPrerequisiteProcessingReservationRegistry
+  readonly releasedWorkOrderIds: readonly string[]
+}
+
+function materialQuantitiesMatch(
+  left: readonly PrerequisiteProcessingMaterialQuantity[],
+  right: readonly PrerequisiteProcessingMaterialQuantity[]
+) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (material, index) =>
+        material.materialId === right[index]?.materialId &&
+        material.quantity === right[index]?.quantity
+    )
+  )
+}
+
+function hasCanonicalCompletionProof(
+  source: {
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  },
+  order: CaseScopedPrerequisiteProcessingOrder
+) {
+  const outcome = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source.departmentWorkshopCompletionOutcomes
+  )[order.workOrderId]
+  const workshopOrder = readDepartmentWorkshopState(source).workOrders[order.workOrderId]
+  return Boolean(
+    outcome &&
+    workshopOrder &&
+    outcome.caseId === order.caseId &&
+    outcome.departmentId === order.departmentId &&
+    outcome.taskType === order.taskType &&
+    workshopOrder.caseId === order.caseId &&
+    workshopOrder.departmentId === order.departmentId &&
+    workshopOrder.taskType === order.taskType &&
+    workshopOrder.requiredWork === order.requiredWork
+  )
+}
+
+function hasCanonicalTerminalSignal(
+  source: {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  },
+  order: CaseScopedPrerequisiteProcessingOrder
+) {
+  const signal = sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+    source.caseScopedPrerequisiteProcessingTerminalSignals,
+    source
+  )[order.workOrderId]
+  const workshopOrder = readDepartmentWorkshopState(source).workOrders[order.workOrderId]
+  return Boolean(
+    signal &&
+    workshopOrder &&
+    Number.isInteger(source.week) &&
+    signal.terminalWeek <= (source.week as number) &&
+    signal.caseId === order.caseId &&
+    signal.departmentId === order.departmentId &&
+    signal.taskType === order.taskType &&
+    workshopOrder.caseId === order.caseId &&
+    workshopOrder.departmentId === order.departmentId &&
+    workshopOrder.taskType === order.taskType &&
+    workshopOrder.requiredWork === order.requiredWork &&
+    !hasCanonicalCompletionProof(source, order)
+  )
+}
+
+/**
+ * Record explicit work-order terminal proof from canonical authored provenance.
+ * This does not infer lifecycle state or mutate inventory, queues, or cases.
+ */
+export function registerCaseScopedPrerequisiteProcessingTerminalSignal(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  },
+  workOrderId: unknown,
+  reason: unknown,
+  terminalWeek: unknown
+): CaseScopedPrerequisiteTerminalSignalRegistrationResult {
+  const existing = sanitizeCaseScopedPrerequisiteProcessingTerminalSignals(
+    source.caseScopedPrerequisiteProcessingTerminalSignals,
+    source
+  )
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  const order = isSafeId(workOrderId) ? orders[workOrderId] : undefined
+  const reservation = isSafeId(workOrderId) ? reservations[workOrderId] : undefined
+  const workshopOrder = isSafeId(workOrderId)
+    ? readDepartmentWorkshopState(source).workOrders[workOrderId]
+    : undefined
+  const blocked = (blockedReason: string) =>
+    Object.freeze({
+      signals: existing,
+      registeredWorkOrderIds: Object.freeze([]),
+      reasons: Object.freeze([blockedReason]),
+    })
+  if (!order || !reservation || !workshopOrder) return blocked('missing-terminal-provenance')
+  if (reason !== 'failed' && reason !== 'cancelled') return blocked('invalid-terminal-reason')
+  if (
+    !isPositiveSafeInteger(terminalWeek) ||
+    !isPositiveSafeInteger(source.week) ||
+    terminalWeek > source.week
+  )
+    return blocked('invalid-terminal-week')
+  if (
+    reservation.caseId !== order.caseId ||
+    !materialQuantitiesMatch(reservation.inputMaterials, order.inputMaterials) ||
+    workshopOrder.caseId !== order.caseId ||
+    workshopOrder.departmentId !== order.departmentId ||
+    workshopOrder.taskType !== order.taskType ||
+    workshopOrder.requiredWork !== order.requiredWork
+  )
+    return blocked('mismatched-terminal-provenance')
+  if (hasCanonicalCompletionProof(source, order)) return blocked('already-completed')
+  const signal: CaseScopedPrerequisiteProcessingTerminalSignal = Object.freeze({
+    workOrderId: order.workOrderId,
+    caseId: order.caseId,
+    departmentId: order.departmentId,
+    taskType: order.taskType,
+    terminalWeek,
+    reason,
+  })
+  const priorSignal = existing[order.workOrderId]
+  if (priorSignal) {
+    if (
+      priorSignal.caseId === signal.caseId &&
+      priorSignal.departmentId === signal.departmentId &&
+      priorSignal.taskType === signal.taskType &&
+      priorSignal.terminalWeek === signal.terminalWeek &&
+      priorSignal.reason === signal.reason
+    )
+      return Object.freeze({
+        signals: existing,
+        registeredWorkOrderIds: Object.freeze([]),
+        reasons: Object.freeze([]),
+      })
+    return blocked('already-terminal')
+  }
+  const signalEntries: [string, CaseScopedPrerequisiteProcessingTerminalSignal][] = [
+    ...Object.entries(existing),
+    [order.workOrderId, signal],
+  ]
+  signalEntries.sort(([a], [b]) => compareCodeUnits(a, b))
+  const signals = Object.freeze(
+    Object.fromEntries(signalEntries)
+  ) as CaseScopedPrerequisiteProcessingTerminalSignalRegistry
+  return Object.freeze({
+    signals,
+    registeredWorkOrderIds: Object.freeze([order.workOrderId]),
+    reasons: Object.freeze([]),
+  })
+}
+
 /** Credits only completed, provenance-matched reserved prerequisite orders. */
 export function reconcileCaseScopedPrerequisiteProcessingCompletions(
   source: CaseSource & {
@@ -297,7 +531,9 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(
   )
   if (!isRecord(source.inventory) || !isRecord(source.departmentWorkshopCompletionOutcomes))
     return Object.freeze({
-      inventory: Object.freeze({ ...(isRecord(source.inventory) ? source.inventory : {}) }),
+      inventory: Object.freeze(
+        (isRecord(source.inventory) ? { ...source.inventory } : {}) as Record<string, number>
+      ),
       reservations,
       completedWorkOrderIds: Object.freeze([]),
     })
@@ -343,10 +579,75 @@ export function reconcileCaseScopedPrerequisiteProcessingCompletions(
   })
 }
 
-export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
+/** Refund exact unconsumed inputs once for canonically terminalled work orders. */
+export function reconcileCaseScopedPrerequisiteProcessingReservationReleases(
   source: CaseSource & {
+    readonly week?: unknown
     readonly caseScopedPrerequisiteProcessingOrders?: unknown
     readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+    readonly inventory?: unknown
+  }
+): CaseScopedPrerequisiteReservationReleaseResult {
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const reservations = sanitizeCaseScopedPrerequisiteProcessingReservations(
+    source.caseScopedPrerequisiteProcessingReservations,
+    source
+  )
+  if (!isRecord(source.inventory))
+    return Object.freeze({
+      inventory: Object.freeze({}),
+      reservations,
+      releasedWorkOrderIds: Object.freeze([]),
+    })
+  const inventory = { ...source.inventory } as Record<string, number>
+  const remaining = new Map(Object.entries(reservations))
+  const released: string[] = []
+
+  reservationLoop: for (const workOrderId of Object.keys(reservations).sort(compareCodeUnits)) {
+    const reservation = reservations[workOrderId]
+    const order = orders[workOrderId]
+    if (
+      !order ||
+      reservation.caseId !== order.caseId ||
+      !materialQuantitiesMatch(reservation.inputMaterials, order.inputMaterials) ||
+      !hasCanonicalTerminalSignal(source, order)
+    )
+      continue
+
+    const pending = new Map<string, number>()
+    for (const input of reservation.inputMaterials) {
+      const prior = pending.has(input.materialId)
+        ? pending.get(input.materialId)
+        : inventory[input.materialId]
+      if (prior !== undefined && !isNonNegativeSafeInteger(prior)) continue reservationLoop
+      const nextQuantity = (prior ?? 0) + input.quantity
+      if (!Number.isSafeInteger(nextQuantity)) continue reservationLoop
+      pending.set(input.materialId, nextQuantity)
+    }
+    for (const [materialId, quantity] of pending) inventory[materialId] = quantity
+    remaining.delete(workOrderId)
+    released.push(workOrderId)
+  }
+
+  return Object.freeze({
+    inventory: Object.freeze(inventory),
+    reservations: Object.freeze(
+      Object.fromEntries([...remaining.entries()].sort(([a], [b]) => compareCodeUnits(a, b)))
+    ),
+    releasedWorkOrderIds: Object.freeze(released),
+  })
+}
+
+export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
+  source: CaseSource & {
+    readonly week?: unknown
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
     readonly inventory?: unknown
     readonly departmentWorkshopWorkOrders?: unknown
     readonly departmentWorkshopSnapshots?: unknown
@@ -361,6 +662,11 @@ export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
   if (!isSafeId(workOrderId) || !orders[workOrderId])
     return Object.freeze({ state: 'blocked', reasons: Object.freeze(['missing-processing-order']) })
   const order = orders[workOrderId]
+  if (hasCanonicalTerminalSignal(source, order))
+    return Object.freeze({
+      state: 'blocked',
+      reasons: Object.freeze(['terminal-processing-order']),
+    })
   if (order.prerequisiteWorkOrderIds.length > 0)
     return Object.freeze({
       state: 'blocked',
@@ -390,22 +696,18 @@ export function reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(
       reasons: Object.freeze(workshop.reasons.map((reason) => reason.code)),
     })
   for (const input of order.inputMaterials) inventory[input.materialId] -= input.quantity
+  const nextReservation: CaseScopedPrerequisiteProcessingReservation = Object.freeze({
+    workOrderId: order.workOrderId,
+    caseId: order.caseId,
+    inputMaterials: Object.freeze(order.inputMaterials.map((input) => Object.freeze({ ...input }))),
+  })
+  const reservationEntries: [string, CaseScopedPrerequisiteProcessingReservation][] = [
+    ...Object.entries(reservations),
+    [order.workOrderId, nextReservation],
+  ]
+  reservationEntries.sort(([a], [b]) => compareCodeUnits(a, b))
   const nextReservations = Object.freeze(
-    Object.fromEntries(
-      [
-        ...Object.entries(reservations),
-        [
-          workOrderId,
-          Object.freeze({
-            workOrderId,
-            caseId: order.caseId,
-            inputMaterials: Object.freeze(
-              order.inputMaterials.map((input) => Object.freeze({ ...input }))
-            ),
-          }),
-        ],
-      ].sort(([a], [b]) => compareCodeUnits(a, b))
-    )
+    Object.fromEntries(reservationEntries)
   ) as CaseScopedPrerequisiteProcessingReservationRegistry
   return Object.freeze({
     state: 'reserved-and-enqueued',
@@ -461,6 +763,7 @@ export function activateCaseScopedPrerequisiteProcessingOrder(
     readonly week?: unknown
     readonly caseScopedPrerequisiteProcessingOrders?: unknown
     readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
     readonly departmentWorkshopCompletionOutcomes?: unknown
     readonly departmentWorkshopWorkOrders?: unknown
     readonly departmentWorkshopSnapshots?: unknown
@@ -498,6 +801,7 @@ export function reconcileCaseScopedPrerequisiteProcessingSuccessors(
     readonly week?: unknown
     readonly caseScopedPrerequisiteProcessingOrders?: unknown
     readonly caseScopedPrerequisiteProcessingReservations?: unknown
+    readonly caseScopedPrerequisiteProcessingTerminalSignals?: unknown
     readonly departmentWorkshopCompletionOutcomes?: unknown
     readonly departmentWorkshopWorkOrders?: unknown
     readonly departmentWorkshopSnapshots?: unknown
@@ -522,6 +826,7 @@ export function reconcileCaseScopedPrerequisiteProcessingSuccessors(
       order.prerequisiteWorkOrderIds.length === 0 ||
       reservations[order.workOrderId] ||
       outcomes[order.workOrderId] ||
+      hasCanonicalTerminalSignal(source, order) ||
       !hasCanonicalCompletedPrerequisites(source, orders, order) ||
       candidatesByCase.has(order.caseId)
     )

@@ -90,6 +90,7 @@ import {
 } from '../departmentWorkshopQueue'
 import {
   reconcileCaseScopedPrerequisiteProcessingCompletions,
+  reconcileCaseScopedPrerequisiteProcessingReservationReleases,
   reconcileCaseScopedPrerequisiteProcessingSuccessors,
 } from '../prerequisiteProcessingOrders'
 import {
@@ -4955,6 +4956,18 @@ export function advanceWeek(
     outputWeeklyState.inventory = prerequisiteCompletions.inventory
     outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
       prerequisiteCompletions.reservations
+  }
+
+  // SPE-2761: completion wins any same-week terminal race. Only explicit,
+  // provenance-matched failed/cancelled proof releases exact reserved inputs.
+  const prerequisiteReleases = reconcileCaseScopedPrerequisiteProcessingReservationReleases({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
+  if (prerequisiteReleases.releasedWorkOrderIds.length > 0) {
+    outputWeeklyState.inventory = prerequisiteReleases.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteReleases.reservations
   }
 
   // SPE-2760: output credit precedes one deterministic successor attempt per

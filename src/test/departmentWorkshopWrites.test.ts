@@ -132,6 +132,64 @@ describe('canonical department workshop writes (SPE-2752 / SPE-1028)', () => {
     expect(active.reasons[0].code).toBe('work-order-not-queued')
   })
 
+  it('exempts only canonically completed, no-longer-laned same-case work', () => {
+    const completed = order('work:completed', 'case:alpha')
+    const source = {
+      ...emptyWorkshopState(),
+      departmentWorkshopWorkOrders: { [completed.id]: completed },
+      departmentWorkshopCompletionOutcomes: {
+        [completed.id]: {
+          workOrderId: completed.id,
+          caseId: completed.caseId,
+          departmentId: completed.departmentId,
+          taskType: completed.taskType,
+          completedWeek: 1,
+          outcome: 'completed',
+        },
+      },
+    } as const
+    const next = order('work:next', completed.caseId)
+
+    expect(enqueueDepartmentWorkshopWorkOrder(source, next).state).toBe('enqueued')
+    expect(
+      enqueueDepartmentWorkshopWorkOrder(
+        { ...source, departmentWorkshopCompletionOutcomes: {} },
+        next
+      ).reasons[0].code
+    ).toBe('duplicate-case-workload')
+    expect(
+      enqueueDepartmentWorkshopWorkOrder(
+        {
+          ...source,
+          departmentWorkshopCompletionOutcomes: {
+            [completed.id]: {
+              ...source.departmentWorkshopCompletionOutcomes[completed.id],
+              departmentId: 'department:biohazard-response',
+            },
+          },
+        },
+        next
+      ).reasons[0].code
+    ).toBe('duplicate-case-workload')
+    for (const lane of ['queued', 'active', 'paused'] as const) {
+      expect(
+        enqueueDepartmentWorkshopWorkOrder(
+          {
+            ...source,
+            departmentWorkshopSnapshots: {
+              [DEPARTMENT_ID]: {
+                ...source.departmentWorkshopSnapshots[DEPARTMENT_ID],
+                slotCapacity: 1,
+                [lane]: [{ workOrderId: completed.id, completedWork: 0 }],
+              },
+            },
+          },
+          next
+        ).reasons[0].code
+      ).toBe('duplicate-case-workload')
+    }
+  })
+
   it('writes through the store, round-trips persistence, resets cleanly, and leaves week-close/global queue untouched', () => {
     const baseline = createStartingState()
     const game = {

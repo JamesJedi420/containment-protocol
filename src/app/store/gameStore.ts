@@ -219,7 +219,7 @@ import {
   type DepartmentWorkshopWorkOrder,
   type DepartmentWorkshopWriteResult,
 } from '../../domain/departmentWorkshopQueue'
-import { reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
+import { activateCaseScopedPrerequisiteProcessingOrder, reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
   game: GameState
@@ -247,6 +247,7 @@ interface GameStore {
     workOrderId: string
   ) => DepartmentWorkshopWriteResult
   reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (workOrderId: string) => CaseScopedPrerequisiteReservationResult
+  activateCaseScopedPrerequisiteProcessingOrder: (workOrderId: string) => CaseScopedPrerequisiteReservationResult
   applyAuthoredChoice: (
     choice: AuthoredChoiceDefinition,
     context?: ScreenRouteContext
@@ -934,6 +935,15 @@ export const useGameStore = create<GameStore>()(
         let result: CaseScopedPrerequisiteReservationResult | null = null
         set((s) => {
           result = reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
+          if (result.state === 'blocked') return { game: s.game }
+          return { game: { ...s.game, inventory: result.inventory, caseScopedPrerequisiteProcessingReservations: result.reservations, departmentWorkshopWorkOrders: result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'], departmentWorkshopSnapshots: result.workshopSnapshots as GameState['departmentWorkshopSnapshots'] } }
+        })
+        return result!
+      },
+      activateCaseScopedPrerequisiteProcessingOrder: (workOrderId) => {
+        let result: CaseScopedPrerequisiteReservationResult | null = null
+        set((s) => {
+          result = activateCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
           if (result.state === 'blocked') return { game: s.game }
           return { game: { ...s.game, inventory: result.inventory, caseScopedPrerequisiteProcessingReservations: result.reservations, departmentWorkshopWorkOrders: result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'], departmentWorkshopSnapshots: result.workshopSnapshots as GameState['departmentWorkshopSnapshots'] } }
         })

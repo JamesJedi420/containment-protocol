@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   createCaseScopedPrerequisiteProcessingOrders,
   readCaseScopedPrerequisiteProcessingOrders,
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
   sanitizeCaseScopedPrerequisiteProcessingOrders,
 } from '../domain/prerequisiteProcessingOrders'
 import { planPrerequisiteProcessing } from '../domain/prerequisiteProcessing'
+import { createStartingState } from '../data/startingState'
 
 const source = { cases: { 'case:open': { id: 'case:open', status: 'open' } } }
 
@@ -64,6 +66,9 @@ describe('case-scoped prerequisite processing orders', () => {
       inputMaterials: [{ materialId: 'raw', quantity: 1 }],
       outputMaterialId: 'processed',
       outputQuantity: 1,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
       prerequisiteWorkOrderIds: [],
     }
     const rawRecords = Object.assign(Object.create(null), {
@@ -102,5 +107,34 @@ describe('case-scoped prerequisite processing orders', () => {
         caseScopedPrerequisiteProcessingOrders: records,
       })
     ).toEqual(records)
+  })
+
+  it('atomically reserves a ready order and enqueues it once', () => {
+    const game = createStartingState()
+    const caseId = Object.keys(game.cases).sort()[0]!
+    const workOrderId = 'work:ready'
+    const order = {
+      workOrderId,
+      caseId,
+      processingRecipeId: 'process',
+      inputMaterials: [{ materialId: 'medical-supplies', quantity: 1 }],
+      outputMaterialId: 'processed', outputQuantity: 1,
+      departmentId: 'department:records-analysis', taskType: 'records_review', requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const result = reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder({
+      ...game,
+      inventory: { ...game.inventory, 'medical-supplies': 1 },
+      departmentWorkshopSnapshots: {
+        'department:records-analysis': { departmentId: 'department:records-analysis', slotCapacity: 1, queued: [], active: [], paused: [] },
+      },
+      caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order },
+    }, workOrderId)
+    expect(result.state).toBe('reserved-and-enqueued')
+    if (result.state === 'reserved-and-enqueued') {
+      expect(result.inventory['medical-supplies']).toBe(0)
+      expect(result.reservations[workOrderId]?.caseId).toBe(caseId)
+      expect((result.workshopWorkOrders as Record<string, unknown>)[workOrderId]).toBeDefined()
+    }
   })
 })

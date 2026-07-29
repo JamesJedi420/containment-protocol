@@ -219,6 +219,7 @@ import {
   type DepartmentWorkshopWorkOrder,
   type DepartmentWorkshopWriteResult,
 } from '../../domain/departmentWorkshopQueue'
+import { reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
   game: GameState
@@ -245,6 +246,7 @@ interface GameStore {
     departmentId: string,
     workOrderId: string
   ) => DepartmentWorkshopWriteResult
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (workOrderId: string) => CaseScopedPrerequisiteReservationResult
   applyAuthoredChoice: (
     choice: AuthoredChoiceDefinition,
     context?: ScreenRouteContext
@@ -926,6 +928,16 @@ export const useGameStore = create<GameStore>()(
           }
         })
         return writeResult!
+      },
+
+      reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (workOrderId) => {
+        let result: CaseScopedPrerequisiteReservationResult | null = null
+        set((s) => {
+          result = reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
+          if (result.state === 'blocked') return { game: s.game }
+          return { game: { ...s.game, inventory: result.inventory, caseScopedPrerequisiteProcessingReservations: result.reservations, departmentWorkshopWorkOrders: result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'], departmentWorkshopSnapshots: result.workshopSnapshots as GameState['departmentWorkshopSnapshots'] } }
+        })
+        return result!
       },
 
       applyAuthoredChoice: (choice, context) => {

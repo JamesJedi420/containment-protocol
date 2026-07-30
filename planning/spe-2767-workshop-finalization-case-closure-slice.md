@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | **Linear**          | [SPE-2767](https://linear.app/spectranoir/issue/SPE-2767/automatic-case-closure-after-workshop-fabrication-enqueue)     |
 | **GitHub**          | [#3405](https://github.com/JamesJedi420/containment-protocol/issues/3405)                                                |
-| **Status**          | **In Progress**                                                                                                          |
+| **Status**          | **Shipped** (PR #3406 @ `583deea7`)                                                                                      |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                 |
 | **Branch**          | `agent/spe-2767-workshop-finalization-case-closure`                                                                      |
 | **Base `main` SHA** | `2cba2355`                                                                                                               |

@@ -2,12 +2,12 @@
 
 | Field               | Value                                                                                                                    |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Linear**          | Pending create under [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) (Linear MCP unavailable at docs recording) |
-| **GitHub**          | TBD                                                                                                                      |
+| **Linear**          | [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772/live-facilitystaff-workshop-safety-inputs-mapping-seam-required) |
+| **GitHub**          | [#3419](https://github.com/JamesJedi420/containment-protocol/issues/3419)                                                |
 | **Status**          | **Backlog** (blocked on explicit mapping seam)                                                                           |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                 |
 | **Branch**          | n/a until mapping seam exists                                                                                            |
-| **Base `main` SHA** | `007653a3`                                                                                                               |
+| **Base `main` SHA** | `298c5eaa`                                                                                                               |
 
 ## Goal
 

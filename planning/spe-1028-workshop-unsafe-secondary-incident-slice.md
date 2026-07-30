@@ -23,7 +23,8 @@ per unsafe work order with a durable consume marker for replay idempotency.
 - Safe receipts spawn nothing.
 - Quality `degraded` without `safety: 'unsafe'` spawns nothing.
 - A work-order-keyed `departmentWorkshopUnsafeSecondaryIncidents` marker makes
-  week-close replay and save/load a no-op.
+  week-close replay and save/load a no-op. The `gameOver` early path stays
+  handoffs-only and does not open new secondary incidents.
 - Provenance mismatch, missing parent, or empty template pool fail closed
   without writing a marker.
 - No changes to SPE-2765–2768, SPE-2762 terminals, adjacency, UI, live

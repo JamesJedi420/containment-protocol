@@ -122,6 +122,39 @@ describe('department workshop persistence', () => {
     expect(loaded.caseQueue).toEqual(baseline.caseQueue)
   })
 
+  it('normalizes case-scoped finalization contracts and drops malformed handoffs', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]!
+    const rawGame = {
+      ...baseline,
+      cases: {
+        ...baseline.cases,
+        [caseId]: {
+          ...baseline.cases[caseId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: ' med-kits ',
+            requiredWorkOrderIds: ['work:zulu', 'work:alpha', 'work:zulu'],
+          },
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'med-kits',
+            outputItemId: 'medkits',
+            outputQuantity: Number.MAX_SAFE_INTEGER + 1,
+            sourceWorkOrderIds: ['work:alpha'],
+            handoffWeek: 1,
+          },
+        },
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(rawGame as GameState))
+
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationRequest).toEqual({
+      finalRecipeId: 'med-kits',
+      requiredWorkOrderIds: ['work:alpha', 'work:zulu'],
+    })
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationHandoff).toBeUndefined()
+  })
+
   it('round-trips terminal signals in stable order and isolates malformed siblings', () => {
     const baseline = createStartingState()
     const caseId = Object.keys(baseline.cases).sort()[0]!
@@ -424,12 +457,115 @@ describe('department workshop persistence', () => {
     })
   })
 
+  it('hands off a completed case-owned prerequisite once without starting Fabrication', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]!
+    const workOrderId = 'work:finalization-input'
+    const control = advanceWeek(baseline, Date.UTC(2026, 0, 1))
+    const source = {
+      ...baseline,
+      cases: {
+        ...baseline.cases,
+        [caseId]: {
+          ...baseline.cases[caseId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'med-kits',
+            requiredWorkOrderIds: [workOrderId],
+          },
+        },
+      },
+      caseScopedPrerequisiteProcessingOrders: {
+        [workOrderId]: {
+          workOrderId,
+          caseId,
+          processingRecipeId: 'prepare-medical-supplies',
+          inputMaterials: [],
+          outputMaterialId: 'medical_supplies',
+          outputQuantity: 2,
+          departmentId: 'department:biohazard-response',
+          taskType: 'containment_response' as const,
+          requiredWork: 1,
+          prerequisiteWorkOrderIds: [],
+        },
+      },
+      departmentWorkshopWorkOrders: {
+        [workOrderId]: {
+          id: workOrderId,
+          departmentId: 'department:biohazard-response',
+          caseId,
+          taskType: 'containment_response' as const,
+          requiredWork: 1,
+        },
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': {
+          departmentId: 'department:biohazard-response',
+          slotCapacity: 1,
+          queued: [],
+          active: [{ workOrderId, completedWork: 0 }],
+          paused: [],
+        },
+      },
+    }
+
+    const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
+    const replay = advanceWeek(advanced, Date.UTC(2026, 0, 8))
+    const controlReplay = advanceWeek(control, Date.UTC(2026, 0, 8))
+    const loaded = loadGameSave(serializeGameSave(advanced))
+
+    expect(advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual({
+      finalRecipeId: 'med-kits',
+      outputItemId: 'medkits',
+      outputQuantity: 1,
+      sourceWorkOrderIds: [workOrderId],
+      handoffWeek: 1,
+    })
+    expect(advanced.inventory.medical_supplies).toBe(control.inventory.medical_supplies)
+    expect(advanced.inventory.medkits).toBe(control.inventory.medkits)
+    expect(advanced.productionQueue).toEqual(control.productionQueue)
+    expect(replay.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual(
+      advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff
+    )
+    expect(replay.inventory.medical_supplies).toBe(controlReplay.inventory.medical_supplies)
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationRequest).toEqual(
+      source.cases[caseId]?.departmentWorkshopFinalizationRequest
+    )
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual(
+      advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff
+    )
+  })
+
   it('reconciles only authored receipts when game-over short-circuits the normal close', () => {
     const baseline = createStartingState()
     const caseId = Object.keys(baseline.cases).sort()[0]!
     const source = {
       ...baseline,
       gameOver: true,
+      cases: {
+        ...baseline.cases,
+        [caseId]: {
+          ...baseline.cases[caseId],
+          departmentWorkshopCompletionWorkOrderIds: ['work:trusted'],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'med-kits',
+            requiredWorkOrderIds: ['work:trusted'],
+          },
+        },
+      },
+      caseScopedPrerequisiteProcessingOrders: {
+        'work:trusted': {
+          workOrderId: 'work:trusted',
+          caseId,
+          processingRecipeId: 'prepare-medical-supplies',
+          inputMaterials: [],
+          outputMaterialId: 'medical_supplies',
+          outputQuantity: 2,
+          departmentId: 'department:biohazard-response',
+          taskType: 'containment_response' as const,
+          requiredWork: 1,
+          prerequisiteWorkOrderIds: [],
+        },
+      },
       departmentWorkshopWorkOrders: {
         'work:trusted': {
           id: 'work:trusted',
@@ -462,6 +598,13 @@ describe('department workshop persistence', () => {
     expect(advanceWeek(source).cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
       'work:trusted',
     ])
+    expect(advanceWeek(source).cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual({
+      finalRecipeId: 'med-kits',
+      outputItemId: 'medkits',
+      outputQuantity: 1,
+      sourceWorkOrderIds: ['work:trusted'],
+      handoffWeek: 1,
+    })
   })
 
   it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {

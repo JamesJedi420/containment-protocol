@@ -32,6 +32,31 @@ export interface CaseScopedPrerequisiteProcessingReservation {
   readonly caseId: string
   readonly inputMaterials: readonly PrerequisiteProcessingMaterialQuantity[]
 }
+
+export interface CaseScopedWorkshopFinalizationRequest {
+  readonly finalRecipeId: string
+  readonly requiredWorkOrderIds: readonly string[]
+}
+
+export interface CaseScopedWorkshopFinalizationHandoff {
+  readonly finalRecipeId: string
+  readonly outputItemId: string
+  readonly outputQuantity: number
+  readonly sourceWorkOrderIds: readonly string[]
+  readonly handoffWeek: number
+}
+
+export interface CaseScopedWorkshopFinalizationRecipeContract {
+  readonly recipeId: string
+  readonly outputItemId: string
+  readonly outputQuantity: number
+  readonly inputMaterials: Readonly<Record<string, number>>
+}
+
+export interface CaseScopedWorkshopFinalizationResult {
+  readonly cases: Record<string, unknown>
+  readonly handedOffCaseIds: readonly string[]
+}
 export type CaseScopedPrerequisiteProcessingReservationRegistry = Record<
   string,
   CaseScopedPrerequisiteProcessingReservation
@@ -206,6 +231,48 @@ export function sanitizeCaseScopedPrerequisiteProcessingOrders(
 
 function toCaseScopedWorkOrderId(caseId: string, draftWorkOrderId: string) {
   return `processing:${caseId.length}:${caseId}:${draftWorkOrderId}`
+}
+
+/**
+ * Preserve the planner-authored final recipe and its exact terminal
+ * prerequisite IDs without creating workshop work or starting Fabrication.
+ */
+export function createCaseScopedWorkshopFinalizationRequest(
+  plan: PrerequisiteProcessingPlan,
+  caseId: string,
+  source: CaseSource
+): CaseScopedWorkshopFinalizationRequest | undefined {
+  if (
+    plan?.state !== 'planned' ||
+    !isSafeId(caseId) ||
+    !hasOpenCase(source, caseId) ||
+    !isValueId(plan.finalRecipeId) ||
+    plan.finalDependsOnWorkOrderIds.length === 0
+  ) {
+    return undefined
+  }
+  const draftIds = new Set(plan.prerequisiteWorkOrders.map((draft) => draft.id))
+  if (
+    plan.finalDependsOnWorkOrderIds.some(
+      (draftWorkOrderId) => !isSafeId(draftWorkOrderId) || !draftIds.has(draftWorkOrderId)
+    )
+  ) {
+    return undefined
+  }
+  const requiredWorkOrderIds = [
+    ...new Set(
+      plan.finalDependsOnWorkOrderIds.map((draftWorkOrderId) =>
+        toCaseScopedWorkOrderId(caseId, draftWorkOrderId)
+      )
+    ),
+  ].sort(compareCodeUnits)
+  if (requiredWorkOrderIds.length !== plan.finalDependsOnWorkOrderIds.length) {
+    return undefined
+  }
+  return Object.freeze({
+    finalRecipeId: plan.finalRecipeId,
+    requiredWorkOrderIds: Object.freeze(requiredWorkOrderIds),
+  })
 }
 
 /** Pure read seam for the durable prerequisite-processing envelope registry. */
@@ -388,6 +455,146 @@ function hasCanonicalCompletionProof(
     workshopOrder.taskType === order.taskType &&
     workshopOrder.requiredWork === order.requiredWork
   )
+}
+
+function isValidFinalizationRecipeContract(
+  value: unknown
+): value is CaseScopedWorkshopFinalizationRecipeContract {
+  if (!isRecord(value)) return false
+  return (
+    isValueId(value.recipeId) &&
+    isValueId(value.outputItemId) &&
+    isPositiveSafeInteger(value.outputQuantity) &&
+    isRecord(value.inputMaterials) &&
+    Object.entries(value.inputMaterials).every(
+      ([materialId, quantity]) => isValueId(materialId) && isPositiveSafeInteger(quantity)
+    )
+  )
+}
+
+function readFinalizationRecipeContracts(
+  value: unknown
+): ReadonlyMap<string, CaseScopedWorkshopFinalizationRecipeContract> {
+  if (!Array.isArray(value)) return new Map()
+  const candidates = new Map<string, CaseScopedWorkshopFinalizationRecipeContract>()
+  const duplicates = new Set<string>()
+  for (const rawRecipe of value) {
+    if (!isValidFinalizationRecipeContract(rawRecipe)) continue
+    if (candidates.has(rawRecipe.recipeId)) {
+      duplicates.add(rawRecipe.recipeId)
+      continue
+    }
+    candidates.set(rawRecipe.recipeId, rawRecipe)
+  }
+  for (const duplicateId of duplicates) candidates.delete(duplicateId)
+  return candidates
+}
+
+function isFinalizationRequest(value: unknown): value is CaseScopedWorkshopFinalizationRequest {
+  return (
+    isRecord(value) &&
+    isValueId(value.finalRecipeId) &&
+    Array.isArray(value.requiredWorkOrderIds) &&
+    value.requiredWorkOrderIds.length > 0 &&
+    value.requiredWorkOrderIds.length === Object.keys(value.requiredWorkOrderIds).length &&
+    value.requiredWorkOrderIds.every(isSafeId) &&
+    new Set(value.requiredWorkOrderIds).size === value.requiredWorkOrderIds.length
+  )
+}
+
+/**
+ * Convert exact case-owned workshop completion provenance into one immutable
+ * final-recipe readiness handoff. This never reserves inputs, credits the final
+ * output, starts Fabrication, or changes case lifecycle.
+ */
+export function reconcileCaseScopedWorkshopFinalizationHandoffs(
+  source: CaseSource & {
+    readonly caseScopedPrerequisiteProcessingOrders?: unknown
+    readonly departmentWorkshopCompletionOutcomes?: unknown
+    readonly departmentWorkshopWorkOrders?: unknown
+  },
+  recipeContracts: unknown
+): CaseScopedWorkshopFinalizationResult {
+  if (!isRecord(source?.cases)) {
+    return Object.freeze({ cases: Object.freeze({}), handedOffCaseIds: Object.freeze([]) })
+  }
+  const recipes = readFinalizationRecipeContracts(recipeContracts)
+  const orders = readCaseScopedPrerequisiteProcessingOrders(source)
+  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
+    source.departmentWorkshopCompletionOutcomes
+  )
+  const workshopOrders = readDepartmentWorkshopState(source).workOrders
+  let cases = source.cases
+  let changed = false
+  const handedOffCaseIds: string[] = []
+
+  for (const caseId of Object.keys(source.cases).sort(compareCodeUnits)) {
+    const currentCase = source.cases[caseId]
+    if (
+      !isRecord(currentCase) ||
+      currentCase.id !== caseId ||
+      (currentCase.status !== 'open' && currentCase.status !== 'in_progress') ||
+      currentCase.departmentWorkshopFinalizationHandoff !== undefined ||
+      !isFinalizationRequest(currentCase.departmentWorkshopFinalizationRequest) ||
+      !Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
+    ) {
+      continue
+    }
+    const request = currentCase.departmentWorkshopFinalizationRequest
+    const recipe = recipes.get(request.finalRecipeId)
+    if (!recipe) continue
+    const completionLedger = new Set(
+      currentCase.departmentWorkshopCompletionWorkOrderIds.filter(isSafeId)
+    )
+    let handoffWeek = 0
+    let valid = true
+    for (const workOrderId of [...request.requiredWorkOrderIds].sort(compareCodeUnits)) {
+      const order = orders[workOrderId]
+      const outcome = outcomes[workOrderId]
+      const workshopOrder = workshopOrders[workOrderId]
+      if (
+        !order ||
+        order.caseId !== caseId ||
+        !completionLedger.has(workOrderId) ||
+        !outcome ||
+        !workshopOrder ||
+        !Object.hasOwn(recipe.inputMaterials, order.outputMaterialId) ||
+        outcome.caseId !== caseId ||
+        outcome.departmentId !== order.departmentId ||
+        outcome.taskType !== order.taskType ||
+        workshopOrder.caseId !== caseId ||
+        workshopOrder.departmentId !== order.departmentId ||
+        workshopOrder.taskType !== order.taskType ||
+        workshopOrder.requiredWork !== order.requiredWork
+      ) {
+        valid = false
+        break
+      }
+      handoffWeek = Math.max(handoffWeek, outcome.completedWeek)
+    }
+    if (!valid || !isPositiveSafeInteger(handoffWeek)) continue
+
+    if (!changed) {
+      cases = { ...source.cases }
+      changed = true
+    }
+    cases[caseId] = {
+      ...currentCase,
+      departmentWorkshopFinalizationHandoff: Object.freeze({
+        finalRecipeId: recipe.recipeId,
+        outputItemId: recipe.outputItemId,
+        outputQuantity: recipe.outputQuantity,
+        sourceWorkOrderIds: Object.freeze([...request.requiredWorkOrderIds].sort(compareCodeUnits)),
+        handoffWeek,
+      }),
+    }
+    handedOffCaseIds.push(caseId)
+  }
+
+  return Object.freeze({
+    cases: changed ? Object.freeze(cases) : source.cases,
+    handedOffCaseIds: Object.freeze(handedOffCaseIds),
+  })
 }
 
 function hasCanonicalTerminalSignal(

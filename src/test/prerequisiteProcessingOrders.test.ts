@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   createCaseScopedPrerequisiteProcessingOrders,
+  createCaseScopedWorkshopFinalizationRequest,
   readCaseScopedPrerequisiteProcessingOrders,
   reconcileCaseScopedPrerequisiteProcessingReservationReleases,
   reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
   reconcileCaseScopedPrerequisiteProcessingCompletions,
   reconcileCaseScopedPrerequisiteProcessingSuccessors,
+  reconcileCaseScopedWorkshopFinalizationHandoffs,
   registerCaseScopedPrerequisiteProcessingTerminalSignal,
   sanitizeCaseScopedPrerequisiteProcessingOrders,
   sanitizeCaseScopedPrerequisiteProcessingTerminalSignals,
@@ -42,6 +44,11 @@ describe('case-scoped prerequisite processing orders', () => {
       ]
     )
     const records = createCaseScopedPrerequisiteProcessingOrders(plan, 'case:open', source)
+    const finalizationRequest = createCaseScopedWorkshopFinalizationRequest(
+      plan,
+      'case:open',
+      source
+    )
 
     expect(Object.keys(records)).toHaveLength(plan.prerequisiteWorkOrders.length)
     expect(Object.keys(records).every((workOrderId) => workOrderId.startsWith('processing:'))).toBe(
@@ -62,7 +69,171 @@ describe('case-scoped prerequisite processing orders', () => {
         draft.dependsOnWorkOrderIds.length
       )
     }
+    expect(finalizationRequest).toEqual({
+      finalRecipeId: 'final',
+      requiredWorkOrderIds: [
+        Object.keys(records).find(
+          (workOrderId) => records[workOrderId]?.processingRecipeId === 'process'
+        ),
+      ],
+    })
+    expect(Object.isFrozen(finalizationRequest)).toBe(true)
+    expect(Object.isFrozen(finalizationRequest?.requiredWorkOrderIds)).toBe(true)
     expect(createCaseScopedPrerequisiteProcessingOrders(plan, 'case:missing', source)).toEqual({})
+    expect(
+      createCaseScopedWorkshopFinalizationRequest(plan, 'case:missing', source)
+    ).toBeUndefined()
+  })
+
+  it('creates one catalog-derived finalization handoff from exact case completion proof', () => {
+    const workOrderId = 'work:final-input'
+    const order = {
+      workOrderId,
+      caseId: 'case:open',
+      processingRecipeId: 'prepare-medical-supplies',
+      inputMaterials: [],
+      outputMaterialId: 'medical_supplies',
+      outputQuantity: 2,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const game = {
+      cases: {
+        'case:open': {
+          id: 'case:open',
+          status: 'open',
+          departmentWorkshopCompletionWorkOrderIds: [workOrderId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'med-kits',
+            requiredWorkOrderIds: [workOrderId],
+          },
+        },
+      },
+      caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order },
+      departmentWorkshopWorkOrders: {
+        [workOrderId]: {
+          id: workOrderId,
+          caseId: 'case:open',
+          departmentId: order.departmentId,
+          taskType: order.taskType,
+          requiredWork: order.requiredWork,
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        [workOrderId]: {
+          workOrderId,
+          caseId: 'case:open',
+          departmentId: order.departmentId,
+          taskType: order.taskType,
+          completedWeek: 4,
+          outcome: 'completed',
+        },
+      },
+    }
+    const recipes = [
+      {
+        recipeId: 'med-kits',
+        outputItemId: 'medkits',
+        outputQuantity: 1,
+        inputMaterials: { medical_supplies: 2 },
+      },
+    ]
+
+    const result = reconcileCaseScopedWorkshopFinalizationHandoffs(game, recipes)
+    const replay = reconcileCaseScopedWorkshopFinalizationHandoffs(
+      { ...game, cases: result.cases },
+      recipes
+    )
+
+    expect(result.handedOffCaseIds).toEqual(['case:open'])
+    expect(result.cases['case:open']).toMatchObject({
+      departmentWorkshopFinalizationHandoff: {
+        finalRecipeId: 'med-kits',
+        outputItemId: 'medkits',
+        outputQuantity: 1,
+        sourceWorkOrderIds: [workOrderId],
+        handoffWeek: 4,
+      },
+    })
+    expect(replay.handedOffCaseIds).toEqual([])
+    expect(replay.cases).toBe(result.cases)
+  })
+
+  it('isolates malformed, cross-case, resolved, and overflow finalization mappings', () => {
+    const validWorkOrderId = 'work:valid-final-input'
+    const validOrder = {
+      workOrderId: validWorkOrderId,
+      caseId: 'case:valid',
+      processingRecipeId: 'prepare-medical-supplies',
+      inputMaterials: [],
+      outputMaterialId: 'medical_supplies',
+      outputQuantity: 2,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const cases = Object.fromEntries(
+      ['case:valid', 'case:cross', 'case:resolved'].map((caseId) => [
+        caseId,
+        {
+          id: caseId,
+          status: caseId === 'case:resolved' ? 'resolved' : 'open',
+          departmentWorkshopCompletionWorkOrderIds: [validWorkOrderId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'med-kits',
+            requiredWorkOrderIds: [validWorkOrderId],
+          },
+        },
+      ])
+    )
+    const game = {
+      cases,
+      caseScopedPrerequisiteProcessingOrders: { [validWorkOrderId]: validOrder },
+      departmentWorkshopWorkOrders: {
+        [validWorkOrderId]: {
+          id: validWorkOrderId,
+          caseId: validOrder.caseId,
+          departmentId: validOrder.departmentId,
+          taskType: validOrder.taskType,
+          requiredWork: validOrder.requiredWork,
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        [validWorkOrderId]: {
+          workOrderId: validWorkOrderId,
+          caseId: validOrder.caseId,
+          departmentId: validOrder.departmentId,
+          taskType: validOrder.taskType,
+          completedWeek: 2,
+          outcome: 'completed',
+        },
+      },
+    }
+    const recipes = [
+      {
+        recipeId: 'med-kits',
+        outputItemId: 'medkits',
+        outputQuantity: 1,
+        inputMaterials: { medical_supplies: 2 },
+      },
+      {
+        recipeId: 'overflow',
+        outputItemId: 'bad',
+        outputQuantity: Number.MAX_SAFE_INTEGER + 1,
+        inputMaterials: { medical_supplies: 2 },
+      },
+    ]
+
+    const result = reconcileCaseScopedWorkshopFinalizationHandoffs(game, recipes)
+
+    expect(result.handedOffCaseIds).toEqual(['case:valid'])
+    expect(result.cases['case:cross']).not.toHaveProperty('departmentWorkshopFinalizationHandoff')
+    expect(result.cases['case:resolved']).not.toHaveProperty(
+      'departmentWorkshopFinalizationHandoff'
+    )
   })
 
   it('drops malformed, unsafe, duplicate, and closed-case siblings without touching valid records', () => {

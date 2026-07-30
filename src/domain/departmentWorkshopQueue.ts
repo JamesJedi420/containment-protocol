@@ -38,10 +38,31 @@ export interface DepartmentWorkshopSnapshot {
 export type DepartmentWorkshopWorkOrderRegistry = Record<string, DepartmentWorkshopWorkOrder>
 export type DepartmentWorkshopSnapshotRegistry = Record<string, DepartmentWorkshopSnapshot>
 
+/** SPE-2768: discrete caller-owned axes for completion output quality. */
+export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
+
+export type DepartmentWorkshopCompletionQuality = 'nominal' | 'degraded'
+
+export type DepartmentWorkshopQualityReason =
+  | 'poor_input_quality'
+  | 'poor_specialist_condition'
+  | 'poor_room_contamination'
+
+export interface DepartmentWorkshopQualityConditions {
+  readonly inputQuality: DepartmentWorkshopConditionLevel
+  readonly specialistCondition: DepartmentWorkshopConditionLevel
+  readonly roomContamination: DepartmentWorkshopConditionLevel
+}
+
+export interface DepartmentWorkshopCompletionQualityResult {
+  readonly quality: DepartmentWorkshopCompletionQuality
+  readonly qualityReason?: DepartmentWorkshopQualityReason
+}
+
 /**
- * The sole downstream result emitted by this slice when a workshop order
- * completes. It is an immutable receipt, intentionally without quality,
- * adjacency, safety, facility, or case-queue modifiers.
+ * The sole downstream result emitted when a workshop order completes.
+ * Quality grades (SPE-2768) ride on the receipt; adjacency, safety, facility,
+ * and case-queue modifiers remain out of scope.
  */
 export interface DepartmentWorkshopCompletionOutcome {
   readonly workOrderId: string
@@ -50,6 +71,8 @@ export interface DepartmentWorkshopCompletionOutcome {
   readonly taskType: DepartmentTaskType
   readonly completedWeek: number
   readonly outcome: 'completed'
+  readonly quality: DepartmentWorkshopCompletionQuality
+  readonly qualityReason?: DepartmentWorkshopQualityReason
 }
 
 export type DepartmentWorkshopCompletionOutcomeRegistry = Record<
@@ -609,32 +632,145 @@ export function readDepartmentWorkshopState(
   return Object.freeze({ workOrders, snapshots })
 }
 
+const DEPARTMENT_WORKSHOP_CONDITION_LEVELS = new Set<DepartmentWorkshopConditionLevel>([
+  'good',
+  'poor',
+])
+const DEPARTMENT_WORKSHOP_COMPLETION_QUALITIES = new Set<DepartmentWorkshopCompletionQuality>([
+  'nominal',
+  'degraded',
+])
+const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityReason>([
+  'poor_input_quality',
+  'poor_specialist_condition',
+  'poor_room_contamination',
+])
+
+/**
+ * Resolve completion output quality from caller-owned condition axes.
+ * Missing conditions default to nominal. Any poor axis yields degraded with a
+ * stable primary reason (input → specialist → room).
+ */
+export function resolveDepartmentWorkshopCompletionQuality(
+  conditions?: DepartmentWorkshopQualityConditions | null
+): DepartmentWorkshopCompletionQualityResult {
+  if (!conditions) {
+    return Object.freeze({ quality: 'nominal' })
+  }
+  if (
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.inputQuality) ||
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.specialistCondition) ||
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.roomContamination)
+  ) {
+    return Object.freeze({ quality: 'nominal' })
+  }
+  if (conditions.inputQuality === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_input_quality',
+    })
+  }
+  if (conditions.specialistCondition === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_specialist_condition',
+    })
+  }
+  if (conditions.roomContamination === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_room_contamination',
+    })
+  }
+  return Object.freeze({ quality: 'nominal' })
+}
+
 function frozenCompletionOutcome(
   outcome: DepartmentWorkshopCompletionOutcome
 ): DepartmentWorkshopCompletionOutcome {
-  return Object.freeze({ ...outcome })
+  if (outcome.quality === 'degraded' && outcome.qualityReason) {
+    return Object.freeze({
+      workOrderId: outcome.workOrderId,
+      departmentId: outcome.departmentId,
+      caseId: outcome.caseId,
+      taskType: outcome.taskType,
+      completedWeek: outcome.completedWeek,
+      outcome: 'completed' as const,
+      quality: 'degraded' as const,
+      qualityReason: outcome.qualityReason,
+    })
+  }
+  return Object.freeze({
+    workOrderId: outcome.workOrderId,
+    departmentId: outcome.departmentId,
+    caseId: outcome.caseId,
+    taskType: outcome.taskType,
+    completedWeek: outcome.completedWeek,
+    outcome: 'completed' as const,
+    quality: 'nominal' as const,
+  })
 }
 
-function isValidCompletionOutcome(
+function normalizeCompletionOutcome(
   key: string,
   value: unknown
-): value is DepartmentWorkshopCompletionOutcome {
+): DepartmentWorkshopCompletionOutcome | null {
   if (!isRecord(value)) {
-    return false
+    return null
   }
 
   const outcome = value as Partial<DepartmentWorkshopCompletionOutcome>
-  return (
-    key === outcome.workOrderId &&
-    isNormalizedNonEmptyString(outcome.workOrderId) &&
-    isNormalizedNonEmptyString(outcome.departmentId) &&
-    isNormalizedNonEmptyString(outcome.caseId) &&
-    typeof outcome.taskType === 'string' &&
-    DEPARTMENT_TASK_TYPE_SET.has(outcome.taskType) &&
-    Number.isInteger(outcome.completedWeek) &&
-    outcome.completedWeek >= 1 &&
-    outcome.outcome === 'completed'
-  )
+  if (
+    key !== outcome.workOrderId ||
+    !isNormalizedNonEmptyString(outcome.workOrderId) ||
+    !isNormalizedNonEmptyString(outcome.departmentId) ||
+    !isNormalizedNonEmptyString(outcome.caseId) ||
+    typeof outcome.taskType !== 'string' ||
+    !DEPARTMENT_TASK_TYPE_SET.has(outcome.taskType) ||
+    !Number.isInteger(outcome.completedWeek) ||
+    (outcome.completedWeek ?? 0) < 1 ||
+    outcome.outcome !== 'completed'
+  ) {
+    return null
+  }
+
+  const rawQuality = outcome.quality
+  const quality: DepartmentWorkshopCompletionQuality =
+    rawQuality === undefined ? 'nominal' : (rawQuality as DepartmentWorkshopCompletionQuality)
+  if (!DEPARTMENT_WORKSHOP_COMPLETION_QUALITIES.has(quality)) {
+    return null
+  }
+
+  if (quality === 'nominal') {
+    return frozenCompletionOutcome({
+      workOrderId: outcome.workOrderId,
+      departmentId: outcome.departmentId,
+      caseId: outcome.caseId,
+      taskType: outcome.taskType,
+      completedWeek: outcome.completedWeek!,
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+  }
+
+  const qualityReason = outcome.qualityReason
+  if (
+    typeof qualityReason !== 'string' ||
+    !DEPARTMENT_WORKSHOP_QUALITY_REASONS.has(qualityReason as DepartmentWorkshopQualityReason)
+  ) {
+    return null
+  }
+
+  return frozenCompletionOutcome({
+    workOrderId: outcome.workOrderId,
+    departmentId: outcome.departmentId,
+    caseId: outcome.caseId,
+    taskType: outcome.taskType,
+    completedWeek: outcome.completedWeek!,
+    outcome: 'completed',
+    quality: 'degraded',
+    qualityReason: qualityReason as DepartmentWorkshopQualityReason,
+  })
 }
 
 /** Hydration and save boundary for immutable workshop completion receipts. */
@@ -647,10 +783,14 @@ export function sanitizeDepartmentWorkshopCompletionOutcomes(
 
   const entries: [string, DepartmentWorkshopCompletionOutcome][] = []
   for (const [key, entry] of Object.entries(value)) {
-    if (isIntegerIndexId(key) || !isValidCompletionOutcome(key, entry)) {
+    if (isIntegerIndexId(key)) {
       continue
     }
-    entries.push([key, frozenCompletionOutcome(entry)])
+    const normalized = normalizeCompletionOutcome(key, entry)
+    if (!normalized) {
+      continue
+    }
+    entries.push([key, normalized])
   }
 
   entries.sort(([left], [right]) => compareCodeUnits(left, right))
@@ -661,11 +801,16 @@ export function sanitizeDepartmentWorkshopCompletionOutcomes(
  * Register the one explicit downstream outcome for each newly completed order.
  * The durable receipt registry is the idempotency boundary across save/load;
  * this function never changes workshop lanes, case queues, or work orders.
+ * Optional caller-owned conditions (SPE-2768) grade new receipts; missing →
+ * nominal. Existing receipts win and keep their stored quality.
  */
 export function registerDepartmentWorkshopCompletionOutcomes(
   source: DepartmentWorkshopStateSource,
   completedWorkOrderIds: readonly string[],
-  completedWeek: number
+  completedWeek: number,
+  conditionsByWorkOrderId?: Readonly<
+    Record<string, DepartmentWorkshopQualityConditions | undefined>
+  >
 ): DepartmentWorkshopCompletionOutcomeResult {
   const persistedOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     source?.departmentWorkshopCompletionOutcomes
@@ -701,6 +846,9 @@ export function registerDepartmentWorkshopCompletionOutcomes(
     if (!workOrder) {
       continue
     }
+    const graded = resolveDepartmentWorkshopCompletionQuality(
+      conditionsByWorkOrderId?.[workOrderId]
+    )
     additions.push([
       workOrderId,
       frozenCompletionOutcome({
@@ -710,6 +858,8 @@ export function registerDepartmentWorkshopCompletionOutcomes(
         taskType: workOrder.taskType,
         completedWeek,
         outcome: 'completed',
+        quality: graded.quality,
+        ...(graded.qualityReason ? { qualityReason: graded.qualityReason } : {}),
       }),
     ])
   }

@@ -1,6 +1,6 @@
 {
-  "primary": null,
-  "inProgress": [],
+  "primary": "SPE-2768",
+  "inProgress": ["SPE-2768"],
   "recentlyShipped": [
     "SPE-2767",
     "SPE-2766",
@@ -16,6 +16,7 @@
     "SPE-2703"
   ],
   "sliceDocStatus": {
+    "planning/spe-2768-workshop-completion-output-quality-slice.md": "In Progress",
     "planning/spe-2767-workshop-finalization-case-closure-slice.md": "Shipped",
     "planning/spe-2766-workshop-finalization-fabrication-enqueue-slice.md": "Shipped",
     "planning/spe-2765-canonical-workshop-finalization-handoff-slice.md": "Shipped",

@@ -189,6 +189,7 @@ const MAX_CASE_TITLE_LENGTH = 120
 const MAX_CASE_DESCRIPTION_LENGTH = 2000
 const MAX_CASE_ROUTE_LENGTH = 128
 const MAX_CASE_COUNTER_EXPLANATION_LENGTH = 512
+const MAX_CASE_WORKSHOP_FINALIZATION_ID_LENGTH = 256
 
 function sanitizeDepartmentWorkshopCompletionWorkOrderIds(value: unknown): Id[] | undefined {
   if (!Array.isArray(value)) {
@@ -204,6 +205,71 @@ function sanitizeDepartmentWorkshopCompletionWorkOrderIds(value: unknown): Id[] 
     ),
   ].sort()
   return ids.length > 0 ? ids : undefined
+}
+
+function sanitizeWorkshopFinalizationId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const id = value.trim()
+  if (
+    id.length === 0 ||
+    id.length > MAX_CASE_WORKSHOP_FINALIZATION_ID_LENGTH ||
+    id === '__proto__' ||
+    id === 'constructor' ||
+    id === 'prototype' ||
+    /^(0|[1-9]\d*)$/.test(id)
+  ) {
+    return undefined
+  }
+  return id
+}
+
+function sanitizeWorkshopFinalizationWorkOrderIds(value: unknown): readonly string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const ids = value
+    .map(sanitizeWorkshopFinalizationId)
+    .filter((id): id is string => id !== undefined)
+  if (ids.length !== value.length) return undefined
+  const normalized = [...new Set(ids)].sort()
+  return normalized.length > 0 ? Object.freeze(normalized) : undefined
+}
+
+function sanitizeDepartmentWorkshopFinalizationRequest(
+  value: unknown
+): CaseInstance['departmentWorkshopFinalizationRequest'] {
+  if (!isRecord(value)) return undefined
+  const finalRecipeId = sanitizeWorkshopFinalizationId(value.finalRecipeId)
+  const requiredWorkOrderIds = sanitizeWorkshopFinalizationWorkOrderIds(value.requiredWorkOrderIds)
+  if (!finalRecipeId || !requiredWorkOrderIds) return undefined
+  return Object.freeze({ finalRecipeId, requiredWorkOrderIds })
+}
+
+function sanitizeDepartmentWorkshopFinalizationHandoff(
+  value: unknown
+): CaseInstance['departmentWorkshopFinalizationHandoff'] {
+  if (!isRecord(value)) return undefined
+  const finalRecipeId = sanitizeWorkshopFinalizationId(value.finalRecipeId)
+  const outputItemId = sanitizeWorkshopFinalizationId(value.outputItemId)
+  const sourceWorkOrderIds = sanitizeWorkshopFinalizationWorkOrderIds(value.sourceWorkOrderIds)
+  if (
+    !finalRecipeId ||
+    !outputItemId ||
+    !sourceWorkOrderIds ||
+    typeof value.outputQuantity !== 'number' ||
+    !Number.isSafeInteger(value.outputQuantity) ||
+    value.outputQuantity <= 0 ||
+    typeof value.handoffWeek !== 'number' ||
+    !Number.isSafeInteger(value.handoffWeek) ||
+    value.handoffWeek <= 0
+  ) {
+    return undefined
+  }
+  return Object.freeze({
+    finalRecipeId,
+    outputItemId,
+    outputQuantity: value.outputQuantity,
+    sourceWorkOrderIds,
+    handoffWeek: value.handoffWeek,
+  })
 }
 
 const THREAT_FAMILIES = [
@@ -1674,6 +1740,12 @@ export function normalizeCaseInstance(
   const departmentWorkshopCompletionWorkOrderIds = sanitizeDepartmentWorkshopCompletionWorkOrderIds(
     entry.departmentWorkshopCompletionWorkOrderIds
   )
+  const departmentWorkshopFinalizationRequest = sanitizeDepartmentWorkshopFinalizationRequest(
+    entry.departmentWorkshopFinalizationRequest
+  )
+  const departmentWorkshopFinalizationHandoff = sanitizeDepartmentWorkshopFinalizationHandoff(
+    entry.departmentWorkshopFinalizationHandoff
+  )
   const onFail = filterSpawnTemplateIdsToCatalog(
     sanitizeSpawnRuleField(entry.onFail, fallback.onFail),
     context.knownTemplateIds
@@ -1741,6 +1813,12 @@ export function normalizeCaseInstance(
     assignedTeamIds,
     ...(departmentWorkshopCompletionWorkOrderIds !== undefined
       ? { departmentWorkshopCompletionWorkOrderIds }
+      : {}),
+    ...(departmentWorkshopFinalizationRequest !== undefined
+      ? { departmentWorkshopFinalizationRequest }
+      : {}),
+    ...(departmentWorkshopFinalizationHandoff !== undefined
+      ? { departmentWorkshopFinalizationHandoff }
       : {}),
     ...(kind === 'raid' && raid ? { raid } : {}),
     ...(isOneOf(entry.infiltrationStage, INFILTRATION_STAGES)
@@ -1937,6 +2015,28 @@ export function normalizeCaseInstance(
 
   if (entry.weirdRoomPackets !== undefined && weirdRoomPackets === undefined) {
     delete (baseCase as { weirdRoomPackets?: CaseInstance['weirdRoomPackets'] }).weirdRoomPackets
+  }
+
+  if (
+    entry.departmentWorkshopFinalizationRequest !== undefined &&
+    departmentWorkshopFinalizationRequest === undefined
+  ) {
+    delete (
+      baseCase as {
+        departmentWorkshopFinalizationRequest?: CaseInstance['departmentWorkshopFinalizationRequest']
+      }
+    ).departmentWorkshopFinalizationRequest
+  }
+
+  if (
+    entry.departmentWorkshopFinalizationHandoff !== undefined &&
+    departmentWorkshopFinalizationHandoff === undefined
+  ) {
+    delete (
+      baseCase as {
+        departmentWorkshopFinalizationHandoff?: CaseInstance['departmentWorkshopFinalizationHandoff']
+      }
+    ).departmentWorkshopFinalizationHandoff
   }
 
   if (entry.contract !== undefined && contract === undefined) {

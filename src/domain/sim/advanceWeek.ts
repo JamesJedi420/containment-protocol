@@ -94,6 +94,7 @@ import {
   reconcileCaseScopedPrerequisiteProcessingCompletions,
   reconcileCaseScopedPrerequisiteProcessingReservationReleases,
   reconcileCaseScopedPrerequisiteProcessingSuccessors,
+  reconcileCaseScopedWorkshopFinalizationHandoffs,
 } from '../prerequisiteProcessingOrders'
 import {
   buildAggregateBattleCampaignSummary,
@@ -164,6 +165,7 @@ import type {
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
+import { productionCatalog } from '../../data/production'
 import {
   applyIntelSurgeToCandidates,
   applyProcurementPushToMarket,
@@ -4815,13 +4817,24 @@ function reconcileDepartmentWorkshopCompletionReceipts(state: GameState): GameSt
   return changed ? { ...state, cases } : state
 }
 
+function reconcileDepartmentWorkshopCaseHandoffs(state: GameState): GameState {
+  const receiptReconciled = reconcileDepartmentWorkshopCompletionReceipts(state)
+  const finalization = reconcileCaseScopedWorkshopFinalizationHandoffs(
+    receiptReconciled,
+    productionCatalog
+  )
+  return finalization.cases !== receiptReconciled.cases
+    ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
+    : receiptReconciled
+}
+
 export function advanceWeek(
   state: GameState,
   overrideNow?: number,
   publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
 ): GameState {
   if (state.gameOver) {
-    return ensureNormalizedGameState(reconcileDepartmentWorkshopCompletionReceipts(state))
+    return ensureNormalizedGameState(reconcileDepartmentWorkshopCaseHandoffs(state))
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)
@@ -4991,10 +5004,9 @@ export function advanceWeek(
   // reservation release leave workshop lanes. Missing reservations also admit
   // prior-release saves. Durable provenance remains, and freed slots wait for
   // the next workshop tick.
-  const terminalWorkshopWorkOrderIds =
-    listCanonicalTerminalPrerequisiteProcessingWorkOrderIds(outputWeeklyState).filter(
-      (workOrderId) => !prerequisiteReleases.reservations[workOrderId]
-    )
+  const terminalWorkshopWorkOrderIds = listCanonicalTerminalPrerequisiteProcessingWorkOrderIds(
+    outputWeeklyState
+  ).filter((workOrderId) => !prerequisiteReleases.reservations[workOrderId])
   const workshopTerminalCleanup = reconcileDepartmentWorkshopTerminalLanes(
     outputWeeklyState,
     terminalWorkshopWorkOrderIds
@@ -5020,7 +5032,7 @@ export function advanceWeek(
 
   // SPE-2755: case records are the sole receipt consumer. Reconciliation
   // verifies authored work-order provenance and is safe on replays/save-load.
-  Object.assign(outputWeeklyState, reconcileDepartmentWorkshopCompletionReceipts(outputWeeklyState))
+  Object.assign(outputWeeklyState, reconcileDepartmentWorkshopCaseHandoffs(outputWeeklyState))
 
   // SPE-2741: advance persisted rivals for the week that just closed. Pressure
   // ownership remains explicit; production uses deterministic zero-pressure inputs.

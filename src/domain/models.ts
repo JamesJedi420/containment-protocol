@@ -11,6 +11,8 @@ import type {
   CaseScopedPrerequisiteProcessingOrderRegistry,
   CaseScopedPrerequisiteProcessingReservationRegistry,
   CaseScopedPrerequisiteProcessingTerminalSignalRegistry,
+  CaseScopedWorkshopFinalizationHandoff,
+  CaseScopedWorkshopFinalizationRequest,
 } from './prerequisiteProcessingOrders'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -1418,6 +1420,16 @@ export interface CaseInstance {
    * reprioritize the case.
    */
   departmentWorkshopCompletionWorkOrderIds?: Id[]
+  /**
+   * SPE-2765: authored final production recipe and the exact case-owned
+   * prerequisite workshop orders whose completion can unlock its handoff.
+   */
+  departmentWorkshopFinalizationRequest?: CaseScopedWorkshopFinalizationRequest
+  /**
+   * SPE-2765: durable readiness handoff only. Fabrication and case resolution
+   * remain explicit downstream owners.
+   */
+  departmentWorkshopFinalizationHandoff?: CaseScopedWorkshopFinalizationHandoff
 
   difficulty: StatBlock
   weights: WeightBlock

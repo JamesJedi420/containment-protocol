@@ -189,6 +189,72 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
   )
 }
 
+function compareCaseIds(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+/**
+ * SPE-2766: consume each durable workshop finalization handoff into global
+ * Fabrication at most once. Stock/funding failures leave the handoff intact.
+ */
+export function enqueueCaseScopedWorkshopFinalizationFabrication(state: GameState): GameState {
+  if (!state.cases) {
+    return ensureNormalizedGameState(state)
+  }
+
+  let next = state
+  let changed = false
+
+  for (const caseId of Object.keys(next.cases).sort(compareCaseIds)) {
+    const currentCase = next.cases[caseId]
+    if (
+      !currentCase ||
+      currentCase.id !== caseId ||
+      (currentCase.status !== 'open' && currentCase.status !== 'in_progress')
+    ) {
+      continue
+    }
+
+    const handoff = currentCase.departmentWorkshopFinalizationHandoff
+    if (!handoff) {
+      continue
+    }
+
+    if (
+      typeof currentCase.departmentWorkshopFinalizationFabricationQueueId === 'string' &&
+      currentCase.departmentWorkshopFinalizationFabricationQueueId.trim().length > 0
+    ) {
+      continue
+    }
+
+    const beforeIds = new Set(next.productionQueue.map((entry) => entry.id))
+    const attempted = queueFabrication(next, handoff.finalRecipeId)
+    const newEntry = attempted.productionQueue.find((entry) => !beforeIds.has(entry.id))
+    if (!newEntry || newEntry.recipeId !== handoff.finalRecipeId) {
+      continue
+    }
+
+    const attemptedCase = attempted.cases[caseId]
+    if (!attemptedCase) {
+      continue
+    }
+
+    changed = true
+    next = {
+      ...attempted,
+      cases: {
+        ...attempted.cases,
+        [caseId]: {
+          ...attemptedCase,
+          departmentWorkshopFinalizationFabricationQueueId: newEntry.id,
+        },
+      },
+    }
+  }
+
+  return changed ? next : state
+}
+
 export function purchaseMarketInventory(
   state: GameState,
   recipeId: string,

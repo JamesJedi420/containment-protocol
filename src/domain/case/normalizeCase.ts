@@ -1746,6 +1746,9 @@ export function normalizeCaseInstance(
   const departmentWorkshopFinalizationHandoff = sanitizeDepartmentWorkshopFinalizationHandoff(
     entry.departmentWorkshopFinalizationHandoff
   )
+  const departmentWorkshopFinalizationFabricationQueueId = sanitizeWorkshopFinalizationId(
+    entry.departmentWorkshopFinalizationFabricationQueueId
+  )
   const onFail = filterSpawnTemplateIdsToCatalog(
     sanitizeSpawnRuleField(entry.onFail, fallback.onFail),
     context.knownTemplateIds
@@ -1819,6 +1822,9 @@ export function normalizeCaseInstance(
       : {}),
     ...(departmentWorkshopFinalizationHandoff !== undefined
       ? { departmentWorkshopFinalizationHandoff }
+      : {}),
+    ...(departmentWorkshopFinalizationFabricationQueueId !== undefined
+      ? { departmentWorkshopFinalizationFabricationQueueId }
       : {}),
     ...(kind === 'raid' && raid ? { raid } : {}),
     ...(isOneOf(entry.infiltrationStage, INFILTRATION_STAGES)
@@ -2037,6 +2043,17 @@ export function normalizeCaseInstance(
         departmentWorkshopFinalizationHandoff?: CaseInstance['departmentWorkshopFinalizationHandoff']
       }
     ).departmentWorkshopFinalizationHandoff
+  }
+
+  if (
+    entry.departmentWorkshopFinalizationFabricationQueueId !== undefined &&
+    departmentWorkshopFinalizationFabricationQueueId === undefined
+  ) {
+    delete (
+      baseCase as {
+        departmentWorkshopFinalizationFabricationQueueId?: CaseInstance['departmentWorkshopFinalizationFabricationQueueId']
+      }
+    ).departmentWorkshopFinalizationFabricationQueueId
   }
 
   if (entry.contract !== undefined && contract === undefined) {

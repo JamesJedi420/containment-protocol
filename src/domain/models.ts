@@ -1430,6 +1430,11 @@ export interface CaseInstance {
    * remain explicit downstream owners.
    */
   departmentWorkshopFinalizationHandoff?: CaseScopedWorkshopFinalizationHandoff
+  /**
+   * SPE-2766: production queue entry id created when the durable handoff was
+   * consumed into global Fabrication. Presence blocks re-enqueue on replay.
+   */
+  departmentWorkshopFinalizationFabricationQueueId?: Id
 
   difficulty: StatBlock
   weights: WeightBlock

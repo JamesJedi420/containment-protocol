@@ -230,7 +230,11 @@ import {
 import { buildAssignedTeamLeaderBonuses } from '../teamBonuses'
 import { deriveRelationshipStability, deriveRelationshipState } from './relationshipProjection'
 import { applyRaids } from './raid'
-import { advanceMarketState, advanceProductionQueues } from './production'
+import {
+  advanceMarketState,
+  advanceProductionQueues,
+  enqueueCaseScopedWorkshopFinalizationFabrication,
+} from './production'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -4823,9 +4827,12 @@ function reconcileDepartmentWorkshopCaseHandoffs(state: GameState): GameState {
     receiptReconciled,
     productionCatalog
   )
-  return finalization.cases !== receiptReconciled.cases
-    ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
-    : receiptReconciled
+  const withHandoffs =
+    finalization.cases !== receiptReconciled.cases
+      ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
+      : receiptReconciled
+  // SPE-2766: enqueue Fabrication after the durable readiness handoff exists.
+  return enqueueCaseScopedWorkshopFinalizationFabrication(withHandoffs)
 }
 
 export function advanceWeek(

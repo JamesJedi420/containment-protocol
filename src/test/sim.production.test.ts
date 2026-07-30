@@ -16,6 +16,7 @@ import {
   advanceProductionQueues,
   advanceMarketState,
   enqueueCaseScopedWorkshopFinalizationFabrication,
+  resolveCaseScopedWorkshopFinalizationCases,
 } from '../domain/sim/production'
 import { createFixtureState } from './storeFixtures'
 
@@ -433,6 +434,70 @@ describe('enqueueCaseScopedWorkshopFinalizationFabrication', () => {
       expect(result.cases[openId]?.departmentWorkshopFinalizationFabricationQueueId).toBeDefined()
       expect(result.productionQueue).toHaveLength(1)
     }
+  })
+})
+
+// ─── resolveCaseScopedWorkshopFinalizationCases ───────────────────────────────
+
+describe('resolveCaseScopedWorkshopFinalizationCases', () => {
+  it('resolves an open case once durable Fabrication enqueue proof exists', () => {
+    const state = createFixtureState()
+    const caseId = Object.keys(state.cases).sort()[0]!
+    const withProof = {
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseId]: {
+          ...state.cases[caseId]!,
+          assignedTeamIds: ['team-a'],
+          weeksRemaining: 3,
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'med-kits',
+            outputItemId: 'medkits',
+            outputQuantity: 1,
+            sourceWorkOrderIds: ['work:input'],
+            handoffWeek: 1,
+          },
+          departmentWorkshopFinalizationFabricationQueueId: 'queue-1',
+        },
+      },
+    }
+
+    const resolved = resolveCaseScopedWorkshopFinalizationCases(withProof)
+    const replay = resolveCaseScopedWorkshopFinalizationCases(resolved)
+
+    expect(resolved.cases[caseId]?.status).toBe('resolved')
+    expect(resolved.cases[caseId]?.assignedTeamIds).toEqual([])
+    expect(resolved.cases[caseId]?.weeksRemaining).toBe(0)
+    expect(resolved.productionQueue).toEqual(state.productionQueue)
+    expect(replay.cases[caseId]?.status).toBe('resolved')
+    expect(replay).toBe(resolved)
+  })
+
+  it('leaves the case open when the Fabrication enqueue marker is missing', () => {
+    const state = createFixtureState()
+    const caseId = Object.keys(state.cases).sort()[0]!
+    const withHandoffOnly = {
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseId]: {
+          ...state.cases[caseId]!,
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'med-kits',
+            outputItemId: 'medkits',
+            outputQuantity: 1,
+            sourceWorkOrderIds: ['work:input'],
+            handoffWeek: 1,
+          },
+        },
+      },
+    }
+
+    const result = resolveCaseScopedWorkshopFinalizationCases(withHandoffOnly)
+
+    expect(result.cases[caseId]?.status).not.toBe('resolved')
+    expect(result).toBe(withHandoffOnly)
   })
 })
 

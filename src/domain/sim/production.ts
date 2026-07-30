@@ -13,6 +13,7 @@ import {
 } from '../crafting'
 import { type GameState, type ProductionQueueEntry } from '../models'
 import { isCaseScopedWorkshopFinalizationHandoff } from '../prerequisiteProcessingOrders'
+import { stripInfiltrationEncounterCoverStanceOnResolvedCase } from '../infiltrationEncounterCoverStanceTick'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
@@ -254,6 +255,54 @@ export function enqueueCaseScopedWorkshopFinalizationFabrication(state: GameStat
   }
 
   return changed ? next : state
+}
+
+/**
+ * SPE-2767: resolve open workshop-finalization cases once durable Fabrication
+ * enqueue proof exists. Does not wait for production completion or run mission
+ * scoring.
+ */
+export function resolveCaseScopedWorkshopFinalizationCases(state: GameState): GameState {
+  if (!state.cases) {
+    return ensureNormalizedGameState(state)
+  }
+
+  let cases = state.cases
+  let changed = false
+
+  for (const caseId of Object.keys(cases).sort(compareCaseIds)) {
+    const currentCase = cases[caseId]
+    if (
+      !currentCase ||
+      currentCase.id !== caseId ||
+      (currentCase.status !== 'open' && currentCase.status !== 'in_progress')
+    ) {
+      continue
+    }
+
+    if (!isCaseScopedWorkshopFinalizationHandoff(currentCase.departmentWorkshopFinalizationHandoff)) {
+      continue
+    }
+
+    const queueId = currentCase.departmentWorkshopFinalizationFabricationQueueId
+    if (typeof queueId !== 'string' || queueId.trim().length === 0) {
+      continue
+    }
+
+    if (!changed) {
+      cases = { ...state.cases }
+      changed = true
+    }
+
+    cases[caseId] = stripInfiltrationEncounterCoverStanceOnResolvedCase({
+      ...currentCase,
+      assignedTeamIds: [],
+      status: 'resolved',
+      weeksRemaining: 0,
+    })
+  }
+
+  return changed ? { ...state, cases } : state
 }
 
 export function purchaseMarketInventory(

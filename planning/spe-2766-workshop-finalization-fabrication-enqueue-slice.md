@@ -39,7 +39,7 @@ global Fabrication once for the authored final recipe.
 
 | Item                              | Owner              | Why deferred                                                                 |
 | --------------------------------- | ------------------ | ---------------------------------------------------------------------------- |
-| Automatic case closure            | SPE-1028 follow-up | Case lifecycle remains explicit and independent of Fabrication enqueue.      |
+| Automatic case closure            | [SPE-2767](https://linear.app/spectranoir/issue/SPE-2767) | Resolves open cases after durable Fabrication enqueue proof.             |
 | Fabrication UI redesign           | SPE-1028 follow-up | Domain enqueue reuses existing production queue surfaces.                    |
 | Facility modifiers and operations | Separate owners    | No safety, adjacency, quality, facility, report, or operation-event changes. |
 

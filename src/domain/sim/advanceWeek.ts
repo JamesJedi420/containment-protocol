@@ -234,6 +234,7 @@ import {
   advanceMarketState,
   advanceProductionQueues,
   enqueueCaseScopedWorkshopFinalizationFabrication,
+  resolveCaseScopedWorkshopFinalizationCases,
 } from './production'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
@@ -4832,7 +4833,9 @@ function reconcileDepartmentWorkshopCaseHandoffs(state: GameState): GameState {
       ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
       : receiptReconciled
   // SPE-2766: enqueue Fabrication after the durable readiness handoff exists.
-  return enqueueCaseScopedWorkshopFinalizationFabrication(withHandoffs)
+  const withFabrication = enqueueCaseScopedWorkshopFinalizationFabrication(withHandoffs)
+  // SPE-2767: resolve cases once durable Fabrication enqueue proof exists.
+  return resolveCaseScopedWorkshopFinalizationCases(withFabrication)
 }
 
 export function advanceWeek(

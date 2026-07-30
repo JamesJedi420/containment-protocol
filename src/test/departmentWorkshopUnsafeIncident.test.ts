@@ -102,6 +102,57 @@ describe('department workshop unsafe secondary incidents', () => {
     expect(Object.keys(replay.state.cases)).toEqual(Object.keys(result.state.cases))
   })
 
+  it('fails closed without a marker when provenance, parent, or templates are missing', () => {
+    const baseline = createStartingState()
+
+    const provenanceMismatch = withUnsafeReceipt(baseline)
+    provenanceMismatch.departmentWorkshopWorkOrders = {
+      'work:unsafe-secondary': {
+        ...provenanceMismatch.departmentWorkshopWorkOrders!['work:unsafe-secondary']!,
+        caseId: 'case-002',
+      },
+    }
+    expect(
+      reconcileDepartmentWorkshopUnsafeSecondaryIncidents(provenanceMismatch).spawnedWorkOrderIds
+    ).toEqual([])
+    expect(
+      reconcileDepartmentWorkshopUnsafeSecondaryIncidents(provenanceMismatch).state
+        .departmentWorkshopUnsafeSecondaryIncidents?.['work:unsafe-secondary']
+    ).toBeUndefined()
+
+    const missingParent = withUnsafeReceipt(baseline)
+    const orphaned = {
+      ...missingParent,
+      cases: Object.fromEntries(
+        Object.entries(missingParent.cases).filter(([id]) => id !== 'case-001')
+      ),
+    }
+    expect(reconcileDepartmentWorkshopUnsafeSecondaryIncidents(orphaned).spawnedWorkOrderIds).toEqual(
+      []
+    )
+    expect(
+      reconcileDepartmentWorkshopUnsafeSecondaryIncidents(orphaned).state
+        .departmentWorkshopUnsafeSecondaryIncidents?.['work:unsafe-secondary']
+    ).toBeUndefined()
+
+    const noTemplates = withUnsafeReceipt(baseline)
+    noTemplates.cases = {
+      ...noTemplates.cases,
+      'case-001': {
+        ...noTemplates.cases['case-001']!,
+        onUnresolved: { spawnTemplateIds: ['missing-template-a'], spawnCount: { min: 1, max: 1 } },
+        onFail: { spawnTemplateIds: ['missing-template-b'], spawnCount: { min: 1, max: 1 } },
+      },
+    }
+    expect(
+      reconcileDepartmentWorkshopUnsafeSecondaryIncidents(noTemplates).spawnedWorkOrderIds
+    ).toEqual([])
+    expect(
+      reconcileDepartmentWorkshopUnsafeSecondaryIncidents(noTemplates).state
+        .departmentWorkshopUnsafeSecondaryIncidents?.['work:unsafe-secondary']
+    ).toBeUndefined()
+  })
+
   it('does not spawn from safe or quality-degraded-only receipts', () => {
     const safe = withUnsafeReceipt(createStartingState(), { safety: 'safe' })
     const safeResult = reconcileDepartmentWorkshopUnsafeSecondaryIncidents(safe)

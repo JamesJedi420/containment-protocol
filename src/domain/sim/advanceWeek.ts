@@ -4845,11 +4845,7 @@ export function advanceWeek(
   publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
 ): GameState {
   if (state.gameOver) {
-    return ensureNormalizedGameState(
-      reconcileDepartmentWorkshopCaseHandoffs(
-        reconcileDepartmentWorkshopUnsafeSecondaryIncidents(state).state
-      )
-    )
+    return ensureNormalizedGameState(reconcileDepartmentWorkshopCaseHandoffs(state))
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)

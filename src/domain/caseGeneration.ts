@@ -1099,7 +1099,11 @@ function buildCaseOrigin(currentCase: CaseInstance, game: GameState): CaseOrigin
         label: 'Workshop unsafe processing',
         detail:
           spawnEvent.payload.sourceReason ??
-          'Unsafe workshop processing disposition opened a secondary incident.',
+          (spawnEvent.payload.parentCaseTitle
+            ? `Unsafe workshop processing on ${spawnEvent.payload.parentCaseTitle} opened a secondary incident.`
+            : 'Unsafe workshop processing disposition opened a secondary incident.'),
+        parentCaseId: spawnEvent.payload.parentCaseId,
+        parentCaseTitle: spawnEvent.payload.parentCaseTitle,
       }
     }
 

@@ -26,6 +26,7 @@ export interface SpawnedCaseRecord {
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
   parentCaseId?: string
   factionId?: string
   factionLabel?: string

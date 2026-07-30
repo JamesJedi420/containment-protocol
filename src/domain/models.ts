@@ -7,6 +7,7 @@ import type {
   DepartmentWorkshopSnapshotRegistry,
   DepartmentWorkshopWorkOrderRegistry,
 } from './departmentWorkshopQueue'
+import type { DepartmentWorkshopUnsafeSecondaryIncidentRegistry } from './departmentWorkshopUnsafeIncident'
 import type {
   CaseScopedPrerequisiteProcessingOrderRegistry,
   CaseScopedPrerequisiteProcessingReservationRegistry,
@@ -924,6 +925,7 @@ export interface MissionSpawnedConsequence {
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
   detail: string
 }
 
@@ -2686,6 +2688,11 @@ export interface GameState {
    * order. This remains a no-modifier downstream outcome, not a case mutation.
    */
   departmentWorkshopCompletionOutcomes?: DepartmentWorkshopCompletionOutcomeRegistry
+  /**
+   * SPE-1028 unsafe secondary-incident consume markers keyed by work-order ID →
+   * spawned case ID. First write wins across week-close replay and save/load.
+   */
+  departmentWorkshopUnsafeSecondaryIncidents?: DepartmentWorkshopUnsafeSecondaryIncidentRegistry
   /** SPE-2757: case-owned prerequisite-processing envelopes keyed by work-order ID. */
   caseScopedPrerequisiteProcessingOrders?: CaseScopedPrerequisiteProcessingOrderRegistry
   caseScopedPrerequisiteProcessingReservations?: CaseScopedPrerequisiteProcessingReservationRegistry

@@ -208,6 +208,7 @@ const caseSpawnedSchema = z
       'faction_offer',
       'faction_pressure',
       'pressure_threshold',
+      'workshop_unsafe',
     ]),
     parentCaseId: idSchema.optional(),
     parentCaseTitle: z.string().optional(),

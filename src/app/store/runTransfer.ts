@@ -298,6 +298,7 @@ import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../../domain/departmentWorkshopQueue'
+import { sanitizeDepartmentWorkshopUnsafeSecondaryIncidents } from '../../domain/departmentWorkshopUnsafeIncident'
 import {
   sanitizeCaseScopedPrerequisiteProcessingOrders,
   sanitizeCaseScopedPrerequisiteProcessingReservations,
@@ -383,6 +384,7 @@ const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = [
   'faction_offer',
   'faction_pressure',
   'pressure_threshold',
+  'workshop_unsafe',
 ]
 const INFILTRATION_PROBE_STAGES = ['probing', 'exposed', 'violent'] as const
 const INFILTRATION_PROBE_ACTIONS = ['probe_access', 'probe_route', 'cleanup'] as const
@@ -9304,6 +9306,10 @@ export function hydrateGame(
   const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     game.departmentWorkshopCompletionOutcomes
   )
+  const departmentWorkshopUnsafeSecondaryIncidents =
+    sanitizeDepartmentWorkshopUnsafeSecondaryIncidents(
+      game.departmentWorkshopUnsafeSecondaryIncidents
+    )
   const spe956SurvivorInformalRegistryRecords = sanitizeSpe956SurvivorInformalRegistryRecords(
     game.spe956SurvivorInformalRegistryRecords,
     fallback.spe956SurvivorInformalRegistryRecords ?? {}
@@ -9650,6 +9656,7 @@ export function hydrateGame(
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
+    departmentWorkshopUnsafeSecondaryIncidents,
     caseScopedPrerequisiteProcessingOrders,
     caseScopedPrerequisiteProcessingReservations,
     caseScopedPrerequisiteProcessingTerminalSignals,
@@ -9829,6 +9836,7 @@ export function hydrateGame(
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
+    departmentWorkshopUnsafeSecondaryIncidents,
     caseScopedPrerequisiteProcessingOrders,
     caseScopedPrerequisiteProcessingReservations,
     caseScopedPrerequisiteProcessingTerminalSignals,

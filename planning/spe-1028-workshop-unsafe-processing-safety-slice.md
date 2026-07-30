@@ -42,7 +42,7 @@ spawning a parallel incident system.
 | Item                                         | Owner              | Why deferred                                                         |
 | -------------------------------------------- | ------------------ | -------------------------------------------------------------------- |
 | Live facility/staff → safety inputs          | SPE-1028 follow-up | This slice keeps caller-owned conditions only.                       |
-| Secondary incident spawn from unsafe receipt | SPE-1028 follow-up | Disposition is recorded only; existing incident producers unchanged. |
+| Secondary incident spawn from unsafe receipt | [#3414](https://github.com/JamesJedi420/containment-protocol/issues/3414) / `planning/spe-1028-workshop-unsafe-secondary-incident-slice.md` | Disposition is recorded only; existing incident producers unchanged. |
 | Live facility/staff → quality inputs         | SPE-1028 follow-up | Still deferred from SPE-2768.                                        |
 | Adjacency and player workshop surface        | SPE-1028 follow-up | Still outside completion-receipt ownership.                          |
 

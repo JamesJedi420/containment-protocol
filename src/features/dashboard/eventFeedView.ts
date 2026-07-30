@@ -320,6 +320,7 @@ function getSpawnTriggerLabel(
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
 ) {
   if (trigger === 'raid_pressure') {
     return 'raid pressure'
@@ -339,6 +340,10 @@ function getSpawnTriggerLabel(
 
   if (trigger === 'pressure_threshold') {
     return 'global pressure threshold'
+  }
+
+  if (trigger === 'workshop_unsafe') {
+    return 'workshop unsafe processing'
   }
 
   return trigger

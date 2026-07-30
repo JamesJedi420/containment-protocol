@@ -27,6 +27,7 @@ export type CaseSpawnTrigger =
   | 'faction_offer'
   | 'faction_pressure'
   | 'pressure_threshold'
+  | 'workshop_unsafe'
 
 export type MarketTransactionListingResourceClass =
   'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'

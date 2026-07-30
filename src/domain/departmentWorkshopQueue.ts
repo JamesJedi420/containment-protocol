@@ -83,8 +83,9 @@ export interface DepartmentWorkshopCompletionSafetyResult {
 /**
  * The sole downstream result emitted when a workshop order completes.
  * Quality grades (SPE-2768) and safety dispositions ride on the receipt;
- * adjacency, facility live wiring, incident spawn, and case-queue modifiers
- * remain out of scope.
+ * adjacency, facility live wiring, and case-queue modifiers remain out of
+ * scope. Secondary-incident spawn from `safety: 'unsafe'` is owned by the
+ * week-close unsafe-receipt consumer, not by receipt registration.
  */
 export interface DepartmentWorkshopCompletionOutcome {
   readonly workOrderId: string

@@ -49,7 +49,7 @@ per unsafe work order with a durable consume marker for replay idempotency.
 
 | Item                                  | Owner              | Why deferred                                              |
 | ------------------------------------- | ------------------ | --------------------------------------------------------- |
-| Live facility/staff → safety inputs   | `planning/spe-1028-workshop-live-safety-inputs-slice.md` (Backlog; mapping seam required) | Week-close still omits register conditions → safe; no live projection until a mapping seam exists. |
+| Live facility/staff → safety inputs   | [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772) / `planning/spe-1028-workshop-live-safety-inputs-slice.md` (Backlog; mapping seam required) | Week-close still omits register conditions → safe; no live projection until a mapping seam exists. |
 | Live facility/staff → quality inputs  | SPE-1028 follow-up | Still deferred from SPE-2768.                             |
 | Same-tick `case.spawned` report notes | SPE-1028 follow-up | Late workshop seam runs after `finalizeEvents`.           |
 | Adjacency and player workshop surface | SPE-1028 follow-up | Still outside completion-receipt / spawn-marker ownership.|

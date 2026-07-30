@@ -12,6 +12,7 @@ import {
   formatProductionOutputLabel,
 } from '../crafting'
 import { type GameState, type ProductionQueueEntry } from '../models'
+import { isCaseScopedWorkshopFinalizationHandoff } from '../prerequisiteProcessingOrders'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
@@ -216,7 +217,7 @@ export function enqueueCaseScopedWorkshopFinalizationFabrication(state: GameStat
     }
 
     const handoff = currentCase.departmentWorkshopFinalizationHandoff
-    if (!handoff) {
+    if (!isCaseScopedWorkshopFinalizationHandoff(handoff)) {
       continue
     }
 

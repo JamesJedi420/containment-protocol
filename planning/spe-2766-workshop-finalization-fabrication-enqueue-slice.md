@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | **Linear**          | [SPE-2766](https://linear.app/spectranoir/issue/SPE-2766/canonical-workshop-finalization-fabrication-enqueue)     |
 | **GitHub**          | [#3402](https://github.com/JamesJedi420/containment-protocol/issues/3402)                                          |
-| **Status**          | **Ready to ship**                                                                                              |
+| **Status**          | **In Progress**                                                                                                |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)           |
 | **Branch**          | `agent/spe-2766-workshop-finalization-fabrication-enqueue`                                                         |
 | **Base `main` SHA** | `c9d30dc8`                                                                                                         |

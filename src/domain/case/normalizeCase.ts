@@ -2045,10 +2045,7 @@ export function normalizeCaseInstance(
     ).departmentWorkshopFinalizationHandoff
   }
 
-  if (
-    entry.departmentWorkshopFinalizationFabricationQueueId !== undefined &&
-    departmentWorkshopFinalizationFabricationQueueId === undefined
-  ) {
+  if (departmentWorkshopFinalizationFabricationQueueId === undefined) {
     delete (
       baseCase as {
         departmentWorkshopFinalizationFabricationQueueId?: CaseInstance['departmentWorkshopFinalizationFabricationQueueId']

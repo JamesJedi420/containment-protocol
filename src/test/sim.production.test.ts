@@ -361,6 +361,34 @@ describe('enqueueCaseScopedWorkshopFinalizationFabrication', () => {
     )
   })
 
+  it('does not enqueue from a malformed handoff', () => {
+    const state = createFixtureState()
+    const caseId = Object.keys(state.cases).sort()[0]!
+    const withHandoff = {
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseId]: {
+          ...state.cases[caseId]!,
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'med-kits',
+            outputItemId: 'medkits',
+            outputQuantity: 0,
+            sourceWorkOrderIds: ['work:input'],
+            handoffWeek: 1,
+          } as never,
+        },
+      },
+    }
+
+    const result = enqueueCaseScopedWorkshopFinalizationFabrication(withHandoff)
+
+    expect(result.productionQueue).toEqual([])
+    expect(result.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBeUndefined()
+    expect(result.funding).toBe(state.funding)
+    expect(result.inventory.medical_supplies).toBe(state.inventory.medical_supplies)
+  })
+
   it('skips resolved cases and leaves sibling production queues untouched', () => {
     const state = createFixtureState()
     const caseIds = Object.keys(state.cases).sort()

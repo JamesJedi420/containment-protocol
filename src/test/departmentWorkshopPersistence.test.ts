@@ -199,6 +199,21 @@ describe('department workshop persistence', () => {
     expect(
       invalidRequestLoaded.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId
     ).toBeUndefined()
+    const omittedMarker = hydrateGame(
+      {
+        ...stripGameTemplates(rawGame as GameState),
+        cases: {
+          ...rawGame.cases,
+          [caseId]: (() => {
+            const nextCase = { ...rawGame.cases[caseId] }
+            Reflect.deleteProperty(nextCase, 'departmentWorkshopFinalizationFabricationQueueId')
+            return nextCase
+          })(),
+        },
+      },
+      fallback
+    )
+    expect(omittedMarker.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBeUndefined()
   })
 
   it('round-trips terminal signals in stable order and isolates malformed siblings', () => {

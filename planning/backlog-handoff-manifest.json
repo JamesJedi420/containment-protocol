@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2768",
-  "inProgress": ["SPE-2768"],
+  "primary": null,
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-2768",
     "SPE-2767",
     "SPE-2766",
     "SPE-2765",
@@ -12,11 +13,10 @@
     "SPE-2760",
     "SPE-2759",
     "SPE-2758",
-    "SPE-2757",
-    "SPE-2703"
+    "SPE-2757"
   ],
   "sliceDocStatus": {
-    "planning/spe-2768-workshop-completion-output-quality-slice.md": "In Progress",
+    "planning/spe-2768-workshop-completion-output-quality-slice.md": "Shipped",
     "planning/spe-2767-workshop-finalization-case-closure-slice.md": "Shipped",
     "planning/spe-2766-workshop-finalization-fabrication-enqueue-slice.md": "Shipped",
     "planning/spe-2765-canonical-workshop-finalization-handoff-slice.md": "Shipped",

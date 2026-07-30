@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | **Linear**          | [SPE-2768](https://linear.app/spectranoir/issue/SPE-2768/deterministic-workshop-completion-output-quality)                |
 | **GitHub**          | [#3408](https://github.com/JamesJedi420/containment-protocol/issues/3408)                                                |
-| **Status**          | **In Progress**                                                                                                          |
+| **Status**          | **Shipped** (PR #3409 @ `308e28c7`)                                                                                      |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                 |
 | **Branch**          | `agent/spe-2768-workshop-completion-output-quality`                                                                      |
 | **Base `main` SHA** | `affc2ed0`                                                                                                               |

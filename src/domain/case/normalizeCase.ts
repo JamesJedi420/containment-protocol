@@ -2017,6 +2017,28 @@ export function normalizeCaseInstance(
     delete (baseCase as { weirdRoomPackets?: CaseInstance['weirdRoomPackets'] }).weirdRoomPackets
   }
 
+  if (
+    entry.departmentWorkshopFinalizationRequest !== undefined &&
+    departmentWorkshopFinalizationRequest === undefined
+  ) {
+    delete (
+      baseCase as {
+        departmentWorkshopFinalizationRequest?: CaseInstance['departmentWorkshopFinalizationRequest']
+      }
+    ).departmentWorkshopFinalizationRequest
+  }
+
+  if (
+    entry.departmentWorkshopFinalizationHandoff !== undefined &&
+    departmentWorkshopFinalizationHandoff === undefined
+  ) {
+    delete (
+      baseCase as {
+        departmentWorkshopFinalizationHandoff?: CaseInstance['departmentWorkshopFinalizationHandoff']
+      }
+    ).departmentWorkshopFinalizationHandoff
+  }
+
   if (entry.contract !== undefined && contract === undefined) {
     delete (baseCase as { contract?: CaseInstance['contract'] }).contract
   }

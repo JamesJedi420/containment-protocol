@@ -145,14 +145,53 @@ describe('department workshop persistence', () => {
         },
       },
     }
+    const fallback = {
+      ...baseline,
+      cases: {
+        ...baseline.cases,
+        [caseId]: {
+          ...baseline.cases[caseId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'fallback-recipe',
+            requiredWorkOrderIds: ['work:fallback'],
+          },
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'fallback-recipe',
+            outputItemId: 'fallback-output',
+            outputQuantity: 1,
+            sourceWorkOrderIds: ['work:fallback'],
+            handoffWeek: 1,
+          },
+        },
+      },
+    }
 
-    const loaded = loadGameSave(serializeGameSave(rawGame as GameState))
+    const loaded = hydrateGame(stripGameTemplates(rawGame as GameState), fallback)
+    const invalidRequestLoaded = hydrateGame(
+      {
+        ...stripGameTemplates(rawGame as GameState),
+        cases: {
+          ...rawGame.cases,
+          [caseId]: {
+            ...rawGame.cases[caseId],
+            departmentWorkshopFinalizationRequest: {
+              finalRecipeId: '',
+              requiredWorkOrderIds: [],
+            },
+          },
+        },
+      },
+      fallback
+    )
 
     expect(loaded.cases[caseId]?.departmentWorkshopFinalizationRequest).toEqual({
       finalRecipeId: 'med-kits',
       requiredWorkOrderIds: ['work:alpha', 'work:zulu'],
     })
     expect(loaded.cases[caseId]?.departmentWorkshopFinalizationHandoff).toBeUndefined()
+    expect(
+      invalidRequestLoaded.cases[caseId]?.departmentWorkshopFinalizationRequest
+    ).toBeUndefined()
   })
 
   it('round-trips terminal signals in stable order and isolates malformed siblings', () => {

@@ -4823,7 +4823,7 @@ function reconcileDepartmentWorkshopCaseHandoffs(state: GameState): GameState {
     receiptReconciled,
     productionCatalog
   )
-  return finalization.handedOffCaseIds.length > 0
+  return finalization.cases !== receiptReconciled.cases
     ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
     : receiptReconciled
 }

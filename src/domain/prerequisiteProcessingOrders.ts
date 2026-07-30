@@ -502,6 +502,24 @@ function isFinalizationRequest(value: unknown): value is CaseScopedWorkshopFinal
   )
 }
 
+function finalizationHandoffMatches(
+  value: unknown,
+  expected: CaseScopedWorkshopFinalizationHandoff
+) {
+  if (!isRecord(value)) return false
+  return (
+    value.finalRecipeId === expected.finalRecipeId &&
+    value.outputItemId === expected.outputItemId &&
+    value.outputQuantity === expected.outputQuantity &&
+    value.handoffWeek === expected.handoffWeek &&
+    Array.isArray(value.sourceWorkOrderIds) &&
+    value.sourceWorkOrderIds.length === expected.sourceWorkOrderIds.length &&
+    value.sourceWorkOrderIds.every(
+      (workOrderId, index) => workOrderId === expected.sourceWorkOrderIds[index]
+    )
+  )
+}
+
 /**
  * Convert exact case-owned workshop completion provenance into one immutable
  * final-recipe readiness handoff. This never reserves inputs, credits the final
@@ -509,6 +527,7 @@ function isFinalizationRequest(value: unknown): value is CaseScopedWorkshopFinal
  */
 export function reconcileCaseScopedWorkshopFinalizationHandoffs(
   source: CaseSource & {
+    readonly week?: unknown
     readonly caseScopedPrerequisiteProcessingOrders?: unknown
     readonly departmentWorkshopCompletionOutcomes?: unknown
     readonly departmentWorkshopWorkOrders?: unknown
@@ -527,22 +546,43 @@ export function reconcileCaseScopedWorkshopFinalizationHandoffs(
   let cases = source.cases
   let changed = false
   const handedOffCaseIds: string[] = []
+  const writeCase = (caseId: string, nextCase: Record<string, unknown>) => {
+    if (!changed) {
+      cases = { ...source.cases }
+      changed = true
+    }
+    cases[caseId] = nextCase
+  }
+  const dropExistingHandoff = (caseId: string, currentCase: Record<string, unknown>) => {
+    if (currentCase.departmentWorkshopFinalizationHandoff === undefined) return
+    const nextCase = { ...currentCase }
+    Reflect.deleteProperty(nextCase, 'departmentWorkshopFinalizationHandoff')
+    writeCase(caseId, nextCase)
+  }
 
   for (const caseId of Object.keys(source.cases).sort(compareCodeUnits)) {
     const currentCase = source.cases[caseId]
     if (
       !isRecord(currentCase) ||
       currentCase.id !== caseId ||
-      (currentCase.status !== 'open' && currentCase.status !== 'in_progress') ||
-      currentCase.departmentWorkshopFinalizationHandoff !== undefined ||
+      (currentCase.status !== 'open' && currentCase.status !== 'in_progress')
+    ) {
+      continue
+    }
+    if (
+      !isPositiveSafeInteger(source.week) ||
       !isFinalizationRequest(currentCase.departmentWorkshopFinalizationRequest) ||
       !Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
     ) {
+      dropExistingHandoff(caseId, currentCase)
       continue
     }
     const request = currentCase.departmentWorkshopFinalizationRequest
     const recipe = recipes.get(request.finalRecipeId)
-    if (!recipe) continue
+    if (!recipe) {
+      dropExistingHandoff(caseId, currentCase)
+      continue
+    }
     const completionLedger = new Set(
       currentCase.departmentWorkshopCompletionWorkOrderIds.filter(isSafeId)
     )
@@ -565,29 +605,32 @@ export function reconcileCaseScopedWorkshopFinalizationHandoffs(
         workshopOrder.caseId !== caseId ||
         workshopOrder.departmentId !== order.departmentId ||
         workshopOrder.taskType !== order.taskType ||
-        workshopOrder.requiredWork !== order.requiredWork
+        workshopOrder.requiredWork !== order.requiredWork ||
+        outcome.completedWeek > source.week
       ) {
         valid = false
         break
       }
       handoffWeek = Math.max(handoffWeek, outcome.completedWeek)
     }
-    if (!valid || !isPositiveSafeInteger(handoffWeek)) continue
-
-    if (!changed) {
-      cases = { ...source.cases }
-      changed = true
+    if (!valid || !isPositiveSafeInteger(handoffWeek)) {
+      dropExistingHandoff(caseId, currentCase)
+      continue
     }
-    cases[caseId] = {
+    const handoff: CaseScopedWorkshopFinalizationHandoff = Object.freeze({
+      finalRecipeId: recipe.recipeId,
+      outputItemId: recipe.outputItemId,
+      outputQuantity: recipe.outputQuantity,
+      sourceWorkOrderIds: Object.freeze([...request.requiredWorkOrderIds].sort(compareCodeUnits)),
+      handoffWeek,
+    })
+    if (finalizationHandoffMatches(currentCase.departmentWorkshopFinalizationHandoff, handoff)) {
+      continue
+    }
+    writeCase(caseId, {
       ...currentCase,
-      departmentWorkshopFinalizationHandoff: Object.freeze({
-        finalRecipeId: recipe.recipeId,
-        outputItemId: recipe.outputItemId,
-        outputQuantity: recipe.outputQuantity,
-        sourceWorkOrderIds: Object.freeze([...request.requiredWorkOrderIds].sort(compareCodeUnits)),
-        handoffWeek,
-      }),
-    }
+      departmentWorkshopFinalizationHandoff: handoff,
+    })
     handedOffCaseIds.push(caseId)
   }
 

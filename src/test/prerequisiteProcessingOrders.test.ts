@@ -100,6 +100,7 @@ describe('case-scoped prerequisite processing orders', () => {
       prerequisiteWorkOrderIds: [],
     }
     const game = {
+      week: 4,
       cases: {
         'case:open': {
           id: 'case:open',
@@ -108,6 +109,13 @@ describe('case-scoped prerequisite processing orders', () => {
           departmentWorkshopFinalizationRequest: {
             finalRecipeId: 'med-kits',
             requiredWorkOrderIds: [workOrderId],
+          },
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'forged',
+            outputItemId: 'forged',
+            outputQuantity: 99,
+            sourceWorkOrderIds: [workOrderId],
+            handoffWeek: 1,
           },
         },
       },
@@ -161,6 +169,84 @@ describe('case-scoped prerequisite processing orders', () => {
     expect(replay.cases).toBe(result.cases)
   })
 
+  it('drops a future-dated handoff proof until the campaign reaches its completion week', () => {
+    const workOrderId = 'work:future-final-input'
+    const order = {
+      workOrderId,
+      caseId: 'case:open',
+      processingRecipeId: 'prepare-medical-supplies',
+      inputMaterials: [],
+      outputMaterialId: 'medical_supplies',
+      outputQuantity: 2,
+      departmentId: 'department:records-analysis',
+      taskType: 'records_review',
+      requiredWork: 1,
+      prerequisiteWorkOrderIds: [],
+    }
+    const game = {
+      week: 3,
+      cases: {
+        'case:open': {
+          id: 'case:open',
+          status: 'open',
+          departmentWorkshopCompletionWorkOrderIds: [workOrderId],
+          departmentWorkshopFinalizationRequest: {
+            finalRecipeId: 'med-kits',
+            requiredWorkOrderIds: [workOrderId],
+          },
+          departmentWorkshopFinalizationHandoff: {
+            finalRecipeId: 'med-kits',
+            outputItemId: 'medkits',
+            outputQuantity: 1,
+            sourceWorkOrderIds: [workOrderId],
+            handoffWeek: 5,
+          },
+        },
+      },
+      caseScopedPrerequisiteProcessingOrders: { [workOrderId]: order },
+      departmentWorkshopWorkOrders: {
+        [workOrderId]: {
+          id: workOrderId,
+          caseId: order.caseId,
+          departmentId: order.departmentId,
+          taskType: order.taskType,
+          requiredWork: order.requiredWork,
+        },
+      },
+      departmentWorkshopCompletionOutcomes: {
+        [workOrderId]: {
+          workOrderId,
+          caseId: order.caseId,
+          departmentId: order.departmentId,
+          taskType: order.taskType,
+          completedWeek: 5,
+          outcome: 'completed',
+        },
+      },
+    }
+    const recipes = [
+      {
+        recipeId: 'med-kits',
+        outputItemId: 'medkits',
+        outputQuantity: 1,
+        inputMaterials: { medical_supplies: 2 },
+      },
+    ]
+
+    const early = reconcileCaseScopedWorkshopFinalizationHandoffs(game, recipes)
+    const onTime = reconcileCaseScopedWorkshopFinalizationHandoffs(
+      { ...game, week: 5, cases: early.cases },
+      recipes
+    )
+
+    expect(early.handedOffCaseIds).toEqual([])
+    expect(early.cases['case:open']).not.toHaveProperty('departmentWorkshopFinalizationHandoff')
+    expect(onTime.handedOffCaseIds).toEqual(['case:open'])
+    expect(onTime.cases['case:open']).toMatchObject({
+      departmentWorkshopFinalizationHandoff: { handoffWeek: 5 },
+    })
+  })
+
   it('isolates malformed, cross-case, resolved, and overflow finalization mappings', () => {
     const validWorkOrderId = 'work:valid-final-input'
     const validOrder = {
@@ -190,6 +276,7 @@ describe('case-scoped prerequisite processing orders', () => {
       ])
     )
     const game = {
+      week: 2,
       cases,
       caseScopedPrerequisiteProcessingOrders: { [validWorkOrderId]: validOrder },
       departmentWorkshopWorkOrders: {

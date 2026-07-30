@@ -81,8 +81,14 @@ case's `departmentWorkshopCompletionWorkOrderIds` ledger. The ledger is sorted
 and deduplicated, so it is the case-side receipt-ledger idempotency boundary
 across close replays and save/load. Missing/resolved cases, the global queue,
 inventory, adjacency, and live facility wiring remain outside the receipt seam.
-Live facility/staff projection into quality or safety conditions is a later
-SPE-1028 child.
+Live facility/staff projection into quality or safety conditions remains a
+later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
+for safety) and is **blocked on an explicit mapping seam**. Until that seam
+exists: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
+lookups, status/level heuristics, or staff-to-workshop assignment; week-close
+must continue to omit `safetyConditionsByWorkOrderId` (and quality maps) so
+register stays all-good; `resolveDepartmentWorkshopCompletionSafety` remains
+the sole grading authority for caller-owned stubs.
 
 ## SPE-2084 compatibility
 
@@ -161,8 +167,10 @@ depend on a positive slot capacity.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts
   from caller-owned conditions only; neither invents live facility/staff wiring
-  or inventory mutation. Secondary-incident spawn from durable `unsafe` receipts
-  is owned by the week-close consumer (#3414 /
+  or inventory mutation. Live safety projection is tracked as Backlog under
+  `planning/spe-1028-workshop-live-safety-inputs-slice.md` and must not ship
+  without an explicit mapping seam. Secondary-incident spawn from durable
+  `unsafe` receipts is owned by the week-close consumer (#3414 /
   `planning/spe-1028-workshop-unsafe-secondary-incident-slice.md`).
 
 ## Tests

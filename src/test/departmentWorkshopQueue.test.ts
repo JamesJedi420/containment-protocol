@@ -10,6 +10,7 @@ import {
   advanceDepartmentWorkshopQueue,
   pauseDepartmentWorkshopWork,
   projectDepartmentWorkshopWorkload,
+  resolveDepartmentWorkshopCompletionQuality,
   resumeDepartmentWorkshopWork,
   type DepartmentWorkshopSnapshot,
   type DepartmentWorkshopWorkOrder,
@@ -514,5 +515,43 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(coordination.state).toBe('delayed')
     expect(coordination.delayWeeks).toBe(1)
     expect(coordination.bottleneckDepartmentIds).toEqual([DEPARTMENT_ID])
+  })
+})
+
+describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
+  it('defaults missing or all-good conditions to nominal', () => {
+    expect(resolveDepartmentWorkshopCompletionQuality()).toEqual({ quality: 'nominal' })
+    expect(resolveDepartmentWorkshopCompletionQuality(null)).toEqual({ quality: 'nominal' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+      })
+    ).toEqual({ quality: 'nominal' })
+  })
+
+  it('degrades with stable primary reason order input then specialist then room', () => {
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'poor',
+        specialistCondition: 'poor',
+        roomContamination: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_input_quality' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'poor',
+        roomContamination: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_specialist_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
   })
 })

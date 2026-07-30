@@ -16,7 +16,7 @@
     "SPE-2757"
   ],
   "sliceDocStatus": {
-    "planning/spe-1028-workshop-unsafe-processing-safety-slice.md": "In progress",
+    "planning/spe-1028-workshop-unsafe-processing-safety-slice.md": "Shipped",
     "planning/spe-2768-workshop-completion-output-quality-slice.md": "Shipped",
     "planning/spe-2767-workshop-finalization-case-closure-slice.md": "Shipped",
     "planning/spe-2766-workshop-finalization-fabrication-enqueue-slice.md": "Shipped",

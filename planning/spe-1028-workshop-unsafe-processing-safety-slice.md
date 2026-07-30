@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | **Linear**          | Pending create under [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) (Linear MCP/API unavailable at slice start) |
 | **GitHub**          | [#3411](https://github.com/JamesJedi420/containment-protocol/issues/3411)                                                |
-| **Status**          | **In progress**                                                                                                          |
+| **Status**          | **Shipped** (PR #3412 @ `06a933bc`)                                                                                      |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                 |
 | **Branch**          | `agent/spe-workshop-unsafe-processing-safety`                                                                            |
 | **Base `main` SHA** | `ad927cc8`                                                                                                               |

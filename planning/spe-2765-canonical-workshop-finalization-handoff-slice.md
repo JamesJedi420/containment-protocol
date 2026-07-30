@@ -3,7 +3,7 @@
 | Field               | Value                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2765](https://linear.app/spectranoir/issue/SPE-2765/canonical-workshop-finalization-handoff)        |
-| **Status**          | **In progress**                                                                                          |
+| **Status**          | **Shipped**                                                                                              |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) |
 | **Branch**          | `agent/spe-2765-canonical-workshop-finalization-handoff`                                                 |
 | **Base `main` SHA** | `dd3f68ba`                                                                                               |

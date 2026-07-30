@@ -1093,6 +1093,16 @@ function buildCaseOrigin(currentCase: CaseInstance, game: GameState): CaseOrigin
       }
     }
 
+    if (trigger === 'workshop_unsafe') {
+      return {
+        trigger,
+        label: 'Workshop unsafe processing',
+        detail:
+          spawnEvent.payload.sourceReason ??
+          'Unsafe workshop processing disposition opened a secondary incident.',
+      }
+    }
+
     return {
       trigger,
       label: 'Baseline world activity',

@@ -71,14 +71,18 @@ caller-owned isolation, ventilation, PPE, or dual-auth axes are poor). Quality
 `roomContamination` is not safety contamination: the two grades are orthogonal.
 Existing receipts win, so a replay or save/load cannot create a duplicate or
 rewrite quality or safety. The receipt is deliberately not a case resolution,
-global queue write, adjacency/facility modifier, or incident spawn. SPE-2755
-then consumes the sanitized durable receipt registry into only the matching
-non-resolved case's `departmentWorkshopCompletionWorkOrderIds` ledger. The
-ledger is sorted and deduplicated, so it is the case-side idempotency boundary
+global queue write, or adjacency/facility modifier. Immediately after register,
+the unsafe secondary-incident reconciler consumes sanitized `safety: 'unsafe'`
+receipts into one parent-linked follow-up case each via `instantiateFromTemplate`,
+gated by durable `departmentWorkshopUnsafeSecondaryIncidents` markers keyed by
+work-order ID. Quality `degraded` alone does not spawn. SPE-2755 then consumes
+the sanitized durable receipt registry into only the matching non-resolved
+case's `departmentWorkshopCompletionWorkOrderIds` ledger. The ledger is sorted
+and deduplicated, so it is the case-side receipt-ledger idempotency boundary
 across close replays and save/load. Missing/resolved cases, the global queue,
-inventory, adjacency, live facility wiring, and secondary-incident producers
-remain outside this seam. Live facility/staff projection into quality or safety
-conditions is a later SPE-1028 child.
+inventory, adjacency, and live facility wiring remain outside the receipt seam.
+Live facility/staff projection into quality or safety conditions is a later
+SPE-1028 child.
 
 ## SPE-2084 compatibility
 
@@ -156,13 +160,16 @@ depend on a positive slot capacity.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts
-  from caller-owned conditions only; neither invents live facility/staff wiring,
-  inventory mutation, or secondary-incident spawn.
+  from caller-owned conditions only; neither invents live facility/staff wiring
+  or inventory mutation. Secondary-incident spawn from durable `unsafe` receipts
+  is owned by the week-close consumer (#3414 /
+  `planning/spe-1028-workshop-unsafe-secondary-incident-slice.md`).
 
 ## Tests
 
 - `src/test/departmentWorkshopQueue.test.ts`
 - `src/test/departmentWorkshopPersistence.test.ts`
+- `src/test/departmentWorkshopUnsafeIncident.test.ts`
 - `src/test/departmentWorkshopWrites.test.ts`
 - `src/test/prerequisiteProcessing.test.ts`
 - `src/test/prerequisiteProcessingOrders.test.ts`

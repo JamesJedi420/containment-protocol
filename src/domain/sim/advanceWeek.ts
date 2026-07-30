@@ -89,6 +89,7 @@ import {
   registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
+import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
   reconcileCaseScopedPrerequisiteProcessingCompletions,
@@ -4844,7 +4845,11 @@ export function advanceWeek(
   publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
 ): GameState {
   if (state.gameOver) {
-    return ensureNormalizedGameState(reconcileDepartmentWorkshopCaseHandoffs(state))
+    return ensureNormalizedGameState(
+      reconcileDepartmentWorkshopCaseHandoffs(
+        reconcileDepartmentWorkshopUnsafeSecondaryIncidents(state).state
+      )
+    )
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)
@@ -4986,6 +4991,17 @@ export function advanceWeek(
   )
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
+  }
+
+  // SPE-1028: durable unsafe receipts feed one parent-linked follow-up case each.
+  // Consume markers make replay/save-load a no-op; quality grades do not spawn.
+  const unsafeSecondaryIncidents = reconcileDepartmentWorkshopUnsafeSecondaryIncidents(
+    outputWeeklyState
+  )
+  if (unsafeSecondaryIncidents.spawnedWorkOrderIds.length > 0) {
+    outputWeeklyState.cases = unsafeSecondaryIncidents.state.cases
+    outputWeeklyState.departmentWorkshopUnsafeSecondaryIncidents =
+      unsafeSecondaryIncidents.state.departmentWorkshopUnsafeSecondaryIncidents
   }
 
   const prerequisiteCompletions = reconcileCaseScopedPrerequisiteProcessingCompletions({

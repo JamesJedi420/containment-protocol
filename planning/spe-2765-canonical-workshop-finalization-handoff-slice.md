@@ -42,7 +42,7 @@ durable readiness handoff for an authored production recipe.
 | Item                              | Owner              | Why deferred                                                                    |
 | --------------------------------- | ------------------ | ------------------------------------------------------------------------------- |
 | Final Fabrication                 | [SPE-2766](https://linear.app/spectranoir/issue/SPE-2766) | Consumes this handoff into global Fabrication enqueue.                      |
-| Automatic case closure            | SPE-1028 follow-up | Case lifecycle remains explicit and independent of workshop readiness.          |
+| Automatic case closure            | [SPE-2767](https://linear.app/spectranoir/issue/SPE-2767) | Resolves open cases after durable Fabrication enqueue proof.                |
 | Global Fabrication and UI         | SPE-1028 follow-up | This slice changes only pure domain, case persistence, and week-close ordering. |
 | Facility modifiers and operations | Separate owners    | No safety, adjacency, quality, facility, report, or operation-event changes.    |
 

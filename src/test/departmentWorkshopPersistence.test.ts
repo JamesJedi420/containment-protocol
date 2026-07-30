@@ -518,7 +518,7 @@ describe('department workshop persistence', () => {
     })
   })
 
-  it('hands off a completed case-owned prerequisite and enqueues Fabrication once', () => {
+  it('hands off a completed case-owned prerequisite, enqueues Fabrication, and resolves the case', () => {
     const baseline = createStartingState()
     const caseId = Object.keys(baseline.cases).sort()[0]!
     const workOrderId = 'work:finalization-input'
@@ -587,7 +587,9 @@ describe('department workshop persistence', () => {
     )
     expect(advanced.inventory.medical_supplies).toBe((control.inventory.medical_supplies ?? 0) - 2)
     expect(advanced.inventory.medkits).toBe(control.inventory.medkits)
-    expect(advanced.cases[caseId]?.status).not.toBe('resolved')
+    expect(advanced.cases[caseId]?.status).toBe('resolved')
+    expect(advanced.cases[caseId]?.assignedTeamIds).toEqual([])
+    expect(replay.cases[caseId]?.status).toBe('resolved')
     expect(replay.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual(
       advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff
     )
@@ -684,6 +686,7 @@ describe('department workshop persistence', () => {
     expect(advanced.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe(
       advanced.productionQueue[0]?.id
     )
+    expect(advanced.cases[caseId]?.status).toBe('resolved')
   })
 
   it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {

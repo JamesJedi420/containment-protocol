@@ -46,6 +46,24 @@ export interface CaseScopedWorkshopFinalizationHandoff {
   readonly handoffWeek: number
 }
 
+/** True when value matches the durable SPE-2765 handoff contract. */
+export function isCaseScopedWorkshopFinalizationHandoff(
+  value: unknown
+): value is CaseScopedWorkshopFinalizationHandoff {
+  return (
+    isRecord(value) &&
+    isValueId(value.finalRecipeId) &&
+    isValueId(value.outputItemId) &&
+    isPositiveSafeInteger(value.outputQuantity) &&
+    isPositiveSafeInteger(value.handoffWeek) &&
+    Array.isArray(value.sourceWorkOrderIds) &&
+    value.sourceWorkOrderIds.length > 0 &&
+    value.sourceWorkOrderIds.length === Object.keys(value.sourceWorkOrderIds).length &&
+    value.sourceWorkOrderIds.every(isSafeId) &&
+    new Set(value.sourceWorkOrderIds).size === value.sourceWorkOrderIds.length
+  )
+}
+
 export interface CaseScopedWorkshopFinalizationRecipeContract {
   readonly recipeId: string
   readonly outputItemId: string

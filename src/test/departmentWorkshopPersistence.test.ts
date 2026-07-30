@@ -142,6 +142,7 @@ describe('department workshop persistence', () => {
             sourceWorkOrderIds: ['work:alpha'],
             handoffWeek: 1,
           },
+          departmentWorkshopFinalizationFabricationQueueId: ' queue-1 ',
         },
       },
     }
@@ -162,6 +163,7 @@ describe('department workshop persistence', () => {
             sourceWorkOrderIds: ['work:fallback'],
             handoffWeek: 1,
           },
+          departmentWorkshopFinalizationFabricationQueueId: 'queue-fallback',
         },
       },
     }
@@ -178,6 +180,7 @@ describe('department workshop persistence', () => {
               finalRecipeId: '',
               requiredWorkOrderIds: [],
             },
+            departmentWorkshopFinalizationFabricationQueueId: '1',
           },
         },
       },
@@ -189,9 +192,28 @@ describe('department workshop persistence', () => {
       requiredWorkOrderIds: ['work:alpha', 'work:zulu'],
     })
     expect(loaded.cases[caseId]?.departmentWorkshopFinalizationHandoff).toBeUndefined()
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe('queue-1')
     expect(
       invalidRequestLoaded.cases[caseId]?.departmentWorkshopFinalizationRequest
     ).toBeUndefined()
+    expect(
+      invalidRequestLoaded.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId
+    ).toBeUndefined()
+    const omittedMarker = hydrateGame(
+      {
+        ...stripGameTemplates(rawGame as GameState),
+        cases: {
+          ...rawGame.cases,
+          [caseId]: (() => {
+            const nextCase = { ...rawGame.cases[caseId] }
+            Reflect.deleteProperty(nextCase, 'departmentWorkshopFinalizationFabricationQueueId')
+            return nextCase
+          })(),
+        },
+      },
+      fallback
+    )
+    expect(omittedMarker.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBeUndefined()
   })
 
   it('round-trips terminal signals in stable order and isolates malformed siblings', () => {
@@ -496,7 +518,7 @@ describe('department workshop persistence', () => {
     })
   })
 
-  it('hands off a completed case-owned prerequisite once without starting Fabrication', () => {
+  it('hands off a completed case-owned prerequisite and enqueues Fabrication once', () => {
     const baseline = createStartingState()
     const caseId = Object.keys(baseline.cases).sort()[0]!
     const workOrderId = 'work:finalization-input'
@@ -549,8 +571,8 @@ describe('department workshop persistence', () => {
 
     const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
     const replay = advanceWeek(advanced, Date.UTC(2026, 0, 8))
-    const controlReplay = advanceWeek(control, Date.UTC(2026, 0, 8))
     const loaded = loadGameSave(serializeGameSave(advanced))
+    const queued = advanced.productionQueue.find((entry) => entry.recipeId === 'med-kits')
 
     expect(advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual({
       finalRecipeId: 'med-kits',
@@ -559,18 +581,30 @@ describe('department workshop persistence', () => {
       sourceWorkOrderIds: [workOrderId],
       handoffWeek: 1,
     })
-    expect(advanced.inventory.medical_supplies).toBe(control.inventory.medical_supplies)
+    expect(queued).toBeDefined()
+    expect(advanced.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe(
+      queued?.id
+    )
+    expect(advanced.inventory.medical_supplies).toBe((control.inventory.medical_supplies ?? 0) - 2)
     expect(advanced.inventory.medkits).toBe(control.inventory.medkits)
-    expect(advanced.productionQueue).toEqual(control.productionQueue)
+    expect(advanced.cases[caseId]?.status).not.toBe('resolved')
     expect(replay.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual(
       advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff
     )
-    expect(replay.inventory.medical_supplies).toBe(controlReplay.inventory.medical_supplies)
+    expect(replay.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe(
+      advanced.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId
+    )
+    expect(replay.productionQueue.filter((entry) => entry.recipeId === 'med-kits')).toHaveLength(0)
+    expect(replay.inventory.medical_supplies).toBe(advanced.inventory.medical_supplies)
+    expect(replay.inventory.medkits).toBe((control.inventory.medkits ?? 0) + 1)
     expect(loaded.cases[caseId]?.departmentWorkshopFinalizationRequest).toEqual(
       source.cases[caseId]?.departmentWorkshopFinalizationRequest
     )
     expect(loaded.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual(
       advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff
+    )
+    expect(loaded.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe(
+      advanced.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId
     )
   })
 
@@ -634,16 +668,22 @@ describe('department workshop persistence', () => {
       },
     }
 
-    expect(advanceWeek(source).cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
+    const advanced = advanceWeek(source)
+    expect(advanced.cases[caseId]?.departmentWorkshopCompletionWorkOrderIds).toEqual([
       'work:trusted',
     ])
-    expect(advanceWeek(source).cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual({
+    expect(advanced.cases[caseId]?.departmentWorkshopFinalizationHandoff).toEqual({
       finalRecipeId: 'med-kits',
       outputItemId: 'medkits',
       outputQuantity: 1,
       sourceWorkOrderIds: ['work:trusted'],
       handoffWeek: 1,
     })
+    expect(advanced.productionQueue).toHaveLength(1)
+    expect(advanced.productionQueue[0]?.recipeId).toBe('med-kits')
+    expect(advanced.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBe(
+      advanced.productionQueue[0]?.id
+    )
   })
 
   it('replays in canonical department order without mutating input and keeps zero-capacity work queued', () => {

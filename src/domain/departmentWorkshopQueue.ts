@@ -59,10 +59,32 @@ export interface DepartmentWorkshopCompletionQualityResult {
   readonly qualityReason?: DepartmentWorkshopQualityReason
 }
 
+/** Caller-owned axes for completion unsafe-processing safety (orthogonal to quality). */
+export type DepartmentWorkshopCompletionSafety = 'safe' | 'unsafe'
+
+export type DepartmentWorkshopSafetyReason =
+  | 'inadequate_isolation'
+  | 'inadequate_ventilation'
+  | 'inadequate_ppe'
+  | 'missing_dual_auth'
+
+export interface DepartmentWorkshopSafetyConditions {
+  readonly isolation: DepartmentWorkshopConditionLevel
+  readonly ventilation: DepartmentWorkshopConditionLevel
+  readonly ppe: DepartmentWorkshopConditionLevel
+  readonly dualAuth: DepartmentWorkshopConditionLevel
+}
+
+export interface DepartmentWorkshopCompletionSafetyResult {
+  readonly safety: DepartmentWorkshopCompletionSafety
+  readonly safetyReason?: DepartmentWorkshopSafetyReason
+}
+
 /**
  * The sole downstream result emitted when a workshop order completes.
- * Quality grades (SPE-2768) ride on the receipt; adjacency, safety, facility,
- * and case-queue modifiers remain out of scope.
+ * Quality grades (SPE-2768) and safety dispositions ride on the receipt;
+ * adjacency, facility live wiring, incident spawn, and case-queue modifiers
+ * remain out of scope.
  */
 export interface DepartmentWorkshopCompletionOutcome {
   readonly workOrderId: string
@@ -73,6 +95,8 @@ export interface DepartmentWorkshopCompletionOutcome {
   readonly outcome: 'completed'
   readonly quality: DepartmentWorkshopCompletionQuality
   readonly qualityReason?: DepartmentWorkshopQualityReason
+  readonly safety: DepartmentWorkshopCompletionSafety
+  readonly safetyReason?: DepartmentWorkshopSafetyReason
 }
 
 export type DepartmentWorkshopCompletionOutcomeRegistry = Record<
@@ -645,6 +669,16 @@ const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityRea
   'poor_specialist_condition',
   'poor_room_contamination',
 ])
+const DEPARTMENT_WORKSHOP_COMPLETION_SAFETIES = new Set<DepartmentWorkshopCompletionSafety>([
+  'safe',
+  'unsafe',
+])
+const DEPARTMENT_WORKSHOP_SAFETY_REASONS = new Set<DepartmentWorkshopSafetyReason>([
+  'inadequate_isolation',
+  'inadequate_ventilation',
+  'inadequate_ppe',
+  'missing_dual_auth',
+])
 
 /**
  * Resolve completion output quality from caller-owned condition axes.
@@ -685,21 +719,70 @@ export function resolveDepartmentWorkshopCompletionQuality(
   return Object.freeze({ quality: 'nominal' })
 }
 
+/**
+ * Resolve completion safety disposition from caller-owned safety axes.
+ * Missing conditions default to safe. Any poor axis yields unsafe with a
+ * stable primary reason (isolation → ventilation → ppe → dualAuth).
+ * Orthogonal to SPE-2768 quality (room contamination ≠ safety unsafe).
+ */
+export function resolveDepartmentWorkshopCompletionSafety(
+  conditions?: DepartmentWorkshopSafetyConditions | null
+): DepartmentWorkshopCompletionSafetyResult {
+  if (!conditions) {
+    return Object.freeze({ safety: 'safe' })
+  }
+  if (
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.isolation) ||
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.ventilation) ||
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.ppe) ||
+    !DEPARTMENT_WORKSHOP_CONDITION_LEVELS.has(conditions.dualAuth)
+  ) {
+    return Object.freeze({ safety: 'safe' })
+  }
+  if (conditions.isolation === 'poor') {
+    return Object.freeze({
+      safety: 'unsafe',
+      safetyReason: 'inadequate_isolation',
+    })
+  }
+  if (conditions.ventilation === 'poor') {
+    return Object.freeze({
+      safety: 'unsafe',
+      safetyReason: 'inadequate_ventilation',
+    })
+  }
+  if (conditions.ppe === 'poor') {
+    return Object.freeze({
+      safety: 'unsafe',
+      safetyReason: 'inadequate_ppe',
+    })
+  }
+  if (conditions.dualAuth === 'poor') {
+    return Object.freeze({
+      safety: 'unsafe',
+      safetyReason: 'missing_dual_auth',
+    })
+  }
+  return Object.freeze({ safety: 'safe' })
+}
+
 function frozenCompletionOutcome(
   outcome: DepartmentWorkshopCompletionOutcome
 ): DepartmentWorkshopCompletionOutcome {
-  if (outcome.quality === 'degraded' && outcome.qualityReason) {
-    return Object.freeze({
-      workOrderId: outcome.workOrderId,
-      departmentId: outcome.departmentId,
-      caseId: outcome.caseId,
-      taskType: outcome.taskType,
-      completedWeek: outcome.completedWeek,
-      outcome: 'completed' as const,
-      quality: 'degraded' as const,
-      qualityReason: outcome.qualityReason,
-    })
-  }
+  const qualityFields =
+    outcome.quality === 'degraded' && outcome.qualityReason
+      ? {
+          quality: 'degraded' as const,
+          qualityReason: outcome.qualityReason,
+        }
+      : { quality: 'nominal' as const }
+  const safetyFields =
+    outcome.safety === 'unsafe' && outcome.safetyReason
+      ? {
+          safety: 'unsafe' as const,
+          safetyReason: outcome.safetyReason,
+        }
+      : { safety: 'safe' as const }
   return Object.freeze({
     workOrderId: outcome.workOrderId,
     departmentId: outcome.departmentId,
@@ -707,7 +790,8 @@ function frozenCompletionOutcome(
     taskType: outcome.taskType,
     completedWeek: outcome.completedWeek,
     outcome: 'completed' as const,
-    quality: 'nominal' as const,
+    ...qualityFields,
+    ...safetyFields,
   })
 }
 
@@ -741,24 +825,35 @@ function normalizeCompletionOutcome(
     return null
   }
 
-  if (quality === 'nominal') {
-    return frozenCompletionOutcome({
-      workOrderId: outcome.workOrderId,
-      departmentId: outcome.departmentId,
-      caseId: outcome.caseId,
-      taskType: outcome.taskType,
-      completedWeek: outcome.completedWeek!,
-      outcome: 'completed',
-      quality: 'nominal',
-    })
+  const rawSafety = outcome.safety
+  const safety: DepartmentWorkshopCompletionSafety =
+    rawSafety === undefined ? 'safe' : (rawSafety as DepartmentWorkshopCompletionSafety)
+  if (!DEPARTMENT_WORKSHOP_COMPLETION_SAFETIES.has(safety)) {
+    return null
   }
 
-  const qualityReason = outcome.qualityReason
-  if (
-    typeof qualityReason !== 'string' ||
-    !DEPARTMENT_WORKSHOP_QUALITY_REASONS.has(qualityReason as DepartmentWorkshopQualityReason)
-  ) {
-    return null
+  let qualityReason: DepartmentWorkshopQualityReason | undefined
+  if (quality === 'degraded') {
+    const reason = outcome.qualityReason
+    if (
+      typeof reason !== 'string' ||
+      !DEPARTMENT_WORKSHOP_QUALITY_REASONS.has(reason as DepartmentWorkshopQualityReason)
+    ) {
+      return null
+    }
+    qualityReason = reason as DepartmentWorkshopQualityReason
+  }
+
+  let safetyReason: DepartmentWorkshopSafetyReason | undefined
+  if (safety === 'unsafe') {
+    const reason = outcome.safetyReason
+    if (
+      typeof reason !== 'string' ||
+      !DEPARTMENT_WORKSHOP_SAFETY_REASONS.has(reason as DepartmentWorkshopSafetyReason)
+    ) {
+      return null
+    }
+    safetyReason = reason as DepartmentWorkshopSafetyReason
   }
 
   return frozenCompletionOutcome({
@@ -768,8 +863,10 @@ function normalizeCompletionOutcome(
     taskType: outcome.taskType,
     completedWeek: outcome.completedWeek!,
     outcome: 'completed',
-    quality: 'degraded',
-    qualityReason: qualityReason as DepartmentWorkshopQualityReason,
+    quality,
+    ...(qualityReason ? { qualityReason } : {}),
+    safety,
+    ...(safetyReason ? { safetyReason } : {}),
   })
 }
 
@@ -801,8 +898,9 @@ export function sanitizeDepartmentWorkshopCompletionOutcomes(
  * Register the one explicit downstream outcome for each newly completed order.
  * The durable receipt registry is the idempotency boundary across save/load;
  * this function never changes workshop lanes, case queues, or work orders.
- * Optional caller-owned conditions (SPE-2768) grade new receipts; missing →
- * nominal. Existing receipts win and keep their stored quality.
+ * Optional caller-owned quality (SPE-2768) and safety conditions grade new
+ * receipts; missing → nominal / safe. Existing receipts win and keep their
+ * stored quality and safety.
  */
 export function registerDepartmentWorkshopCompletionOutcomes(
   source: DepartmentWorkshopStateSource,
@@ -810,6 +908,9 @@ export function registerDepartmentWorkshopCompletionOutcomes(
   completedWeek: number,
   conditionsByWorkOrderId?: Readonly<
     Record<string, DepartmentWorkshopQualityConditions | undefined>
+  >,
+  safetyConditionsByWorkOrderId?: Readonly<
+    Record<string, DepartmentWorkshopSafetyConditions | undefined>
   >
 ): DepartmentWorkshopCompletionOutcomeResult {
   const persistedOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
@@ -849,6 +950,9 @@ export function registerDepartmentWorkshopCompletionOutcomes(
     const graded = resolveDepartmentWorkshopCompletionQuality(
       conditionsByWorkOrderId?.[workOrderId]
     )
+    const safetyGraded = resolveDepartmentWorkshopCompletionSafety(
+      safetyConditionsByWorkOrderId?.[workOrderId]
+    )
     additions.push([
       workOrderId,
       frozenCompletionOutcome({
@@ -860,6 +964,8 @@ export function registerDepartmentWorkshopCompletionOutcomes(
         outcome: 'completed',
         quality: graded.quality,
         ...(graded.qualityReason ? { qualityReason: graded.qualityReason } : {}),
+        safety: safetyGraded.safety,
+        ...(safetyGraded.safetyReason ? { safetyReason: safetyGraded.safetyReason } : {}),
       }),
     ])
   }

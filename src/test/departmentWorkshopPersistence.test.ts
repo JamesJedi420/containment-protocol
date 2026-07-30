@@ -458,6 +458,7 @@ describe('department workshop persistence', () => {
         completedWeek: 1,
         outcome: 'completed',
         quality: 'nominal',
+        safety: 'safe',
       },
     })
     expect(advanceWeek(loaded, Date.UTC(2026, 0, 8)).departmentWorkshopCompletionOutcomes).toEqual(
@@ -516,6 +517,7 @@ describe('department workshop persistence', () => {
         completedWeek: 1,
         outcome: 'completed',
         quality: 'nominal',
+        safety: 'safe',
       },
     })
   })
@@ -873,6 +875,7 @@ describe('department workshop persistence', () => {
       completedWeek: 2,
       outcome: 'completed',
       quality: 'nominal',
+      safety: 'safe',
     })
     expect(input).toEqual(before)
     expect(Object.isFrozen(result.outcomes)).toBe(true)
@@ -907,6 +910,7 @@ describe('department workshop persistence', () => {
       completedWeek: 1,
       outcome: 'completed',
       quality: 'nominal',
+      safety: 'safe',
     })
     expect(
       sanitizeDepartmentWorkshopCompletionOutcomes({
@@ -927,6 +931,7 @@ describe('department workshop persistence', () => {
     ).toMatchObject({
       quality: 'degraded',
       qualityReason: 'poor_room_contamination',
+      safety: 'safe',
     })
 
     const graded = registerDepartmentWorkshopCompletionOutcomes(
@@ -951,6 +956,7 @@ describe('department workshop persistence', () => {
       outcome: 'completed',
       quality: 'degraded',
       qualityReason: 'poor_specialist_condition',
+      safety: 'safe',
     })
     expect(graded.outcomes['work:alpha']?.quality).toBe('nominal')
 
@@ -966,6 +972,102 @@ describe('department workshop persistence', () => {
           inputQuality: 'poor',
           specialistCondition: 'good',
           roomContamination: 'good',
+        },
+      }
+    )
+    expect(replay.registeredWorkOrderIds).toEqual([])
+    expect(replay.outcomes['work:zulu']).toEqual(graded.outcomes['work:zulu'])
+  })
+
+  it('grades safety on new receipts independently of quality and hydrates legacy omit to safe', () => {
+    const input = {
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+      departmentWorkshopCompletionOutcomes: {
+        'work:alpha': {
+          workOrderId: 'work:alpha',
+          departmentId: 'department:biohazard-response',
+          caseId: 'case-alpha',
+          taskType: 'containment_response',
+          completedWeek: 1,
+          outcome: 'completed' as const,
+        },
+      },
+    }
+
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          safety: 'unsafe',
+        },
+      })
+    ).toEqual({})
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          safety: 'unsafe',
+          safetyReason: 'inadequate_isolation',
+        },
+      })['work:alpha']
+    ).toMatchObject({
+      safety: 'unsafe',
+      safetyReason: 'inadequate_isolation',
+      quality: 'nominal',
+    })
+
+    const graded = registerDepartmentWorkshopCompletionOutcomes(
+      input,
+      ['work:zulu'],
+      2,
+      {
+        'work:zulu': {
+          inputQuality: 'good',
+          specialistCondition: 'good',
+          roomContamination: 'poor',
+        },
+      },
+      {
+        'work:zulu': {
+          isolation: 'good',
+          ventilation: 'poor',
+          ppe: 'poor',
+          dualAuth: 'poor',
+        },
+      }
+    )
+    expect(graded.outcomes['work:zulu']).toEqual({
+      workOrderId: 'work:zulu',
+      departmentId: 'department:records-analysis',
+      caseId: 'case-zulu',
+      taskType: 'records_review',
+      completedWeek: 2,
+      outcome: 'completed',
+      quality: 'degraded',
+      qualityReason: 'poor_room_contamination',
+      safety: 'unsafe',
+      safetyReason: 'inadequate_ventilation',
+    })
+    expect(graded.outcomes['work:alpha']).toMatchObject({
+      quality: 'nominal',
+      safety: 'safe',
+    })
+
+    const replay = registerDepartmentWorkshopCompletionOutcomes(
+      {
+        ...input,
+        departmentWorkshopCompletionOutcomes: graded.outcomes,
+      },
+      ['work:zulu'],
+      3,
+      undefined,
+      {
+        'work:zulu': {
+          isolation: 'poor',
+          ventilation: 'good',
+          ppe: 'good',
+          dualAuth: 'good',
         },
       }
     )

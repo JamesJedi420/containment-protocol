@@ -15,6 +15,7 @@ the boundaries that later workshop slices must preserve.
 | Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)   |
+| Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)       |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
 | Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)             |
 | Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757) |
@@ -62,18 +63,22 @@ all snapshot lanes, so a repeat tick cannot advance them again.
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
 persisted `completed` receipt keyed by that ID, carrying the authored
-department, case, task type, closing week, and SPE-2768 `quality` grade
+department, case, task type, closing week, SPE-2768 `quality` grade
 (`nominal` by default; `degraded` plus a stable reason when caller-owned
-condition axes mark poor input, specialist, or room state). Existing receipts
-win, so a replay or save/load cannot create a duplicate or rewrite quality.
-The receipt is deliberately not a case resolution, global queue write, or
-adjacency/safety/facility modifier. SPE-2755 then consumes the sanitized
-durable receipt registry into only the matching non-resolved case's
-`departmentWorkshopCompletionWorkOrderIds` ledger. The ledger is sorted and
-deduplicated, so it is the case-side idempotency boundary across close
-replays and save/load. Missing/resolved cases, the global queue, inventory,
-and every safety/adjacency/facility concern remain outside this seam. Live
-facility/staff projection into quality conditions is a later SPE-1028 child.
+condition axes mark poor input, specialist, or room state), and unsafe-processing
+`safety` disposition (`safe` by default; `unsafe` plus a stable reason when
+caller-owned isolation, ventilation, PPE, or dual-auth axes are poor). Quality
+`roomContamination` is not safety contamination: the two grades are orthogonal.
+Existing receipts win, so a replay or save/load cannot create a duplicate or
+rewrite quality or safety. The receipt is deliberately not a case resolution,
+global queue write, adjacency/facility modifier, or incident spawn. SPE-2755
+then consumes the sanitized durable receipt registry into only the matching
+non-resolved case's `departmentWorkshopCompletionWorkOrderIds` ledger. The
+ledger is sorted and deduplicated, so it is the case-side idempotency boundary
+across close replays and save/load. Missing/resolved cases, the global queue,
+inventory, adjacency, live facility wiring, and secondary-incident producers
+remain outside this seam. Live facility/staff projection into quality or safety
+conditions is a later SPE-1028 child.
 
 ## SPE-2084 compatibility
 
@@ -149,9 +154,10 @@ depend on a positive slot capacity.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
-- Do not add UI, adjacency, safety, research, or crafting behavior under this
-  kernel. SPE-2768 may grade completion receipts from caller-owned conditions
-  only; it must not invent live facility/staff wiring or inventory mutation.
+- Do not add UI, adjacency, research, or crafting behavior under this kernel.
+  SPE-2768 may grade quality and #3411 may grade safety on completion receipts
+  from caller-owned conditions only; neither invents live facility/staff wiring,
+  inventory mutation, or secondary-incident spawn.
 
 ## Tests
 

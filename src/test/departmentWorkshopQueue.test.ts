@@ -11,6 +11,7 @@ import {
   pauseDepartmentWorkshopWork,
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
+  resolveDepartmentWorkshopCompletionSafety,
   resumeDepartmentWorkshopWork,
   type DepartmentWorkshopSnapshot,
   type DepartmentWorkshopWorkOrder,
@@ -553,5 +554,88 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
         roomContamination: 'poor',
       })
     ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+  })
+})
+
+describe('resolveDepartmentWorkshopCompletionSafety', () => {
+  it('defaults missing or all-good conditions to safe', () => {
+    expect(resolveDepartmentWorkshopCompletionSafety()).toEqual({ safety: 'safe' })
+    expect(resolveDepartmentWorkshopCompletionSafety(null)).toEqual({ safety: 'safe' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'good',
+        ventilation: 'good',
+        ppe: 'good',
+        dualAuth: 'good',
+      })
+    ).toEqual({ safety: 'safe' })
+  })
+
+  it('marks unsafe with stable primary reason isolation then ventilation then ppe then dualAuth', () => {
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'poor',
+        ventilation: 'poor',
+        ppe: 'poor',
+        dualAuth: 'poor',
+      })
+    ).toEqual({ safety: 'unsafe', safetyReason: 'inadequate_isolation' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'good',
+        ventilation: 'poor',
+        ppe: 'poor',
+        dualAuth: 'poor',
+      })
+    ).toEqual({ safety: 'unsafe', safetyReason: 'inadequate_ventilation' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'good',
+        ventilation: 'good',
+        ppe: 'poor',
+        dualAuth: 'poor',
+      })
+    ).toEqual({ safety: 'unsafe', safetyReason: 'inadequate_ppe' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'good',
+        ventilation: 'good',
+        ppe: 'good',
+        dualAuth: 'poor',
+      })
+    ).toEqual({ safety: 'unsafe', safetyReason: 'missing_dual_auth' })
+  })
+
+  it('stays orthogonal to quality room-contamination axes', () => {
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'good',
+        ventilation: 'good',
+        ppe: 'good',
+        dualAuth: 'good',
+      })
+    ).toEqual({ safety: 'safe' })
+    expect(
+      resolveDepartmentWorkshopCompletionSafety({
+        isolation: 'poor',
+        ventilation: 'good',
+        ppe: 'good',
+        dualAuth: 'good',
+      })
+    ).toEqual({ safety: 'unsafe', safetyReason: 'inadequate_isolation' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+      })
+    ).toEqual({ quality: 'nominal' })
   })
 })

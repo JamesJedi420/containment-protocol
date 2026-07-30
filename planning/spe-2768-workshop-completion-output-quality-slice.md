@@ -38,7 +38,7 @@ quality from caller-owned condition axes.
 | --------------------------------------- | ------------------ | -------------------------------------------------------------------- |
 | Live facility/staff → quality inputs    | SPE-1028 follow-up | This slice keeps caller-owned conditions only.                       |
 | Inventory amount mutation from quality  | SPE-1028 follow-up | Grade is recorded on the receipt; stock effects need a separate AC.  |
-| Safety / secondary incidents            | SPE-1028 follow-up | Parent safety AC is independent of quality grading.                  |
+| Safety / secondary incidents            | `planning/spe-1028-workshop-unsafe-processing-safety-slice.md` / [#3411](https://github.com/JamesJedi420/containment-protocol/issues/3411) | Safety disposition slice records `safe`/`unsafe` on the receipt; incident spawn remains deferred. |
 | Adjacency and player workshop surface   | SPE-1028 follow-up | Still outside completion-receipt ownership.                          |
 
 Parent SPE-1028 remains **In Progress** because its broader workshop acceptance

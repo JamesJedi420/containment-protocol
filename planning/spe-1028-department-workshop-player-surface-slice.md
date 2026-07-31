@@ -4,7 +4,7 @@
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2773](https://linear.app/spectranoir/issue/SPE-2773/player-facing-authoritative-department-workshop-surface)                   |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                           |
-| **Status**          | **In progress**                                                                                                                    |
+| **Status**          | **Shipped**                                                                                                                        |
 | **Branch**          | `agent/spe-2773-department-workshop-player-surface`                                                                                |
 | **Base `main` SHA** | `b8ce2c7666067761793c0d244f9aa4a824641a94`                                                                                         |
 
@@ -47,7 +47,11 @@ consequences (including unsafe secondary-incident markers).
 - [x] Unsafe secondary-incident markers join as consequences
 - [x] Empty registries → explicit empty state
 - [x] Targeted tests: empty, ordering, blockers, receipts, consequences, immutability
-- [x] Docs: slice + audit + backlog handoff updated (status → Shipped on merge)
+- [x] Docs: slice + audit + backlog handoff updated
+
+## Shipped
+
+PR https://github.com/JamesJedi420/containment-protocol/pull/3423 @ `bc3c1e40`.
 
 ## Deferred
 
@@ -58,4 +62,4 @@ consequences (including unsafe secondary-incident markers).
 | Adjacency / centralization–distribution   | SPE-1028 follow-up | Facility topology                                 |
 | Mutations / enqueue UI                    | Existing owners    | Read-only surface                                 |
 
-Parent SPE-1028 remains **In Progress** after this child ships.
+Parent SPE-1028 returns to **Backlog** (no active bounded implementation child).

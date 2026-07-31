@@ -1860,6 +1860,50 @@ export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   receiptHooksColumn: 'Hooks',
 }
 
+export const DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Workshop mirror',
+  pageHeading: 'Department workshops',
+  pageSubtitle:
+    'Read-only view over durable workshop slots, queued work, blockers, and completion consequences.',
+  backToDeskLabel: 'Back to Operations Desk',
+  departmentsLabel: 'Departments',
+  activeWorkLabel: 'Active work',
+  queuedWorkLabel: 'Queued work',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Values reflect hydrated GameState only. Blockers come from slot capacity and lane membership — not live facility or staff projection.',
+  emptyTitle: 'No department workshop activity',
+  emptyBody:
+    'Persisted workshop snapshots, completion receipts, and unsafe secondary-incident markers will appear here after hydration. Invalid entries dropped on hydrate are not shown.',
+  departmentsHeading: 'Workshop lanes by department',
+  departmentsSubtitle:
+    'Active, queued, and paused work with slot capacity and snapshot-derived blockers.',
+  freeSlotsSuffix: 'free slots',
+  noBlockersLabel: 'No capacity blockers',
+  noWorkItemsLabel: 'No work currently in lanes for this department.',
+  workOrderColumn: 'Work order',
+  laneColumn: 'Lane',
+  taskColumn: 'Task',
+  caseColumn: 'Case',
+  progressColumn: 'Progress',
+  outcomesHeading: 'Completion quality and safety ledger',
+  outcomesSubtitle:
+    'Stored completion receipt grades only — this surface does not re-grade quality or safety.',
+  outcomesEmptyTitle: 'No completion receipts',
+  outcomesEmptyBody:
+    'Workshop completion outcomes appear here after week-close registration. Invalid receipts dropped on hydrate are not shown.',
+  weekColumn: 'Completed week',
+  qualityColumn: 'Quality',
+  safetyColumn: 'Safety',
+  consequencesHeading: 'Unsafe completion consequences',
+  consequencesSubtitle:
+    'Durable secondary-incident spawn markers joined to unsafe completion receipts.',
+  consequencesEmptyTitle: 'No unsafe secondary incidents',
+  consequencesEmptyBody:
+    'Spawn markers appear here after unsafe completion receipts produce secondary cases.',
+  spawnedCaseColumn: 'Spawned case',
+}
+
 export const MODIFIABLE_DATA_PACK_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Modifiable data packs',

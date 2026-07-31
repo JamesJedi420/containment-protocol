@@ -891,6 +891,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description: 'Review publish-queue records and persisted execution receipts.',
     },
     {
+      label: 'Open department workshop mirror',
+      href: APP_ROUTES.departmentWorkshop,
+      description:
+        'Inspect workshop slots, queued work, blockers, and completion quality or safety consequences.',
+    },
+    {
       label: 'Open modifiable data-pack mirror',
       href: APP_ROUTES.modifiableDataPacks,
       description: 'Review persisted modifiable data-pack records and import validation posture.',

@@ -84,6 +84,9 @@ const PatternSourceSeriesMirrorRoute = createRouteComponent(
 const PublishQueueMirrorRoute = createRouteComponent(
   () => import('../features/operations/PublishQueueMirrorPage')
 )
+const DepartmentWorkshopMirrorRoute = createRouteComponent(
+  () => import('../features/operations/DepartmentWorkshopMirrorPage')
+)
 const ModifiableDataPackMirrorRoute = createRouteComponent(
   () => import('../features/operations/ModifiableDataPackMirrorPage')
 )
@@ -214,6 +217,10 @@ export default function App() {
           element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
         />
         <Route path="publish-queue" element={renderLazyRoute(PublishQueueMirrorRoute)} />
+        <Route
+          path="department-workshop"
+          element={renderLazyRoute(DepartmentWorkshopMirrorRoute)}
+        />
         <Route
           path="modifiable-data-packs"
           element={renderLazyRoute(ModifiableDataPackMirrorRoute)}

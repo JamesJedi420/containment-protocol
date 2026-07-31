@@ -16,6 +16,7 @@ the boundaries that later workshop slices must preserve.
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)   |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)       |
+| Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773) |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
 | Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)             |
 | Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757) |

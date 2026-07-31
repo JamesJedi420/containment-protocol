@@ -8,6 +8,7 @@ import {
 } from '../../domain/departmentWorkshopQueue'
 import { sanitizeDepartmentWorkshopUnsafeSecondaryIncidents } from '../../domain/departmentWorkshopUnsafeIncident'
 import {
+  countDepartmentWorkshopFreeSlots,
   formatDepartmentWorkshopBlockerLabel,
   formatDepartmentWorkshopLaneLabel,
   formatDepartmentWorkshopQualityLabel,
@@ -125,7 +126,7 @@ function toDepartmentView(
   snapshot: DepartmentWorkshopSnapshot,
   workOrders: Readonly<Record<string, DepartmentWorkshopWorkOrder>>
 ): DepartmentWorkshopMirrorDepartmentView {
-  const freeSlots = Math.max(0, snapshot.slotCapacity - snapshot.active.length)
+  const freeSlots = countDepartmentWorkshopFreeSlots(snapshot)
   const blockerCodes = resolveDepartmentWorkshopBlockers(snapshot)
   const workItems = Object.freeze([
     ...listLaneItems('active', snapshot.active, workOrders),

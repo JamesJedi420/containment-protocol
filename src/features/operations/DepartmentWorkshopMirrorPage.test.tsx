@@ -41,6 +41,36 @@ describe('DepartmentWorkshopMirrorPage (SPE-2773)', () => {
     ).toHaveAttribute('href', '/')
   })
 
+  it('uses lanes-empty copy when only completion receipts are present', () => {
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        departmentWorkshopCompletionOutcomes: {
+          'work:done-safe': {
+            workOrderId: 'work:done-safe',
+            departmentId: 'department:records-analysis',
+            caseId: 'case-done',
+            taskType: 'records_review',
+            completedWeek: 4,
+            outcome: 'completed',
+            quality: 'nominal',
+            safety: 'safe',
+          },
+        },
+      },
+    })
+
+    renderMirrorPage()
+
+    expect(screen.getByText(/no workshop lanes currently active/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/completion receipts and unsafe consequences still appear below/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: /completion quality and safety ledger/i })
+    ).toHaveTextContent('work:done-safe')
+  })
+
   it('renders department lanes, blockers, receipts, and consequences from fixtures', () => {
     const workOrders: DepartmentWorkshopWorkOrderRegistry = {
       'work:alpha': {

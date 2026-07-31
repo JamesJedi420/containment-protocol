@@ -64,8 +64,16 @@ export default function DepartmentWorkshopMirrorPage() {
 
       {view.departments.length === 0 ? (
         <article className="panel panel-support space-y-2" role="region" aria-label="Empty workshop state">
-          <h3 className="text-lg font-semibold">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyTitle}</h3>
-          <p className="text-sm opacity-70">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyBody}</p>
+          <h3 className="text-lg font-semibold">
+            {view.isEmpty
+              ? DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyTitle
+              : DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyLanesTitle}
+          </h3>
+          <p className="text-sm opacity-70">
+            {view.isEmpty
+              ? DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyBody
+              : DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyLanesBody}
+          </p>
         </article>
       ) : (
         <article

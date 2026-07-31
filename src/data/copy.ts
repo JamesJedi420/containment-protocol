@@ -1875,6 +1875,9 @@ export const DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT: Record<string, string> = {
   emptyTitle: 'No department workshop activity',
   emptyBody:
     'Persisted workshop snapshots, completion receipts, and unsafe secondary-incident markers will appear here after hydration. Invalid entries dropped on hydrate are not shown.',
+  emptyLanesTitle: 'No workshop lanes currently active',
+  emptyLanesBody:
+    'No department snapshots are in lanes right now. Completion receipts and unsafe consequences still appear below when present.',
   departmentsHeading: 'Workshop lanes by department',
   departmentsSubtitle:
     'Active, queued, and paused work with slot capacity and snapshot-derived blockers.',

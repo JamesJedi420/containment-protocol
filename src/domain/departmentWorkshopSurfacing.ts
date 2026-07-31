@@ -127,6 +127,11 @@ export function formatDepartmentWorkshopBlockerLabel(code: DepartmentWorkshopBlo
   }
 }
 
+/** Free active slots from durable snapshot capacity and occupancy only. */
+export function countDepartmentWorkshopFreeSlots(snapshot: DepartmentWorkshopSnapshot): number {
+  return Math.max(0, snapshot.slotCapacity - snapshot.active.length)
+}
+
 /**
  * Deterministic blockers from durable snapshot membership + capacity only.
  * Does not inspect facility, staff, or live quality/safety inputs.
@@ -136,7 +141,7 @@ export function resolveDepartmentWorkshopBlockers(
 ): readonly DepartmentWorkshopBlockerCode[] {
   const blockers: DepartmentWorkshopBlockerCode[] = []
   const waitingCount = snapshot.queued.length + snapshot.paused.length
-  const freeSlots = Math.max(0, snapshot.slotCapacity - snapshot.active.length)
+  const freeSlots = countDepartmentWorkshopFreeSlots(snapshot)
 
   if (snapshot.slotCapacity === 0 && waitingCount > 0) {
     blockers.push('zero_slot_capacity')

@@ -121,7 +121,9 @@ export interface DepartmentWorkshopCertificationEligibilityResult {
 
 export interface DepartmentWorkshopCertificationContext {
   readonly profile: DepartmentWorkshopCertificationProfile
-  readonly requirementsByWorkOrderId: Readonly<Record<string, unknown>>
+  readonly requirementsByWorkOrderId: Readonly<
+    Record<string, DepartmentWorkshopCertificationRequirement>
+  >
 }
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
@@ -1415,21 +1417,22 @@ function fillOpenSlots(
   startedWorkOrderIds: string[],
   certificationContext?: unknown
 ): string | null {
+  const certificationProfile =
+    isRecord(certificationContext) && Object.hasOwn(certificationContext, 'profile')
+      ? certificationContext.profile
+      : undefined
+  const requirementsByWorkOrderId =
+    isRecord(certificationContext) &&
+    Object.hasOwn(certificationContext, 'requirementsByWorkOrderId') &&
+    isRecord(certificationContext.requirementsByWorkOrderId)
+      ? certificationContext.requirementsByWorkOrderId
+      : undefined
+
   while (active.length < slotCapacity && queued.length > 0) {
     const next = queued[0]
     if (!next) {
       break
     }
-    const certificationProfile =
-      isRecord(certificationContext) && Object.hasOwn(certificationContext, 'profile')
-        ? certificationContext.profile
-        : undefined
-    const requirementsByWorkOrderId =
-      isRecord(certificationContext) &&
-      Object.hasOwn(certificationContext, 'requirementsByWorkOrderId') &&
-      isRecord(certificationContext.requirementsByWorkOrderId)
-        ? certificationContext.requirementsByWorkOrderId
-        : undefined
     const eligibility = resolveDepartmentWorkshopCertificationEligibility(
       certificationProfile,
       requirementsByWorkOrderId && Object.hasOwn(requirementsByWorkOrderId, next.workOrderId)

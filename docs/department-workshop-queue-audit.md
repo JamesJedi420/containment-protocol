@@ -172,7 +172,7 @@ Live facility/staff projection into quality or safety conditions remains a
 later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
 for safety) and is **blocked on an explicit mapping seam**. SPE-2781 provides
 only an explicit dependency adapter, not live projection. Until those seams
-exists: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
+exist: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
 lookups, status/level heuristics, or staff-to-workshop assignment; week-close
 must continue to omit `safetyConditionsByWorkOrderId` (and quality maps) so
 register stays all-good; `resolveDepartmentWorkshopCompletionSafety` remains

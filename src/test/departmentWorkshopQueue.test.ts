@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopThroughput,
   resumeDepartmentWorkshopWork,
   type DepartmentWorkshopSnapshot,
   type DepartmentWorkshopWorkOrder,
@@ -90,6 +91,77 @@ function reasonCode(result: { reasons: readonly { code: string }[] }) {
 }
 
 describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
+  it('resolves only fully adjacent staging to accelerated throughput', () => {
+    expect(
+      resolveDepartmentWorkshopThroughput({
+        inputStaging: 'adjacent',
+        outputStaging: 'adjacent',
+      })
+    ).toEqual({ workUnits: 2, effect: 'adjacent_staging' })
+
+    for (const conditions of [
+      undefined,
+      null,
+      {},
+      { inputStaging: 'adjacent' },
+      { inputStaging: 'adjacent', outputStaging: 'remote' },
+      { inputStaging: 'remote', outputStaging: 'adjacent' },
+      { inputStaging: 'nearby', outputStaging: 'adjacent' },
+    ]) {
+      const result = resolveDepartmentWorkshopThroughput(conditions)
+      expect(result).toEqual({ workUnits: 1, effect: 'baseline' })
+      expect(Object.isFrozen(result)).toBe(true)
+    }
+  })
+
+  it('accelerates fully adjacent work without advancing its same-tick backfill', () => {
+    const input = snapshot({
+      queued: [{ workOrderId: 'order:b', completedWork: 0 }],
+      active: [{ workOrderId: 'order:a', completedWork: 0 }],
+    })
+    const workOrders = [workOrder('order:a'), workOrder('order:b')]
+    const before = structuredClone(input)
+
+    const accelerated = advanceDepartmentWorkshopQueue(
+      input,
+      workOrders,
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' }
+    )
+
+    expect(accelerated.completedWorkOrderIds).toEqual(['order:a'])
+    expect(accelerated.startedWorkOrderIds).toEqual(['order:b'])
+    expect(accelerated.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
+    expect(input).toEqual(before)
+    expect(Object.isFrozen(accelerated.snapshot?.active)).toBe(true)
+  })
+
+  it('keeps remote, partial, omitted, and malformed staging on baseline advancement', () => {
+    const input = snapshot({
+      active: [{ workOrderId: 'order:a', completedWork: 0 }],
+    })
+    const definitions = [workOrder('order:a')]
+    const variants: unknown[] = [
+      undefined,
+      { inputStaging: 'adjacent' },
+      { inputStaging: 'adjacent', outputStaging: 'remote' },
+      { inputStaging: 'broken', outputStaging: 'adjacent' },
+    ]
+
+    for (const staging of variants) {
+      const result = advanceDepartmentWorkshopQueue(
+        input,
+        definitions,
+        TEST_REGISTRY,
+        undefined,
+        staging
+      )
+      expect(result.completedWorkOrderIds).toEqual([])
+      expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])
+    }
+  })
+
   it('keeps an empty valid workshop idle', () => {
     const result = advanceDepartmentWorkshopQueue(snapshot(), [], TEST_REGISTRY)
 

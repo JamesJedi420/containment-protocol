@@ -5,24 +5,25 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                       | Owner                                                     |
-| --------------------------------------------- | --------------------------------------------------------- |
-| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)         |
-| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)         |
-| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)        |
-| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                    |
-| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)     |
-| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                |
-| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754) |
-| Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)   |
-| Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)       |
+| Concern                                       | Owner                                                          |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)              |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)              |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)             |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                         |
+| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)          |
+| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                     |
+| Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)               |
+| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
+| Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
+| Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
 | Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773) |
-| Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)     |
-| Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)             |
-| Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757) |
-| Global case queue                             | `src/domain/sim/queue.ts`                                 |
-| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                  |
-| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                           |
+| Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)          |
+| Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)                  |
+| Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757)     |
+| Global case queue                             | `src/domain/sim/queue.ts`                                      |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                       |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                                |
 
 ## Workshop snapshot invariants
 
@@ -45,7 +46,9 @@ returning an immutable copy of the caller state.
 One call to `advanceDepartmentWorkshopQueue` is one abstract processing tick:
 
 1. Fill open slots from the front of `queued`.
-2. Advance each active item by one unit in active order.
+2. Resolve caller-owned staging conditions. Explicit adjacent input and output
+   staging advances each active item by two units; every omitted, partial,
+   remote, or malformed condition preserves the one-unit baseline.
 3. Remove completed items in active order.
 4. Backfill freed slots from `queued`; replacements begin advancing next tick.
 
@@ -61,6 +64,15 @@ preserves the canonical registries and before downstream persisted-record hooks.
 Completed definitions remain in the work-order registry but are removed from
 all snapshot lanes, so a repeat tick cannot advance them again.
 
+SPE-2775 accepts an optional department-keyed staging map at that same pure
+registry tick. A condition applies only to its exact department key. The map is
+not persisted, hydrated, or inferred from `FacilityEffect`, room IDs, department
+IDs, or map-awareness graphs. `advanceWeek` intentionally omits it and therefore
+retains baseline throughput until a later topology owner supplies an explicit
+mapping seam. The resolver changes work units only: queue/slot order, paused
+work, completion receipts, same-tick backfill timing, and SPE-2084 projections
+are unchanged.
+
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
 persisted `completed` receipt keyed by that ID, carrying the authored
@@ -72,7 +84,7 @@ caller-owned isolation, ventilation, PPE, or dual-auth axes are poor). Quality
 `roomContamination` is not safety contamination: the two grades are orthogonal.
 Existing receipts win, so a replay or save/load cannot create a duplicate or
 rewrite quality or safety. The receipt is deliberately not a case resolution,
-global queue write, or adjacency/facility modifier. Immediately after register,
+global queue write, or facility modifier. Immediately after register,
 the unsafe secondary-incident reconciler consumes sanitized `safety: 'unsafe'`
 receipts into one parent-linked follow-up case each via `instantiateFromTemplate`,
 gated by durable `departmentWorkshopUnsafeSecondaryIncidents` markers keyed by
@@ -81,7 +93,8 @@ the sanitized durable receipt registry into only the matching non-resolved
 case's `departmentWorkshopCompletionWorkOrderIds` ledger. The ledger is sorted
 and deduplicated, so it is the case-side receipt-ledger idempotency boundary
 across close replays and save/load. Missing/resolved cases, the global queue,
-inventory, adjacency, and live facility wiring remain outside the receipt seam.
+inventory, live topology mapping, and live facility wiring remain outside the
+receipt seam.
 Live facility/staff projection into quality or safety conditions remains a
 later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
 for safety) and is **blocked on an explicit mapping seam**. Until that seam

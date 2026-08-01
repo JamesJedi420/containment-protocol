@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopDependencyAvailability,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
@@ -167,6 +168,46 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     }
   })
 
+  it('resolves ready, degraded, unavailable, and malformed dependency availability', () => {
+    const ready = resolveDepartmentWorkshopDependencyAvailability('ready')
+    expect(ready).toEqual({
+      availability: 'ready',
+      allowsProcessing: true,
+      throughputCap: 2,
+      effect: 'baseline',
+    })
+    expect(Object.isFrozen(ready)).toBe(true)
+
+    const degraded = resolveDepartmentWorkshopDependencyAvailability('degraded')
+    expect(degraded).toEqual({
+      availability: 'degraded',
+      allowsProcessing: true,
+      throughputCap: 1,
+      effect: 'degraded_dependency_cap',
+    })
+    expect(Object.isFrozen(degraded)).toBe(true)
+
+    const unavailable = resolveDepartmentWorkshopDependencyAvailability('unavailable')
+    expect(unavailable).toEqual({
+      availability: 'unavailable',
+      allowsProcessing: false,
+      throughputCap: 0,
+      effect: 'unavailable_dependency_block',
+    })
+    expect(Object.isFrozen(unavailable)).toBe(true)
+
+    for (const availability of [undefined, null, '', 'blocked', 'READY', {}]) {
+      const fallback = resolveDepartmentWorkshopDependencyAvailability(availability)
+      expect(fallback).toEqual({
+        availability: 'baseline',
+        allowsProcessing: true,
+        throughputCap: 2,
+        effect: 'baseline',
+      })
+      expect(Object.isFrozen(fallback)).toBe(true)
+    }
+  })
+
   it('caps adjacent and centralized staffing composition at two work units', () => {
     expect(resolveDepartmentWorkshopThroughput(undefined, 'centralized')).toEqual({
       workUnits: 2,
@@ -222,6 +263,50 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
         workUnits: 2,
         effect: 'capped_adjacent_and_centralized',
       })
+    }
+  })
+
+  it('composes dependency availability after bonuses and load pressure', () => {
+    const adjacent = { inputStaging: 'adjacent', outputStaging: 'adjacent' }
+
+    for (const [staging, mode] of [
+      [adjacent, undefined],
+      [undefined, 'centralized'],
+      [adjacent, 'centralized'],
+      [undefined, undefined],
+    ] as const) {
+      expect(resolveDepartmentWorkshopThroughput(staging, mode, 'normal', 'degraded')).toEqual({
+        workUnits: 1,
+        effect: 'degraded_dependency_cap',
+      })
+    }
+
+    expect(
+      resolveDepartmentWorkshopThroughput(adjacent, 'centralized', 'overloaded', 'degraded')
+    ).toEqual({
+      workUnits: 1,
+      effect: 'capped_degraded_dependency_and_overload',
+    })
+    expect(
+      resolveDepartmentWorkshopThroughput(adjacent, 'centralized', 'overloaded', 'unavailable')
+    ).toEqual({
+      workUnits: 0,
+      effect: 'unavailable_dependency_block',
+    })
+    expect(resolveDepartmentWorkshopThroughput(adjacent, 'centralized', 'normal', 'ready')).toEqual(
+      {
+        workUnits: 2,
+        effect: 'capped_adjacent_and_centralized',
+      }
+    )
+    expect(resolveDepartmentWorkshopOperatingModel('distributed').breachIsolation).toBe(
+      'distributed_isolation'
+    )
+
+    for (const availability of [undefined, 'offline', {}]) {
+      expect(
+        resolveDepartmentWorkshopThroughput(adjacent, 'centralized', 'normal', availability)
+      ).toEqual({ workUnits: 2, effect: 'capped_adjacent_and_centralized' })
     }
   })
 
@@ -282,6 +367,71 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(completed.completedWorkOrderIds).toEqual(['order:a'])
     expect(completed.startedWorkOrderIds).toEqual(['order:b'])
     expect(completed.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
+  })
+
+  it('blocks unavailable dependencies before slot fill or progress', () => {
+    const input = snapshot({
+      slotCapacity: 2,
+      queued: [{ workOrderId: 'order:b', completedWork: 0 }],
+      active: [{ workOrderId: 'order:a', completedWork: 1 }],
+      paused: [{ workOrderId: 'order:c', completedWork: 1 }],
+    })
+    const before = structuredClone(input)
+    const result = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a'), workOrder('order:b'), workOrder('order:c', { requiredWork: 3 })],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      'normal',
+      'unavailable'
+    )
+
+    expect(result.state).toBe('blocked')
+    expect(reasonCode(result)).toBe('unavailable-workshop-dependency')
+    expect(result.snapshot).toEqual(input)
+    expect(result.startedWorkOrderIds).toEqual([])
+    expect(result.completedWorkOrderIds).toEqual([])
+    expect(input).toEqual(before)
+    expect(Object.isFrozen(result.snapshot)).toBe(true)
+    expect(Object.isFrozen(result.snapshot?.queued[0])).toBe(true)
+  })
+
+  it('preserves zero-slot validation precedence over unavailable dependencies', () => {
+    const result = advanceDepartmentWorkshopQueue(
+      snapshot({ slotCapacity: 0, queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'unavailable'
+    )
+
+    expect(result.state).toBe('blocked')
+    expect(reasonCode(result)).toBe('zero-slot-capacity')
+  })
+
+  it('keeps degraded completion backfill timing unchanged', () => {
+    const result = advanceDepartmentWorkshopQueue(
+      snapshot({
+        queued: [{ workOrderId: 'order:b', completedWork: 0 }],
+        active: [{ workOrderId: 'order:a', completedWork: 1 }],
+      }),
+      [workOrder('order:a'), workOrder('order:b')],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      'normal',
+      'degraded'
+    )
+
+    expect(result.completedWorkOrderIds).toEqual(['order:a'])
+    expect(result.startedWorkOrderIds).toEqual(['order:b'])
+    expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
   })
 
   it('keeps remote, partial, omitted, and malformed staging on baseline advancement', () => {

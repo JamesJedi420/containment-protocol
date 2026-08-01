@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2779",
     "SPE-2777",
     "SPE-2776",
     "SPE-2775",
@@ -12,10 +13,10 @@
     "SPE-2765",
     "SPE-2764",
     "SPE-2763",
-    "SPE-2762",
-    "SPE-2761"
+    "SPE-2762"
   ],
   "sliceDocStatus": {
+    "planning/spe-2779-workshop-dependency-availability-gate-slice.md": "Shipped",
     "planning/spe-2777-workshop-oversubscription-pressure-slice.md": "Shipped",
     "planning/spe-2776-workshop-operating-model-slice.md": "Shipped",
     "planning/spe-2775-workshop-adjacency-throughput-slice.md": "Shipped",

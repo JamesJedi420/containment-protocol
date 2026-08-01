@@ -19,7 +19,7 @@ batch risk, or carrying transient context through the processing tick.
 
 ### In scope
 
-- A frozen fail-closed reagent-grade quality resolver
+- A frozen fail-neutral reagent-grade quality resolver
 - An optional reagent axis on existing per-work-order quality conditions
 - Durable `poor_reagent_grade` receipt reasoning
 - Stable input → specialist → room → dependency → equipment → reagent precedence

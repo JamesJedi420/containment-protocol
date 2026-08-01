@@ -16,6 +16,7 @@ import {
   resolveDepartmentWorkshopDependencyAvailability,
   resolveDepartmentWorkshopDependencyQuality,
   resolveDepartmentWorkshopEquipmentQuality,
+  resolveDepartmentWorkshopReagentQuality,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
@@ -1244,7 +1245,7 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
     ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
   })
 
-  it('places caller-composed dependency and equipment quality after existing precedence', () => {
+  it('places caller-composed dependency, equipment, and reagent quality after existing precedence', () => {
     expect(
       resolveDepartmentWorkshopCompletionQuality({
         inputQuality: 'good',
@@ -1320,6 +1321,66 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
         equipmentCondition: 'malformed',
       } as never)
     ).toEqual({ quality: 'nominal' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'good',
+        equipmentCondition: 'good',
+        reagentGrade: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_reagent_grade' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'good',
+        equipmentCondition: 'poor',
+        reagentGrade: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_equipment_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
+        reagentGrade: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        reagentGrade: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'nominal' })
+  })
+
+  it('keeps every established axis ahead of reagent grade', () => {
+    const earlierAxes = [
+      ['inputQuality', 'poor_input_quality'],
+      ['specialistCondition', 'poor_specialist_condition'],
+      ['roomContamination', 'poor_room_contamination'],
+      ['dependencyCondition', 'poor_dependency_condition'],
+      ['equipmentCondition', 'poor_equipment_condition'],
+    ] as const
+
+    for (const [axis, qualityReason] of earlierAxes) {
+      expect(
+        resolveDepartmentWorkshopCompletionQuality({
+          inputQuality: 'good',
+          specialistCondition: 'good',
+          roomContamination: 'good',
+          dependencyCondition: 'good',
+          equipmentCondition: 'good',
+          reagentGrade: 'poor',
+          [axis]: 'poor',
+        })
+      ).toEqual({ quality: 'degraded', qualityReason })
+    }
   })
 })
 
@@ -1367,6 +1428,28 @@ describe('resolveDepartmentWorkshopEquipmentQuality (SPE-2782)', () => {
     const result = resolveDepartmentWorkshopEquipmentQuality(input.equipmentCondition)
 
     expect(input).toEqual({ equipmentCondition: 'poor' })
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+})
+
+describe('resolveDepartmentWorkshopReagentQuality (SPE-2783)', () => {
+  it('maps only explicit poor reagent grade to degraded quality', () => {
+    expect(resolveDepartmentWorkshopReagentQuality('poor')).toEqual({
+      reagentGrade: 'poor',
+      effect: 'degraded_reagent_quality',
+    })
+    for (const grade of ['good', undefined, null, 'degraded', 'malformed', 1, {}]) {
+      const result = resolveDepartmentWorkshopReagentQuality(grade)
+      expect(result).toEqual({ reagentGrade: 'good', effect: 'baseline' })
+      expect(Object.isFrozen(result)).toBe(true)
+    }
+  })
+
+  it('returns frozen results without mutating caller input', () => {
+    const input = Object.freeze({ reagentGrade: 'poor' })
+    const result = resolveDepartmentWorkshopReagentQuality(input.reagentGrade)
+
+    expect(input).toEqual({ reagentGrade: 'poor' })
     expect(Object.isFrozen(result)).toBe(true)
   })
 })

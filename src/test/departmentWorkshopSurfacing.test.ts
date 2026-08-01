@@ -14,4 +14,10 @@ describe('department workshop quality surfacing', () => {
       'Poor equipment condition'
     )
   })
+
+  it('labels degraded reagent completion quality explicitly', () => {
+    expect(formatDepartmentWorkshopQualityReasonLabel('poor_reagent_grade')).toBe(
+      'Poor reagent grade'
+    )
+  })
 })

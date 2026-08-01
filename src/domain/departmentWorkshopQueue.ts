@@ -140,6 +140,7 @@ export type DepartmentWorkshopQualityReason =
   | 'poor_room_contamination'
   | 'poor_dependency_condition'
   | 'poor_equipment_condition'
+  | 'poor_reagent_grade'
 
 export interface DepartmentWorkshopQualityConditions {
   readonly inputQuality: DepartmentWorkshopConditionLevel
@@ -147,6 +148,7 @@ export interface DepartmentWorkshopQualityConditions {
   readonly roomContamination: DepartmentWorkshopConditionLevel
   readonly dependencyCondition?: DepartmentWorkshopConditionLevel
   readonly equipmentCondition?: DepartmentWorkshopConditionLevel
+  readonly reagentGrade?: DepartmentWorkshopConditionLevel
 }
 
 export interface DepartmentWorkshopCompletionQualityResult {
@@ -163,6 +165,12 @@ export interface DepartmentWorkshopDependencyQualityResult {
 export interface DepartmentWorkshopEquipmentQualityResult {
   readonly equipmentCondition: DepartmentWorkshopConditionLevel
   readonly effect: 'baseline' | 'degraded_equipment_quality'
+}
+
+/** Frozen normalized reagent grade for explicit completion-quality composition. */
+export interface DepartmentWorkshopReagentQualityResult {
+  readonly reagentGrade: DepartmentWorkshopConditionLevel
+  readonly effect: 'baseline' | 'degraded_reagent_quality'
 }
 
 /** Caller-owned axes for completion unsafe-processing safety (orthogonal to quality). */
@@ -776,6 +784,7 @@ const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityRea
   'poor_room_contamination',
   'poor_dependency_condition',
   'poor_equipment_condition',
+  'poor_reagent_grade',
 ])
 const DEPARTMENT_WORKSHOP_COMPLETION_SAFETIES = new Set<DepartmentWorkshopCompletionSafety>([
   'safe',
@@ -791,8 +800,9 @@ const DEPARTMENT_WORKSHOP_SAFETY_REASONS = new Set<DepartmentWorkshopSafetyReaso
 /**
  * Resolve completion output quality from caller-owned condition axes.
  * Missing conditions default to nominal. Any poor axis yields degraded with a
- * stable primary reason (input → specialist → room → dependency → equipment).
- * Optional dependency and equipment axes fail neutral without invalidating
+ * stable primary reason
+ * (input → specialist → room → dependency → equipment → reagent). Optional
+ * dependency, equipment, and reagent axes fail neutral without invalidating
  * the required SPE-2768 axes.
  */
 export function resolveDepartmentWorkshopCompletionQuality(
@@ -836,6 +846,12 @@ export function resolveDepartmentWorkshopCompletionQuality(
     return Object.freeze({
       quality: 'degraded',
       qualityReason: 'poor_equipment_condition',
+    })
+  }
+  if (conditions.reagentGrade === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_reagent_grade',
     })
   }
   return Object.freeze({ quality: 'nominal' })
@@ -1007,6 +1023,22 @@ export function resolveDepartmentWorkshopEquipmentQuality(
     })
   }
   return Object.freeze({ equipmentCondition: 'good', effect: 'baseline' })
+}
+
+/**
+ * Normalize explicit caller-owned reagent grade for completion quality. This
+ * does not project SPE-1056 processed batches or consume reagent inventory.
+ */
+export function resolveDepartmentWorkshopReagentQuality(
+  reagentGrade?: unknown
+): DepartmentWorkshopReagentQualityResult {
+  if (reagentGrade === 'poor') {
+    return Object.freeze({
+      reagentGrade: 'poor',
+      effect: 'degraded_reagent_quality',
+    })
+  }
+  return Object.freeze({ reagentGrade: 'good', effect: 'baseline' })
 }
 
 /**

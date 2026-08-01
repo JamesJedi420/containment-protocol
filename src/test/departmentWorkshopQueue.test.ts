@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
   resumeDepartmentWorkshopWork,
@@ -146,6 +147,26 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     }
   })
 
+  it('resolves normal, overloaded, and malformed load pressure explicitly', () => {
+    const normal = resolveDepartmentWorkshopLoadPressure('normal')
+    expect(normal).toEqual({ pressure: 'normal', throughputCap: 2, effect: 'baseline' })
+    expect(Object.isFrozen(normal)).toBe(true)
+
+    const overloaded = resolveDepartmentWorkshopLoadPressure('overloaded')
+    expect(overloaded).toEqual({
+      pressure: 'overloaded',
+      throughputCap: 1,
+      effect: 'overload_throughput_cap',
+    })
+    expect(Object.isFrozen(overloaded)).toBe(true)
+
+    for (const pressure of [undefined, null, '', 'overload', 'OVERLOADED', {}]) {
+      const fallback = resolveDepartmentWorkshopLoadPressure(pressure)
+      expect(fallback).toEqual({ pressure: 'baseline', throughputCap: 2, effect: 'baseline' })
+      expect(Object.isFrozen(fallback)).toBe(true)
+    }
+  })
+
   it('caps adjacent and centralized staffing composition at two work units', () => {
     expect(resolveDepartmentWorkshopThroughput(undefined, 'centralized')).toEqual({
       workUnits: 2,
@@ -170,6 +191,40 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     ).toEqual({ workUnits: 2, effect: 'adjacent_staging' })
   })
 
+  it('lets overload suppress every transient bonus without stalling baseline work', () => {
+    const adjacent = { inputStaging: 'adjacent', outputStaging: 'adjacent' }
+
+    for (const [staging, mode] of [
+      [adjacent, undefined],
+      [undefined, 'centralized'],
+      [adjacent, 'centralized'],
+      [undefined, undefined],
+    ] as const) {
+      const result = resolveDepartmentWorkshopThroughput(staging, mode, 'overloaded')
+      expect(result).toEqual({ workUnits: 1, effect: 'overload_throughput_cap' })
+      expect(Object.isFrozen(result)).toBe(true)
+    }
+
+    expect(resolveDepartmentWorkshopThroughput(adjacent, 'centralized', 'normal')).toEqual({
+      workUnits: 2,
+      effect: 'capped_adjacent_and_centralized',
+    })
+    expect(resolveDepartmentWorkshopThroughput(adjacent, 'distributed', 'overloaded')).toEqual({
+      workUnits: 1,
+      effect: 'overload_throughput_cap',
+    })
+    expect(resolveDepartmentWorkshopOperatingModel('distributed').breachIsolation).toBe(
+      'distributed_isolation'
+    )
+
+    for (const pressure of [undefined, 'busy', {}]) {
+      expect(resolveDepartmentWorkshopThroughput(adjacent, 'centralized', pressure)).toEqual({
+        workUnits: 2,
+        effect: 'capped_adjacent_and_centralized',
+      })
+    }
+  })
+
   it('keeps capped combined acceleration from advancing its same-tick backfill', () => {
     const input = snapshot({
       queued: [{ workOrderId: 'order:b', completedWork: 0 }],
@@ -192,6 +247,41 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(accelerated.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
     expect(input).toEqual(before)
     expect(Object.isFrozen(accelerated.snapshot?.active)).toBe(true)
+  })
+
+  it('delays completion under overload and still backfills only after completion', () => {
+    const input = snapshot({
+      queued: [{ workOrderId: 'order:b', completedWork: 0 }],
+      active: [{ workOrderId: 'order:a', completedWork: 0 }],
+    })
+    const workOrders = [workOrder('order:a'), workOrder('order:b')]
+
+    const delayed = advanceDepartmentWorkshopQueue(
+      input,
+      workOrders,
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      'overloaded'
+    )
+    expect(delayed.completedWorkOrderIds).toEqual([])
+    expect(delayed.startedWorkOrderIds).toEqual([])
+    expect(delayed.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])
+    expect(delayed.snapshot?.queued).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
+
+    const completed = advanceDepartmentWorkshopQueue(
+      delayed.snapshot as DepartmentWorkshopSnapshot,
+      workOrders,
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      'overloaded'
+    )
+    expect(completed.completedWorkOrderIds).toEqual(['order:a'])
+    expect(completed.startedWorkOrderIds).toEqual(['order:b'])
+    expect(completed.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
   })
 
   it('keeps remote, partial, omitted, and malformed staging on baseline advancement', () => {
@@ -358,7 +448,8 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       TEST_REGISTRY,
       undefined,
       undefined,
-      'distributed'
+      'distributed',
+      'overloaded'
     )
 
     expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])

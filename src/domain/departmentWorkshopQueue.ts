@@ -50,7 +50,11 @@ export interface DepartmentWorkshopStagingConditions {
 }
 
 export type DepartmentWorkshopThroughputEffect =
-  'baseline' | 'adjacent_staging' | 'centralized_staffing' | 'capped_adjacent_and_centralized'
+  | 'baseline'
+  | 'adjacent_staging'
+  | 'centralized_staffing'
+  | 'capped_adjacent_and_centralized'
+  | 'overload_throughput_cap'
 
 export interface DepartmentWorkshopThroughputResult {
   readonly workUnits: 1 | 2
@@ -74,6 +78,18 @@ export interface DepartmentWorkshopOperatingModelResult {
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopOperatingModesByDepartment = Readonly<Record<string, unknown>>
+
+/** SPE-2777: transient caller-owned workshop load classification. */
+export type DepartmentWorkshopLoadPressure = 'normal' | 'overloaded'
+
+export interface DepartmentWorkshopLoadPressureResult {
+  readonly pressure: DepartmentWorkshopLoadPressure | 'baseline'
+  readonly throughputCap: 1 | 2
+  readonly effect: 'baseline' | 'overload_throughput_cap'
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopLoadPressuresByDepartment = Readonly<Record<string, unknown>>
 
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
@@ -832,19 +848,41 @@ export function resolveDepartmentWorkshopOperatingModel(
 }
 
 /**
+ * Resolve caller-owned load pressure without inferring staffing or facilities.
+ * Missing and malformed context fail closed to the existing two-unit ceiling.
+ */
+export function resolveDepartmentWorkshopLoadPressure(
+  pressure?: unknown
+): DepartmentWorkshopLoadPressureResult {
+  if (pressure === 'normal') {
+    return Object.freeze({ pressure, throughputCap: 2, effect: 'baseline' })
+  }
+  if (pressure === 'overloaded') {
+    return Object.freeze({ pressure, throughputCap: 1, effect: 'overload_throughput_cap' })
+  }
+  return Object.freeze({ pressure: 'baseline', throughputCap: 2, effect: 'baseline' })
+}
+
+/**
  * Compose SPE-2775 adjacency with SPE-2776 centralized staffing under a strict
  * two-work-unit cap. Distributed isolation stays on the operating-model result
  * and does not alter throughput.
  */
 export function resolveDepartmentWorkshopThroughput(
   conditions?: unknown,
-  operatingMode?: unknown
+  operatingMode?: unknown,
+  loadPressure?: unknown
 ): DepartmentWorkshopThroughputResult {
   const hasAdjacentStaging =
     isRecord(conditions) &&
     conditions.inputStaging === 'adjacent' &&
     conditions.outputStaging === 'adjacent'
   const operatingModel = resolveDepartmentWorkshopOperatingModel(operatingMode)
+  const pressure = resolveDepartmentWorkshopLoadPressure(loadPressure)
+
+  if (pressure.throughputCap === 1) {
+    return Object.freeze({ workUnits: 1, effect: pressure.effect })
+  }
 
   if (hasAdjacentStaging && operatingModel.staffingWorkUnits === 1) {
     return Object.freeze({ workUnits: 2, effect: 'capped_adjacent_and_centralized' })
@@ -1273,7 +1311,8 @@ export function advanceDepartmentWorkshopQueue(
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
   authorityGraph?: AuthorityGraph,
   stagingConditions?: unknown,
-  operatingMode?: unknown
+  operatingMode?: unknown,
+  loadPressure?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1293,7 +1332,11 @@ export function advanceDepartmentWorkshopQueue(
   const paused = validated.snapshot.paused.map((item) => ({ ...item }))
   const startedWorkOrderIds: string[] = []
   const completedWorkOrderIds: string[] = []
-  const throughput = resolveDepartmentWorkshopThroughput(stagingConditions, operatingMode)
+  const throughput = resolveDepartmentWorkshopThroughput(
+    stagingConditions,
+    operatingMode,
+    loadPressure
+  )
 
   fillOpenSlots(queued, active, validated.snapshot.slotCapacity, startedWorkOrderIds)
 
@@ -1333,15 +1376,17 @@ export function advanceDepartmentWorkshopQueue(
 /**
  * Advance every persisted department snapshot once in stable department-ID
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
- * GameState nor any non-workshop queue. Optional staging and operating-mode
- * maps are caller-owned transient context isolated by exact department ID.
+ * GameState nor any non-workshop queue. Optional staging, operating-mode, and
+ * load-pressure maps are caller-owned transient context isolated by exact
+ * department ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
   authorityGraph?: AuthorityGraph,
   stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment,
-  operatingModesByDepartment?: DepartmentWorkshopOperatingModesByDepartment
+  operatingModesByDepartment?: DepartmentWorkshopOperatingModesByDepartment,
+  loadPressuresByDepartment?: DepartmentWorkshopLoadPressuresByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1368,6 +1413,9 @@ export function processDepartmentWorkshopTick(
       isRecord(operatingModesByDepartment) &&
         Object.hasOwn(operatingModesByDepartment, departmentId)
         ? operatingModesByDepartment[departmentId]
+        : undefined,
+      isRecord(loadPressuresByDepartment) && Object.hasOwn(loadPressuresByDepartment, departmentId)
+        ? loadPressuresByDepartment[departmentId]
         : undefined
     )
     reasons.push(...advanceResult.reasons)

@@ -15,6 +15,7 @@ the boundaries that later workshop slices must preserve.
 | Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                     |
 | Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)               |
 | Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
+| Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)             |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -84,6 +85,19 @@ persisted, does not mutate `slotCapacity`, and is not inferred from rooms,
 facilities, staff, equipment, or topology. The isolation classification does
 not grade completion safety, modify incident risk, or spawn an unsafe incident.
 `advanceWeek` continues to omit both transient maps and runs the same single
+baseline workshop tick.
+
+SPE-2777 adds an optional exact-department load-pressure input. Explicit
+`overloaded` pressure caps the resolved tick at one work unit, suppressing
+SPE-2775 adjacency, SPE-2776 centralized staffing, or their capped combination
+without stalling ordinary baseline work. `normal`, omitted, and malformed
+pressure preserve the existing throughput result. Callers own overload
+classification: the queue does not infer it from staff counts, slot capacity,
+facilities, equipment, rooms, or topology. Pressure is not persisted, does not
+change queue membership, `slotCapacity`, SPE-2084 workload projections, paused
+progress, or completion/backfill timing, and does not create failure or incident
+consequences. Distributed breach isolation remains independent metadata.
+`advanceWeek` omits all three transient maps and retains one context-free
 baseline workshop tick.
 
 The completion bridge runs immediately after that one tick at the same
@@ -192,6 +206,8 @@ depend on a positive slot capacity.
   that integration.
 - Do not treat SPE-2776 distributed-isolation metadata as an existing incident
   rule or infer operating mode from persisted facility topology.
+- Do not infer SPE-2777 load pressure from staffing, facilities, slot capacity,
+  or occupancy, persist it, or turn overload into a zero-work stall.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts

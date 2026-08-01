@@ -17,6 +17,7 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
 | Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)             |
 | Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
+| Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -113,6 +114,22 @@ topology, or persist dependency metadata. Dependency availability does not
 alter slot capacity, SPE-2084 workload projections, completion grades,
 cancellation proof, or incident rules. `advanceWeek` omits the dependency map
 and retains its existing single baseline tick.
+
+SPE-2780 adds optional exact-department certification context after dependency
+availability. Each context contains a caller-owned `basic` or `certified`
+profile and per-work-order `standard` or `certified` start requirements.
+Standard work starts under either profile; certified-required work starts only
+under `certified`. A blocked queue head remains in place and later work is not
+bypassed. Certification is checked only while filling or backfilling slots, so
+already-active work continues and paused work remains unchanged. When no work
+can advance the tick returns `workshop-certification-required`; when other work
+advances, the same frozen reason accompanies the advanced snapshot without
+duplication. Missing or malformed requirements remain standard, while missing
+or malformed profiles cannot satisfy an explicit certified requirement.
+Certification context is not persisted or inferred from facilities, upgrades,
+staff, skills, clearance, or topology. It does not change throughput, slot
+capacity, SPE-2084 workload projections, completion grades, or incident rules.
+`advanceWeek` omits the context and retains its existing single baseline tick.
 
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
@@ -225,6 +242,9 @@ depend on a positive slot capacity.
 - Do not infer SPE-2779 dependency availability or duplicate SPE-792 graph
   traversal inside the workshop kernel. Only explicit `unavailable` context may
   produce the intentional dependency block.
+- Do not infer SPE-2780 certification from facility levels, upgrades, staff,
+  skills, or clearance. Certification gates queued starts only; it does not
+  stall already-active work or permit bypassing an ineligible queue head.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts

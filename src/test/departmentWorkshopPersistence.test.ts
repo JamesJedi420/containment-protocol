@@ -8,6 +8,7 @@ import {
   reconcileDepartmentWorkshopTerminalLanes,
   registerDepartmentWorkshopCompletionOutcomes,
   resolveDepartmentWorkshopDependencyQuality,
+  resolveDepartmentWorkshopEquipmentQuality,
   sanitizeDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopSnapshots,
   sanitizeDepartmentWorkshopWorkOrders,
@@ -1415,6 +1416,26 @@ describe('department workshop persistence', () => {
       sanitizeDepartmentWorkshopCompletionOutcomes({
         'work:alpha': {
           ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          quality: 'nominal',
+          qualityReason: 'poor_equipment_condition',
+        },
+      })
+    ).toEqual({
+      'work:alpha': {
+        workOrderId: 'work:alpha',
+        departmentId: 'department:biohazard-response',
+        caseId: 'case-alpha',
+        taskType: 'containment_response',
+        completedWeek: 1,
+        outcome: 'completed',
+        quality: 'nominal',
+        safety: 'safe',
+      },
+    })
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
           quality: 'degraded',
           qualityReason: 'poor_dependency_condition',
         },
@@ -1422,6 +1443,19 @@ describe('department workshop persistence', () => {
     ).toMatchObject({
       quality: 'degraded',
       qualityReason: 'poor_dependency_condition',
+      safety: 'safe',
+    })
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          quality: 'degraded',
+          qualityReason: 'poor_equipment_condition',
+        },
+      })['work:alpha']
+    ).toMatchObject({
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
       safety: 'safe',
     })
     expect(
@@ -1521,6 +1555,84 @@ describe('department workshop persistence', () => {
       graded.outcomes['work:zulu']
     )
     expect('dependencyCondition' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(
+      false
+    )
+  })
+
+  it('isolates caller-composed equipment quality and replays deterministically', () => {
+    const input = {
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+    }
+    const before = structuredClone(input)
+    const equipmentQuality = resolveDepartmentWorkshopEquipmentQuality('poor')
+    const conditions = {
+      'work:zulu': {
+        inputQuality: 'good' as const,
+        specialistCondition: 'good' as const,
+        roomContamination: 'good' as const,
+        equipmentCondition: equipmentQuality.equipmentCondition,
+      },
+    }
+
+    const forward = registerDepartmentWorkshopCompletionOutcomes(
+      input,
+      ['work:alpha', 'work:zulu'],
+      2,
+      conditions
+    )
+    const reverse = registerDepartmentWorkshopCompletionOutcomes(
+      input,
+      ['work:zulu', 'work:alpha'],
+      2,
+      conditions
+    )
+
+    expect(input).toEqual(before)
+    expect(reverse).toEqual(forward)
+    expect(forward.registeredWorkOrderIds).toEqual(['work:alpha', 'work:zulu'])
+    expect(forward.outcomes['work:zulu']).toMatchObject({
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
+      safety: 'safe',
+    })
+    expect(forward.outcomes['work:alpha']).toMatchObject({ quality: 'nominal', safety: 'safe' })
+    expect(Object.isFrozen(forward)).toBe(true)
+    expect(Object.isFrozen(forward.outcomes)).toBe(true)
+    expect(Object.isFrozen(forward.outcomes['work:zulu'])).toBe(true)
+    expect('equipmentCondition' in forward.outcomes['work:zulu']).toBe(false)
+
+    const replay = registerDepartmentWorkshopCompletionOutcomes(
+      {
+        ...input,
+        departmentWorkshopCompletionOutcomes: forward.outcomes,
+      },
+      ['work:zulu'],
+      3,
+      {
+        'work:zulu': {
+          inputQuality: 'poor',
+          specialistCondition: 'poor',
+          roomContamination: 'poor',
+          equipmentCondition: 'good',
+        },
+      }
+    )
+    expect(replay.registeredWorkOrderIds).toEqual([])
+    expect(replay.outcomes['work:zulu']).toEqual(forward.outcomes['work:zulu'])
+
+    const loaded = loadGameSave(
+      serializeGameSave({
+        ...createStartingState(),
+        departmentWorkshopWorkOrders: WORK_ORDERS,
+        departmentWorkshopSnapshots: SNAPSHOTS,
+        departmentWorkshopCompletionOutcomes: forward.outcomes,
+      })
+    )
+    expect(loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toEqual(
+      forward.outcomes['work:zulu']
+    )
+    expect('equipmentCondition' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(
       false
     )
   })

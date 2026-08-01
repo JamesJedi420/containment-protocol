@@ -14,6 +14,7 @@ import {
   resolveDepartmentWorkshopCompletionSafety,
   resolveDepartmentWorkshopCertificationEligibility,
   resolveDepartmentWorkshopDependencyAvailability,
+  resolveDepartmentWorkshopDependencyQuality,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
@@ -1240,6 +1241,64 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
         roomContamination: 'poor',
       })
     ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+  })
+
+  it('places caller-composed dependency quality after the existing reason precedence', () => {
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_dependency_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'poor',
+        roomContamination: 'poor',
+        dependencyCondition: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_specialist_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'nominal' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
+        dependencyCondition: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+  })
+})
+
+describe('resolveDepartmentWorkshopDependencyQuality (SPE-2781)', () => {
+  it('maps only degraded availability to poor dependency quality', () => {
+    expect(resolveDepartmentWorkshopDependencyQuality('degraded')).toEqual({
+      dependencyCondition: 'poor',
+      effect: 'degraded_dependency_quality',
+    })
+    for (const availability of ['ready', 'unavailable', undefined, null, 'malformed']) {
+      expect(resolveDepartmentWorkshopDependencyQuality(availability)).toEqual({
+        dependencyCondition: 'good',
+        effect: 'baseline',
+      })
+    }
+  })
+
+  it('returns frozen results without mutating caller input', () => {
+    const input = Object.freeze({ availability: 'degraded' })
+    const result = resolveDepartmentWorkshopDependencyQuality(input.availability)
+
+    expect(input).toEqual({ availability: 'degraded' })
+    expect(Object.isFrozen(result)).toBe(true)
   })
 })
 

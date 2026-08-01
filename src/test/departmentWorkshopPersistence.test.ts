@@ -837,6 +837,83 @@ describe('department workshop persistence', () => {
     expect(input).toEqual(before)
   })
 
+  it('isolates transient operating modes by department and registry insertion order', () => {
+    const workOrders = {
+      'work:zulu': { ...WORK_ORDERS['work:zulu'], requiredWork: 2 },
+      'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 2 },
+    }
+    const snapshots = {
+      'department:records-analysis': {
+        ...SNAPSHOTS['department:records-analysis'],
+        queued: [],
+        active: [{ workOrderId: 'work:zulu', completedWork: 0 }],
+      },
+      'department:biohazard-response': {
+        ...SNAPSHOTS['department:biohazard-response'],
+        active: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+      },
+    }
+    const input = {
+      departmentWorkshopWorkOrders: workOrders,
+      departmentWorkshopSnapshots: snapshots,
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': workOrders['work:alpha'],
+        'work:zulu': workOrders['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': snapshots['department:biohazard-response'],
+        'department:records-analysis': snapshots['department:records-analysis'],
+      },
+    }
+    const operatingModes = {
+      'department:records-analysis': 'centralized',
+      'department:biohazard-response': 'distributed',
+    }
+    const before = structuredClone(input)
+
+    const first = processDepartmentWorkshopTick(
+      input,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes
+    )
+    const replay = processDepartmentWorkshopTick(
+      reordered,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes
+    )
+
+    expect(replay).toEqual(first)
+    expect(first.completedWorkOrderIds).toEqual(['work:zulu'])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([])
+    expect(first.workshopState.snapshots['department:biohazard-response']?.active).toEqual([
+      { workOrderId: 'work:alpha', completedWork: 1 },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']).not.toHaveProperty(
+      'operatingMode'
+    )
+    expect(Object.isFrozen(first.workshopState.snapshots)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots['department:biohazard-response'])).toBe(
+      true
+    )
+    expect(
+      projectDepartmentWorkshopWorkload(
+        first.workshopState.snapshots['department:biohazard-response']!,
+        [workOrders['work:alpha']]
+      ).workloadSnapshot
+    ).toEqual({
+      departmentId: 'department:biohazard-response',
+      queuedCaseIds: ['case-alpha'],
+      weeklyCapacity: 1,
+    })
+    expect(input).toEqual(before)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,

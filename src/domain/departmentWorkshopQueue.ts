@@ -49,13 +49,31 @@ export interface DepartmentWorkshopStagingConditions {
   readonly outputStaging: DepartmentWorkshopStaging
 }
 
+export type DepartmentWorkshopThroughputEffect =
+  'baseline' | 'adjacent_staging' | 'centralized_staffing' | 'capped_adjacent_and_centralized'
+
 export interface DepartmentWorkshopThroughputResult {
   readonly workUnits: 1 | 2
-  readonly effect: 'baseline' | 'adjacent_staging'
+  readonly effect: DepartmentWorkshopThroughputEffect
 }
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopStagingConditionsByDepartment = Readonly<Record<string, unknown>>
+
+/** SPE-2776: transient caller-owned workshop organization policy. */
+export type DepartmentWorkshopOperatingMode = 'centralized' | 'distributed'
+
+export type DepartmentWorkshopBreachIsolation = 'baseline' | 'distributed_isolation'
+
+export interface DepartmentWorkshopOperatingModelResult {
+  readonly mode: DepartmentWorkshopOperatingMode | 'baseline'
+  readonly staffingWorkUnits: 0 | 1
+  readonly staffingEffect: 'baseline' | 'centralized_staffing'
+  readonly breachIsolation: DepartmentWorkshopBreachIsolation
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopOperatingModesByDepartment = Readonly<Record<string, unknown>>
 
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
@@ -782,21 +800,61 @@ export function resolveDepartmentWorkshopCompletionSafety(
 }
 
 /**
- * Resolve the bounded adjacency effect without reading persistence or facility
- * topology. Both input and output staging must be explicitly adjacent to earn
- * the bonus; missing, partial, remote, or malformed input keeps the baseline.
+ * Resolve transient operating policy without reading persistence or topology.
+ * Distributed isolation is metadata only; it does not grade safety or spawn an
+ * incident. Missing or malformed policy makes no staffing or isolation claim.
+ */
+export function resolveDepartmentWorkshopOperatingModel(
+  mode?: unknown
+): DepartmentWorkshopOperatingModelResult {
+  if (mode === 'centralized') {
+    return Object.freeze({
+      mode,
+      staffingWorkUnits: 1,
+      staffingEffect: 'centralized_staffing',
+      breachIsolation: 'baseline',
+    })
+  }
+  if (mode === 'distributed') {
+    return Object.freeze({
+      mode,
+      staffingWorkUnits: 0,
+      staffingEffect: 'baseline',
+      breachIsolation: 'distributed_isolation',
+    })
+  }
+  return Object.freeze({
+    mode: 'baseline',
+    staffingWorkUnits: 0,
+    staffingEffect: 'baseline',
+    breachIsolation: 'baseline',
+  })
+}
+
+/**
+ * Compose SPE-2775 adjacency with SPE-2776 centralized staffing under a strict
+ * two-work-unit cap. Distributed isolation stays on the operating-model result
+ * and does not alter throughput.
  */
 export function resolveDepartmentWorkshopThroughput(
-  conditions?: unknown
+  conditions?: unknown,
+  operatingMode?: unknown
 ): DepartmentWorkshopThroughputResult {
-  if (
+  const hasAdjacentStaging =
     isRecord(conditions) &&
     conditions.inputStaging === 'adjacent' &&
     conditions.outputStaging === 'adjacent'
-  ) {
+  const operatingModel = resolveDepartmentWorkshopOperatingModel(operatingMode)
+
+  if (hasAdjacentStaging && operatingModel.staffingWorkUnits === 1) {
+    return Object.freeze({ workUnits: 2, effect: 'capped_adjacent_and_centralized' })
+  }
+  if (hasAdjacentStaging) {
     return Object.freeze({ workUnits: 2, effect: 'adjacent_staging' })
   }
-
+  if (operatingModel.staffingWorkUnits === 1) {
+    return Object.freeze({ workUnits: 2, effect: 'centralized_staffing' })
+  }
   return Object.freeze({ workUnits: 1, effect: 'baseline' })
 }
 
@@ -1214,7 +1272,8 @@ export function advanceDepartmentWorkshopQueue(
   workOrders: readonly DepartmentWorkshopWorkOrder[],
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
   authorityGraph?: AuthorityGraph,
-  stagingConditions?: unknown
+  stagingConditions?: unknown,
+  operatingMode?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1234,7 +1293,7 @@ export function advanceDepartmentWorkshopQueue(
   const paused = validated.snapshot.paused.map((item) => ({ ...item }))
   const startedWorkOrderIds: string[] = []
   const completedWorkOrderIds: string[] = []
-  const throughput = resolveDepartmentWorkshopThroughput(stagingConditions)
+  const throughput = resolveDepartmentWorkshopThroughput(stagingConditions, operatingMode)
 
   fillOpenSlots(queued, active, validated.snapshot.slotCapacity, startedWorkOrderIds)
 
@@ -1274,13 +1333,15 @@ export function advanceDepartmentWorkshopQueue(
 /**
  * Advance every persisted department snapshot once in stable department-ID
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
- * GameState nor any non-workshop queue.
+ * GameState nor any non-workshop queue. Optional staging and operating-mode
+ * maps are caller-owned transient context isolated by exact department ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
   authorityGraph?: AuthorityGraph,
-  stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment
+  stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment,
+  operatingModesByDepartment?: DepartmentWorkshopOperatingModesByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1303,6 +1364,10 @@ export function processDepartmentWorkshopTick(
       isRecord(stagingConditionsByDepartment) &&
         Object.hasOwn(stagingConditionsByDepartment, departmentId)
         ? stagingConditionsByDepartment[departmentId]
+        : undefined,
+      isRecord(operatingModesByDepartment) &&
+        Object.hasOwn(operatingModesByDepartment, departmentId)
+        ? operatingModesByDepartment[departmentId]
         : undefined
     )
     reasons.push(...advanceResult.reasons)

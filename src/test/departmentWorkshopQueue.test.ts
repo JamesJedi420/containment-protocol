@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
   resumeDepartmentWorkshopWork,
   type DepartmentWorkshopSnapshot,
@@ -114,7 +115,62 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     }
   })
 
-  it('accelerates fully adjacent work without advancing its same-tick backfill', () => {
+  it('resolves centralized, distributed, and malformed operating modes explicitly', () => {
+    const centralized = resolveDepartmentWorkshopOperatingModel('centralized')
+    expect(centralized).toEqual({
+      mode: 'centralized',
+      staffingWorkUnits: 1,
+      staffingEffect: 'centralized_staffing',
+      breachIsolation: 'baseline',
+    })
+    expect(Object.isFrozen(centralized)).toBe(true)
+
+    const distributed = resolveDepartmentWorkshopOperatingModel('distributed')
+    expect(distributed).toEqual({
+      mode: 'distributed',
+      staffingWorkUnits: 0,
+      staffingEffect: 'baseline',
+      breachIsolation: 'distributed_isolation',
+    })
+    expect(Object.isFrozen(distributed)).toBe(true)
+
+    for (const mode of [undefined, null, '', 'central', 'DISTRIBUTED', {}]) {
+      const fallback = resolveDepartmentWorkshopOperatingModel(mode)
+      expect(fallback).toEqual({
+        mode: 'baseline',
+        staffingWorkUnits: 0,
+        staffingEffect: 'baseline',
+        breachIsolation: 'baseline',
+      })
+      expect(Object.isFrozen(fallback)).toBe(true)
+    }
+  })
+
+  it('caps adjacent and centralized staffing composition at two work units', () => {
+    expect(resolveDepartmentWorkshopThroughput(undefined, 'centralized')).toEqual({
+      workUnits: 2,
+      effect: 'centralized_staffing',
+    })
+
+    const combined = resolveDepartmentWorkshopThroughput(
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized'
+    )
+    expect(combined).toEqual({
+      workUnits: 2,
+      effect: 'capped_adjacent_and_centralized',
+    })
+    expect(Object.isFrozen(combined)).toBe(true)
+
+    expect(
+      resolveDepartmentWorkshopThroughput(
+        { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+        'distributed'
+      )
+    ).toEqual({ workUnits: 2, effect: 'adjacent_staging' })
+  })
+
+  it('keeps capped combined acceleration from advancing its same-tick backfill', () => {
     const input = snapshot({
       queued: [{ workOrderId: 'order:b', completedWork: 0 }],
       active: [{ workOrderId: 'order:a', completedWork: 0 }],
@@ -127,7 +183,8 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       workOrders,
       TEST_REGISTRY,
       undefined,
-      { inputStaging: 'adjacent', outputStaging: 'adjacent' }
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized'
     )
 
     expect(accelerated.completedWorkOrderIds).toEqual(['order:a'])
@@ -298,7 +355,10 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
         paused: [{ workOrderId: 'order:b', completedWork: 1 }],
       }),
       [workOrder('order:a', { requiredWork: 3 }), workOrder('order:b', { requiredWork: 4 })],
-      TEST_REGISTRY
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      'distributed'
     )
 
     expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])

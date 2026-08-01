@@ -88,6 +88,8 @@ export function formatDepartmentWorkshopQualityReasonLabel(
       return 'Poor room contamination'
     case 'poor_dependency_condition':
       return 'Poor dependency condition'
+    case 'poor_equipment_condition':
+      return 'Poor equipment condition'
     default: {
       const unreachable: never = reason
       return unreachable

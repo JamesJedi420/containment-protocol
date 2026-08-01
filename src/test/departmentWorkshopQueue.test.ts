@@ -15,6 +15,7 @@ import {
   resolveDepartmentWorkshopCertificationEligibility,
   resolveDepartmentWorkshopDependencyAvailability,
   resolveDepartmentWorkshopDependencyQuality,
+  resolveDepartmentWorkshopEquipmentQuality,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
   resolveDepartmentWorkshopThroughput,
@@ -1243,7 +1244,7 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
     ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
   })
 
-  it('places caller-composed dependency quality after the existing reason precedence', () => {
+  it('places caller-composed dependency and equipment quality after existing precedence', () => {
     expect(
       resolveDepartmentWorkshopCompletionQuality({
         inputQuality: 'good',
@@ -1273,9 +1274,52 @@ describe('resolveDepartmentWorkshopCompletionQuality (SPE-2768)', () => {
         inputQuality: 'good',
         specialistCondition: 'good',
         roomContamination: 'poor',
+        equipmentCondition: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
         dependencyCondition: 'malformed',
       } as never)
     ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'good',
+        equipmentCondition: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_equipment_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        dependencyCondition: 'poor',
+        equipmentCondition: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_dependency_condition' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'poor',
+        dependencyCondition: 'poor',
+        equipmentCondition: 'poor',
+      })
+    ).toEqual({ quality: 'degraded', qualityReason: 'poor_room_contamination' })
+    expect(
+      resolveDepartmentWorkshopCompletionQuality({
+        inputQuality: 'good',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+        equipmentCondition: 'malformed',
+      } as never)
+    ).toEqual({ quality: 'nominal' })
   })
 })
 
@@ -1298,6 +1342,31 @@ describe('resolveDepartmentWorkshopDependencyQuality (SPE-2781)', () => {
     const result = resolveDepartmentWorkshopDependencyQuality(input.availability)
 
     expect(input).toEqual({ availability: 'degraded' })
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+})
+
+describe('resolveDepartmentWorkshopEquipmentQuality (SPE-2782)', () => {
+  it('maps only explicit poor equipment condition to degraded quality', () => {
+    expect(resolveDepartmentWorkshopEquipmentQuality('poor')).toEqual({
+      equipmentCondition: 'poor',
+      effect: 'degraded_equipment_quality',
+    })
+    for (const condition of ['good', undefined, null, 'degraded', 'malformed', 1, {}]) {
+      const result = resolveDepartmentWorkshopEquipmentQuality(condition)
+      expect(result).toEqual({
+        equipmentCondition: 'good',
+        effect: 'baseline',
+      })
+      expect(Object.isFrozen(result)).toBe(true)
+    }
+  })
+
+  it('returns frozen results without mutating caller input', () => {
+    const input = Object.freeze({ equipmentCondition: 'poor' })
+    const result = resolveDepartmentWorkshopEquipmentQuality(input.equipmentCondition)
+
+    expect(input).toEqual({ equipmentCondition: 'poor' })
     expect(Object.isFrozen(result)).toBe(true)
   })
 })

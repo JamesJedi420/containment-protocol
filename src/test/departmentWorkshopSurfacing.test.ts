@@ -8,4 +8,10 @@ describe('department workshop quality surfacing', () => {
       'Poor dependency condition'
     )
   })
+
+  it('labels degraded equipment completion quality explicitly', () => {
+    expect(formatDepartmentWorkshopQualityReasonLabel('poor_equipment_condition')).toBe(
+      'Poor equipment condition'
+    )
+  })
 })

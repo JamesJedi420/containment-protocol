@@ -139,12 +139,14 @@ export type DepartmentWorkshopQualityReason =
   | 'poor_specialist_condition'
   | 'poor_room_contamination'
   | 'poor_dependency_condition'
+  | 'poor_equipment_condition'
 
 export interface DepartmentWorkshopQualityConditions {
   readonly inputQuality: DepartmentWorkshopConditionLevel
   readonly specialistCondition: DepartmentWorkshopConditionLevel
   readonly roomContamination: DepartmentWorkshopConditionLevel
   readonly dependencyCondition?: DepartmentWorkshopConditionLevel
+  readonly equipmentCondition?: DepartmentWorkshopConditionLevel
 }
 
 export interface DepartmentWorkshopCompletionQualityResult {
@@ -155,6 +157,12 @@ export interface DepartmentWorkshopCompletionQualityResult {
 export interface DepartmentWorkshopDependencyQualityResult {
   readonly dependencyCondition: DepartmentWorkshopConditionLevel
   readonly effect: 'baseline' | 'degraded_dependency_quality'
+}
+
+/** Frozen normalized equipment condition for explicit completion-quality composition. */
+export interface DepartmentWorkshopEquipmentQualityResult {
+  readonly equipmentCondition: DepartmentWorkshopConditionLevel
+  readonly effect: 'baseline' | 'degraded_equipment_quality'
 }
 
 /** Caller-owned axes for completion unsafe-processing safety (orthogonal to quality). */
@@ -767,6 +775,7 @@ const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityRea
   'poor_specialist_condition',
   'poor_room_contamination',
   'poor_dependency_condition',
+  'poor_equipment_condition',
 ])
 const DEPARTMENT_WORKSHOP_COMPLETION_SAFETIES = new Set<DepartmentWorkshopCompletionSafety>([
   'safe',
@@ -782,9 +791,9 @@ const DEPARTMENT_WORKSHOP_SAFETY_REASONS = new Set<DepartmentWorkshopSafetyReaso
 /**
  * Resolve completion output quality from caller-owned condition axes.
  * Missing conditions default to nominal. Any poor axis yields degraded with a
- * stable primary reason (input → specialist → room → dependency). The
- * optional dependency axis fails neutral without invalidating the required
- * SPE-2768 axes.
+ * stable primary reason (input → specialist → room → dependency → equipment).
+ * Optional dependency and equipment axes fail neutral without invalidating
+ * the required SPE-2768 axes.
  */
 export function resolveDepartmentWorkshopCompletionQuality(
   conditions?: DepartmentWorkshopQualityConditions | null
@@ -821,6 +830,12 @@ export function resolveDepartmentWorkshopCompletionQuality(
     return Object.freeze({
       quality: 'degraded',
       qualityReason: 'poor_dependency_condition',
+    })
+  }
+  if (conditions.equipmentCondition === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
     })
   }
   return Object.freeze({ quality: 'nominal' })
@@ -976,6 +991,22 @@ export function resolveDepartmentWorkshopDependencyQuality(
     })
   }
   return Object.freeze({ dependencyCondition: 'good', effect: 'baseline' })
+}
+
+/**
+ * Normalize explicit caller-owned equipment condition for completion quality.
+ * This is not canonical equipment grade or live SPE-877 integrity projection.
+ */
+export function resolveDepartmentWorkshopEquipmentQuality(
+  equipmentCondition?: unknown
+): DepartmentWorkshopEquipmentQualityResult {
+  if (equipmentCondition === 'poor') {
+    return Object.freeze({
+      equipmentCondition: 'poor',
+      effect: 'degraded_equipment_quality',
+    })
+  }
+  return Object.freeze({ equipmentCondition: 'good', effect: 'baseline' })
 }
 
 /**

@@ -107,6 +107,28 @@ export interface DepartmentWorkshopDependencyAvailabilityResult {
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopDependencyAvailabilityByDepartment = Readonly<Record<string, unknown>>
 
+/** SPE-2780: transient caller-owned workshop certification profile. */
+export type DepartmentWorkshopCertificationProfile = 'basic' | 'certified'
+
+export type DepartmentWorkshopCertificationRequirement = 'standard' | 'certified'
+
+export interface DepartmentWorkshopCertificationEligibilityResult {
+  readonly profile: DepartmentWorkshopCertificationProfile | 'baseline'
+  readonly requirement: DepartmentWorkshopCertificationRequirement
+  readonly allowsStart: boolean
+  readonly effect: 'baseline' | 'certified_work_allowed' | 'certification_required'
+}
+
+export interface DepartmentWorkshopCertificationContext {
+  readonly profile: DepartmentWorkshopCertificationProfile
+  readonly requirementsByWorkOrderId: Readonly<
+    Record<string, DepartmentWorkshopCertificationRequirement>
+  >
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopCertificationContextsByDepartment = Readonly<Record<string, unknown>>
+
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
 
@@ -203,6 +225,7 @@ export type DepartmentWorkshopReasonCode =
   | 'active-slot-overflow'
   | 'zero-slot-capacity'
   | 'unavailable-workshop-dependency'
+  | 'workshop-certification-required'
   | 'invalid-work-order-id'
   | 'work-order-not-active'
   | 'work-order-not-paused'
@@ -920,6 +943,43 @@ export function resolveDepartmentWorkshopDependencyAvailability(
 }
 
 /**
+ * Resolve start eligibility from caller-owned certification context. Missing or
+ * malformed requirements remain standard; a malformed profile cannot satisfy
+ * an explicitly certified requirement.
+ */
+export function resolveDepartmentWorkshopCertificationEligibility(
+  profile?: unknown,
+  requirement?: unknown
+): DepartmentWorkshopCertificationEligibilityResult {
+  const resolvedProfile =
+    profile === 'basic' || profile === 'certified' ? profile : ('baseline' as const)
+  const resolvedRequirement = requirement === 'certified' ? 'certified' : 'standard'
+
+  if (resolvedRequirement === 'standard') {
+    return Object.freeze({
+      profile: resolvedProfile,
+      requirement: resolvedRequirement,
+      allowsStart: true,
+      effect: 'baseline',
+    })
+  }
+  if (resolvedProfile === 'certified') {
+    return Object.freeze({
+      profile: resolvedProfile,
+      requirement: resolvedRequirement,
+      allowsStart: true,
+      effect: 'certified_work_allowed',
+    })
+  }
+  return Object.freeze({
+    profile: resolvedProfile,
+    requirement: resolvedRequirement,
+    allowsStart: false,
+    effect: 'certification_required',
+  })
+}
+
+/**
  * Compose SPE-2775 adjacency and SPE-2776 centralized staffing under a strict
  * two-work-unit cap, then apply SPE-2777 pressure and SPE-2779 dependency caps.
  * Distributed isolation stays on the operating-model result and does not alter
@@ -1354,16 +1414,39 @@ function fillOpenSlots(
   queued: DepartmentWorkshopWorkItem[],
   active: DepartmentWorkshopWorkItem[],
   slotCapacity: number,
-  startedWorkOrderIds: string[]
-) {
+  startedWorkOrderIds: string[],
+  certificationContext?: unknown
+): string | null {
+  const certificationProfile =
+    isRecord(certificationContext) && Object.hasOwn(certificationContext, 'profile')
+      ? certificationContext.profile
+      : undefined
+  const requirementsByWorkOrderId =
+    isRecord(certificationContext) &&
+    Object.hasOwn(certificationContext, 'requirementsByWorkOrderId') &&
+    isRecord(certificationContext.requirementsByWorkOrderId)
+      ? certificationContext.requirementsByWorkOrderId
+      : undefined
+
   while (active.length < slotCapacity && queued.length > 0) {
-    const next = queued.shift()
+    const next = queued[0]
     if (!next) {
       break
     }
+    const eligibility = resolveDepartmentWorkshopCertificationEligibility(
+      certificationProfile,
+      requirementsByWorkOrderId && Object.hasOwn(requirementsByWorkOrderId, next.workOrderId)
+        ? requirementsByWorkOrderId[next.workOrderId]
+        : undefined
+    )
+    if (!eligibility.allowsStart) {
+      return next.workOrderId
+    }
+    queued.shift()
     active.push(next)
     startedWorkOrderIds.push(next.workOrderId)
   }
+  return null
 }
 
 /**
@@ -1384,7 +1467,8 @@ export function advanceDepartmentWorkshopQueue(
   stagingConditions?: unknown,
   operatingMode?: unknown,
   loadPressure?: unknown,
-  dependencyAvailability?: unknown
+  dependencyAvailability?: unknown,
+  certificationContext?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1418,7 +1502,22 @@ export function advanceDepartmentWorkshopQueue(
     )
   }
 
-  fillOpenSlots(queued, active, validated.snapshot.slotCapacity, startedWorkOrderIds)
+  let certificationBlockedWorkOrderId = fillOpenSlots(
+    queued,
+    active,
+    validated.snapshot.slotCapacity,
+    startedWorkOrderIds,
+    certificationContext
+  )
+
+  if (certificationBlockedWorkOrderId && active.length === 0 && startedWorkOrderIds.length === 0) {
+    return blockedAdvanceWithSnapshot(
+      validated.snapshot,
+      frozenReason('workshop-certification-required', validated.snapshot.departmentId, [
+        certificationBlockedWorkOrderId,
+      ])
+    )
+  }
 
   const remainingActive: DepartmentWorkshopWorkItem[] = []
   for (const item of active) {
@@ -1436,7 +1535,21 @@ export function advanceDepartmentWorkshopQueue(
     }
   }
 
-  fillOpenSlots(queued, remainingActive, validated.snapshot.slotCapacity, startedWorkOrderIds)
+  certificationBlockedWorkOrderId ??= fillOpenSlots(
+    queued,
+    remainingActive,
+    validated.snapshot.slotCapacity,
+    startedWorkOrderIds,
+    certificationContext
+  )
+
+  const reasons = certificationBlockedWorkOrderId
+    ? Object.freeze([
+        frozenReason('workshop-certification-required', validated.snapshot.departmentId, [
+          certificationBlockedWorkOrderId,
+        ]),
+      ])
+    : Object.freeze([])
 
   return Object.freeze({
     state: 'advanced',
@@ -1449,7 +1562,7 @@ export function advanceDepartmentWorkshopQueue(
     }),
     startedWorkOrderIds: Object.freeze([...startedWorkOrderIds]),
     completedWorkOrderIds: Object.freeze([...completedWorkOrderIds]),
-    reasons: Object.freeze([]),
+    reasons,
   })
 }
 
@@ -1457,8 +1570,8 @@ export function advanceDepartmentWorkshopQueue(
  * Advance every persisted department snapshot once in stable department-ID
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
  * GameState nor any non-workshop queue. Optional staging, operating-mode,
- * load-pressure, and dependency-availability maps are caller-owned transient
- * context isolated by exact department ID.
+ * load-pressure, dependency-availability, and certification maps are
+ * caller-owned transient context isolated by exact department ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
@@ -1467,7 +1580,8 @@ export function processDepartmentWorkshopTick(
   stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment,
   operatingModesByDepartment?: DepartmentWorkshopOperatingModesByDepartment,
   loadPressuresByDepartment?: DepartmentWorkshopLoadPressuresByDepartment,
-  dependencyAvailabilityByDepartment?: DepartmentWorkshopDependencyAvailabilityByDepartment
+  dependencyAvailabilityByDepartment?: DepartmentWorkshopDependencyAvailabilityByDepartment,
+  certificationContextsByDepartment?: DepartmentWorkshopCertificationContextsByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1501,6 +1615,10 @@ export function processDepartmentWorkshopTick(
       isRecord(dependencyAvailabilityByDepartment) &&
         Object.hasOwn(dependencyAvailabilityByDepartment, departmentId)
         ? dependencyAvailabilityByDepartment[departmentId]
+        : undefined,
+      isRecord(certificationContextsByDepartment) &&
+        Object.hasOwn(certificationContextsByDepartment, departmentId)
+        ? certificationContextsByDepartment[departmentId]
         : undefined
     )
     reasons.push(...advanceResult.reasons)

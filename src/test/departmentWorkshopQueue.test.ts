@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopCertificationEligibility,
   resolveDepartmentWorkshopDependencyAvailability,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
@@ -205,6 +206,48 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
         effect: 'baseline',
       })
       expect(Object.isFrozen(fallback)).toBe(true)
+    }
+  })
+
+  it('resolves certification profiles and work requirements with neutral fallbacks', () => {
+    for (const profile of ['basic', 'certified', undefined, null, 'specialized', {}]) {
+      const standard = resolveDepartmentWorkshopCertificationEligibility(profile, 'standard')
+      expect(standard).toEqual({
+        profile: profile === 'basic' || profile === 'certified' ? profile : 'baseline',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
+      expect(Object.isFrozen(standard)).toBe(true)
+    }
+
+    const certified = resolveDepartmentWorkshopCertificationEligibility('certified', 'certified')
+    expect(certified).toEqual({
+      profile: 'certified',
+      requirement: 'certified',
+      allowsStart: true,
+      effect: 'certified_work_allowed',
+    })
+    expect(Object.isFrozen(certified)).toBe(true)
+
+    for (const profile of ['basic', undefined, null, 'CERTIFIED', {}]) {
+      const blocked = resolveDepartmentWorkshopCertificationEligibility(profile, 'certified')
+      expect(blocked).toEqual({
+        profile: profile === 'basic' ? 'basic' : 'baseline',
+        requirement: 'certified',
+        allowsStart: false,
+        effect: 'certification_required',
+      })
+      expect(Object.isFrozen(blocked)).toBe(true)
+    }
+
+    for (const requirement of [undefined, null, '', 'advanced', {}]) {
+      expect(resolveDepartmentWorkshopCertificationEligibility('basic', requirement)).toEqual({
+        profile: 'basic',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
     }
   })
 
@@ -432,6 +475,276 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(result.completedWorkOrderIds).toEqual(['order:a'])
     expect(result.startedWorkOrderIds).toEqual(['order:b'])
     expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
+  })
+
+  it('starts certified-required work only under a certified profile', () => {
+    const input = snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] })
+    const requirements = { 'order:a': 'certified' }
+
+    const blocked = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'basic', requirementsByWorkOrderId: requirements }
+    )
+    expect(blocked.state).toBe('blocked')
+    expect(blocked.snapshot).toEqual(input)
+    expect(blocked.startedWorkOrderIds).toEqual([])
+    expect(blocked.reasons).toEqual([
+      {
+        code: 'workshop-certification-required',
+        departmentId: DEPARTMENT_ID,
+        workOrderIds: ['order:a'],
+      },
+    ])
+    expect(Object.isFrozen(blocked.reasons)).toBe(true)
+    expect(Object.isFrozen(blocked.reasons[0]?.workOrderIds)).toBe(true)
+
+    const allowed = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'certified', requirementsByWorkOrderId: requirements }
+    )
+    expect(allowed.state).toBe('advanced')
+    expect(allowed.startedWorkOrderIds).toEqual(['order:a'])
+    expect(allowed.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])
+    expect(allowed.reasons).toEqual([])
+
+    const inheritedRequirements = Object.create({ 'order:a': 'certified' }) as Record<
+      string,
+      unknown
+    >
+    const inherited = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'basic', requirementsByWorkOrderId: inheritedRequirements }
+    )
+    expect(inherited.startedWorkOrderIds).toEqual(['order:a'])
+    expect(inherited.reasons).toEqual([])
+  })
+
+  it('keeps throughput bonuses and same-tick backfill timing for eligible certified work', () => {
+    const result = advanceDepartmentWorkshopQueue(
+      snapshot({
+        queued: [
+          { workOrderId: 'order:a', completedWork: 0 },
+          { workOrderId: 'order:b', completedWork: 0 },
+        ],
+      }),
+      [workOrder('order:a'), workOrder('order:b', { requiredWork: 3 })],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      undefined,
+      undefined,
+      {
+        profile: 'certified',
+        requirementsByWorkOrderId: {
+          'order:a': 'certified',
+          'order:b': 'certified',
+        },
+      }
+    )
+
+    expect(result.completedWorkOrderIds).toEqual(['order:a'])
+    expect(result.startedWorkOrderIds).toEqual(['order:a', 'order:b'])
+    expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:b', completedWork: 0 }])
+    expect(result.reasons).toEqual([])
+  })
+
+  it('keeps strict FIFO when a certified-required head blocks later standard work', () => {
+    const input = snapshot({
+      slotCapacity: 2,
+      queued: [
+        { workOrderId: 'order:certified', completedWork: 0 },
+        { workOrderId: 'order:standard', completedWork: 0 },
+      ],
+    })
+    const result = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:certified'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        profile: 'basic',
+        requirementsByWorkOrderId: { 'order:certified': 'certified' },
+      }
+    )
+
+    expect(result.state).toBe('blocked')
+    expect(result.snapshot).toEqual(input)
+    expect(result.startedWorkOrderIds).toEqual([])
+    expect(result.reasons[0]?.workOrderIds).toEqual(['order:certified'])
+
+    const eligibleThenBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({
+        slotCapacity: 2,
+        queued: [
+          { workOrderId: 'order:standard', completedWork: 0 },
+          { workOrderId: 'order:certified', completedWork: 0 },
+        ],
+      }),
+      [workOrder('order:certified'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        profile: 'basic',
+        requirementsByWorkOrderId: { 'order:certified': 'certified' },
+      }
+    )
+    expect(eligibleThenBlocked.state).toBe('advanced')
+    expect(eligibleThenBlocked.startedWorkOrderIds).toEqual(['order:standard'])
+    expect(eligibleThenBlocked.snapshot?.active).toEqual([
+      { workOrderId: 'order:standard', completedWork: 1 },
+    ])
+    expect(eligibleThenBlocked.snapshot?.queued).toEqual([
+      { workOrderId: 'order:certified', completedWork: 0 },
+    ])
+    expect(eligibleThenBlocked.reasons).toHaveLength(1)
+  })
+
+  it('retains active progress and completion while certification blocks backfill', () => {
+    const input = snapshot({
+      queued: [{ workOrderId: 'order:certified', completedWork: 0 }],
+      active: [{ workOrderId: 'order:active', completedWork: 0 }],
+    })
+    const context = {
+      profile: 'basic',
+      requirementsByWorkOrderId: { 'order:certified': 'certified' },
+    }
+    const workOrders = [
+      workOrder('order:active', { requiredWork: 2 }),
+      workOrder('order:certified'),
+    ]
+
+    const progressing = advanceDepartmentWorkshopQueue(
+      input,
+      workOrders,
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      context
+    )
+    expect(progressing.state).toBe('advanced')
+    expect(progressing.snapshot?.active).toEqual([
+      { workOrderId: 'order:active', completedWork: 1 },
+    ])
+    expect(progressing.snapshot?.queued).toEqual([
+      { workOrderId: 'order:certified', completedWork: 0 },
+    ])
+    expect(progressing.reasons).toEqual([])
+
+    const completing = advanceDepartmentWorkshopQueue(
+      progressing.snapshot as DepartmentWorkshopSnapshot,
+      workOrders,
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      context
+    )
+    expect(completing.state).toBe('advanced')
+    expect(completing.completedWorkOrderIds).toEqual(['order:active'])
+    expect(completing.startedWorkOrderIds).toEqual([])
+    expect(completing.snapshot?.active).toEqual([])
+    expect(completing.snapshot?.queued).toEqual([
+      { workOrderId: 'order:certified', completedWork: 0 },
+    ])
+    expect(completing.reasons).toHaveLength(1)
+  })
+
+  it('grandfathers active certified work and preserves paused work', () => {
+    const input = snapshot({
+      active: [{ workOrderId: 'order:active', completedWork: 0 }],
+      paused: [{ workOrderId: 'order:paused', completedWork: 1 }],
+    })
+    const result = advanceDepartmentWorkshopQueue(
+      input,
+      [
+        workOrder('order:active', { requiredWork: 3 }),
+        workOrder('order:paused', { requiredWork: 3 }),
+      ],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        profile: 'basic',
+        requirementsByWorkOrderId: {
+          'order:active': 'certified',
+          'order:paused': 'certified',
+        },
+      }
+    )
+
+    expect(result.snapshot?.active).toEqual([{ workOrderId: 'order:active', completedWork: 1 }])
+    expect(result.snapshot?.paused).toEqual([{ workOrderId: 'order:paused', completedWork: 1 }])
+    expect(result.reasons).toEqual([])
+  })
+
+  it('keeps zero-slot and unavailable dependency precedence over certification', () => {
+    const context = {
+      profile: 'basic',
+      requirementsByWorkOrderId: { 'order:a': 'certified' },
+    }
+    const zeroSlot = advanceDepartmentWorkshopQueue(
+      snapshot({ slotCapacity: 0, queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      context
+    )
+    expect(reasonCode(zeroSlot)).toBe('zero-slot-capacity')
+
+    const unavailable = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'unavailable',
+      context
+    )
+    expect(reasonCode(unavailable)).toBe('unavailable-workshop-dependency')
   })
 
   it('keeps remote, partial, omitted, and malformed staging on baseline advancement', () => {

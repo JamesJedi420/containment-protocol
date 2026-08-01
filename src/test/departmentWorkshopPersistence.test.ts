@@ -7,6 +7,7 @@ import {
   readDepartmentWorkshopState,
   reconcileDepartmentWorkshopTerminalLanes,
   registerDepartmentWorkshopCompletionOutcomes,
+  resolveDepartmentWorkshopDependencyQuality,
   sanitizeDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopSnapshots,
   sanitizeDepartmentWorkshopWorkOrders,
@@ -1410,6 +1411,28 @@ describe('department workshop persistence', () => {
       qualityReason: 'poor_room_contamination',
       safety: 'safe',
     })
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          quality: 'degraded',
+          qualityReason: 'poor_dependency_condition',
+        },
+      })['work:alpha']
+    ).toMatchObject({
+      quality: 'degraded',
+      qualityReason: 'poor_dependency_condition',
+      safety: 'safe',
+    })
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes({
+        'work:alpha': {
+          ...input.departmentWorkshopCompletionOutcomes['work:alpha'],
+          quality: 'degraded',
+          qualityReason: 'unknown_dependency_reason',
+        },
+      })
+    ).toEqual({})
 
     const graded = registerDepartmentWorkshopCompletionOutcomes(input, ['work:zulu'], 2, {
       'work:zulu': {
@@ -1449,6 +1472,57 @@ describe('department workshop persistence', () => {
     )
     expect(replay.registeredWorkOrderIds).toEqual([])
     expect(replay.outcomes['work:zulu']).toEqual(graded.outcomes['work:zulu'])
+  })
+
+  it('isolates caller-composed dependency quality by exact work order', () => {
+    const input = {
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+    }
+    const before = structuredClone(input)
+    const dependencyQuality = resolveDepartmentWorkshopDependencyQuality('degraded')
+
+    const graded = registerDepartmentWorkshopCompletionOutcomes(
+      input,
+      ['work:zulu', 'work:alpha'],
+      2,
+      {
+        'work:zulu': {
+          inputQuality: 'good',
+          specialistCondition: 'good',
+          roomContamination: 'good',
+          dependencyCondition: dependencyQuality.dependencyCondition,
+        },
+      }
+    )
+
+    expect(input).toEqual(before)
+    expect(graded.registeredWorkOrderIds).toEqual(['work:alpha', 'work:zulu'])
+    expect(graded.outcomes['work:zulu']).toMatchObject({
+      quality: 'degraded',
+      qualityReason: 'poor_dependency_condition',
+      safety: 'safe',
+    })
+    expect(graded.outcomes['work:alpha']).toMatchObject({ quality: 'nominal', safety: 'safe' })
+    expect(Object.isFrozen(graded)).toBe(true)
+    expect(Object.isFrozen(graded.outcomes)).toBe(true)
+    expect(Object.isFrozen(graded.outcomes['work:zulu'])).toBe(true)
+    expect('dependencyCondition' in graded.outcomes['work:zulu']).toBe(false)
+
+    const loaded = loadGameSave(
+      serializeGameSave({
+        ...createStartingState(),
+        departmentWorkshopWorkOrders: WORK_ORDERS,
+        departmentWorkshopSnapshots: SNAPSHOTS,
+        departmentWorkshopCompletionOutcomes: graded.outcomes,
+      })
+    )
+    expect(loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toEqual(
+      graded.outcomes['work:zulu']
+    )
+    expect('dependencyCondition' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(
+      false
+    )
   })
 
   it('grades safety on new receipts independently of quality and hydrates legacy omit to safe', () => {

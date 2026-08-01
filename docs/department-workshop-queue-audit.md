@@ -17,6 +17,7 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
 | Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)             |
 | Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
+| Dependency-to-quality adapter                 | `resolveDepartmentWorkshopDependencyQuality` (SPE-2781)        |
 | Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
@@ -131,12 +132,26 @@ staff, skills, clearance, or topology. It does not change throughput, slot
 capacity, SPE-2084 workload projections, completion grades, or incident rules.
 `advanceWeek` omits the context and retains its existing single baseline tick.
 
+SPE-2781 adds a pure caller-composed adapter from the shipped SPE-2779
+dependency availability vocabulary into the existing completion-quality
+conditions. Only `degraded` contributes `dependencyCondition: 'poor'`; ready,
+unavailable, omitted, and malformed availability remain neutral. Dependency is
+the final quality-reason axis after input, specialist, and room, yielding the
+durable `poor_dependency_condition` reason only when no earlier axis is poor.
+Callers compose the adapter result into the existing exact-work-order quality
+map. The processing tick does not carry dependency context into receipt
+registration, `advanceWeek` continues to omit quality maps, and no dependency
+metadata is persisted. Unavailable dependencies cannot complete in the gated
+tick and therefore make no quality claim. This adapter does not change safety,
+incident spawning, task terminal state, throughput, or SPE-2084 projections.
+
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
 persisted `completed` receipt keyed by that ID, carrying the authored
 department, case, task type, closing week, SPE-2768 `quality` grade
 (`nominal` by default; `degraded` plus a stable reason when caller-owned
-condition axes mark poor input, specialist, or room state), and unsafe-processing
+condition axes mark poor input, specialist, room, or explicitly adapted
+dependency state), and unsafe-processing
 `safety` disposition (`safe` by default; `unsafe` plus a stable reason when
 caller-owned isolation, ventilation, PPE, or dual-auth axes are poor). Quality
 `roomContamination` is not safety contamination: the two grades are orthogonal.
@@ -155,8 +170,9 @@ inventory, live topology mapping, and live facility wiring remain outside the
 receipt seam.
 Live facility/staff projection into quality or safety conditions remains a
 later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
-for safety) and is **blocked on an explicit mapping seam**. Until that seam
-exists: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
+for safety) and is **blocked on an explicit mapping seam**. SPE-2781 provides
+only an explicit dependency adapter, not live projection. Until those seams
+exist: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
 lookups, status/level heuristics, or staff-to-workshop assignment; week-close
 must continue to omit `safetyConditionsByWorkOrderId` (and quality maps) so
 register stays all-good; `resolveDepartmentWorkshopCompletionSafety` remains

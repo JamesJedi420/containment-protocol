@@ -135,17 +135,26 @@ export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
 export type DepartmentWorkshopCompletionQuality = 'nominal' | 'degraded'
 
 export type DepartmentWorkshopQualityReason =
-  'poor_input_quality' | 'poor_specialist_condition' | 'poor_room_contamination'
+  | 'poor_input_quality'
+  | 'poor_specialist_condition'
+  | 'poor_room_contamination'
+  | 'poor_dependency_condition'
 
 export interface DepartmentWorkshopQualityConditions {
   readonly inputQuality: DepartmentWorkshopConditionLevel
   readonly specialistCondition: DepartmentWorkshopConditionLevel
   readonly roomContamination: DepartmentWorkshopConditionLevel
+  readonly dependencyCondition?: DepartmentWorkshopConditionLevel
 }
 
 export interface DepartmentWorkshopCompletionQualityResult {
   readonly quality: DepartmentWorkshopCompletionQuality
   readonly qualityReason?: DepartmentWorkshopQualityReason
+}
+
+export interface DepartmentWorkshopDependencyQualityResult {
+  readonly dependencyCondition: DepartmentWorkshopConditionLevel
+  readonly effect: 'baseline' | 'degraded_dependency_quality'
 }
 
 /** Caller-owned axes for completion unsafe-processing safety (orthogonal to quality). */
@@ -757,6 +766,7 @@ const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityRea
   'poor_input_quality',
   'poor_specialist_condition',
   'poor_room_contamination',
+  'poor_dependency_condition',
 ])
 const DEPARTMENT_WORKSHOP_COMPLETION_SAFETIES = new Set<DepartmentWorkshopCompletionSafety>([
   'safe',
@@ -772,7 +782,9 @@ const DEPARTMENT_WORKSHOP_SAFETY_REASONS = new Set<DepartmentWorkshopSafetyReaso
 /**
  * Resolve completion output quality from caller-owned condition axes.
  * Missing conditions default to nominal. Any poor axis yields degraded with a
- * stable primary reason (input → specialist → room).
+ * stable primary reason (input → specialist → room → dependency). The
+ * optional dependency axis fails neutral without invalidating the required
+ * SPE-2768 axes.
  */
 export function resolveDepartmentWorkshopCompletionQuality(
   conditions?: DepartmentWorkshopQualityConditions | null
@@ -803,6 +815,12 @@ export function resolveDepartmentWorkshopCompletionQuality(
     return Object.freeze({
       quality: 'degraded',
       qualityReason: 'poor_room_contamination',
+    })
+  }
+  if (conditions.dependencyCondition === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_dependency_condition',
     })
   }
   return Object.freeze({ quality: 'nominal' })
@@ -940,6 +958,24 @@ export function resolveDepartmentWorkshopDependencyAvailability(
     throughputCap: 2,
     effect: 'baseline',
   })
+}
+
+/**
+ * Adapt explicit dependency availability into the optional completion-quality
+ * axis. Only a normalized degraded dependency is poor. Unavailable work cannot
+ * complete in the dependency-gated tick, so it makes no quality claim here.
+ */
+export function resolveDepartmentWorkshopDependencyQuality(
+  availability?: unknown
+): DepartmentWorkshopDependencyQualityResult {
+  const dependency = resolveDepartmentWorkshopDependencyAvailability(availability)
+  if (dependency.availability === 'degraded') {
+    return Object.freeze({
+      dependencyCondition: 'poor',
+      effect: 'degraded_dependency_quality',
+    })
+  }
+  return Object.freeze({ dependencyCondition: 'good', effect: 'baseline' })
 }
 
 /**

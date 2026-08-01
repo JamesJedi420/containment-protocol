@@ -86,6 +86,8 @@ export function formatDepartmentWorkshopQualityReasonLabel(
       return 'Poor specialist condition'
     case 'poor_room_contamination':
       return 'Poor room contamination'
+    case 'poor_dependency_condition':
+      return 'Poor dependency condition'
     default: {
       const unreachable: never = reason
       return unreachable

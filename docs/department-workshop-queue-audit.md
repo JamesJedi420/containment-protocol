@@ -14,6 +14,7 @@ the boundaries that later workshop slices must preserve.
 | Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)          |
 | Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                     |
 | Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)               |
+| Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -72,6 +73,18 @@ retains baseline throughput until a later topology owner supplies an explicit
 mapping seam. The resolver changes work units only: queue/slot order, paused
 work, completion receipts, same-tick backfill timing, and SPE-2084 projections
 are unchanged.
+
+SPE-2776 adds a second optional exact-department input for transient workshop
+operating mode. `centralized` contributes one staffing work unit;
+`distributed` contributes no throughput and exposes
+`distributed_isolation` metadata for a future explicit consumer. Centralized
+staffing and full SPE-2775 adjacency compose under a hard two-work-unit cap.
+Omitted or malformed modes resolve to neutral baseline. Operating mode is not
+persisted, does not mutate `slotCapacity`, and is not inferred from rooms,
+facilities, staff, equipment, or topology. The isolation classification does
+not grade completion safety, modify incident risk, or spawn an unsafe incident.
+`advanceWeek` continues to omit both transient maps and runs the same single
+baseline workshop tick.
 
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
@@ -177,6 +190,8 @@ depend on a positive slot capacity.
   output, or change the global case queue.
 - Do not derive workshop slots from facility effects until a later slice defines
   that integration.
+- Do not treat SPE-2776 distributed-isolation metadata as an existing incident
+  rule or infer operating mode from persisted facility topology.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts

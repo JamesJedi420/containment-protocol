@@ -1240,6 +1240,141 @@ describe('department workshop persistence', () => {
     expect(certificationContexts).toEqual(contextsBefore)
   })
 
+  it('isolates transient station eligibility by exact department and work order', () => {
+    const workOrders = {
+      'work:zulu': { ...WORK_ORDERS['work:zulu'], requiredWork: 3 },
+      'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 3 },
+    }
+    const snapshots = {
+      'department:records-analysis': {
+        ...SNAPSHOTS['department:records-analysis'],
+        queued: [{ workOrderId: 'work:zulu', completedWork: 0 }],
+        active: [],
+      },
+      'department:biohazard-response': {
+        ...SNAPSHOTS['department:biohazard-response'],
+        queued: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+        active: [],
+      },
+    }
+    const input = {
+      departmentWorkshopWorkOrders: workOrders,
+      departmentWorkshopSnapshots: snapshots,
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': workOrders['work:alpha'],
+        'work:zulu': workOrders['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': snapshots['department:biohazard-response'],
+        'department:records-analysis': snapshots['department:records-analysis'],
+      },
+    }
+    const stationContexts = {
+      'department:records-analysis': {
+        profile: 'basic',
+        requirementsByWorkOrderId: {
+          'work:zulu': 'dedicated',
+          'work:alpha': 'dedicated',
+        },
+      },
+      'department:biohazard-response': {
+        profile: 'dedicated',
+        requirementsByWorkOrderId: {
+          'work:alpha': 'dedicated',
+          'work:zulu': 'dedicated',
+        },
+      },
+    }
+    const reorderedContexts = {
+      'department:biohazard-response': {
+        profile: 'dedicated',
+        requirementsByWorkOrderId: {
+          'work:zulu': 'dedicated',
+          'work:alpha': 'dedicated',
+        },
+      },
+      'department:records-analysis': {
+        profile: 'basic',
+        requirementsByWorkOrderId: {
+          'work:alpha': 'dedicated',
+          'work:zulu': 'dedicated',
+        },
+      },
+    }
+    const before = structuredClone(input)
+    const contextsBefore = structuredClone(stationContexts)
+
+    const first = processDepartmentWorkshopTick(
+      input,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      stationContexts
+    )
+    const replay = processDepartmentWorkshopTick(
+      reordered,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      reorderedContexts
+    )
+
+    expect(replay).toEqual(first)
+    expect(first.startedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.completedWorkOrderIds).toEqual([])
+    expect(first.reasons).toEqual([
+      {
+        code: 'workshop-dedicated-station-required',
+        departmentId: 'department:records-analysis',
+        workOrderIds: ['work:zulu'],
+      },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']?.queued).toEqual([
+      { workOrderId: 'work:zulu', completedWork: 0 },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([])
+    expect(first.workshopState.snapshots['department:biohazard-response']?.active).toEqual([
+      { workOrderId: 'work:alpha', completedWork: 1 },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']?.slotCapacity).toBe(2)
+    expect(first.workshopState).not.toHaveProperty('stationContextsByDepartment')
+    expect(first.workshopState.snapshots['department:records-analysis']).not.toHaveProperty(
+      'stationProfile'
+    )
+    expect(Object.isFrozen(first.reasons)).toBe(true)
+    expect(Object.isFrozen(first.reasons[0])).toBe(true)
+    expect(Object.isFrozen(first.reasons[0]?.workOrderIds)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots['department:biohazard-response'])).toBe(
+      true
+    )
+    expect(
+      Object.isFrozen(first.workshopState.snapshots['department:biohazard-response']?.active[0])
+    ).toBe(true)
+    expect(
+      projectDepartmentWorkshopWorkload(
+        first.workshopState.snapshots['department:records-analysis']!,
+        [workOrders['work:zulu']]
+      ).workloadSnapshot
+    ).toEqual({
+      departmentId: 'department:records-analysis',
+      queuedCaseIds: ['case-zulu'],
+      weeklyCapacity: 2,
+    })
+    expect(input).toEqual(before)
+    expect(stationContexts).toEqual(contextsBefore)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,

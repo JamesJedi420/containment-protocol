@@ -21,6 +21,7 @@ the boundaries that later workshop slices must preserve.
 | Equipment-condition quality adapter           | `resolveDepartmentWorkshopEquipmentQuality` (SPE-2782)         |
 | Reagent-grade quality adapter                  | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)           |
 | Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
+| Caller-owned station eligibility              | `resolveDepartmentWorkshopStationEligibility` (SPE-2784)       |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -133,6 +134,18 @@ Certification context is not persisted or inferred from facilities, upgrades,
 staff, skills, clearance, or topology. It does not change throughput, slot
 capacity, SPE-2084 workload projections, completion grades, or incident rules.
 `advanceWeek` omits the context and retains its existing single baseline tick.
+
+SPE-2784 adds optional exact-department dedicated-station context after
+certification. Each context contains a caller-owned `basic` or `dedicated`
+profile and per-work-order `standard` or `dedicated` start requirements.
+Standard work starts under either profile; dedicated-required work starts only
+under `dedicated`. Certification remains the primary blocker when both gates
+fail. Station eligibility uses the same strict-FIFO, start/backfill-only rule:
+already-active work continues, paused work remains unchanged, and an ineligible
+head is never bypassed. The tick reports one frozen
+`workshop-dedicated-station-required` reason when applicable. Station context is
+not persisted or inferred from facility upgrades, levels, construction,
+topology, or live rooms, and it changes neither throughput nor quality/safety.
 
 SPE-2781 adds a pure caller-composed adapter from the shipped SPE-2779
 dependency availability vocabulary into the existing completion-quality
@@ -285,6 +298,9 @@ depend on a positive slot capacity.
 - Do not infer SPE-2780 certification from facility levels, upgrades, staff,
   skills, or clearance. Certification gates queued starts only; it does not
   stall already-active work or permit bypassing an ineligible queue head.
+- Do not infer SPE-2784 station profiles from facility levels, upgrades,
+  construction, topology, or room state. Dedicated-station context gates queued
+  starts only and remains secondary to certification for blocker precedence.
 - Do not infer SPE-2782 equipment condition from live integrity, canonical
   equipment grade, facilities, upgrades, repairs, or durability state.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.

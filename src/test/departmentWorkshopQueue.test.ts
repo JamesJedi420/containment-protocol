@@ -19,6 +19,7 @@ import {
   resolveDepartmentWorkshopReagentQuality,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
+  resolveDepartmentWorkshopStationEligibility,
   resolveDepartmentWorkshopThroughput,
   resumeDepartmentWorkshopWork,
   type DepartmentWorkshopSnapshot,
@@ -252,6 +253,52 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
         effect: 'baseline',
       })
     }
+  })
+
+  it('resolves station profiles and work requirements with neutral fallbacks', () => {
+    for (const profile of ['basic', 'dedicated', undefined, null, 'specialized', {}]) {
+      const standard = resolveDepartmentWorkshopStationEligibility(profile, 'standard')
+      expect(standard).toEqual({
+        profile: profile === 'basic' || profile === 'dedicated' ? profile : 'baseline',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
+      expect(Object.isFrozen(standard)).toBe(true)
+    }
+
+    const dedicated = resolveDepartmentWorkshopStationEligibility('dedicated', 'dedicated')
+    expect(dedicated).toEqual({
+      profile: 'dedicated',
+      requirement: 'dedicated',
+      allowsStart: true,
+      effect: 'dedicated_work_allowed',
+    })
+    expect(Object.isFrozen(dedicated)).toBe(true)
+
+    for (const profile of ['basic', undefined, null, 'DEDICATED', {}]) {
+      const blocked = resolveDepartmentWorkshopStationEligibility(profile, 'dedicated')
+      expect(blocked).toEqual({
+        profile: profile === 'basic' ? 'basic' : 'baseline',
+        requirement: 'dedicated',
+        allowsStart: false,
+        effect: 'dedicated_station_required',
+      })
+      expect(Object.isFrozen(blocked)).toBe(true)
+    }
+
+    for (const requirement of [undefined, null, '', 'advanced', {}]) {
+      expect(resolveDepartmentWorkshopStationEligibility('basic', requirement)).toEqual({
+        profile: 'basic',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
+    }
+
+    const input = Object.freeze({ profile: 'dedicated', requirement: 'dedicated' })
+    resolveDepartmentWorkshopStationEligibility(input.profile, input.requirement)
+    expect(input).toEqual({ profile: 'dedicated', requirement: 'dedicated' })
   })
 
   it('caps adjacent and centralized staffing composition at two work units', () => {
@@ -746,6 +793,199 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       undefined,
       'unavailable',
       context
+    )
+    expect(reasonCode(unavailable)).toBe('unavailable-workshop-dependency')
+  })
+
+  it('starts dedicated-required work only under a dedicated station profile', () => {
+    const input = snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] })
+    const requirements = { 'order:a': 'dedicated' }
+
+    const blocked = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'basic', requirementsByWorkOrderId: requirements }
+    )
+    expect(blocked.state).toBe('blocked')
+    expect(blocked.snapshot).toEqual(input)
+    expect(blocked.startedWorkOrderIds).toEqual([])
+    expect(blocked.reasons).toEqual([
+      {
+        code: 'workshop-dedicated-station-required',
+        departmentId: DEPARTMENT_ID,
+        workOrderIds: ['order:a'],
+      },
+    ])
+    expect(Object.isFrozen(blocked.reasons)).toBe(true)
+    expect(Object.isFrozen(blocked.reasons[0]?.workOrderIds)).toBe(true)
+
+    const allowed = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'dedicated', requirementsByWorkOrderId: requirements }
+    )
+    expect(allowed.state).toBe('advanced')
+    expect(allowed.startedWorkOrderIds).toEqual(['order:a'])
+    expect(allowed.completedWorkOrderIds).toEqual(['order:a'])
+    expect(allowed.reasons).toEqual([])
+
+    const inheritedRequirements = Object.create({ 'order:a': 'dedicated' }) as Record<
+      string,
+      unknown
+    >
+    const inherited = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'basic', requirementsByWorkOrderId: inheritedRequirements }
+    )
+    expect(inherited.startedWorkOrderIds).toEqual(['order:a'])
+    expect(inherited.reasons).toEqual([])
+  })
+
+  it('keeps station eligibility strict FIFO and blocks ineligible backfill', () => {
+    const stationContext = {
+      profile: 'basic',
+      requirementsByWorkOrderId: { 'order:dedicated': 'dedicated' },
+    }
+    const fifoInput = snapshot({
+      slotCapacity: 2,
+      queued: [
+        { workOrderId: 'order:dedicated', completedWork: 0 },
+        { workOrderId: 'order:standard', completedWork: 0 },
+      ],
+    })
+    const fifo = advanceDepartmentWorkshopQueue(
+      fifoInput,
+      [workOrder('order:dedicated'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      stationContext
+    )
+    expect(fifo.state).toBe('blocked')
+    expect(fifo.snapshot).toEqual(fifoInput)
+    expect(fifo.startedWorkOrderIds).toEqual([])
+    expect(fifo.reasons[0]?.workOrderIds).toEqual(['order:dedicated'])
+
+    const activeInput = snapshot({
+      queued: [{ workOrderId: 'order:dedicated', completedWork: 0 }],
+      active: [{ workOrderId: 'order:active', completedWork: 1 }],
+      paused: [{ workOrderId: 'order:paused', completedWork: 1 }],
+    })
+    const completed = advanceDepartmentWorkshopQueue(
+      activeInput,
+      [
+        workOrder('order:active'),
+        workOrder('order:dedicated'),
+        workOrder('order:paused', { requiredWork: 3 }),
+      ],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      stationContext
+    )
+    expect(completed.state).toBe('advanced')
+    expect(completed.completedWorkOrderIds).toEqual(['order:active'])
+    expect(completed.startedWorkOrderIds).toEqual([])
+    expect(completed.snapshot?.active).toEqual([])
+    expect(completed.snapshot?.queued).toEqual([
+      { workOrderId: 'order:dedicated', completedWork: 0 },
+    ])
+    expect(completed.snapshot?.paused).toEqual([{ workOrderId: 'order:paused', completedWork: 1 }])
+    expect(reasonCode(completed)).toBe('workshop-dedicated-station-required')
+  })
+
+  it('keeps validation and certification precedence over station eligibility', () => {
+    const stationContext = {
+      profile: 'basic',
+      requirementsByWorkOrderId: { 'order:a': 'dedicated' },
+    }
+    const certificationContext = {
+      profile: 'basic',
+      requirementsByWorkOrderId: { 'order:a': 'certified' },
+    }
+    const bothBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      certificationContext,
+      stationContext
+    )
+    expect(reasonCode(bothBlocked)).toBe('workshop-certification-required')
+
+    const stationBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
+      stationContext
+    )
+    expect(reasonCode(stationBlocked)).toBe('workshop-dedicated-station-required')
+
+    const zeroSlot = advanceDepartmentWorkshopQueue(
+      snapshot({ slotCapacity: 0, queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      stationContext
+    )
+    expect(reasonCode(zeroSlot)).toBe('zero-slot-capacity')
+
+    const unavailable = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'unavailable',
+      undefined,
+      stationContext
     )
     expect(reasonCode(unavailable)).toBe('unavailable-workshop-dependency')
   })

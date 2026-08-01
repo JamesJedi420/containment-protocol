@@ -19,6 +19,7 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
 | Dependency-to-quality adapter                 | `resolveDepartmentWorkshopDependencyQuality` (SPE-2781)        |
 | Equipment-condition quality adapter           | `resolveDepartmentWorkshopEquipmentQuality` (SPE-2782)         |
+| Reagent-grade quality adapter                  | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)           |
 | Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
@@ -157,13 +158,23 @@ equipment-grade work owned by SPE-2746/SPE-2750. Equipment context is not
 persisted or transported through the processing tick, and it does not change
 completion status, throughput, safety, incidents, or `advanceWeek` hook count.
 
+SPE-2783 adds an optional caller-owned reagent grade to the existing exact-work-order
+completion-quality map. Only explicit `poor` reagent grade degrades an otherwise
+nominal receipt, producing the durable `poor_reagent_grade` reason after input,
+specialist, room, dependency, and equipment precedence. Missing, `good`, and
+malformed values remain neutral through the frozen reagent-quality resolver.
+The adapter does not project SPE-1056 processed units or batches, consume reagent
+inventory, infer provenance, contamination, or hidden failure risk, or transport
+context through the processing tick. It changes neither completion status,
+throughput, safety, incidents, nor the `advanceWeek` hook count.
+
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
 persisted `completed` receipt keyed by that ID, carrying the authored
 department, case, task type, closing week, SPE-2768 `quality` grade
 (`nominal` by default; `degraded` plus a stable reason when caller-owned
 condition axes mark poor input, specialist, room, explicitly adapted dependency
-state, or caller-owned equipment condition), and unsafe-processing
+state, caller-owned equipment condition, or caller-owned reagent grade), and unsafe-processing
 `safety` disposition (`safe` by default; `unsafe` plus a stable reason when
 caller-owned isolation, ventilation, PPE, or dual-auth axes are poor). Quality
 `roomContamination` is not safety contamination: the two grades are orthogonal.
@@ -182,9 +193,9 @@ inventory, live topology mapping, and live facility wiring remain outside the
 receipt seam.
 Live facility/staff projection into quality or safety conditions remains a
 later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
-for safety) and is **blocked on an explicit mapping seam**. SPE-2781 and
-SPE-2782 provide explicit dependency and equipment adapters, not live
-projection. Until those seams
+for safety) and is **blocked on an explicit mapping seam**. SPE-2781, SPE-2782,
+and SPE-2783 provide explicit dependency, equipment, and reagent adapters, not
+live projection. Until those seams
 exist: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
 lookups, status/level heuristics, or staff-to-workshop assignment; week-close
 must continue to omit `safetyConditionsByWorkOrderId` (and quality maps) so

@@ -914,6 +914,97 @@ describe('department workshop persistence', () => {
     expect(input).toEqual(before)
   })
 
+  it('isolates transient load pressure without persisting it or changing projections', () => {
+    const workOrders = {
+      'work:zulu': { ...WORK_ORDERS['work:zulu'], requiredWork: 2 },
+      'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 2 },
+    }
+    const snapshots = {
+      'department:records-analysis': {
+        ...SNAPSHOTS['department:records-analysis'],
+        queued: [],
+        active: [{ workOrderId: 'work:zulu', completedWork: 0 }],
+      },
+      'department:biohazard-response': {
+        ...SNAPSHOTS['department:biohazard-response'],
+        active: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+      },
+    }
+    const input = {
+      departmentWorkshopWorkOrders: workOrders,
+      departmentWorkshopSnapshots: snapshots,
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': workOrders['work:alpha'],
+        'work:zulu': workOrders['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': snapshots['department:biohazard-response'],
+        'department:records-analysis': snapshots['department:records-analysis'],
+      },
+    }
+    const operatingModes = {
+      'department:records-analysis': 'centralized',
+      'department:biohazard-response': 'centralized',
+    }
+    const pressures = {
+      'department:records-analysis': 'overloaded',
+      'department:biohazard-response': 'normal',
+    }
+    const before = structuredClone(input)
+    const pressuresBefore = structuredClone(pressures)
+
+    const first = processDepartmentWorkshopTick(
+      input,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes,
+      pressures
+    )
+    const replay = processDepartmentWorkshopTick(
+      reordered,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes,
+      pressures
+    )
+
+    expect(replay).toEqual(first)
+    expect(first.completedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([
+      { workOrderId: 'work:zulu', completedWork: 1 },
+    ])
+    expect(first.workshopState.snapshots['department:biohazard-response']?.active).toEqual([])
+    expect(first.workshopState.snapshots['department:records-analysis']?.slotCapacity).toBe(2)
+    expect(first.workshopState.snapshots['department:records-analysis']).not.toHaveProperty(
+      'loadPressure'
+    )
+    expect(first.workshopState).not.toHaveProperty('loadPressuresByDepartment')
+    expect(Object.isFrozen(first.workshopState.snapshots)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots['department:records-analysis'])).toBe(true)
+    expect(
+      Object.isFrozen(first.workshopState.snapshots['department:records-analysis']?.active)
+    ).toBe(true)
+    expect(
+      Object.isFrozen(first.workshopState.snapshots['department:records-analysis']?.active[0])
+    ).toBe(true)
+    expect(
+      projectDepartmentWorkshopWorkload(
+        first.workshopState.snapshots['department:records-analysis']!,
+        [workOrders['work:zulu']]
+      ).workloadSnapshot
+    ).toEqual({
+      departmentId: 'department:records-analysis',
+      queuedCaseIds: ['case-zulu'],
+      weeklyCapacity: 2,
+    })
+    expect(input).toEqual(before)
+    expect(pressures).toEqual(pressuresBefore)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,

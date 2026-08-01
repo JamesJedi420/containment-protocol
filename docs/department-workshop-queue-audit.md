@@ -16,6 +16,7 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)               |
 | Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
 | Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)             |
+| Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -99,6 +100,19 @@ progress, or completion/backfill timing, and does not create failure or incident
 consequences. Distributed breach isolation remains independent metadata.
 `advanceWeek` omits all three transient maps and retains one context-free
 baseline workshop tick.
+
+SPE-2779 adds optional aggregate dependency availability as a fourth transient
+exact-department input. `ready` preserves the resolved throughput;
+`degraded` caps it at one work unit and composes explicitly with SPE-2777
+overload; `unavailable` returns an intentional
+`unavailable-workshop-dependency` block before open slots fill or any active
+work advances. Omitted and malformed availability remain neutral. The caller
+owns this aggregate classification: the workshop kernel does not traverse
+SPE-792, infer facility utilities, storage, staffing, training, logistics, or
+topology, or persist dependency metadata. Dependency availability does not
+alter slot capacity, SPE-2084 workload projections, completion grades,
+cancellation proof, or incident rules. `advanceWeek` omits the dependency map
+and retains its existing single baseline tick.
 
 The completion bridge runs immediately after that one tick at the same
 week-close seam. It maps each newly completed work-order ID to exactly one
@@ -208,6 +222,9 @@ depend on a positive slot capacity.
   rule or infer operating mode from persisted facility topology.
 - Do not infer SPE-2777 load pressure from staffing, facilities, slot capacity,
   or occupancy, persist it, or turn overload into a zero-work stall.
+- Do not infer SPE-2779 dependency availability or duplicate SPE-792 graph
+  traversal inside the workshop kernel. Only explicit `unavailable` context may
+  produce the intentional dependency block.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
   SPE-2768 may grade quality and #3411 may grade safety on completion receipts

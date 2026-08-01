@@ -55,9 +55,12 @@ export type DepartmentWorkshopThroughputEffect =
   | 'centralized_staffing'
   | 'capped_adjacent_and_centralized'
   | 'overload_throughput_cap'
+  | 'degraded_dependency_cap'
+  | 'capped_degraded_dependency_and_overload'
+  | 'unavailable_dependency_block'
 
 export interface DepartmentWorkshopThroughputResult {
-  readonly workUnits: 1 | 2
+  readonly workUnits: 0 | 1 | 2
   readonly effect: DepartmentWorkshopThroughputEffect
 }
 
@@ -90,6 +93,19 @@ export interface DepartmentWorkshopLoadPressureResult {
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopLoadPressuresByDepartment = Readonly<Record<string, unknown>>
+
+/** SPE-2779: aggregate caller-owned workshop dependency availability. */
+export type DepartmentWorkshopDependencyAvailability = 'ready' | 'degraded' | 'unavailable'
+
+export interface DepartmentWorkshopDependencyAvailabilityResult {
+  readonly availability: DepartmentWorkshopDependencyAvailability | 'baseline'
+  readonly allowsProcessing: boolean
+  readonly throughputCap: 0 | 1 | 2
+  readonly effect: 'baseline' | 'degraded_dependency_cap' | 'unavailable_dependency_block'
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopDependencyAvailabilityByDepartment = Readonly<Record<string, unknown>>
 
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
@@ -186,6 +202,7 @@ export type DepartmentWorkshopReasonCode =
   | 'invalid-work-progress'
   | 'active-slot-overflow'
   | 'zero-slot-capacity'
+  | 'unavailable-workshop-dependency'
   | 'invalid-work-order-id'
   | 'work-order-not-active'
   | 'work-order-not-paused'
@@ -864,14 +881,55 @@ export function resolveDepartmentWorkshopLoadPressure(
 }
 
 /**
- * Compose SPE-2775 adjacency with SPE-2776 centralized staffing under a strict
- * two-work-unit cap. Distributed isolation stays on the operating-model result
- * and does not alter throughput.
+ * Resolve aggregate dependency availability without traversing a live facility
+ * graph. Missing and malformed context preserve the existing throughput seam.
+ */
+export function resolveDepartmentWorkshopDependencyAvailability(
+  availability?: unknown
+): DepartmentWorkshopDependencyAvailabilityResult {
+  if (availability === 'ready') {
+    return Object.freeze({
+      availability,
+      allowsProcessing: true,
+      throughputCap: 2,
+      effect: 'baseline',
+    })
+  }
+  if (availability === 'degraded') {
+    return Object.freeze({
+      availability,
+      allowsProcessing: true,
+      throughputCap: 1,
+      effect: 'degraded_dependency_cap',
+    })
+  }
+  if (availability === 'unavailable') {
+    return Object.freeze({
+      availability,
+      allowsProcessing: false,
+      throughputCap: 0,
+      effect: 'unavailable_dependency_block',
+    })
+  }
+  return Object.freeze({
+    availability: 'baseline',
+    allowsProcessing: true,
+    throughputCap: 2,
+    effect: 'baseline',
+  })
+}
+
+/**
+ * Compose SPE-2775 adjacency and SPE-2776 centralized staffing under a strict
+ * two-work-unit cap, then apply SPE-2777 pressure and SPE-2779 dependency caps.
+ * Distributed isolation stays on the operating-model result and does not alter
+ * throughput.
  */
 export function resolveDepartmentWorkshopThroughput(
   conditions?: unknown,
   operatingMode?: unknown,
-  loadPressure?: unknown
+  loadPressure?: unknown,
+  dependencyAvailability?: unknown
 ): DepartmentWorkshopThroughputResult {
   const hasAdjacentStaging =
     isRecord(conditions) &&
@@ -879,6 +937,19 @@ export function resolveDepartmentWorkshopThroughput(
     conditions.outputStaging === 'adjacent'
   const operatingModel = resolveDepartmentWorkshopOperatingModel(operatingMode)
   const pressure = resolveDepartmentWorkshopLoadPressure(loadPressure)
+  const dependency = resolveDepartmentWorkshopDependencyAvailability(dependencyAvailability)
+
+  if (!dependency.allowsProcessing) {
+    return Object.freeze({ workUnits: 0, effect: dependency.effect })
+  }
+
+  if (dependency.throughputCap === 1 && pressure.throughputCap === 1) {
+    return Object.freeze({ workUnits: 1, effect: 'capped_degraded_dependency_and_overload' })
+  }
+
+  if (dependency.throughputCap === 1) {
+    return Object.freeze({ workUnits: 1, effect: dependency.effect })
+  }
 
   if (pressure.throughputCap === 1) {
     return Object.freeze({ workUnits: 1, effect: pressure.effect })
@@ -1312,7 +1383,8 @@ export function advanceDepartmentWorkshopQueue(
   authorityGraph?: AuthorityGraph,
   stagingConditions?: unknown,
   operatingMode?: unknown,
-  loadPressure?: unknown
+  loadPressure?: unknown,
+  dependencyAvailability?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1335,8 +1407,16 @@ export function advanceDepartmentWorkshopQueue(
   const throughput = resolveDepartmentWorkshopThroughput(
     stagingConditions,
     operatingMode,
-    loadPressure
+    loadPressure,
+    dependencyAvailability
   )
+
+  if (throughput.workUnits === 0) {
+    return blockedAdvanceWithSnapshot(
+      validated.snapshot,
+      frozenReason('unavailable-workshop-dependency', validated.snapshot.departmentId)
+    )
+  }
 
   fillOpenSlots(queued, active, validated.snapshot.slotCapacity, startedWorkOrderIds)
 
@@ -1376,9 +1456,9 @@ export function advanceDepartmentWorkshopQueue(
 /**
  * Advance every persisted department snapshot once in stable department-ID
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
- * GameState nor any non-workshop queue. Optional staging, operating-mode, and
- * load-pressure maps are caller-owned transient context isolated by exact
- * department ID.
+ * GameState nor any non-workshop queue. Optional staging, operating-mode,
+ * load-pressure, and dependency-availability maps are caller-owned transient
+ * context isolated by exact department ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
@@ -1386,7 +1466,8 @@ export function processDepartmentWorkshopTick(
   authorityGraph?: AuthorityGraph,
   stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment,
   operatingModesByDepartment?: DepartmentWorkshopOperatingModesByDepartment,
-  loadPressuresByDepartment?: DepartmentWorkshopLoadPressuresByDepartment
+  loadPressuresByDepartment?: DepartmentWorkshopLoadPressuresByDepartment,
+  dependencyAvailabilityByDepartment?: DepartmentWorkshopDependencyAvailabilityByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1416,6 +1497,10 @@ export function processDepartmentWorkshopTick(
         : undefined,
       isRecord(loadPressuresByDepartment) && Object.hasOwn(loadPressuresByDepartment, departmentId)
         ? loadPressuresByDepartment[departmentId]
+        : undefined,
+      isRecord(dependencyAvailabilityByDepartment) &&
+        Object.hasOwn(dependencyAvailabilityByDepartment, departmentId)
+        ? dependencyAvailabilityByDepartment[departmentId]
         : undefined
     )
     reasons.push(...advanceResult.reasons)

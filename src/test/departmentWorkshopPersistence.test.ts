@@ -1005,6 +1005,105 @@ describe('department workshop persistence', () => {
     expect(pressures).toEqual(pressuresBefore)
   })
 
+  it('isolates transient dependency availability with deterministic blocked reasons', () => {
+    const workOrders = {
+      'work:zulu': { ...WORK_ORDERS['work:zulu'], requiredWork: 2 },
+      'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 2 },
+    }
+    const snapshots = {
+      'department:records-analysis': {
+        ...SNAPSHOTS['department:records-analysis'],
+        queued: [],
+        active: [{ workOrderId: 'work:zulu', completedWork: 0 }],
+      },
+      'department:biohazard-response': {
+        ...SNAPSHOTS['department:biohazard-response'],
+        active: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+      },
+    }
+    const input = {
+      departmentWorkshopWorkOrders: workOrders,
+      departmentWorkshopSnapshots: snapshots,
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': workOrders['work:alpha'],
+        'work:zulu': workOrders['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': snapshots['department:biohazard-response'],
+        'department:records-analysis': snapshots['department:records-analysis'],
+      },
+    }
+    const operatingModes = {
+      'department:records-analysis': 'centralized',
+      'department:biohazard-response': 'centralized',
+    }
+    const dependencies = {
+      'department:records-analysis': 'unavailable',
+      'department:biohazard-response': 'ready',
+    }
+    const before = structuredClone(input)
+    const dependenciesBefore = structuredClone(dependencies)
+
+    const first = processDepartmentWorkshopTick(
+      input,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes,
+      undefined,
+      dependencies
+    )
+    const replay = processDepartmentWorkshopTick(
+      reordered,
+      undefined,
+      undefined,
+      undefined,
+      operatingModes,
+      undefined,
+      dependencies
+    )
+
+    expect(replay).toEqual(first)
+    expect(first.completedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.reasons).toEqual([
+      {
+        code: 'unavailable-workshop-dependency',
+        departmentId: 'department:records-analysis',
+        workOrderIds: [],
+      },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([
+      { workOrderId: 'work:zulu', completedWork: 0 },
+    ])
+    expect(first.workshopState.snapshots['department:biohazard-response']?.active).toEqual([])
+    expect(first.workshopState.snapshots['department:records-analysis']?.slotCapacity).toBe(2)
+    expect(first.workshopState).not.toHaveProperty('dependencyAvailabilityByDepartment')
+    expect(first.workshopState.snapshots['department:records-analysis']).not.toHaveProperty(
+      'dependencyAvailability'
+    )
+    expect(Object.isFrozen(first.reasons)).toBe(true)
+    expect(Object.isFrozen(first.reasons[0])).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots['department:records-analysis'])).toBe(true)
+    expect(
+      Object.isFrozen(first.workshopState.snapshots['department:records-analysis']?.active[0])
+    ).toBe(true)
+    expect(
+      projectDepartmentWorkshopWorkload(
+        first.workshopState.snapshots['department:records-analysis']!,
+        [workOrders['work:zulu']]
+      ).workloadSnapshot
+    ).toEqual({
+      departmentId: 'department:records-analysis',
+      queuedCaseIds: ['case-zulu'],
+      weeklyCapacity: 2,
+    })
+    expect(input).toEqual(before)
+    expect(dependencies).toEqual(dependenciesBefore)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,

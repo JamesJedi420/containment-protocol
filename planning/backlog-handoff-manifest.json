@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2775",
     "SPE-2773",
     "SPE-2768",
     "SPE-2767",
@@ -12,10 +13,10 @@
     "SPE-2762",
     "SPE-2761",
     "SPE-2760",
-    "SPE-2759",
-    "SPE-2758"
+    "SPE-2759"
   ],
   "sliceDocStatus": {
+    "planning/spe-2775-workshop-adjacency-throughput-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-player-surface-slice.md": "Shipped",
     "planning/spe-1028-workshop-live-safety-inputs-slice.md": "Backlog",
     "planning/spe-1028-workshop-unsafe-secondary-incident-slice.md": "Shipped",

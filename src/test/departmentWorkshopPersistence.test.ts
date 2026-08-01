@@ -215,7 +215,9 @@ describe('department workshop persistence', () => {
       },
       fallback
     )
-    expect(omittedMarker.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId).toBeUndefined()
+    expect(
+      omittedMarker.cases[caseId]?.departmentWorkshopFinalizationFabricationQueueId
+    ).toBeUndefined()
   })
 
   it('round-trips terminal signals in stable order and isolates malformed siblings', () => {
@@ -762,6 +764,79 @@ describe('department workshop persistence', () => {
     expect(repeated.completedWorkOrderIds).toEqual([])
   })
 
+  it('keeps the canonical advanceWeek hook on baseline throughput', () => {
+    const baseline = createStartingState()
+    const caseId = Object.keys(baseline.cases).sort()[0]!
+    const source = {
+      ...baseline,
+      departmentWorkshopWorkOrders: {
+        'work:baseline-week-close': {
+          id: 'work:baseline-week-close',
+          departmentId: 'department:biohazard-response',
+          caseId,
+          taskType: 'containment_response' as const,
+          requiredWork: 2,
+        },
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': {
+          departmentId: 'department:biohazard-response',
+          slotCapacity: 1,
+          queued: [],
+          active: [{ workOrderId: 'work:baseline-week-close', completedWork: 0 }],
+          paused: [],
+        },
+      },
+    }
+
+    const advanced = advanceWeek(source, Date.UTC(2026, 0, 1))
+
+    expect(advanced.departmentWorkshopSnapshots?.['department:biohazard-response']?.active).toEqual(
+      [{ workOrderId: 'work:baseline-week-close', completedWork: 1 }]
+    )
+    expect(
+      advanced.departmentWorkshopCompletionOutcomes?.['work:baseline-week-close']
+    ).toBeUndefined()
+  })
+
+  it('isolates adjacency throughput by department and registry insertion order', () => {
+    const input = {
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+    }
+    const reordered = {
+      departmentWorkshopWorkOrders: {
+        'work:alpha': WORK_ORDERS['work:alpha'],
+        'work:zulu': WORK_ORDERS['work:zulu'],
+      },
+      departmentWorkshopSnapshots: {
+        'department:biohazard-response': SNAPSHOTS['department:biohazard-response'],
+        'department:records-analysis': SNAPSHOTS['department:records-analysis'],
+      },
+    }
+    const staging = {
+      'department:records-analysis': {
+        inputStaging: 'adjacent',
+        outputStaging: 'adjacent',
+      },
+      'department:biohazard-response': {
+        inputStaging: 'adjacent',
+        outputStaging: 'remote',
+      },
+    }
+    const before = structuredClone(input)
+
+    const first = processDepartmentWorkshopTick(input, undefined, undefined, staging)
+    const replay = processDepartmentWorkshopTick(reordered, undefined, undefined, staging)
+
+    expect(replay).toEqual(first)
+    expect(first.completedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([
+      { workOrderId: 'work:zulu', completedWork: 2 },
+    ])
+    expect(input).toEqual(before)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,
@@ -936,18 +1011,13 @@ describe('department workshop persistence', () => {
       safety: 'safe',
     })
 
-    const graded = registerDepartmentWorkshopCompletionOutcomes(
-      input,
-      ['work:zulu'],
-      2,
-      {
-        'work:zulu': {
-          inputQuality: 'good',
-          specialistCondition: 'poor',
-          roomContamination: 'poor',
-        },
-      }
-    )
+    const graded = registerDepartmentWorkshopCompletionOutcomes(input, ['work:zulu'], 2, {
+      'work:zulu': {
+        inputQuality: 'good',
+        specialistCondition: 'poor',
+        roomContamination: 'poor',
+      },
+    })
     expect(graded.registeredWorkOrderIds).toEqual(['work:zulu'])
     expect(graded.outcomes['work:zulu']).toEqual({
       workOrderId: 'work:zulu',

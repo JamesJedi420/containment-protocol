@@ -38,15 +38,32 @@ export interface DepartmentWorkshopSnapshot {
 export type DepartmentWorkshopWorkOrderRegistry = Record<string, DepartmentWorkshopWorkOrder>
 export type DepartmentWorkshopSnapshotRegistry = Record<string, DepartmentWorkshopSnapshot>
 
+export type DepartmentWorkshopStaging = 'adjacent' | 'remote'
+
+/**
+ * SPE-2775: caller-owned staging classification for one department tick.
+ * Live facility topology remains outside this pure queue boundary.
+ */
+export interface DepartmentWorkshopStagingConditions {
+  readonly inputStaging: DepartmentWorkshopStaging
+  readonly outputStaging: DepartmentWorkshopStaging
+}
+
+export interface DepartmentWorkshopThroughputResult {
+  readonly workUnits: 1 | 2
+  readonly effect: 'baseline' | 'adjacent_staging'
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopStagingConditionsByDepartment = Readonly<Record<string, unknown>>
+
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
 
 export type DepartmentWorkshopCompletionQuality = 'nominal' | 'degraded'
 
 export type DepartmentWorkshopQualityReason =
-  | 'poor_input_quality'
-  | 'poor_specialist_condition'
-  | 'poor_room_contamination'
+  'poor_input_quality' | 'poor_specialist_condition' | 'poor_room_contamination'
 
 export interface DepartmentWorkshopQualityConditions {
   readonly inputQuality: DepartmentWorkshopConditionLevel
@@ -63,10 +80,7 @@ export interface DepartmentWorkshopCompletionQualityResult {
 export type DepartmentWorkshopCompletionSafety = 'safe' | 'unsafe'
 
 export type DepartmentWorkshopSafetyReason =
-  | 'inadequate_isolation'
-  | 'inadequate_ventilation'
-  | 'inadequate_ppe'
-  | 'missing_dual_auth'
+  'inadequate_isolation' | 'inadequate_ventilation' | 'inadequate_ppe' | 'missing_dual_auth'
 
 export interface DepartmentWorkshopSafetyConditions {
   readonly isolation: DepartmentWorkshopConditionLevel
@@ -767,6 +781,25 @@ export function resolveDepartmentWorkshopCompletionSafety(
   return Object.freeze({ safety: 'safe' })
 }
 
+/**
+ * Resolve the bounded adjacency effect without reading persistence or facility
+ * topology. Both input and output staging must be explicitly adjacent to earn
+ * the bonus; missing, partial, remote, or malformed input keeps the baseline.
+ */
+export function resolveDepartmentWorkshopThroughput(
+  conditions?: unknown
+): DepartmentWorkshopThroughputResult {
+  if (
+    isRecord(conditions) &&
+    conditions.inputStaging === 'adjacent' &&
+    conditions.outputStaging === 'adjacent'
+  ) {
+    return Object.freeze({ workUnits: 2, effect: 'adjacent_staging' })
+  }
+
+  return Object.freeze({ workUnits: 1, effect: 'baseline' })
+}
+
 function frozenCompletionOutcome(
   outcome: DepartmentWorkshopCompletionOutcome
 ): DepartmentWorkshopCompletionOutcome {
@@ -1180,7 +1213,8 @@ export function advanceDepartmentWorkshopQueue(
   snapshot: DepartmentWorkshopSnapshot,
   workOrders: readonly DepartmentWorkshopWorkOrder[],
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
-  authorityGraph?: AuthorityGraph
+  authorityGraph?: AuthorityGraph,
+  stagingConditions?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1200,6 +1234,7 @@ export function advanceDepartmentWorkshopQueue(
   const paused = validated.snapshot.paused.map((item) => ({ ...item }))
   const startedWorkOrderIds: string[] = []
   const completedWorkOrderIds: string[] = []
+  const throughput = resolveDepartmentWorkshopThroughput(stagingConditions)
 
   fillOpenSlots(queued, active, validated.snapshot.slotCapacity, startedWorkOrderIds)
 
@@ -1211,7 +1246,7 @@ export function advanceDepartmentWorkshopQueue(
         frozenReason('missing-work-order', validated.snapshot.departmentId, [item.workOrderId])
       )
     }
-    const completedWork = item.completedWork + 1
+    const completedWork = item.completedWork + throughput.workUnits
     if (completedWork >= workOrder.requiredWork) {
       completedWorkOrderIds.push(item.workOrderId)
     } else {
@@ -1244,7 +1279,8 @@ export function advanceDepartmentWorkshopQueue(
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
   registry: DepartmentCapabilityRegistry = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY,
-  authorityGraph?: AuthorityGraph
+  authorityGraph?: AuthorityGraph,
+  stagingConditionsByDepartment?: DepartmentWorkshopStagingConditionsByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1263,7 +1299,11 @@ export function processDepartmentWorkshopTick(
       snapshot,
       workOrders,
       registry,
-      authorityGraph
+      authorityGraph,
+      isRecord(stagingConditionsByDepartment) &&
+        Object.hasOwn(stagingConditionsByDepartment, departmentId)
+        ? stagingConditionsByDepartment[departmentId]
+        : undefined
     )
     reasons.push(...advanceResult.reasons)
 

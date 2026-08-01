@@ -159,6 +159,7 @@ export interface DepartmentWorkshopDependencyQualityResult {
   readonly effect: 'baseline' | 'degraded_dependency_quality'
 }
 
+/** Frozen normalized equipment condition for explicit completion-quality composition. */
 export interface DepartmentWorkshopEquipmentQualityResult {
   readonly equipmentCondition: DepartmentWorkshopConditionLevel
   readonly effect: 'baseline' | 'degraded_equipment_quality'

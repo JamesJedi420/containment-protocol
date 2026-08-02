@@ -52,7 +52,7 @@ throughput, or stalling work that is already active.
 | Automation inspection and integrity         | SPE-877                      | No canonical workshop-facing integrity contract exists    |
 | Maintenance specialist consumption          | SPE-94 / SPE-877 follow-up   | Eligibility does not replace or consume staffing capacity |
 | Corruption and diagnostic failure           | SPE-877 / new SPE-1028 child | Requires explicit failure and completion-outcome policy   |
-| Anomaly-class specialization                | Create SPE-1028 child        | Requires authored specialization and routing rules        |
+| Anomaly-class specialization                | Create SPE-1028 child        | Requires specialization and routing rules to be authored  |
 | Automation-driven quality or safety         | Create SPE-1028 child        | Start eligibility remains independent of receipt grading  |
 | Player-facing automation controls           | SPE-21 / UI child            | No UI or store action is introduced                       |
 

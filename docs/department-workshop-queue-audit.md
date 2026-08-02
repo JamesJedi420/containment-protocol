@@ -5,34 +5,35 @@ the boundaries that later workshop slices must preserve.
 
 ## Canonical owners
 
-| Concern                                       | Owner                                                          |
-| --------------------------------------------- | -------------------------------------------------------------- |
-| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)              |
-| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)              |
-| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)             |
-| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                         |
-| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)          |
-| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                     |
-| Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)               |
-| Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)           |
-| Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)             |
-| Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
-| Dependency-to-quality adapter                 | `resolveDepartmentWorkshopDependencyQuality` (SPE-2781)        |
-| Equipment-condition quality adapter           | `resolveDepartmentWorkshopEquipmentQuality` (SPE-2782)         |
-| Reagent-grade quality adapter                 | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)           |
-| Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
-| Caller-owned station eligibility              | `resolveDepartmentWorkshopStationEligibility` (SPE-2784)       |
-| Caller-owned automation eligibility           | `resolveDepartmentWorkshopAutomationEligibility` (SPE-2785)    |
-| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
-| Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
-| Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
-| Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773) |
-| Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)          |
-| Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)                  |
-| Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757)     |
-| Global case queue                             | `src/domain/sim/queue.ts`                                      |
-| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                       |
-| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                                |
+| Concern                                       | Owner                                                           |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| Department capabilities and task eligibility  | `src/domain/departmentCapabilities.ts` (SPE-2083)               |
+| Coordination delay over workload snapshots    | `src/domain/departmentCoordination.ts` (SPE-2084)               |
+| Workshop queue/slot contracts and transitions | `src/domain/departmentWorkshopQueue.ts` (SPE-2745)              |
+| Durable work-order/snapshot registries        | `GameState` + `hydrateGame` (SPE-2747)                          |
+| Canonical enqueue and queued-lane priority    | `departmentWorkshopQueue.ts` + `gameStore` (SPE-2752)           |
+| Registry-level processing tick                | `processDepartmentWorkshopTick` (SPE-2753)                      |
+| Caller-owned staging throughput effect        | `resolveDepartmentWorkshopThroughput` (SPE-2775)                |
+| Caller-owned workshop operating model         | `resolveDepartmentWorkshopOperatingModel` (SPE-2776)            |
+| Caller-owned workshop load pressure           | `resolveDepartmentWorkshopLoadPressure` (SPE-2777)              |
+| Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)    |
+| Dependency-to-quality adapter                 | `resolveDepartmentWorkshopDependencyQuality` (SPE-2781)         |
+| Equipment-condition quality adapter           | `resolveDepartmentWorkshopEquipmentQuality` (SPE-2782)          |
+| Reagent-grade quality adapter                 | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)            |
+| Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780)  |
+| Caller-owned station eligibility              | `resolveDepartmentWorkshopStationEligibility` (SPE-2784)        |
+| Caller-owned automation eligibility           | `resolveDepartmentWorkshopAutomationEligibility` (SPE-2785)     |
+| Caller-owned anomaly specialization           | `resolveDepartmentWorkshopSpecializationEligibility` (SPE-2786) |
+| Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)       |
+| Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)         |
+| Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)             |
+| Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773)  |
+| Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)           |
+| Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)                   |
+| Case-scoped processing-order envelopes        | `prerequisiteProcessingOrders.ts` + `GameState` (SPE-2757)      |
+| Global case queue                             | `src/domain/sim/queue.ts`                                       |
+| Facility upgrade/effect aggregation           | `src/domain/facility.ts`                                        |
+| Campaign week-close ordering                  | `src/domain/sim/advanceWeek.ts`                                 |
 
 ## Workshop snapshot invariants
 
@@ -160,6 +161,20 @@ frozen `workshop-automated-diagnostics-required` reason when applicable. The
 context is not persisted or inferred from work-order content, facility
 upgrades, equipment integrity, staffing, or topology, and it changes neither
 throughput nor completion quality/safety.
+
+SPE-2786 adds optional exact-department anomaly-class specialization context
+after automation eligibility. Each context contains a caller-owned profile of
+supported anomaly-class IDs and exact-work-order class requirements. Profile
+IDs are trimmed, deduplicated, and sorted by code unit; sparse or otherwise
+malformed profiles fail closed for a valid class requirement, while missing or
+malformed requirements remain standard work. Certification, station, and
+automation retain earlier blocker precedence. Specialization uses the same
+strict-FIFO, start/backfill-only rule: already-active work continues, paused
+work remains unchanged, and a mismatched queue head is never bypassed. The tick
+reports one frozen `workshop-anomaly-class-specialization-required` reason when
+applicable. The context is not persisted or inferred from anomaly, facility,
+research, staffing, equipment, task-kind, or topology state, and it changes
+neither routing, throughput, nor completion quality/safety.
 
 SPE-2781 adds a pure caller-composed adapter from the shipped SPE-2779
 dependency availability vocabulary into the existing completion-quality

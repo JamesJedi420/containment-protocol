@@ -395,7 +395,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function isIntegerIndexId(value: string): boolean {
+export function isDepartmentWorkshopIntegerIndexId(value: string): boolean {
   const numeric = Number(value)
   return (
     Number.isInteger(numeric) &&
@@ -738,7 +738,7 @@ export function sanitizeDepartmentWorkshopWorkOrders(
   const entries: [string, DepartmentWorkshopWorkOrder][] = []
   for (const [registryId, rawWorkOrder] of Object.entries(value)) {
     if (
-      isIntegerIndexId(registryId) ||
+      isDepartmentWorkshopIntegerIndexId(registryId) ||
       !isValidWorkOrder(rawWorkOrder) ||
       registryId !== rawWorkOrder.id
     ) {
@@ -780,7 +780,7 @@ export function sanitizeDepartmentWorkshopSnapshots(
   )
   for (const [registryId, rawSnapshot] of orderedEntries) {
     if (
-      isIntegerIndexId(registryId) ||
+      isDepartmentWorkshopIntegerIndexId(registryId) ||
       !isRecord(rawSnapshot) ||
       rawSnapshot.departmentId !== registryId
     ) {
@@ -1431,7 +1431,7 @@ export function sanitizeDepartmentWorkshopCompletionOutcomes(
 
   const entries: [string, DepartmentWorkshopCompletionOutcome][] = []
   for (const [key, entry] of Object.entries(value)) {
-    if (isIntegerIndexId(key)) {
+    if (isDepartmentWorkshopIntegerIndexId(key)) {
       continue
     }
     const normalized = normalizeCompletionOutcome(key, entry)
@@ -1556,7 +1556,7 @@ export function enqueueDepartmentWorkshopWorkOrder(
       ? (workOrder as DepartmentWorkshopWorkOrder).departmentId
       : ''
 
-  if (!isValidWorkOrder(workOrder) || isIntegerIndexId(workOrder.id)) {
+  if (!isValidWorkOrder(workOrder) || isDepartmentWorkshopIntegerIndexId(workOrder.id)) {
     return blockedWrite(workshopState, frozenReason('invalid-work-orders', departmentId))
   }
   if (!validateDepartmentCapabilityRegistry(registry, authorityGraph).valid) {

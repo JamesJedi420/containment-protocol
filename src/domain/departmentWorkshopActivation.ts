@@ -7,6 +7,7 @@ import {
 import { isConstructionComplete } from './constructionProgress'
 import type { GameState } from './models'
 import {
+  isDepartmentWorkshopIntegerIndexId,
   readDepartmentWorkshopState,
   type DepartmentWorkshopSnapshot,
   type DepartmentWorkshopState,
@@ -155,6 +156,7 @@ export function activateDepartmentWorkshopFromConstruction(
 
   if (
     !isNormalizedId(request?.departmentId) ||
+    isDepartmentWorkshopIntegerIndexId(request?.departmentId ?? '') ||
     !isNormalizedId(request?.constructionCaseId) ||
     !isNormalizedId(request?.structuralRouteId) ||
     !Number.isSafeInteger(request?.slotCapacity) ||
@@ -187,10 +189,13 @@ export function activateDepartmentWorkshopFromConstruction(
 
   if (
     !matchesCanonicalRegistry(
-      source.departmentWorkshopWorkOrders ?? {},
+      source.departmentWorkshopWorkOrders === undefined ? {} : source.departmentWorkshopWorkOrders,
       workshopState.workOrders
     ) ||
-    !matchesCanonicalRegistry(source.departmentWorkshopSnapshots ?? {}, workshopState.snapshots)
+    !matchesCanonicalRegistry(
+      source.departmentWorkshopSnapshots === undefined ? {} : source.departmentWorkshopSnapshots,
+      workshopState.snapshots
+    )
   ) {
     return frozenResult(
       'blocked',

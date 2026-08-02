@@ -162,6 +162,10 @@ describe('department workshop activation from construction (SPE-2788)', () => {
       state,
       request({ slotCapacity: 0 })
     )
+    const integerIndexDepartment = activateDepartmentWorkshopFromConstruction(
+      state,
+      request({ departmentId: '1' })
+    )
     const unknownDepartment = activateDepartmentWorkshopFromConstruction(
       state,
       request({ departmentId: 'department:unknown' })
@@ -185,12 +189,22 @@ describe('department workshop activation from construction (SPE-2788)', () => {
       },
       request()
     )
+    const nullRegistries = activateDepartmentWorkshopFromConstruction(
+      {
+        ...state,
+        departmentWorkshopWorkOrders: null,
+        departmentWorkshopSnapshots: null,
+      } as unknown as GameState,
+      request()
+    )
 
     expect(reasonCodes(invalidId)).toEqual(['invalid-activation-request'])
     expect(reasonCodes(invalidCapacity)).toEqual(['invalid-activation-request'])
+    expect(reasonCodes(integerIndexDepartment)).toEqual(['invalid-activation-request'])
     expect(reasonCodes(unknownDepartment)).toEqual(['missing-department-definition'])
     expect(reasonCodes(invalidRegistry)).toEqual(['invalid-department-registry'])
     expect(reasonCodes(malformedState)).toEqual(['invalid-workshop-state'])
+    expect(reasonCodes(nullRegistries)).toEqual(['invalid-workshop-state'])
   })
 
   it('treats an identical empty activation as unchanged and rejects conflicting capacity', () => {

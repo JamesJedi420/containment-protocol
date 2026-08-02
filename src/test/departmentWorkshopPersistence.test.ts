@@ -1512,6 +1512,103 @@ describe('department workshop persistence', () => {
     expect(automationContexts).toEqual(contextsBefore)
   })
 
+  it('isolates transient anomaly specialization by exact department and work order', () => {
+    const workOrders = {
+      'work:zulu': { ...WORK_ORDERS['work:zulu'], requiredWork: 3 },
+      'work:alpha': { ...WORK_ORDERS['work:alpha'], requiredWork: 3 },
+    }
+    const input = {
+      departmentWorkshopWorkOrders: workOrders,
+      departmentWorkshopSnapshots: {
+        'department:records-analysis': {
+          ...SNAPSHOTS['department:records-analysis'],
+          queued: [{ workOrderId: 'work:zulu', completedWork: 0 }],
+          active: [],
+        },
+        'department:biohazard-response': {
+          ...SNAPSHOTS['department:biohazard-response'],
+          queued: [{ workOrderId: 'work:alpha', completedWork: 0 }],
+          active: [],
+        },
+      },
+    }
+    const specializationContexts = {
+      'department:records-analysis': {
+        profile: { supportedAnomalyClassIds: ['class:spatial'] },
+        requirementsByWorkOrderId: { 'work:zulu': 'class:records' },
+      },
+      'department:biohazard-response': {
+        profile: { supportedAnomalyClassIds: ['class:bio'] },
+        requirementsByWorkOrderId: { 'work:alpha': 'class:bio' },
+      },
+    }
+    const before = structuredClone(input)
+    const contextsBefore = structuredClone(specializationContexts)
+
+    const first = processDepartmentWorkshopTick(
+      input,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      specializationContexts
+    )
+    const replay = processDepartmentWorkshopTick(
+      {
+        departmentWorkshopWorkOrders: {
+          'work:alpha': workOrders['work:alpha'],
+          'work:zulu': workOrders['work:zulu'],
+        },
+        departmentWorkshopSnapshots: {
+          'department:biohazard-response':
+            input.departmentWorkshopSnapshots['department:biohazard-response'],
+          'department:records-analysis':
+            input.departmentWorkshopSnapshots['department:records-analysis'],
+        },
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        'department:biohazard-response': specializationContexts['department:biohazard-response'],
+        'department:records-analysis': specializationContexts['department:records-analysis'],
+      }
+    )
+
+    expect(replay).toEqual(first)
+    expect(first.startedWorkOrderIds).toEqual(['work:alpha'])
+    expect(first.reasons).toEqual([
+      {
+        code: 'workshop-anomaly-class-specialization-required',
+        departmentId: 'department:records-analysis',
+        workOrderIds: ['work:zulu'],
+      },
+    ])
+    expect(first.workshopState.snapshots['department:records-analysis']?.active).toEqual([])
+    expect(first.workshopState.snapshots['department:biohazard-response']?.active).toEqual([
+      { workOrderId: 'work:alpha', completedWork: 1 },
+    ])
+    expect(first.workshopState).not.toHaveProperty('specializationContextsByDepartment')
+    expect(first.workshopState.snapshots['department:biohazard-response']).not.toHaveProperty(
+      'specializationProfile'
+    )
+    expect(Object.isFrozen(first.reasons)).toBe(true)
+    expect(Object.isFrozen(first.workshopState.snapshots)).toBe(true)
+    expect(input).toEqual(before)
+    expect(specializationContexts).toEqual(contextsBefore)
+  })
+
   it('removes proven terminal work from every lane while retaining provenance and siblings', () => {
     const recordsOrder = (id: string, caseId: string) => ({
       id,

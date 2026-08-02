@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2787",
     "SPE-2786",
     "SPE-2785",
     "SPE-2784",
@@ -12,10 +13,10 @@
     "SPE-2779",
     "SPE-2777",
     "SPE-2776",
-    "SPE-2775",
-    "SPE-2773"
+    "SPE-2775"
   ],
   "sliceDocStatus": {
+    "planning/spe-2787-department-workshop-routing-slice.md": "Shipped",
     "planning/spe-2786-workshop-anomaly-specialization-eligibility-gate-slice.md": "Shipped",
     "planning/spe-2785-workshop-automated-diagnostics-eligibility-gate-slice.md": "Shipped",
     "planning/spe-2784-workshop-dedicated-station-eligibility-gate-slice.md": "Shipped",

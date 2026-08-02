@@ -223,6 +223,11 @@ import {
   type DepartmentWorkshopWorkOrder,
   type DepartmentWorkshopWriteResult,
 } from '../../domain/departmentWorkshopQueue'
+import {
+  routeAndEnqueueDepartmentWorkshopWorkOrder as routeAndEnqueueDepartmentWorkshopWorkOrderState,
+  type DepartmentWorkshopRoutingRequest,
+  type DepartmentWorkshopRoutingResult,
+} from '../../domain/departmentWorkshopRouting'
 import { activateCaseScopedPrerequisiteProcessingOrder, reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
@@ -246,6 +251,9 @@ interface GameStore {
   enqueueDepartmentWorkshopWorkOrder: (
     workOrder: DepartmentWorkshopWorkOrder
   ) => DepartmentWorkshopWriteResult
+  routeAndEnqueueDepartmentWorkshopWorkOrder: (
+    request: DepartmentWorkshopRoutingRequest
+  ) => DepartmentWorkshopRoutingResult
   prioritizeDepartmentWorkshopWorkOrder: (
     departmentId: string,
     workOrderId: string
@@ -913,6 +921,25 @@ export const useGameStore = create<GameStore>()(
           }
         })
         return writeResult!
+      },
+
+      routeAndEnqueueDepartmentWorkshopWorkOrder: (request) => {
+        let routingResult: DepartmentWorkshopRoutingResult | null = null
+        set((s) => {
+          routingResult = routeAndEnqueueDepartmentWorkshopWorkOrderState(s.game, request)
+          const writeResult = routingResult.writeResult
+          if (routingResult.state === 'blocked' || !writeResult) {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return routingResult!
       },
 
       prioritizeDepartmentWorkshopWorkOrder: (departmentId, workOrderId) => {

@@ -20,6 +20,7 @@ import {
   resolveDepartmentWorkshopReagentQuality,
   resolveDepartmentWorkshopLoadPressure,
   resolveDepartmentWorkshopOperatingModel,
+  resolveDepartmentWorkshopSpecializationEligibility,
   resolveDepartmentWorkshopStationEligibility,
   resolveDepartmentWorkshopThroughput,
   resumeDepartmentWorkshopWork,
@@ -352,6 +353,53 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     const input = Object.freeze({ profile: 'automated', requirement: 'automated_diagnostic' })
     resolveDepartmentWorkshopAutomationEligibility(input.profile, input.requirement)
     expect(input).toEqual({ profile: 'automated', requirement: 'automated_diagnostic' })
+  })
+
+  it('resolves anomaly-class specialization with canonical neutral fallbacks', () => {
+    const allowed = resolveDepartmentWorkshopSpecializationEligibility(
+      { supportedAnomalyClassIds: [' class:spatial ', 'class:bio', 'class:bio'] },
+      ' class:spatial '
+    )
+    expect(allowed).toEqual({
+      supportedAnomalyClassIds: ['class:bio', 'class:spatial'],
+      requiredAnomalyClassId: 'class:spatial',
+      allowsStart: true,
+      effect: 'anomaly_class_supported',
+    })
+    expect(Object.isFrozen(allowed)).toBe(true)
+    expect(Object.isFrozen(allowed.supportedAnomalyClassIds)).toBe(true)
+
+    for (const profile of [
+      undefined,
+      null,
+      {},
+      { supportedAnomalyClassIds: 'class:spatial' },
+      { supportedAnomalyClassIds: ['class:spatial', null] },
+      { supportedAnomalyClassIds: ['class:spatial', ''] },
+      { supportedAnomalyClassIds: Object.assign(new Array(2), { 0: 'class:spatial' }) },
+      Object.create({ supportedAnomalyClassIds: ['class:spatial'] }),
+    ]) {
+      expect(resolveDepartmentWorkshopSpecializationEligibility(profile, 'class:spatial')).toEqual({
+        supportedAnomalyClassIds: [],
+        requiredAnomalyClassId: 'class:spatial',
+        allowsStart: false,
+        effect: 'anomaly_class_specialization_required',
+      })
+    }
+
+    for (const requirement of [undefined, null, '', '   ', {}]) {
+      expect(
+        resolveDepartmentWorkshopSpecializationEligibility(
+          { supportedAnomalyClassIds: ['class:bio'] },
+          requirement
+        )
+      ).toEqual({
+        supportedAnomalyClassIds: ['class:bio'],
+        requiredAnomalyClassId: null,
+        allowsStart: true,
+        effect: 'baseline',
+      })
+    }
   })
 
   it('caps adjacent and centralized staffing composition at two work units', () => {
@@ -1234,6 +1282,90 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     expect(reasonCode(completed)).toBe('workshop-automated-diagnostics-required')
   })
 
+  it('gates anomaly-class work after automation under strict FIFO while active work continues', () => {
+    const specializationContext = {
+      profile: { supportedAnomalyClassIds: ['class:spatial'] },
+      requirementsByWorkOrderId: {
+        'order:bio': 'class:bio',
+        'order:active': 'class:bio',
+      },
+    }
+    const fifoInput = snapshot({
+      slotCapacity: 2,
+      queued: [
+        { workOrderId: 'order:bio', completedWork: 0 },
+        { workOrderId: 'order:standard', completedWork: 0 },
+      ],
+    })
+    const blocked = advanceDepartmentWorkshopQueue(
+      fifoInput,
+      [workOrder('order:bio'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      specializationContext
+    )
+    expect(blocked.state).toBe('blocked')
+    expect(blocked.snapshot).toEqual(fifoInput)
+    expect(blocked.startedWorkOrderIds).toEqual([])
+    expect(blocked.reasons).toEqual([
+      {
+        code: 'workshop-anomaly-class-specialization-required',
+        departmentId: DEPARTMENT_ID,
+        workOrderIds: ['order:bio'],
+      },
+    ])
+
+    const activeInput = snapshot({
+      active: [{ workOrderId: 'order:active', completedWork: 1 }],
+      queued: [{ workOrderId: 'order:bio', completedWork: 0 }],
+    })
+    const active = advanceDepartmentWorkshopQueue(
+      activeInput,
+      [workOrder('order:active'), workOrder('order:bio')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      specializationContext
+    )
+    expect(active.completedWorkOrderIds).toEqual(['order:active'])
+    expect(active.startedWorkOrderIds).toEqual([])
+    expect(active.snapshot?.queued).toEqual([{ workOrderId: 'order:bio', completedWork: 0 }])
+    expect(reasonCode(active)).toBe('workshop-anomaly-class-specialization-required')
+
+    const allowed = advanceDepartmentWorkshopQueue(
+      fifoInput,
+      [workOrder('order:bio'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        profile: { supportedAnomalyClassIds: ['class:bio'] },
+        requirementsByWorkOrderId: { 'order:bio': 'class:bio' },
+      }
+    )
+    expect(allowed.startedWorkOrderIds).toEqual(['order:bio', 'order:standard'])
+    expect(allowed.reasons).toEqual([])
+  })
+
   it('keeps certification and station precedence over automation eligibility', () => {
     const automationContext = {
       profile: 'manual',
@@ -1250,7 +1382,11 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       undefined,
       { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'certified' } },
       { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
-      automationContext
+      automationContext,
+      {
+        profile: { supportedAnomalyClassIds: [] },
+        requirementsByWorkOrderId: { 'order:a': 'class:spatial' },
+      }
     )
     expect(reasonCode(certificationBlocked)).toBe('workshop-certification-required')
 
@@ -1265,7 +1401,11 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       undefined,
       { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
       { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
-      automationContext
+      automationContext,
+      {
+        profile: { supportedAnomalyClassIds: [] },
+        requirementsByWorkOrderId: { 'order:a': 'class:spatial' },
+      }
     )
     expect(reasonCode(stationBlocked)).toBe('workshop-dedicated-station-required')
 
@@ -1280,9 +1420,32 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       undefined,
       { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
       { profile: 'dedicated', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
-      automationContext
+      automationContext,
+      {
+        profile: { supportedAnomalyClassIds: [] },
+        requirementsByWorkOrderId: { 'order:a': 'class:spatial' },
+      }
     )
     expect(reasonCode(automationBlocked)).toBe('workshop-automated-diagnostics-required')
+
+    const specializationBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
+      { profile: 'dedicated', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
+      { profile: 'automated', requirementsByWorkOrderId: { 'order:a': 'automated_diagnostic' } },
+      {
+        profile: { supportedAnomalyClassIds: [] },
+        requirementsByWorkOrderId: { 'order:a': 'class:spatial' },
+      }
+    )
+    expect(reasonCode(specializationBlocked)).toBe('workshop-anomaly-class-specialization-required')
 
     const zeroSlot = advanceDepartmentWorkshopQueue(
       snapshot({ slotCapacity: 0, queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),

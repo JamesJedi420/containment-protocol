@@ -171,6 +171,26 @@ export interface DepartmentWorkshopAutomationContext {
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopAutomationContextsByDepartment = Readonly<Record<string, unknown>>
 
+/** SPE-2786: transient caller-owned anomaly-class specialization profile. */
+export interface DepartmentWorkshopSpecializationProfile {
+  readonly supportedAnomalyClassIds: readonly string[]
+}
+
+export interface DepartmentWorkshopSpecializationEligibilityResult {
+  readonly supportedAnomalyClassIds: readonly string[]
+  readonly requiredAnomalyClassId: string | null
+  readonly allowsStart: boolean
+  readonly effect: 'baseline' | 'anomaly_class_supported' | 'anomaly_class_specialization_required'
+}
+
+export interface DepartmentWorkshopSpecializationContext {
+  readonly profile: DepartmentWorkshopSpecializationProfile
+  readonly requirementsByWorkOrderId: Readonly<Record<string, string>>
+}
+
+/** Unknown values are accepted so malformed external context can safely use the baseline. */
+export type DepartmentWorkshopSpecializationContextsByDepartment = Readonly<Record<string, unknown>>
+
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
 
@@ -295,6 +315,7 @@ export type DepartmentWorkshopReasonCode =
   | 'workshop-certification-required'
   | 'workshop-dedicated-station-required'
   | 'workshop-automated-diagnostics-required'
+  | 'workshop-anomaly-class-specialization-required'
   | 'invalid-work-order-id'
   | 'work-order-not-active'
   | 'work-order-not-paused'
@@ -1198,6 +1219,57 @@ export function resolveDepartmentWorkshopAutomationEligibility(
 }
 
 /**
+ * Resolve queued-start eligibility from explicit caller-owned anomaly-class
+ * specialization. Missing or malformed requirements remain standard. Profile
+ * identifiers are trimmed, deduplicated, and sorted before exact matching.
+ */
+export function resolveDepartmentWorkshopSpecializationEligibility(
+  profile?: unknown,
+  requirement?: unknown
+): DepartmentWorkshopSpecializationEligibilityResult {
+  const rawSupportedAnomalyClassIds =
+    isRecord(profile) &&
+    Object.hasOwn(profile, 'supportedAnomalyClassIds') &&
+    Array.isArray(profile.supportedAnomalyClassIds)
+      ? Array.from(profile.supportedAnomalyClassIds)
+      : null
+  const supportedAnomalyClassIds = Object.freeze(
+    rawSupportedAnomalyClassIds?.every(
+      (value) => typeof value === 'string' && value.trim().length > 0
+    )
+      ? [...new Set(rawSupportedAnomalyClassIds.map((value) => value.trim()))].sort(
+          compareCodeUnits
+        )
+      : []
+  )
+  const requiredAnomalyClassId =
+    typeof requirement === 'string' && requirement.trim().length > 0 ? requirement.trim() : null
+
+  if (requiredAnomalyClassId === null) {
+    return Object.freeze({
+      supportedAnomalyClassIds,
+      requiredAnomalyClassId,
+      allowsStart: true,
+      effect: 'baseline',
+    })
+  }
+  if (supportedAnomalyClassIds.includes(requiredAnomalyClassId)) {
+    return Object.freeze({
+      supportedAnomalyClassIds,
+      requiredAnomalyClassId,
+      allowsStart: true,
+      effect: 'anomaly_class_supported',
+    })
+  }
+  return Object.freeze({
+    supportedAnomalyClassIds,
+    requiredAnomalyClassId,
+    allowsStart: false,
+    effect: 'anomaly_class_specialization_required',
+  })
+}
+
+/**
  * Compose SPE-2775 adjacency and SPE-2776 centralized staffing under a strict
  * two-work-unit cap, then apply SPE-2777 pressure and SPE-2779 dependency caps.
  * Distributed isolation stays on the operating-model result and does not alter
@@ -1633,6 +1705,7 @@ interface DepartmentWorkshopStartBlock {
     | 'workshop-certification-required'
     | 'workshop-dedicated-station-required'
     | 'workshop-automated-diagnostics-required'
+    | 'workshop-anomaly-class-specialization-required'
   readonly workOrderId: string
 }
 
@@ -1643,7 +1716,8 @@ function fillOpenSlots(
   startedWorkOrderIds: string[],
   certificationContext?: unknown,
   stationContext?: unknown,
-  automationContext?: unknown
+  automationContext?: unknown,
+  specializationContext?: unknown
 ): DepartmentWorkshopStartBlock | null {
   const certificationProfile =
     isRecord(certificationContext) && Object.hasOwn(certificationContext, 'profile')
@@ -1674,6 +1748,16 @@ function fillOpenSlots(
     Object.hasOwn(automationContext, 'requirementsByWorkOrderId') &&
     isRecord(automationContext.requirementsByWorkOrderId)
       ? automationContext.requirementsByWorkOrderId
+      : undefined
+  const specializationProfile =
+    isRecord(specializationContext) && Object.hasOwn(specializationContext, 'profile')
+      ? specializationContext.profile
+      : undefined
+  const specializationRequirementsByWorkOrderId =
+    isRecord(specializationContext) &&
+    Object.hasOwn(specializationContext, 'requirementsByWorkOrderId') &&
+    isRecord(specializationContext.requirementsByWorkOrderId)
+      ? specializationContext.requirementsByWorkOrderId
       : undefined
 
   while (active.length < slotCapacity && queued.length > 0) {
@@ -1710,6 +1794,19 @@ function fillOpenSlots(
     if (!automationEligibility.allowsStart) {
       return { code: 'workshop-automated-diagnostics-required', workOrderId: next.workOrderId }
     }
+    const specializationEligibility = resolveDepartmentWorkshopSpecializationEligibility(
+      specializationProfile,
+      specializationRequirementsByWorkOrderId &&
+        Object.hasOwn(specializationRequirementsByWorkOrderId, next.workOrderId)
+        ? specializationRequirementsByWorkOrderId[next.workOrderId]
+        : undefined
+    )
+    if (!specializationEligibility.allowsStart) {
+      return {
+        code: 'workshop-anomaly-class-specialization-required',
+        workOrderId: next.workOrderId,
+      }
+    }
     queued.shift()
     active.push(next)
     startedWorkOrderIds.push(next.workOrderId)
@@ -1738,7 +1835,8 @@ export function advanceDepartmentWorkshopQueue(
   dependencyAvailability?: unknown,
   certificationContext?: unknown,
   stationContext?: unknown,
-  automationContext?: unknown
+  automationContext?: unknown,
+  specializationContext?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1779,7 +1877,8 @@ export function advanceDepartmentWorkshopQueue(
     startedWorkOrderIds,
     certificationContext,
     stationContext,
-    automationContext
+    automationContext,
+    specializationContext
   )
 
   if (startBlock && active.length === 0 && startedWorkOrderIds.length === 0) {
@@ -1812,7 +1911,8 @@ export function advanceDepartmentWorkshopQueue(
     startedWorkOrderIds,
     certificationContext,
     stationContext,
-    automationContext
+    automationContext,
+    specializationContext
   )
 
   const reasons = startBlock
@@ -1840,9 +1940,9 @@ export function advanceDepartmentWorkshopQueue(
  * Advance every persisted department snapshot once in stable department-ID
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
  * GameState nor any non-workshop queue. Optional staging, operating-mode,
- * load-pressure, dependency-availability, certification, station, and
- * automation maps are caller-owned transient context isolated by exact
- * department ID.
+ * load-pressure, dependency-availability, certification, station, automation,
+ * and anomaly-specialization maps are caller-owned transient context isolated
+ * by exact department ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
@@ -1854,7 +1954,8 @@ export function processDepartmentWorkshopTick(
   dependencyAvailabilityByDepartment?: DepartmentWorkshopDependencyAvailabilityByDepartment,
   certificationContextsByDepartment?: DepartmentWorkshopCertificationContextsByDepartment,
   stationContextsByDepartment?: DepartmentWorkshopStationContextsByDepartment,
-  automationContextsByDepartment?: DepartmentWorkshopAutomationContextsByDepartment
+  automationContextsByDepartment?: DepartmentWorkshopAutomationContextsByDepartment,
+  specializationContextsByDepartment?: DepartmentWorkshopSpecializationContextsByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -1900,6 +2001,10 @@ export function processDepartmentWorkshopTick(
       isRecord(automationContextsByDepartment) &&
         Object.hasOwn(automationContextsByDepartment, departmentId)
         ? automationContextsByDepartment[departmentId]
+        : undefined,
+      isRecord(specializationContextsByDepartment) &&
+        Object.hasOwn(specializationContextsByDepartment, departmentId)
+        ? specializationContextsByDepartment[departmentId]
         : undefined
     )
     reasons.push(...advanceResult.reasons)

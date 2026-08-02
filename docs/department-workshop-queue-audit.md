@@ -25,6 +25,7 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned automation eligibility           | `resolveDepartmentWorkshopAutomationEligibility` (SPE-2785)     |
 | Caller-owned anomaly specialization           | `resolveDepartmentWorkshopSpecializationEligibility` (SPE-2786) |
 | Specialized department route and enqueue      | `departmentWorkshopRouting.ts` + `gameStore` (SPE-2787)         |
+| Construction-proven workshop activation       | `departmentWorkshopActivation.ts` + `gameStore` (SPE-2788)      |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)       |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)         |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)             |
@@ -187,6 +188,17 @@ using the resolver-owned task type. Supporting departments contribute delay and
 dispute metadata but receive no duplicate order. The adapter synthesizes no
 snapshot and changes no processing tick, week-close ordering, persistence
 schema, facility inference, quality, safety, failure consequence, or UI.
+
+SPE-2788 creates the empty canonical snapshot required by routing only after an
+explicit normalized request proves a registered department, positive slot
+capacity, completed SPE-110 construction clock, and exact route ID in the
+construction case map layer. The seam never advances construction, infers
+facility ownership, or authors work. An identical empty activation is
+idempotently unchanged; existing capacity or occupancy conflicts and malformed
+workshop registries fail closed. The store replaces workshop registries only
+for a newly activated result, preserving `GameState` identity for every blocked
+or unchanged path. Capacity resize, automatic topology mapping, lifecycle/UI,
+and clutter, safety, or quality consequences remain separate owners.
 
 SPE-2781 adds a pure caller-composed adapter from the shipped SPE-2779
 dependency availability vocabulary into the existing completion-quality

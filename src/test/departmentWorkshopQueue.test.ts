@@ -12,6 +12,7 @@ import {
   projectDepartmentWorkshopWorkload,
   resolveDepartmentWorkshopCompletionQuality,
   resolveDepartmentWorkshopCompletionSafety,
+  resolveDepartmentWorkshopAutomationEligibility,
   resolveDepartmentWorkshopCertificationEligibility,
   resolveDepartmentWorkshopDependencyAvailability,
   resolveDepartmentWorkshopDependencyQuality,
@@ -299,6 +300,58 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
     const input = Object.freeze({ profile: 'dedicated', requirement: 'dedicated' })
     resolveDepartmentWorkshopStationEligibility(input.profile, input.requirement)
     expect(input).toEqual({ profile: 'dedicated', requirement: 'dedicated' })
+  })
+
+  it('resolves automation profiles and diagnostic requirements with neutral fallbacks', () => {
+    for (const profile of ['manual', 'automated', undefined, null, 'assisted', {}]) {
+      const standard = resolveDepartmentWorkshopAutomationEligibility(profile, 'standard')
+      expect(standard).toEqual({
+        profile: profile === 'manual' || profile === 'automated' ? profile : 'baseline',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
+      expect(Object.isFrozen(standard)).toBe(true)
+    }
+
+    const automated = resolveDepartmentWorkshopAutomationEligibility(
+      'automated',
+      'automated_diagnostic'
+    )
+    expect(automated).toEqual({
+      profile: 'automated',
+      requirement: 'automated_diagnostic',
+      allowsStart: true,
+      effect: 'automated_diagnostics_allowed',
+    })
+    expect(Object.isFrozen(automated)).toBe(true)
+
+    for (const profile of ['manual', undefined, null, 'AUTOMATED', {}]) {
+      const blocked = resolveDepartmentWorkshopAutomationEligibility(
+        profile,
+        'automated_diagnostic'
+      )
+      expect(blocked).toEqual({
+        profile: profile === 'manual' ? 'manual' : 'baseline',
+        requirement: 'automated_diagnostic',
+        allowsStart: false,
+        effect: 'automated_diagnostics_required',
+      })
+      expect(Object.isFrozen(blocked)).toBe(true)
+    }
+
+    for (const requirement of [undefined, null, '', 'diagnostic', {}]) {
+      expect(resolveDepartmentWorkshopAutomationEligibility('manual', requirement)).toEqual({
+        profile: 'manual',
+        requirement: 'standard',
+        allowsStart: true,
+        effect: 'baseline',
+      })
+    }
+
+    const input = Object.freeze({ profile: 'automated', requirement: 'automated_diagnostic' })
+    resolveDepartmentWorkshopAutomationEligibility(input.profile, input.requirement)
+    expect(input).toEqual({ profile: 'automated', requirement: 'automated_diagnostic' })
   })
 
   it('caps adjacent and centralized staffing composition at two work units', () => {
@@ -986,6 +1039,278 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       'unavailable',
       undefined,
       stationContext
+    )
+    expect(reasonCode(unavailable)).toBe('unavailable-workshop-dependency')
+  })
+
+  it('starts automated-diagnostic work only under an automated profile', () => {
+    const input = snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] })
+    const requirements = { 'order:a': 'automated_diagnostic' }
+
+    for (const context of [
+      { profile: 'manual', requirementsByWorkOrderId: { 'order:a': 'standard' } },
+      { profile: 'automated', requirementsByWorkOrderId: { 'order:a': 'standard' } },
+      undefined,
+      { profile: 'unknown', requirementsByWorkOrderId: { 'order:a': 'diagnostic' } },
+    ]) {
+      const standard = advanceDepartmentWorkshopQueue(
+        input,
+        [workOrder('order:a')],
+        TEST_REGISTRY,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        context
+      )
+      expect(standard.startedWorkOrderIds).toEqual(['order:a'])
+      expect(standard.reasons).toEqual([])
+    }
+
+    const blocked = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'manual', requirementsByWorkOrderId: requirements }
+    )
+    expect(blocked.state).toBe('blocked')
+    expect(blocked.snapshot).toEqual(input)
+    expect(blocked.startedWorkOrderIds).toEqual([])
+    expect(blocked.reasons).toEqual([
+      {
+        code: 'workshop-automated-diagnostics-required',
+        departmentId: DEPARTMENT_ID,
+        workOrderIds: ['order:a'],
+      },
+    ])
+    expect(Object.isFrozen(blocked.reasons)).toBe(true)
+    expect(Object.isFrozen(blocked.reasons[0]?.workOrderIds)).toBe(true)
+
+    const allowed = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'automated', requirementsByWorkOrderId: requirements }
+    )
+    expect(allowed.state).toBe('advanced')
+    expect(allowed.startedWorkOrderIds).toEqual(['order:a'])
+    expect(allowed.completedWorkOrderIds).toEqual(['order:a'])
+    expect(allowed.reasons).toEqual([])
+
+    const overloaded = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a', { requiredWork: 3 })],
+      TEST_REGISTRY,
+      undefined,
+      { inputStaging: 'adjacent', outputStaging: 'adjacent' },
+      'centralized',
+      'overloaded',
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'automated', requirementsByWorkOrderId: requirements }
+    )
+    expect(overloaded.snapshot?.active).toEqual([{ workOrderId: 'order:a', completedWork: 1 }])
+
+    const inheritedRequirements = Object.create({
+      'order:a': 'automated_diagnostic',
+    }) as Record<string, unknown>
+    const inherited = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'manual', requirementsByWorkOrderId: inheritedRequirements }
+    )
+    expect(inherited.startedWorkOrderIds).toEqual(['order:a'])
+    expect(inherited.reasons).toEqual([])
+
+    const inheritedProfile = Object.create({ profile: 'automated' }) as Record<string, unknown>
+    inheritedProfile.requirementsByWorkOrderId = requirements
+    const inheritedProfileBlocked = advanceDepartmentWorkshopQueue(
+      input,
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      inheritedProfile
+    )
+    expect(reasonCode(inheritedProfileBlocked)).toBe('workshop-automated-diagnostics-required')
+  })
+
+  it('keeps automation eligibility strict FIFO and grandfathers active work', () => {
+    const automationContext = {
+      profile: 'manual',
+      requirementsByWorkOrderId: {
+        'order:automated': 'automated_diagnostic',
+        'order:active': 'automated_diagnostic',
+        'order:paused': 'automated_diagnostic',
+      },
+    }
+    const fifoInput = snapshot({
+      slotCapacity: 2,
+      queued: [
+        { workOrderId: 'order:automated', completedWork: 0 },
+        { workOrderId: 'order:standard', completedWork: 0 },
+      ],
+    })
+    const fifo = advanceDepartmentWorkshopQueue(
+      fifoInput,
+      [workOrder('order:automated'), workOrder('order:standard')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      automationContext
+    )
+    expect(fifo.state).toBe('blocked')
+    expect(fifo.snapshot).toEqual(fifoInput)
+    expect(fifo.startedWorkOrderIds).toEqual([])
+    expect(fifo.reasons[0]?.workOrderIds).toEqual(['order:automated'])
+
+    const activeInput = snapshot({
+      queued: [{ workOrderId: 'order:automated', completedWork: 0 }],
+      active: [{ workOrderId: 'order:active', completedWork: 1 }],
+      paused: [{ workOrderId: 'order:paused', completedWork: 1 }],
+    })
+    const completed = advanceDepartmentWorkshopQueue(
+      activeInput,
+      [
+        workOrder('order:active'),
+        workOrder('order:automated'),
+        workOrder('order:paused', { requiredWork: 3 }),
+      ],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      automationContext
+    )
+    expect(completed.state).toBe('advanced')
+    expect(completed.completedWorkOrderIds).toEqual(['order:active'])
+    expect(completed.startedWorkOrderIds).toEqual([])
+    expect(completed.snapshot?.active).toEqual([])
+    expect(completed.snapshot?.queued).toEqual([
+      { workOrderId: 'order:automated', completedWork: 0 },
+    ])
+    expect(completed.snapshot?.paused).toEqual([{ workOrderId: 'order:paused', completedWork: 1 }])
+    expect(completed.reasons).toHaveLength(1)
+    expect(reasonCode(completed)).toBe('workshop-automated-diagnostics-required')
+  })
+
+  it('keeps certification and station precedence over automation eligibility', () => {
+    const automationContext = {
+      profile: 'manual',
+      requirementsByWorkOrderId: { 'order:a': 'automated_diagnostic' },
+    }
+    const certificationBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'certified' } },
+      { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
+      automationContext
+    )
+    expect(reasonCode(certificationBlocked)).toBe('workshop-certification-required')
+
+    const stationBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
+      { profile: 'basic', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
+      automationContext
+    )
+    expect(reasonCode(stationBlocked)).toBe('workshop-dedicated-station-required')
+
+    const automationBlocked = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { profile: 'certified', requirementsByWorkOrderId: { 'order:a': 'certified' } },
+      { profile: 'dedicated', requirementsByWorkOrderId: { 'order:a': 'dedicated' } },
+      automationContext
+    )
+    expect(reasonCode(automationBlocked)).toBe('workshop-automated-diagnostics-required')
+
+    const zeroSlot = advanceDepartmentWorkshopQueue(
+      snapshot({ slotCapacity: 0, queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      automationContext
+    )
+    expect(reasonCode(zeroSlot)).toBe('zero-slot-capacity')
+
+    const unavailable = advanceDepartmentWorkshopQueue(
+      snapshot({ queued: [{ workOrderId: 'order:a', completedWork: 0 }] }),
+      [workOrder('order:a')],
+      TEST_REGISTRY,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'unavailable',
+      undefined,
+      undefined,
+      automationContext
     )
     expect(reasonCode(unavailable)).toBe('unavailable-workshop-dependency')
   })

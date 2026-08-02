@@ -228,6 +228,11 @@ import {
   type DepartmentWorkshopRoutingRequest,
   type DepartmentWorkshopRoutingResult,
 } from '../../domain/departmentWorkshopRouting'
+import {
+  activateDepartmentWorkshopFromConstruction as activateDepartmentWorkshopFromConstructionState,
+  type DepartmentWorkshopActivationRequest,
+  type DepartmentWorkshopActivationResult,
+} from '../../domain/departmentWorkshopActivation'
 import { activateCaseScopedPrerequisiteProcessingOrder, reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
@@ -254,6 +259,9 @@ interface GameStore {
   routeAndEnqueueDepartmentWorkshopWorkOrder: (
     request: DepartmentWorkshopRoutingRequest
   ) => DepartmentWorkshopRoutingResult
+  activateDepartmentWorkshopFromConstruction: (
+    request: DepartmentWorkshopActivationRequest
+  ) => DepartmentWorkshopActivationResult
   prioritizeDepartmentWorkshopWorkOrder: (
     departmentId: string,
     workOrderId: string
@@ -940,6 +948,24 @@ export const useGameStore = create<GameStore>()(
           }
         })
         return routingResult!
+      },
+
+      activateDepartmentWorkshopFromConstruction: (request) => {
+        let activationResult: DepartmentWorkshopActivationResult | null = null
+        set((s) => {
+          activationResult = activateDepartmentWorkshopFromConstructionState(s.game, request)
+          if (activationResult.state !== 'activated') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: activationResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: activationResult.workshopState.snapshots,
+            },
+          }
+        })
+        return activationResult!
       },
 
       prioritizeDepartmentWorkshopWorkOrder: (departmentId, workOrderId) => {

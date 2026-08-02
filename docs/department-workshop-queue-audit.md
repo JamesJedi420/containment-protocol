@@ -19,9 +19,10 @@ the boundaries that later workshop slices must preserve.
 | Caller-owned dependency availability          | `resolveDepartmentWorkshopDependencyAvailability` (SPE-2779)   |
 | Dependency-to-quality adapter                 | `resolveDepartmentWorkshopDependencyQuality` (SPE-2781)        |
 | Equipment-condition quality adapter           | `resolveDepartmentWorkshopEquipmentQuality` (SPE-2782)         |
-| Reagent-grade quality adapter                  | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)           |
+| Reagent-grade quality adapter                 | `resolveDepartmentWorkshopReagentQuality` (SPE-2783)           |
 | Caller-owned certification eligibility        | `resolveDepartmentWorkshopCertificationEligibility` (SPE-2780) |
 | Caller-owned station eligibility              | `resolveDepartmentWorkshopStationEligibility` (SPE-2784)       |
+| Caller-owned automation eligibility           | `resolveDepartmentWorkshopAutomationEligibility` (SPE-2785)    |
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)      |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)        |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)            |
@@ -146,6 +147,19 @@ head is never bypassed. The tick reports one frozen
 `workshop-dedicated-station-required` reason when applicable. Station context is
 not persisted or inferred from facility upgrades, levels, construction,
 topology, or live rooms, and it changes neither throughput nor quality/safety.
+
+SPE-2785 adds optional exact-department automated-diagnostics context after
+station eligibility. Each context contains a caller-owned `manual` or
+`automated` profile and per-work-order `standard` or `automated_diagnostic`
+start requirements. Standard work starts under either profile; automated
+diagnostics require an explicit `automated` profile. Certification and station
+eligibility retain earlier blocker precedence. Automation uses the same strict
+FIFO, start/backfill-only rule: already-active work continues, paused work is
+unchanged, and an ineligible head is never bypassed. The tick reports one
+frozen `workshop-automated-diagnostics-required` reason when applicable. The
+context is not persisted or inferred from work-order content, facility
+upgrades, equipment integrity, staffing, or topology, and it changes neither
+throughput nor completion quality/safety.
 
 SPE-2781 adds a pure caller-composed adapter from the shipped SPE-2779
 dependency availability vocabulary into the existing completion-quality
@@ -301,6 +315,11 @@ depend on a positive slot capacity.
 - Do not infer SPE-2784 station profiles from facility levels, upgrades,
   construction, topology, or room state. Dedicated-station context gates queued
   starts only and remains secondary to certification for blocker precedence.
+- Do not infer SPE-2785 automation profiles or requirements from work-order
+  content, facility upgrades, equipment integrity, staffing, or topology.
+  Automated diagnostics gate queued starts only, after certification and
+  dedicated-station eligibility; maintenance and corruption effects remain
+  future explicit SPE-877-facing work.
 - Do not infer SPE-2782 equipment condition from live integrity, canonical
   equipment grade, facilities, upgrades, repairs, or durability state.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.

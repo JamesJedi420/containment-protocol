@@ -244,7 +244,12 @@ export function activateDepartmentWorkshopFromConstruction(
     )
   }
 
-  const existing = workshopState.snapshots[request.departmentId]
+  const existing = Object.prototype.hasOwnProperty.call(
+    workshopState.snapshots,
+    request.departmentId
+  )
+    ? workshopState.snapshots[request.departmentId]
+    : undefined
   if (existing) {
     const isIdenticalEmptyWorkshop =
       existing.slotCapacity === request.slotCapacity &&

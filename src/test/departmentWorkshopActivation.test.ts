@@ -293,6 +293,30 @@ describe('department workshop activation from construction (SPE-2788)', () => {
     )
   })
 
+  it('treats prototype-named extension departments as own registry entries', () => {
+    const extensionDepartment = {
+      ...DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments[0],
+      id: '__proto__',
+      label: 'Prototype Workshop Department',
+    }
+    const extensionRegistry: DepartmentCapabilityRegistry = {
+      departments: [...DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments, extensionDepartment],
+      fallbackDepartmentRefs: DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.fallbackDepartmentRefs,
+    }
+
+    const result = activateDepartmentWorkshopFromConstruction(
+      constructionState(),
+      request({ departmentId: extensionDepartment.id }),
+      extensionRegistry
+    )
+
+    expect(result.state).toBe('activated')
+    expect(Object.prototype.hasOwnProperty.call(result.workshopState.snapshots, '__proto__')).toBe(
+      true
+    )
+    expect(result.workshopState.snapshots.__proto__.departmentId).toBe('__proto__')
+  })
+
   it('persists only activated store results and survives save hydration', () => {
     const source = constructionState()
     useGameStore.setState({ game: source })

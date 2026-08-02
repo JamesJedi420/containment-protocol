@@ -376,6 +376,7 @@ describe('department workshop queue kernel (SPE-2745 / SPE-1028)', () => {
       { supportedAnomalyClassIds: 'class:spatial' },
       { supportedAnomalyClassIds: ['class:spatial', null] },
       { supportedAnomalyClassIds: ['class:spatial', ''] },
+      { supportedAnomalyClassIds: Object.assign(new Array(2), { 0: 'class:spatial' }) },
       Object.create({ supportedAnomalyClassIds: ['class:spatial'] }),
     ]) {
       expect(resolveDepartmentWorkshopSpecializationEligibility(profile, 'class:spatial')).toEqual({

@@ -1227,14 +1227,17 @@ export function resolveDepartmentWorkshopSpecializationEligibility(
   profile?: unknown,
   requirement?: unknown
 ): DepartmentWorkshopSpecializationEligibilityResult {
-  const supportedAnomalyClassIds = Object.freeze(
+  const rawSupportedAnomalyClassIds =
     isRecord(profile) &&
-      Object.hasOwn(profile, 'supportedAnomalyClassIds') &&
-      Array.isArray(profile.supportedAnomalyClassIds) &&
-      profile.supportedAnomalyClassIds.every(
-        (value) => typeof value === 'string' && value.trim().length > 0
-      )
-      ? [...new Set(profile.supportedAnomalyClassIds.map((value) => value.trim()))].sort(
+    Object.hasOwn(profile, 'supportedAnomalyClassIds') &&
+    Array.isArray(profile.supportedAnomalyClassIds)
+      ? Array.from(profile.supportedAnomalyClassIds)
+      : null
+  const supportedAnomalyClassIds = Object.freeze(
+    rawSupportedAnomalyClassIds?.every(
+      (value) => typeof value === 'string' && value.trim().length > 0
+    )
+      ? [...new Set(rawSupportedAnomalyClassIds.map((value) => value.trim()))].sort(
           compareCodeUnits
         )
       : []

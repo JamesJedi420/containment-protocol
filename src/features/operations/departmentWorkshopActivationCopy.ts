@@ -1,3 +1,5 @@
+import type { DepartmentWorkshopActivationReasonCode } from '../../domain/departmentWorkshopActivation'
+
 export const DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT = {
   pageEyebrow: 'Workshop command',
   pageHeading: 'Activate department workshop',
@@ -32,3 +34,31 @@ export const DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT = {
   reasonInvalidWorkshopState: 'Workshop state validation failed — possible data integrity issue.',
   reasonUnknown: 'Activation blocked for an unknown reason.',
 } as const
+
+export function getDepartmentWorkshopActivationReasonLabel(
+  code: DepartmentWorkshopActivationReasonCode
+): string {
+  const ui = DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT
+  switch (code) {
+    case 'invalid-activation-request':
+      return ui.reasonInvalidRequest
+    case 'invalid-department-registry':
+      return ui.reasonInvalidDepartmentRegistry
+    case 'missing-department-definition':
+      return ui.reasonMissingDepartment
+    case 'missing-construction-case':
+      return ui.reasonMissingCase
+    case 'construction-incomplete':
+      return ui.reasonConstructionIncomplete
+    case 'missing-map-layer':
+      return ui.reasonMissingMapLayer
+    case 'missing-structural-route':
+      return ui.reasonMissingRoute
+    case 'workshop-already-active':
+      return ui.reasonAlreadyActive
+    case 'invalid-workshop-state':
+      return ui.reasonInvalidWorkshopState
+    default:
+      return ui.reasonUnknown
+  }
+}

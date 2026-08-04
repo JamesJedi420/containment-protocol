@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY } from './departmentCapabilities'
 import {
   registerDepartmentWorkshopCompletionOutcomes,
   type DepartmentWorkshopCompletionOutcome,

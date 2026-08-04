@@ -1907,6 +1907,36 @@ export const DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT: Record<string, string> = {
   spawnedCaseColumn: 'Spawned case',
 }
 
+export const DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Workshop command',
+  pageHeading: 'Activate department workshop',
+  pageSubtitle:
+    'Select a completed construction case and structural route to activate one empty department workshop.',
+  backToMirrorLabel: 'Back to workshop mirror',
+  backToDeskLabel: 'Back to Operations Desk',
+  departmentLabel: 'Department',
+  caseAndRouteLabel: 'Construction case / structural route',
+  slotCapacityLabel: 'Slot capacity',
+  slotCapacityHint: 'Positive integer. Determines how many work orders can be active simultaneously.',
+  submitLabel: 'Activate workshop',
+  alreadyActivatedNote: 'This department already has an activated workshop.',
+  emptyTitle: 'No eligible construction cases',
+  emptyBody:
+    'A department workshop can only be activated after a construction case reaches full completion and has structural routes in its map layer. Complete an SPE-110 construction case first.',
+  resultActivatedLabel: 'Workshop activated.',
+  resultUnchangedLabel: 'Workshop already active with identical capacity — no change.',
+  resultBlockedLabel: 'Activation blocked.',
+  reasonInvalidRequest: 'Invalid activation request — check department, case, route, and slot capacity.',
+  reasonMissingDepartment: 'Department not found in capability registry.',
+  reasonMissingCase: 'Construction case not found.',
+  reasonConstructionIncomplete: 'Construction is not yet complete for this case.',
+  reasonMissingMapLayer: 'No map layer or routes found on this case.',
+  reasonMissingRoute: 'Structural route not found in this case\'s map layer.',
+  reasonAlreadyActive: 'This department already has an active workshop snapshot.',
+  reasonInvalidWorkshopState: 'Workshop state validation failed — possible data integrity issue.',
+  reasonUnknown: 'Activation blocked for an unknown reason.',
+}
+
 export const MODIFIABLE_DATA_PACK_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Modifiable data packs',

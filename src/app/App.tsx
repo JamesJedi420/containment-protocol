@@ -87,6 +87,9 @@ const PublishQueueMirrorRoute = createRouteComponent(
 const DepartmentWorkshopMirrorRoute = createRouteComponent(
   () => import('../features/operations/DepartmentWorkshopMirrorPage')
 )
+const DepartmentWorkshopActivationCommandRoute = createRouteComponent(
+  () => import('../features/operations/DepartmentWorkshopActivationCommandPage')
+)
 const ModifiableDataPackMirrorRoute = createRouteComponent(
   () => import('../features/operations/ModifiableDataPackMirrorPage')
 )
@@ -220,6 +223,10 @@ export default function App() {
         <Route
           path="department-workshop"
           element={renderLazyRoute(DepartmentWorkshopMirrorRoute)}
+        />
+        <Route
+          path="department-workshop/activate"
+          element={renderLazyRoute(DepartmentWorkshopActivationCommandRoute)}
         />
         <Route
           path="modifiable-data-packs"

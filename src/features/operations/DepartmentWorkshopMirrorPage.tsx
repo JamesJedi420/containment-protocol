@@ -38,6 +38,9 @@ export default function DepartmentWorkshopMirrorPage() {
           <Link to={APP_ROUTES.operationsDesk} className="btn btn-sm btn-ghost">
             {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.backToDeskLabel}
           </Link>
+          <Link to={APP_ROUTES.departmentWorkshopActivate} className="btn btn-sm btn-ghost">
+            Activate workshop
+          </Link>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

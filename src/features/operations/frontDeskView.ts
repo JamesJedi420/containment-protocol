@@ -897,6 +897,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Inspect workshop slots, queued work, blockers, and completion quality or safety consequences.',
     },
     {
+      label: 'Activate department workshop',
+      href: APP_ROUTES.departmentWorkshopActivate,
+      description:
+        'Select a completed construction case and structural route to activate an empty department workshop.',
+    },
+    {
       label: 'Open modifiable data-pack mirror',
       href: APP_ROUTES.modifiableDataPacks,
       description: 'Review persisted modifiable data-pack records and import validation posture.',

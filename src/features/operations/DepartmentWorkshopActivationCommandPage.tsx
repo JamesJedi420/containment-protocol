@@ -71,16 +71,7 @@ export default function DepartmentWorkshopActivationCommandPage() {
         </div>
       </article>
 
-      {view.allDepartmentsActivated ? (
-        <article
-          className="panel panel-support space-y-2"
-          role="region"
-          aria-label="All workshops active"
-        >
-          <h3 className="text-lg font-semibold">{ui.allActivatedTitle}</h3>
-          <p className="text-sm opacity-70">{ui.allActivatedBody}</p>
-        </article>
-      ) : view.isEmpty ? (
+      {view.isEmpty ? (
         <article className="panel panel-support space-y-2" role="region" aria-label="Empty state">
           <h3 className="text-lg font-semibold">{ui.emptyTitle}</h3>
           <p className="text-sm opacity-70">{ui.emptyBody}</p>

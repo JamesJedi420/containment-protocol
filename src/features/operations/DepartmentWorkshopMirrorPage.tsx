@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT } from '../../data/copy'
+import { DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT } from './departmentWorkshopActivationCopy'
 import { getDepartmentWorkshopMirrorView } from './departmentWorkshopMirrorView'
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -35,9 +36,14 @@ export default function DepartmentWorkshopMirrorPage() {
             </h2>
             <p className="text-sm opacity-60">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.pageSubtitle}</p>
           </div>
-          <Link to={APP_ROUTES.operationsDesk} className="btn btn-sm btn-ghost">
-            {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.backToDeskLabel}
-          </Link>
+          <div className="flex gap-2">
+            <Link to={APP_ROUTES.departmentWorkshopActivate} className="btn btn-sm btn-ghost">
+              {DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT.mirrorLinkLabel}
+            </Link>
+            <Link to={APP_ROUTES.operationsDesk} className="btn btn-sm btn-ghost">
+              {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.backToDeskLabel}
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

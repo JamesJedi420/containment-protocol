@@ -28,6 +28,7 @@ export const APP_ROUTES = {
   patternSourceSeries: '/pattern-source-series',
   publishQueue: '/publish-queue',
   departmentWorkshop: '/department-workshop',
+  departmentWorkshopActivate: '/department-workshop/activate',
   modifiableDataPacks: '/modifiable-data-packs',
   selfCensoringInformation: '/self-censoring-information',
   publicDisclosureState: '/public-disclosure-state',

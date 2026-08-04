@@ -16,7 +16,7 @@ export const DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT = {
   alreadyActivatedNote: 'This department already has an activated workshop.',
   emptyTitle: 'No eligible construction cases',
   emptyBody:
-    'A department workshop can only be activated after a construction case reaches full completion and has structural routes in its map layer. Complete an SPE-110 construction case first.',
+    'A department workshop can only be activated after a construction case reaches full completion and has structural routes in its map layer. Complete a construction project with a valid structural route first.',
   allActivatedTitle: 'All department workshops are active',
   allActivatedBody:
     'Every registered department already has an active workshop. Use the workshop mirror to inspect current capacity and queued work.',

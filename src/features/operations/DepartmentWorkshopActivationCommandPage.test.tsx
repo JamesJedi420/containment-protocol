@@ -5,10 +5,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
 import { DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY } from '../../domain/departmentCapabilities'
-import { DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT } from './departmentWorkshopActivationCopy'
-import DepartmentWorkshopActivationCommandPage, {
+import {
+  DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT,
   getDepartmentWorkshopActivationReasonLabel,
-} from './DepartmentWorkshopActivationCommandPage'
+} from './departmentWorkshopActivationCopy'
+import DepartmentWorkshopActivationCommandPage from './DepartmentWorkshopActivationCommandPage'
 
 function renderPage() {
   return render(

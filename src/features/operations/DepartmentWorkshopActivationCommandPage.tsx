@@ -2,40 +2,12 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import type {
-  DepartmentWorkshopActivationReasonCode,
-  DepartmentWorkshopActivationResult,
-} from '../../domain/departmentWorkshopActivation'
-import { DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT } from './departmentWorkshopActivationCopy'
+import type { DepartmentWorkshopActivationResult } from '../../domain/departmentWorkshopActivation'
+import {
+  DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT,
+  getDepartmentWorkshopActivationReasonLabel,
+} from './departmentWorkshopActivationCopy'
 import { getDepartmentWorkshopActivationCommandView } from './departmentWorkshopActivationCommandView'
-
-export function getDepartmentWorkshopActivationReasonLabel(
-  code: DepartmentWorkshopActivationReasonCode
-): string {
-  const ui = DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT
-  switch (code) {
-    case 'invalid-activation-request':
-      return ui.reasonInvalidRequest
-    case 'invalid-department-registry':
-      return ui.reasonInvalidDepartmentRegistry
-    case 'missing-department-definition':
-      return ui.reasonMissingDepartment
-    case 'missing-construction-case':
-      return ui.reasonMissingCase
-    case 'construction-incomplete':
-      return ui.reasonConstructionIncomplete
-    case 'missing-map-layer':
-      return ui.reasonMissingMapLayer
-    case 'missing-structural-route':
-      return ui.reasonMissingRoute
-    case 'workshop-already-active':
-      return ui.reasonAlreadyActive
-    case 'invalid-workshop-state':
-      return ui.reasonInvalidWorkshopState
-    default:
-      return ui.reasonUnknown
-  }
-}
 
 export default function DepartmentWorkshopActivationCommandPage() {
   const { game, activateDepartmentWorkshopFromConstruction } = useGameStore()

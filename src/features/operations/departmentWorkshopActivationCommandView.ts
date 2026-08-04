@@ -21,7 +21,6 @@ export interface DepartmentWorkshopActivationDepartmentView {
 export interface DepartmentWorkshopActivationCommandView {
   isEmpty: boolean
   hasAnyUnactivated: boolean
-  allDepartmentsActivated: boolean
   departments: readonly DepartmentWorkshopActivationDepartmentView[]
 }
 
@@ -50,12 +49,8 @@ export function getDepartmentWorkshopActivationCommandView(
     })
   )
 
-  const hasAnyUnactivated = departments.some(
-    (department) => !department.alreadyActivated && department.candidates.length > 0
-  )
-  const allDepartmentsActivated =
-    departments.length > 0 && departments.every((department) => department.alreadyActivated)
-  const isEmpty = !hasAnyUnactivated && !allDepartmentsActivated
+  const isEmpty = departments.every((d) => d.candidates.length === 0)
+  const hasAnyUnactivated = departments.some((d) => !d.alreadyActivated && d.candidates.length > 0)
 
-  return { isEmpty, hasAnyUnactivated, allDepartmentsActivated, departments }
+  return { isEmpty, hasAnyUnactivated, departments }
 }

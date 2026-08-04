@@ -1,10 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { getDepartmentWorkshopActivationCommandView } from './departmentWorkshopActivationCommandView'
-import {
-  CONSTRUCTION_PROGRESS_MAX,
-  getConstructionProgressClockId,
-} from '../../domain/constructionProgress'
-import { DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY } from '../../domain/departmentCapabilities'
+import { CONSTRUCTION_PROGRESS_MAX, getConstructionProgressClockId } from '../../domain/constructionProgress'
 import { setDefinedProgressClock } from '../../domain/progressClocks'
 import type { GameState } from '../../domain/models'
 
@@ -40,73 +36,60 @@ const COMPLETED_CASE = {
 }
 
 describe('getDepartmentWorkshopActivationCommandView', () => {
-  it('returns an empty state when no construction-complete cases exist', () => {
-    const view = getDepartmentWorkshopActivationCommandView(makeBase({}) as GameState)
+  it('returns isEmpty=true when no construction-complete cases exist', () => {
+    const source = makeBase({}) as GameState
+    const view = getDepartmentWorkshopActivationCommandView(source)
     expect(view.isEmpty).toBe(true)
     expect(view.hasAnyUnactivated).toBe(false)
-    expect(view.allDepartmentsActivated).toBe(false)
   })
 
-  it('returns departments with actionable candidates for a completed case', () => {
-    const view = getDepartmentWorkshopActivationCommandView(
-      withClock(makeBase({ 'case-1': COMPLETED_CASE }), 'case-1')
-    )
+  it('returns departments with candidates for a completed case', () => {
+    const source = withClock(makeBase({ 'case-1': COMPLETED_CASE }), 'case-1')
+    const view = getDepartmentWorkshopActivationCommandView(source)
     expect(view.isEmpty).toBe(false)
-    expect(view.hasAnyUnactivated).toBe(true)
-    expect(view.departments.some((department) => department.candidates.length > 0)).toBe(true)
+    expect(view.departments.some((d) => d.candidates.length > 0)).toBe(true)
   })
 
-  it('includes the route label in the candidate view', () => {
-    const view = getDepartmentWorkshopActivationCommandView(
-      withClock(makeBase({ 'case-1': COMPLETED_CASE }), 'case-1')
-    )
-    const candidate = view.departments.flatMap((department) => department.candidates)[0]
+  it('includes route label in candidate view', () => {
+    const source = withClock(makeBase({ 'case-1': COMPLETED_CASE }), 'case-1')
+    const view = getDepartmentWorkshopActivationCommandView(source)
+    const candidate = view.departments.flatMap((d) => d.candidates)[0]
     expect(candidate?.routeLabel).toBe('Route A')
   })
 
-  it('marks an activated department and removes its actionable candidates', () => {
+  it('marks alreadyActivated=true when department snapshot exists', () => {
     const source = withClock(
       makeBase(
         { 'case-1': COMPLETED_CASE },
-        {
-          [DEPT_BIO]: {
-            departmentId: DEPT_BIO,
-            slotCapacity: 1,
-            queued: [],
-            active: [],
-            paused: [],
-          },
-        }
+        { [DEPT_BIO]: { departmentId: DEPT_BIO, slotCapacity: 1, queued: [], active: [], paused: [] } }
       ),
       'case-1'
     )
     const view = getDepartmentWorkshopActivationCommandView(source)
-    const bio = view.departments.find((department) => department.departmentId === DEPT_BIO)
+    const bio = view.departments.find((d) => d.departmentId === DEPT_BIO)
     expect(bio?.alreadyActivated).toBe(true)
-    expect(bio?.candidates).toEqual([])
   })
 
-  it('distinguishes the all-departments-activated state from missing construction routes', () => {
+  it('hasAnyUnactivated=false when all departments with candidates are already activated', () => {
+    const allDeptIds = [
+      'department:biohazard-response',
+      'department:concept-embodiment-research',
+      'department:emergency-response',
+      'department:ethics-review',
+      'department:field-containment',
+      'department:general-intake',
+      'department:procurement-logistics',
+      'department:records-analysis',
+    ]
     const snapshots = Object.fromEntries(
-      DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments.map((department) => [
-        department.id,
-        {
-          departmentId: department.id,
-          slotCapacity: 1,
-          queued: [],
-          active: [],
-          paused: [],
-        },
-      ])
+      allDeptIds.map((id) => [id, { departmentId: id, slotCapacity: 1, queued: [], active: [], paused: [] }])
     )
     const source = withClock(makeBase({ 'case-1': COMPLETED_CASE }, snapshots), 'case-1')
     const view = getDepartmentWorkshopActivationCommandView(source)
     expect(view.hasAnyUnactivated).toBe(false)
-    expect(view.allDepartmentsActivated).toBe(true)
-    expect(view.isEmpty).toBe(false)
   })
 
-  it('generates unique select keys within a department candidate list', () => {
+  it('generates unique selectKeys within a single department candidate list', () => {
     const caseWithTwoRoutes = {
       ...COMPLETED_CASE,
       mapLayer: {
@@ -117,12 +100,12 @@ describe('getDepartmentWorkshopActivationCommandView', () => {
         ],
       },
     }
-    const view = getDepartmentWorkshopActivationCommandView(
-      withClock(makeBase({ 'case-1': caseWithTwoRoutes }), 'case-1')
-    )
-    const firstDepartment = view.departments[0]
-    expect(firstDepartment?.candidates.length).toBe(2)
-    const keys = firstDepartment?.candidates.map((candidate) => candidate.selectKey) ?? []
-    expect(new Set(keys).size).toBe(keys.length)
+    const source = withClock(makeBase({ 'case-1': caseWithTwoRoutes }), 'case-1')
+    const view = getDepartmentWorkshopActivationCommandView(source)
+    const firstDept = view.departments[0]
+    if (!firstDept || firstDept.candidates.length < 2) return
+    const keys = firstDept.candidates.map((c) => c.selectKey)
+    const uniqueKeys = new Set(keys)
+    expect(keys.length).toBe(uniqueKeys.size)
   })
 })

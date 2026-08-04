@@ -31,7 +31,7 @@ describe('DepartmentWorkshopActivationCommandPage', () => {
     )
   })
 
-  it('renders a distinct state when every registered department is already active', () => {
+  it('shows the empty state when every registered department is already activated but no cases are eligible', () => {
     const game = {
       ...createStartingState(),
       departmentWorkshopSnapshots: Object.fromEntries(
@@ -53,11 +53,8 @@ describe('DepartmentWorkshopActivationCommandPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT.allActivatedTitle,
+        name: DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT.emptyTitle,
       })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT.allActivatedBody)
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /activate workshop/i })).not.toBeInTheDocument()
   })

@@ -298,6 +298,19 @@ export interface DepartmentWorkshopCompletionOutcomeResult {
   readonly registeredWorkOrderIds: readonly string[]
 }
 
+export interface DepartmentWorkshopSafetyConditionProjection {
+  readonly departmentId: string
+  readonly workOrderId: string
+  readonly isolation: DepartmentWorkshopConditionLevel
+  readonly ventilation: DepartmentWorkshopConditionLevel
+  readonly ppe: DepartmentWorkshopConditionLevel
+  readonly dualAuth: DepartmentWorkshopConditionLevel
+}
+
+export type DepartmentWorkshopSafetyConditionsByDepartment = Readonly<
+  Record<string, readonly DepartmentWorkshopSafetyConditionProjection[] | undefined>
+>
+
 export type DepartmentWorkshopReasonCode =
   | 'invalid-department-registry'
   | 'missing-department-definition'
@@ -928,6 +941,54 @@ export function resolveDepartmentWorkshopCompletionQuality(
  * stable primary reason (isolation → ventilation → ppe → dualAuth).
  * Orthogonal to SPE-2768 quality (room contamination ≠ safety unsafe).
  */
+export function projectDepartmentWorkshopSafetyConditions(
+  workOrders: DepartmentWorkshopWorkOrderRegistry,
+  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment,
+): Readonly<Record<string, DepartmentWorkshopSafetyConditions | undefined>> {
+  if (!isRecord(safetyConditionsByDepartment)) {
+    return Object.freeze({})
+  }
+
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(workOrders).flatMap(([workOrderId, workOrder]) => {
+        const projection = Object.values(safetyConditionsByDepartment).find(
+          (departmentConditions) =>
+            Array.isArray(departmentConditions) &&
+            departmentConditions.some(
+              (condition) =>
+                condition.departmentId === workOrder.departmentId && condition.workOrderId === workOrderId
+            )
+        )
+
+        if (!Array.isArray(projection)) {
+          return []
+        }
+
+        const matchingProjection = projection.find(
+          (condition) =>
+            condition.departmentId === workOrder.departmentId && condition.workOrderId === workOrderId
+        )
+        if (!matchingProjection) {
+          return []
+        }
+
+        return [
+          [
+            workOrderId,
+            Object.freeze({
+              isolation: matchingProjection.isolation,
+              ventilation: matchingProjection.ventilation,
+              ppe: matchingProjection.ppe,
+              dualAuth: matchingProjection.dualAuth,
+            }),
+          ],
+        ]
+      }),
+    ),
+  )
+}
+
 export function resolveDepartmentWorkshopCompletionSafety(
   conditions?: DepartmentWorkshopSafetyConditions | null
 ): DepartmentWorkshopCompletionSafetyResult {
@@ -1462,12 +1523,17 @@ export function registerDepartmentWorkshopCompletionOutcomes(
   >,
   safetyConditionsByWorkOrderId?: Readonly<
     Record<string, DepartmentWorkshopSafetyConditions | undefined>
-  >
+  >,
+  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment,
 ): DepartmentWorkshopCompletionOutcomeResult {
   const persistedOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     source?.departmentWorkshopCompletionOutcomes
   )
   const workOrders = readDepartmentWorkshopState(source).workOrders
+  const projectedSafetyConditions = projectDepartmentWorkshopSafetyConditions(
+    workOrders,
+    safetyConditionsByDepartment,
+  )
   const existing = Object.freeze(
     Object.fromEntries(
       Object.entries(persistedOutcomes).filter(([workOrderId, outcome]) => {
@@ -1502,7 +1568,7 @@ export function registerDepartmentWorkshopCompletionOutcomes(
       conditionsByWorkOrderId?.[workOrderId]
     )
     const safetyGraded = resolveDepartmentWorkshopCompletionSafety(
-      safetyConditionsByWorkOrderId?.[workOrderId]
+      projectedSafetyConditions[workOrderId] ?? safetyConditionsByWorkOrderId?.[workOrderId]
     )
     additions.push([
       workOrderId,

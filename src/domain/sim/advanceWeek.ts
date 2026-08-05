@@ -86,9 +86,9 @@ import {
   processDepartmentWorkshopTick,
   readDepartmentWorkshopState,
   reconcileDepartmentWorkshopTerminalLanes,
-  registerDepartmentWorkshopCompletionOutcomes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
+import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,

@@ -16,7 +16,8 @@ Project authored live facility state into exact completed workshop work orders a
 ## Delivered integration
 
 - Authors one explicit production mapping for `department:biohazard-response`.
-- Maps `research_lab` to the existing `isolation`, `ventilation`, and `ppe` condition axes. `dualAuth` remains on the current fallback until an authorization source exists.
+- Defines the stable production ID `facility:biohazard-response-lab` in the mapping module rather than borrowing a test fixture or inferring a facility from names at runtime.
+- Maps that facility to the existing `isolation`, `ventilation`, and `ppe` condition axes. `dualAuth` remains on the current fallback until an authorization source exists.
 - Only an `active` mapped facility produces `good`; absent or non-active mapped facilities produce `poor` for their bound axes.
 - Adds a pure exact-work-order projector over current `facilityState`.
 - Adds a bounded registration wrapper that passes the projected map to the existing registrar's optional safety argument.
@@ -32,7 +33,7 @@ Targeted tests cover authored mapping, active and non-active behavior, absent fa
 
 - No new facility-effect keys, hydration keys, or persisted input state.
 - No schema change, second grader, second queue, or second week-close hook.
-- No inferred mapping from names, levels, or topology.
+- No inferred mapping from names, levels, topology, or test-only identifiers.
 - No staff, equipment, clearance, authorization, or quality live wiring.
 
 ## Deferred

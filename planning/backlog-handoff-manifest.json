@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2269",
     "SPE-2792",
     "SPE-2772",
     "SPE-2788",
@@ -12,10 +13,10 @@
     "SPE-2783",
     "SPE-2782",
     "SPE-2781",
-    "SPE-2780",
-    "SPE-2779"
+    "SPE-2780"
   ],
   "sliceDocStatus": {
+    "planning/spe-2269-deployable-readiness-composition-slice.md": "Shipped",
     "planning/spe-2792-workshop-live-room-quality-slice.md": "Shipped",
     "planning/spe-2788-department-workshop-activation-slice.md": "Shipped",
     "planning/spe-2787-department-workshop-routing-slice.md": "Shipped",

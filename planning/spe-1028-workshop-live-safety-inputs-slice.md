@@ -3,7 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Linear | [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772/canonical-live-facility-workshop-safety-integration) |
-| GitHub | [#3419](https://github.com/JamesJedi420/containment-protocol/issues/3419) |
+| GitHub issue | [#3419](https://github.com/JamesJedi420/containment-protocol/issues/3419) |
+| Pull request | [#3462](https://github.com/JamesJedi420/containment-protocol/pull/3462) |
 | Status | **In review** |
 | Parent | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) |
 | Branch | `jamesdyedbq/spe-2772-canonical-live-facility-workshop-safety-integration` |

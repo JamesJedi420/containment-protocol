@@ -1,6 +1,8 @@
 {
-  "primary": null,
-  "inProgress": [],
+  "primary": "SPE-2792",
+  "inProgress": [
+    "SPE-2792"
+  ],
   "recentlyShipped": [
     "SPE-2772",
     "SPE-2788",
@@ -16,6 +18,7 @@
     "SPE-2777"
   ],
   "sliceDocStatus": {
+    "planning/spe-2792-workshop-live-room-quality-slice.md": "In progress",
     "planning/spe-2788-department-workshop-activation-slice.md": "Shipped",
     "planning/spe-2787-department-workshop-routing-slice.md": "Shipped",
     "planning/spe-2786-workshop-anomaly-specialization-eligibility-gate-slice.md": "Shipped",

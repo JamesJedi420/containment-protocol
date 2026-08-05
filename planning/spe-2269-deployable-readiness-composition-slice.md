@@ -31,7 +31,7 @@ The slice does not create a second certification, loadout, fatigue, health, or a
 - `eligible_review` certification or `strained` condition caps readiness at `limited`.
 - `in_progress` certification or `critical` condition caps readiness at `degraded`.
 - Certified operatives with steady condition and basic-or-better gear can resolve `ready`; higher gear improves the bounded score without overriding hard gates.
-- Registry keys are sorted deterministically.
+- Registry keys use language-independent code-unit ordering.
 - Validation recomputes score, band, and missing-input fields rather than trusting stored derived values.
 
 ## Validation plan
@@ -43,10 +43,12 @@ Targeted tests cover:
 - ready, limited, degraded, and blocked outputs;
 - hard certification and condition gates;
 - stable registry ordering;
-- tampered derived score/band rejection;
+- tampered derived score, band, and missing-input rejection;
 - registry-key mismatch rejection.
 
-The synchronized implementation and handoff head before this metadata commit is `f36f4ccd89424bcefc7dad13d95f43e6038a4619`.
+## Review reconciliation
+
+Review corrections on head `f1a94b14fe2a1e8dc5170e274dd5055cd36d494c` replaced host-locale ordering with code-unit ordering, added explicit `missingInputs` tamper coverage, and synchronized the repository handoff to Shipped. Linear remains In Review until PR #3469 merges.
 
 ## Boundaries preserved
 

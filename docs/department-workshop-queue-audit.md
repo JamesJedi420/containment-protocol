@@ -260,7 +260,7 @@ inventory, live topology mapping, and live facility wiring remain outside the
 receipt seam.
 SPE-2772 now supplies one authored live-facility safety path without changing
 the receipt or grading authority. `department:biohazard-response` maps the
-canonical `research_lab` facility to isolation, ventilation, and PPE. A pure
+authored `facility:biohazard-response-lab` facility to isolation, ventilation, and PPE. A pure
 exact-work-order projector reads current `facilityState`, and the bounded
 registration wrapper passes those transient conditions to the existing
 registrar. Only `active` is good; absent or non-active mapped facilities are

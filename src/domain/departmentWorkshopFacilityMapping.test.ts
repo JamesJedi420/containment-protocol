@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  BIOHAZARD_RESPONSE_FACILITY_ID,
   deriveDepartmentWorkshopSafetyFromFacilities,
   deriveAllDepartmentWorkshopSafetyFromFacilities,
   DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
@@ -32,7 +33,9 @@ const BINDINGS: readonly DepartmentWorkshopFacilityMapping[] = [
 
 describe('deriveDepartmentWorkshopSafetyFromFacilities', () => {
   it('uses the authored production mapping when no override is provided', () => {
-    const source = makeSource({ research_lab: { status: 'active' } })
+    const source = makeSource({
+      [BIOHAZARD_RESPONSE_FACILITY_ID]: { status: 'active' },
+    })
     const result = deriveDepartmentWorkshopSafetyFromFacilities(
       source,
       'department:biohazard-response',
@@ -153,7 +156,9 @@ describe('deriveAllDepartmentWorkshopSafetyFromFacilities', () => {
   })
 
   it('uses authored defaults while preserving unmapped department fallback', () => {
-    const source = makeSource({ research_lab: { status: 'inactive' } })
+    const source = makeSource({
+      [BIOHAZARD_RESPONSE_FACILITY_ID]: { status: 'inactive' },
+    })
     const result = deriveAllDepartmentWorkshopSafetyFromFacilities(source, [
       'department:records-analysis',
       'department:biohazard-response',

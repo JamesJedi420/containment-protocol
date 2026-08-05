@@ -28,7 +28,7 @@ Project authored live facility state into exact completed workshop work orders a
 
 ## Validation
 
-Targeted tests cover authored mapping, active and non-active behavior, absent facilities, unmapped siblings, exact-ID ordering, canonical week-close registration, and save/load replay.
+Targeted tests cover authored mapping, active and non-active behavior, absent facilities, unmapped siblings, exact-ID ordering, canonical week-close registration, and save/load replay. Existing persistence-only fixtures now explicitly seed the authored facility as active in both control and workshop variants, preserving their original safe-receipt assertions without weakening absent-facility coverage.
 
 ## Boundaries preserved
 

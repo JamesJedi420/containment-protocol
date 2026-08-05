@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import { BIOHAZARD_RESPONSE_FACILITY_ID } from '../domain/departmentWorkshopFacilityMapping'
 import {
   processDepartmentWorkshopTick,
   projectDepartmentWorkshopWorkload,
@@ -53,6 +54,19 @@ const SNAPSHOTS: DepartmentWorkshopSnapshotRegistry = {
     queued: [],
     active: [{ workOrderId: 'work:alpha', completedWork: 1 }],
     paused: [],
+  },
+}
+
+const ACTIVE_BIOHAZARD_FACILITY_STATE = {
+  facilities: {
+    [BIOHAZARD_RESPONSE_FACILITY_ID]: {
+      facilityId: BIOHAZARD_RESPONSE_FACILITY_ID,
+      category: 'biohazard_response_lab',
+      level: 1,
+      maxLevel: 3,
+      status: 'active' as const,
+      effects: {},
+    },
   },
 }
 
@@ -420,7 +434,10 @@ describe('department workshop persistence', () => {
   })
 
   it('processes persisted workshops once per week-close without changing the global queue', () => {
-    const baseline = createStartingState()
+    const baseline = {
+      ...createStartingState(),
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
+    }
     const withWorkshops = {
       ...structuredClone(baseline),
       departmentWorkshopWorkOrders: WORK_ORDERS,
@@ -474,7 +491,10 @@ describe('department workshop persistence', () => {
   })
 
   it('consumes completed workshop receipts into one case ledger once, without queue mutation', () => {
-    const baseline = createStartingState()
+    const baseline = {
+      ...createStartingState(),
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
+    }
     const caseId = Object.keys(baseline.cases).sort()[0]
     expect(caseId).toBeDefined()
     const before = structuredClone(baseline)

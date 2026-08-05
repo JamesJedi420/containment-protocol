@@ -1,66 +1,46 @@
-# SPE-1028 child — Live facility/staff → workshop safety inputs (mapping seam required)
+# SPE-1028 child — Canonical live-facility workshop safety integration
 
-| Field               | Value                                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Linear**          | [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772/live-facilitystaff-workshop-safety-inputs-mapping-seam-required) |
-| **GitHub**          | [#3419](https://github.com/JamesJedi420/containment-protocol/issues/3419)                                                |
-| **Status**          | **Backlog** (blocked on explicit mapping seam)                                                                           |
-| **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)                 |
-| **Branch**          | n/a until mapping seam exists                                                                                            |
-| **Base `main` SHA** | `298c5eaa`                                                                                                               |
+| Field | Value |
+| --- | --- |
+| **Linear** | [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772/canonical-live-facility-workshop-safety-integration) |
+| **GitHub issue** | [#3419](https://github.com/JamesJedi420/containment-protocol/issues/3419) |
+| **Pull request** | [#3462](https://github.com/JamesJedi420/containment-protocol/pull/3462) |
+| **Status** | **Shipped** |
+| **Parent** | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) |
+| **Branch** | `jamesdyedbq/spe-2772-canonical-live-facility-workshop-safety-integration` |
+| **Base `main` SHA** | `80bbb917` |
 
 ## Goal
 
-When an explicit mapping seam exists, project live facility / staff (or other
-authored) conditions into caller-owned `DepartmentWorkshopSafetyConditions` for
-`registerDepartmentWorkshopCompletionOutcomes` at week-close. Until that seam
-is designed, this child stays **Backlog** and must not invent ad hoc wiring.
+Project authored live facility state into exact completed workshop work orders at canonical week-close while retaining the existing completion registrar as the sole grading and persistence boundary.
 
-## Current shipped contract (authoritative now)
+## Delivered integration
 
-Owned by [#3411](https://github.com/JamesJedi420/containment-protocol/issues/3411) /
-[`planning/spe-1028-workshop-unsafe-processing-safety-slice.md`](spe-1028-workshop-unsafe-processing-safety-slice.md):
+- Authors one explicit production mapping for `department:biohazard-response`.
+- Defines the stable production ID `facility:biohazard-response-lab` in the mapping module rather than borrowing a test fixture or inferring a facility from names at runtime.
+- Maps that facility to the existing `isolation`, `ventilation`, and `ppe` condition axes. `dualAuth` remains on the current fallback until an authorization source exists.
+- Only an `active` mapped facility produces `good`; absent or non-active mapped facilities produce `poor` for their bound axes.
+- Adds a pure exact-work-order projector over current `facilityState`.
+- Adds a bounded registration wrapper that passes the projected map to the existing registrar's optional safety argument.
+- Changes only the canonical `advanceWeek` import; the existing call shape and single hook remain unchanged.
+- Departments without an authored mapping retain the deterministic all-good fallback.
+- Existing stored receipts win, so later facility changes do not alter prior completion results after replay or save/load.
 
-- Safety axes remain optional caller-owned stubs: `isolation`, `ventilation`,
-  `ppe`, `dualAuth` (`good` / `poor`).
-- Missing conditions and omitted axes resolve to `good` → receipt `safe` via
-  `resolveDepartmentWorkshopCompletionSafety` (sole grading authority).
-- Week-close calls `registerDepartmentWorkshopCompletionOutcomes` with only the
-  three required args and therefore remains all-good.
-- Replay / save-load keep stored `safety`; siblings stay isolated.
-- Quality `roomContamination` is orthogonal and must not be conflated with
-  safety isolation / ventilation.
+## Validation
 
-## Non-goals (locked until mapping seam)
+Targeted tests cover authored mapping, active and non-active behavior, absent facilities, unmapped siblings, exact-ID ordering, canonical week-close registration, and save/load replay. Existing persistence-only fixtures explicitly seed the authored facility as active in both control and workshop variants, preserving their original safe-receipt assertions without weakening absent-facility coverage. The handoff manifest clears active work and records SPE-2772 as the newest entry in the repository's bounded 12-item shipped window.
 
-- Do not project live facility or staffing conditions in a premature slice.
-- Keep `FacilityEffect` and `FACILITY_EFFECT_KEYS` unchanged for that attempt.
-- Do not add a `departmentId → facilityId` lookup without a designed seam.
-- Do not derive safety from facility status, level, activity, or upgrades.
-- Do not introduce a staff-to-workshop assignment seam ad hoc.
-- Do not broaden into quality live wiring, adjacency, UI, inventory mutation,
-  or secondary-incident spawn rule changes.
+## Boundaries preserved
 
-## Acceptance (when unblocked)
-
-- Explicit mapping seam documented (department / facility / staff → the four
-  safety axes) and implemented as a pure projector.
-- Week-close builds per–work-order `safetyConditionsByWorkOrderId` from that
-  seam only; grading still goes through `resolveDepartmentWorkshopCompletionSafety`.
-- Missing mapped inputs default safe; no hidden RNG; no parallel safety state.
-- Targeted tests: mapped poor axis → `unsafe`; all-good / missing → `safe`;
-  replay keeps stored safety; sibling work orders isolated.
-- Docs: this slice doc → Shipped; audit + backlog handoff updated; schema only
-  if new persisted fields appear (prefer none).
+- No new facility-effect keys, hydration keys, or persisted input state.
+- No schema change, second grader, second queue, or second week-close hook.
+- No inferred mapping from names, levels, topology, or test-only identifiers.
+- No staff, equipment, clearance, authorization, or quality live wiring.
 
 ## Deferred
 
-| Item                                      | Owner              | Why deferred                                                         |
-| ----------------------------------------- | ------------------ | -------------------------------------------------------------------- |
-| Explicit facility/staff → safety map seam | SPE-1028 / this child | Required before any week-close live projection.                   |
-| Live facility/staff → quality inputs      | SPE-1028 follow-up | Separate SPE-2768 deferral; do not co-wire unless scoped.            |
-| Adjacency and player workshop surface     | SPE-1028 follow-up | Outside completion-receipt / safety-input ownership.                 |
+- Broader live staff, equipment, clearance, and authorization projection remains with SPE-2771.
+- Additional authored department mappings require explicit production ownership evidence.
+- Live completion-quality projection remains a separate SPE-1028 follow-up.
 
-Parent SPE-1028 remains **In Progress** because broader workshop acceptance
-(adjacency, live quality/safety inputs after a mapping seam, player surface)
-remains open.
+Parent SPE-1028 remains open for broader operational inputs, clutter/disorder consequences, and remaining lifecycle work.

@@ -29,6 +29,7 @@ the boundaries that later workshop slices must preserve.
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)       |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)         |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)             |
+| Live facility safety projection               | `departmentWorkshopFacilityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2772) |
 | Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773)  |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)           |
 | Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)                   |
@@ -257,16 +258,16 @@ and deduplicated, so it is the case-side receipt-ledger idempotency boundary
 across close replays and save/load. Missing/resolved cases, the global queue,
 inventory, live topology mapping, and live facility wiring remain outside the
 receipt seam.
-Live facility/staff projection into quality or safety conditions remains a
-later SPE-1028 child (`planning/spe-1028-workshop-live-safety-inputs-slice.md`
-for safety) and is **blocked on an explicit mapping seam**. SPE-2781, SPE-2782,
-and SPE-2783 provide explicit dependency, equipment, and reagent adapters, not
-live projection. Until those seams
-exist: do not invent `FacilityEffect` safety keys, `departmentId → facilityId`
-lookups, status/level heuristics, or staff-to-workshop assignment; week-close
-must continue to omit `safetyConditionsByWorkOrderId` (and quality maps) so
-register stays all-good; `resolveDepartmentWorkshopCompletionSafety` remains
-the sole grading authority for caller-owned stubs.
+SPE-2772 now supplies one authored live-facility safety path without changing
+the receipt or grading authority. `department:biohazard-response` maps the
+authored `facility:biohazard-response-lab` facility to isolation, ventilation, and PPE. A pure
+exact-work-order projector reads current `facilityState`, and the bounded
+registration wrapper passes those transient conditions to the existing
+registrar. Only `active` is good; absent or non-active mapped facilities are
+poor. Unmapped departments keep the all-good fallback. Existing receipts win,
+so save/load replay never regrades historical safety. No facility-effect keys,
+persisted input state, staff assignment, authorization projection, quality
+wiring, or additional week-close hook were added.
 
 ## SPE-2084 compatibility
 
@@ -363,16 +364,17 @@ depend on a positive slot capacity.
   equipment grade, facilities, upgrades, repairs, or durability state.
 - Do not add SPE-2084 delay to SPE-95's global coordination penalty.
 - Do not add UI, adjacency, research, or crafting behavior under this kernel.
-  SPE-2768 may grade quality and #3411 may grade safety on completion receipts
-  from caller-owned conditions only; neither invents live facility/staff wiring
-  or inventory mutation. Live safety projection is tracked as Backlog under
-  `planning/spe-1028-workshop-live-safety-inputs-slice.md` and must not ship
-  without an explicit mapping seam. Secondary-incident spawn from durable
+  SPE-2768 grades quality and #3411 grades safety on completion receipts. SPE-2772
+  may supply only authored transient facility conditions through the existing
+  registrar; broader staff, equipment, clearance, authorization, and quality
+  projection remain separate owners. Secondary-incident spawn from durable
   `unsafe` receipts is owned by the week-close consumer (#3414 /
   `planning/spe-1028-workshop-unsafe-secondary-incident-slice.md`).
 
 ## Tests
 
+- `src/domain/departmentWorkshopFacilityMapping.test.ts`
+- `src/test/departmentWorkshopLiveFacilitySafety.integration.test.ts`
 - `src/test/departmentWorkshopQueue.test.ts`
 - `src/test/departmentWorkshopPersistence.test.ts`
 - `src/test/departmentWorkshopUnsafeIncident.test.ts`

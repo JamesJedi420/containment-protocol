@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2772",
     "SPE-2788",
     "SPE-2787",
     "SPE-2786",
@@ -12,8 +13,7 @@
     "SPE-2781",
     "SPE-2780",
     "SPE-2779",
-    "SPE-2777",
-    "SPE-2776"
+    "SPE-2777"
   ],
   "sliceDocStatus": {
     "planning/spe-2788-department-workshop-activation-slice.md": "Shipped",
@@ -30,7 +30,7 @@
     "planning/spe-2776-workshop-operating-model-slice.md": "Shipped",
     "planning/spe-2775-workshop-adjacency-throughput-slice.md": "Shipped",
     "planning/spe-1028-department-workshop-player-surface-slice.md": "Shipped",
-    "planning/spe-1028-workshop-live-safety-inputs-slice.md": "Backlog",
+    "planning/spe-1028-workshop-live-safety-inputs-slice.md": "Shipped",
     "planning/spe-1028-workshop-unsafe-secondary-incident-slice.md": "Shipped",
     "planning/spe-1028-workshop-unsafe-processing-safety-slice.md": "Shipped",
     "planning/spe-2768-workshop-completion-output-quality-slice.md": "Shipped",

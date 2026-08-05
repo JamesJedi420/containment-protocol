@@ -41,5 +41,5 @@ quality from caller-owned condition axes.
 | Safety / secondary incidents            | `planning/spe-1028-workshop-unsafe-processing-safety-slice.md` / [#3411](https://github.com/JamesJedi420/containment-protocol/issues/3411) | Safety disposition slice records `safe`/`unsafe` on the receipt; incident spawn remains deferred. |
 | Adjacency and player workshop surface   | SPE-1028 follow-up | Still outside completion-receipt ownership.                          |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
 criteria remain open.

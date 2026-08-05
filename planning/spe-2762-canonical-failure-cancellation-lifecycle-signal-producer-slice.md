@@ -50,5 +50,5 @@ cancellation from ordinary case state.
 | Final fabrication/case closure  | SPE-1028 follow-up | Those lifecycles remain outside prerequisite reservation accounting.        |
 | Global Fabrication and UI       | SPE-1028 follow-up | This slice changes only pure domain and existing week-close orchestration.  |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
 criteria remain open.

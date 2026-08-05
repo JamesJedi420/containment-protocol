@@ -52,5 +52,5 @@ downstream `completed` receipt, with no modifiers or case-queue mutation.
 | Applying completion receipts to inventory, quality, safety, or facilities | Future SPE-1028 child | SPE-2755 selects the case-record ledger only; every other consumer remains deferred. |
 | Duration-aware SPE-2084 coordination policy                               | Future SPE-1028 child | SPE-2084 retains workload-delay ownership.                                           |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
 criteria remain open.

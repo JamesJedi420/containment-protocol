@@ -46,5 +46,5 @@ durable readiness handoff for an authored production recipe.
 | Global Fabrication and UI         | SPE-1028 follow-up | This slice changes only pure domain, case persistence, and week-close ordering. |
 | Facility modifiers and operations | Separate owners    | No safety, adjacency, quality, facility, report, or operation-event changes.    |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
 criteria remain open.

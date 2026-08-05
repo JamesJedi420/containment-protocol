@@ -46,4 +46,4 @@ Apply durable workshop completion receipts to their authored case record only.
 | ---------------------------------------------------------------- | --------------------- | ---------------------------------------------------------- |
 | Receipt consumers for inventory, quality, safety, and facilities | Future SPE-1028 child | The case-record ledger is the only consumer in this slice. |
 
-Parent SPE-1028 remains **In Progress** because its broader acceptance criteria remain open.
+Parent SPE-1028 remains open for broader scope. because its broader acceptance criteria remain open.

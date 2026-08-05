@@ -53,6 +53,6 @@ live labor and facility capacity.
 | Zero-work or overload failure consequence  | Create SPE-1028 child          | Overload suppresses bonuses but preserves baseline work       |
 | Duration-aware SPE-2084 policy             | Create SPE-1028/SPE-2084 child | Coordination remains current-occupancy based                  |
 | Dependency and upgrade behavior            | Create SPE-1028 child          | Separate remaining parent acceptance boundary                 |
-| Live facility/staff safety mapping         | SPE-2772                       | Explicit mapping seam remains blocked                         |
+| Live facility/staff safety mapping         | SPE-2772                       | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                         |
 
 Parent SPE-1028 remains open after this bounded child ships.

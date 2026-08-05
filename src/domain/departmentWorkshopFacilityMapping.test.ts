@@ -31,11 +31,11 @@ const BINDINGS: readonly DepartmentWorkshopFacilityMapping[] = [
 ]
 
 describe('deriveDepartmentWorkshopSafetyFromFacilities', () => {
-  it('returns all good when no mappings are provided (empty default)', () => {
-    const source = makeSource()
+  it('uses the authored production mapping when no override is provided', () => {
+    const source = makeSource({ research_lab: { status: 'active' } })
     const result = deriveDepartmentWorkshopSafetyFromFacilities(
       source,
-      'department:bio',
+      'department:biohazard-response',
       DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS
     )
     expect(result).toEqual({
@@ -152,10 +152,19 @@ describe('deriveAllDepartmentWorkshopSafetyFromFacilities', () => {
     expect(keys).toEqual(sorted)
   })
 
-  it('uses empty default mappings when no mappings argument is provided', () => {
-    const source = makeSource({ 'facility:any': { status: 'inactive' } })
-    const result = deriveAllDepartmentWorkshopSafetyFromFacilities(source, ['department:bio'])
-    expect(result['department:bio']).toEqual({
+  it('uses authored defaults while preserving unmapped department fallback', () => {
+    const source = makeSource({ research_lab: { status: 'inactive' } })
+    const result = deriveAllDepartmentWorkshopSafetyFromFacilities(source, [
+      'department:records-analysis',
+      'department:biohazard-response',
+    ])
+    expect(result['department:biohazard-response']).toEqual({
+      isolation: 'poor',
+      ventilation: 'poor',
+      ppe: 'poor',
+      dualAuth: 'good',
+    })
+    expect(result['department:records-analysis']).toEqual({
       isolation: 'good',
       ventilation: 'good',
       ppe: 'good',

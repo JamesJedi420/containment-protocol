@@ -1,0 +1,28 @@
+name: Trim SPE-2772 recent window
+
+on:
+  push:
+    branches:
+      - jamesdyedbq/spe-2772-canonical-live-facility-workshop-safety-integration
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: jamesdyedbq/spe-2772-canonical-live-facility-workshop-safety-integration
+          fetch-depth: 0
+      - run: python .github/scripts/trim-spe-2772-recent-window.py
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/trim-spe-2772-recent-window.yml
+          git rm .github/scripts/trim-spe-2772-recent-window.py
+          git add planning/backlog-handoff-manifest.json
+          git commit -m "docs(workshops): keep latest twelve shipped handoffs"
+          git push origin HEAD:jamesdyedbq/spe-2772-canonical-live-facility-workshop-safety-integration

@@ -84,9 +84,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** (none) — SPE-2772 is shipped; select the next evidence-backed unblocked child. Parent [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) remains open.
+**Current handoff (primary):** [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) — integrate authoritative `facility:biohazard-response-lab` state into the existing `roomContamination` completion-quality axis through PR #3468. Parent [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) remains In Progress and open for broader live inputs, clutter/disorder consequences, and lifecycle work.
 
-**In progress:** (none)
+**In progress:** [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) — bounded live room-quality integration is in review through PR #3468.
 
 **Recently shipped:** [SPE-2772](https://linear.app/spectranoir/issue/SPE-2772/canonical-live-facility-workshop-safety-integration) — authored `facility:biohazard-response-lab` mapping projects live isolation, ventilation, and PPE conditions to exact completed biohazard-response work orders at canonical week-close through the existing sole safety grader; unmapped siblings retain fallback and stored receipts remain replay-stable; PR #3462; parent SPE-1028 remains open.
 

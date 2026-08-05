@@ -30,6 +30,7 @@ the boundaries that later workshop slices must preserve.
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)         |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)             |
 | Live facility safety projection               | `departmentWorkshopFacilityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2772) |
+| Live facility room-quality projection         | `departmentWorkshopFacilityQualityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2792) |
 | Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773)  |
 | Completion receipt case consumer              | case-local receipt ledger at `advanceWeek` (SPE-2755)           |
 | Prerequisite processing plan                  | `prerequisiteProcessing.ts` (SPE-2703 kernel)                   |
@@ -387,3 +388,32 @@ depend on a positive slot capacity.
 - `src/test/facility.test.ts`
 - `src/test/sim.coordinationFriction.test.ts`
 - `test/boundary-enforcement.test.ts`
+
+## SPE-2792 live facility room-quality integration
+
+SPE-2792 adds one authored completion-quality projection without changing the
+canonical workshop processing or receipt-registration order.
+`department:biohazard-response` reuses the stable
+`facility:biohazard-response-lab` facility and maps current `facilityState` only
+to the existing `roomContamination` quality axis. An active facility resolves
+`good`; an absent or non-active facility resolves `poor`. Unmapped departments
+retain caller-owned quality conditions or the registrar's neutral nominal
+baseline.
+
+The exact-work-order projector deduplicates completed IDs, sorts them by code
+unit, ignores unknown work orders, and composes only the room axis. Existing
+caller-owned input, specialist, dependency, equipment, and reagent axes remain
+unchanged, including their established reason precedence. When a mapped work
+order has no caller-owned quality conditions, neutral-good required axes are
+supplied so the authoritative room condition can be graded by
+`resolveDepartmentWorkshopCompletionQuality`.
+
+The existing live-facility registration wrapper contributes both transient
+quality and safety maps to the sole completion-outcome registrar at the same
+canonical `advanceWeek` hook. No second hook, grader, persisted quality-input
+map, schema field, or hydration key is introduced. Existing receipts retain
+precedence across replay and save/load, so later facility recovery cannot
+regrade historical output. This slice does not project staff, equipment,
+reagents, dependencies, staging, operating mode, upgrades, clutter, disorder,
+or broader lifecycle consequences.
+

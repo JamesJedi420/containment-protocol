@@ -1,0 +1,37 @@
+name: Run stale-description cleanup
+
+on:
+  push:
+    branches:
+      - maintenance/stale-description-cleanup-2026-08-05
+    paths:
+      - .github/scripts/stale_description_cleanup.py
+      - .github/workflows/run-stale-description-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: maintenance/stale-description-cleanup-2026-08-05
+      - name: Apply bounded text cleanup
+        run: python .github/scripts/stale_description_cleanup.py
+      - name: Remove temporary helper
+        run: |
+          rm .github/scripts/stale_description_cleanup.py
+          rm .github/workflows/run-stale-description-cleanup.yml
+      - name: Commit cleanup
+        run: |
+          git config user.name "James Jedi"
+          git config user.email "95941127+JamesJedi420@users.noreply.github.com"
+          git add planning docs .github/scripts .github/workflows
+          if git diff --cached --quiet; then
+            echo "No stale descriptions found"
+            exit 0
+          fi
+          git commit -m "docs: remove stale workshop lifecycle claims"
+          git push

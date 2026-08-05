@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import {
+  BIOHAZARD_RESPONSE_FACILITY_ID,
   DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
   deriveDepartmentWorkshopSafetyFromFacilities,
 } from '../domain/departmentWorkshopFacilityMapping'
@@ -16,7 +17,6 @@ const BIO_DEPARTMENT_ID = 'department:biohazard-response'
 const RECORDS_DEPARTMENT_ID = 'department:records-analysis'
 const BIO_WORK_ORDER_ID = 'work:biohazard-live-safety'
 const RECORDS_WORK_ORDER_ID = 'work:records-live-safety'
-const FACILITY_ID = 'research_lab'
 
 function resolveAllCases(state: GameState): GameState['cases'] {
   return Object.fromEntries(
@@ -34,12 +34,12 @@ function resolveAllCases(state: GameState): GameState['cases'] {
 
 function makeFacility(status: FacilityStatus) {
   return {
-    facilityId: FACILITY_ID,
-    category: 'research_lab',
+    facilityId: BIOHAZARD_RESPONSE_FACILITY_ID,
+    category: 'biohazard_response_lab',
     level: 1,
     maxLevel: 3,
     status,
-    effects: { researchSpeedMultiplier: 1 },
+    effects: {},
   }
 }
 
@@ -49,7 +49,9 @@ function makeWorkshopState(status?: FacilityStatus) {
   state.events = []
   state.reports = []
   state.facilityState = {
-    facilities: status ? { [FACILITY_ID]: makeFacility(status) } : {},
+    facilities: status
+      ? { [BIOHAZARD_RESPONSE_FACILITY_ID]: makeFacility(status) }
+      : {},
   }
   state.departmentWorkshopWorkOrders = {
     [BIO_WORK_ORDER_ID]: {
@@ -88,40 +90,49 @@ function makeWorkshopState(status?: FacilityStatus) {
 }
 
 describe('authored department workshop facility safety mapping', () => {
-  it('maps the production biohazard department to the canonical research lab axes', () => {
+  it('maps the production biohazard department to the authored facility axes', () => {
     expect(DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS).toEqual([
       {
         departmentId: BIO_DEPARTMENT_ID,
         axisBindings: [
-          { facilityId: FACILITY_ID, axis: 'isolation' },
-          { facilityId: FACILITY_ID, axis: 'ventilation' },
-          { facilityId: FACILITY_ID, axis: 'ppe' },
+          { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'isolation' },
+          { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'ventilation' },
+          { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'ppe' },
         ],
       },
     ])
   })
 
   it('projects active, non-active, absent, and unmapped facility behavior deterministically', () => {
-    expect(deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState('active'), BIO_DEPARTMENT_ID)).toEqual({
+    expect(
+      deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState('active'), BIO_DEPARTMENT_ID)
+    ).toEqual({
       isolation: 'good',
       ventilation: 'good',
       ppe: 'good',
       dualAuth: 'good',
     })
-    expect(deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState('inactive'), BIO_DEPARTMENT_ID)).toEqual({
-      isolation: 'poor',
-      ventilation: 'poor',
-      ppe: 'poor',
-      dualAuth: 'good',
-    })
-    expect(deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState(), BIO_DEPARTMENT_ID)).toEqual({
+    expect(
+      deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState('inactive'), BIO_DEPARTMENT_ID)
+    ).toEqual({
       isolation: 'poor',
       ventilation: 'poor',
       ppe: 'poor',
       dualAuth: 'good',
     })
     expect(
-      deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState('inactive'), RECORDS_DEPARTMENT_ID)
+      deriveDepartmentWorkshopSafetyFromFacilities(makeWorkshopState(), BIO_DEPARTMENT_ID)
+    ).toEqual({
+      isolation: 'poor',
+      ventilation: 'poor',
+      ppe: 'poor',
+      dualAuth: 'good',
+    })
+    expect(
+      deriveDepartmentWorkshopSafetyFromFacilities(
+        makeWorkshopState('inactive'),
+        RECORDS_DEPARTMENT_ID
+      )
     ).toEqual({
       isolation: 'good',
       ventilation: 'good',
@@ -204,7 +215,9 @@ describe('canonical week-close live facility safety integration', () => {
     const completed = advanceWeek(makeWorkshopState('inactive'))
     const loaded = loadGameSave(serializeGameSave(completed))
     loaded.facilityState = {
-      facilities: { [FACILITY_ID]: makeFacility('active') },
+      facilities: {
+        [BIOHAZARD_RESPONSE_FACILITY_ID]: makeFacility('active'),
+      },
     }
 
     const replay = advanceWeek(loaded)

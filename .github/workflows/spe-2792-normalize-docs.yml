@@ -41,36 +41,32 @@ jobs:
           if quality_row not in audit_text:
               audit_text = audit_text.replace(owner_row, owner_row + '\n' + quality_row)
 
-          section = '''
-
-## SPE-2792 live facility room-quality integration
-
-SPE-2792 adds one authored completion-quality projection without changing the
-canonical workshop processing or receipt-registration order.
-`department:biohazard-response` reuses the stable
-`facility:biohazard-response-lab` facility and maps current `facilityState` only
-to the existing `roomContamination` quality axis. An active facility resolves
-`good`; an absent or non-active facility resolves `poor`. Unmapped departments
-retain caller-owned quality conditions or the registrar's neutral nominal
-baseline.
-
-The exact-work-order projector deduplicates completed IDs, sorts them by code
-unit, ignores unknown work orders, and composes only the room axis. Existing
-caller-owned input, specialist, dependency, equipment, and reagent axes remain
-unchanged, including their established reason precedence. When a mapped work
-order has no caller-owned quality conditions, neutral-good required axes are
-supplied so the authoritative room condition can be graded by
-`resolveDepartmentWorkshopCompletionQuality`.
-
-The existing live-facility registration wrapper contributes both transient
-quality and safety maps to the sole completion-outcome registrar at the same
-canonical `advanceWeek` hook. No second hook, grader, persisted quality-input
-map, schema field, or hydration key is introduced. Existing receipts retain
-precedence across replay and save/load, so later facility recovery cannot
-regrade historical output. This slice does not project staff, equipment,
-reagents, dependencies, staging, operating mode, upgrades, clutter, disorder,
-or broader lifecycle consequences.
-'''
+          section = (
+              '\n\n## SPE-2792 live facility room-quality integration\n\n'
+              'SPE-2792 adds one authored completion-quality projection without changing the\n'
+              'canonical workshop processing or receipt-registration order.\n'
+              '`department:biohazard-response` reuses the stable\n'
+              '`facility:biohazard-response-lab` facility and maps current `facilityState` only\n'
+              'to the existing `roomContamination` quality axis. An active facility resolves\n'
+              '`good`; an absent or non-active facility resolves `poor`. Unmapped departments\n'
+              "retain caller-owned quality conditions or the registrar's neutral nominal\n"
+              'baseline.\n\n'
+              'The exact-work-order projector deduplicates completed IDs, sorts them by code\n'
+              'unit, ignores unknown work orders, and composes only the room axis. Existing\n'
+              'caller-owned input, specialist, dependency, equipment, and reagent axes remain\n'
+              'unchanged, including their established reason precedence. When a mapped work\n'
+              'order has no caller-owned quality conditions, neutral-good required axes are\n'
+              'supplied so the authoritative room condition can be graded by\n'
+              '`resolveDepartmentWorkshopCompletionQuality`.\n\n'
+              'The existing live-facility registration wrapper contributes both transient\n'
+              'quality and safety maps to the sole completion-outcome registrar at the same\n'
+              'canonical `advanceWeek` hook. No second hook, grader, persisted quality-input\n'
+              'map, schema field, or hydration key is introduced. Existing receipts retain\n'
+              'precedence across replay and save/load, so later facility recovery cannot\n'
+              'regrade historical output. This slice does not project staff, equipment,\n'
+              'reagents, dependencies, staging, operating mode, upgrades, clutter, disorder,\n'
+              'or broader lifecycle consequences.\n'
+          )
           if '## SPE-2792 live facility room-quality integration' not in audit_text:
               audit_text = audit_text.rstrip() + section + '\n'
           audit.write_text(audit_text)

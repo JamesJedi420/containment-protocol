@@ -37,7 +37,7 @@ Project one authored live facility room condition into exact completed workshop 
 
 Targeted tests cover authored mapping, active, inactive, upgrading, absent, and unmapped facility states; exact-ID ordering and deduplication; unknown-ID handling; caller-axis preservation; reason precedence; canonical week-close registration; sibling isolation; and save/load replay.
 
-The first pull-request run passed lint and the design-audit index, then correctly rejected stale canonical handoff text. The manifest, `planning/backlog.md`, and the workshop audit now identify SPE-2792 as the active bounded slice. Full test validation remains pending on the corrected branch head.
+The first pull-request run passed lint and the design-audit index, then correctly rejected stale canonical handoff text. The manifest, `planning/backlog.md`, planning slice index, and workshop audit now identify SPE-2792 as the active bounded slice. Full test validation remains pending on the corrected branch head.
 
 ## Boundaries preserved
 

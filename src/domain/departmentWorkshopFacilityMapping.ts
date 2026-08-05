@@ -16,9 +16,21 @@ export interface DepartmentWorkshopFacilityMapping {
   readonly axisBindings: readonly DepartmentWorkshopFacilityAxisBinding[]
 }
 
-/** Override to provide authored department → facility → safety axis bindings. Defaults to empty (all departments produce all-good conditions). */
+/**
+ * Authored production department → facility → safety-axis bindings.
+ * Departments without an entry retain the deterministic all-good fallback.
+ */
 export const DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS: readonly DepartmentWorkshopFacilityMapping[] =
-  Object.freeze([])
+  Object.freeze([
+    Object.freeze({
+      departmentId: 'department:biohazard-response',
+      axisBindings: Object.freeze([
+        Object.freeze({ facilityId: 'research_lab', axis: 'isolation' as const }),
+        Object.freeze({ facilityId: 'research_lab', axis: 'ventilation' as const }),
+        Object.freeze({ facilityId: 'research_lab', axis: 'ppe' as const }),
+      ]),
+    }),
+  ])
 
 const ALL_GOOD_CONDITIONS: DepartmentWorkshopSafetyConditions = Object.freeze({
   isolation: 'good',

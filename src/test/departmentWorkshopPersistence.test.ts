@@ -434,10 +434,12 @@ describe('department workshop persistence', () => {
   })
 
   it('processes persisted workshops once per week-close without changing the global queue', () => {
-    const baseline = createStartingState()
+    const baseline = {
+      ...createStartingState(),
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
+    }
     const withWorkshops = {
       ...structuredClone(baseline),
-      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
       departmentWorkshopWorkOrders: WORK_ORDERS,
       departmentWorkshopSnapshots: SNAPSHOTS,
     }
@@ -489,13 +491,15 @@ describe('department workshop persistence', () => {
   })
 
   it('consumes completed workshop receipts into one case ledger once, without queue mutation', () => {
-    const baseline = createStartingState()
+    const baseline = {
+      ...createStartingState(),
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
+    }
     const caseId = Object.keys(baseline.cases).sort()[0]
     expect(caseId).toBeDefined()
     const before = structuredClone(baseline)
     const source = {
       ...baseline,
-      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
       departmentWorkshopWorkOrders: {
         'work:case-receipt': {
           id: 'work:case-receipt',

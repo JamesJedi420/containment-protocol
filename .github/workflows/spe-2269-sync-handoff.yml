@@ -1,0 +1,54 @@
+name: SPE-2269 sync backlog handoff
+
+on:
+  push:
+    branches:
+      - agent/spe-2269-deployable-readiness-composition
+    paths:
+      - .github/workflows/spe-2269-sync-handoff.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/spe-2269-deployable-readiness-composition
+      - name: Synchronize backlog handoff
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          backlog = Path('planning/backlog.md')
+          text = backlog.read_text()
+
+          old_primary = '**Current handoff (primary):** (none) — SPE-2792 is merge-ready and recorded as shipped; select the next evidence-backed bounded child after PR #3468 merges. Parent [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) remains open for broader live inputs, clutter/disorder consequences, and lifecycle work.'
+          new_primary = '**Current handoff (primary):** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — implement the bounded deterministic certification + equipment-tier + operative-condition readiness composition registry on PR #3469. Parent [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) remains open for the broader response-doctrine boundary.'
+          old_progress = '**In progress:** (none)'
+          new_progress = '**In progress:** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — pure registry, validation, targeted tests, and bounded planning handoff; no mission ranking, persistence, routing, or UI integration.'
+          anchor = '| `spe-2792-workshop-live-room-quality-slice.md`                         | **Shipped** | [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) / [#3464](https://github.com/JamesJedi420/containment-protocol/issues/3464) / PR #3468 — authored live facility state projects only the existing room-contamination quality axis through the canonical completion registrar; parent SPE-1028 remains open. |'
+          row = '| `spe-2269-deployable-readiness-composition-slice.md`                    | **In progress** | [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) / [#2376](https://github.com/JamesJedi420/containment-protocol/issues/2376) / PR #3469 — pure certification, equipment-tier, and condition composition registry with recomputed validation; parent SPE-1023 remains open. |'
+
+          if text.count(old_primary) != 1:
+              raise SystemExit('Expected exactly one primary handoff anchor.')
+          if text.count(old_progress) != 1:
+              raise SystemExit('Expected exactly one in-progress anchor.')
+          if text.count(anchor) != 1:
+              raise SystemExit('Expected exactly one planning-index anchor.')
+          if row in text:
+              raise SystemExit('SPE-2269 planning row already exists.')
+
+          text = text.replace(old_primary, new_primary)
+          text = text.replace(old_progress, new_progress)
+          text = text.replace(anchor, anchor + '\n' + row)
+          backlog.write_text(text)
+          PY
+          rm .github/workflows/spe-2269-sync-handoff.yml
+          git config user.name "James Jedi"
+          git config user.email "95941127+JamesJedi420@users.noreply.github.com"
+          git add planning/backlog.md .github/workflows/spe-2269-sync-handoff.yml
+          git commit -m "SPE-2269: synchronize active backlog handoff"
+          git push

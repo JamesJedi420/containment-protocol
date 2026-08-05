@@ -26,10 +26,10 @@ jobs:
           if any(filename in line for line in lines):
               raise SystemExit('SPE-2792 slice row already exists')
 
-          anchor = 'spe-2788-department-workshop-activation-slice.md'
-          matches = [index for index, line in enumerate(lines) if anchor in line]
+          anchor = '| `spe-2788-department-workshop-activation-slice.md`'
+          matches = [index for index, line in enumerate(lines) if line.startswith(anchor)]
           if len(matches) != 1:
-              raise SystemExit(f'expected one SPE-2788 index row, found {len(matches)}')
+              raise SystemExit(f'expected one SPE-2788 table row, found {len(matches)}')
 
           row = '| `spe-2792-workshop-live-room-quality-slice.md`                         | **In progress** | [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) / [#3464](https://github.com/JamesJedi420/containment-protocol/issues/3464) / PR #3468 — authored live facility state projects only the existing room-contamination quality axis through the canonical completion registrar; parent SPE-1028 remains open. |'
           lines.insert(matches[0] + 1, row)

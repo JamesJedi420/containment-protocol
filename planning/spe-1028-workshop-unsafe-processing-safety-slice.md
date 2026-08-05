@@ -46,5 +46,5 @@ spawning a parallel incident system.
 | Live facility/staff → quality inputs         | SPE-1028 follow-up | Still deferred from SPE-2768.                                        |
 | Adjacency and player workshop surface        | SPE-1028 follow-up | Still outside completion-receipt ownership.                          |
 
-Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

@@ -54,5 +54,5 @@ per unsafe work order with a durable consume marker for replay idempotency.
 | Same-tick `case.spawned` report notes | SPE-1028 follow-up | Late workshop seam runs after `finalizeEvents`.           |
 | Adjacency and player workshop surface | SPE-1028 follow-up | Still outside completion-receipt / spawn-marker ownership.|
 
-Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

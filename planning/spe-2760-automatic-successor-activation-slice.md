@@ -41,5 +41,5 @@ completion, activation, and atomic reservation/enqueue seams.
 | Final fabrication and case resolution    | SPE-1028 follow-up | This slice advances prerequisite workshops only.                              |
 | Global Fabrication and UI                | SPE-1028 follow-up | The durable case-owned registry remains the sole integration surface.         |
 
-Parent SPE-1028 remains open for broader scope. because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

@@ -20,6 +20,11 @@ import {
   type DepartmentWorkshopBlockerCode,
   type DepartmentWorkshopLane,
 } from '../../domain/departmentWorkshopSurfacing'
+import {
+  projectOperationalExplanation,
+  type OperationalExplanationProjection,
+} from '../../domain/operationalExplanation'
+import { getDepartmentWorkshopOperationalExplanations } from './departmentWorkshopExplanationAdapter'
 
 export interface DepartmentWorkshopMirrorWorkItemView {
   workOrderId: string
@@ -68,6 +73,11 @@ export interface DepartmentWorkshopMirrorConsequenceView {
   safetyLabel: string
 }
 
+export interface DepartmentWorkshopMirrorExplanationView {
+  summary: OperationalExplanationProjection
+  detail: OperationalExplanationProjection
+}
+
 export interface DepartmentWorkshopMirrorSummaryView {
   departmentCount: number
   activeWorkCount: number
@@ -75,6 +85,7 @@ export interface DepartmentWorkshopMirrorSummaryView {
   pausedWorkCount: number
   outcomeCount: number
   consequenceCount: number
+  explanationCount: number
   week: number
 }
 
@@ -86,6 +97,8 @@ export interface DepartmentWorkshopMirrorView {
   outcomes: readonly DepartmentWorkshopMirrorOutcomeView[]
   consequencesEmpty: boolean
   consequences: readonly DepartmentWorkshopMirrorConsequenceView[]
+  explanationsEmpty: boolean
+  explanations: readonly DepartmentWorkshopMirrorExplanationView[]
 }
 
 function compareCodeUnits(left: string, right: string): number {
@@ -213,6 +226,13 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
       })
     })
 
+  const explanations = getDepartmentWorkshopOperationalExplanations(game).map((record) =>
+    Object.freeze({
+      summary: projectOperationalExplanation(record, 'summary'),
+      detail: projectOperationalExplanation(record, 'detail'),
+    })
+  )
+
   const activeWorkCount = departments.reduce((sum, dept) => sum + dept.activeCount, 0)
   const queuedWorkCount = departments.reduce((sum, dept) => sum + dept.queuedCount, 0)
   const pausedWorkCount = departments.reduce((sum, dept) => sum + dept.pausedCount, 0)
@@ -220,7 +240,8 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
   const isEmpty =
     departments.length === 0 &&
     outcomeViews.length === 0 &&
-    consequences.length === 0
+    consequences.length === 0 &&
+    explanations.length === 0
 
   return Object.freeze({
     isEmpty,
@@ -231,6 +252,7 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
       pausedWorkCount,
       outcomeCount: outcomeViews.length,
       consequenceCount: consequences.length,
+      explanationCount: explanations.length,
       week: game.week,
     }),
     departments: Object.freeze(departments),
@@ -238,5 +260,7 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
     outcomes: Object.freeze(outcomeViews),
     consequencesEmpty: consequences.length === 0,
     consequences: Object.freeze(consequences),
+    explanationsEmpty: explanations.length === 0,
+    explanations: Object.freeze(explanations),
   })
 }

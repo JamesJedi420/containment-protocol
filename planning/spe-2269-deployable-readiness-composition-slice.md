@@ -4,6 +4,7 @@
 | --- | --- |
 | **Linear** | [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) |
 | **GitHub issue** | [#2376](https://github.com/JamesJedi420/containment-protocol/issues/2376) |
+| **Pull request** | [#3469](https://github.com/JamesJedi420/containment-protocol/pull/3469) |
 | **Status** | **In progress** |
 | **Parent** | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) |
 | **Branch** | `agent/spe-2269-deployable-readiness-composition` |
@@ -44,6 +45,8 @@ Targeted tests cover:
 - stable registry ordering;
 - tampered derived score/band rejection;
 - registry-key mismatch rejection.
+
+The synchronized implementation and handoff head before this metadata commit is `f36f4ccd89424bcefc7dad13d95f43e6038a4619`.
 
 ## Boundaries preserved
 

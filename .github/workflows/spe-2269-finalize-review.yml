@@ -1,0 +1,123 @@
+name: SPE-2269 finalize review
+
+on:
+  push:
+    branches:
+      - agent/spe-2269-deployable-readiness-composition
+    paths:
+      - .github/workflows/spe-2269-finalize-review.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/spe-2269-deployable-readiness-composition
+      - name: Apply review and handoff corrections
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          domain = Path('src/domain/deployableReadiness.ts')
+          domain_text = domain.read_text()
+          old_sort = '.sort((left, right) => left.localeCompare(right))'
+          if domain_text.count(old_sort) != 1:
+              raise SystemExit('Expected exactly one localeCompare sort.')
+          domain.write_text(domain_text.replace(old_sort, '.sort()'))
+
+          tests = Path('src/test/deployableReadiness.test.ts')
+          test_text = tests.read_text()
+          test_anchor = """    expect(validateReadinessCompositionRecord(tampered)).toEqual({
+      valid: false,
+      issues: ['field-reliability-score-mismatch', 'readiness-band-mismatch'],
+    })
+
+    expect(
+      validateReadinessCompositionRegistry({
+"""
+          test_replacement = """    expect(validateReadinessCompositionRecord(tampered)).toEqual({
+      valid: false,
+      issues: ['field-reliability-score-mismatch', 'readiness-band-mismatch'],
+    })
+
+    expect(
+      validateReadinessCompositionRecord({
+        ...valid,
+        missingInputs: ['gear'],
+      })
+    ).toEqual({
+      valid: false,
+      issues: ['missing-inputs-mismatch'],
+    })
+
+    expect(
+      validateReadinessCompositionRegistry({
+"""
+          if test_text.count(test_anchor) != 1:
+              raise SystemExit('Expected exactly one tamper-test anchor.')
+          tests.write_text(test_text.replace(test_anchor, test_replacement))
+
+          slice_doc = Path('planning/spe-2269-deployable-readiness-composition-slice.md')
+          slice_text = slice_doc.read_text()
+          old_status = '| **Status** | **In progress** |'
+          if slice_text.count(old_status) != 1:
+              raise SystemExit('Expected exactly one active slice status.')
+          slice_doc.write_text(slice_text.replace(old_status, '| **Status** | **Shipped** |'))
+
+          manifest_path = Path('planning/backlog-handoff-manifest.json')
+          manifest = json.loads(manifest_path.read_text())
+          manifest['primary'] = None
+          manifest['inProgress'] = []
+          shipped = ['SPE-2269'] + [
+              issue_id for issue_id in manifest.get('recentlyShipped', [])
+              if issue_id != 'SPE-2269'
+          ]
+          manifest['recentlyShipped'] = shipped[:12]
+          manifest.setdefault('sliceDocStatus', {})[
+              'planning/spe-2269-deployable-readiness-composition-slice.md'
+          ] = 'Shipped'
+          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
+
+          backlog = Path('planning/backlog.md')
+          backlog_text = backlog.read_text()
+          old_primary = '**Current handoff (primary):** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — implement the bounded deterministic certification + equipment-tier + operative-condition readiness composition registry on PR #3469. Parent [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) remains open for the broader response-doctrine boundary.'
+          new_primary = '**Current handoff (primary):** (none) — SPE-2269 is merge-ready and recorded as shipped on PR #3469; select the next evidence-backed bounded child after merge. Parent [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) remains open for patrol, alerts, deployment cost, specialist-unit fit, provisional regional coverage, and mission-specific assessment.'
+          old_progress = '**In progress:** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — pure registry, validation, targeted tests, and bounded planning handoff; no mission ranking, persistence, routing, or UI integration.'
+          new_progress = '**In progress:** (none)'
+          shipped_anchor = '**Recently shipped:** [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration)'
+          shipped_line = '**Recently shipped:** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — pure deterministic certification, equipment-tier, and operative-condition composition registry with fail-closed missing inputs, bounded readiness bands, recomputed validation, stable code-unit ordering, and targeted tests; PR #3469; parent SPE-1023 remains open.'
+          old_row = '| `spe-2269-deployable-readiness-composition-slice.md`                    | **In progress** | [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) / [#2376](https://github.com/JamesJedi420/containment-protocol/issues/2376) / PR #3469 — pure certification, equipment-tier, and condition composition registry with recomputed validation; parent SPE-1023 remains open. |'
+          new_row = '| `spe-2269-deployable-readiness-composition-slice.md`                    | **Shipped** | [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) / [#2376](https://github.com/JamesJedi420/containment-protocol/issues/2376) / PR #3469 — pure certification, equipment-tier, and condition composition registry with recomputed validation; parent SPE-1023 remains open. |'
+
+          for label, needle in [
+              ('primary handoff', old_primary),
+              ('in-progress handoff', old_progress),
+              ('planning row', old_row),
+          ]:
+              if backlog_text.count(needle) != 1:
+                  raise SystemExit(f'Expected exactly one {label} anchor.')
+          if backlog_text.count(shipped_anchor) != 1:
+              raise SystemExit('Expected exactly one recently-shipped insertion anchor.')
+          if shipped_line in backlog_text:
+              raise SystemExit('SPE-2269 shipped handoff already exists.')
+
+          backlog_text = backlog_text.replace(old_primary, new_primary)
+          backlog_text = backlog_text.replace(old_progress, new_progress)
+          backlog_text = backlog_text.replace(
+              shipped_anchor,
+              shipped_line + '\n\n' + shipped_anchor,
+          )
+          backlog_text = backlog_text.replace(old_row, new_row)
+          backlog.write_text(backlog_text)
+          PY
+          rm .github/workflows/spe-2269-finalize-review.yml
+          git config user.name "James Jedi"
+          git config user.email "95941127+JamesJedi420@users.noreply.github.com"
+          git add src/domain/deployableReadiness.ts src/test/deployableReadiness.test.ts planning/backlog.md planning/backlog-handoff-manifest.json planning/spe-2269-deployable-readiness-composition-slice.md .github/workflows/spe-2269-finalize-review.yml
+          git commit -m "SPE-2269: address review and finalize handoff"
+          git push

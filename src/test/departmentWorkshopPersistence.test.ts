@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import { BIOHAZARD_RESPONSE_FACILITY_ID } from '../domain/departmentWorkshopFacilityMapping'
 import {
   processDepartmentWorkshopTick,
   projectDepartmentWorkshopWorkload,
@@ -53,6 +54,19 @@ const SNAPSHOTS: DepartmentWorkshopSnapshotRegistry = {
     queued: [],
     active: [{ workOrderId: 'work:alpha', completedWork: 1 }],
     paused: [],
+  },
+}
+
+const ACTIVE_BIOHAZARD_FACILITY_STATE = {
+  facilities: {
+    [BIOHAZARD_RESPONSE_FACILITY_ID]: {
+      facilityId: BIOHAZARD_RESPONSE_FACILITY_ID,
+      category: 'biohazard_response_lab',
+      level: 1,
+      maxLevel: 3,
+      status: 'active' as const,
+      effects: {},
+    },
   },
 }
 
@@ -423,6 +437,7 @@ describe('department workshop persistence', () => {
     const baseline = createStartingState()
     const withWorkshops = {
       ...structuredClone(baseline),
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
       departmentWorkshopWorkOrders: WORK_ORDERS,
       departmentWorkshopSnapshots: SNAPSHOTS,
     }
@@ -480,6 +495,7 @@ describe('department workshop persistence', () => {
     const before = structuredClone(baseline)
     const source = {
       ...baseline,
+      facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
       departmentWorkshopWorkOrders: {
         'work:case-receipt': {
           id: 'work:case-receipt',

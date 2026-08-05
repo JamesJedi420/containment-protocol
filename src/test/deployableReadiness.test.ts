@@ -159,6 +159,16 @@ describe('deployable readiness composition registry', () => {
     })
 
     expect(
+      validateReadinessCompositionRecord({
+        ...valid,
+        missingInputs: ['gear'],
+      })
+    ).toEqual({
+      valid: false,
+      issues: ['missing-inputs-mismatch'],
+    })
+
+    expect(
       validateReadinessCompositionRegistry({
         'team:other': valid,
       })

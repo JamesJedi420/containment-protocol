@@ -191,7 +191,7 @@ export function buildReadinessCompositionRegistry(
 ): ReadinessCompositionRegistry {
   return Object.fromEntries(
     Object.keys(inputsByDeployableId)
-      .sort((left, right) => left.localeCompare(right))
+      .sort()
       .map((deployableId) => [
         deployableId,
         composeDeployableReadiness(deployableId, inputsByDeployableId[deployableId]),

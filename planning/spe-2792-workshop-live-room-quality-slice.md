@@ -5,7 +5,7 @@
 | **Linear** | [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) |
 | **GitHub issue** | [#3464](https://github.com/JamesJedi420/containment-protocol/issues/3464) |
 | **Pull request** | [#3468](https://github.com/JamesJedi420/containment-protocol/pull/3468) |
-| **Status** | **In progress** |
+| **Status** | **Shipped** |
 | **Parent** | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model) |
 | **Branch** | `agent/spe-2792-live-facility-room-quality` |
 | **Base `main` SHA** | `91f2036f` |
@@ -37,7 +37,7 @@ Project one authored live facility room condition into exact completed workshop 
 
 Targeted tests cover authored mapping, active, inactive, upgrading, absent, and unmapped facility states; exact-ID ordering and deduplication; unknown-ID handling; caller-axis preservation; reason precedence; canonical week-close registration; sibling isolation; and save/load replay.
 
-Linear tracks the pull request in review while the repository handoff classification remains In progress until shipment. The manifest, `planning/backlog.md`, planning slice index, and workshop audit identify SPE-2792 as the active bounded slice. Full test validation remains pending on the corrected branch head.
+Implementation head `11fc264a7a47e8b70971aaf144dcaa62977f52b9` passed Test workflow run 2294: lint, design-audit verification, backlog-handoff verification, external-theme-contract verification, and the full non-watch test suite. The repository handoff records are now merge-ready and mark this bounded slice Shipped; Linear remains In Review until PR #3468 merges.
 
 ## Boundaries preserved
 

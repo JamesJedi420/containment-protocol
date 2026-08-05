@@ -1,9 +1,8 @@
 {
-  "primary": "SPE-2792",
-  "inProgress": [
-    "SPE-2792"
-  ],
+  "primary": null,
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-2792",
     "SPE-2772",
     "SPE-2788",
     "SPE-2787",
@@ -14,11 +13,10 @@
     "SPE-2782",
     "SPE-2781",
     "SPE-2780",
-    "SPE-2779",
-    "SPE-2777"
+    "SPE-2779"
   ],
   "sliceDocStatus": {
-    "planning/spe-2792-workshop-live-room-quality-slice.md": "In progress",
+    "planning/spe-2792-workshop-live-room-quality-slice.md": "Shipped",
     "planning/spe-2788-department-workshop-activation-slice.md": "Shipped",
     "planning/spe-2787-department-workshop-routing-slice.md": "Shipped",
     "planning/spe-2786-workshop-anomaly-specialization-eligibility-gate-slice.md": "Shipped",

@@ -49,5 +49,5 @@ failed or was cancelled.
 | Final fabrication and case closure  | SPE-1028 follow-up | These remain outside prerequisite reservation accounting.                   |
 | Global Fabrication and UI           | SPE-1028 follow-up | The durable case-owned registries remain the only integration surface.      |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

@@ -56,6 +56,6 @@ tick without starting queued work or inferring a live facility graph.
 | Dependency-driven output degradation | Create SPE-1028 child          | Completion quality remains a separate caller-owned contract   |
 | Behavioral workshop upgrade paths    | Create SPE-1028 child          | Separate remaining parent acceptance boundary                 |
 | Duration-aware SPE-2084 policy       | Create SPE-1028/SPE-2084 child | Coordination remains current-occupancy based                  |
-| Live facility/staff safety mapping   | SPE-2772                       | Explicit mapping seam remains blocked                         |
+| Live facility/staff safety mapping   | SPE-2772                       | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                         |
 
 Parent SPE-1028 remains open after this bounded child ships.

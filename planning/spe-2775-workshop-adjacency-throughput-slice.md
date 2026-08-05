@@ -46,7 +46,7 @@ adjacency context.
 
 | Item                                        | Owner                          | Why deferred                                              |
 | ------------------------------------------- | ------------------------------ | --------------------------------------------------------- |
-| Live facility/staff safety mapping          | SPE-2772                       | Explicit mapping seam remains blocked                     |
+| Live facility/staff safety mapping          | SPE-2772                       | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                     |
 | Persisted topology-to-staging projection    | Create SPE-1028 child          | This slice accepts caller-owned classifications only      |
 | Duration-aware SPE-2084 coordination policy | Create SPE-1028/SPE-2084 child | Coordination delay remains current-occupancy based        |
 | Centralized/distributed workroom tradeoffs  | Create SPE-1028 child          | Requires layout, staffing, and breach-isolation policy    |

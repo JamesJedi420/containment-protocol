@@ -54,5 +54,5 @@ intermediate processing definitions.
 | Cancellation/failure propagation and duplicate-chain detection across persisted orders | SPE-2703 follow-up | These require durable dependency and lifecycle state, which this pure planner intentionally does not introduce. |
 | Production/fabrication UI surfacing                                                    | SPE-2703 follow-up | The kernel has no store or UI integration.                                                                      |
 
-Parent SPE-1028 remains **In Progress**: its broader workshop acceptance criteria
+Parent SPE-1028 remains open because its broader workshop acceptance criteria
 and the deferred SPE-2703 integration remain open.

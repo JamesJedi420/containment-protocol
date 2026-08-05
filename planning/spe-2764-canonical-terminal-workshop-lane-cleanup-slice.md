@@ -47,5 +47,5 @@ and exact terminal reservation release.
 | Final Fabrication and case closure | SPE-1028 follow-up | Those lifecycles remain outside prerequisite reservation and workshop-lane cleanup.  |
 | Global Fabrication and UI          | SPE-1028 follow-up | This slice changes only pure workshop state and the existing week-close integration. |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

@@ -54,6 +54,6 @@ or progress for work that is already active.
 | Automated diagnostic behavior      | SPE-1028 / SPE-1058 follow-up | Requires explicit maintenance and corruption failure contracts |
 | Anomaly-class specialization       | Create SPE-1028 child         | Requires authored specialization requirements and routing      |
 | Certification-driven output grade  | Create SPE-1028 child         | Completion quality remains an independent caller-owned seam    |
-| Live facility/staff safety mapping | SPE-2772                      | Explicit mapping seam remains blocked                          |
+| Live facility/staff safety mapping | SPE-2772                      | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                          |
 
 Parent SPE-1028 remains open after this bounded child ships.

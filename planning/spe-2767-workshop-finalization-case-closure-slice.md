@@ -41,5 +41,5 @@ Fabrication enqueue proof exists.
 | Fabrication UI redesign           | SPE-1028 follow-up | Domain status flip reuses existing case status.                           |
 | Facility modifiers and operations | Separate owners    | No safety, adjacency, quality, facility, report, or operation-event work. |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

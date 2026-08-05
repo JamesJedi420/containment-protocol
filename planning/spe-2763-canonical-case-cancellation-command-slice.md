@@ -47,5 +47,5 @@ status, lifecycle stage, assignment, deadline, reports, or week-close state.
 | Final fabrication/case closure  | SPE-1028 follow-up | Those lifecycles remain outside prerequisite reservation accounting.          |
 | Global Fabrication and UI       | SPE-1028 follow-up | This slice changes only pure domain and the existing store command surface.   |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

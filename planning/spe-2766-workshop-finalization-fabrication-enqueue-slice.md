@@ -43,5 +43,5 @@ global Fabrication once for the authored final recipe.
 | Fabrication UI redesign           | SPE-1028 follow-up | Domain enqueue reuses existing production queue surfaces.                    |
 | Facility modifiers and operations | Separate owners    | No safety, adjacency, quality, facility, report, or operation-event changes. |
 
-Parent SPE-1028 remains **In Progress** because its broader workshop acceptance
+Parent SPE-1028 remains open because its broader workshop acceptance
 criteria remain open.

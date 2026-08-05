@@ -37,7 +37,7 @@ Project one authored live facility room condition into exact completed workshop 
 
 Targeted tests cover authored mapping, active, inactive, upgrading, absent, and unmapped facility states; exact-ID ordering and deduplication; unknown-ID handling; caller-axis preservation; reason precedence; canonical week-close registration; sibling isolation; and save/load replay.
 
-Implementation head `11fc264a7a47e8b70971aaf144dcaa62977f52b9` passed Test workflow run 2294: lint, design-audit verification, backlog-handoff verification, external-theme-contract verification, and the full non-watch test suite. The repository handoff records are now merge-ready and mark this bounded slice Shipped; Linear remains In Review until PR #3468 merges.
+Implementation head `11fc264a7a47e8b70971aaf144dcaa62977f52b9` passed Test workflow run 2294: lint, design-audit verification, backlog-handoff verification, external-theme-contract verification, and the full non-watch test suite. Merge-ready handoff commit `5f741ae1751043da5b3b81316c73d282cb67eb00` finalized the manifest, backlog, planning index, and shipped slice status. Linear remains In Review until PR #3468 merges.
 
 ## Boundaries preserved
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **In review** |
 | **Linear** | SPE-2796 |
 | **GitHub** | #3470 |
 | **Parent** | SPE-2688 / #3270 |
@@ -27,6 +27,13 @@ Workshop grading and persistence remain owned by the existing completion-quality
 - No mission consequence inference from readiness.
 - No new workshop reason precedence, facility mapping, or completion grading.
 - No claim that SPE-2688 is complete; broader producer, lifecycle, uncertainty, accessibility, and cross-surface adoption remain parent scope.
+
+## Deferred
+
+- Explanation persistence, hydration, migration, and independent UI state remain deferred to a separately bounded SPE-2688 child if durable explanation state becomes necessary.
+- Event delivery, notification inboxes, toast or interruption routing, and broad presentation redesign remain deferred parent scope.
+- Broader producer adoption, lifecycle and supersession semantics, uncertainty and provenance policy, accessibility parity, and downstream consumer coverage remain open under SPE-2688.
+- Readiness-based mission consequence inference and changes to workshop reason precedence, facility mapping, or completion grading remain outside this slice and require separately bounded authority-owner work.
 
 ## Validation
 

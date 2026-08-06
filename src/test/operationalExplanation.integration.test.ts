@@ -172,6 +172,7 @@ describe('department workshop explanation adapter', () => {
     expect(ongoingExplanations.filter((item) => item.lifecycle === 'active')).toHaveLength(1)
     expect(ongoingExplanations.filter((item) => item.lifecycle === 'resolved')).toHaveLength(0)
 
+    state.departmentWorkshopSnapshots![DEPARTMENT_ID]!.active = []
     state.departmentWorkshopCompletionOutcomes = {
       [WORK_ORDER_ID]: {
         workOrderId: WORK_ORDER_ID,

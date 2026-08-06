@@ -180,6 +180,7 @@ describe('department workshop explanation adapter', () => {
         caseId: 'case-001',
         taskType: 'research_case',
         completedWeek: 2,
+        outcome: 'completed',
         quality: 'degraded',
         qualityReason: 'poor_room_contamination',
         safety: 'safe',

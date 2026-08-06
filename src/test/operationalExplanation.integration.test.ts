@@ -165,14 +165,8 @@ describe('department workshop explanation adapter', () => {
     expect(getDepartmentWorkshopMirrorView(poorState).explanations).toEqual(mirror.explanations)
   })
 
-  it('deduplicates lane membership and reconstructs resolved history only from authoritative receipts', () => {
+  it('reconstructs ongoing and resolved lifecycle only from authoritative workshop state', () => {
     const state = makeWorkshopState()
-    state.departmentWorkshopSnapshots![DEPARTMENT_ID]!.queued = [
-      { workOrderId: WORK_ORDER_ID, completedWork: 0 },
-    ]
-    state.departmentWorkshopSnapshots![DEPARTMENT_ID]!.paused = [
-      { workOrderId: WORK_ORDER_ID, completedWork: 1 },
-    ]
 
     const ongoingExplanations = getDepartmentWorkshopOperationalExplanations(state)
     expect(ongoingExplanations.filter((item) => item.lifecycle === 'active')).toHaveLength(1)

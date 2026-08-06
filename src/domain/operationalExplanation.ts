@@ -114,7 +114,7 @@ export function createOperationalExplanationId(
   source: OperationalExplanationSource,
   reasonCode: string
 ): string {
-  return `${source.system}:${source.recordType}:${source.recordId}:${reasonCode}`
+  return `${source.system}:${source.recordType}:${encodeURIComponent(source.recordId)}:${encodeURIComponent(reasonCode)}`
 }
 
 export function createOperationalExplanationRecord(

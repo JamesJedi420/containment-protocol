@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In review** |
+| **Status** | **Shipped** |
 | **Linear** | SPE-2796 |
 | **GitHub** | #3470 |
 | **Parent** | SPE-2688 / #3270 |

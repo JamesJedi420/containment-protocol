@@ -6,6 +6,7 @@ import {
   type ReadinessCompositionRecord,
 } from '../domain/deployableReadiness'
 import {
+  createOperationalExplanationId,
   createOperationalExplanationRecord,
   projectOperationalExplanation,
   sortOperationalExplanationRecords,
@@ -63,8 +64,12 @@ function makeWorkshopState(status?: FacilityStatus): GameState {
 describe('shared operational explanation contract', () => {
   it('builds stable IDs, normalized arrays, deterministic ordering, and consistent depths', () => {
     const active = createOperationalExplanationRecord({
-      source: { system: 'department_workshop', recordType: 'work_order', recordId: 'b' },
-      subjectId: 'b',
+      source: {
+        system: 'department_workshop',
+        recordType: 'work_order',
+        recordId: 'work:b',
+      },
+      subjectId: 'work:b',
       reasonCode: 'department_workshop.reason',
       severity: 'degraded',
       lifecycle: 'active',
@@ -87,7 +92,20 @@ describe('shared operational explanation contract', () => {
       confidence: 'supported',
     })
 
-    expect(active.id).toBe('department_workshop:work_order:b:department_workshop.reason')
+    expect(active.id).toBe(
+      'department_workshop:work_order:work%3Ab:department_workshop.reason'
+    )
+    expect(
+      createOperationalExplanationId(
+        { system: 'department_workshop', recordType: 'work_order', recordId: 'a:b' },
+        'c.d'
+      )
+    ).not.toBe(
+      createOperationalExplanationId(
+        { system: 'department_workshop', recordType: 'work_order', recordId: 'a' },
+        'b:c.d'
+      )
+    )
     expect(active.provenance).toEqual(['a', 'z'])
     expect(active.blockerCodes).toEqual(['a', 'b'])
     expect(sortOperationalExplanationRecords([resolved, active]).map((item) => item.id)).toEqual([
@@ -155,6 +173,11 @@ describe('department workshop explanation adapter', () => {
     state.departmentWorkshopSnapshots![DEPARTMENT_ID]!.paused = [
       { workOrderId: WORK_ORDER_ID, completedWork: 1 },
     ]
+
+    const ongoingExplanations = getDepartmentWorkshopOperationalExplanations(state)
+    expect(ongoingExplanations.filter((item) => item.lifecycle === 'active')).toHaveLength(1)
+    expect(ongoingExplanations.filter((item) => item.lifecycle === 'resolved')).toHaveLength(0)
+
     state.departmentWorkshopCompletionOutcomes = {
       [WORK_ORDER_ID]: {
         workOrderId: WORK_ORDER_ID,
@@ -167,18 +190,46 @@ describe('department workshop explanation adapter', () => {
         safety: 'safe',
       },
     }
-    const explanations = getDepartmentWorkshopOperationalExplanations(state)
-    expect(explanations.filter((item) => item.lifecycle === 'active')).toHaveLength(1)
-    expect(explanations.filter((item) => item.lifecycle === 'resolved')).toHaveLength(1)
+    const completedExplanations = getDepartmentWorkshopOperationalExplanations(state)
+    expect(completedExplanations.filter((item) => item.lifecycle === 'active')).toHaveLength(0)
+    expect(completedExplanations.filter((item) => item.lifecycle === 'resolved')).toHaveLength(1)
   })
 })
 
 describe('deployable readiness explanation adapter', () => {
   it.each([
-    ['ready', composeDeployableReadiness('ready-unit', { certificationState: 'certified', gearTier: 'legendary', conditionBand: 'steady' })],
-    ['limited', composeDeployableReadiness('limited-unit', { certificationState: 'eligible_review', gearTier: 'rare', conditionBand: 'steady' })],
-    ['degraded', composeDeployableReadiness('degraded-unit', { certificationState: 'in_progress', gearTier: 'rare', conditionBand: 'steady' })],
-    ['blocked', composeDeployableReadiness('blocked-unit', { certificationState: null, gearTier: 'basic', conditionBand: 'steady' })],
+    [
+      'ready',
+      composeDeployableReadiness('ready-unit', {
+        certificationState: 'certified',
+        gearTier: 'legendary',
+        conditionBand: 'steady',
+      }),
+    ],
+    [
+      'limited',
+      composeDeployableReadiness('limited-unit', {
+        certificationState: 'eligible_review',
+        gearTier: 'rare',
+        conditionBand: 'steady',
+      }),
+    ],
+    [
+      'degraded',
+      composeDeployableReadiness('degraded-unit', {
+        certificationState: 'in_progress',
+        gearTier: 'rare',
+        conditionBand: 'steady',
+      }),
+    ],
+    [
+      'blocked',
+      composeDeployableReadiness('blocked-unit', {
+        certificationState: null,
+        gearTier: 'basic',
+        conditionBand: 'steady',
+      }),
+    ],
   ] as const)('maps %s readiness through the shared contract', (_band, source) => {
     const explanation = getDeployableReadinessOperationalExplanation(source)
     expect(validateOperationalExplanationRecord(explanation).valid).toBe(true)

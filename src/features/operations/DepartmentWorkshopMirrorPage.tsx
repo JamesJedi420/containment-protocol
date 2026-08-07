@@ -5,6 +5,7 @@ import { useGameStore } from '../../app/store/gameStore'
 import { DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT } from '../../data/copy'
 import { DEPARTMENT_WORKSHOP_ACTIVATION_UI_TEXT } from './departmentWorkshopActivationCopy'
 import { getDepartmentWorkshopMirrorView } from './departmentWorkshopMirrorView'
+import { DepartmentWorkshopExplanationPanel } from './DepartmentWorkshopExplanationPanel'
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -170,6 +171,8 @@ export default function DepartmentWorkshopMirrorPage() {
           </div>
         </article>
       )}
+
+      <DepartmentWorkshopExplanationPanel explanations={view.explanations} />
 
       <article
         className="panel panel-support space-y-4"

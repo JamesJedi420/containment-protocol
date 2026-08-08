@@ -455,6 +455,9 @@ describe('runTransfer helpers', () => {
         durationWeeks: 1,
         remainingWeeks: 1,
         fundingCost: 14,
+        outputGradeId: 'grade_1',
+        outputGradeVisibility: 'known',
+        outputGradeExplanationCodes: ['fabrication_grade.catalog'],
       },
     ]
     game.market = {

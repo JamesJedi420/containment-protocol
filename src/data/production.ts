@@ -5,7 +5,16 @@ import {
   type MarketState,
   type ProductionMaterialRequirement,
 } from '../domain/models'
-import { getEquipmentCatalogEntries } from '../domain/equipment'
+import { getEquipmentCatalogEntries, getEquipmentDefinition } from '../domain/equipment'
+import {
+  resolveEquipmentGradeFabricationOutcome,
+  validateEquipmentGradeFabricationRule,
+  type EquipmentGradeFabricationRule,
+} from '../domain/equipmentGradeFabrication'
+import {
+  getEquipmentGradeCatalogParticipation,
+  getEquipmentGradeCatalogVisibility,
+} from '../domain/equipmentGradeCatalog'
 
 export interface ProductionMaterialDefinition {
   materialId: string
@@ -24,6 +33,7 @@ export interface ProductionRecipe {
   durationWeeks: number
   baseFundingCost: number
   inputMaterials: Record<string, number>
+  gradeOutputRule: EquipmentGradeFabricationRule
 }
 
 export type MarketListingCategory = 'equipment' | 'component' | 'material'
@@ -85,6 +95,7 @@ export const productionCatalog: ProductionRecipe[] = [
       occult_reagents: 1,
       warding_resin: 1,
     },
+    gradeOutputRule: { kind: 'fixed', gradeId: 'grade_1' },
   },
   {
     recipeId: 'med-kits',
@@ -98,6 +109,7 @@ export const productionCatalog: ProductionRecipe[] = [
     inputMaterials: {
       medical_supplies: 2,
     },
+    gradeOutputRule: { kind: 'catalog' },
   },
   {
     recipeId: 'silver-rounds',
@@ -112,6 +124,7 @@ export const productionCatalog: ProductionRecipe[] = [
       ballistic_supplies: 2,
       occult_reagents: 1,
     },
+    gradeOutputRule: { kind: 'minimum_catalog', minimumGradeId: 'grade_1' },
   },
   {
     recipeId: 'signal-jammers',
@@ -124,6 +137,11 @@ export const productionCatalog: ProductionRecipe[] = [
     baseFundingCost: 22,
     inputMaterials: {
       electronic_parts: 2,
+    },
+    gradeOutputRule: {
+      kind: 'bounded_catalog',
+      minimumGradeId: 'grade_1',
+      maximumGradeId: 'grade_2',
     },
   },
   {
@@ -139,6 +157,7 @@ export const productionCatalog: ProductionRecipe[] = [
       electronic_parts: 2,
       occult_reagents: 1,
     },
+    gradeOutputRule: { kind: 'catalog' },
   },
   {
     recipeId: 'warding-kits',
@@ -152,6 +171,11 @@ export const productionCatalog: ProductionRecipe[] = [
     inputMaterials: {
       warding_resin: 2,
       occult_reagents: 1,
+    },
+    gradeOutputRule: {
+      kind: 'bounded_catalog',
+      minimumGradeId: 'grade_1',
+      maximumGradeId: 'grade_2',
     },
   },
   {
@@ -167,8 +191,44 @@ export const productionCatalog: ProductionRecipe[] = [
       occult_reagents: 2,
       warding_resin: 1,
     },
+    gradeOutputRule: { kind: 'fixed', gradeId: 'grade_1' },
   },
 ]
+
+export function validateProductionCatalogGradeRules(catalog: readonly ProductionRecipe[]) {
+  for (const recipe of catalog) {
+    const ruleValidation = validateEquipmentGradeFabricationRule(recipe.gradeOutputRule)
+    if (!ruleValidation.valid) {
+      throw new Error(
+        `Invalid fabrication grade rule for recipe "${recipe.recipeId}": ${ruleValidation.issues
+          .map((issue) => `${issue.field}:${issue.code}`)
+          .join(',')}`
+      )
+    }
+
+    const definition = getEquipmentDefinition(recipe.outputItemId)
+    if (!definition) {
+      throw new Error(
+        `Invalid fabrication grade rule for recipe "${recipe.recipeId}": output is not supported equipment.`
+      )
+    }
+
+    const resolution = resolveEquipmentGradeFabricationOutcome(
+      ruleValidation.value,
+      getEquipmentGradeCatalogParticipation(definition.gradeProfile),
+      getEquipmentGradeCatalogVisibility(definition.gradeProfile)
+    )
+    if (!resolution.valid) {
+      throw new Error(
+        `Invalid fabrication grade outcome for recipe "${recipe.recipeId}": ${resolution.issues
+          .map((issue) => `${issue.field}:${issue.code}`)
+          .join(',')}`
+      )
+    }
+  }
+}
+
+validateProductionCatalogGradeRules(productionCatalog)
 
 export const inventoryItemLabels: Record<string, string> = Object.fromEntries([
   ...productionMaterialCatalog.map((material) => [material.materialId, material.name] as const),

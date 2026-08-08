@@ -11,7 +11,13 @@ import {
   productionCatalog,
   productionMaterialCatalog,
 } from '../../data/production'
-import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
+import {
+  formatProductionMaterialSummary,
+  formatProductionOutputLabel,
+  getProductionGradeExplanationLabel,
+  projectProductionQueueGrade,
+  resolveProductionRecipeGradeOutcome,
+} from '../../domain/crafting'
 import { buildLogisticsOverview } from '../../domain/logistics'
 
 export default function FabricationPage() {
@@ -85,7 +91,8 @@ export default function FabricationPage() {
             const hasMaterials = hasRecipeMaterialStock(recipe, game.inventory)
             const missingMaterials = getMissingRecipeMaterials(recipe, game.inventory)
             const requiredMaterials = getRecipeInputMaterials(recipe)
-            const canQueue = affordable && hasMaterials
+            const gradeOutcome = resolveProductionRecipeGradeOutcome(recipe)
+            const canQueue = affordable && hasMaterials && gradeOutcome.valid
 
             return (
               <div
@@ -104,6 +111,18 @@ export default function FabricationPage() {
                       .map((material) => `${material.materialName} x${material.quantity}`)
                       .join(', ')}
                   </p>
+                  {gradeOutcome.valid ? (
+                    <p className="mt-1 text-xs opacity-60">
+                      Grade outcome: {gradeOutcome.projection.label}.{' '}
+                      {gradeOutcome.explanationCodes
+                        .map(getProductionGradeExplanationLabel)
+                        .join('; ')}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-amber-200/80">
+                      Grade outcome unavailable: invalid authored fabrication rule.
+                    </p>
+                  )}
                   {missingMaterials.length > 0 ? (
                     <p className="mt-1 text-xs text-amber-200/80">
                       Missing:{' '}
@@ -152,6 +171,12 @@ export default function FabricationPage() {
                 ) : null}
                 <p className="text-xs opacity-60">
                   Inputs: {formatProductionMaterialSummary(entry.inputMaterials)}
+                </p>
+                <p className="text-xs opacity-60">
+                  Grade outcome: {projectProductionQueueGrade(entry).label}.{' '}
+                  {entry.outputGradeExplanationCodes
+                    .map(getProductionGradeExplanationLabel)
+                    .join('; ')}
                 </p>
               </li>
             ))}

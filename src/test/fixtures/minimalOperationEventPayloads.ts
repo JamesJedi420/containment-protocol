@@ -326,6 +326,9 @@ export const minimalOperationEventPayloads = {
         quantity: 1,
       },
     ],
+    outputGradeId: 'grade_1',
+    outputGradeVisibility: 'known',
+    outputGradeExplanationCodes: ['fabrication_grade.fixed'],
   },
   'production.queue_completed': {
     week: WEEK,
@@ -344,6 +347,7 @@ export const minimalOperationEventPayloads = {
         quantity: 1,
       },
     ],
+    outputGradeId: 'grade_1',
   },
   'market.shifted': {
     week: WEEK,

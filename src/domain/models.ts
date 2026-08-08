@@ -15,6 +15,8 @@ import type {
   CaseScopedWorkshopFinalizationHandoff,
   CaseScopedWorkshopFinalizationRequest,
 } from './prerequisiteProcessingOrders'
+import type { EquipmentGradeId, EquipmentGradeVisibility } from './equipmentGrade'
+import type { EquipmentGradeFabricationExplanationCode } from './equipmentGradeFabrication'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -1828,7 +1830,21 @@ export interface ProductionQueueEntry {
   durationWeeks: number
   remainingWeeks: number
   fundingCost: number
+  outputGradeId: EquipmentGradeId
+  outputGradeVisibility: EquipmentGradeVisibility
+  outputGradeExplanationCodes: EquipmentGradeFabricationExplanationCode[]
 }
+
+export interface FabricatedEquipmentLot {
+  queueId: Id
+  recipeId: string
+  itemId: string
+  quantity: number
+  gradeId: EquipmentGradeId
+  completedWeek: number
+}
+
+export type FabricatedEquipmentLotRegistry = Record<Id, FabricatedEquipmentLot>
 
 export interface MarketState {
   week: number
@@ -2718,6 +2734,8 @@ export interface GameState {
   caseQueue?: CaseQueueState
   trainingQueue: TrainingQueueEntry[]
   productionQueue: ProductionQueueEntry[]
+  /** SPE-2750: canonical grade/provenance records for completed fabrication batches. */
+  fabricatedEquipmentLots?: FabricatedEquipmentLotRegistry
   market: MarketState
   globalPressure?: number
   /**

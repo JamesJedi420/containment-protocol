@@ -46,6 +46,7 @@ const startingStateTemplate: GameState = {
   },
   trainingQueue: [],
   productionQueue: [],
+  fabricatedEquipmentLots: {},
   market: createStartingMarket(),
   partyCards: createStartingPartyCardState(),
 

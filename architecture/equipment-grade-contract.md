@@ -45,7 +45,22 @@ reporting includes their participation and dimension totals but excludes their a
 from grade buckets, so diagnostics cannot distinguish hidden Grade I from hidden Grade V.
 Player-facing consumers must use the projection resolver.
 
-Grade remains definition-owned and non-persistent. Inventory, loadouts, production, procurement,
-and recovery continue to carry stable item IDs, so catalog adoption requires no save or schema
-version change. Fabrication outcomes, recovery effects, Auto-Scrap, identification workflows, and
-UI remain owned by their downstream slices.
+Catalog grade remains definition-owned. Inventory, loadouts, procurement, and recovery continue to
+carry stable item IDs, so catalog adoption itself requires no persisted grade field.
+
+## Fabrication adoption
+
+SPE-2750 adds explicit fixed, catalog, bounded-catalog, and minimum-catalog grade-output rules to
+the production recipe contract. All rules resolve through this canonical registry and the output
+definition's catalog participation; they cannot define display strings or a parallel grade order.
+Queue entries snapshot the authoritative grade, visibility, and stable explanation codes so an
+in-flight outcome cannot change when recipe authoring changes.
+
+Completion retains aggregate inventory quantities and adds one durable fabricated-equipment lot
+per queue ID containing batch identity, item, quantity, canonical grade, and completion week. The
+lot is production provenance, not rarity, condition, material quality, provider reliability,
+workshop completion quality, or legacy effect scale. Preview and active-queue surfaces resolve the
+snapshot through the hidden-safe projection contract.
+
+Recovery effects, Auto-Scrap, identification workflows, and per-copy inventory selection remain
+owned by their downstream slices.

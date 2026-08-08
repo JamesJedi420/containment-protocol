@@ -10,8 +10,14 @@ import {
   buildProductionQueueEntry,
   formatProductionMaterialSummary,
   formatProductionOutputLabel,
+  resolveProductionRecipeGradeOutcome,
 } from '../crafting'
-import { type GameState, type ProductionQueueEntry } from '../models'
+import { type FabricatedEquipmentLot, type GameState, type ProductionQueueEntry } from '../models'
+import { isEquipmentGradeId } from '../equipmentGrade'
+import {
+  EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES,
+  isEquipmentGradeFabricationExplanationCode,
+} from '../equipmentGradeFabrication'
 import { isCaseScopedWorkshopFinalizationHandoff } from '../prerequisiteProcessingOrders'
 import { stripInfiltrationEncounterCoverStanceOnResolvedCase } from '../infiltrationEncounterCoverStanceTick'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
@@ -24,8 +30,38 @@ import {
   rollNextMarket,
 } from '../../data/production'
 
+const UNSAFE_PRODUCTION_QUEUE_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+const INTEGER_INDEX_PATTERN = /^(0|[1-9]\d*)$/
+
+export function isSafeProductionQueueId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value === value.trim() &&
+    !INTEGER_INDEX_PATTERN.test(value) &&
+    !UNSAFE_PRODUCTION_QUEUE_IDS.has(value)
+  )
+}
+
+function hasOwn(object: object, key: PropertyKey) {
+  return Object.prototype.hasOwnProperty.call(object, key)
+}
+
 function nextQueueId(state: GameState) {
-  return `queue-${state.week}-${state.productionQueue.length + 1}-${state.events.length + 1}`
+  const reserved = new Set([
+    ...state.productionQueue.map((entry) => entry.id),
+    ...Object.keys(state.fabricatedEquipmentLots ?? {}),
+  ])
+  const baseId = `queue-${state.week}-${state.productionQueue.length + 1}-${state.events.length + 1}`
+  let candidate = baseId
+  let suffix = 2
+
+  while (reserved.has(candidate)) {
+    candidate = `${baseId}-${suffix}`
+    suffix += 1
+  }
+
+  return candidate
 }
 
 function coerceFiniteNumber(value: unknown, fallback: number) {
@@ -92,11 +128,21 @@ export function reconcileProductionQueueStartedFields(payload: {
   outputQuantity?: unknown
   etaWeeks?: unknown
   fundingCost?: unknown
+  outputGradeId?: unknown
+  outputGradeVisibility?: unknown
+  outputGradeExplanationCodes?: unknown
 }) {
   const productionOutput = reconcileProductionEventRecipeOutput(
     payload.recipeId,
     payload.outputId,
     payload.outputName
+  )
+
+  const gradeSnapshot = reconcileProductionGradeSnapshot(
+    payload.recipeId,
+    payload.outputGradeId,
+    payload.outputGradeVisibility,
+    payload.outputGradeExplanationCodes
   )
 
   return {
@@ -106,6 +152,7 @@ export function reconcileProductionQueueStartedFields(payload: {
     outputQuantity: Math.max(1, Math.trunc(coerceFiniteNumber(payload.outputQuantity, 1))),
     etaWeeks: Math.max(1, Math.trunc(coerceFiniteNumber(payload.etaWeeks, 1))),
     fundingCost: Math.max(0, Math.trunc(coerceFiniteNumber(payload.fundingCost, 0))),
+    ...gradeSnapshot,
   }
 }
 
@@ -119,11 +166,20 @@ export function reconcileProductionQueueCompletedFields(payload: {
   outputName?: unknown
   outputQuantity?: unknown
   fundingCost?: unknown
+  outputGradeId?: unknown
 }) {
   const productionOutput = reconcileProductionEventRecipeOutput(
     payload.recipeId,
     payload.outputId,
     payload.outputName
+  )
+
+  const gradeSnapshot = reconcileProductionGradeSnapshot(
+    payload.recipeId,
+    payload.outputGradeId,
+    undefined,
+    undefined,
+    true
   )
 
   return {
@@ -132,13 +188,78 @@ export function reconcileProductionQueueCompletedFields(payload: {
     outputName: productionOutput.outputName,
     outputQuantity: Math.max(1, Math.trunc(coerceFiniteNumber(payload.outputQuantity, 1))),
     fundingCost: Math.max(0, Math.trunc(coerceFiniteNumber(payload.fundingCost, 0))),
+    outputGradeId: gradeSnapshot?.outputGradeId,
   }
+}
+
+export function reconcileProductionGradeSnapshot(
+  recipeIdValue: unknown,
+  gradeIdValue: unknown,
+  visibilityValue: unknown,
+  explanationCodesValue: unknown,
+  allowGradeOnlySnapshot = false
+) {
+  const recipe = typeof recipeIdValue === 'string' ? getProductionRecipe(recipeIdValue) : undefined
+  if (!recipe) return undefined
+
+  const legacySnapshot =
+    gradeIdValue === undefined &&
+    visibilityValue === undefined &&
+    explanationCodesValue === undefined
+  if (legacySnapshot) {
+    const resolution = resolveProductionRecipeGradeOutcome(recipe)
+    return resolution.valid
+      ? {
+          outputGradeId: resolution.participation.gradeId,
+          outputGradeVisibility: resolution.visibility,
+          outputGradeExplanationCodes: [...resolution.explanationCodes],
+        }
+      : undefined
+  }
+
+  if (
+    !allowGradeOnlySnapshot &&
+    (gradeIdValue === undefined ||
+      visibilityValue === undefined ||
+      explanationCodesValue === undefined)
+  ) {
+    return undefined
+  }
+
+  if (!isEquipmentGradeId(gradeIdValue)) return undefined
+  const outputGradeVisibility =
+    visibilityValue === undefined
+      ? 'known'
+      : visibilityValue === 'known' || visibilityValue === 'hidden'
+        ? visibilityValue
+        : undefined
+  if (!outputGradeVisibility) return undefined
+
+  const outputGradeExplanationCodes =
+    explanationCodesValue === undefined
+      ? []
+      : Array.isArray(explanationCodesValue) &&
+          explanationCodesValue.length > 0 &&
+          explanationCodesValue.every(isEquipmentGradeFabricationExplanationCode)
+        ? EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES.filter((code) =>
+            explanationCodesValue.includes(code)
+          )
+        : undefined
+  if (!outputGradeExplanationCodes) return undefined
+
+  // A complete, canonical snapshot is historical queue truth. Do not compare it
+  // with the current recipe: catalog/rule edits must not rewrite in-flight jobs.
+  return { outputGradeId: gradeIdValue, outputGradeVisibility, outputGradeExplanationCodes }
 }
 
 export function queueFabrication(state: GameState, recipeId: string): GameState {
   const recipe = getProductionRecipe(recipeId)
 
   if (!recipe) {
+    return ensureNormalizedGameState(state)
+  }
+
+  if (!resolveProductionRecipeGradeOutcome(recipe).valid) {
     return ensureNormalizedGameState(state)
   }
 
@@ -185,6 +306,9 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
           etaWeeks: queueEntry.durationWeeks,
           fundingCost,
           inputMaterials: queueEntry.inputMaterials ?? [],
+          outputGradeId: queueEntry.outputGradeId,
+          outputGradeVisibility: queueEntry.outputGradeVisibility,
+          outputGradeExplanationCodes: queueEntry.outputGradeExplanationCodes,
         }),
       ]
     )
@@ -280,7 +404,9 @@ export function resolveCaseScopedWorkshopFinalizationCases(state: GameState): Ga
       continue
     }
 
-    if (!isCaseScopedWorkshopFinalizationHandoff(currentCase.departmentWorkshopFinalizationHandoff)) {
+    if (
+      !isCaseScopedWorkshopFinalizationHandoff(currentCase.departmentWorkshopFinalizationHandoff)
+    ) {
       continue
     }
 
@@ -326,11 +452,35 @@ export function advanceProductionQueues(state: GameState) {
   const completed: ProductionQueueEntry[] = []
   const notes: string[] = []
   const nextInventory = { ...state.inventory }
+  const fabricatedEquipmentLots = { ...(state.fabricatedEquipmentLots ?? {}) }
 
   const nextQueue: ProductionQueueEntry[] = []
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
+    if (!isSafeProductionQueueId(entry.id)) {
+      nextQueue.push(entry)
+      continue
+    }
+
+    const existingLot = hasOwn(fabricatedEquipmentLots, entry.id)
+      ? fabricatedEquipmentLots[entry.id]
+      : undefined
+    if (
+      existingLot &&
+      existingLot.queueId === entry.id &&
+      existingLot.recipeId === entry.recipeId &&
+      existingLot.itemId === entry.outputItemId &&
+      existingLot.quantity === entry.outputQuantity &&
+      existingLot.gradeId === entry.outputGradeId
+    ) {
+      continue
+    }
+    if (existingLot) {
+      nextQueue.push(entry)
+      continue
+    }
+
     const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
     if (remainingWeeks > 0) {
       nextQueue.push({
@@ -344,6 +494,15 @@ export function advanceProductionQueues(state: GameState) {
       notes.push(
         `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
       )
+      const lot: FabricatedEquipmentLot = Object.freeze({
+        queueId: entry.id,
+        recipeId: entry.recipeId,
+        itemId: entry.outputItemId,
+        quantity: entry.outputQuantity,
+        gradeId: entry.outputGradeId,
+        completedWeek: state.week,
+      })
+      fabricatedEquipmentLots[entry.id] = lot
       eventDrafts.push(
         createProductionQueueCompletedDraft({
           week: state.week,
@@ -355,6 +514,7 @@ export function advanceProductionQueues(state: GameState) {
           outputQuantity: entry.outputQuantity,
           fundingCost: entry.fundingCost,
           inputMaterials: entry.inputMaterials ?? [],
+          outputGradeId: entry.outputGradeId,
         })
       )
     }
@@ -365,6 +525,7 @@ export function advanceProductionQueues(state: GameState) {
       ...state,
       inventory: nextInventory,
       productionQueue: nextQueue,
+      fabricatedEquipmentLots,
     }),
     completed,
     notes,

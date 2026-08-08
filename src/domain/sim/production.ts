@@ -12,11 +12,7 @@ import {
   formatProductionOutputLabel,
   resolveProductionRecipeGradeOutcome,
 } from '../crafting'
-import {
-  type FabricatedEquipmentLot,
-  type GameState,
-  type ProductionQueueEntry,
-} from '../models'
+import { type FabricatedEquipmentLot, type GameState, type ProductionQueueEntry } from '../models'
 import { isEquipmentGradeId } from '../equipmentGrade'
 import {
   EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES,
@@ -34,8 +30,38 @@ import {
   rollNextMarket,
 } from '../../data/production'
 
+const UNSAFE_PRODUCTION_QUEUE_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+const INTEGER_INDEX_PATTERN = /^(0|[1-9]\d*)$/
+
+export function isSafeProductionQueueId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value === value.trim() &&
+    !INTEGER_INDEX_PATTERN.test(value) &&
+    !UNSAFE_PRODUCTION_QUEUE_IDS.has(value)
+  )
+}
+
+function hasOwn(object: object, key: PropertyKey) {
+  return Object.prototype.hasOwnProperty.call(object, key)
+}
+
 function nextQueueId(state: GameState) {
-  return `queue-${state.week}-${state.productionQueue.length + 1}-${state.events.length + 1}`
+  const reserved = new Set([
+    ...state.productionQueue.map((entry) => entry.id),
+    ...Object.keys(state.fabricatedEquipmentLots ?? {}),
+  ])
+  const baseId = `queue-${state.week}-${state.productionQueue.length + 1}-${state.events.length + 1}`
+  let candidate = baseId
+  let suffix = 2
+
+  while (reserved.has(candidate)) {
+    candidate = `${baseId}-${suffix}`
+    suffix += 1
+  }
+
+  return candidate
 }
 
 function coerceFiniteNumber(value: unknown, fallback: number) {
@@ -221,6 +247,8 @@ export function reconcileProductionGradeSnapshot(
         : undefined
   if (!outputGradeExplanationCodes) return undefined
 
+  // A complete, canonical snapshot is historical queue truth. Do not compare it
+  // with the current recipe: catalog/rule edits must not rewrite in-flight jobs.
   return { outputGradeId: gradeIdValue, outputGradeVisibility, outputGradeExplanationCodes }
 }
 
@@ -376,7 +404,9 @@ export function resolveCaseScopedWorkshopFinalizationCases(state: GameState): Ga
       continue
     }
 
-    if (!isCaseScopedWorkshopFinalizationHandoff(currentCase.departmentWorkshopFinalizationHandoff)) {
+    if (
+      !isCaseScopedWorkshopFinalizationHandoff(currentCase.departmentWorkshopFinalizationHandoff)
+    ) {
       continue
     }
 
@@ -428,7 +458,26 @@ export function advanceProductionQueues(state: GameState) {
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
-    if (fabricatedEquipmentLots[entry.id]) {
+    if (!isSafeProductionQueueId(entry.id)) {
+      nextQueue.push(entry)
+      continue
+    }
+
+    const existingLot = hasOwn(fabricatedEquipmentLots, entry.id)
+      ? fabricatedEquipmentLots[entry.id]
+      : undefined
+    if (
+      existingLot &&
+      existingLot.queueId === entry.id &&
+      existingLot.recipeId === entry.recipeId &&
+      existingLot.itemId === entry.outputItemId &&
+      existingLot.quantity === entry.outputQuantity &&
+      existingLot.gradeId === entry.outputGradeId
+    ) {
+      continue
+    }
+    if (existingLot) {
+      nextQueue.push(entry)
       continue
     }
 

@@ -201,11 +201,60 @@ describe('equipment-grade fabrication contract', () => {
     expect(replay.eventDrafts).toEqual([])
   })
 
+  it('keeps a live job queued when its id conflicts with a different completed lot', () => {
+    const queued = queueFabrication(createStartingState(), 'emf-sensors')
+    const entry = { ...queued.productionQueue[0]!, remainingWeeks: 1 }
+    const inventoryBefore = structuredClone(queued.inventory)
+    const result = advanceProductionQueues({
+      ...queued,
+      productionQueue: [entry],
+      fabricatedEquipmentLots: {
+        [entry.id]: {
+          queueId: entry.id,
+          recipeId: entry.recipeId,
+          itemId: entry.outputItemId,
+          quantity: entry.outputQuantity,
+          gradeId: 'grade_1',
+          completedWeek: queued.week,
+        },
+      },
+    })
+
+    expect(result.state.productionQueue).toEqual([entry])
+    expect(result.state.inventory).toEqual(inventoryBefore)
+    expect(result.completed).toEqual([])
+    expect(result.eventDrafts).toEqual([])
+  })
+
+  it('allocates new queue ids around durable completed-lot ids', () => {
+    const state = createStartingState()
+    const first = queueFabrication(state, 'med-kits').productionQueue[0]!
+    const queued = queueFabrication(
+      {
+        ...state,
+        fabricatedEquipmentLots: {
+          [first.id]: {
+            queueId: first.id,
+            recipeId: first.recipeId,
+            itemId: first.outputItemId,
+            quantity: first.outputQuantity,
+            gradeId: first.outputGradeId,
+            completedWeek: state.week,
+          },
+        },
+      },
+      'med-kits'
+    )
+
+    expect(queued.productionQueue[0]!.id).not.toBe(first.id)
+  })
+
   it('hydrates legacy queues, preserves valid lots, and drops malformed siblings', () => {
     const fallback = createStartingState()
     const queued = queueFabrication(fallback, 'med-kits')
     const legacyQueue = structuredClone(queued.productionQueue)
     const legacyEntry = legacyQueue[0] as unknown as Record<string, unknown>
+    legacyEntry.id = 'queue-complete'
     delete legacyEntry.outputGradeId
     delete legacyEntry.outputGradeVisibility
     delete legacyEntry.outputGradeExplanationCodes
@@ -215,24 +264,50 @@ describe('equipment-grade fabrication contract', () => {
         game: {
           ...queued,
           productionQueue: legacyQueue,
-          fabricatedEquipmentLots: {
-            'queue-complete': {
-              queueId: 'queue-complete',
-              recipeId: 'med-kits',
-              itemId: 'medkits',
-              quantity: 1,
-              gradeId: 'grade_1',
-              completedWeek: 1,
-            },
-            broken: {
-              queueId: 'wrong-key',
-              recipeId: 'med-kits',
-              itemId: 'medkits',
-              quantity: 1,
-              gradeId: 'grade_5',
-              completedWeek: 1,
-            },
-          },
+          fabricatedEquipmentLots: JSON.parse(
+            JSON.stringify({
+              'queue-complete': {
+                queueId: 'queue-complete',
+                recipeId: 'med-kits',
+                itemId: 'medkits',
+                quantity: 1,
+                gradeId: 'grade_1',
+                completedWeek: 1,
+              },
+              broken: {
+                queueId: 'wrong-key',
+                recipeId: 'med-kits',
+                itemId: 'medkits',
+                quantity: 1,
+                gradeId: 'grade_5',
+                completedWeek: 1,
+              },
+              constructor: {
+                queueId: 'constructor',
+                recipeId: 'med-kits',
+                itemId: 'medkits',
+                quantity: 1,
+                gradeId: 'grade_1',
+                completedWeek: 1,
+              },
+              prototype: {
+                queueId: 'prototype',
+                recipeId: 'med-kits',
+                itemId: 'medkits',
+                quantity: 1,
+                gradeId: 'grade_1',
+                completedWeek: 1,
+              },
+              ['__proto__']: {
+                queueId: '__proto__',
+                recipeId: 'med-kits',
+                itemId: 'medkits',
+                quantity: 1,
+                gradeId: 'grade_1',
+                completedWeek: 1,
+              },
+            })
+          ),
         },
       },
       GAME_STORE_VERSION,
@@ -244,6 +319,7 @@ describe('equipment-grade fabrication contract', () => {
       outputGradeVisibility: 'known',
       outputGradeExplanationCodes: ['fabrication_grade.catalog'],
     })
+    expect(hydrated.productionQueue[0]!.id).not.toBe('queue-complete')
     expect(hydrated.fabricatedEquipmentLots).toEqual({
       'queue-complete': {
         queueId: 'queue-complete',

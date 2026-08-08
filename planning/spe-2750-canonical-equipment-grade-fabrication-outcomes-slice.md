@@ -57,6 +57,7 @@ No legacy field therefore requires retention, renaming, or migration in this sli
 ## Persistence and compatibility
 
 `ProductionQueueEntry` snapshots `outputGradeId`, visibility, and stable explanation codes.
+Complete canonical snapshots are historical queue truth and are intentionally not re-resolved after queueing; only legacy entries missing all snapshot fields derive them from the current validated recipe and catalog.
 `GameState.fabricatedEquipmentLots` stores completed batch identity, item, quantity, canonical grade,
 and completion week while `GameState.inventory` remains the quantity authority. Completion is
 idempotent when a lot already exists for the queue ID.

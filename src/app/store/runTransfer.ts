@@ -12,6 +12,7 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import {
+  isSafeProductionQueueId,
   reconcileProductionGradeSnapshot,
   reconcileProductionQueueCompletedFields,
   reconcileProductionQueueStartedFields,
@@ -5072,18 +5073,21 @@ function isProductionQueueEntryInFlight(remainingWeeks: number, durationWeeks: n
 /** Hydration 554/556: trim ids and regenerate duplicates (`id-dup-N`). */
 function assignUniqueQueueEntryIds<T extends { id: string }>(
   entries: readonly T[],
-  fallbackPrefix: string
+  fallbackPrefix: string,
+  reservedIds: readonly string[] = []
 ): T[] {
-  const seen = new Set<string>()
+  const seen = new Set<string>(reservedIds)
   const next: T[] = []
 
   for (const [index, entry] of entries.entries()) {
     const trimmed = entry.id.trim()
-    const baseId = trimmed.length > 0 ? trimmed : `${fallbackPrefix}-${index + 1}`
+    const baseId = isSafeProductionQueueId(trimmed) ? trimmed : `${fallbackPrefix}-${index + 1}`
     let resolvedId = baseId
 
-    if (seen.has(resolvedId)) {
-      resolvedId = `${baseId}-dup-${index + 1}`
+    let duplicateOrdinal = index + 1
+    while (seen.has(resolvedId)) {
+      resolvedId = `${baseId}-dup-${duplicateOrdinal}`
+      duplicateOrdinal += 1
     }
 
     seen.add(resolvedId)
@@ -5422,7 +5426,8 @@ function sanitizeTrainingQueue(
 function sanitizeProductionQueue(
   value: unknown,
   campaignWeek: number,
-  market: MarketState
+  market: MarketState,
+  reservedIds: readonly string[] = []
 ): ProductionQueueEntry[] {
   if (!Array.isArray(value)) {
     return []
@@ -5517,7 +5522,7 @@ function sanitizeProductionQueue(
     })
   }
 
-  return assignUniqueQueueEntryIds(nextQueue, 'queue')
+  return assignUniqueQueueEntryIds(nextQueue, 'queue', reservedIds)
 }
 
 function sanitizeFabricatedEquipmentLots(
@@ -5527,15 +5532,12 @@ function sanitizeFabricatedEquipmentLots(
   if (!isRecord(value)) return {}
 
   const lots: FabricatedEquipmentLotRegistry = {}
-  const integerIndexPattern = /^(0|[1-9]\d*)$/
-
   for (const queueId of Object.keys(value).sort((left, right) =>
     left < right ? -1 : left > right ? 1 : 0
   )) {
     const lot = value[queueId]
     if (
-      queueId.trim().length === 0 ||
-      integerIndexPattern.test(queueId) ||
+      !isSafeProductionQueueId(queueId) ||
       !isRecord(lot) ||
       lot.queueId !== queueId ||
       typeof lot.recipeId !== 'string' ||
@@ -9648,6 +9650,10 @@ export function hydrateGame(
   })
   const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
   const market = sanitizeMarket(game.market, fallback.market, week)
+  const fabricatedEquipmentLots = sanitizeFabricatedEquipmentLots(
+    game.fabricatedEquipmentLots,
+    week
+  )
   const inventory = sanitizeInventory(game.inventory, fallback.inventory)
   const damagedEquipmentQueue = sanitizeDamagedEquipmentQueue(
     game.damagedEquipmentQueue,
@@ -9799,8 +9805,13 @@ export function hydrateGame(
     compromisedAuthority: sanitizeCompromisedAuthorityState(game.compromisedAuthority, factions),
     trainingQueue: sanitizeTrainingQueue(game.trainingQueue, agents, teams, academyTier, week),
     market,
-    productionQueue: sanitizeProductionQueue(game.productionQueue, week, market),
-    fabricatedEquipmentLots: sanitizeFabricatedEquipmentLots(game.fabricatedEquipmentLots, week),
+    productionQueue: sanitizeProductionQueue(
+      game.productionQueue,
+      week,
+      market,
+      Object.keys(fabricatedEquipmentLots)
+    ),
+    fabricatedEquipmentLots,
     config,
     campaignLedger: sanitizeCampaignLedger(
       game.campaignLedger,

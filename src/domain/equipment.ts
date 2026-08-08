@@ -8,6 +8,13 @@ import type {
   Id,
   StatKey,
 } from './models'
+import {
+  createEquipmentGradeDistributionReport,
+  resolveEquipmentGradeCatalogProjection,
+  validateEquipmentGradeCatalogProfile,
+  type EquipmentGradeCatalogProfile,
+} from './equipmentGradeCatalog'
+import type { EquipmentGradeVisibility } from './equipmentGrade'
 import { assessResearchRequirements } from './research'
 import { cloneDomainStats } from './statDomains'
 
@@ -111,6 +118,7 @@ export interface EquipmentDefinition {
   name: string
   slot: EquipmentSlotKind
   legacyEffectScale: number
+  gradeProfile: EquipmentGradeCatalogProfile
   tags: string[]
   allowedSlots: EquipmentSlotKind[]
   statModifiers: Partial<DomainStats>
@@ -368,6 +376,7 @@ const EQUIPMENT_DEFINITION_KEYS = new Set<keyof EquipmentDefinition>([
   'name',
   'slot',
   'legacyEffectScale',
+  'gradeProfile',
   'tags',
   'allowedSlots',
   'statModifiers',
@@ -543,6 +552,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Silver Rounds',
     slot: 'primary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'hybrid',
+      functionalClass: 'combat',
+      catalogSegment: 'craftable',
+    },
     tags: ['combat', 'breach', 'anti-spirit', 'silver', 'threat'],
     allowedSlots: ['primary'],
     rarity: 'uncommon',
@@ -568,6 +585,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Ward Seals',
     slot: 'secondary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'containment', 'anti-spirit', 'seal', 'ritual'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -593,6 +618,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Emergency Medkits',
     slot: 'utility1',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'craftable',
+    },
     tags: ['medical', 'stabilization', 'hazmat', 'support'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -618,6 +651,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Diplomatic Kit',
     slot: 'secondary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'diplomacy',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['social', 'negotiation', 'interview', 'support', 'communication'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -643,6 +684,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Signal Jammers',
     slot: 'utility1',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'craftable',
+    },
     tags: ['surveillance', 'signal', 'intel', 'analysis'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -666,6 +715,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'EMF Sensors',
     slot: 'utility2',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'craftable',
+    },
     tags: ['surveillance', 'anomaly', 'analysis', 'evidence', 'field'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -691,6 +748,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Handheld Anomaly Scanner',
     slot: 'secondary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'anomaly', 'surveillance', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -716,6 +781,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Spectral / EM Sensor Array',
     slot: 'headgear',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'surveillance', 'signal', 'anomaly', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -742,6 +815,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Environmental Sampler',
     slot: 'utility2',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'environmental', 'hazmat', 'evidence', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -768,6 +849,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Encrypted Field Tablet',
     slot: 'utility1',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'analysis', 'signal', 'communication', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -793,6 +882,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Advanced Recon Suite',
     slot: 'headgear',
     legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'surveillance', 'pathfinding', 'analysis', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -819,6 +916,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Occult Detection Array',
     slot: 'utility2',
     legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'occult', 'anomaly', 'surveillance', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -846,6 +951,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Signal Intercept Kit',
     slot: 'utility1',
     legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'signal', 'cyber', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'rare',
@@ -873,6 +986,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Warding Kits',
     slot: 'secondary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'containment', 'anti-spirit', 'ritual', 'hazmat'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -898,6 +1019,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Ritual Components',
     slot: 'utility2',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'ritual', 'anomaly', 'analysis', 'containment'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -924,6 +1053,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Field Plate',
     slot: 'armor',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['armor', 'hazmat', 'breach', 'protection'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -949,6 +1086,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Containment Staff',
     slot: 'primary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['occult', 'containment', 'stabilization', 'support', 'ritual'],
     allowedSlots: ['primary', 'secondary'],
     rarity: 'uncommon',
@@ -973,6 +1118,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Hazmat Suit',
     slot: 'armor',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'licensed_procurement',
+    },
     tags: ['armor', 'hazmat', 'protection', 'biocontainment', 'support', 'licensed-procurement'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -996,6 +1149,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Analysis Goggles',
     slot: 'headgear',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['surveillance', 'analysis', 'investigation', 'intel'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -1020,6 +1181,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Trauma Kit',
     slot: 'utility2',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['medical', 'trauma', 'field', 'physical', 'stabilization'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1045,6 +1214,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Combat Stims',
     slot: 'utility1',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'licensed_procurement',
+    },
     tags: ['combat', 'stimulant', 'physical', 'support', 'medical', 'licensed-procurement'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1069,6 +1246,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Tactical Radio',
     slot: 'secondary',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['tactical', 'communication', 'signal', 'field', 'surveillance'],
     allowedSlots: ['secondary', 'utility1'],
     rarity: 'uncommon',
@@ -1093,6 +1278,14 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Breach Visor',
     slot: 'headgear',
     legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['surveillance', 'breach', 'witness', 'field'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -1183,7 +1376,64 @@ function assertAllowedKeys(input: Record<string, unknown>, allowedKeys: Set<stri
   }
 }
 
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`
+  }
+  if (isPlainObject(value)) {
+    return `{${Object.keys(value)
+      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+      .map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'undefined'
+}
+
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function sortSetLikeValues<T extends string>(values: readonly T[] | undefined) {
+  return values === undefined || values.length === 0
+    ? undefined
+    : [...values].sort(compareCodeUnits)
+}
+
+function getGradeConsistencyFingerprint(definition: EquipmentDefinition) {
+  const contextModifiers = definition.contextModifiers
+    ?.map((modifier) => ({
+      rule: {
+        ...modifier.rule,
+        requiredTags: sortSetLikeValues(modifier.rule.requiredTags),
+        kinds: sortSetLikeValues(modifier.rule.kinds),
+      },
+      statModifiers: modifier.statModifiers,
+    }))
+    .sort((left, right) => compareCodeUnits(stableSerialize(left), stableSerialize(right)))
+
+  return stableSerialize({
+    slot: definition.slot,
+    legacyEffectScale: definition.legacyEffectScale,
+    tags: sortSetLikeValues(definition.tags),
+    allowedSlots: sortSetLikeValues(definition.allowedSlots),
+    statModifiers: definition.statModifiers,
+    contextModifiers,
+    enchantmentIds: sortSetLikeValues(definition.enchantmentIds),
+  })
+}
+
+function getGradeAssignmentFingerprint(profile: EquipmentGradeCatalogProfile) {
+  return profile.state === 'graded' || profile.state === 'hidden_until_identified'
+    ? `graded:${profile.gradeId}`
+    : profile.state
+}
+
 export function validateEquipmentCatalogDefinitions(catalog: Record<string, EquipmentDefinition>) {
+  const consistencyGroups = new Map<
+    string,
+    Map<string, { itemId: string; assignment: string }>
+  >()
+
   for (const [itemId, definition] of Object.entries(catalog)) {
     assertNoForbiddenDesignKeys(definition, `equipment.${itemId}`)
     assertAllowedKeys(
@@ -1208,6 +1458,34 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
       throw new Error(
         `Invalid equipment definition at equipment.${itemId}: legacyEffectScale must be a positive integer.`
       )
+    }
+
+    const gradeValidation = validateEquipmentGradeCatalogProfile(definition.gradeProfile)
+    if (!gradeValidation.valid) {
+      const issueSummary = gradeValidation.issues
+        .map((issue) => `${issue.code}:${issue.field}`)
+        .join(',')
+      throw new Error(
+        `Invalid equipment definition at equipment.${itemId}.gradeProfile: ${issueSummary}.`
+      )
+    }
+
+    const consistencyFingerprint = getGradeConsistencyFingerprint(definition)
+    const assignmentFingerprint = getGradeAssignmentFingerprint(gradeValidation.value)
+    const variantKey = gradeValidation.value.variantId ?? ''
+    const assignmentsByVariant = consistencyGroups.get(consistencyFingerprint) ?? new Map()
+    const existing = assignmentsByVariant.get(variantKey)
+    if (existing && existing.assignment !== assignmentFingerprint) {
+      throw new Error(
+        `Invalid equipment grade assignment at equipment.${itemId}: operationally identical definition equipment.${existing.itemId} uses a different grade without a distinct authored variantId.`
+      )
+    }
+    if (!existing) {
+      assignmentsByVariant.set(variantKey, {
+        itemId,
+        assignment: assignmentFingerprint,
+      })
+      consistencyGroups.set(consistencyFingerprint, assignmentsByVariant)
     }
 
     if (definition.allowedSlots.length === 0) {
@@ -1302,6 +1580,7 @@ export function getEquipmentCatalogEntries() {
   return Object.values(EQUIPMENT_CATALOG)
     .map((definition) => ({
       ...definition,
+      gradeProfile: { ...definition.gradeProfile },
       allowedSlots: [...definition.allowedSlots],
       tags: [...definition.tags],
       contextModifiers: definition.contextModifiers?.map((modifier) => ({
@@ -1903,8 +2182,9 @@ function resolveActiveEquipmentSets(items: EquipmentItem[]): EquipmentSet[] {
 
 function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Partial<DomainStats> {
   const equippedItemIds = new Set(items.map((item) => item.id))
-  const averageEffectScale =
-    items.length > 0 ? items.reduce((sum, item) => sum + item.legacyEffectScale, 0) / items.length : 1
+  const averageEffectScale = items.length > 0
+    ? items.reduce((sum, item) => sum + item.legacyEffectScale, 0) / items.length
+    : 1
 
   return sets.reduce<Partial<DomainStats>>((merged, set) => {
     const itemsInSet = set.itemIds.filter((id) => equippedItemIds.has(id))
@@ -1941,6 +2221,19 @@ export function getLicensedHandlingRequirement(itemId: string): boolean {
 
 export function getEquipmentDefinition(itemId: string) {
   return EQUIPMENT_CATALOG[itemId]
+}
+
+export function resolveEquipmentDefinitionGrade(
+  itemId: string,
+  visibility?: EquipmentGradeVisibility
+) {
+  const definition = EQUIPMENT_CATALOG[itemId]
+  if (!definition) return undefined
+  return resolveEquipmentGradeCatalogProjection(definition.gradeProfile, visibility)
+}
+
+export function getEquipmentGradeDistributionReport() {
+  return createEquipmentGradeDistributionReport(Object.values(EQUIPMENT_CATALOG))
 }
 
 export function getEquipmentLabel(itemId: string) {

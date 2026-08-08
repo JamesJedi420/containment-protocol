@@ -30,9 +30,22 @@ Canonical grade is independent from:
 No conversion, inference, or fallback is allowed between these axes. Consumers must import the
 canonical registry and resolver instead of defining private grade tables.
 
-## Slice boundary
+## Catalog adoption
 
-This contract is pure and non-persistent. SPE-2798 does not add grade to `EquipmentDefinition`,
-the production catalog, saves, UI, fabrication, recovery, Auto-Scrap, or identification workflows.
-Representative ordinary, magical, technological, ungraded, and hidden cases remain test fixtures
-until their owning downstream slices adopt the contract.
+SPE-2751 adds an explicit `gradeProfile` to every supported `EquipmentDefinition`. The profile
+records a catalog participation state plus origin, functional class, and catalog segment. Graded
+and hidden-until-identified profiles also record one canonical grade ID and its construction-
+maturity authoring basis. Intentionally ungraded, taxonomy-excluded, and design-review-held
+profiles record a non-empty reason instead of a grade ID.
+
+The catalog adapter converts authored profiles to the SPE-2798 authoritative graded/ungraded
+contract and visibility-safe projection. Hidden-until-identified and design-review-held profiles
+always project as `Grade unknown`, even if a caller requests known visibility. Distribution
+reporting includes their participation and dimension totals but excludes their authoritative grade
+from grade buckets, so diagnostics cannot distinguish hidden Grade I from hidden Grade V.
+Player-facing consumers must use the projection resolver.
+
+Grade remains definition-owned and non-persistent. Inventory, loadouts, production, procurement,
+and recovery continue to carry stable item IDs, so catalog adoption requires no save or schema
+version change. Fabrication outcomes, recovery effects, Auto-Scrap, identification workflows, and
+UI remain owned by their downstream slices.

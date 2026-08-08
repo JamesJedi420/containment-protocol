@@ -88,6 +88,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **In progress:** (none)
 
+**Recently shipped:** [SPE-2798](https://linear.app/spectranoir/issue/SPE-2798/canonical-equipment-grade-registry-and-resolver) — frozen Grade I–V canonical registry, strict graded/ungraded participation validation, deterministic ordering helpers, and a hidden-safe unknown projection with no catalog, persistence, readiness, or UI integration; branch `jamesdyedbq/spe-2798-canonical-equipment-grade-registry-and-resolver`. Parent SPE-2746 remains open for downstream adoption.
+
 **Recently shipped:** [SPE-2269](https://linear.app/spectranoir/issue/SPE-2269/deployable-readiness-composition-registry-slice-1) — pure deterministic certification, equipment-tier, and operative-condition composition registry with fail-closed missing inputs, bounded readiness bands, recomputed validation, stable code-unit ordering, and targeted tests; PR #3469; parent SPE-1023 remains open.
 
 **Recently shipped:** [SPE-2792](https://linear.app/spectranoir/issue/SPE-2792/canonical-live-facility-workshop-room-condition-quality-integration) — authored live `facility:biohazard-response-lab` state now composes only the existing `roomContamination` quality axis into exact completed biohazard-response work orders through the sole canonical completion registrar; active remains nominal, absent or non-active becomes `poor_room_contamination`, caller-owned sibling axes remain intact, and stored receipts remain replay-stable; PR #3468; parent SPE-1028 remains open.

@@ -5658,13 +5658,16 @@ function sanitizeEquipmentDeconstructionQueue(
     }
     const definition = getEquipmentDefinition(entry.itemId)
     const outputMaterials = sanitizeEquipmentRecoveryMaterials(entry.outputMaterials)
-    const explanationCodes = Array.isArray(entry.explanationCodes)
-      ? entry.explanationCodes.filter(isEquipmentGradeRecoveryExplanationCode)
-      : []
+    const rawExplanationCodes = Array.isArray(entry.explanationCodes)
+      ? entry.explanationCodes
+      : undefined
+    const explanationCodes =
+      rawExplanationCodes?.filter(isEquipmentGradeRecoveryExplanationCode) ?? []
     if (
       !definition ||
       !outputMaterials ||
-      explanationCodes.length !== entry.explanationCodes.length ||
+      !rawExplanationCodes ||
+      explanationCodes.length !== rawExplanationCodes.length ||
       explanationCodes.length === 0 ||
       new Set(explanationCodes).size !== explanationCodes.length
     ) {

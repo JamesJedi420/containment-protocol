@@ -155,7 +155,7 @@ export function queueEquipmentDeconstruction(state: GameState, itemId: string): 
     sourceCondition: preview.resolution.condition,
     outputMaterials: preview.resolution.materials.map((material) => ({
       materialId: material.materialId,
-      materialName: inventoryItemLabels[material.materialId] ?? material.materialId,
+      materialName: inventoryItemLabels[material.materialId]!,
       quantity: material.quantity,
     })),
     wasteQuantity: preview.resolution.waste,

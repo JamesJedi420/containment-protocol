@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
 import {
@@ -11,8 +11,8 @@ import {
 function EquipmentPage() {
   const { game, equipAgentItem, unequipAgentItem, queueEquipmentDeconstruction } = useGameStore()
   const loadoutViews = getAgentEquipmentLoadoutViews(game)
-  const deconstructionViews = getEquipmentDeconstructionViews(game)
-  const deconstructionQueue = getEquipmentDeconstructionQueueViews(game)
+  const deconstructionViews = useMemo(() => getEquipmentDeconstructionViews(game), [game])
+  const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 

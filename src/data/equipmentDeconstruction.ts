@@ -2,14 +2,11 @@ import {
   validateEquipmentGradeRecoveryRule,
   type EquipmentGradeRecoveryRule,
 } from '../domain/equipmentGradeRecovery'
+import { productionMaterialCatalog } from './production'
 
-const RECOVERABLE_PRODUCTION_MATERIAL_IDS = new Set([
-  'electronic_parts',
-  'medical_supplies',
-  'occult_reagents',
-  'warding_resin',
-  'ballistic_supplies',
-])
+const RECOVERABLE_PRODUCTION_MATERIAL_IDS = new Set(
+  productionMaterialCatalog.map((material) => material.materialId)
+)
 
 export type EquipmentDeconstructionProfile =
   | Readonly<{ state: 'eligible'; itemId: string; rule: EquipmentGradeRecoveryRule }>
@@ -64,7 +61,7 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     baseWaste: 2,
     baseDurationWeeks: 1,
     thresholdGradeId: 'grade_2',
-    bonusMaterialId: 'occult_reagents',
+    bonusMaterialId: 'electronic_parts',
     bonusQuantity: 1,
     wasteReduction: 1,
   }),

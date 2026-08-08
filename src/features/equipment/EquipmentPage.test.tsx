@@ -22,6 +22,20 @@ beforeEach(() => {
 })
 
 describe('EquipmentPage', () => {
+  it('shows deconstruction and active-queue empty states', () => {
+    const game = createStartingState()
+    game.inventory = {}
+    game.equipmentDeconstructionQueue = []
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByText(/no equipment stock is available for deconstruction/i)
+    ).toBeInTheDocument()
+    expect(screen.getByText(/no equipment is currently being dismantled/i)).toBeInTheDocument()
+  })
+
   it('shows active case gear recommendations', () => {
     const game = createStartingState()
     const sampleCase = Object.values(game.cases)[0]

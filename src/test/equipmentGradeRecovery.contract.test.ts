@@ -320,6 +320,10 @@ describe('equipment-grade recovery contract', () => {
       {
         game: {
           ...queued,
+          equipmentDeconstructionQueue: [
+            entry,
+            { ...entry, id: 'missing-explanations', explanationCodes: undefined },
+          ],
           equipmentRecoveryOutcomes: {
             valid: {
               queueId: 'valid',

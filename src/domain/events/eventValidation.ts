@@ -713,7 +713,17 @@ const equipmentRecoveryEventShape = {
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
   sourceCondition: z.enum(['operational', 'damaged']),
-  outputMaterials: z.array(materialRequirementSchema).min(1),
+  outputMaterials: z
+    .array(
+      z
+        .object({
+          materialId: idSchema,
+          materialName: z.string(),
+          quantity: finitePositiveIntSchema,
+        })
+        .strict()
+    )
+    .min(1),
   wasteQuantity: finiteNonNegativeIntSchema,
 }
 

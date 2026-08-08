@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EquipmentRarity } from '../domain/equipment'
+import type { EquipmentGradeParticipation } from '../domain/equipmentGrade'
 import {
   EQUIPMENT_GRADE_DEFINITIONS,
   EQUIPMENT_GRADE_IDS,
@@ -10,7 +11,6 @@ import {
   isEquipmentGradeId,
   resolveEquipmentGradeProjection,
   validateEquipmentGradeParticipation,
-  type EquipmentGradeParticipation,
 } from '../domain/equipmentGrade'
 
 const REPRESENTATIVE_FIXTURES = [
@@ -151,9 +151,10 @@ describe('canonical equipment-grade contract', () => {
   })
 
   it('projects known graded and ungraded participation with non-hover text', () => {
-    expect(
-      resolveEquipmentGradeProjection({ state: 'graded', gradeId: 'grade_3' }, 'known')
-    ).toEqual({
+    const graded = resolveEquipmentGradeProjection({ state: 'graded', gradeId: 'grade_3' }, 'known')
+    const ungraded = resolveEquipmentGradeProjection({ state: 'ungraded' }, 'known')
+
+    expect(graded).toEqual({
       state: 'graded',
       gradeId: 'grade_3',
       rank: 3,
@@ -162,13 +163,15 @@ describe('canonical equipment-grade contract', () => {
       accessibleText: 'Equipment grade: Grade III',
       debugText: 'equipment-grade:grade_3',
     })
-    expect(resolveEquipmentGradeProjection({ state: 'ungraded' }, 'known')).toEqual({
+    expect(ungraded).toEqual({
       state: 'ungraded',
       label: 'Ungraded',
       localizationKey: 'equipment.grade.ungraded',
       accessibleText: 'Equipment grade: Ungraded',
       debugText: 'equipment-grade:ungraded',
     })
+    expect(Object.isFrozen(graded)).toBe(true)
+    expect(Object.isFrozen(ungraded)).toBe(true)
   })
 
   it('uses one identical leak-free projection for every hidden truth', () => {
@@ -184,6 +187,9 @@ describe('canonical equipment-grade contract', () => {
 
     expect(hiddenGradeOne).toEqual(hiddenGradeFive)
     expect(hiddenGradeOne).toEqual(hiddenUngraded)
+    expect(Object.isFrozen(hiddenGradeOne)).toBe(true)
+    expect(Object.isFrozen(hiddenGradeFive)).toBe(true)
+    expect(Object.isFrozen(hiddenUngraded)).toBe(true)
     expect(hiddenGradeOne).toEqual({
       state: 'unknown',
       label: 'Grade unknown',

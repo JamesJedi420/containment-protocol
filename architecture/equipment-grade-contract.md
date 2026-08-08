@@ -10,11 +10,12 @@ only source of grade identifiers, order, labels, and localization keys.
 Authoritative participation is either `graded` with one canonical grade ID or `ungraded`.
 `unknown` is never authoritative equipment data: it is the fail-closed projection returned when
 grade visibility is hidden. A hidden graded item and a hidden ungraded item produce the same
-projection, which contains no authoritative ID, rank, grade-specific key, or label.
+projection, which contains no authoritative ID, rank, grade-specific key, or grade-specific label.
 
 Known projections provide stable visible text, localization keys, accessibility text, and debug
-text without relying on hover behavior. Hidden projections provide only `Grade unknown` and the
-generic `equipment.grade.unknown` key.
+text without relying on hover behavior. Hidden projections retain the `unknown` state, generic
+`Grade unknown` label, `equipment.grade.unknown` key, accessibility text, and debug text; none of
+these generic fields reveals the authoritative grade.
 
 ## Coexistence rules
 

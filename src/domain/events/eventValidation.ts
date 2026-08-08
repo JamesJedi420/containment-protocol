@@ -12,6 +12,8 @@ import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
 import { EXACT_POTENTIAL_TIERS } from '../agentPotential'
 import { getWeeklyDirectiveDefinition, isWeeklyDirectiveId } from '../directives'
 import { CASE_KINDS, CASE_MODES } from '../models'
+import { EQUIPMENT_GRADE_IDS } from '../equipmentGrade'
+import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGradeFabrication'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -660,10 +662,28 @@ const productionQueueStartedSchema = z
     etaWeeks: finitePositiveIntSchema,
     fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
+    outputGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
+    outputGradeVisibility: z.enum(['known', 'hidden']).optional(),
+    outputGradeExplanationCodes: z
+      .array(z.enum(EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES))
+      .min(1)
+      .optional(),
   })
   .strict()
   .superRefine((payload, context) => {
     refineProductionQueueCatalogMembership(payload, context)
+    const gradeFieldCount = [
+      payload.outputGradeId,
+      payload.outputGradeVisibility,
+      payload.outputGradeExplanationCodes,
+    ].filter((value) => value !== undefined).length
+    if (gradeFieldCount !== 0 && gradeFieldCount !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['outputGradeId'],
+        message: 'production grade snapshot fields must be supplied together',
+      })
+    }
   })
 
 const productionQueueCompletedSchema = z
@@ -677,6 +697,7 @@ const productionQueueCompletedSchema = z
     outputQuantity: finitePositiveIntSchema,
     fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
+    outputGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
   })
   .strict()
   .superRefine((payload, context) => {

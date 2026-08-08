@@ -14,6 +14,8 @@ import type {
   StatKey,
   WeeklyDirectiveId,
 } from '../models'
+import type { EquipmentGradeId, EquipmentGradeVisibility } from '../equipmentGrade'
+import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGradeFabrication'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -387,6 +389,7 @@ export interface OperationEventPayloadMap {
     outputQuantity: number
     fundingCost: number
     inputMaterials: ProductionMaterialRequirement[]
+    outputGradeId?: EquipmentGradeId
   }
   'production.queue_started': {
     week: number
@@ -399,6 +402,9 @@ export interface OperationEventPayloadMap {
     etaWeeks: number
     fundingCost: number
     inputMaterials: ProductionMaterialRequirement[]
+    outputGradeId?: EquipmentGradeId
+    outputGradeVisibility?: EquipmentGradeVisibility
+    outputGradeExplanationCodes?: EquipmentGradeFabricationExplanationCode[]
   }
   'market.shifted': {
     week: number

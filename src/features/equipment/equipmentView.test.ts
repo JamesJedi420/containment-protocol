@@ -107,6 +107,9 @@ describe('getGearRecommendationsForActiveCases', () => {
         durationWeeks: 1,
         remainingWeeks: 1,
         fundingCost: 14,
+        outputGradeId: 'grade_1',
+        outputGradeVisibility: 'known',
+        outputGradeExplanationCodes: ['fabrication_grade.catalog'],
       },
       {
         id: 'q-medkits-2',
@@ -119,6 +122,9 @@ describe('getGearRecommendationsForActiveCases', () => {
         durationWeeks: 1,
         remainingWeeks: 1,
         fundingCost: 14,
+        outputGradeId: 'grade_1',
+        outputGradeVisibility: 'known',
+        outputGradeExplanationCodes: ['fabrication_grade.catalog'],
       },
     ]
 

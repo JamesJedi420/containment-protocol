@@ -12,9 +12,11 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import {
+  reconcileProductionGradeSnapshot,
   reconcileProductionQueueCompletedFields,
   reconcileProductionQueueStartedFields,
 } from '../../domain/sim/production'
+import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import {
   reconcileAgentTrainingCancelledFields,
   reconcileAgentTrainingCompletedFields,
@@ -135,6 +137,7 @@ import {
   type FacilityInstance,
   type FacilityState,
   type FacilityStatus,
+  type FabricatedEquipmentLotRegistry,
   type GameFlagValue,
   type ResearchProject,
   type ResearchProjectStatus,
@@ -5475,6 +5478,15 @@ function sanitizeProductionQueue(
       campaignWeek
     )
     const inputMaterials = sanitizeProductionInputMaterials(entry, resolvedRecipe)
+    const gradeSnapshot = reconcileProductionGradeSnapshot(
+      recipeId,
+      entry.outputGradeId,
+      entry.outputGradeVisibility,
+      entry.outputGradeExplanationCodes
+    )
+    if (!gradeSnapshot) {
+      continue
+    }
 
     nextQueue.push({
       id:
@@ -5499,10 +5511,59 @@ function sanitizeProductionQueue(
         market
       ),
       ...(inputMaterials ? { inputMaterials } : {}),
+      outputGradeId: gradeSnapshot.outputGradeId,
+      outputGradeVisibility: gradeSnapshot.outputGradeVisibility,
+      outputGradeExplanationCodes: gradeSnapshot.outputGradeExplanationCodes,
     })
   }
 
   return assignUniqueQueueEntryIds(nextQueue, 'queue')
+}
+
+function sanitizeFabricatedEquipmentLots(
+  value: unknown,
+  campaignWeek: number
+): FabricatedEquipmentLotRegistry {
+  if (!isRecord(value)) return {}
+
+  const lots: FabricatedEquipmentLotRegistry = {}
+  const integerIndexPattern = /^(0|[1-9]\d*)$/
+
+  for (const queueId of Object.keys(value).sort((left, right) =>
+    left < right ? -1 : left > right ? 1 : 0
+  )) {
+    const lot = value[queueId]
+    if (
+      queueId.trim().length === 0 ||
+      integerIndexPattern.test(queueId) ||
+      !isRecord(lot) ||
+      lot.queueId !== queueId ||
+      typeof lot.recipeId !== 'string' ||
+      typeof lot.itemId !== 'string' ||
+      !Number.isInteger(lot.quantity) ||
+      (lot.quantity as number) < 1 ||
+      !isEquipmentGradeId(lot.gradeId) ||
+      !Number.isInteger(lot.completedWeek) ||
+      (lot.completedWeek as number) < 1 ||
+      (lot.completedWeek as number) > campaignWeek
+    ) {
+      continue
+    }
+
+    const recipe = getProductionRecipe(lot.recipeId)
+    if (!recipe || recipe.outputItemId !== lot.itemId) continue
+
+    lots[queueId] = Object.freeze({
+      queueId,
+      recipeId: lot.recipeId,
+      itemId: lot.itemId,
+      quantity: lot.quantity as number,
+      gradeId: lot.gradeId,
+      completedWeek: lot.completedWeek as number,
+    })
+  }
+
+  return lots
 }
 
 function sanitizeContractStatBlock(value: unknown, fallback: StatBlock): StatBlock {
@@ -8305,7 +8366,12 @@ function sanitizeOperationEvents(
 
       case 'production.queue_started':
         {
-          const production = reconcileProductionQueueStartedFields(payload)
+          const production = reconcileProductionQueueStartedFields({
+            ...payload,
+            outputGradeId: payload.outputGradeId,
+            outputGradeVisibility: payload.outputGradeVisibility,
+            outputGradeExplanationCodes: payload.outputGradeExplanationCodes,
+          })
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8323,6 +8389,9 @@ function sanitizeOperationEvents(
                 etaWeeks: production.etaWeeks,
                 fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
+                outputGradeId: production.outputGradeId,
+                outputGradeVisibility: production.outputGradeVisibility,
+                outputGradeExplanationCodes: production.outputGradeExplanationCodes,
               },
             })
           )
@@ -8331,7 +8400,10 @@ function sanitizeOperationEvents(
 
       case 'production.queue_completed':
         {
-          const production = reconcileProductionQueueCompletedFields(payload)
+          const production = reconcileProductionQueueCompletedFields({
+            ...payload,
+            outputGradeId: payload.outputGradeId,
+          })
 
           nextEvents.push(
             migrateOperationEventToCurrentSchema({
@@ -8348,6 +8420,7 @@ function sanitizeOperationEvents(
                 outputQuantity: production.outputQuantity,
                 fundingCost: production.fundingCost,
                 inputMaterials: sanitizeOperationEventProductionInputMaterials(payload),
+                outputGradeId: production.outputGradeId,
               },
             })
           )
@@ -9727,6 +9800,7 @@ export function hydrateGame(
     trainingQueue: sanitizeTrainingQueue(game.trainingQueue, agents, teams, academyTier, week),
     market,
     productionQueue: sanitizeProductionQueue(game.productionQueue, week, market),
+    fabricatedEquipmentLots: sanitizeFabricatedEquipmentLots(game.fabricatedEquipmentLots, week),
     config,
     campaignLedger: sanitizeCampaignLedger(
       game.campaignLedger,

@@ -90,6 +90,20 @@ describe('core agent model integration', () => {
     expect(agent.operationalRole).toBe('investigation')
   })
 
+  it('drops persisted equipment effect scales that are not positive integers', () => {
+    const game = createStartingState()
+    game.agents.a_mina.equipmentEffectScales = {
+      signal_jammers: 2,
+      medkits: 0,
+      ward_seals: -1,
+      combat_stims: 0.5,
+    }
+
+    const normalized = normalizeGameState(game)
+
+    expect(normalized.agents.a_mina.equipmentEffectScales).toEqual({ signal_jammers: 2 })
+  })
+
   it('hydrates sparse imported agents without changing the persistence contract', () => {
     const fallback = createStartingState()
     const hydrated = hydrateGame({

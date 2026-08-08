@@ -3379,7 +3379,7 @@ function sanitizeAgentEquipmentSlots(agent: Agent): Agent {
 }
 
 /** SPE-343 / SPE-2797: migrate the legacy map and drop entries that no longer match slots. */
-function reconcileAgentEquipmentEffectScales(agent: Agent): Agent {
+function reconcileAgentEquipmentEffectScales(agent: Agent, rawEntry: unknown): Agent {
   const slottedItemIds = new Set(
     EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(agent.equipmentSlots, slot)).filter(
       (itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0
@@ -3387,14 +3387,26 @@ function reconcileAgentEquipmentEffectScales(agent: Agent): Agent {
   )
 
   const legacyAgent = agent as Agent & { equipment?: Record<string, number> }
-  const persistedEffectScales = legacyAgent.equipment ?? agent.equipmentEffectScales
+  const persistedAgent = isRecord(rawEntry) ? rawEntry : {}
+  const hasPersistedEffectScales = Object.prototype.hasOwnProperty.call(
+    persistedAgent,
+    'equipmentEffectScales'
+  )
+  const hasLegacyEffectScales = Object.prototype.hasOwnProperty.call(persistedAgent, 'equipment')
+  const persistedEffectScales = hasPersistedEffectScales
+    ? persistedAgent.equipmentEffectScales
+    : hasLegacyEffectScales
+      ? persistedAgent.equipment
+      : agent.equipmentEffectScales
   const agentWithoutLegacyEquipment = { ...legacyAgent }
   delete agentWithoutLegacyEquipment.equipment
 
   return {
     ...agentWithoutLegacyEquipment,
     equipmentEffectScales: Object.fromEntries(
-      Object.entries(persistedEffectScales ?? {}).filter(([itemId]) => slottedItemIds.has(itemId))
+      Object.entries(isRecord(persistedEffectScales) ? persistedEffectScales : {}).filter(
+        ([itemId]) => slottedItemIds.has(itemId)
+      )
     ),
   }
 }
@@ -3635,7 +3647,7 @@ export function sanitizeAgentsMap(
     }
 
     let normalized = normalizeAgent(
-      reconcileAgentEquipmentEffectScales(sanitizeAgentEquipmentSlots(merged)),
+      reconcileAgentEquipmentEffectScales(sanitizeAgentEquipmentSlots(merged), entry),
       {
         knownAgentIds,
         fallbackBaseStats: fallbackAgent?.baseStats ?? merged.baseStats,

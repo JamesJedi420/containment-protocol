@@ -2642,13 +2642,15 @@ describe('runTransfer import sanitization (326-332)', () => {
       const fallback = createStartingState()
       const agentId = Object.keys(fallback.agents)[0]!
       const baseAgent = fallback.agents[agentId]!
+      const legacyBaseAgent = { ...baseAgent } as Partial<typeof baseAgent>
+      delete legacyBaseAgent.equipmentEffectScales
 
       const hydrated = hydrateGame(
         {
           ...stripGameTemplates(fallback),
           agents: {
             [agentId]: {
-              ...baseAgent,
+              ...legacyBaseAgent,
               equipmentSlots: {
                 utility1: 'signal_jammers',
               },
@@ -2674,6 +2676,30 @@ describe('runTransfer import sanitization (326-332)', () => {
         signal_jammers: 2,
       })
       expect(exported.game.agents[agentId]).not.toHaveProperty('equipment')
+    })
+
+    it('343 prefers the renamed effect-scale field when both save keys exist', () => {
+      const fallback = createStartingState()
+      const agentId = Object.keys(fallback.agents)[0]!
+      const baseAgent = fallback.agents[agentId]!
+
+      const hydrated = hydrateGame(
+        {
+          ...stripGameTemplates(fallback),
+          agents: {
+            [agentId]: {
+              ...baseAgent,
+              equipmentSlots: { utility1: 'signal_jammers' },
+              equipmentEffectScales: { signal_jammers: 3 },
+              equipment: { signal_jammers: 2 },
+            },
+          },
+        },
+        fallback
+      )
+
+      expect(hydrated.agents[agentId]?.equipmentEffectScales).toEqual({ signal_jammers: 3 })
+      expect(hydrated.agents[agentId]).not.toHaveProperty('equipment')
     })
 
     it('344 prunes queued plays with stale case or team targets', () => {

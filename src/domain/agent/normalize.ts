@@ -1707,9 +1707,9 @@ function normalizeEquipmentEffectScales(effectScales: Agent['equipmentEffectScal
           knownEquipmentIds.has(itemId) &&
           typeof value === 'number' &&
           Number.isFinite(value) &&
-          value >= 0
+          Number.isInteger(value) &&
+          value > 0
       )
-      .map(([itemId, value]) => [itemId, Math.trunc(value)])
   )
 }
 

@@ -39,7 +39,7 @@ export interface CreateAgentInput {
   vitals?: AgentVitals
   serviceRecord?: AgentServiceRecord
   progression?: AgentProgression
-  equipment?: Agent['equipment']
+  equipmentEffectScales?: Agent['equipmentEffectScales']
   equipmentSlots?: EquipmentSlots
   traits?: AgentTrait[]
   abilities?: AgentAbility[]
@@ -132,7 +132,7 @@ export function createAgent(input: CreateAgentInput): Agent {
     vitals: input.vitals ?? createDefaultAgentVitals(fatigue, status),
     serviceRecord,
     progression,
-    equipment: input.equipment ?? {},
+    equipmentEffectScales: input.equipmentEffectScales ?? {},
     equipmentSlots: input.equipmentSlots ?? {},
     traits: input.traits ?? [],
     abilities: input.abilities ?? [],

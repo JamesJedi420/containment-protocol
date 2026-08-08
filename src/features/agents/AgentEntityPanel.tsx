@@ -479,8 +479,8 @@ export function AgentEntityPanel({
                     value={String(materialized.equipmentSummary.activeContextSlots)}
                   />
                   <SnapshotMetric
-                    label="Loadout quality"
-                    value={String(materialized.equipmentSummary.loadoutQuality)}
+                    label="Loadout effect scale"
+                    value={String(materialized.equipmentSummary.loadoutEffectScale)}
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ export function AgentEntityPanel({
                           {item.statusLabel}
                         </StatusPill>
                         <StatusPill tone={item.empty ? 'neutral' : 'warning'}>
-                          {item.qualityLabel}
+                          {item.effectScaleLabel}
                         </StatusPill>
                       </div>
                     </div>

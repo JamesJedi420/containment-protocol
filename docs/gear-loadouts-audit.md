@@ -1,8 +1,17 @@
-# Role-Specific Gear Loadouts Audit (Documentation-Only Support)
+# Role-Specific Gear Loadouts Audit
 
-> Scope: design support note for a bounded role-specific gear loadout system in Containment Protocol.
->
-> Constraints honored: no runtime logic edits, no test edits, no symbol renames, docs-only output.
+> Scope: architecture and implementation guidance for the bounded role-specific gear loadout system in Containment Protocol.
+
+## Runtime semantic boundary (SPE-2797)
+
+Equipment currently exposes four distinct concepts that must not be conflated:
+
+- **Legacy numeric effect scaling** — `EquipmentDefinition.legacyEffectScale` is a positive-integer multiplier retained from the shipped equipment system. It scales base stat modifiers, contextual modifiers, enchantments, and set bonuses; values at or above the existing threshold also participate in the level prerequisite gate. `loadoutEffectScale` is the sum across equipped items, and market pricing retains the same scale × 4 term. These names describe existing behavior only and are not an equipment grade, tier, or rarity.
+- **Rarity** — `EquipmentRarity` remains the independently authored `basic | uncommon | rare | epic | legendary` classification. There is no conversion contract between rarity and legacy effect scaling; equal effect scales may have different rarities.
+- **Condition / integrity** — damage, recovery, durability, or physical-condition state is a separate concern. It does not alter or reinterpret `legacyEffectScale` in this contract.
+- **Future canonical equipment grade** — reserved for a later slice. No canonical grade identifiers, scale, resolver, balance values, or player-facing terminology are defined here, and future grade features must not consume `legacyEffectScale`.
+
+Agent save data stores catalog-derived snapshots under `equipmentEffectScales`. Hydration accepts the former `equipment` map only as a one-way legacy-save migration, emits the renamed field on new exports, and does not expose a runtime compatibility alias. Slot IDs remain the canonical source used to resolve current catalog effects.
 
 ## 1) Loadout categories
 

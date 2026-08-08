@@ -390,8 +390,8 @@ describe('training queue mechanics', () => {
         ...startingState.agents,
         a_ava: {
           ...startingState.agents.a_ava,
-          equipment: {
-            ...(startingState.agents.a_ava.equipment ?? {}),
+          equipmentEffectScales: {
+            ...(startingState.agents.a_ava.equipmentEffectScales ?? {}),
             silver_rounds: 1,
           },
           equipmentSlots: {

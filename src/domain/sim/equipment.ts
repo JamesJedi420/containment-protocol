@@ -46,20 +46,22 @@ function getSlottedItemIds(agent: Agent) {
   ]
 }
 
-function withEquipmentQualityMap(agent: Agent): Agent {
+function withEquipmentEffectScaleMap(agent: Agent): Agent {
   const slottedItemIds = new Set(getSlottedItemIds(agent))
-  const nextEquipment = Object.fromEntries(
-    Object.entries(agent.equipment ?? {}).filter(([itemId]) => slottedItemIds.has(itemId))
+  const nextEffectScales = Object.fromEntries(
+    Object.entries(agent.equipmentEffectScales ?? {}).filter(([itemId]) =>
+      slottedItemIds.has(itemId)
+    )
   )
 
   return {
     ...agent,
-    equipment: nextEquipment,
+    equipmentEffectScales: nextEffectScales,
   }
 }
 
 function clearAgentSlot(agent: Agent, slot: EquipmentSlotKind): Agent {
-  return withEquipmentQualityMap(withSlotItem(agent, slot))
+  return withEquipmentEffectScaleMap(withSlotItem(agent, slot))
 }
 
 function findTransferCandidate(
@@ -152,11 +154,11 @@ export function equipAgentItem(
   }
 
   const targetAgent = nextState.agents[agentId]
-  const nextAgent = withEquipmentQualityMap({
+  const nextAgent = withEquipmentEffectScaleMap({
     ...withSlotItem(targetAgent, slot, itemId),
-    equipment: {
-      ...(targetAgent.equipment ?? {}),
-      [itemId]: Math.max(1, Math.trunc(definition.quality)),
+    equipmentEffectScales: {
+      ...(targetAgent.equipmentEffectScales ?? {}),
+      [itemId]: Math.max(1, Math.trunc(definition.legacyEffectScale)),
     },
   })
 

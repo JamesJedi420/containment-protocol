@@ -51,7 +51,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.traits).toEqual([])
     expect(agent.abilities).toEqual([])
@@ -130,7 +130,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.assignment).toEqual({ state: 'idle' })
@@ -271,7 +271,7 @@ describe('core agent model integration', () => {
       band: 'steady',
       deploymentEligible: true,
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.history?.timeline).toEqual([
@@ -366,7 +366,7 @@ describe('core agent model integration', () => {
     assigned.funding = 200
     assigned.agents[gearedAgentId] = {
       ...assigned.agents[gearedAgentId],
-      equipment: {},
+      equipmentEffectScales: {},
       equipmentSlots: {
         secondary: 'ward_seals',
         utility1: 'warding_kits',

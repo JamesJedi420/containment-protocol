@@ -3378,18 +3378,23 @@ function sanitizeAgentEquipmentSlots(agent: Agent): Agent {
   }
 }
 
-/** SPE-343: drop equipment quality keys that no longer match slotted items. */
-function reconcileAgentEquipment(agent: Agent): Agent {
+/** SPE-343 / SPE-2797: migrate the legacy map and drop entries that no longer match slots. */
+function reconcileAgentEquipmentEffectScales(agent: Agent): Agent {
   const slottedItemIds = new Set(
     EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(agent.equipmentSlots, slot)).filter(
       (itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0
     )
   )
 
+  const legacyAgent = agent as Agent & { equipment?: Record<string, number> }
+  const persistedEffectScales = legacyAgent.equipment ?? agent.equipmentEffectScales
+  const agentWithoutLegacyEquipment = { ...legacyAgent }
+  delete agentWithoutLegacyEquipment.equipment
+
   return {
-    ...agent,
-    equipment: Object.fromEntries(
-      Object.entries(agent.equipment ?? {}).filter(([itemId]) => slottedItemIds.has(itemId))
+    ...agentWithoutLegacyEquipment,
+    equipmentEffectScales: Object.fromEntries(
+      Object.entries(persistedEffectScales ?? {}).filter(([itemId]) => slottedItemIds.has(itemId))
     ),
   }
 }
@@ -3629,11 +3634,14 @@ export function sanitizeAgentsMap(
       continue
     }
 
-    let normalized = normalizeAgent(reconcileAgentEquipment(sanitizeAgentEquipmentSlots(merged)), {
-      knownAgentIds,
-      fallbackBaseStats: fallbackAgent?.baseStats ?? merged.baseStats,
-      campaignWeek: context.campaignWeek,
-    })
+    let normalized = normalizeAgent(
+      reconcileAgentEquipmentEffectScales(sanitizeAgentEquipmentSlots(merged)),
+      {
+        knownAgentIds,
+        fallbackBaseStats: fallbackAgent?.baseStats ?? merged.baseStats,
+        campaignWeek: context.campaignWeek,
+      }
+    )
 
     if (context.cases && context.teams) {
       const assignment = reconcileAgentAssignmentAgainstGame(

@@ -127,8 +127,8 @@ export interface AgentEquipmentViewItem {
   slotLabel: string
   itemId?: string
   itemLabel: string
-  quality?: number
-  qualityLabel: string
+  legacyEffectScale?: number
+  effectScaleLabel: string
   totalModifierSummary: string
   baseModifierSummary: string
   contextualModifierSummary: string
@@ -203,7 +203,7 @@ export interface MaterializedAgentState {
     equippedSlots: number
     emptySlots: number
     activeContextSlots: number
-    loadoutQuality: number
+    loadoutEffectScale: number
   }
   equipment: AgentEquipmentViewItem[]
   abilities: AgentAbilityViewItem[]
@@ -747,8 +747,8 @@ function buildEquipmentItems(
         slotLabel,
         itemId: item?.id,
         itemLabel: item ? item.name : 'Empty slot',
-        quality: item?.quality,
-        qualityLabel: item ? `Quality ${item.quality}` : 'Empty',
+        legacyEffectScale: item?.legacyEffectScale,
+        effectScaleLabel: item ? `Effect scale ${item.legacyEffectScale}` : 'Empty',
         totalModifierSummary: totalSummary,
         baseModifierSummary: item ? baseSummary : 'No modifiers',
         contextualModifierSummary: item
@@ -780,7 +780,7 @@ function buildEquipmentSummary(
     equippedSlots: summary.equippedItemCount,
     emptySlots: summary.emptySlotCount,
     activeContextSlots: summary.activeContextItemCount,
-    loadoutQuality: summary.loadoutQuality,
+    loadoutEffectScale: summary.loadoutEffectScale,
   }
 }
 

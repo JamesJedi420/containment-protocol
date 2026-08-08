@@ -631,7 +631,7 @@ function evaluateAgentBreakdownCore(
     traitBonus,
     modifierEffects.effectivenessMultiplier,
     modifierEffects.stressImpactMultiplier,
-    equippedItems.reduce((total, item) => total + Math.max(0, item.quality), 0),
+    equippedItems.reduce((total, item) => total + Math.max(0, item.legacyEffectScale), 0),
     context.caseData
   )
   const { performance, derived, performanceBlend } = performanceResult

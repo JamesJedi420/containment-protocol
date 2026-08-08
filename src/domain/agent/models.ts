@@ -833,7 +833,7 @@ export interface Agent {
   /** Canonical attrition/loss state for deterministic personnel pressure. */
   attritionState?: import('../models').AgentAttritionState
 
-  equipment?: Record<string, number>
+  equipmentEffectScales?: Record<string, number>
   equipmentSlots?: EquipmentSlots
   /** Context-aware trait modifiers resolved through the runtime trait registry. */
   traits?: AgentTrait[]

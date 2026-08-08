@@ -138,7 +138,7 @@ describe('getGearRecommendationsForActiveCases', () => {
       equipmentSlots: {
         utility1: 'signal_jammers',
       },
-      equipment: {
+      equipmentEffectScales: {
         signal_jammers: 1,
       },
     }
@@ -148,7 +148,7 @@ describe('getGearRecommendationsForActiveCases', () => {
 
     expect(mina).toBeDefined()
     expect(mina?.summary.equippedItemCount).toBe(1)
-    expect(mina?.summary.loadoutQuality).toBe(1)
+    expect(mina?.summary.loadoutEffectScale).toBe(1)
     expect(mina?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
       itemId: 'signal_jammers',
       itemName: 'Signal Jammers',

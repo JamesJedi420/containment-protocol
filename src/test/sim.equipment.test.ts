@@ -15,7 +15,7 @@ describe('equipment simulation', () => {
 
     expect(next.inventory.signal_jammers).toBe(0)
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBe('signal_jammers')
-    expect(next.agents.a_mina.equipment?.signal_jammers).toBe(1)
+    expect(next.agents.a_mina.equipmentEffectScales?.signal_jammers).toBe(1)
   })
 
   it('unequips an item by clearing the slot and returning inventory stock', () => {
@@ -27,7 +27,7 @@ describe('equipment simulation', () => {
 
     expect(next.inventory.medkits).toBe(1)
     expect(next.agents.a_casey.equipmentSlots?.utility2).toBeUndefined()
-    expect(next.agents.a_casey.equipment?.medkits).toBeUndefined()
+    expect(next.agents.a_casey.equipmentEffectScales?.medkits).toBeUndefined()
   })
 
   it('replaces an equipped item by returning prior stock and consuming the new item', () => {
@@ -41,16 +41,16 @@ describe('equipment simulation', () => {
     expect(next.inventory.ward_seals).toBe(1)
     expect(next.inventory.signal_jammers).toBe(0)
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBe('signal_jammers')
-    expect(next.agents.a_mina.equipment?.ward_seals).toBeUndefined()
-    expect(next.agents.a_mina.equipment?.signal_jammers).toBe(1)
+    expect(next.agents.a_mina.equipmentEffectScales?.ward_seals).toBeUndefined()
+    expect(next.agents.a_mina.equipmentEffectScales?.signal_jammers).toBe(1)
   })
 
-  it('canonicalizes equipped item quality to the fixed catalog definition', () => {
+  it('canonicalizes the equipped item effect scale to the fixed catalog definition', () => {
     const state = createStartingState()
     state.inventory.signal_jammers = 1
     state.agents.a_mina = {
       ...state.agents.a_mina,
-      equipment: {
+      equipmentEffectScales: {
         signal_jammers: 9,
       },
     }
@@ -58,7 +58,7 @@ describe('equipment simulation', () => {
     const next = equipAgentItem(state, 'a_mina', 'utility1', 'signal_jammers')
 
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBe('signal_jammers')
-    expect(next.agents.a_mina.equipment?.signal_jammers).toBe(1)
+    expect(next.agents.a_mina.equipmentEffectScales?.signal_jammers).toBe(1)
   })
 
   it('safely reassigns an equipped item between idle agents when stock is unavailable', () => {
@@ -70,7 +70,7 @@ describe('equipment simulation', () => {
 
     expect(next.inventory.signal_jammers).toBe(0)
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
-    expect(next.agents.a_mina.equipment?.signal_jammers).toBeUndefined()
+    expect(next.agents.a_mina.equipmentEffectScales?.signal_jammers).toBeUndefined()
     expect(next.agents.a_casey.equipmentSlots?.utility1).toBe('signal_jammers')
     expect(listEquippedItemAssignments(next.agents, 'signal_jammers')).toEqual([
       {
@@ -156,7 +156,7 @@ describe('equipment simulation', () => {
 
     expect(next.inventory.silver_rounds).toBe(1)
     expect(next.agents.a_eli.equipmentSlots?.primary).toBeUndefined()
-    expect(next.agents.a_eli.equipment?.silver_rounds).toBeUndefined()
+    expect(next.agents.a_eli.equipmentEffectScales?.silver_rounds).toBeUndefined()
   })
 
   it('uses crafted output items in the same deterministic loadout system', () => {
@@ -167,7 +167,7 @@ describe('equipment simulation', () => {
 
     expect(next.inventory.emf_sensors).toBe(0)
     expect(next.agents.a_mina.equipmentSlots?.utility2).toBe('emf_sensors')
-    expect(next.agents.a_mina.equipment?.emf_sensors).toBe(1)
+    expect(next.agents.a_mina.equipmentEffectScales?.emf_sensors).toBe(1)
   })
 
   it('feeds equipped gear into deterministic team score evaluation', () => {

@@ -406,6 +406,29 @@ export interface OperationEventPayloadMap {
     outputGradeVisibility?: EquipmentGradeVisibility
     outputGradeExplanationCodes?: EquipmentGradeFabricationExplanationCode[]
   }
+  'equipment.recovery_started': {
+    week: number
+    queueId: Id
+    itemId: string
+    itemName: string
+    pathId: 'component_reclamation' | 'ritual_disassembly'
+    sourceGradeId: EquipmentGradeId
+    sourceCondition: 'operational' | 'damaged'
+    outputMaterials: ProductionMaterialRequirement[]
+    wasteQuantity: number
+    etaWeeks: number
+  }
+  'equipment.recovery_completed': {
+    week: number
+    queueId: Id
+    itemId: string
+    itemName: string
+    pathId: 'component_reclamation' | 'ritual_disassembly'
+    sourceGradeId: EquipmentGradeId
+    sourceCondition: 'operational' | 'damaged'
+    outputMaterials: ProductionMaterialRequirement[]
+    wasteQuantity: number
+  }
   'market.shifted': {
     week: number
     featuredRecipeId: string
@@ -732,6 +755,8 @@ export interface OperationEventTypeToSourceSystemMap {
   'recruitment.intel_confirmed': 'intel'
   'production.queue_completed': 'production'
   'production.queue_started': 'production'
+  'equipment.recovery_started': 'production'
+  'equipment.recovery_completed': 'production'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -791,6 +816,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'recruitment.intel_confirmed': 'intel',
   'production.queue_completed': 'production',
   'production.queue_started': 'production',
+  'equipment.recovery_started': 'production',
+  'equipment.recovery_completed': 'production',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

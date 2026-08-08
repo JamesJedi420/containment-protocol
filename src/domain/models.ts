@@ -17,6 +17,11 @@ import type {
 } from './prerequisiteProcessingOrders'
 import type { EquipmentGradeId, EquipmentGradeVisibility } from './equipmentGrade'
 import type { EquipmentGradeFabricationExplanationCode } from './equipmentGradeFabrication'
+import type {
+  EquipmentGradeRecoveryExplanationCode,
+  EquipmentRecoveryCondition,
+  EquipmentRecoveryPathId,
+} from './equipmentGradeRecovery'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -1846,6 +1851,35 @@ export interface FabricatedEquipmentLot {
 
 export type FabricatedEquipmentLotRegistry = Record<Id, FabricatedEquipmentLot>
 
+export interface EquipmentDeconstructionQueueEntry {
+  id: Id
+  itemId: string
+  itemName: string
+  pathId: EquipmentRecoveryPathId
+  sourceGradeId: EquipmentGradeId
+  sourceGradeVisibility: EquipmentGradeVisibility
+  sourceCondition: EquipmentRecoveryCondition
+  outputMaterials: ProductionMaterialRequirement[]
+  wasteQuantity: number
+  startedWeek: number
+  durationWeeks: number
+  remainingWeeks: number
+  explanationCodes: EquipmentGradeRecoveryExplanationCode[]
+}
+
+export interface EquipmentRecoveryOutcome {
+  queueId: Id
+  itemId: string
+  pathId: EquipmentRecoveryPathId
+  sourceGradeId: EquipmentGradeId
+  sourceCondition: EquipmentRecoveryCondition
+  outputMaterials: ProductionMaterialRequirement[]
+  wasteQuantity: number
+  completedWeek: number
+}
+
+export type EquipmentRecoveryOutcomeRegistry = Record<Id, EquipmentRecoveryOutcome>
+
 export interface MarketState {
   week: number
   featuredRecipeId: string
@@ -2736,6 +2770,10 @@ export interface GameState {
   productionQueue: ProductionQueueEntry[]
   /** SPE-2750: canonical grade/provenance records for completed fabrication batches. */
   fabricatedEquipmentLots?: FabricatedEquipmentLotRegistry
+  /** SPE-2748: snapshotted canonical-grade deconstruction jobs. */
+  equipmentDeconstructionQueue?: EquipmentDeconstructionQueueEntry[]
+  /** SPE-2748: immutable material-recovery receipts keyed by queue ID. */
+  equipmentRecoveryOutcomes?: EquipmentRecoveryOutcomeRegistry
   market: MarketState
   globalPressure?: number
   /**

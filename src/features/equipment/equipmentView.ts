@@ -12,8 +12,14 @@ import {
   getRoleCompatibleEquipmentDefinitions,
   getEquipmentSlotItemId,
   getEquipmentTags,
+  getEquipmentCatalogEntries,
 } from '../../domain/equipment'
-import { productionCatalog } from '../../data/production'
+import { inventoryItemLabels, productionCatalog } from '../../data/production'
+import {
+  resolveEquipmentDeconstructionPreview,
+  getEquipmentRecoveryIssueLabel,
+} from '../../domain/sim/equipmentDeconstruction'
+import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
 
 export interface GearRecommendation {
   caseId: string
@@ -53,6 +59,105 @@ export interface AgentEquipmentLoadoutView {
   summary: EquipmentLoadoutSummary
   readiness: AgentLoadoutReadinessSummary
   slots: EquipmentLoadoutSlotView[]
+}
+
+export interface EquipmentDeconstructionView {
+  itemId: string
+  itemName: string
+  stock: number
+  gradeLabel: string
+  available: boolean
+  pathLabel: string
+  materialSummary: string
+  wasteLabel: string
+  durationLabel: string
+  conditionLabel: string
+  explanation: string
+  blocker?: string
+}
+
+export interface EquipmentDeconstructionQueueView {
+  id: string
+  itemName: string
+  gradeLabel: string
+  pathLabel: string
+  materialSummary: string
+  remainingLabel: string
+}
+
+function getRecoveryPathLabel(pathId: 'component_reclamation' | 'ritual_disassembly') {
+  return pathId === 'component_reclamation' ? 'Component reclamation' : 'Ritual disassembly'
+}
+
+function formatRecoveryMaterials(materials: readonly { materialName: string; quantity: number }[]) {
+  return materials.map((material) => `${material.materialName} ×${material.quantity}`).join(', ')
+}
+
+export function getEquipmentDeconstructionViews(game: GameState): EquipmentDeconstructionView[] {
+  return getEquipmentCatalogEntries()
+    .map((definition) => {
+      const stock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
+      if (stock < 1) return undefined
+      const preview = resolveEquipmentDeconstructionPreview(game, definition.id)
+      if (!preview) return undefined
+      if (!preview.resolution.available) {
+        return {
+          itemId: definition.id,
+          itemName: definition.name,
+          stock,
+          gradeLabel: preview.resolution.projection.label,
+          available: false,
+          pathLabel: 'Recovery unavailable',
+          materialSummary: 'No safe recovery projection',
+          wasteLabel: 'Waste unknown',
+          durationLabel: 'Duration unknown',
+          conditionLabel: (game.damagedEquipmentQueue ?? []).includes(definition.id)
+            ? 'Damaged'
+            : 'Operational',
+          explanation: 'This item cannot enter the bounded recovery flow.',
+          blocker: preview.resolution.issues.map(getEquipmentRecoveryIssueLabel).join('; '),
+        }
+      }
+      return {
+        itemId: definition.id,
+        itemName: definition.name,
+        stock,
+        gradeLabel: preview.resolution.projection.label,
+        available: true,
+        pathLabel: getRecoveryPathLabel(preview.resolution.pathId),
+        materialSummary: preview.resolution.materials
+          .map(
+            (material) =>
+              `${inventoryItemLabels[material.materialId] ?? material.materialId} ×${material.quantity}`
+          )
+          .join(', '),
+        wasteLabel: `Waste ${preview.resolution.waste}`,
+        durationLabel: `${preview.resolution.durationWeeks} week${preview.resolution.durationWeeks === 1 ? '' : 's'}`,
+        conditionLabel: preview.resolution.condition === 'damaged' ? 'Damaged' : 'Operational',
+        explanation:
+          preview.resolution.pathId === 'component_reclamation'
+            ? 'Canonical grade may retain additional components and reduce waste.'
+            : 'Canonical grade may increase controlled handling time without increasing yield.',
+      }
+    })
+    .filter((view): view is EquipmentDeconstructionView => Boolean(view))
+    .sort((left, right) => left.itemName.localeCompare(right.itemName))
+}
+
+export function getEquipmentDeconstructionQueueViews(
+  game: GameState
+): EquipmentDeconstructionQueueView[] {
+  return (game.equipmentDeconstructionQueue ?? []).map((entry) => ({
+    id: entry.id,
+    itemName: entry.itemName,
+    gradeLabel: resolveEquipmentGradeProjection(
+      { state: 'graded', gradeId: entry.sourceGradeId },
+      entry.sourceGradeVisibility
+    ).label,
+    pathLabel: getRecoveryPathLabel(entry.pathId),
+    materialSummary: formatRecoveryMaterials(entry.outputMaterials),
+    remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
+  }))
 }
 
 const ITEM_TAG_HINTS: Record<string, string[]> = {

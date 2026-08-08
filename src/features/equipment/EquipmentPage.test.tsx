@@ -113,4 +113,51 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(1)
     expect(useGameStore.getState().game.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
   })
+
+  it('previews and confirms canonical-grade equipment deconstruction', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByRole('heading', { name: /equipment deconstruction/i })).toBeInTheDocument()
+    expect(screen.getByText(/grade ii/i)).toBeInTheDocument()
+    expect(screen.getByText(/electronic parts ×2/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
+    expect(screen.getByText(/permanently consumes one signal jammers/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm deconstruction signal jammers/i }))
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(0)
+    expect(next.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'signal_jammers',
+      sourceGradeId: 'grade_2',
+    })
+    expect(screen.getByText(/1 week remaining/i)).toBeInTheDocument()
+  })
+
+  it('shows a stable blocker instead of consuming fabricated-lot stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      fabricated: {
+        queueId: 'fabricated',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByText(/fabricated batch selection is unavailable/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /review deconstruction signal jammers/i })
+    ).toBeDisabled()
+  })
 })

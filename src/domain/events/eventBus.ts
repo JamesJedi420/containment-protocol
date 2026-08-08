@@ -139,7 +139,10 @@ function appendAgentLogsFromEvents(state: GameState, events: readonly OperationE
   }
 }
 
-function appendFactionLogsFromEvents(state: GameState, events: readonly OperationEvent[]): GameState {
+function appendFactionLogsFromEvents(
+  state: GameState,
+  events: readonly OperationEvent[]
+): GameState {
   if (events.length === 0 || Object.keys(state.factions ?? {}).length === 0) {
     return state
   }
@@ -177,7 +180,11 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
             ? event.payload.reputationAfter
             : Math.max(
                 -100,
-                Math.min(100, (typeof faction.reputation === 'number' ? faction.reputation : 0) + event.payload.delta)
+                Math.min(
+                  100,
+                  (typeof faction.reputation === 'number' ? faction.reputation : 0) +
+                    event.payload.delta
+                )
               ),
         history: {
           ...history,
@@ -600,6 +607,26 @@ export function createProductionQueueCompletedDraft(
 ): OperationEventDraft<'production.queue_completed'> {
   return {
     type: 'production.queue_completed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentRecoveryStartedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_started']
+): OperationEventDraft<'equipment.recovery_started'> {
+  return {
+    type: 'equipment.recovery_started',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentRecoveryCompletedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_completed']
+): OperationEventDraft<'equipment.recovery_completed'> {
+  return {
+    type: 'equipment.recovery_completed',
     sourceSystem: 'production',
     payload,
   }

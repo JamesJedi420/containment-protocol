@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { EVENT_TYPE_TO_SOURCE_SYSTEM, type OperationEventType } from '../domain/events/types'
 
-const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future_stub'> = {  'assignment.team_assigned': 'covered',
+const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future_stub'> = {
+  'assignment.team_assigned': 'covered',
   'assignment.team_unassigned': 'covered',
   'case.resolved': 'covered',
   'case.partially_resolved': 'covered',
@@ -32,6 +33,8 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'system.party_cards_drawn': 'covered',
   'production.queue_completed': 'covered',
   'production.queue_started': 'covered',
+  'equipment.recovery_started': 'covered',
+  'equipment.recovery_completed': 'covered',
   'system.equipment_recovered': 'covered',
   'market.shifted': 'covered',
   'market.transaction_recorded': 'covered',

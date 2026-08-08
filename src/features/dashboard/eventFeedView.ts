@@ -22,11 +22,7 @@ export type EventFeedFilters = {
 }
 
 export type EventFeedCategory =
-  | 'incident_response'
-  | 'personnel'
-  | 'intel_briefing'
-  | 'operations_logistics'
-  | 'agency_posture'
+  'incident_response' | 'personnel' | 'intel_briefing' | 'operations_logistics' | 'agency_posture'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -213,6 +209,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'system.party_cards_drawn': 'Party Cards Drawn',
   'production.queue_started': 'Queue Started',
   'production.queue_completed': 'Queue Complete',
+  'equipment.recovery_started': 'Equipment Recovery Started',
+  'equipment.recovery_completed': 'Equipment Recovery Complete',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
@@ -273,6 +271,8 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'system.party_cards_drawn': 'operations_logistics',
   'production.queue_started': 'operations_logistics',
   'production.queue_completed': 'operations_logistics',
+  'equipment.recovery_started': 'operations_logistics',
+  'equipment.recovery_completed': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -788,7 +788,9 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event.payload.reason === 'expired_from_consideration'
           ? 'Their availability expired.'
           : 'Their departure reason is unknown.'
-      const destination = event.payload.destination ? ` / Last known destination: ${event.payload.destination}` : ''
+      const destination = event.payload.destination
+        ? ` / Last known destination: ${event.payload.destination}`
+        : ''
 
       return {
         event,
@@ -857,6 +859,34 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'neutral',
         searchText:
           `${event.payload.queueName} ${event.payload.outputName} ${event.payload.outputId} ${event.payload.recipeId} ${formatProductionMaterialSummary(event.payload.inputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.recovery_started':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.itemName} recovery started`,
+        detail: `Week ${event.payload.week} / ETA ${event.payload.etaWeeks} week(s) / ${formatProductionMaterialSummary(event.payload.outputMaterials)}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.recovery_completed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.itemName} recovery completed`,
+        detail: `Week ${event.payload.week} / ${formatProductionMaterialSummary(event.payload.outputMaterials)} / Waste ${event.payload.wasteQuantity}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
       }
 
     case 'market.shifted':
@@ -942,9 +972,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: event.payload.delta > 0 ? 'success' : event.payload.delta < 0 ? 'warning' : 'neutral',
-        href: event.payload.caseId
-          ? APP_ROUTES.caseDetail(event.payload.caseId)
-          : undefined,
+        href: event.payload.caseId ? APP_ROUTES.caseDetail(event.payload.caseId) : undefined,
         searchText:
           `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''} ${event.payload.interactionLabel ?? ''}`.toLowerCase(),
       }
@@ -1235,24 +1263,27 @@ export function getFilteredEventFeedViews(
     .map(buildEventFeedView)
     .map((view) => refineEventFeedDrillDownHref(view, game.reports))
     .filter((view) => {
-    if (filters.category !== 'all' && EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category) {
-      return false
-    }
+      if (
+        filters.category !== 'all' &&
+        EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category
+      ) {
+        return false
+      }
 
-    if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
-      return false
-    }
+      if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
+        return false
+      }
 
-    if (filters.type !== 'all' && view.event.type !== filters.type) {
-      return false
-    }
+      if (filters.type !== 'all' && view.event.type !== filters.type) {
+        return false
+      }
 
-    if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
-      return false
-    }
+      if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
+        return false
+      }
 
-    return true
-  })
+      return true
+    })
 
   if (filters.relationshipVerbosity === 'summary') {
     return aggregateRelationshipEventViews(mapped)

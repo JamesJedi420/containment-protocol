@@ -1,11 +1,19 @@
 import { Link } from 'react-router'
+import { useState } from 'react'
 import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
-import { getAgentEquipmentLoadoutViews } from './equipmentView'
+import {
+  getAgentEquipmentLoadoutViews,
+  getEquipmentDeconstructionQueueViews,
+  getEquipmentDeconstructionViews,
+} from './equipmentView'
 
 function EquipmentPage() {
-  const { game, equipAgentItem, unequipAgentItem } = useGameStore()
+  const { game, equipAgentItem, unequipAgentItem, queueEquipmentDeconstruction } = useGameStore()
   const loadoutViews = getAgentEquipmentLoadoutViews(game)
+  const deconstructionViews = getEquipmentDeconstructionViews(game)
+  const deconstructionQueue = getEquipmentDeconstructionQueueViews(game)
+  const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (
@@ -40,6 +48,101 @@ function EquipmentPage() {
             label="Market"
             value={`${game.market.pressure} (${game.market.costMultiplier.toFixed(2)}x)`}
           />
+        </div>
+      </article>
+
+      <article className="panel space-y-3">
+        <div>
+          <h3 className="text-base font-semibold">Equipment deconstruction</h3>
+          <p className="text-sm opacity-60">
+            Review canonical-grade recovery materials, waste, and handling time before committing
+            one unequipped stock unit.
+          </p>
+        </div>
+
+        {deconstructionViews.length === 0 ? (
+          <p className="text-sm opacity-60">No equipment stock is available for deconstruction.</p>
+        ) : (
+          <ul className="space-y-2">
+            {deconstructionViews.map((view) => (
+              <li key={view.itemId} className="rounded border border-white/10 px-3 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{view.itemName}</p>
+                    <p className="text-xs uppercase tracking-[0.18em] opacity-50">
+                      Stock {view.stock} / {view.gradeLabel} / {view.conditionLabel}
+                    </p>
+                    <p className="mt-1 text-sm">{view.pathLabel}</p>
+                    <p className="text-xs opacity-70">
+                      {view.materialSummary} / {view.wasteLabel} / {view.durationLabel}
+                    </p>
+                    <p className="mt-1 text-xs opacity-60">{view.explanation}</p>
+                    {view.blocker ? (
+                      <p className="mt-1 text-xs text-amber-200/80">{view.blocker}</p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-xs"
+                    disabled={!view.available}
+                    onClick={() => setPendingDeconstructionItemId(view.itemId)}
+                    aria-label={`Review deconstruction ${view.itemName}`}
+                  >
+                    Review
+                  </button>
+                </div>
+
+                {pendingDeconstructionItemId === view.itemId && view.available ? (
+                  <div className="mt-3 rounded border border-amber-300/30 bg-amber-950/20 px-3 py-2">
+                    <p className="text-sm">
+                      This permanently consumes one {view.itemName} and queues the displayed
+                      recovery outcome.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-xs"
+                        onClick={() => {
+                          queueEquipmentDeconstruction(view.itemId)
+                          setPendingDeconstructionItemId(undefined)
+                        }}
+                        aria-label={`Confirm deconstruction ${view.itemName}`}
+                      >
+                        Confirm deconstruction
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => setPendingDeconstructionItemId(undefined)}
+                        aria-label={`Cancel deconstruction ${view.itemName}`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div>
+          <h4 className="text-sm font-semibold">Active recovery queue</h4>
+          {deconstructionQueue.length === 0 ? (
+            <p className="text-xs opacity-50">No equipment is currently being dismantled.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {deconstructionQueue.map((entry) => (
+                <li key={entry.id} className="rounded border border-white/10 px-3 py-2 text-sm">
+                  <p className="font-medium">{entry.itemName}</p>
+                  <p className="text-xs opacity-60">
+                    {entry.gradeLabel} / {entry.pathLabel} / {entry.materialSummary} /{' '}
+                    {entry.remainingLabel}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </article>
 

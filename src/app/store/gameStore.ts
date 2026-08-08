@@ -105,6 +105,7 @@ import {
 } from '../../domain/publicDisclosurePostureChoice'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
+import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
 import {
   acknowledgeLicensedHandlingDoctrine,
@@ -233,7 +234,11 @@ import {
   type DepartmentWorkshopActivationRequest,
   type DepartmentWorkshopActivationResult,
 } from '../../domain/departmentWorkshopActivation'
-import { activateCaseScopedPrerequisiteProcessingOrder, reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder, type CaseScopedPrerequisiteReservationResult } from '../../domain/prerequisiteProcessingOrders'
+import {
+  activateCaseScopedPrerequisiteProcessingOrder,
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
+  type CaseScopedPrerequisiteReservationResult,
+} from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
   game: GameState
@@ -266,8 +271,12 @@ interface GameStore {
     departmentId: string,
     workOrderId: string
   ) => DepartmentWorkshopWriteResult
-  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (workOrderId: string) => CaseScopedPrerequisiteReservationResult
-  activateCaseScopedPrerequisiteProcessingOrder: (workOrderId: string) => CaseScopedPrerequisiteReservationResult
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (
+    workOrderId: string
+  ) => CaseScopedPrerequisiteReservationResult
+  activateCaseScopedPrerequisiteProcessingOrder: (
+    workOrderId: string
+  ) => CaseScopedPrerequisiteReservationResult
   applyAuthoredChoice: (
     choice: AuthoredChoiceDefinition,
     context?: ScreenRouteContext
@@ -377,6 +386,7 @@ interface GameStore {
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
+  queueEquipmentDeconstruction: (itemId: string) => void
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
   placeDelayedMarketOrder: (listingId: string, bundles?: number) => void
   redeemFactionFavorProcurement: (listingId: string, bundles?: number) => void
@@ -995,7 +1005,17 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           result = reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
           if (result.state === 'blocked') return { game: s.game }
-          return { game: { ...s.game, inventory: result.inventory, caseScopedPrerequisiteProcessingReservations: result.reservations, departmentWorkshopWorkOrders: result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'], departmentWorkshopSnapshots: result.workshopSnapshots as GameState['departmentWorkshopSnapshots'] } }
+          return {
+            game: {
+              ...s.game,
+              inventory: result.inventory,
+              caseScopedPrerequisiteProcessingReservations: result.reservations,
+              departmentWorkshopWorkOrders:
+                result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'],
+              departmentWorkshopSnapshots:
+                result.workshopSnapshots as GameState['departmentWorkshopSnapshots'],
+            },
+          }
         })
         return result!
       },
@@ -1004,7 +1024,17 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           result = activateCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
           if (result.state === 'blocked') return { game: s.game }
-          return { game: { ...s.game, inventory: result.inventory, caseScopedPrerequisiteProcessingReservations: result.reservations, departmentWorkshopWorkOrders: result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'], departmentWorkshopSnapshots: result.workshopSnapshots as GameState['departmentWorkshopSnapshots'] } }
+          return {
+            game: {
+              ...s.game,
+              inventory: result.inventory,
+              caseScopedPrerequisiteProcessingReservations: result.reservations,
+              departmentWorkshopWorkOrders:
+                result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'],
+              departmentWorkshopSnapshots:
+                result.workshopSnapshots as GameState['departmentWorkshopSnapshots'],
+            },
+          }
         })
         return result!
       },
@@ -1736,6 +1766,9 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({ game: unequipAgentItem(s.game, agentId, slot) })),
 
       queueFabrication: (recipeId) => set((s) => ({ game: queueFabrication(s.game, recipeId) })),
+
+      queueEquipmentDeconstruction: (itemId) =>
+        set((s) => ({ game: queueEquipmentDeconstruction(s.game, itemId) })),
 
       purchaseMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: purchaseMarketInventory(s.game, listingId, bundles) })),

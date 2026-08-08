@@ -17,7 +17,9 @@ import {
   reconcileProductionQueueCompletedFields,
   reconcileProductionQueueStartedFields,
 } from '../../domain/sim/production'
+import { isSafeEquipmentRecoveryQueueId } from '../../domain/sim/equipmentDeconstruction'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
+import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
 import {
   reconcileAgentTrainingCancelledFields,
   reconcileAgentTrainingCompletedFields,
@@ -27,7 +29,11 @@ import { createDefaultAgentAssignmentState } from '../../domain/agentDefaults'
 import { normalizeAgent, reconcileAgentAssignmentAgainstGame } from '../../domain/agent/normalize'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
 import { sanitizeReplacementPressureState } from '../../domain/agent/replacementPressureHydration'
-import { EQUIPMENT_SLOT_KINDS, getEquipmentSlotItemId } from '../../domain/equipment'
+import {
+  EQUIPMENT_SLOT_KINDS,
+  getEquipmentDefinition,
+  getEquipmentSlotItemId,
+} from '../../domain/equipment'
 import {
   DEPLOYMENT_MOMENTUM_MAX_STACKS,
   deploymentMomentumSurfacesEnabled,
@@ -139,6 +145,8 @@ import {
   type FacilityState,
   type FacilityStatus,
   type FabricatedEquipmentLotRegistry,
+  type EquipmentDeconstructionQueueEntry,
+  type EquipmentRecoveryOutcomeRegistry,
   type GameFlagValue,
   type ResearchProject,
   type ResearchProjectStatus,
@@ -204,10 +212,7 @@ import {
 } from '../../domain/procurementEmergencyFallout'
 import { RIVAL_PRESSURE_PEER_BASELINE } from '../../domain/rivalPressure'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
-import {
-  reconcileMarketShiftedFields,
-  sanitizePersistedMarketState,
-} from '../../domain/market'
+import { reconcileMarketShiftedFields, sanitizePersistedMarketState } from '../../domain/market'
 import {
   reconcileAgentPromotedFields,
   reconcileProgressionXpGainedFields,
@@ -1024,6 +1029,8 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'recruitment.intel_confirmed': ['candidateId'],
   'production.queue_started': ['queueId', 'recipeId'],
   'production.queue_completed': ['queueId', 'recipeId'],
+  'equipment.recovery_started': ['queueId', 'itemId'],
+  'equipment.recovery_completed': ['queueId', 'itemId'],
   'market.shifted': ['featuredRecipeId'],
   'market.transaction_recorded': ['transactionId', 'listingId', 'itemId'],
   'faction.standing_changed': ['factionId'],
@@ -2608,8 +2615,7 @@ function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, u
     0,
     100
   )
-  const standingFalloutPenaltyScale =
-    getEmergencyWaiverFalloutStandingPenaltyScale(rankingScore)
+  const standingFalloutPenaltyScale = getEmergencyWaiverFalloutStandingPenaltyScale(rankingScore)
 
   return {
     outcome,
@@ -4161,10 +4167,7 @@ function sanitizeMissionRewardBreakdownSnapshot(
     return fallback
   }
 
-  const agencyStanding = sanitizeAgencyStandingAward(
-    value.agencyStanding,
-    fallback?.agencyStanding
-  )
+  const agencyStanding = sanitizeAgencyStandingAward(value.agencyStanding, fallback?.agencyStanding)
 
   return {
     outcome,
@@ -4574,22 +4577,21 @@ function sanitizeMissionResult(
     fallback?.weakestLink
   )
 
-  const rewards =
-    sanitizeMissionRewardBreakdownSnapshot(value.rewards, fallback?.rewards) ?? {
-      outcome,
-      caseType: 'general',
-      caseTypeLabel: 'Operation',
-      operationValue: 0,
-      factors: [],
-      fundingDelta: 0,
-      containmentDelta: 0,
-      strategicValueDelta: 0,
-      reputationDelta: 0,
-      inventoryRewards: [],
-      factionStanding: [],
-      label: 'Mission',
-      reasons: [],
-    }
+  const rewards = sanitizeMissionRewardBreakdownSnapshot(value.rewards, fallback?.rewards) ?? {
+    outcome,
+    caseType: 'general',
+    caseTypeLabel: 'Operation',
+    operationValue: 0,
+    factors: [],
+    fundingDelta: 0,
+    containmentDelta: 0,
+    strategicValueDelta: 0,
+    reputationDelta: 0,
+    inventoryRewards: [],
+    factionStanding: [],
+    label: 'Mission',
+    reasons: [],
+  }
 
   const penalties = isRecord(value.penalties)
     ? {
@@ -5568,6 +5570,135 @@ function sanitizeFabricatedEquipmentLots(
   return lots
 }
 
+function sanitizeEquipmentRecoveryMaterials(
+  value: unknown
+): ProductionMaterialRequirement[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined
+  const seen = new Set<string>()
+  const materials: ProductionMaterialRequirement[] = []
+  for (const material of value) {
+    if (!isRecord(material)) return undefined
+    const materialId = typeof material.materialId === 'string' ? material.materialId.trim() : ''
+    if (!KNOWN_PRODUCTION_MATERIAL_IDS.has(materialId) || seen.has(materialId)) return undefined
+    const quantity = material.quantity
+    if (!Number.isInteger(quantity) || (quantity as number) < 1) return undefined
+    const expectedName = inventoryItemLabels[materialId]
+    if (typeof material.materialName !== 'string' || material.materialName !== expectedName) {
+      return undefined
+    }
+    seen.add(materialId)
+    materials.push({ materialId, materialName: expectedName, quantity: quantity as number })
+  }
+  return materials.sort((left, right) =>
+    left.materialId < right.materialId ? -1 : left.materialId > right.materialId ? 1 : 0
+  )
+}
+
+function sanitizeEquipmentRecoveryOutcomes(
+  value: unknown,
+  campaignWeek: number
+): EquipmentRecoveryOutcomeRegistry {
+  if (!isRecord(value)) return {}
+  const outcomes: EquipmentRecoveryOutcomeRegistry = {}
+  for (const queueId of Object.keys(value).sort()) {
+    const outcome = value[queueId]
+    if (
+      !isSafeEquipmentRecoveryQueueId(queueId) ||
+      !isRecord(outcome) ||
+      outcome.queueId !== queueId ||
+      typeof outcome.itemId !== 'string' ||
+      !getEquipmentDefinition(outcome.itemId) ||
+      (outcome.pathId !== 'component_reclamation' && outcome.pathId !== 'ritual_disassembly') ||
+      !isEquipmentGradeId(outcome.sourceGradeId) ||
+      (outcome.sourceCondition !== 'operational' && outcome.sourceCondition !== 'damaged') ||
+      !Number.isInteger(outcome.wasteQuantity) ||
+      (outcome.wasteQuantity as number) < 0 ||
+      !Number.isInteger(outcome.completedWeek) ||
+      (outcome.completedWeek as number) < 1 ||
+      (outcome.completedWeek as number) > campaignWeek
+    ) {
+      continue
+    }
+    const outputMaterials = sanitizeEquipmentRecoveryMaterials(outcome.outputMaterials)
+    if (!outputMaterials) continue
+    outcomes[queueId] = Object.freeze({
+      queueId,
+      itemId: outcome.itemId,
+      pathId: outcome.pathId,
+      sourceGradeId: outcome.sourceGradeId,
+      sourceCondition: outcome.sourceCondition,
+      outputMaterials,
+      wasteQuantity: outcome.wasteQuantity as number,
+      completedWeek: outcome.completedWeek as number,
+    })
+  }
+  return outcomes
+}
+
+function sanitizeEquipmentDeconstructionQueue(
+  value: unknown,
+  campaignWeek: number
+): EquipmentDeconstructionQueueEntry[] {
+  if (!Array.isArray(value)) return []
+  const queue: EquipmentDeconstructionQueueEntry[] = []
+  for (const [index, entry] of value.entries()) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.itemId !== 'string' ||
+      !isKnownProductionOutputItemId(entry.itemId) ||
+      (entry.pathId !== 'component_reclamation' && entry.pathId !== 'ritual_disassembly') ||
+      !isEquipmentGradeId(entry.sourceGradeId) ||
+      entry.sourceGradeVisibility !== 'known' ||
+      (entry.sourceCondition !== 'operational' && entry.sourceCondition !== 'damaged') ||
+      !Number.isInteger(entry.wasteQuantity) ||
+      (entry.wasteQuantity as number) < 0 ||
+      !Number.isInteger(entry.startedWeek) ||
+      (entry.startedWeek as number) < 1 ||
+      (entry.startedWeek as number) > campaignWeek ||
+      !Number.isInteger(entry.durationWeeks) ||
+      (entry.durationWeeks as number) < 1 ||
+      !Number.isInteger(entry.remainingWeeks) ||
+      (entry.remainingWeeks as number) < 1 ||
+      (entry.remainingWeeks as number) > (entry.durationWeeks as number)
+    ) {
+      continue
+    }
+    const definition = getEquipmentDefinition(entry.itemId)
+    const outputMaterials = sanitizeEquipmentRecoveryMaterials(entry.outputMaterials)
+    const rawExplanationCodes = Array.isArray(entry.explanationCodes)
+      ? entry.explanationCodes
+      : undefined
+    const explanationCodes =
+      rawExplanationCodes?.filter(isEquipmentGradeRecoveryExplanationCode) ?? []
+    if (
+      !definition ||
+      !outputMaterials ||
+      !rawExplanationCodes ||
+      explanationCodes.length !== rawExplanationCodes.length ||
+      explanationCodes.length === 0 ||
+      new Set(explanationCodes).size !== explanationCodes.length
+    ) {
+      continue
+    }
+    queue.push({
+      id: typeof entry.id === 'string' ? entry.id.trim() : `recovery-${index + 1}`,
+      itemId: entry.itemId,
+      itemName: definition.name,
+      pathId: entry.pathId,
+      sourceGradeId: entry.sourceGradeId,
+      sourceGradeVisibility: 'known',
+      sourceCondition: entry.sourceCondition,
+      outputMaterials,
+      wasteQuantity: entry.wasteQuantity as number,
+      startedWeek: entry.startedWeek as number,
+      durationWeeks: entry.durationWeeks as number,
+      remainingWeeks: entry.remainingWeeks as number,
+      explanationCodes: [...new Set(explanationCodes)],
+    })
+  }
+  return assignUniqueQueueEntryIds(queue, 'recovery')
+}
+
 function sanitizeContractStatBlock(value: unknown, fallback: StatBlock): StatBlock {
   const raw = isRecord(value) ? value : {}
 
@@ -6343,7 +6474,10 @@ function sanitizeAgencyState(
   const lastHiddenCellInfrastructureCompromiseWeek =
     typeof raw.lastHiddenCellInfrastructureCompromiseWeek === 'number' &&
     Number.isFinite(raw.lastHiddenCellInfrastructureCompromiseWeek)
-      ? Math.max(1, Math.min(campaignWeek, Math.round(raw.lastHiddenCellInfrastructureCompromiseWeek)))
+      ? Math.max(
+          1,
+          Math.min(campaignWeek, Math.round(raw.lastHiddenCellInfrastructureCompromiseWeek))
+        )
       : undefined
   const lastHiddenCellInfrastructureCompromiseAmount =
     typeof raw.lastHiddenCellInfrastructureCompromiseAmount === 'number' &&
@@ -6375,7 +6509,10 @@ function sanitizeAgencyState(
     Number.isFinite(raw.hiddenCellDetectionNarrowing)
       ? Math.max(
           0,
-          Math.min(HIDDEN_CELL_DETECTION_NARROWING_MAX, Math.round(raw.hiddenCellDetectionNarrowing))
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            Math.round(raw.hiddenCellDetectionNarrowing)
+          )
         )
       : undefined
   const lastHiddenCellCovertGrowthWeek =
@@ -7943,9 +8080,7 @@ function sanitizeOperationEvents(
                 agentId:
                   typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
                 agentName:
-                  typeof payload.agentName === 'string'
-                    ? payload.agentName
-                    : `Agent ${index + 1}`,
+                  typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
                 trainingId: training.trainingId,
                 trainingName: training.trainingName,
                 teamName: typeof payload.teamName === 'string' ? payload.teamName : undefined,
@@ -8119,10 +8254,7 @@ function sanitizeOperationEvents(
                     (
                       entry
                     ): entry is
-                      | 'benching'
-                      | 'performance_penalty'
-                      | 'disciplinary'
-                      | 'resignation' =>
+                      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
                       entry === 'benching' ||
                       entry === 'performance_penalty' ||
                       entry === 'disciplinary' ||
@@ -8156,8 +8288,7 @@ function sanitizeOperationEvents(
 
       case 'agent.promoted': {
         const promotion = reconcileAgentPromotedFields(payload)
-        const trimmedNewRole =
-          typeof payload.newRole === 'string' ? payload.newRole.trim() : ''
+        const trimmedNewRole = typeof payload.newRole === 'string' ? payload.newRole.trim() : ''
 
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -8303,9 +8434,7 @@ function sanitizeOperationEvents(
       case 'recruitment.intel_confirmed':
         {
           const stage = clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as
-            | 1
-            | 2
-            | 3
+            1 | 2 | 3
           const revealLevel = reconcileRecruitmentEventRevealLevel(
             stage,
             sanitizeRevealLevel(payload.revealLevel)
@@ -8426,6 +8555,57 @@ function sanitizeOperationEvents(
               },
             })
           )
+        }
+        break
+
+      case 'equipment.recovery_started':
+      case 'equipment.recovery_completed':
+        {
+          const itemId = typeof payload.itemId === 'string' ? payload.itemId : ''
+          const definition = getEquipmentDefinition(itemId)
+          const outputMaterials = sanitizeEquipmentRecoveryMaterials(payload.outputMaterials)
+          const pathId = payload.pathId
+          const sourceGradeId = payload.sourceGradeId
+          const sourceCondition = payload.sourceCondition
+          if (
+            !definition ||
+            !outputMaterials ||
+            (pathId !== 'component_reclamation' && pathId !== 'ritual_disassembly') ||
+            !isEquipmentGradeId(sourceGradeId) ||
+            (sourceCondition !== 'operational' && sourceCondition !== 'damaged')
+          ) {
+            break
+          }
+          const common = {
+            week,
+            queueId:
+              typeof payload.queueId === 'string' ? payload.queueId : `recovery-${index + 1}`,
+            itemId,
+            itemName: definition.name,
+            pathId: pathId as 'component_reclamation' | 'ritual_disassembly',
+            sourceGradeId,
+            sourceCondition: sourceCondition as 'operational' | 'damaged',
+            outputMaterials,
+            wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
+          }
+          if (eventType === 'equipment.recovery_started') {
+            nextEvents.push(
+              migrateOperationEventToCurrentSchema({
+                ...createBase('equipment.recovery_started'),
+                payload: {
+                  ...common,
+                  etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 1),
+                },
+              })
+            )
+          } else {
+            nextEvents.push(
+              migrateOperationEventToCurrentSchema({
+                ...createBase('equipment.recovery_completed'),
+                payload: common,
+              })
+            )
+          }
         }
         break
 
@@ -9654,6 +9834,10 @@ export function hydrateGame(
     game.fabricatedEquipmentLots,
     week
   )
+  const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
+    game.equipmentRecoveryOutcomes,
+    week
+  )
   const inventory = sanitizeInventory(game.inventory, fallback.inventory)
   const damagedEquipmentQueue = sanitizeDamagedEquipmentQueue(
     game.damagedEquipmentQueue,
@@ -9812,6 +9996,11 @@ export function hydrateGame(
       Object.keys(fabricatedEquipmentLots)
     ),
     fabricatedEquipmentLots,
+    equipmentDeconstructionQueue: sanitizeEquipmentDeconstructionQueue(
+      game.equipmentDeconstructionQueue,
+      week
+    ),
+    equipmentRecoveryOutcomes,
     config,
     campaignLedger: sanitizeCampaignLedger(
       game.campaignLedger,
@@ -9851,7 +10040,8 @@ export function hydrateGame(
     globalTimePressure: game.globalTimePressure,
     lastHiddenCellPanicAmplificationWeek: game.lastHiddenCellPanicAmplificationWeek,
     lastHiddenCellPanicAmplificationAmount: game.lastHiddenCellPanicAmplificationAmount,
-    campaignWeek: typeof game.week === 'number' && Number.isFinite(game.week) ? game.week : undefined,
+    campaignWeek:
+      typeof game.week === 'number' && Number.isFinite(game.week) ? game.week : undefined,
   })
 
   const agency = hydrationAgency

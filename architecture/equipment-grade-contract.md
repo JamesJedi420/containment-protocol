@@ -62,5 +62,20 @@ lot is production provenance, not rarity, condition, material quality, provider 
 workshop completion quality, or legacy effect scale. Preview and active-queue surfaces resolve the
 snapshot through the hidden-safe projection contract.
 
-Recovery effects, Auto-Scrap, identification workflows, and per-copy inventory selection remain
-owned by their downstream slices.
+## Deconstruction and recovery adoption
+
+SPE-2748 adds two explicit recovery paths over the canonical contract. Component reclamation uses
+authored yield thresholds; ritual disassembly uses handling thresholds that can extend careful
+processing without increasing material output. Grade therefore affects only the authored recovery axis and
+never acts as a universal value, rarity, condition, or potency multiplier.
+
+Queue entries snapshot a known canonical source grade and resolved outcome. Hidden participation
+is unavailable and projects identically for every grade. Damage is a separate condition input that
+may add waste but cannot change grade. Because aggregate inventory cannot select individual copies,
+items with fabricated-lot provenance fail closed until a per-copy selection contract exists.
+
+Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
+without changing inventory's quantity authority or either save version.
+
+Auto-Scrap, broader custody/contamination/relic recovery, identification workflows, processed-
+material quality, and per-copy fabricated-lot selection remain owned by downstream work.

@@ -349,6 +349,33 @@ export const minimalOperationEventPayloads = {
     ],
     outputGradeId: 'grade_1',
   },
+  'equipment.recovery_started': {
+    week: WEEK,
+    queueId: 'recovery-min',
+    itemId: 'signal_jammers',
+    itemName: 'Signal Jammers',
+    pathId: 'component_reclamation',
+    sourceGradeId: 'grade_2',
+    sourceCondition: 'operational',
+    outputMaterials: [
+      { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 2 },
+    ],
+    wasteQuantity: 1,
+    etaWeeks: 1,
+  },
+  'equipment.recovery_completed': {
+    week: WEEK,
+    queueId: 'recovery-min',
+    itemId: 'signal_jammers',
+    itemName: 'Signal Jammers',
+    pathId: 'component_reclamation',
+    sourceGradeId: 'grade_2',
+    sourceCondition: 'operational',
+    outputMaterials: [
+      { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 2 },
+    ],
+    wasteQuantity: 1,
+  },
   'market.shifted': {
     week: WEEK,
     // SPE-2661: validate requires productionCatalog membership (not opaque recipe-min).

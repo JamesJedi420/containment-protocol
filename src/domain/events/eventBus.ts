@@ -139,7 +139,10 @@ function appendAgentLogsFromEvents(state: GameState, events: readonly OperationE
   }
 }
 
-function appendFactionLogsFromEvents(state: GameState, events: readonly OperationEvent[]): GameState {
+function appendFactionLogsFromEvents(
+  state: GameState,
+  events: readonly OperationEvent[]
+): GameState {
   if (events.length === 0 || Object.keys(state.factions ?? {}).length === 0) {
     return state
   }
@@ -177,7 +180,11 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
             ? event.payload.reputationAfter
             : Math.max(
                 -100,
-                Math.min(100, (typeof faction.reputation === 'number' ? faction.reputation : 0) + event.payload.delta)
+                Math.min(
+                  100,
+                  (typeof faction.reputation === 'number' ? faction.reputation : 0) +
+                    event.payload.delta
+                )
               ),
         history: {
           ...history,
@@ -605,6 +612,26 @@ export function createProductionQueueCompletedDraft(
   }
 }
 
+export function createEquipmentRecoveryStartedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_started']
+): OperationEventDraft<'equipment.recovery_started'> {
+  return {
+    type: 'equipment.recovery_started',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentRecoveryCompletedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_completed']
+): OperationEventDraft<'equipment.recovery_completed'> {
+  return {
+    type: 'equipment.recovery_completed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
 export function createMarketShiftedDraft(
   payload: OperationEventPayloadMap['market.shifted']
 ): OperationEventDraft<'market.shifted'> {
@@ -701,6 +728,8 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'progression.xp_gained',
   'production.queue_started',
   'production.queue_completed',
+  'equipment.recovery_started',
+  'equipment.recovery_completed',
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',

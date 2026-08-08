@@ -422,6 +422,13 @@ Examples:
 - recovery.delayed
 - recovery.completed
 - recovery.partial
+- equipment.recovery_started
+- equipment.recovery_completed
+
+Equipment-grade recovery uses the `equipment.*` events. Start captures queue, item, path, source
+grade, condition, material outcome, waste, and duration. Completion repeats the snapshotted
+provenance and records completion week. The canonical grade ID is emitted only for known eligible
+equipment; hidden-grade recovery fails closed before queueing.
 
 Example:
 

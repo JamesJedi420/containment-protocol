@@ -1,6 +1,7 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
-import { getProductionRecipe } from '../../data/production'
+import { getProductionRecipe, productionMaterialCatalog } from '../../data/production'
+import { getEquipmentDefinition } from '../equipment'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
 import {
   getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
@@ -704,6 +705,61 @@ const productionQueueCompletedSchema = z
     refineProductionQueueCatalogMembership(payload, context)
   })
 
+const equipmentRecoveryEventShape = {
+  week: weekSchema,
+  queueId: idSchema,
+  itemId: idSchema,
+  itemName: z.string().min(1),
+  pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
+  sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+  sourceCondition: z.enum(['operational', 'damaged']),
+  outputMaterials: z
+    .array(
+      z
+        .object({
+          materialId: idSchema,
+          materialName: z.string(),
+          quantity: finitePositiveIntSchema,
+        })
+        .strict()
+    )
+    .min(1),
+  wasteQuantity: finiteNonNegativeIntSchema,
+}
+
+function refineEquipmentRecoveryEvent(
+  payload: z.infer<z.ZodObject<typeof equipmentRecoveryEventShape>>,
+  context: z.RefinementCtx
+) {
+  const definition = getEquipmentDefinition(payload.itemId)
+  if (!definition || definition.name !== payload.itemName) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['itemId'],
+      message: 'recovery item must match the equipment catalog',
+    })
+  }
+  const materialIds = new Set(productionMaterialCatalog.map((material) => material.materialId))
+  for (const [index, material] of payload.outputMaterials.entries()) {
+    if (!materialIds.has(material.materialId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['outputMaterials', index, 'materialId'],
+        message: 'recovery output must use a canonical production material',
+      })
+    }
+  }
+}
+
+const equipmentRecoveryStartedSchema = z
+  .object({ ...equipmentRecoveryEventShape, etaWeeks: finitePositiveIntSchema })
+  .strict()
+  .superRefine(refineEquipmentRecoveryEvent)
+const equipmentRecoveryCompletedSchema = z
+  .object(equipmentRecoveryEventShape)
+  .strict()
+  .superRefine(refineEquipmentRecoveryEvent)
+
 const marketShiftedSchema = z
   .object({
     week: weekSchema,
@@ -1253,6 +1309,8 @@ export const operationEventPayloadSchemas = {
   'recruitment.intel_confirmed': recruitmentIntelConfirmedSchema,
   'production.queue_started': productionQueueStartedSchema,
   'production.queue_completed': productionQueueCompletedSchema,
+  'equipment.recovery_started': equipmentRecoveryStartedSchema,
+  'equipment.recovery_completed': equipmentRecoveryCompletedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,

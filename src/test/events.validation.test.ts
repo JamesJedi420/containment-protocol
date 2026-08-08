@@ -2064,4 +2064,37 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(true)
   })
+
+  it.each(['equipment.recovery_started', 'equipment.recovery_completed'] as const)(
+    'rejects %s payloads with non-positive or fractional material quantities',
+    (type) => {
+      const base = {
+        week: 1,
+        queueId: 'recovery-1',
+        itemId: 'signal_jammers',
+        itemName: 'Signal Jammers',
+        pathId: 'component_reclamation' as const,
+        sourceGradeId: 'grade_2' as const,
+        sourceCondition: 'operational' as const,
+        outputMaterials: [
+          { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 1 },
+        ],
+        wasteQuantity: 0,
+        ...(type === 'equipment.recovery_started' ? { etaWeeks: 1 } : {}),
+      }
+
+      expect(
+        validateOperationEventPayload(type, {
+          ...base,
+          outputMaterials: [{ ...base.outputMaterials[0], quantity: -1 }],
+        }).success
+      ).toBe(false)
+      expect(
+        validateOperationEventPayload(type, {
+          ...base,
+          outputMaterials: [{ ...base.outputMaterials[0], quantity: 0.5 }],
+        }).success
+      ).toBe(false)
+    }
+  )
 })

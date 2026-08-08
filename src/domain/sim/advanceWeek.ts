@@ -237,6 +237,7 @@ import {
   enqueueCaseScopedWorkshopFinalizationFabrication,
   resolveCaseScopedWorkshopFinalizationCases,
 } from './production'
+import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -4065,6 +4066,10 @@ function advanceQueues(context: WeeklyExecutionContext) {
   context.nextState = productionResult.state
   context.eventDrafts.push(...productionResult.eventDrafts)
 
+  const equipmentRecoveryResult = advanceEquipmentDeconstructionQueues(context.nextState)
+  context.nextState = equipmentRecoveryResult.state
+  context.eventDrafts.push(...equipmentRecoveryResult.eventDrafts)
+
   // SPE-94: Equipment recovery bottleneck
   const damagedQueue = getDamagedEquipmentQueue(context.nextState)
   const maintenanceCapacity = context.nextState.agency?.maintenanceSpecialistsAvailable ?? 0
@@ -4991,9 +4996,8 @@ export function advanceWeek(
 
   // SPE-1028: durable unsafe receipts feed one parent-linked follow-up case each.
   // Consume markers make replay/save-load a no-op; quality grades do not spawn.
-  const unsafeSecondaryIncidents = reconcileDepartmentWorkshopUnsafeSecondaryIncidents(
-    outputWeeklyState
-  )
+  const unsafeSecondaryIncidents =
+    reconcileDepartmentWorkshopUnsafeSecondaryIncidents(outputWeeklyState)
   if (unsafeSecondaryIncidents.spawnedWorkOrderIds.length > 0) {
     outputWeeklyState.cases = unsafeSecondaryIncidents.state.cases
     outputWeeklyState.departmentWorkshopUnsafeSecondaryIncidents =

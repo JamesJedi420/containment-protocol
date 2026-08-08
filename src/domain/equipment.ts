@@ -1389,15 +1389,36 @@ function stableSerialize(value: unknown): string {
   return JSON.stringify(value) ?? 'undefined'
 }
 
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function sortSetLikeValues<T extends string>(values: readonly T[] | undefined) {
+  return values === undefined || values.length === 0
+    ? undefined
+    : [...values].sort(compareCodeUnits)
+}
+
 function getGradeConsistencyFingerprint(definition: EquipmentDefinition) {
+  const contextModifiers = definition.contextModifiers
+    ?.map((modifier) => ({
+      rule: {
+        ...modifier.rule,
+        requiredTags: sortSetLikeValues(modifier.rule.requiredTags),
+        kinds: sortSetLikeValues(modifier.rule.kinds),
+      },
+      statModifiers: modifier.statModifiers,
+    }))
+    .sort((left, right) => compareCodeUnits(stableSerialize(left), stableSerialize(right)))
+
   return stableSerialize({
     slot: definition.slot,
     legacyEffectScale: definition.legacyEffectScale,
-    tags: definition.tags,
-    allowedSlots: definition.allowedSlots,
+    tags: sortSetLikeValues(definition.tags),
+    allowedSlots: sortSetLikeValues(definition.allowedSlots),
     statModifiers: definition.statModifiers,
-    contextModifiers: definition.contextModifiers,
-    enchantmentIds: definition.enchantmentIds,
+    contextModifiers,
+    enchantmentIds: sortSetLikeValues(definition.enchantmentIds),
   })
 }
 
@@ -1410,7 +1431,7 @@ function getGradeAssignmentFingerprint(profile: EquipmentGradeCatalogProfile) {
 export function validateEquipmentCatalogDefinitions(catalog: Record<string, EquipmentDefinition>) {
   const consistencyGroups = new Map<
     string,
-    { itemId: string; assignment: string; variantId?: string }
+    Map<string, { itemId: string; assignment: string }>
   >()
 
   for (const [itemId, definition] of Object.entries(catalog)) {
@@ -1451,23 +1472,20 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
 
     const consistencyFingerprint = getGradeConsistencyFingerprint(definition)
     const assignmentFingerprint = getGradeAssignmentFingerprint(gradeValidation.value)
-    const existing = consistencyGroups.get(consistencyFingerprint)
-    if (
-      existing &&
-      existing.assignment !== assignmentFingerprint &&
-      existing.variantId === undefined &&
-      gradeValidation.value.variantId === undefined
-    ) {
+    const variantKey = gradeValidation.value.variantId ?? ''
+    const assignmentsByVariant = consistencyGroups.get(consistencyFingerprint) ?? new Map()
+    const existing = assignmentsByVariant.get(variantKey)
+    if (existing && existing.assignment !== assignmentFingerprint) {
       throw new Error(
-        `Invalid equipment grade assignment at equipment.${itemId}: operationally identical definition equipment.${existing.itemId} uses a different grade without an authored variantId.`
+        `Invalid equipment grade assignment at equipment.${itemId}: operationally identical definition equipment.${existing.itemId} uses a different grade without a distinct authored variantId.`
       )
     }
     if (!existing) {
-      consistencyGroups.set(consistencyFingerprint, {
+      assignmentsByVariant.set(variantKey, {
         itemId,
         assignment: assignmentFingerprint,
-        variantId: gradeValidation.value.variantId,
       })
+      consistencyGroups.set(consistencyFingerprint, assignmentsByVariant)
     }
 
     if (definition.allowedSlots.length === 0) {

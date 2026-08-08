@@ -241,10 +241,14 @@ describe('equipment catalog canonical-grade migration', () => {
       legacyEffectScale: changedGrade.legacyEffectScale,
       statModifiers: changedGrade.statModifiers,
     }).toEqual({
-      rarity: definition.rarity,
-      legacyEffectScale: definition.legacyEffectScale,
-      statModifiers: definition.statModifiers,
+      rarity: getEquipmentDefinition('breach_visor')!.rarity,
+      legacyEffectScale: getEquipmentDefinition('breach_visor')!.legacyEffectScale,
+      statModifiers: getEquipmentDefinition('breach_visor')!.statModifiers,
     })
+    expect(resolveEquipmentGradeCatalogProjection(changedGrade.gradeProfile)).not.toEqual(
+      resolveEquipmentDefinitionGrade('breach_visor')
+    )
+    expect(resolveEquipmentDefinitionGrade('breach_visor')).toMatchObject({ gradeId: 'grade_2' })
   })
 
   it('rejects inconsistent operational duplicates unless an authored variant explains them', () => {
@@ -254,6 +258,17 @@ describe('equipment catalog canonical-grade migration', () => {
       ...source,
       id: 'field_plate_copy',
       name: 'Field Plate Copy',
+      tags: [...source.tags].reverse(),
+      allowedSlots: [...source.allowedSlots].reverse(),
+      enchantmentIds: [...(source.enchantmentIds ?? [])].reverse(),
+      contextModifiers: source.contextModifiers?.map((modifier) => ({
+        ...modifier,
+        rule: {
+          ...modifier.rule,
+          requiredTags: [...(modifier.rule.requiredTags ?? [])].reverse(),
+          kinds: [...(modifier.rule.kinds ?? [])].reverse(),
+        },
+      })),
       gradeProfile: {
         ...source.gradeProfile,
         state: 'graded',
@@ -271,6 +286,40 @@ describe('equipment catalog canonical-grade migration', () => {
       variantId: 'reinforced-construction',
     }
     expect(() => validateEquipmentCatalogDefinitions(catalog)).not.toThrow()
+
+    const variantFirstCatalog: Record<string, EquipmentDefinition> = {
+      variant_first: {
+        ...source,
+        id: 'variant_first',
+        name: 'Variant First',
+        gradeProfile: {
+          ...source.gradeProfile,
+          state: 'graded',
+          gradeId: 'grade_2',
+          basis: 'specialized_field',
+          variantId: 'reinforced-construction',
+        },
+      },
+      base_first: {
+        ...source,
+        id: 'base_first',
+        name: 'Base First',
+      },
+      base_second: {
+        ...source,
+        id: 'base_second',
+        name: 'Base Second',
+        gradeProfile: {
+          ...source.gradeProfile,
+          state: 'graded',
+          gradeId: 'grade_2',
+          basis: 'specialized_field',
+        },
+      },
+    }
+    expect(() => validateEquipmentCatalogDefinitions(variantFirstCatalog)).toThrow(
+      /base_second.*base_first.*different grade.*variantId/i
+    )
   })
 
   it('reports deterministic grade distributions by origin, function, and segment', () => {

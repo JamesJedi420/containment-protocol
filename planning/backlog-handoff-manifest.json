@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2798",
     "SPE-2269",
     "SPE-2792",
     "SPE-2772",
@@ -12,8 +13,7 @@
     "SPE-2784",
     "SPE-2783",
     "SPE-2782",
-    "SPE-2781",
-    "SPE-2780"
+    "SPE-2781"
   ],
   "sliceDocStatus": {
     "planning/spe-2269-deployable-readiness-composition-slice.md": "Shipped",

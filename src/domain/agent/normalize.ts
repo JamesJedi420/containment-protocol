@@ -1697,19 +1697,19 @@ function normalizeRelationships(agent: Agent) {
   )
 }
 
-function normalizeEquipmentCounts(equipment: Agent['equipment']) {
+function normalizeEquipmentEffectScales(effectScales: Agent['equipmentEffectScales']) {
   const knownEquipmentIds = getKnownEquipmentIds()
 
   return Object.fromEntries(
-    Object.entries(equipment ?? {})
+    Object.entries(effectScales ?? {})
       .filter(
         ([itemId, value]) =>
           knownEquipmentIds.has(itemId) &&
           typeof value === 'number' &&
           Number.isFinite(value) &&
-          value >= 0
+          Number.isInteger(value) &&
+          value > 0
       )
-      .map(([itemId, value]) => [itemId, Math.trunc(value)])
   )
 }
 
@@ -1997,7 +1997,7 @@ export function normalizeAgent(agent: Agent, options: NormalizeAgentOptions = {}
     serviceRecord,
     readinessProfile,
     progression,
-    equipment: normalizeEquipmentCounts(agent.equipment),
+    equipmentEffectScales: normalizeEquipmentEffectScales(agent.equipmentEffectScales),
     equipmentSlots: normalizeEquipmentSlots(agent.equipmentSlots),
     traits,
     abilities,
@@ -2055,7 +2055,7 @@ export function isAgentNormalized(agent: Agent) {
     agent.specialization !== undefined &&
     agent.serviceRecord !== undefined &&
     agent.readinessProfile !== undefined &&
-    agent.equipment !== undefined &&
+    agent.equipmentEffectScales !== undefined &&
     agent.equipmentSlots !== undefined &&
     agent.traits !== undefined &&
     agent.abilities !== undefined &&

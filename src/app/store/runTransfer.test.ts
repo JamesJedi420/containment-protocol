@@ -2638,17 +2638,19 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
-    it('343 drops stale equipment quality keys on hydrate', () => {
+    it('343 migrates legacy equipment values and drops stale effect-scale keys on hydrate', () => {
       const fallback = createStartingState()
       const agentId = Object.keys(fallback.agents)[0]!
       const baseAgent = fallback.agents[agentId]!
+      const legacyBaseAgent = { ...baseAgent } as Partial<typeof baseAgent>
+      delete legacyBaseAgent.equipmentEffectScales
 
       const hydrated = hydrateGame(
         {
           ...stripGameTemplates(fallback),
           agents: {
             [agentId]: {
-              ...baseAgent,
+              ...legacyBaseAgent,
               equipmentSlots: {
                 utility1: 'signal_jammers',
               },
@@ -2662,9 +2664,42 @@ describe('runTransfer import sanitization (326-332)', () => {
         fallback
       )
 
-      expect(hydrated.agents[agentId]?.equipment).toEqual({
+      expect(hydrated.agents[agentId]?.equipmentEffectScales).toEqual({
         signal_jammers: 2,
       })
+      expect(hydrated.agents[agentId]).not.toHaveProperty('equipment')
+
+      const exported = JSON.parse(serializeRunExport(hydrated)) as {
+        game: { agents: Record<string, Record<string, unknown>> }
+      }
+      expect(exported.game.agents[agentId]?.equipmentEffectScales).toEqual({
+        signal_jammers: 2,
+      })
+      expect(exported.game.agents[agentId]).not.toHaveProperty('equipment')
+    })
+
+    it('343 prefers the renamed effect-scale field when both save keys exist', () => {
+      const fallback = createStartingState()
+      const agentId = Object.keys(fallback.agents)[0]!
+      const baseAgent = fallback.agents[agentId]!
+
+      const hydrated = hydrateGame(
+        {
+          ...stripGameTemplates(fallback),
+          agents: {
+            [agentId]: {
+              ...baseAgent,
+              equipmentSlots: { utility1: 'signal_jammers' },
+              equipmentEffectScales: { signal_jammers: 3 },
+              equipment: { signal_jammers: 2 },
+            },
+          },
+        },
+        fallback
+      )
+
+      expect(hydrated.agents[agentId]?.equipmentEffectScales).toEqual({ signal_jammers: 3 })
+      expect(hydrated.agents[agentId]).not.toHaveProperty('equipment')
     })
 
     it('344 prunes queued plays with stale case or team targets', () => {
@@ -9034,7 +9069,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         name: 'E. Quip',
         role: 'tech',
         baseStats: { combat: 30, investigation: 60, utility: 55, social: 25 },
-        equipment: { 'unknown-item': 2, medkits: 1 },
+        equipmentEffectScales: { 'unknown-item': 2, medkits: 1 },
         equipmentSlots: { primary: 'unknown-item', utility1: 'medkits' },
         traits: [{ id: 't1', label: 'Calm', modifiers: { bogus: 1, combat: 2 } }],
         abilities: [
@@ -9059,9 +9094,9 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       const normalized = normalizeAgent(agent)
 
-      expect(normalized.equipment).toEqual({ medkits: 1 })
+      expect(normalized.equipmentEffectScales).toEqual({ medkits: 1 })
       expect(normalized.equipmentSlots).toEqual({ utility1: 'medkits' })
-      expect(normalized.equipment['unknown-item']).toBeUndefined()
+      expect(normalized.equipmentEffectScales?.['unknown-item']).toBeUndefined()
       expect(normalized.equipmentSlots.primary).toBeUndefined()
       expect(normalized.traits[0]?.modifiers).toEqual({ combat: 2 })
       expect(normalized.abilityState).toEqual({
@@ -14203,7 +14238,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             [agentId]: {
               ...baseAgent,
               fatigue: 999,
-              equipment: { medkits: 1, phantom_gear: 3 },
+              equipmentEffectScales: { medkits: 1, phantom_gear: 3 },
               equipmentSlots: { primary: 'phantom_gear', utility1: 'medkits' },
               baseStats: {
                 combat: Number.NaN,
@@ -14226,7 +14261,7 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(agent?.abilities).toBeDefined()
       expect(agent?.vitals?.stress).toBe(100)
       expect(agent?.baseStats.investigation).toBe(100)
-      expect(agent?.equipment).toEqual({ medkits: 1 })
+      expect(agent?.equipmentEffectScales).toEqual({ medkits: 1 })
       expect(agent?.equipmentSlots).toEqual({ utility1: 'medkits' })
     })
 

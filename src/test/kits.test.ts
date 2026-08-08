@@ -19,7 +19,7 @@ describe('equipment kits', () => {
         primary: 'silver_rounds',
         armor: 'field_plate',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     }
     const fourPieceAgent = {
       ...state.agents.a_ava,
@@ -29,7 +29,7 @@ describe('equipment kits', () => {
         headgear: 'breach_visor',
         utility1: 'signal_jammers',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     }
 
     const twoPieceKit = resolveAgentEquipmentKits(twoPieceAgent, {
@@ -78,7 +78,7 @@ describe('equipment kits', () => {
         utility1: 'signal_jammers',
         utility2: 'emf_sensors',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     }
 
     const kits = resolveAgentEquipmentKits(agent, {
@@ -128,7 +128,7 @@ describe('equipment kits', () => {
         utility1: 'signal_intercept_kit',
         utility2: 'occult_detection_array',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     }
 
     const kit = resolveAgentEquipmentKits(agent, {

@@ -468,7 +468,11 @@ function getDirectEquipmentBasePrice(
   const premiumTags = ['anti-spirit', 'containment', 'hazmat', 'surveillance']
   const premiumCount = definition.tags.filter((tag) => premiumTags.includes(tag)).length
 
-  return EQUIPMENT_SLOT_BASE_PRICES[definition.slot] + definition.quality * 4 + premiumCount * 2
+  return (
+    EQUIPMENT_SLOT_BASE_PRICES[definition.slot] +
+    definition.legacyEffectScale * 4 +
+    premiumCount * 2
+  )
 }
 
 function getClearanceLevel(game: Pick<GameState, 'agency' | 'clearanceLevel'>) {

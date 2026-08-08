@@ -141,7 +141,7 @@ describe('agent evaluation contract', () => {
   it('exposes explicit derived evaluation profiles from the canonical evaluator', () => {
     const agent = makeAgent({
       role: 'tech',
-      equipment: { signal_jammers: 1 },
+      equipmentEffectScales: { signal_jammers: 1 },
       equipmentSlots: { utility: 'signal_jammers' },
     })
     const currentCase = makeCase({
@@ -692,12 +692,12 @@ describe('agent evaluation contract', () => {
     const baseAgent = makeAgent({
       role: 'tech',
       equipmentSlots: {},
-      equipment: {},
+      equipmentEffectScales: {},
     })
     const equippedAgent = makeAgent({
       role: 'tech',
       equipmentSlots: { utility: 'signal_jammers' },
-      equipment: {},
+      equipmentEffectScales: {},
     })
 
     const baseEffective = effectiveStats(baseAgent)
@@ -718,16 +718,16 @@ describe('agent evaluation contract', () => {
     )
   })
 
-  it('uses fixed item stat blocks and ignores per-agent quality drift', () => {
+  it('uses fixed item stat blocks and ignores per-agent effect-scale drift', () => {
     const baseAgent = makeAgent({
       role: 'hunter',
       equipmentSlots: { primary: 'silver_rounds' },
-      equipment: {},
+      equipmentEffectScales: {},
     })
     const driftedAgent = makeAgent({
       role: 'hunter',
       equipmentSlots: { primary: 'silver_rounds' },
-      equipment: { silver_rounds: 2 },
+      equipmentEffectScales: { silver_rounds: 2 },
     })
 
     const baseEffective = effectiveStats(baseAgent)
@@ -750,7 +750,7 @@ describe('agent evaluation contract', () => {
         utility: 'signal_jammers',
         utility2: 'medkits',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
 
     const equippedItems = resolveEquippedItems(agent)
@@ -788,7 +788,7 @@ describe('agent evaluation contract', () => {
         utility: 'signal_jammers',
         headgear: 'breach_visor',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
 
     const signalItems = resolveEquippedItems(agent, { caseData: signalCase })
@@ -821,7 +821,7 @@ describe('agent evaluation contract', () => {
     )
   })
 
-  it('ignores unslotted stale equipment quality when deriving equipment-driven power', () => {
+  it('ignores unslotted stale equipment effect scales when deriving equipment-driven power', () => {
     const currentCase = makeCase({
       tags: ['signal', 'analysis'],
       weights: { combat: 0.1, investigation: 0.4, utility: 0.4, social: 0.1 },
@@ -829,12 +829,12 @@ describe('agent evaluation contract', () => {
     const cleanAgent = makeAgent({
       role: 'tech',
       equipmentSlots: { utility: 'signal_jammers' },
-      equipment: { signal_jammers: 1 },
+      equipmentEffectScales: { signal_jammers: 1 },
     })
     const staleAgent = makeAgent({
       role: 'tech',
       equipmentSlots: { utility: 'signal_jammers' },
-      equipment: {
+      equipmentEffectScales: {
         signal_jammers: 1,
         ward_seals: 9,
       },
@@ -866,7 +866,7 @@ describe('agent evaluation contract', () => {
         primary: 'silver_rounds',
         armor: 'field_plate',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
 
     const breachBreakdown = evaluateAgentBreakdown(agent, { caseData: breachCase })
@@ -900,7 +900,7 @@ describe('agent evaluation contract', () => {
       equipmentSlots: {
         primary: 'silver_rounds',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
     const kitAgent = makeAgent({
       role: 'hunter',
@@ -908,7 +908,7 @@ describe('agent evaluation contract', () => {
         primary: 'silver_rounds',
         armor: 'field_plate',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
 
     const oneItemEffective = effectiveStats(oneItemAgent, { caseData: breachCase })

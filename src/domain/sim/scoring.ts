@@ -927,7 +927,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
         equippedItemCount: profile.equipmentSummary.equippedItemCount,
         emptySlotCount: profile.equipmentSummary.emptySlotCount,
         activeContextItemCount: profile.equipmentSummary.activeContextItemCount,
-        loadoutQuality: profile.equipmentSummary.loadoutQuality,
+        loadoutEffectScale: profile.equipmentSummary.loadoutEffectScale,
         equippedItemIds: [...profile.equipmentSummary.equippedItemIds],
         equippedTags: [...profile.equipmentSummary.equippedTags],
       },

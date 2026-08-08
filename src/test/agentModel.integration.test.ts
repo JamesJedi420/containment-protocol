@@ -51,7 +51,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.traits).toEqual([])
     expect(agent.abilities).toEqual([])
@@ -88,6 +88,20 @@ describe('core agent model integration', () => {
     expect(agent.assignment).toEqual({ state: 'idle' })
     expect(agent.assignmentStatus).toEqual({ state: 'idle', teamId: null, caseId: null })
     expect(agent.operationalRole).toBe('investigation')
+  })
+
+  it('drops persisted equipment effect scales that are not positive integers', () => {
+    const game = createStartingState()
+    game.agents.a_mina.equipmentEffectScales = {
+      signal_jammers: 2,
+      medkits: 0,
+      ward_seals: -1,
+      combat_stims: 0.5,
+    }
+
+    const normalized = normalizeGameState(game)
+
+    expect(normalized.agents.a_mina.equipmentEffectScales).toEqual({ signal_jammers: 2 })
   })
 
   it('hydrates sparse imported agents without changing the persistence contract', () => {
@@ -130,7 +144,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.assignment).toEqual({ state: 'idle' })
@@ -271,7 +285,7 @@ describe('core agent model integration', () => {
       band: 'steady',
       deploymentEligible: true,
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.history?.timeline).toEqual([
@@ -366,7 +380,7 @@ describe('core agent model integration', () => {
     assigned.funding = 200
     assigned.agents[gearedAgentId] = {
       ...assigned.agents[gearedAgentId],
-      equipment: {},
+      equipmentEffectScales: {},
       equipmentSlots: {
         secondary: 'ward_seals',
         utility1: 'warding_kits',

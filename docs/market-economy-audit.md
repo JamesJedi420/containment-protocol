@@ -91,10 +91,13 @@ Material base unit prices:
 Direct equipment base price:
 
 ```text
-EQUIPMENT_SLOT_BASE_PRICES[slot] + quality × 4 + premiumTagCount × 2
+EQUIPMENT_SLOT_BASE_PRICES[slot] + legacyEffectScale × 4 + premiumTagCount × 2
 ```
 
 Premium tags: `anti-spirit`, `containment`, `hazmat`, `surveillance`.
+
+`legacyEffectScale` preserves the shipped numeric pricing input. It is independent of rarity and is
+not canonical equipment grade.
 
 Slot base prices:
 

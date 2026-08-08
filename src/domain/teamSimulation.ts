@@ -438,7 +438,7 @@ function buildTeamPowerSummary(
         equippedCount: 1,
         activeContextCount: item.contextActive ? 1 : 0,
         stockOnHand: Math.max(0, Math.trunc(inventory[item.id] ?? 0)),
-        totalQuality: item.quality,
+        totalEffectScale: item.legacyEffectScale,
         tags: [...item.tags].sort((left, right) => left.localeCompare(right)),
       })
       continue
@@ -446,7 +446,7 @@ function buildTeamPowerSummary(
 
     current.equippedCount += 1
     current.activeContextCount += item.contextActive ? 1 : 0
-    current.totalQuality += item.quality
+    current.totalEffectScale += item.legacyEffectScale
     current.tags = [...new Set([...current.tags, ...item.tags])].sort((left, right) =>
       left.localeCompare(right)
     )

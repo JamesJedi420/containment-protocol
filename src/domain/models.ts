@@ -761,7 +761,7 @@ export interface TeamPowerInventoryEntry {
   equippedCount: number
   activeContextCount: number
   stockOnHand: number
-  totalQuality: number
+  totalEffectScale: number
   tags: string[]
 }
 

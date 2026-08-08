@@ -63,15 +63,6 @@ export function getRarityLabel(rarity: EquipmentRarity): string {
   return EQUIPMENT_RARITY_LABELS[rarity]
 }
 
-export function qualityToRarity(quality: number): EquipmentRarity {
-  const clampedQuality = Math.max(1, Math.min(5, Math.trunc(quality)))
-  return EQUIPMENT_RARITY_KINDS[clampedQuality - 1]
-}
-
-export function rarityToQualityMultiplier(rarity: EquipmentRarity): number {
-  return EQUIPMENT_RARITY_KINDS.indexOf(rarity) + 1
-}
-
 // ============================================================================
 // PHASE 2: ENCHANTMENTS
 // ============================================================================
@@ -119,7 +110,7 @@ export interface EquipmentDefinition {
   id: string
   name: string
   slot: EquipmentSlotKind
-  quality: number
+  legacyEffectScale: number
   tags: string[]
   allowedSlots: EquipmentSlotKind[]
   statModifiers: Partial<DomainStats>
@@ -131,7 +122,7 @@ export interface EquipmentDefinition {
 export interface EquipmentItem {
   id: string
   name: string
-  quality: number
+  legacyEffectScale: number
   slot: EquipmentSlotKind
   tags: string[]
   rarity: EquipmentRarity
@@ -148,7 +139,7 @@ export interface EquipmentLoadoutSummary {
   equippedItemCount: number
   emptySlotCount: number
   activeContextItemCount: number
-  loadoutQuality: number
+  loadoutEffectScale: number
   equippedItemIds: string[]
   equippedTags: string[]
 }
@@ -376,7 +367,7 @@ const EQUIPMENT_DEFINITION_KEYS = new Set<keyof EquipmentDefinition>([
   'id',
   'name',
   'slot',
-  'quality',
+  'legacyEffectScale',
   'tags',
   'allowedSlots',
   'statModifiers',
@@ -551,7 +542,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'silver_rounds',
     name: 'Silver Rounds',
     slot: 'primary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['combat', 'breach', 'anti-spirit', 'silver', 'threat'],
     allowedSlots: ['primary'],
     rarity: 'uncommon',
@@ -576,7 +567,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'ward_seals',
     name: 'Ward Seals',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['occult', 'containment', 'anti-spirit', 'seal', 'ritual'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -601,7 +592,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'medkits',
     name: 'Emergency Medkits',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['medical', 'stabilization', 'hazmat', 'support'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -626,7 +617,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'diplomatic_kit',
     name: 'Diplomatic Kit',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['social', 'negotiation', 'interview', 'support', 'communication'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -651,7 +642,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'signal_jammers',
     name: 'Signal Jammers',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['surveillance', 'signal', 'intel', 'analysis'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -674,7 +665,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'emf_sensors',
     name: 'EMF Sensors',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['surveillance', 'anomaly', 'analysis', 'evidence', 'field'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -699,7 +690,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'anomaly_scanner',
     name: 'Handheld Anomaly Scanner',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['recon', 'anomaly', 'surveillance', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -724,7 +715,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'spectral_em_array',
     name: 'Spectral / EM Sensor Array',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['recon', 'surveillance', 'signal', 'anomaly', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -750,7 +741,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'environmental_sampler',
     name: 'Environmental Sampler',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['recon', 'environmental', 'hazmat', 'evidence', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -776,7 +767,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'encrypted_field_tablet',
     name: 'Encrypted Field Tablet',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['recon', 'analysis', 'signal', 'communication', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -801,7 +792,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'advanced_recon_suite',
     name: 'Advanced Recon Suite',
     slot: 'headgear',
-    quality: 2,
+    legacyEffectScale: 2,
     tags: ['recon', 'surveillance', 'pathfinding', 'analysis', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -827,7 +818,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'occult_detection_array',
     name: 'Occult Detection Array',
     slot: 'utility2',
-    quality: 2,
+    legacyEffectScale: 2,
     tags: ['recon', 'occult', 'anomaly', 'surveillance', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -854,7 +845,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'signal_intercept_kit',
     name: 'Signal Intercept Kit',
     slot: 'utility1',
-    quality: 2,
+    legacyEffectScale: 2,
     tags: ['recon', 'signal', 'cyber', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'rare',
@@ -881,7 +872,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'warding_kits',
     name: 'Warding Kits',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['occult', 'containment', 'anti-spirit', 'ritual', 'hazmat'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -906,7 +897,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'ritual_components',
     name: 'Ritual Components',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['occult', 'ritual', 'anomaly', 'analysis', 'containment'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -932,7 +923,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'field_plate',
     name: 'Field Plate',
     slot: 'armor',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['armor', 'hazmat', 'breach', 'protection'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -957,7 +948,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'containment_staff',
     name: 'Containment Staff',
     slot: 'primary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['occult', 'containment', 'stabilization', 'support', 'ritual'],
     allowedSlots: ['primary', 'secondary'],
     rarity: 'uncommon',
@@ -981,7 +972,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'hazmat_suit',
     name: 'Hazmat Suit',
     slot: 'armor',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['armor', 'hazmat', 'protection', 'biocontainment', 'support', 'licensed-procurement'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -1004,7 +995,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'analysis_goggles',
     name: 'Analysis Goggles',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['surveillance', 'analysis', 'investigation', 'intel'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -1028,7 +1019,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'trauma_kit',
     name: 'Trauma Kit',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['medical', 'trauma', 'field', 'physical', 'stabilization'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1053,7 +1044,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'combat_stims',
     name: 'Combat Stims',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['combat', 'stimulant', 'physical', 'support', 'medical', 'licensed-procurement'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1077,7 +1068,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'tactical_radio',
     name: 'Tactical Radio',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['tactical', 'communication', 'signal', 'field', 'surveillance'],
     allowedSlots: ['secondary', 'utility1'],
     rarity: 'uncommon',
@@ -1101,7 +1092,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'breach_visor',
     name: 'Breach Visor',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
     tags: ['surveillance', 'breach', 'witness', 'field'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -1130,7 +1121,7 @@ const EMPTY_EQUIPMENT_LOADOUT_SUMMARY: EquipmentLoadoutSummary = {
   equippedItemCount: 0,
   emptySlotCount: EQUIPMENT_SLOT_KINDS.length,
   activeContextItemCount: 0,
-  loadoutQuality: 0,
+  loadoutEffectScale: 0,
   equippedItemIds: [],
   equippedTags: [],
 }
@@ -1213,9 +1204,9 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
       )
     }
 
-    if (!Number.isInteger(definition.quality) || definition.quality < 1) {
+    if (!Number.isInteger(definition.legacyEffectScale) || definition.legacyEffectScale < 1) {
       throw new Error(
-        `Invalid equipment definition at equipment.${itemId}: quality must be a positive integer.`
+        `Invalid equipment definition at equipment.${itemId}: legacyEffectScale must be a positive integer.`
       )
     }
 
@@ -1465,7 +1456,7 @@ export function validateAgentLoadoutAssignment(
   }
 
   const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
-  if (definition.quality >= 2 && resolvedLevel < 2) {
+  if (definition.legacyEffectScale >= 2 && resolvedLevel < 2) {
     blockingIssues.push('prerequisite-level-gate')
   }
 
@@ -1611,7 +1602,7 @@ function isEquipmentPrerequisiteSatisfiedForState(
   }
 
   const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
-  if (definition.quality >= 2 && resolvedLevel < 2) {
+  if (definition.legacyEffectScale >= 2 && resolvedLevel < 2) {
     return false
   }
 
@@ -1722,60 +1713,60 @@ export function listEquippedItemAssignments(
     })
 }
 
-function getItemQuality(_agent: Agent, definition: EquipmentDefinition) {
-  return Math.max(1, Math.trunc(definition.quality))
+function getItemLegacyEffectScale(_agent: Agent, definition: EquipmentDefinition) {
+  return Math.max(1, Math.trunc(definition.legacyEffectScale))
 }
 
 function scaleStatModifiers(
   statModifiers: Partial<DomainStats>,
-  quality: number
+  legacyEffectScale: number
 ): Partial<DomainStats> {
   return {
     ...(statModifiers.physical
       ? {
           physical: {
-            strength: (statModifiers.physical.strength ?? 0) * quality,
-            endurance: (statModifiers.physical.endurance ?? 0) * quality,
+            strength: (statModifiers.physical.strength ?? 0) * legacyEffectScale,
+            endurance: (statModifiers.physical.endurance ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.tactical
       ? {
           tactical: {
-            awareness: (statModifiers.tactical.awareness ?? 0) * quality,
-            reaction: (statModifiers.tactical.reaction ?? 0) * quality,
+            awareness: (statModifiers.tactical.awareness ?? 0) * legacyEffectScale,
+            reaction: (statModifiers.tactical.reaction ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.cognitive
       ? {
           cognitive: {
-            analysis: (statModifiers.cognitive.analysis ?? 0) * quality,
-            investigation: (statModifiers.cognitive.investigation ?? 0) * quality,
+            analysis: (statModifiers.cognitive.analysis ?? 0) * legacyEffectScale,
+            investigation: (statModifiers.cognitive.investigation ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.social
       ? {
           social: {
-            negotiation: (statModifiers.social.negotiation ?? 0) * quality,
-            influence: (statModifiers.social.influence ?? 0) * quality,
+            negotiation: (statModifiers.social.negotiation ?? 0) * legacyEffectScale,
+            influence: (statModifiers.social.influence ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.stability
       ? {
           stability: {
-            resistance: (statModifiers.stability.resistance ?? 0) * quality,
-            tolerance: (statModifiers.stability.tolerance ?? 0) * quality,
+            resistance: (statModifiers.stability.resistance ?? 0) * legacyEffectScale,
+            tolerance: (statModifiers.stability.tolerance ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.technical
       ? {
           technical: {
-            equipment: (statModifiers.technical.equipment ?? 0) * quality,
-            anomaly: (statModifiers.technical.anomaly ?? 0) * quality,
+            equipment: (statModifiers.technical.equipment ?? 0) * legacyEffectScale,
+            anomaly: (statModifiers.technical.anomaly ?? 0) * legacyEffectScale,
           },
         }
       : {}),
@@ -1861,7 +1852,7 @@ function ruleMatchesContext(rule: EquipmentContextRule, context: EquipmentEvalua
 
 function resolveContextualModifiers(
   definition: EquipmentDefinition,
-  quality: number,
+  legacyEffectScale: number,
   context: EquipmentEvaluationContext
 ) {
   return (definition.contextModifiers ?? []).reduce<Partial<DomainStats>>((merged, modifier) => {
@@ -1869,7 +1860,7 @@ function resolveContextualModifiers(
       return merged
     }
 
-    return mergeScaledModifiers(merged, scaleStatModifiers(modifier.statModifiers, quality))
+    return mergeScaledModifiers(merged, scaleStatModifiers(modifier.statModifiers, legacyEffectScale))
   }, {})
 }
 
@@ -1895,10 +1886,10 @@ function resolveActiveEnchantments(
 
 function mergeEnchantmentModifiers(
   enchantments: EquipmentEnchantment[],
-  quality: number
+  legacyEffectScale: number
 ): Partial<DomainStats> {
   return enchantments.reduce<Partial<DomainStats>>((merged, enchantment) => {
-    return mergeScaledModifiers(merged, scaleStatModifiers(enchantment.statModifiers, quality))
+    return mergeScaledModifiers(merged, scaleStatModifiers(enchantment.statModifiers, legacyEffectScale))
   }, {})
 }
 
@@ -1912,8 +1903,8 @@ function resolveActiveEquipmentSets(items: EquipmentItem[]): EquipmentSet[] {
 
 function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Partial<DomainStats> {
   const equippedItemIds = new Set(items.map((item) => item.id))
-  const avgQuality =
-    items.length > 0 ? items.reduce((sum, item) => sum + item.quality, 0) / items.length : 1
+  const averageEffectScale =
+    items.length > 0 ? items.reduce((sum, item) => sum + item.legacyEffectScale, 0) / items.length : 1
 
   return sets.reduce<Partial<DomainStats>>((merged, set) => {
     const itemsInSet = set.itemIds.filter((id) => equippedItemIds.has(id))
@@ -1929,7 +1920,7 @@ function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Part
     }
 
     if (bonus) {
-      return mergeScaledModifiers(merged, scaleStatModifiers(bonus, avgQuality))
+      return mergeScaledModifiers(merged, scaleStatModifiers(bonus, averageEffectScale))
     }
 
     return merged
@@ -1985,21 +1976,21 @@ export function resolveEquippedItems(
       return null
     }
 
-    const quality = getItemQuality(agent, definition)
-    const baseModifiers = scaleStatModifiers(definition.statModifiers, quality)
-    const activeModifiers = resolveContextualModifiers(definition, quality, context)
+    const legacyEffectScale = getItemLegacyEffectScale(agent, definition)
+    const baseModifiers = scaleStatModifiers(definition.statModifiers, legacyEffectScale)
+    const activeModifiers = resolveContextualModifiers(definition, legacyEffectScale, context)
     const contextActive = hasEquipmentStatModifiers(activeModifiers)
 
     // Resolve enchantments
     const enchantments = resolveEnchantmentsForItem(definition)
     const activeEnchantments = resolveActiveEnchantments(enchantments, context)
-    const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, quality)
+    const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, legacyEffectScale)
 
     return {
       id: definition.id,
       name: definition.name,
       slot,
-      quality,
+      legacyEffectScale,
       tags: [...definition.tags],
       rarity: definition.rarity ?? 'basic',
       enchantments,
@@ -2021,7 +2012,7 @@ function buildLoadoutSummary(items: EquipmentItem[], slotCount: number): Equipme
     equippedItemCount: items.length,
     emptySlotCount: Math.max(0, slotCount - items.length),
     activeContextItemCount: items.filter((item) => item.contextActive).length,
-    loadoutQuality: items.reduce((total, item) => total + item.quality, 0),
+    loadoutEffectScale: items.reduce((total, item) => total + item.legacyEffectScale, 0),
     equippedItemIds: items.map((item) => item.id),
     equippedTags: [...new Set(items.flatMap((item) => item.tags))].sort((left, right) =>
       left.localeCompare(right)

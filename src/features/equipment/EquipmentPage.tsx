@@ -97,7 +97,7 @@ function EquipmentPage() {
                     <p className="text-xs uppercase tracking-[0.2em] opacity-50">
                       {view.assignmentState} / Slots {view.summary.equippedItemCount}/
                       {view.summary.slotCount} / Context live {view.summary.activeContextItemCount}{' '}
-                      / Quality {view.summary.loadoutQuality}
+                      / Effect scale {view.summary.loadoutEffectScale}
                     </p>
                     {view.blockedReason ? (
                       <p className="mt-1 text-xs text-amber-200/80">{view.blockedReason}</p>

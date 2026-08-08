@@ -235,7 +235,7 @@ function makeMissionResultState(outcome: 'success' | 'partial' | 'fail' | 'unres
   const gearedAgentId = assigned.teams['t_nightwatch'].agentIds[0]
   assigned.agents[gearedAgentId] = {
     ...assigned.agents[gearedAgentId]!,
-    equipment: {},
+    equipmentEffectScales: {},
     equipmentSlots: {
       secondary: 'ward_seals',
       utility1: 'warding_kits',

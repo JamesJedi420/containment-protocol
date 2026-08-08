@@ -323,8 +323,20 @@ describe('equipment-grade recovery contract', () => {
           equipmentDeconstructionQueue: [
             entry,
             { ...entry, id: 'missing-explanations', explanationCodes: undefined },
+            { ...entry, id: 'missing-timing', durationWeeks: undefined },
+            { ...entry, id: 'fractional-timing', remainingWeeks: 0.5 },
           ],
           equipmentRecoveryOutcomes: {
+            [entry.id]: {
+              queueId: entry.id,
+              itemId: entry.itemId,
+              pathId: entry.pathId,
+              sourceGradeId: entry.sourceGradeId,
+              sourceCondition: entry.sourceCondition,
+              outputMaterials: entry.outputMaterials,
+              wasteQuantity: entry.wasteQuantity,
+              completedWeek: 1,
+            },
             valid: {
               queueId: 'valid',
               itemId: 'signal_jammers',
@@ -354,9 +366,42 @@ describe('equipment-grade recovery contract', () => {
     ).game
 
     expect(hydrated.equipmentDeconstructionQueue).toHaveLength(1)
-    expect(hydrated.equipmentRecoveryOutcomes).toEqual({
-      valid: expect.objectContaining({ queueId: 'valid', sourceGradeId: 'grade_2' }),
-    })
+    expect(hydrated.equipmentDeconstructionQueue?.[0]?.id).toBe(entry.id)
+    expect(hydrated.equipmentRecoveryOutcomes).toEqual(
+      expect.objectContaining({
+        [entry.id]: expect.objectContaining({ queueId: entry.id }),
+        valid: expect.objectContaining({ queueId: 'valid', sourceGradeId: 'grade_2' }),
+      })
+    )
+    const replay = advanceEquipmentDeconstructionQueues(hydrated)
+    expect(replay.state.inventory).toEqual(hydrated.inventory)
+    expect(replay.state.equipmentDeconstructionQueue).toEqual([])
+
+    const conflictHydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          equipmentDeconstructionQueue: [entry],
+          equipmentRecoveryOutcomes: {
+            [entry.id]: {
+              queueId: entry.id,
+              itemId: entry.itemId,
+              pathId: entry.pathId,
+              sourceGradeId: 'grade_1',
+              sourceCondition: entry.sourceCondition,
+              outputMaterials: entry.outputMaterials,
+              wasteQuantity: entry.wasteQuantity,
+              completedWeek: 1,
+            },
+          },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+    const conflictReplay = advanceEquipmentDeconstructionQueues(conflictHydrated)
+    expect(conflictReplay.state.inventory).toEqual(conflictHydrated.inventory)
+    expect(conflictReplay.state.equipmentDeconstructionQueue?.[0]?.id).toBe(entry.id)
   })
 
   it('advances recovery through the canonical week-close queue phase', () => {

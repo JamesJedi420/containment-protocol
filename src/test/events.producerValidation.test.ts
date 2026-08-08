@@ -18,6 +18,8 @@ import {
   createAssignmentTeamUnassignedDraft,
   createFactionStandingChangedDraft,
   createFactionUnlockAvailableDraft,
+  createEquipmentRecoveryCompletedDraft,
+  createEquipmentRecoveryStartedDraft,
   createMarketShiftedDraft,
   createMarketTransactionRecordedDraft,
   createProductionQueueCompletedDraft,
@@ -80,6 +82,10 @@ function createFactoryDraft<TType extends (typeof OPERATION_EVENT_FACTORY_TYPES)
       return createProductionQueueStartedDraft(payload)
     case 'production.queue_completed':
       return createProductionQueueCompletedDraft(payload)
+    case 'equipment.recovery_started':
+      return createEquipmentRecoveryStartedDraft(payload)
+    case 'equipment.recovery_completed':
+      return createEquipmentRecoveryCompletedDraft(payload)
     case 'market.shifted':
       return createMarketShiftedDraft(payload)
     case 'market.transaction_recorded':
@@ -126,9 +132,9 @@ describe('operation event producer drafts validate against schemas', () => {
       minimalOperationEventPayloads['production.queue_started']
     )
     expect(validation.success).toBe(true)
-    expect(minimalOperationEventPayloads['production.queue_started'].inputMaterials.length).toBeGreaterThan(
-      0
-    )
+    expect(
+      minimalOperationEventPayloads['production.queue_started'].inputMaterials.length
+    ).toBeGreaterThan(0)
   })
 
   it('accepts system.equipment_recovered strict payloads', () => {

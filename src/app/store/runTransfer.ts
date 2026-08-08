@@ -5637,8 +5637,7 @@ function sanitizeEquipmentRecoveryOutcomes(
 
 function sanitizeEquipmentDeconstructionQueue(
   value: unknown,
-  campaignWeek: number,
-  reservedIds: readonly string[]
+  campaignWeek: number
 ): EquipmentDeconstructionQueueEntry[] {
   if (!Array.isArray(value)) return []
   const queue: EquipmentDeconstructionQueueEntry[] = []
@@ -5652,7 +5651,15 @@ function sanitizeEquipmentDeconstructionQueue(
       entry.sourceGradeVisibility !== 'known' ||
       (entry.sourceCondition !== 'operational' && entry.sourceCondition !== 'damaged') ||
       !Number.isInteger(entry.wasteQuantity) ||
-      (entry.wasteQuantity as number) < 0
+      (entry.wasteQuantity as number) < 0 ||
+      !Number.isInteger(entry.startedWeek) ||
+      (entry.startedWeek as number) < 1 ||
+      (entry.startedWeek as number) > campaignWeek ||
+      !Number.isInteger(entry.durationWeeks) ||
+      (entry.durationWeeks as number) < 1 ||
+      !Number.isInteger(entry.remainingWeeks) ||
+      (entry.remainingWeeks as number) < 1 ||
+      (entry.remainingWeeks as number) > (entry.durationWeeks as number)
     ) {
       continue
     }
@@ -5673,11 +5680,6 @@ function sanitizeEquipmentDeconstructionQueue(
     ) {
       continue
     }
-    const durationWeeks = sanitizeInteger(entry.durationWeeks as number | undefined, 1, 1)
-    const remainingWeeks = Math.min(
-      sanitizeInteger(entry.remainingWeeks as number | undefined, durationWeeks, 1),
-      durationWeeks
-    )
     queue.push({
       id: typeof entry.id === 'string' ? entry.id.trim() : `recovery-${index + 1}`,
       itemId: entry.itemId,
@@ -5688,17 +5690,13 @@ function sanitizeEquipmentDeconstructionQueue(
       sourceCondition: entry.sourceCondition,
       outputMaterials,
       wasteQuantity: entry.wasteQuantity as number,
-      startedWeek: clamp(
-        sanitizeInteger(entry.startedWeek as number | undefined, 1, 1),
-        1,
-        campaignWeek
-      ),
-      durationWeeks,
-      remainingWeeks,
+      startedWeek: entry.startedWeek as number,
+      durationWeeks: entry.durationWeeks as number,
+      remainingWeeks: entry.remainingWeeks as number,
       explanationCodes: [...new Set(explanationCodes)],
     })
   }
-  return assignUniqueQueueEntryIds(queue, 'recovery', reservedIds)
+  return assignUniqueQueueEntryIds(queue, 'recovery')
 }
 
 function sanitizeContractStatBlock(value: unknown, fallback: StatBlock): StatBlock {
@@ -10000,8 +9998,7 @@ export function hydrateGame(
     fabricatedEquipmentLots,
     equipmentDeconstructionQueue: sanitizeEquipmentDeconstructionQueue(
       game.equipmentDeconstructionQueue,
-      week,
-      Object.keys(equipmentRecoveryOutcomes)
+      week
     ),
     equipmentRecoveryOutcomes,
     config,

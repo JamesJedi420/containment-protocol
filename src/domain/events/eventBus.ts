@@ -728,6 +728,8 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'progression.xp_gained',
   'production.queue_started',
   'production.queue_completed',
+  'equipment.recovery_started',
+  'equipment.recovery_completed',
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',

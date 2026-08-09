@@ -35,6 +35,8 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'production.queue_started': 'covered',
   'equipment.recovery_started': 'covered',
   'equipment.recovery_completed': 'covered',
+  'equipment.auto_scrap_policy_changed': 'covered',
+  'equipment.auto_scrap_routed': 'covered',
   'system.equipment_recovered': 'covered',
   'market.shifted': 'covered',
   'market.transaction_recorded': 'covered',

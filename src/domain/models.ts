@@ -22,6 +22,7 @@ import type {
   EquipmentRecoveryCondition,
   EquipmentRecoveryPathId,
 } from './equipmentGradeRecovery'
+import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2774,6 +2775,8 @@ export interface GameState {
   equipmentDeconstructionQueue?: EquipmentDeconstructionQueueEntry[]
   /** SPE-2748: immutable material-recovery receipts keyed by queue ID. */
   equipmentRecoveryOutcomes?: EquipmentRecoveryOutcomeRegistry
+  /** SPE-2799: disabled-by-default canonical-grade Auto-Scrap policy. */
+  equipmentAutoScrapPolicy?: EquipmentAutoScrapPolicy
   market: MarketState
   globalPressure?: number
   /**

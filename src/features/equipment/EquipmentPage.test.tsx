@@ -137,7 +137,7 @@ describe('EquipmentPage', () => {
     renderEquipmentPage()
 
     expect(screen.getByRole('heading', { name: /equipment deconstruction/i })).toBeInTheDocument()
-    expect(screen.getByText(/grade ii/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/grade ii/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/electronic parts ×2/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
     expect(screen.getByText(/permanently consumes one signal jammers/i)).toBeInTheDocument()
@@ -173,5 +173,34 @@ describe('EquipmentPage', () => {
     expect(
       screen.getByRole('button', { name: /review deconstruction signal jammers/i })
     ).toBeDisabled()
+  })
+
+  it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.medkits = 2
+    game.inventory.signal_jammers = 1
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByRole('heading', { name: /weekly auto-scrap/i })).toBeInTheDocument()
+    expect(screen.getByText(/include 2 unit\(s\).*exclude 1 unit\(s\)/i)).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText(/grade threshold/i), 'grade_2')
+    expect(screen.getByText(/include 3 unit\(s\).*exclude 0 unit\(s\)/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review auto-scrap through grade ii/i }))
+    expect(screen.getByRole('group', { name: /confirm auto-scrap policy/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm auto-scrap/i }))
+
+    expect(useGameStore.getState().game.equipmentAutoScrapPolicy).toEqual({
+      state: 'enabled',
+      thresholdGradeId: 'grade_2',
+    })
+    expect(screen.getByText(/active through grade ii/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /disable auto-scrap/i }))
+    expect(useGameStore.getState().game.equipmentAutoScrapPolicy).toEqual({ state: 'disabled' })
+    expect(
+      screen.getByText(/disabled\. no equipment will be routed automatically/i)
+    ).toBeInTheDocument()
   })
 })

@@ -20,6 +20,7 @@ import {
 import { isSafeEquipmentRecoveryQueueId } from '../../domain/sim/equipmentDeconstruction'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
+import { sanitizeEquipmentAutoScrapPolicy } from '../../domain/equipmentAutoScrap'
 import {
   reconcileAgentTrainingCancelledFields,
   reconcileAgentTrainingCompletedFields,
@@ -8609,6 +8610,35 @@ function sanitizeOperationEvents(
         }
         break
 
+      case 'equipment.auto_scrap_policy_changed': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.auto_scrap_policy_changed'
+        ].safeParse({ ...payload, week })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.auto_scrap_policy_changed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.auto_scrap_routed': {
+        const parsed = operationEventPayloadSchemas['equipment.auto_scrap_routed'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.auto_scrap_routed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
       case 'market.shifted': {
         const marketShift = reconcileMarketShiftedFields(payload, fallbackFeaturedRecipeId)
 
@@ -9844,6 +9874,7 @@ export function hydrateGame(
     inventory,
     fallback.damagedEquipmentQueue
   )
+  const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10001,6 +10032,7 @@ export function hydrateGame(
       week
     ),
     equipmentRecoveryOutcomes,
+    equipmentAutoScrapPolicy,
     config,
     campaignLedger: sanitizeCampaignLedger(
       game.campaignLedger,

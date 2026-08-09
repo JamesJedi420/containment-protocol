@@ -376,6 +376,25 @@ export const minimalOperationEventPayloads = {
     ],
     wasteQuantity: 1,
   },
+  'equipment.auto_scrap_policy_changed': {
+    week: WEEK,
+    action: 'enabled',
+    thresholdGradeId: 'grade_1',
+    includedItemCount: 1,
+    includedQuantity: 1,
+    excludedItemCount: 0,
+    excludedQuantity: 0,
+  },
+  'equipment.auto_scrap_routed': {
+    week: WEEK,
+    thresholdGradeId: 'grade_1',
+    routedQueueIds: ['recovery-min'],
+    routedQuantity: 1,
+    includedItemCount: 1,
+    excludedItemCount: 0,
+    excludedQuantity: 0,
+    exclusionReasonCounts: [],
+  },
   'market.shifted': {
     week: WEEK,
     // SPE-2661: validate requires productionCatalog membership (not opaque recipe-min).

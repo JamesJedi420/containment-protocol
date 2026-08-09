@@ -10,6 +10,7 @@ import { createStartingPartyCardState } from './partyCards'
 import { createStartingInventory, createStartingMarket } from './production'
 import { startingKnowledge } from './startingKnowledge'
 import { POST_INCIDENT_REVIEW_STUB_REGISTRY } from '../domain/postIncidentReviewRegistry'
+import { DISABLED_EQUIPMENT_AUTO_SCRAP_POLICY } from '../domain/equipmentAutoScrap'
 
 const startingStateTemplate: GameState = {
   week: 1,
@@ -49,6 +50,7 @@ const startingStateTemplate: GameState = {
   fabricatedEquipmentLots: {},
   equipmentDeconstructionQueue: [],
   equipmentRecoveryOutcomes: {},
+  equipmentAutoScrapPolicy: DISABLED_EQUIPMENT_AUTO_SCRAP_POLICY,
   market: createStartingMarket(),
   partyCards: createStartingPartyCardState(),
 

@@ -77,5 +77,20 @@ items with fabricated-lot provenance fail closed until a per-copy selection cont
 Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
 without changing inventory's quantity authority or either save version.
 
-Auto-Scrap, broader custody/contamination/relic recovery, identification workflows, processed-
-material quality, and per-copy fabricated-lot selection remain owned by downstream work.
+## Auto-Scrap adoption
+
+SPE-2799 adds an optional disabled-by-default policy containing only a canonical at-or-below grade
+identifier. Preview and weekly execution first consume the existing recovery preview, then compare
+known graded participation through the canonical ordering helper. Hidden, unknown, ungraded,
+deferred, fabricated-lot-ambiguous, and canonically restricted stock is excluded. Candidate order
+is stable item-ID order, never grade order, so sorting and diagnostics cannot leak hidden grade.
+
+Enabled policies route all currently safe aggregate copies through the normal deconstruction
+command after fabrication and before recovery advancement at week close. They do not create a
+destruction shortcut, alternate yield semantics, or Auto-Scrap-owned protection flags. Equipped
+copies and active-process copies remain outside aggregate stock; fabricated-lot item IDs remain
+blocked wholesale until per-copy selection exists.
+
+Broader custody/contamination/relic recovery, equipment-linked evidence and legal restrictions,
+identification workflows, favorite/lock/quest/unique state, processed-material quality, and
+per-copy fabricated-lot selection remain owned by downstream prerequisites.

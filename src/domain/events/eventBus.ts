@@ -632,6 +632,26 @@ export function createEquipmentRecoveryCompletedDraft(
   }
 }
 
+export function createEquipmentAutoScrapPolicyChangedDraft(
+  payload: OperationEventPayloadMap['equipment.auto_scrap_policy_changed']
+): OperationEventDraft<'equipment.auto_scrap_policy_changed'> {
+  return {
+    type: 'equipment.auto_scrap_policy_changed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentAutoScrapRoutedDraft(
+  payload: OperationEventPayloadMap['equipment.auto_scrap_routed']
+): OperationEventDraft<'equipment.auto_scrap_routed'> {
+  return {
+    type: 'equipment.auto_scrap_routed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
 export function createMarketShiftedDraft(
   payload: OperationEventPayloadMap['market.shifted']
 ): OperationEventDraft<'market.shifted'> {

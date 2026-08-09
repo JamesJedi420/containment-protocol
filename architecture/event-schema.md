@@ -424,11 +424,19 @@ Examples:
 - recovery.partial
 - equipment.recovery_started
 - equipment.recovery_completed
+- equipment.auto_scrap_policy_changed
+- equipment.auto_scrap_routed
 
 Equipment-grade recovery uses the `equipment.*` events. Start captures queue, item, path, source
 grade, condition, material outcome, waste, and duration. Completion repeats the snapshotted
 provenance and records completion week. The canonical grade ID is emitted only for known eligible
 equipment; hidden-grade recovery fails closed before queueing.
+
+Auto-Scrap policy events record explicit enable/disable transitions and their canonical threshold.
+Weekly routing events record the threshold, created recovery queue IDs, bounded inclusion/exclusion
+counts, and stable hidden-safe reason counts. They describe canonical state changes and do not own
+favorite, lock, custody, evidence, legal, identification, or anomaly-review truth. A same-week
+routing event is the deterministic replay guard.
 
 Example:
 

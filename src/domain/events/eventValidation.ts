@@ -14,6 +14,7 @@ import { EXACT_POTENTIAL_TIERS } from '../agentPotential'
 import { getWeeklyDirectiveDefinition, isWeeklyDirectiveId } from '../directives'
 import { CASE_KINDS, CASE_MODES } from '../models'
 import { EQUIPMENT_GRADE_IDS } from '../equipmentGrade'
+import { EQUIPMENT_AUTO_SCRAP_REASON_CODES } from '../equipmentAutoScrapReasonCodes'
 import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGradeFabrication'
 import type { OperationEventType } from './types'
 
@@ -760,6 +761,56 @@ const equipmentRecoveryCompletedSchema = z
   .strict()
   .superRefine(refineEquipmentRecoveryEvent)
 
+const equipmentAutoScrapPolicyChangedSchema = z
+  .object({
+    week: weekSchema,
+    action: z.enum(['enabled', 'disabled']),
+    thresholdGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
+    includedItemCount: finiteNonNegativeIntSchema,
+    includedQuantity: finiteNonNegativeIntSchema,
+    excludedItemCount: finiteNonNegativeIntSchema,
+    excludedQuantity: finiteNonNegativeIntSchema,
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.action === 'enabled' && payload.thresholdGradeId === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['thresholdGradeId'],
+        message: 'enabled Auto-Scrap policy requires a canonical threshold',
+      })
+    }
+  })
+
+const equipmentAutoScrapRoutedSchema = z
+  .object({
+    week: weekSchema,
+    thresholdGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+    routedQueueIds: z.array(idSchema),
+    routedQuantity: finiteNonNegativeIntSchema,
+    includedItemCount: finiteNonNegativeIntSchema,
+    excludedItemCount: finiteNonNegativeIntSchema,
+    excludedQuantity: finiteNonNegativeIntSchema,
+    exclusionReasonCounts: z.array(
+      z
+        .object({
+          reasonCode: z.enum(EQUIPMENT_AUTO_SCRAP_REASON_CODES),
+          count: finitePositiveIntSchema,
+        })
+        .strict()
+    ),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.routedQueueIds.length !== payload.routedQuantity) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['routedQuantity'],
+        message: 'routed quantity must match routed queue IDs',
+      })
+    }
+  })
+
 const marketShiftedSchema = z
   .object({
     week: weekSchema,
@@ -1311,6 +1362,8 @@ export const operationEventPayloadSchemas = {
   'production.queue_completed': productionQueueCompletedSchema,
   'equipment.recovery_started': equipmentRecoveryStartedSchema,
   'equipment.recovery_completed': equipmentRecoveryCompletedSchema,
+  'equipment.auto_scrap_policy_changed': equipmentAutoScrapPolicyChangedSchema,
+  'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,

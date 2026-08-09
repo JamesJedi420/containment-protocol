@@ -7,12 +7,8 @@ import {
   getEquipmentAutoScrapView,
   getEquipmentDeconstructionQueueViews,
   getEquipmentDeconstructionViews,
+  type EquipmentAutoScrapView,
 } from './equipmentView'
-import {
-  EQUIPMENT_GRADE_DEFINITIONS,
-  getEquipmentGradeDefinition,
-  type EquipmentGradeId,
-} from '../../domain/equipmentGrade'
 
 function EquipmentPage() {
   const {
@@ -27,7 +23,9 @@ function EquipmentPage() {
   const deconstructionViews = useMemo(() => getEquipmentDeconstructionViews(game), [game])
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
-  const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<EquipmentGradeId>(
+  const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
+    EquipmentAutoScrapView['previewThresholdGradeId']
+  >(
     game.equipmentAutoScrapPolicy?.state === 'enabled'
       ? game.equipmentAutoScrapPolicy.thresholdGradeId
       : 'grade_1'
@@ -84,8 +82,8 @@ function EquipmentPage() {
             through the normal recovery queue at week close.
           </p>
           <p className="mt-1 text-xs opacity-60">
-            {autoScrapView.enabled && autoScrapView.configuredThresholdGradeId
-              ? `Active through ${getEquipmentGradeDefinition(autoScrapView.configuredThresholdGradeId).label}.`
+            {autoScrapView.enabled && autoScrapView.configuredThresholdLabel
+              ? `Active through ${autoScrapView.configuredThresholdLabel}.`
               : 'Disabled. No equipment will be routed automatically.'}
           </p>
         </div>
@@ -100,13 +98,15 @@ function EquipmentPage() {
               className="select select-sm"
               value={autoScrapThresholdGradeId}
               onChange={(event) => {
-                setAutoScrapThresholdGradeId(event.target.value as EquipmentGradeId)
+                setAutoScrapThresholdGradeId(
+                  event.target.value as EquipmentAutoScrapView['previewThresholdGradeId']
+                )
                 setReviewingAutoScrap(false)
               }}
             >
-              {EQUIPMENT_GRADE_DEFINITIONS.map((definition) => (
-                <option key={definition.id} value={definition.id}>
-                  {definition.label}
+              {autoScrapView.thresholdOptions.map((option) => (
+                <option key={option.gradeId} value={option.gradeId}>
+                  {option.label}
                 </option>
               ))}
             </select>

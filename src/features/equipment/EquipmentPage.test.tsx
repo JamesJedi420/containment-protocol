@@ -197,6 +197,16 @@ describe('EquipmentPage', () => {
       thresholdGradeId: 'grade_2',
     })
     expect(screen.getByText(/active through grade ii/i)).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText(/grade threshold/i), 'grade_3')
+    await user.click(screen.getByRole('button', { name: /review auto-scrap through grade iii/i }))
+    await user.click(screen.getByRole('button', { name: /confirm auto-scrap/i }))
+    expect(useGameStore.getState().game.equipmentAutoScrapPolicy).toEqual({
+      state: 'enabled',
+      thresholdGradeId: 'grade_3',
+    })
+    expect(screen.getByText(/active through grade iii/i)).toBeInTheDocument()
+
     await user.click(screen.getByRole('button', { name: /disable auto-scrap/i }))
     expect(useGameStore.getState().game.equipmentAutoScrapPolicy).toEqual({ state: 'disabled' })
     expect(

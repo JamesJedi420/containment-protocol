@@ -59,12 +59,6 @@ const RECOVERY_RESTRICTION_REASON: Readonly<
   Partial<Record<EquipmentGradeRecoveryIssueCode, EquipmentAutoScrapReasonCode>>
 > = Object.freeze({
   fabricated_lot_selection_unavailable: 'auto_scrap.fabricated_lot_selection_unavailable',
-  custody_restricted: 'auto_scrap.custody_restricted',
-  evidence_held: 'auto_scrap.evidence_held',
-  authorization_required: 'auto_scrap.authorization_required',
-  contamination_quarantine: 'auto_scrap.contamination_quarantine',
-  reserved: 'auto_scrap.reserved',
-  unstable_anomaly: 'auto_scrap.unstable_anomaly',
 })
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -226,6 +220,12 @@ export function enableEquipmentAutoScrapPolicy(
   state: GameState,
   thresholdGradeId: EquipmentGradeId
 ): GameState {
+  if (
+    state.equipmentAutoScrapPolicy?.state === 'enabled' &&
+    state.equipmentAutoScrapPolicy.thresholdGradeId === thresholdGradeId
+  ) {
+    return state
+  }
   const preview = resolveEquipmentAutoScrapPreview(state, thresholdGradeId)
   const nextState: GameState = {
     ...state,
@@ -319,18 +319,6 @@ export function getEquipmentAutoScrapReasonLabel(code: EquipmentAutoScrapReasonC
       return 'Recovery profile unavailable'
     case 'auto_scrap.fabricated_lot_selection_unavailable':
       return 'Fabricated batch selection unavailable'
-    case 'auto_scrap.custody_restricted':
-      return 'Custody restriction'
-    case 'auto_scrap.evidence_held':
-      return 'Evidence hold'
-    case 'auto_scrap.authorization_required':
-      return 'Destruction authorization required'
-    case 'auto_scrap.contamination_quarantine':
-      return 'Contamination quarantine required'
-    case 'auto_scrap.reserved':
-      return 'Reserved by another process'
-    case 'auto_scrap.unstable_anomaly':
-      return 'Unstable anomaly'
     default:
       return 'Recovery unavailable'
   }

@@ -30,7 +30,8 @@ disabled. The field is optional for legacy compatibility, so `GAME_STORE_VERSION
 Preview entries report quantity, include/exclude decision, hidden-safe grade projection, and
 stable reason codes. Hidden and ungraded values use the generic grade-unavailable decision; no
 authoritative ID, rank, label, or grade-specific localization key is exposed. Above-threshold,
-deferred-profile, fabricated-lot, and canonical recovery restrictions remain separate reasons.
+deferred-profile, fabricated-lot, and generic recovery-unavailable outcomes remain separate
+reasons. Deferred authority concepts are neither evaluated nor reported as authority truth.
 
 Week-close execution runs after fabrication advancement and before deconstruction advancement.
 Freshly completed fabricated equipment is therefore protected by its lot ledger, while new

@@ -82,8 +82,11 @@ without changing inventory's quantity authority or either save version.
 SPE-2799 adds an optional disabled-by-default policy containing only a canonical at-or-below grade
 identifier. Preview and weekly execution first consume the existing recovery preview, then compare
 known graded participation through the canonical ordering helper. Hidden, unknown, ungraded,
-deferred, fabricated-lot-ambiguous, and canonically restricted stock is excluded. Candidate order
-is stable item-ID order, never grade order, so sorting and diagnostics cannot leak hidden grade.
+deferred, fabricated-lot-ambiguous, and unavailable recovery stock is excluded. Fabricated-lot
+ambiguity retains its existing authoritative reason; any unsupported or deferred authority
+restriction collapses to generic recovery-unavailable and is neither evaluated nor reported as
+authority truth by this slice. Candidate order is stable item-ID order, never grade order, so
+sorting and diagnostics cannot leak hidden grade.
 
 Enabled policies route all currently safe aggregate copies through the normal deconstruction
 command after fabrication and before recovery advancement at week close. They do not create a

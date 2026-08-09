@@ -20,7 +20,11 @@ import {
   getEquipmentRecoveryIssueLabel,
 } from '../../domain/sim/equipmentDeconstruction'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
-import { getEquipmentGradeDefinition, type EquipmentGradeId } from '../../domain/equipmentGrade'
+import {
+  EQUIPMENT_GRADE_DEFINITIONS,
+  getEquipmentGradeDefinition,
+  type EquipmentGradeId,
+} from '../../domain/equipmentGrade'
 import {
   getEquipmentAutoScrapReasonLabel,
   resolveEquipmentAutoScrapPreview,
@@ -102,8 +106,10 @@ export interface EquipmentAutoScrapEntryView {
 export interface EquipmentAutoScrapView {
   enabled: boolean
   configuredThresholdGradeId?: EquipmentGradeId
+  configuredThresholdLabel?: string
   previewThresholdGradeId: EquipmentGradeId
   previewThresholdLabel: string
+  thresholdOptions: ReadonlyArray<Readonly<{ gradeId: EquipmentGradeId; label: string }>>
   includedItemCount: number
   includedQuantity: number
   excludedItemCount: number
@@ -194,9 +200,18 @@ export function getEquipmentAutoScrapView(
   const preview = resolveEquipmentAutoScrapPreview(game, previewThresholdGradeId)
   return {
     enabled: policy?.state === 'enabled',
-    ...(policy?.state === 'enabled' ? { configuredThresholdGradeId: policy.thresholdGradeId } : {}),
+    ...(policy?.state === 'enabled'
+      ? {
+          configuredThresholdGradeId: policy.thresholdGradeId,
+          configuredThresholdLabel: getEquipmentGradeDefinition(policy.thresholdGradeId).label,
+        }
+      : {}),
     previewThresholdGradeId,
     previewThresholdLabel: getEquipmentGradeDefinition(previewThresholdGradeId).label,
+    thresholdOptions: EQUIPMENT_GRADE_DEFINITIONS.map(({ id, label }) => ({
+      gradeId: id,
+      label,
+    })),
     includedItemCount: preview.includedItemCount,
     includedQuantity: preview.includedQuantity,
     excludedItemCount: preview.excludedItemCount,

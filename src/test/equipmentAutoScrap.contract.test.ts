@@ -191,6 +191,15 @@ describe('equipment Auto-Scrap contract', () => {
     expect(applyEquipmentAutoScrapAtWeekClose(routed)).toBe(routed)
   })
 
+  it('does not emit a policy-change event when the enabled threshold is unchanged', () => {
+    const enabled = enableEquipmentAutoScrapPolicy(createStartingState(), 'grade_2')
+
+    expect(enableEquipmentAutoScrapPolicy(enabled, 'grade_2')).toBe(enabled)
+    expect(
+      enabled.events.filter((event) => event.type === 'equipment.auto_scrap_policy_changed')
+    ).toHaveLength(1)
+  })
+
   it('protects equipped, active-process, and fabricated-lot copies through existing authorities', () => {
     const state = createStartingState()
     state.agents.a_mina.equipmentSlots = {

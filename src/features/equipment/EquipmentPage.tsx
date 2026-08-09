@@ -4,16 +4,37 @@ import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
 import {
   getAgentEquipmentLoadoutViews,
+  getEquipmentAutoScrapView,
   getEquipmentDeconstructionQueueViews,
   getEquipmentDeconstructionViews,
+  type EquipmentAutoScrapView,
 } from './equipmentView'
 
 function EquipmentPage() {
-  const { game, equipAgentItem, unequipAgentItem, queueEquipmentDeconstruction } = useGameStore()
+  const {
+    game,
+    equipAgentItem,
+    unequipAgentItem,
+    queueEquipmentDeconstruction,
+    enableEquipmentAutoScrap,
+    disableEquipmentAutoScrap,
+  } = useGameStore()
   const loadoutViews = getAgentEquipmentLoadoutViews(game)
   const deconstructionViews = useMemo(() => getEquipmentDeconstructionViews(game), [game])
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
+  const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
+    EquipmentAutoScrapView['previewThresholdGradeId']
+  >(
+    game.equipmentAutoScrapPolicy?.state === 'enabled'
+      ? game.equipmentAutoScrapPolicy.thresholdGradeId
+      : 'grade_1'
+  )
+  const [reviewingAutoScrap, setReviewingAutoScrap] = useState(false)
+  const autoScrapView = useMemo(
+    () => getEquipmentAutoScrapView(game, autoScrapThresholdGradeId),
+    [game, autoScrapThresholdGradeId]
+  )
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (
@@ -49,6 +70,124 @@ function EquipmentPage() {
             value={`${game.market.pressure} (${game.market.costMultiplier.toFixed(2)}x)`}
           />
         </div>
+      </article>
+
+      <article className="panel space-y-3" aria-labelledby="auto-scrap-heading">
+        <div>
+          <h3 id="auto-scrap-heading" className="text-base font-semibold">
+            Weekly Auto-Scrap
+          </h3>
+          <p className="text-sm opacity-60">
+            Automatically route all safely eligible unequipped stock at or below a canonical grade
+            through the normal recovery queue at week close.
+          </p>
+          <p className="mt-1 text-xs opacity-60">
+            {autoScrapView.enabled && autoScrapView.configuredThresholdLabel
+              ? `Active through ${autoScrapView.configuredThresholdLabel}.`
+              : 'Disabled. No equipment will be routed automatically.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="space-y-1 text-sm" htmlFor="auto-scrap-threshold">
+            <span className="block text-xs uppercase tracking-[0.18em] opacity-60">
+              Grade threshold
+            </span>
+            <select
+              id="auto-scrap-threshold"
+              className="select select-sm"
+              value={autoScrapThresholdGradeId}
+              onChange={(event) => {
+                setAutoScrapThresholdGradeId(
+                  event.target.value as EquipmentAutoScrapView['previewThresholdGradeId']
+                )
+                setReviewingAutoScrap(false)
+              }}
+            >
+              {autoScrapView.thresholdOptions.map((option) => (
+                <option key={option.gradeId} value={option.gradeId}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setReviewingAutoScrap(true)}
+            aria-label={`Review Auto-Scrap through ${autoScrapView.previewThresholdLabel}`}
+          >
+            Review {autoScrapView.enabled ? 'update' : 'activation'}
+          </button>
+          {autoScrapView.enabled ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => {
+                disableEquipmentAutoScrap()
+                setReviewingAutoScrap(false)
+              }}
+            >
+              Disable Auto-Scrap
+            </button>
+          ) : null}
+        </div>
+
+        <div className="rounded border border-white/10 px-3 py-3" aria-live="polite">
+          <p className="text-sm font-medium">
+            Upcoming preview through {autoScrapView.previewThresholdLabel}
+          </p>
+          <p className="text-xs opacity-60">
+            Include {autoScrapView.includedQuantity} unit(s) across{' '}
+            {autoScrapView.includedItemCount} item type(s); exclude {autoScrapView.excludedQuantity}{' '}
+            unit(s) across {autoScrapView.excludedItemCount} item type(s).
+          </p>
+          {autoScrapView.entries.length === 0 ? (
+            <p className="mt-2 text-xs opacity-50">No equipment stock is available to preview.</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {autoScrapView.entries.map((entry) => (
+                <li key={entry.itemId} className="text-xs">
+                  <span className="font-medium">{entry.itemName}</span> ×{entry.quantity} /{' '}
+                  {entry.gradeLabel} / {entry.decision === 'include' ? 'Include' : 'Exclude'} —{' '}
+                  {entry.reasonLabel}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {reviewingAutoScrap ? (
+          <div
+            className="rounded border border-amber-300/30 bg-amber-950/20 px-3 py-3"
+            role="group"
+            aria-label="Confirm Auto-Scrap policy"
+          >
+            <p className="text-sm">
+              Confirm weekly automatic routing through {autoScrapView.previewThresholdLabel}. The
+              live preview will be recomputed from authoritative stock at each week close.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => {
+                  enableEquipmentAutoScrap(autoScrapThresholdGradeId)
+                  setReviewingAutoScrap(false)
+                }}
+              >
+                Confirm Auto-Scrap
+              </button>
+              <button
+                type="button"
+                className="btn btn-xs btn-ghost"
+                onClick={() => setReviewingAutoScrap(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <article className="panel space-y-3">

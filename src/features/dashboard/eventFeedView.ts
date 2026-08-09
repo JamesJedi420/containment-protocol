@@ -3,6 +3,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { readStringParam, writeEnumParam, writeStringParam } from '../../app/searchParams'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
+import { getEquipmentGradeDefinition } from '../../domain/equipmentGrade'
 import {
   type GameState,
   type OperationEvent,
@@ -211,6 +212,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'production.queue_completed': 'Queue Complete',
   'equipment.recovery_started': 'Equipment Recovery Started',
   'equipment.recovery_completed': 'Equipment Recovery Complete',
+  'equipment.auto_scrap_policy_changed': 'Auto-Scrap Policy Changed',
+  'equipment.auto_scrap_routed': 'Auto-Scrap Routed',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
@@ -273,6 +276,8 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'production.queue_completed': 'operations_logistics',
   'equipment.recovery_started': 'operations_logistics',
   'equipment.recovery_completed': 'operations_logistics',
+  'equipment.auto_scrap_policy_changed': 'operations_logistics',
+  'equipment.auto_scrap_routed': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -887,6 +892,34 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'success',
         searchText:
           `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.auto_scrap_policy_changed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Weekly Auto-Scrap ${event.payload.action}`,
+        detail: `Week ${event.payload.week}${event.payload.thresholdGradeId ? ` / Threshold ${getEquipmentGradeDefinition(event.payload.thresholdGradeId).label}` : ''} / Preview ${event.payload.includedQuantity} included, ${event.payload.excludedQuantity} excluded`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.action === 'enabled' ? 'neutral' : 'warning',
+        searchText:
+          `auto scrap ${event.payload.action} ${event.payload.thresholdGradeId ?? ''}`.toLowerCase(),
+      }
+
+    case 'equipment.auto_scrap_routed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Weekly Auto-Scrap routed ${event.payload.routedQuantity} unit(s)`,
+        detail: `Week ${event.payload.week} / Threshold ${getEquipmentGradeDefinition(event.payload.thresholdGradeId).label} / ${event.payload.excludedQuantity} excluded`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.routedQuantity > 0 ? 'success' : 'neutral',
+        searchText:
+          `auto scrap routed ${event.payload.thresholdGradeId} ${event.payload.routedQueueIds.join(' ')} ${event.payload.exclusionReasonCounts.map((entry) => entry.reasonCode).join(' ')}`.toLowerCase(),
       }
 
     case 'market.shifted':

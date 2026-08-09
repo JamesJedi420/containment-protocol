@@ -16,6 +16,7 @@ import type {
 } from '../models'
 import type { EquipmentGradeId, EquipmentGradeVisibility } from '../equipmentGrade'
 import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGradeFabrication'
+import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -429,6 +430,28 @@ export interface OperationEventPayloadMap {
     outputMaterials: ProductionMaterialRequirement[]
     wasteQuantity: number
   }
+  'equipment.auto_scrap_policy_changed': {
+    week: number
+    action: 'enabled' | 'disabled'
+    thresholdGradeId?: EquipmentGradeId
+    includedItemCount: number
+    includedQuantity: number
+    excludedItemCount: number
+    excludedQuantity: number
+  }
+  'equipment.auto_scrap_routed': {
+    week: number
+    thresholdGradeId: EquipmentGradeId
+    routedQueueIds: Id[]
+    routedQuantity: number
+    includedItemCount: number
+    excludedItemCount: number
+    excludedQuantity: number
+    exclusionReasonCounts: Array<{
+      reasonCode: EquipmentAutoScrapReasonCode
+      count: number
+    }>
+  }
   'market.shifted': {
     week: number
     featuredRecipeId: string
@@ -757,6 +780,8 @@ export interface OperationEventTypeToSourceSystemMap {
   'production.queue_started': 'production'
   'equipment.recovery_started': 'production'
   'equipment.recovery_completed': 'production'
+  'equipment.auto_scrap_policy_changed': 'production'
+  'equipment.auto_scrap_routed': 'production'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -818,6 +843,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'production.queue_started': 'production',
   'equipment.recovery_started': 'production',
   'equipment.recovery_completed': 'production',
+  'equipment.auto_scrap_policy_changed': 'production',
+  'equipment.auto_scrap_routed': 'production',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

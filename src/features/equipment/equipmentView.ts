@@ -20,6 +20,15 @@ import {
   getEquipmentRecoveryIssueLabel,
 } from '../../domain/sim/equipmentDeconstruction'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
+import {
+  EQUIPMENT_GRADE_DEFINITIONS,
+  getEquipmentGradeDefinition,
+  type EquipmentGradeId,
+} from '../../domain/equipmentGrade'
+import {
+  getEquipmentAutoScrapReasonLabel,
+  resolveEquipmentAutoScrapPreview,
+} from '../../domain/equipmentAutoScrap'
 
 export interface GearRecommendation {
   caseId: string
@@ -83,6 +92,29 @@ export interface EquipmentDeconstructionQueueView {
   pathLabel: string
   materialSummary: string
   remainingLabel: string
+}
+
+export interface EquipmentAutoScrapEntryView {
+  itemId: string
+  itemName: string
+  quantity: number
+  gradeLabel: string
+  decision: 'include' | 'exclude'
+  reasonLabel: string
+}
+
+export interface EquipmentAutoScrapView {
+  enabled: boolean
+  configuredThresholdGradeId?: EquipmentGradeId
+  configuredThresholdLabel?: string
+  previewThresholdGradeId: EquipmentGradeId
+  previewThresholdLabel: string
+  thresholdOptions: ReadonlyArray<Readonly<{ gradeId: EquipmentGradeId; label: string }>>
+  includedItemCount: number
+  includedQuantity: number
+  excludedItemCount: number
+  excludedQuantity: number
+  entries: EquipmentAutoScrapEntryView[]
 }
 
 function getRecoveryPathLabel(pathId: 'component_reclamation' | 'ritual_disassembly') {
@@ -158,6 +190,41 @@ export function getEquipmentDeconstructionQueueViews(
     materialSummary: formatRecoveryMaterials(entry.outputMaterials),
     remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
   }))
+}
+
+export function getEquipmentAutoScrapView(
+  game: GameState,
+  previewThresholdGradeId: EquipmentGradeId
+): EquipmentAutoScrapView {
+  const policy = game.equipmentAutoScrapPolicy
+  const preview = resolveEquipmentAutoScrapPreview(game, previewThresholdGradeId)
+  return {
+    enabled: policy?.state === 'enabled',
+    ...(policy?.state === 'enabled'
+      ? {
+          configuredThresholdGradeId: policy.thresholdGradeId,
+          configuredThresholdLabel: getEquipmentGradeDefinition(policy.thresholdGradeId).label,
+        }
+      : {}),
+    previewThresholdGradeId,
+    previewThresholdLabel: getEquipmentGradeDefinition(previewThresholdGradeId).label,
+    thresholdOptions: EQUIPMENT_GRADE_DEFINITIONS.map(({ id, label }) => ({
+      gradeId: id,
+      label,
+    })),
+    includedItemCount: preview.includedItemCount,
+    includedQuantity: preview.includedQuantity,
+    excludedItemCount: preview.excludedItemCount,
+    excludedQuantity: preview.excludedQuantity,
+    entries: preview.entries.map((entry) => ({
+      itemId: entry.itemId,
+      itemName: entry.itemName,
+      quantity: entry.quantity,
+      gradeLabel: entry.gradeProjection.label,
+      decision: entry.decision,
+      reasonLabel: entry.reasonCodes.map(getEquipmentAutoScrapReasonLabel).join('; '),
+    })),
+  }
 }
 
 const ITEM_TAG_HINTS: Record<string, string[]> = {

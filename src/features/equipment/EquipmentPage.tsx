@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { useMemo, useState } from 'react'
 import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
+import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
   getAgentEquipmentLoadoutViews,
   getEquipmentAutoScrapView,
@@ -20,7 +21,13 @@ function EquipmentPage() {
     disableEquipmentAutoScrap,
   } = useGameStore()
   const loadoutViews = getAgentEquipmentLoadoutViews(game)
-  const deconstructionViews = useMemo(() => getEquipmentDeconstructionViews(game), [game])
+  const [deconstructionSources, setDeconstructionSources] = useState<
+    Record<string, EquipmentDeconstructionSourceRef>
+  >({})
+  const deconstructionViews = useMemo(
+    () => getEquipmentDeconstructionViews(game, deconstructionSources),
+    [game, deconstructionSources]
+  )
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
@@ -212,6 +219,42 @@ function EquipmentPage() {
                       Stock {view.stock} / {view.gradeLabel} / {view.conditionLabel}
                     </p>
                     <p className="mt-1 text-sm">{view.pathLabel}</p>
+                    {view.sources.length > 1 ? (
+                      <label className="mt-2 block space-y-1 text-xs">
+                        <span className="block uppercase tracking-[0.18em] opacity-60">
+                          Recovery source
+                        </span>
+                        <select
+                          className="select select-sm"
+                          aria-label={`Recovery source for ${view.itemName}`}
+                          value={
+                            view.source.kind === 'catalog'
+                              ? 'catalog'
+                              : `fabricated:${view.source.fabricationQueueId}`
+                          }
+                          onChange={(event) => {
+                            const selected = view.sources.find(
+                              (source) => source.value === event.target.value
+                            )
+                            if (!selected) return
+                            setDeconstructionSources((current) => ({
+                              ...current,
+                              [view.itemId]: selected.source,
+                            }))
+                            setPendingDeconstructionItemId(undefined)
+                          }}
+                        >
+                          {view.sources.map((source) => (
+                            <option key={source.value} value={source.value}>
+                              {source.label} — {source.gradeLabel} — {source.quantity} available
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                    <p className="mt-1 text-xs opacity-70">
+                      Source: {view.sourceLabel} / {view.sourceQuantity} available
+                    </p>
                     <p className="text-xs opacity-70">
                       {view.materialSummary} / {view.wasteLabel} / {view.durationLabel}
                     </p>
@@ -234,15 +277,15 @@ function EquipmentPage() {
                 {pendingDeconstructionItemId === view.itemId && view.available ? (
                   <div className="mt-3 rounded border border-amber-300/30 bg-amber-950/20 px-3 py-2">
                     <p className="text-sm">
-                      This permanently consumes one {view.itemName} and queues the displayed
-                      recovery outcome.
+                      This permanently consumes one {view.itemName} from {view.sourceLabel} and
+                      queues the displayed recovery outcome.
                     </p>
                     <div className="mt-2 flex gap-2">
                       <button
                         type="button"
                         className="btn btn-xs"
                         onClick={() => {
-                          queueEquipmentDeconstruction(view.itemId)
+                          queueEquipmentDeconstruction(view.itemId, view.source)
                           setPendingDeconstructionItemId(undefined)
                         }}
                         aria-label={`Confirm deconstruction ${view.itemName}`}
@@ -276,7 +319,7 @@ function EquipmentPage() {
                   <p className="font-medium">{entry.itemName}</p>
                   <p className="text-xs opacity-60">
                     {entry.gradeLabel} / {entry.pathLabel} / {entry.materialSummary} /{' '}
-                    {entry.remainingLabel}
+                    {entry.sourceLabel} / {entry.remainingLabel}
                   </p>
                 </li>
               ))}

@@ -713,6 +713,7 @@ const equipmentRecoveryEventShape = {
   itemName: z.string().min(1),
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+  sourceFabricationQueueId: idSchema.optional(),
   sourceCondition: z.enum(['operational', 'damaged']),
   outputMaterials: z
     .array(

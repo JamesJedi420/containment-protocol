@@ -53,9 +53,9 @@ dropped independently, safe IDs remain unique across live and completed work, an
 are rejected. `inventory` remains the stock authority. `GAME_STORE_VERSION` and
 `GAME_SAVE_VERSION` remain unchanged.
 
-Because current inventory cannot select individual copies, an item with any fabricated-lot
-provenance is blocked with `fabricated_lot_selection_unavailable`. This prevents catalog grade
-from overwriting a fabricated batch's authoritative grade.
+SPE-2800 subsequently added explicit manual catalog/fabricated-lot source selection. Outstanding
+lot units remain protected until selected, and their canonical grade/provenance is snapshotted
+without mutating the fabrication receipt.
 
 ## Live assignments
 
@@ -71,10 +71,10 @@ from overwriting a fabricated batch's authoritative grade.
 
 ## Deferred
 
-| Item                                                         | Owner        | Boundary                                                    |
-| ------------------------------------------------------------ | ------------ | ----------------------------------------------------------- |
-| Evidence custody, contamination, relic, and specialist rules | SPE-1055     | Require explicit systems rather than grade inference        |
-| Processed-material quality and batch semantics               | SPE-1056     | Recovered aggregate quantities do not author material grade |
-| Per-copy fabricated-lot selection and consumption            | create child | Required before fabricated copies can safely enter recovery |
-| Grade-threshold Auto-Scrap routing                           | SPE-2749     | Must preserve hidden-grade opacity and explicit selection   |
-| Remaining catalog recovery profiles                          | SPE-1055     | Explicitly deferred in the exhaustive registry              |
+| Item                                                         | Owner    | Boundary                                                           |
+| ------------------------------------------------------------ | -------- | ------------------------------------------------------------------ |
+| Evidence custody, contamination, relic, and specialist rules | SPE-1055 | Require explicit systems rather than grade inference               |
+| Processed-material quality and batch semantics               | SPE-1056 | Recovered aggregate quantities do not author material grade        |
+| Automated fabricated-lot selection                           | SPE-2749 | Manual selection shipped in SPE-2800; automation stays fail-closed |
+| Grade-threshold Auto-Scrap routing                           | SPE-2749 | Must preserve hidden-grade opacity and explicit selection          |
+| Remaining catalog recovery profiles                          | SPE-1055 | Explicitly deferred in the exhaustive registry                     |

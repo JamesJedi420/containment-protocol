@@ -1859,6 +1859,8 @@ export interface EquipmentDeconstructionQueueEntry {
   pathId: EquipmentRecoveryPathId
   sourceGradeId: EquipmentGradeId
   sourceGradeVisibility: EquipmentGradeVisibility
+  /** SPE-2800: immutable fabrication provenance for an explicitly selected batch unit. */
+  sourceFabricationQueueId?: Id
   sourceCondition: EquipmentRecoveryCondition
   outputMaterials: ProductionMaterialRequirement[]
   wasteQuantity: number
@@ -1873,6 +1875,8 @@ export interface EquipmentRecoveryOutcome {
   itemId: string
   pathId: EquipmentRecoveryPathId
   sourceGradeId: EquipmentGradeId
+  /** SPE-2800: retained fabrication provenance; omitted for catalog-source recovery. */
+  sourceFabricationQueueId?: Id
   sourceCondition: EquipmentRecoveryCondition
   outputMaterials: ProductionMaterialRequirement[]
   wasteQuantity: number

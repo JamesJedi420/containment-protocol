@@ -21,6 +21,7 @@ import {
 } from './events'
 import type { GameState } from './models'
 import {
+  hasOutstandingFabricatedEquipmentLotUnits,
   queueEquipmentDeconstruction,
   resolveEquipmentDeconstructionPreview,
 } from './sim/equipmentDeconstruction'
@@ -156,6 +157,19 @@ export function resolveEquipmentAutoScrapPreview(
     if (quantity < 1) continue
     const recoveryPreview = resolveEquipmentDeconstructionPreview(state, definition.id)
     if (!recoveryPreview) continue
+    if (hasOutstandingFabricatedEquipmentLotUnits(state, definition.id)) {
+      entries.push(
+        Object.freeze({
+          itemId: definition.id,
+          itemName: definition.name,
+          quantity,
+          decision: 'exclude',
+          gradeProjection: recoveryPreview.resolution.projection,
+          reasonCodes: Object.freeze(['auto_scrap.fabricated_lot_selection_unavailable' as const]),
+        })
+      )
+      continue
+    }
     if (!recoveryPreview.resolution.available) {
       const reasonCodes =
         recoveryPreview.resolution.projection.state === 'graded'

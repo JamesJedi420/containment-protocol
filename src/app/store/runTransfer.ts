@@ -5597,11 +5597,24 @@ function sanitizeEquipmentRecoveryMaterials(
 
 function sanitizeEquipmentRecoveryOutcomes(
   value: unknown,
-  campaignWeek: number
+  campaignWeek: number,
+  fabricatedEquipmentLots: FabricatedEquipmentLotRegistry
 ): EquipmentRecoveryOutcomeRegistry {
   if (!isRecord(value)) return {}
   const outcomes: EquipmentRecoveryOutcomeRegistry = {}
-  for (const queueId of Object.keys(value).sort()) {
+  const claimedByLot = new Map<string, number>()
+  const queueIds = Object.keys(value).sort((left, right) => {
+    const leftWeek =
+      isRecord(value[left]) && Number.isInteger(value[left].completedWeek)
+        ? (value[left].completedWeek as number)
+        : Number.MAX_SAFE_INTEGER
+    const rightWeek =
+      isRecord(value[right]) && Number.isInteger(value[right].completedWeek)
+        ? (value[right].completedWeek as number)
+        : Number.MAX_SAFE_INTEGER
+    return leftWeek - rightWeek || (left < right ? -1 : left > right ? 1 : 0)
+  })
+  for (const queueId of queueIds) {
     const outcome = value[queueId]
     if (
       !isSafeEquipmentRecoveryQueueId(queueId) ||
@@ -5620,13 +5633,39 @@ function sanitizeEquipmentRecoveryOutcomes(
     ) {
       continue
     }
+    const hasSourceFabricationQueueId = Object.prototype.hasOwnProperty.call(
+      outcome,
+      'sourceFabricationQueueId'
+    )
+    const sourceFabricationQueueId = outcome.sourceFabricationQueueId
+    let sourceLotClaim: { queueId: string; claimed: number } | undefined
+    if (hasSourceFabricationQueueId) {
+      if (!isSafeProductionQueueId(sourceFabricationQueueId)) continue
+      const lot = fabricatedEquipmentLots[sourceFabricationQueueId]
+      const claimed = claimedByLot.get(sourceFabricationQueueId) ?? 0
+      if (
+        !lot ||
+        lot.itemId !== outcome.itemId ||
+        lot.gradeId !== outcome.sourceGradeId ||
+        claimed >= lot.quantity
+      ) {
+        continue
+      }
+      sourceLotClaim = { queueId: sourceFabricationQueueId, claimed }
+    }
     const outputMaterials = sanitizeEquipmentRecoveryMaterials(outcome.outputMaterials)
     if (!outputMaterials) continue
+    if (sourceLotClaim) {
+      claimedByLot.set(sourceLotClaim.queueId, sourceLotClaim.claimed + 1)
+    }
     outcomes[queueId] = Object.freeze({
       queueId,
       itemId: outcome.itemId,
       pathId: outcome.pathId,
       sourceGradeId: outcome.sourceGradeId,
+      ...(hasSourceFabricationQueueId
+        ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
+        : {}),
       sourceCondition: outcome.sourceCondition,
       outputMaterials,
       wasteQuantity: outcome.wasteQuantity as number,
@@ -5638,7 +5677,9 @@ function sanitizeEquipmentRecoveryOutcomes(
 
 function sanitizeEquipmentDeconstructionQueue(
   value: unknown,
-  campaignWeek: number
+  campaignWeek: number,
+  fabricatedEquipmentLots: FabricatedEquipmentLotRegistry,
+  equipmentRecoveryOutcomes: EquipmentRecoveryOutcomeRegistry
 ): EquipmentDeconstructionQueueEntry[] {
   if (!Array.isArray(value)) return []
   const queue: EquipmentDeconstructionQueueEntry[] = []
@@ -5671,13 +5712,19 @@ function sanitizeEquipmentDeconstructionQueue(
       : undefined
     const explanationCodes =
       rawExplanationCodes?.filter(isEquipmentGradeRecoveryExplanationCode) ?? []
+    const hasSourceFabricationQueueId = Object.prototype.hasOwnProperty.call(
+      entry,
+      'sourceFabricationQueueId'
+    )
+    const sourceFabricationQueueId = entry.sourceFabricationQueueId
     if (
       !definition ||
       !outputMaterials ||
       !rawExplanationCodes ||
       explanationCodes.length !== rawExplanationCodes.length ||
       explanationCodes.length === 0 ||
-      new Set(explanationCodes).size !== explanationCodes.length
+      new Set(explanationCodes).size !== explanationCodes.length ||
+      (hasSourceFabricationQueueId && !isSafeProductionQueueId(sourceFabricationQueueId))
     ) {
       continue
     }
@@ -5688,6 +5735,9 @@ function sanitizeEquipmentDeconstructionQueue(
       pathId: entry.pathId,
       sourceGradeId: entry.sourceGradeId,
       sourceGradeVisibility: 'known',
+      ...(hasSourceFabricationQueueId
+        ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
+        : {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials,
       wasteQuantity: entry.wasteQuantity as number,
@@ -5697,7 +5747,38 @@ function sanitizeEquipmentDeconstructionQueue(
       explanationCodes: [...new Set(explanationCodes)],
     })
   }
-  return assignUniqueQueueEntryIds(queue, 'recovery')
+  const uniqueQueue = assignUniqueQueueEntryIds(queue, 'recovery')
+  const claimedByLot = new Map<string, number>()
+  for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
+    if (!outcome.sourceFabricationQueueId) continue
+    claimedByLot.set(
+      outcome.sourceFabricationQueueId,
+      (claimedByLot.get(outcome.sourceFabricationQueueId) ?? 0) + 1
+    )
+  }
+  const accepted = new Set<string>()
+  for (const entry of [...uniqueQueue].sort(
+    (left, right) =>
+      left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+  )) {
+    if (!entry.sourceFabricationQueueId) {
+      accepted.add(entry.id)
+      continue
+    }
+    const lot = fabricatedEquipmentLots[entry.sourceFabricationQueueId]
+    const claimed = claimedByLot.get(entry.sourceFabricationQueueId) ?? 0
+    if (
+      !lot ||
+      lot.itemId !== entry.itemId ||
+      lot.gradeId !== entry.sourceGradeId ||
+      claimed >= lot.quantity
+    ) {
+      continue
+    }
+    claimedByLot.set(entry.sourceFabricationQueueId, claimed + 1)
+    accepted.add(entry.id)
+  }
+  return uniqueQueue.filter((entry) => accepted.has(entry.id))
 }
 
 function sanitizeContractStatBlock(value: unknown, fallback: StatBlock): StatBlock {
@@ -8567,12 +8648,18 @@ function sanitizeOperationEvents(
           const outputMaterials = sanitizeEquipmentRecoveryMaterials(payload.outputMaterials)
           const pathId = payload.pathId
           const sourceGradeId = payload.sourceGradeId
+          const hasSourceFabricationQueueId = Object.prototype.hasOwnProperty.call(
+            payload,
+            'sourceFabricationQueueId'
+          )
+          const sourceFabricationQueueId = payload.sourceFabricationQueueId
           const sourceCondition = payload.sourceCondition
           if (
             !definition ||
             !outputMaterials ||
             (pathId !== 'component_reclamation' && pathId !== 'ritual_disassembly') ||
             !isEquipmentGradeId(sourceGradeId) ||
+            (hasSourceFabricationQueueId && !isSafeProductionQueueId(sourceFabricationQueueId)) ||
             (sourceCondition !== 'operational' && sourceCondition !== 'damaged')
           ) {
             break
@@ -8585,6 +8672,9 @@ function sanitizeOperationEvents(
             itemName: definition.name,
             pathId: pathId as 'component_reclamation' | 'ritual_disassembly',
             sourceGradeId,
+            ...(hasSourceFabricationQueueId
+              ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
+              : {}),
             sourceCondition: sourceCondition as 'operational' | 'damaged',
             outputMaterials,
             wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
@@ -9866,7 +9956,8 @@ export function hydrateGame(
   )
   const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
     game.equipmentRecoveryOutcomes,
-    week
+    week,
+    fabricatedEquipmentLots
   )
   const inventory = sanitizeInventory(game.inventory, fallback.inventory)
   const damagedEquipmentQueue = sanitizeDamagedEquipmentQueue(
@@ -10029,7 +10120,9 @@ export function hydrateGame(
     fabricatedEquipmentLots,
     equipmentDeconstructionQueue: sanitizeEquipmentDeconstructionQueue(
       game.equipmentDeconstructionQueue,
-      week
+      week,
+      fabricatedEquipmentLots,
+      equipmentRecoveryOutcomes
     ),
     equipmentRecoveryOutcomes,
     equipmentAutoScrapPolicy,

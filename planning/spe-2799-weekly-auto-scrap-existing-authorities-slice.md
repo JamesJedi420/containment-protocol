@@ -42,14 +42,14 @@ recovery work.
 
 ## Existing authorities consumed
 
-| Protection                     | Authority                                              | Behavior in this slice                                                               |
-| ------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Canonical grade and visibility | SPE-2798 / SPE-2751                                    | Known graded values compare by canonical rank; hidden and ungraded exclude           |
-| Equipped copies                | Agent equipment slots / aggregate inventory separation | Equipped copies are not aggregate stock and cannot be consumed                       |
-| Active recovery                | SPE-2748 queue                                         | Already-queued copies remain isolated; available stock is evaluated independently    |
-| Fabricated batches             | SPE-2750 lot ledger                                    | Any lot for an item ID blocks that aggregate item ID until per-copy selection exists |
-| Damage                         | SPE-2544 queue and SPE-2748 resolver                   | Existing damage/recovery semantics are preserved without grade inference             |
-| Existing reservations          | Production/workshop inventory deductions               | Only already-authoritative isolated or deducted quantities are respected             |
+| Protection                     | Authority                                              | Behavior in this slice                                                              |
+| ------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Canonical grade and visibility | SPE-2798 / SPE-2751                                    | Known graded values compare by canonical rank; hidden and ungraded exclude          |
+| Equipped copies                | Agent equipment slots / aggregate inventory separation | Equipped copies are not aggregate stock and cannot be consumed                      |
+| Active recovery                | SPE-2748 queue                                         | Already-queued copies remain isolated; available stock is evaluated independently   |
+| Fabricated batches             | SPE-2750 / SPE-2800                                    | Outstanding lot units block the item; fully claimed historical lots no longer block |
+| Damage                         | SPE-2544 queue and SPE-2748 resolver                   | Existing damage/recovery semantics are preserved without grade inference            |
+| Existing reservations          | Production/workshop inventory deductions               | Only already-authoritative isolated or deducted quantities are respected            |
 
 ## Deferred
 
@@ -57,14 +57,14 @@ These categories are not treated as unrestricted and receive no temporary Auto-S
 semantics. SPE-2749 remains Backlog until authoritative equipment-linked owners exist and are
 integrated.
 
-| Protection                                                         | Owner or prerequisite                                       | Missing boundary                                                          |
-| ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Storage, custody, evidence, legal holds, destruction authorization | SPE-1027, SPE-867, SPE-1055                                 | Equipment-linked persisted restriction state and canonical recovery input |
-| Identification and anomalous review                                | SPE-1631, SPE-1312; SPE-2104 records are currently separate | Authoritative link from equipment copies to identification/review records |
-| Per-instance artifact approval                                     | SPE-1766                                                    | Equipment-instance identity and approval projection                       |
-| Favorite, player lock, quest-bound, unique copy                    | owner reconciliation / create inventory-state child         | No authoritative owner or runtime state currently exists                  |
-| Per-copy fabricated-lot selection                                  | create SPE-1055 child                                       | Select stock copies without collapsing batch provenance                   |
-| Remaining recovery profiles                                        | SPE-1055                                                    | Explicit recovery authoring beyond the seven eligible definitions         |
+| Protection                                                         | Owner or prerequisite                                       | Missing boundary                                                                |
+| ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Storage, custody, evidence, legal holds, destruction authorization | SPE-1027, SPE-867, SPE-1055                                 | Equipment-linked persisted restriction state and canonical recovery input       |
+| Identification and anomalous review                                | SPE-1631, SPE-1312; SPE-2104 records are currently separate | Authoritative link from equipment copies to identification/review records       |
+| Per-instance artifact approval                                     | SPE-1766                                                    | Equipment-instance identity and approval projection                             |
+| Favorite, player lock, quest-bound, unique copy                    | owner reconciliation / create inventory-state child         | No authoritative owner or runtime state currently exists                        |
+| Automated fabricated-lot selection                                 | SPE-2749                                                    | SPE-2800 ships explicit manual selection; automation does not choose provenance |
+| Remaining recovery profiles                                        | SPE-1055                                                    | Explicit recovery authoring beyond the seven eligible definitions               |
 
 ## Validation
 

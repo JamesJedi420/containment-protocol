@@ -580,6 +580,41 @@ describe('equipment-grade recovery contract', () => {
       sourceFabricationQueueId: 'batch',
     })
     expect(completedWins.equipmentDeconstructionQueue).toEqual([])
+
+    const staleCompletedQueue = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          inventory: { ...queued.inventory, signal_jammers: 2 },
+          fabricatedEquipmentLots: {
+            batch: { ...queued.fabricatedEquipmentLots!.batch!, quantity: 2 },
+          },
+          equipmentDeconstructionQueue: [
+            { ...entry, id: 'completed' },
+            { ...entry, id: 'active-claim' },
+          ],
+          equipmentRecoveryOutcomes: {
+            completed: {
+              queueId: 'completed',
+              itemId: entry.itemId,
+              pathId: entry.pathId,
+              sourceGradeId: entry.sourceGradeId,
+              sourceFabricationQueueId: 'batch',
+              sourceCondition: entry.sourceCondition,
+              outputMaterials: entry.outputMaterials,
+              wasteQuantity: entry.wasteQuantity,
+              completedWeek: 1,
+            },
+          },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+    expect(staleCompletedQueue.equipmentDeconstructionQueue?.map(({ id }) => id)).toEqual([
+      'completed',
+      'active-claim',
+    ])
   })
 
   it('advances recovery through the canonical week-close queue phase', () => {

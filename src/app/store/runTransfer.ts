@@ -5749,7 +5749,9 @@ function sanitizeEquipmentDeconstructionQueue(
   }
   const uniqueQueue = assignUniqueQueueEntryIds(queue, 'recovery')
   const claimedByLot = new Map<string, number>()
+  const completedRecoveryQueueIds = new Set<string>()
   for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
+    completedRecoveryQueueIds.add(outcome.queueId)
     if (!outcome.sourceFabricationQueueId) continue
     claimedByLot.set(
       outcome.sourceFabricationQueueId,
@@ -5761,7 +5763,7 @@ function sanitizeEquipmentDeconstructionQueue(
     (left, right) =>
       left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   )) {
-    if (!entry.sourceFabricationQueueId) {
+    if (!entry.sourceFabricationQueueId || completedRecoveryQueueIds.has(entry.id)) {
       accepted.add(entry.id)
       continue
     }

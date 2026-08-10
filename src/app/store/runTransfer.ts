@@ -1200,6 +1200,8 @@ export type SanitizeOperationEventsOptions = {
   weeklyReportsByWeek?: ReadonlyMap<number, WeeklyReportIntelSnapshot>
   /** Hydration 586: catalog fallback for market.shifted featuredRecipeId reconciliation. */
   fallbackFeaturedRecipeId?: string
+  /** SPE-2800: authoritative fabricated lots used to validate recovery-event provenance. */
+  fabricatedEquipmentLots?: FabricatedEquipmentLotRegistry
 }
 
 export interface OperationEventReconcileContext {
@@ -5647,6 +5649,7 @@ function sanitizeEquipmentRecoveryOutcomes(
         !lot ||
         lot.itemId !== outcome.itemId ||
         lot.gradeId !== outcome.sourceGradeId ||
+        lot.completedWeek > (outcome.completedWeek as number) ||
         claimed >= lot.quantity
       ) {
         continue
@@ -5749,9 +5752,9 @@ function sanitizeEquipmentDeconstructionQueue(
   }
   const uniqueQueue = assignUniqueQueueEntryIds(queue, 'recovery')
   const claimedByLot = new Map<string, number>()
-  const completedRecoveryQueueIds = new Set<string>()
+  const completedRecoveryByQueueId = new Map<string, EquipmentRecoveryOutcome>()
   for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
-    completedRecoveryQueueIds.add(outcome.queueId)
+    completedRecoveryByQueueId.set(outcome.queueId, outcome)
     if (!outcome.sourceFabricationQueueId) continue
     claimedByLot.set(
       outcome.sourceFabricationQueueId,
@@ -5763,7 +5766,12 @@ function sanitizeEquipmentDeconstructionQueue(
     (left, right) =>
       left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   )) {
-    if (!entry.sourceFabricationQueueId || completedRecoveryQueueIds.has(entry.id)) {
+    const completedOutcome = completedRecoveryByQueueId.get(entry.id)
+    if (
+      !entry.sourceFabricationQueueId ||
+      (completedOutcome !== undefined &&
+        equipmentRecoveryReceiptMatchesQueue(completedOutcome, entry))
+    ) {
       accepted.add(entry.id)
       continue
     }
@@ -5773,6 +5781,7 @@ function sanitizeEquipmentDeconstructionQueue(
       !lot ||
       lot.itemId !== entry.itemId ||
       lot.gradeId !== entry.sourceGradeId ||
+      lot.completedWeek > entry.startedWeek ||
       claimed >= lot.quantity
     ) {
       continue
@@ -5781,6 +5790,30 @@ function sanitizeEquipmentDeconstructionQueue(
     accepted.add(entry.id)
   }
   return uniqueQueue.filter((entry) => accepted.has(entry.id))
+}
+
+function equipmentRecoveryReceiptMatchesQueue(
+  outcome: EquipmentRecoveryOutcome,
+  entry: EquipmentDeconstructionQueueEntry
+) {
+  return (
+    outcome.queueId === entry.id &&
+    outcome.itemId === entry.itemId &&
+    outcome.pathId === entry.pathId &&
+    outcome.sourceGradeId === entry.sourceGradeId &&
+    outcome.sourceFabricationQueueId === entry.sourceFabricationQueueId &&
+    outcome.sourceCondition === entry.sourceCondition &&
+    outcome.wasteQuantity === entry.wasteQuantity &&
+    outcome.outputMaterials.length === entry.outputMaterials.length &&
+    outcome.outputMaterials.every((material, index) => {
+      const queuedMaterial = entry.outputMaterials[index]
+      return (
+        queuedMaterial !== undefined &&
+        material.materialId === queuedMaterial.materialId &&
+        material.quantity === queuedMaterial.quantity
+      )
+    })
+  )
 }
 
 function sanitizeContractStatBlock(value: unknown, fallback: StatBlock): StatBlock {
@@ -8655,13 +8688,21 @@ function sanitizeOperationEvents(
             'sourceFabricationQueueId'
           )
           const sourceFabricationQueueId = payload.sourceFabricationQueueId
+          const sourceLot = hasSourceFabricationQueueId
+            ? options.fabricatedEquipmentLots?.[sourceFabricationQueueId as string]
+            : undefined
           const sourceCondition = payload.sourceCondition
           if (
             !definition ||
             !outputMaterials ||
             (pathId !== 'component_reclamation' && pathId !== 'ritual_disassembly') ||
             !isEquipmentGradeId(sourceGradeId) ||
-            (hasSourceFabricationQueueId && !isSafeProductionQueueId(sourceFabricationQueueId)) ||
+            (hasSourceFabricationQueueId &&
+              (!isSafeProductionQueueId(sourceFabricationQueueId) ||
+                !sourceLot ||
+                sourceLot.itemId !== itemId ||
+                sourceLot.gradeId !== sourceGradeId ||
+                sourceLot.completedWeek > week)) ||
             (sourceCondition !== 'operational' && sourceCondition !== 'damaged')
           ) {
             break
@@ -9942,6 +9983,10 @@ export function hydrateGame(
     rngSeed,
     calendarConfig
   )
+  const fabricatedEquipmentLots = sanitizeFabricatedEquipmentLots(
+    game.fabricatedEquipmentLots,
+    week
+  )
   const sanitizedEvents = sanitizeOperationEvents(game.events, fallback.events, {
     allowLegacySyntheticRepair:
       options.allowLegacySyntheticRepair === true ||
@@ -9949,13 +9994,10 @@ export function hydrateGame(
     campaignWeek: week,
     weeklyReportsByWeek: buildWeeklyReportIntelSnapshotsByWeek(reports),
     fallbackFeaturedRecipeId: fallback.market.featuredRecipeId,
+    fabricatedEquipmentLots,
   })
   const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
   const market = sanitizeMarket(game.market, fallback.market, week)
-  const fabricatedEquipmentLots = sanitizeFabricatedEquipmentLots(
-    game.fabricatedEquipmentLots,
-    week
-  )
   const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
     game.equipmentRecoveryOutcomes,
     week,

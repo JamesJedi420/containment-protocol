@@ -126,17 +126,18 @@ const CATALOG_SOURCE = Object.freeze({ kind: 'catalog' as const })
 
 function sourceClaims(state: GameState) {
   const claims = new Map<string, number>()
-  const completedRecoveryQueueIds = new Set<string>()
   const claim = (fabricationQueueId: string | undefined) => {
     if (!fabricationQueueId) return
     claims.set(fabricationQueueId, (claims.get(fabricationQueueId) ?? 0) + 1)
   }
   for (const outcome of Object.values(state.equipmentRecoveryOutcomes ?? {})) {
-    completedRecoveryQueueIds.add(outcome.queueId)
     claim(outcome.sourceFabricationQueueId)
   }
   for (const entry of state.equipmentDeconstructionQueue ?? []) {
-    if (!completedRecoveryQueueIds.has(entry.id)) claim(entry.sourceFabricationQueueId)
+    const completedOutcome = state.equipmentRecoveryOutcomes?.[entry.id]
+    if (!completedOutcome || !receiptMatchesEntry(completedOutcome, entry)) {
+      claim(entry.sourceFabricationQueueId)
+    }
   }
   return claims
 }

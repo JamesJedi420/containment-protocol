@@ -18,6 +18,7 @@ import {
 } from '../domain/sim/equipmentDeconstruction'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { GAME_STORE_VERSION, migratePersistedStore } from '../app/store/runTransfer'
+import { createMinimalOperationEvent } from './fixtures/minimalOperationEventPayloads'
 
 const yieldRule = {
   kind: 'yield_threshold' as const,
@@ -328,6 +329,38 @@ describe('equipment-grade recovery contract', () => {
         issueCode: 'fabricated_lot_exhausted',
       },
     ])
+
+    const activeEntry = first.equipmentDeconstructionQueue![0]!
+    const conflictingReceipt = {
+      queueId: activeEntry.id,
+      itemId: activeEntry.itemId,
+      pathId: activeEntry.pathId,
+      sourceGradeId: activeEntry.sourceGradeId,
+      sourceCondition: activeEntry.sourceCondition,
+      outputMaterials: activeEntry.outputMaterials,
+      wasteQuantity: activeEntry.wasteQuantity,
+      completedWeek: first.week,
+    }
+    expect(
+      resolveEquipmentDeconstructionSources(
+        {
+          ...first,
+          inventory: { ...first.inventory, signal_jammers: 1 },
+          fabricatedEquipmentLots: {
+            batch: { ...first.fabricatedEquipmentLots!.batch!, quantity: 1 },
+          },
+          equipmentRecoveryOutcomes: { [activeEntry.id]: conflictingReceipt },
+        },
+        'signal_jammers'
+      )
+    ).toMatchObject([
+      { source: { kind: 'catalog' }, quantity: 1 },
+      {
+        source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' },
+        quantity: 0,
+        issueCode: 'fabricated_lot_exhausted',
+      },
+    ])
   })
 
   it('completes once with matching materials/event and preserves conflicting live jobs', () => {
@@ -615,6 +648,78 @@ describe('equipment-grade recovery contract', () => {
       'completed',
       'active-claim',
     ])
+  })
+
+  it('rejects fabricated provenance that predates or disagrees with its lot', () => {
+    const fallback = createStartingState()
+    fallback.week = 2
+    fallback.inventory.signal_jammers = 1
+    fallback.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    const queued = queueEquipmentDeconstruction(fallback, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    const entry = queued.equipmentDeconstructionQueue![0]!
+    const baseEvent = createMinimalOperationEvent('equipment.recovery_started')
+    const eventPayload = {
+      ...baseEvent.payload,
+      week: 2,
+      sourceFabricationQueueId: 'batch',
+    }
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          week: 2,
+          fabricatedEquipmentLots: {
+            batch: { ...fallback.fabricatedEquipmentLots.batch!, completedWeek: 2 },
+          },
+          equipmentDeconstructionQueue: [{ ...entry, startedWeek: 1 }],
+          equipmentRecoveryOutcomes: {
+            [entry.id]: {
+              queueId: entry.id,
+              itemId: entry.itemId,
+              pathId: entry.pathId,
+              sourceGradeId: entry.sourceGradeId,
+              sourceFabricationQueueId: 'batch',
+              sourceCondition: entry.sourceCondition,
+              outputMaterials: entry.outputMaterials,
+              wasteQuantity: entry.wasteQuantity,
+              completedWeek: 1,
+            },
+          },
+          events: [
+            { ...baseEvent, id: 'valid-lot-event', payload: eventPayload },
+            {
+              ...baseEvent,
+              id: 'missing-lot-event',
+              payload: { ...eventPayload, sourceFabricationQueueId: 'missing' },
+            },
+            {
+              ...baseEvent,
+              id: 'mismatched-lot-event',
+              payload: { ...eventPayload, sourceGradeId: 'grade_3' },
+            },
+          ],
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentRecoveryOutcomes).toEqual({})
+    expect(hydrated.equipmentDeconstructionQueue).toEqual([])
+    expect(hydrated.events.map(({ id }) => id)).toEqual(['valid-lot-event'])
   })
 
   it('advances recovery through the canonical week-close queue phase', () => {

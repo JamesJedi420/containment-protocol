@@ -1202,6 +1202,10 @@ export type SanitizeOperationEventsOptions = {
   fallbackFeaturedRecipeId?: string
   /** SPE-2800: authoritative fabricated lots used to validate recovery-event provenance. */
   fabricatedEquipmentLots?: FabricatedEquipmentLotRegistry
+  /** SPE-2800: sanitized active claims used to reconcile recovery-event provenance. */
+  equipmentDeconstructionQueue?: readonly EquipmentDeconstructionQueueEntry[]
+  /** SPE-2800: sanitized completed claims used to reconcile recovery-event provenance. */
+  equipmentRecoveryOutcomes?: EquipmentRecoveryOutcomeRegistry
 }
 
 export interface OperationEventReconcileContext {
@@ -8722,6 +8726,40 @@ function sanitizeOperationEvents(
             outputMaterials,
             wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
           }
+          if (hasSourceFabricationQueueId) {
+            const queueId = common.queueId
+            const claimMatchesEvent = (
+              claim: EquipmentDeconstructionQueueEntry | EquipmentRecoveryOutcomeRegistry[string]
+            ) =>
+              claim.itemId === common.itemId &&
+              claim.pathId === common.pathId &&
+              claim.sourceGradeId === common.sourceGradeId &&
+              claim.sourceFabricationQueueId === common.sourceFabricationQueueId &&
+              claim.sourceCondition === common.sourceCondition &&
+              claim.wasteQuantity === common.wasteQuantity &&
+              claim.outputMaterials.length === common.outputMaterials.length &&
+              claim.outputMaterials.every((material, materialIndex) => {
+                const eventMaterial = common.outputMaterials[materialIndex]
+                return (
+                  eventMaterial !== undefined &&
+                  material.materialId === eventMaterial.materialId &&
+                  material.quantity === eventMaterial.quantity
+                )
+              })
+            const completedClaim = options.equipmentRecoveryOutcomes?.[queueId]
+            const activeClaim = options.equipmentDeconstructionQueue?.find(
+              (claim) => claim.id === queueId
+            )
+            const hasDurableClaim =
+              (completedClaim !== undefined && claimMatchesEvent(completedClaim)) ||
+              (eventType === 'equipment.recovery_started' &&
+                activeClaim !== undefined &&
+                claimMatchesEvent(activeClaim))
+
+            if (!hasDurableClaim) {
+              break
+            }
+          }
           if (eventType === 'equipment.recovery_started') {
             nextEvents.push(
               migrateOperationEventToCurrentSchema({
@@ -9987,6 +10025,17 @@ export function hydrateGame(
     game.fabricatedEquipmentLots,
     week
   )
+  const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
+    game.equipmentRecoveryOutcomes,
+    week,
+    fabricatedEquipmentLots
+  )
+  const equipmentDeconstructionQueue = sanitizeEquipmentDeconstructionQueue(
+    game.equipmentDeconstructionQueue,
+    week,
+    fabricatedEquipmentLots,
+    equipmentRecoveryOutcomes
+  )
   const sanitizedEvents = sanitizeOperationEvents(game.events, fallback.events, {
     allowLegacySyntheticRepair:
       options.allowLegacySyntheticRepair === true ||
@@ -9995,14 +10044,11 @@ export function hydrateGame(
     weeklyReportsByWeek: buildWeeklyReportIntelSnapshotsByWeek(reports),
     fallbackFeaturedRecipeId: fallback.market.featuredRecipeId,
     fabricatedEquipmentLots,
+    equipmentDeconstructionQueue,
+    equipmentRecoveryOutcomes,
   })
   const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
   const market = sanitizeMarket(game.market, fallback.market, week)
-  const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
-    game.equipmentRecoveryOutcomes,
-    week,
-    fabricatedEquipmentLots
-  )
   const inventory = sanitizeInventory(game.inventory, fallback.inventory)
   const damagedEquipmentQueue = sanitizeDamagedEquipmentQueue(
     game.damagedEquipmentQueue,
@@ -10162,12 +10208,7 @@ export function hydrateGame(
       Object.keys(fabricatedEquipmentLots)
     ),
     fabricatedEquipmentLots,
-    equipmentDeconstructionQueue: sanitizeEquipmentDeconstructionQueue(
-      game.equipmentDeconstructionQueue,
-      week,
-      fabricatedEquipmentLots,
-      equipmentRecoveryOutcomes
-    ),
+    equipmentDeconstructionQueue,
     equipmentRecoveryOutcomes,
     equipmentAutoScrapPolicy,
     config,

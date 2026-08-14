@@ -79,6 +79,11 @@ ID through the recovery queue, completed outcome, and events. Catalog stock is a
 beyond all outstanding lot units. Live recovery queues plus completed outcomes are the durable
 claim ledger; the production lot itself is never decremented or rewritten.
 
+SPE-2801 expands component reclamation to seven additional technological definitions using the
+existing Grade II electronic-parts threshold. Grade I yields one part and 2 waste; Grade II and
+III yield two parts and 1 waste, with no higher-grade multiplier. Fourteen definitions are now
+eligible and nine remain explicitly deferred under SPE-1055.
+
 Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
 without changing inventory's quantity authority or either save version.
 

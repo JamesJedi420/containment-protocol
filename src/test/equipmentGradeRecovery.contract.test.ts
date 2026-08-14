@@ -42,6 +42,16 @@ const handlingRule = {
   additionalDurationWeeks: 1,
 }
 
+const technologicalProfileIds = [
+  'environmental_sampler',
+  'encrypted_field_tablet',
+  'advanced_recon_suite',
+  'signal_intercept_kit',
+  'analysis_goggles',
+  'tactical_radio',
+  'breach_visor',
+] as const
+
 describe('equipment-grade recovery contract', () => {
   it('strictly validates rule kinds and stable malformed-rule issues', () => {
     expect(validateEquipmentGradeRecoveryRule(yieldRule)).toMatchObject({ valid: true })
@@ -99,6 +109,66 @@ describe('equipment-grade recovery contract', () => {
         (itemId) => catalog.find((definition) => definition.id === itemId)?.gradeProfile.origin
       )
     ).toEqual(['ordinary', 'magical', 'technological'])
+
+    expect(
+      EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'eligible')
+    ).toHaveLength(14)
+    expect(
+      EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'deferred').map(
+        (profile) => profile.itemId
+      )
+    ).toEqual([
+      'diplomatic_kit',
+      'anomaly_scanner',
+      'spectral_em_array',
+      'occult_detection_array',
+      'field_plate',
+      'containment_staff',
+      'hazmat_suit',
+      'trauma_kit',
+      'combat_stims',
+    ])
+    for (const itemId of technologicalProfileIds) {
+      expect(getEquipmentDeconstructionProfile(itemId)).toEqual({
+        state: 'eligible',
+        itemId,
+        rule: yieldRule,
+      })
+    }
+  })
+
+  it('applies the technological Grade II yield threshold without Grade III scaling', () => {
+    const resolveProfile = (
+      itemId: (typeof technologicalProfileIds)[number],
+      gradeId: 'grade_1' | 'grade_2' | 'grade_3'
+    ) => {
+      const profile = getEquipmentDeconstructionProfile(itemId)
+      if (!profile || profile.state !== 'eligible') throw new Error(`Missing profile: ${itemId}`)
+      return resolveEquipmentGradeRecoveryOutcome(
+        profile.rule,
+        { state: 'graded', gradeId },
+        'known',
+        { condition: 'operational' }
+      )
+    }
+
+    expect(resolveProfile('tactical_radio', 'grade_1')).toMatchObject({
+      available: true,
+      materials: [{ materialId: 'electronic_parts', quantity: 1 }],
+      waste: 2,
+      durationWeeks: 1,
+    })
+    for (const [itemId, gradeId] of [
+      ['environmental_sampler', 'grade_2'],
+      ['advanced_recon_suite', 'grade_3'],
+    ] as const) {
+      expect(resolveProfile(itemId, gradeId)).toMatchObject({
+        available: true,
+        materials: [{ materialId: 'electronic_parts', quantity: 2 }],
+        waste: 1,
+        durationWeeks: 1,
+      })
+    }
   })
 
   it('uses grade for component yield but for ritual handling time instead of universal yield', () => {
@@ -279,6 +349,65 @@ describe('equipment-grade recovery contract', () => {
       sourceFabricationQueueId: 'completed',
     })
     expect(lotQueued.fabricatedEquipmentLots).toEqual(fabricated.fabricatedEquipmentLots)
+  })
+
+  it('queues newly eligible technological stock through the canonical recovery path', () => {
+    let state = createStartingState()
+    state.inventory.tactical_radio = 1
+    state.inventory.environmental_sampler = 1
+    state.inventory.advanced_recon_suite = 1
+
+    for (const itemId of [
+      'tactical_radio',
+      'environmental_sampler',
+      'advanced_recon_suite',
+    ] as const) {
+      const before = state.inventory[itemId]
+      state = queueEquipmentDeconstruction(state, itemId)
+      expect(state.inventory[itemId]).toBe(before - 1)
+    }
+
+    expect(
+      state.equipmentDeconstructionQueue?.map((entry) => ({
+        itemId: entry.itemId,
+        sourceGradeId: entry.sourceGradeId,
+        pathId: entry.pathId,
+        outputMaterials: entry.outputMaterials,
+        wasteQuantity: entry.wasteQuantity,
+        remainingWeeks: entry.remainingWeeks,
+      }))
+    ).toEqual([
+      {
+        itemId: 'tactical_radio',
+        sourceGradeId: 'grade_1',
+        pathId: 'component_reclamation',
+        outputMaterials: [
+          { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 1 },
+        ],
+        wasteQuantity: 2,
+        remainingWeeks: 1,
+      },
+      {
+        itemId: 'environmental_sampler',
+        sourceGradeId: 'grade_2',
+        pathId: 'component_reclamation',
+        outputMaterials: [
+          { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 2 },
+        ],
+        wasteQuantity: 1,
+        remainingWeeks: 1,
+      },
+      {
+        itemId: 'advanced_recon_suite',
+        sourceGradeId: 'grade_3',
+        pathId: 'component_reclamation',
+        outputMaterials: [
+          { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 2 },
+        ],
+        wasteQuantity: 1,
+        remainingWeeks: 1,
+      },
+    ])
   })
 
   it('resolves catalog and fabricated sources and claims each batch unit exactly once', () => {

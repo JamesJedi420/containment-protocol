@@ -131,23 +131,23 @@ describe('EquipmentPage', () => {
   it('previews and confirms canonical-grade equipment deconstruction', async () => {
     const user = userEvent.setup()
     const game = createStartingState()
-    game.inventory.signal_jammers = 1
+    game.inventory.tactical_radio = 1
     useGameStore.setState({ game })
 
     renderEquipmentPage()
 
     expect(screen.getByRole('heading', { name: /equipment deconstruction/i })).toBeInTheDocument()
-    expect(screen.getAllByText(/grade ii/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/electronic parts ×2/i)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
-    expect(screen.getByText(/permanently consumes one signal jammers/i)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /confirm deconstruction signal jammers/i }))
+    expect(screen.getAllByText(/grade i/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/electronic parts ×1/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review deconstruction tactical radio/i }))
+    expect(screen.getByText(/permanently consumes one tactical radio/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm deconstruction tactical radio/i }))
 
     const next = useGameStore.getState().game
-    expect(next.inventory.signal_jammers).toBe(0)
+    expect(next.inventory.tactical_radio).toBe(0)
     expect(next.equipmentDeconstructionQueue?.[0]).toMatchObject({
-      itemId: 'signal_jammers',
-      sourceGradeId: 'grade_2',
+      itemId: 'tactical_radio',
+      sourceGradeId: 'grade_1',
     })
     expect(screen.getByText(/1 week remaining/i)).toBeInTheDocument()
   })

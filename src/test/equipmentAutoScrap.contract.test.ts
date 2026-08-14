@@ -134,6 +134,58 @@ describe('equipment Auto-Scrap contract', () => {
     expect(preview).toMatchObject({ includedQuantity: 0, excludedQuantity: 6 })
   })
 
+  it('routes newly eligible technological stock at or below threshold in item-ID order', () => {
+    const state = createStartingState()
+    state.inventory.tactical_radio = 1
+    state.inventory.environmental_sampler = 1
+    state.inventory.advanced_recon_suite = 1
+    state.inventory.anomaly_scanner = 1
+
+    const preview = resolveEquipmentAutoScrapPreview(state, 'grade_2')
+    expect(
+      preview.entries.map((entry) => ({
+        itemId: entry.itemId,
+        decision: entry.decision,
+        reasonCodes: entry.reasonCodes,
+      }))
+    ).toEqual([
+      {
+        itemId: 'advanced_recon_suite',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.grade_above_threshold'],
+      },
+      {
+        itemId: 'anomaly_scanner',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.recovery_profile_unavailable'],
+      },
+      {
+        itemId: 'environmental_sampler',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+      {
+        itemId: 'tactical_radio',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+    ])
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_2')
+    )
+    expect(routed.equipmentDeconstructionQueue?.map((entry) => entry.itemId)).toEqual([
+      'environmental_sampler',
+      'tactical_radio',
+    ])
+    expect(routed.inventory).toMatchObject({
+      advanced_recon_suite: 1,
+      anomaly_scanner: 1,
+      environmental_sampler: 0,
+      tactical_radio: 0,
+    })
+  })
+
   it('keeps grade decisions independent from recovery condition and non-grade stock axes', () => {
     const operational = createStartingState()
     operational.inventory.medkits = 1

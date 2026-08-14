@@ -13,8 +13,9 @@
 This slice adds deterministic grade-aware recovery for supported catalog equipment without
 changing equipment stats, rarity, condition, aggregate inventory semantics, or fabrication lots.
 Seven craftable equipment definitions established the initial eligible set. SPE-2801 subsequently
-added seven technological definitions; the remaining nine catalog definitions stay explicitly
-deferred rather than silently receiving a fallback rule.
+added seven technological definitions, and SPE-2826 added Trauma Kit through the existing medical
+rule. The remaining eight definitions stay explicitly deferred rather than silently receiving a
+fallback rule.
 
 The two supported paths are:
 
@@ -76,6 +77,7 @@ without mutating the fabrication receipt.
 | Analysis Goggles       | component reclamation | yield threshold    |
 | Tactical Radio         | component reclamation | yield threshold    |
 | Breach Visor           | component reclamation | yield threshold    |
+| Trauma Kit             | component reclamation | yield threshold    |
 
 ## Deferred
 
@@ -85,4 +87,4 @@ without mutating the fabrication receipt.
 | Processed-material quality and batch semantics               | SPE-1056 | Recovered aggregate quantities do not author material grade        |
 | Automated fabricated-lot selection                           | SPE-2749 | Manual selection shipped in SPE-2800; automation stays fail-closed |
 | Grade-threshold Auto-Scrap routing                           | SPE-2749 | Must preserve hidden-grade opacity and explicit selection          |
-| Remaining nine catalog recovery profiles                     | SPE-1055 | Explicitly deferred in the exhaustive registry                     |
+| Remaining eight catalog recovery profiles                    | SPE-1055 | Explicitly deferred in the exhaustive registry                     |

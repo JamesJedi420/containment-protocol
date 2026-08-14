@@ -186,6 +186,40 @@ describe('equipment Auto-Scrap contract', () => {
     })
   })
 
+  it('routes Grade I Trauma Kit while leaving Combat Stims deferred', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+    state.inventory.combat_stims = 1
+
+    const preview = resolveEquipmentAutoScrapPreview(state, 'grade_1')
+    expect(
+      preview.entries.map((entry) => ({
+        itemId: entry.itemId,
+        decision: entry.decision,
+        reasonCodes: entry.reasonCodes,
+      }))
+    ).toEqual([
+      {
+        itemId: 'combat_stims',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.recovery_profile_unavailable'],
+      },
+      {
+        itemId: 'trauma_kit',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+    ])
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_1')
+    )
+    expect(routed.inventory).toMatchObject({ combat_stims: 1, trauma_kit: 0 })
+    expect(routed.equipmentDeconstructionQueue?.map((entry) => entry.itemId)).toEqual([
+      'trauma_kit',
+    ])
+  })
+
   it('keeps grade decisions independent from recovery condition and non-grade stock axes', () => {
     const operational = createStartingState()
     operational.inventory.medkits = 1

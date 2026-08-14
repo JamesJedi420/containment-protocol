@@ -81,8 +81,12 @@ claim ledger; the production lot itself is never decremented or rewritten.
 
 SPE-2801 expands component reclamation to seven additional technological definitions using the
 existing Grade II electronic-parts threshold. Grade I yields one part and 2 waste; Grade II and
-III yield two parts and 1 waste, with no higher-grade multiplier. Fourteen definitions are now
-eligible and nine remain explicitly deferred under SPE-1055.
+III yield two parts and 1 waste, with no higher-grade multiplier.
+
+SPE-2826 adds Trauma Kit through the established medical-supplies threshold. Its catalog Grade I
+outcome returns one medical supply, produces 1 waste, and takes one week. Fifteen definitions are
+now eligible and eight remain explicitly deferred under SPE-1055. Combat Stims remains deferred
+until consumable-depletion authority exists.
 
 Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
 without changing inventory's quantity authority or either save version.

@@ -152,6 +152,29 @@ describe('EquipmentPage', () => {
     expect(screen.getByText(/1 week remaining/i)).toBeInTheDocument()
   })
 
+  it('surfaces Trauma Kit recovery through the existing accessible controls', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.trauma_kit = 1
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByText(/medical supplies ×1/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review deconstruction trauma kit/i }))
+    expect(screen.getByText(/permanently consumes one trauma kit/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm deconstruction trauma kit/i }))
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.trauma_kit).toBe(0)
+    expect(next.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'trauma_kit',
+      sourceGradeId: 'grade_1',
+      outputMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+    })
+    expect(screen.getByText(/1 week remaining/i)).toBeInTheDocument()
+  })
+
   it('selects and confirms a fabricated batch with accessible provenance', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

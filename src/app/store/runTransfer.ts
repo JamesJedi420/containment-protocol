@@ -5771,12 +5771,17 @@ function sanitizeEquipmentDeconstructionQueue(
       left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   )) {
     const completedOutcome = completedRecoveryByQueueId.get(entry.id)
-    if (
-      !entry.sourceFabricationQueueId ||
-      (completedOutcome !== undefined &&
-        equipmentRecoveryReceiptMatchesQueue(completedOutcome, entry))
-    ) {
+    if (!entry.sourceFabricationQueueId) {
       accepted.add(entry.id)
+      continue
+    }
+    if (
+      completedOutcome !== undefined &&
+      equipmentRecoveryReceiptMatchesQueue(completedOutcome, entry)
+    ) {
+      if (entry.startedWeek <= completedOutcome.completedWeek) {
+        accepted.add(entry.id)
+      }
       continue
     }
     const lot = fabricatedEquipmentLots[entry.sourceFabricationQueueId]
@@ -8726,8 +8731,19 @@ function sanitizeOperationEvents(
             outputMaterials,
             wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
           }
+          const queueId = common.queueId
+          const completedClaim = options.equipmentRecoveryOutcomes?.[queueId]
+          const activeClaim = options.equipmentDeconstructionQueue?.find(
+            (claim) => claim.id === queueId
+          )
+          if (
+            !hasSourceFabricationQueueId &&
+            (completedClaim?.sourceFabricationQueueId !== undefined ||
+              activeClaim?.sourceFabricationQueueId !== undefined)
+          ) {
+            break
+          }
           if (hasSourceFabricationQueueId) {
-            const queueId = common.queueId
             const claimMatchesEvent = (
               claim: EquipmentDeconstructionQueueEntry | EquipmentRecoveryOutcomeRegistry[string]
             ) =>
@@ -8746,14 +8762,15 @@ function sanitizeOperationEvents(
                   material.quantity === eventMaterial.quantity
                 )
               })
-            const completedClaim = options.equipmentRecoveryOutcomes?.[queueId]
-            const activeClaim = options.equipmentDeconstructionQueue?.find(
-              (claim) => claim.id === queueId
-            )
             const hasDurableClaim =
-              (completedClaim !== undefined && claimMatchesEvent(completedClaim)) ||
+              (completedClaim !== undefined &&
+                claimMatchesEvent(completedClaim) &&
+                (eventType === 'equipment.recovery_completed'
+                  ? week === completedClaim.completedWeek
+                  : week <= completedClaim.completedWeek)) ||
               (eventType === 'equipment.recovery_started' &&
                 activeClaim !== undefined &&
+                week === activeClaim.startedWeek &&
                 claimMatchesEvent(activeClaim))
 
             if (!hasDurableClaim) {

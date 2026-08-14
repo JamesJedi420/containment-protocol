@@ -604,6 +604,10 @@ describe('equipment-grade recovery contract', () => {
       ).game.equipmentDeconstructionQueue
     expect(hydrateDuplicates([duplicateOperational, duplicateDamaged])).toEqual([])
     expect(hydrateDuplicates([duplicateDamaged, duplicateOperational])).toEqual([])
+    const missingIdClaim = { ...entry, id: '' }
+    const unsafeIdClaim = { ...entry, id: 'constructor' }
+    expect(hydrateDuplicates([missingIdClaim, unsafeIdClaim])).toEqual([])
+    expect(hydrateDuplicates([unsafeIdClaim, missingIdClaim])).toEqual([])
 
     const hydrateTwoClaims = (
       equipmentDeconstructionQueue: typeof queued.equipmentDeconstructionQueue
@@ -718,6 +722,36 @@ describe('equipment-grade recovery contract', () => {
     ).game
     expect(postCompletionQueue.equipmentRecoveryOutcomes?.[entry.id]).toBeDefined()
     expect(postCompletionQueue.equipmentDeconstructionQueue).toEqual([])
+
+    const preFabricationQueue = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          week: 3,
+          fabricatedEquipmentLots: {
+            batch: { ...queued.fabricatedEquipmentLots!.batch!, completedWeek: 2 },
+          },
+          equipmentDeconstructionQueue: [{ ...entry, startedWeek: 1 }],
+          equipmentRecoveryOutcomes: {
+            [entry.id]: {
+              queueId: entry.id,
+              itemId: entry.itemId,
+              pathId: entry.pathId,
+              sourceGradeId: entry.sourceGradeId,
+              sourceFabricationQueueId: 'batch',
+              sourceCondition: entry.sourceCondition,
+              outputMaterials: entry.outputMaterials,
+              wasteQuantity: entry.wasteQuantity,
+              completedWeek: 3,
+            },
+          },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+    expect(preFabricationQueue.equipmentRecoveryOutcomes?.[entry.id]).toBeDefined()
+    expect(preFabricationQueue.equipmentDeconstructionQueue).toEqual([])
   })
 
   it('rejects fabricated provenance whose durable claim predates or disagrees with its lot', () => {
@@ -918,6 +952,11 @@ describe('equipment-grade recovery contract', () => {
               ...baseEvent,
               id: 'wrong-start-week-event',
               payload: { ...eventPayload, week: entry.startedWeek - 1 },
+            },
+            {
+              ...baseEvent,
+              id: 'wrong-eta-event',
+              payload: { ...eventPayload, etaWeeks: entry.durationWeeks + 1 },
             },
           ],
         },

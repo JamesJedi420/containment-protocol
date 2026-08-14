@@ -5724,6 +5724,7 @@ function sanitizeEquipmentDeconstructionQueue(
       'sourceFabricationQueueId'
     )
     const sourceFabricationQueueId = entry.sourceFabricationQueueId
+    const rawEntryId = typeof entry.id === 'string' ? entry.id.trim() : ''
     if (
       !definition ||
       !outputMaterials ||
@@ -5731,12 +5732,14 @@ function sanitizeEquipmentDeconstructionQueue(
       explanationCodes.length !== rawExplanationCodes.length ||
       explanationCodes.length === 0 ||
       new Set(explanationCodes).size !== explanationCodes.length ||
-      (hasSourceFabricationQueueId && !isSafeProductionQueueId(sourceFabricationQueueId))
+      (hasSourceFabricationQueueId &&
+        (!isSafeProductionQueueId(sourceFabricationQueueId) ||
+          !isSafeEquipmentRecoveryQueueId(rawEntryId)))
     ) {
       continue
     }
     queue.push({
-      id: typeof entry.id === 'string' ? entry.id.trim() : `recovery-${index + 1}`,
+      id: rawEntryId || `recovery-${index + 1}`,
       itemId: entry.itemId,
       itemName: definition.name,
       pathId: entry.pathId,
@@ -5783,16 +5786,20 @@ function sanitizeEquipmentDeconstructionQueue(
       accepted.add(entry.id)
       continue
     }
+    const lot = fabricatedEquipmentLots[entry.sourceFabricationQueueId]
     if (
       completedOutcome !== undefined &&
       equipmentRecoveryReceiptMatchesQueue(completedOutcome, entry)
     ) {
-      if (entry.startedWeek <= completedOutcome.completedWeek) {
+      if (
+        lot !== undefined &&
+        lot.completedWeek <= entry.startedWeek &&
+        entry.startedWeek <= completedOutcome.completedWeek
+      ) {
         accepted.add(entry.id)
       }
       continue
     }
-    const lot = fabricatedEquipmentLots[entry.sourceFabricationQueueId]
     const claimed = claimedByLot.get(entry.sourceFabricationQueueId) ?? 0
     if (
       !lot ||
@@ -8739,6 +8746,10 @@ function sanitizeOperationEvents(
             outputMaterials,
             wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
           }
+          const etaWeeks =
+            eventType === 'equipment.recovery_started'
+              ? sanitizeInteger(payload.etaWeeks as number | undefined, 1, 1)
+              : undefined
           const queueId = common.queueId
           const completedClaim = options.equipmentRecoveryOutcomes?.[queueId]
           const activeClaim = options.equipmentDeconstructionQueue?.find(
@@ -8779,6 +8790,7 @@ function sanitizeOperationEvents(
               (eventType === 'equipment.recovery_started' &&
                 activeClaim !== undefined &&
                 week === activeClaim.startedWeek &&
+                etaWeeks === activeClaim.durationWeeks &&
                 claimMatchesEvent(activeClaim))
 
             if (!hasDurableClaim) {
@@ -8791,7 +8803,7 @@ function sanitizeOperationEvents(
                 ...createBase('equipment.recovery_started'),
                 payload: {
                   ...common,
-                  etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 1),
+                  etaWeeks: etaWeeks as number,
                 },
               })
             )

@@ -12,8 +12,9 @@
 
 This slice adds deterministic grade-aware recovery for supported catalog equipment without
 changing equipment stats, rarity, condition, aggregate inventory semantics, or fabrication lots.
-Seven craftable equipment definitions are eligible; every other current catalog definition is
-explicitly deferred rather than silently receiving a fallback rule.
+Seven craftable equipment definitions established the initial eligible set. SPE-2801 subsequently
+added seven technological definitions; the remaining nine catalog definitions stay explicitly
+deferred rather than silently receiving a fallback rule.
 
 The two supported paths are:
 
@@ -59,15 +60,22 @@ without mutating the fabrication receipt.
 
 ## Live assignments
 
-| Equipment         | Path                  | Grade behavior     |
-| ----------------- | --------------------- | ------------------ |
-| Silver Rounds     | component reclamation | yield threshold    |
-| Medkits           | component reclamation | yield threshold    |
-| Signal Jammers    | component reclamation | yield threshold    |
-| EMF Sensors       | component reclamation | yield threshold    |
-| Ward Seals        | ritual disassembly    | handling threshold |
-| Warding Kits      | ritual disassembly    | handling threshold |
-| Ritual Components | ritual disassembly    | handling threshold |
+| Equipment              | Path                  | Grade behavior     |
+| ---------------------- | --------------------- | ------------------ |
+| Silver Rounds          | component reclamation | yield threshold    |
+| Medkits                | component reclamation | yield threshold    |
+| Signal Jammers         | component reclamation | yield threshold    |
+| EMF Sensors            | component reclamation | yield threshold    |
+| Ward Seals             | ritual disassembly    | handling threshold |
+| Warding Kits           | ritual disassembly    | handling threshold |
+| Ritual Components      | ritual disassembly    | handling threshold |
+| Environmental Sampler  | component reclamation | yield threshold    |
+| Encrypted Field Tablet | component reclamation | yield threshold    |
+| Advanced Recon Suite   | component reclamation | yield threshold    |
+| Signal Intercept Kit   | component reclamation | yield threshold    |
+| Analysis Goggles       | component reclamation | yield threshold    |
+| Tactical Radio         | component reclamation | yield threshold    |
+| Breach Visor           | component reclamation | yield threshold    |
 
 ## Deferred
 
@@ -77,4 +85,4 @@ without mutating the fabrication receipt.
 | Processed-material quality and batch semantics               | SPE-1056 | Recovered aggregate quantities do not author material grade        |
 | Automated fabricated-lot selection                           | SPE-2749 | Manual selection shipped in SPE-2800; automation stays fail-closed |
 | Grade-threshold Auto-Scrap routing                           | SPE-2749 | Must preserve hidden-grade opacity and explicit selection          |
-| Remaining catalog recovery profiles                          | SPE-1055 | Explicitly deferred in the exhaustive registry                     |
+| Remaining nine catalog recovery profiles                     | SPE-1055 | Explicitly deferred in the exhaustive registry                     |

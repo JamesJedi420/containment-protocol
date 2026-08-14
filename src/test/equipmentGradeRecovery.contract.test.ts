@@ -605,6 +605,27 @@ describe('equipment-grade recovery contract', () => {
     expect(hydrateDuplicates([duplicateOperational, duplicateDamaged])).toEqual([])
     expect(hydrateDuplicates([duplicateDamaged, duplicateOperational])).toEqual([])
 
+    const hydrateTwoClaims = (
+      equipmentDeconstructionQueue: typeof queued.equipmentDeconstructionQueue
+    ) =>
+      migratePersistedStore(
+        {
+          game: {
+            ...queued,
+            fabricatedEquipmentLots: {
+              batch: { ...queued.fabricatedEquipmentLots!.batch!, quantity: 2 },
+            },
+            equipmentDeconstructionQueue,
+          },
+        },
+        GAME_STORE_VERSION,
+        fallback
+      ).game.equipmentDeconstructionQueue?.map(({ id }) => id)
+    const recoveryA = { ...entry, id: 'recovery-a' }
+    const recoveryB = { ...entry, id: 'recovery-b' }
+    expect(hydrateTwoClaims([recoveryB, recoveryA])).toEqual(['recovery-a', 'recovery-b'])
+    expect(hydrateTwoClaims([recoveryA, recoveryB])).toEqual(['recovery-a', 'recovery-b'])
+
     const completedWins = migratePersistedStore(
       {
         game: {
@@ -664,8 +685,8 @@ describe('equipment-grade recovery contract', () => {
       fallback
     ).game
     expect(staleCompletedQueue.equipmentDeconstructionQueue?.map(({ id }) => id)).toEqual([
-      'completed',
       'active-claim',
+      'completed',
     ])
 
     const postCompletionQueue = migratePersistedStore(

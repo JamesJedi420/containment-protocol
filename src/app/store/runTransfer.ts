@@ -5762,6 +5762,10 @@ function sanitizeEquipmentDeconstructionQueue(
     (entry) => !entry.sourceFabricationQueueId || (queueIdCounts.get(entry.id) ?? 0) === 1
   )
   const uniqueQueue = assignUniqueQueueEntryIds(unambiguousQueue, 'recovery')
+  const canonicalQueue = [...uniqueQueue].sort(
+    (left, right) =>
+      left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+  )
   const claimedByLot = new Map<string, number>()
   const completedRecoveryByQueueId = new Map<string, EquipmentRecoveryOutcome>()
   for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
@@ -5773,10 +5777,7 @@ function sanitizeEquipmentDeconstructionQueue(
     )
   }
   const accepted = new Set<string>()
-  for (const entry of [...uniqueQueue].sort(
-    (left, right) =>
-      left.startedWeek - right.startedWeek || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
-  )) {
+  for (const entry of canonicalQueue) {
     const completedOutcome = completedRecoveryByQueueId.get(entry.id)
     if (!entry.sourceFabricationQueueId) {
       accepted.add(entry.id)
@@ -5805,7 +5806,7 @@ function sanitizeEquipmentDeconstructionQueue(
     claimedByLot.set(entry.sourceFabricationQueueId, claimed + 1)
     accepted.add(entry.id)
   }
-  return uniqueQueue.filter((entry) => accepted.has(entry.id))
+  return canonicalQueue.filter((entry) => accepted.has(entry.id))
 }
 
 function equipmentRecoveryReceiptMatchesQueue(

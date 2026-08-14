@@ -42,7 +42,8 @@ SPE-1055 children. SPE-2749 also remains Backlog for its unsupported protection 
 
 - exact fourteen-eligible/nine-deferred registry coverage and exact technological rules;
 - Grade I, II, and III yield, waste, duration, and threshold-boundary outcomes;
-- independence from rarity, value, condition, provenance, and legacy effect scale;
+- canonical grade and threshold independence from rarity, value, condition, provenance, and legacy
+  effect scale, while preserving the existing independent damage-to-waste adjustment;
 - canonical manual queueing and preservation of fabricated-lot provenance behavior;
 - Auto-Scrap threshold, deferred, hidden, and outstanding-lot protections in item-ID order;
 - existing accessible Equipment UI preview, confirmation, and queue presentation;

@@ -586,6 +586,25 @@ describe('equipment-grade recovery contract', () => {
       sourceFabricationQueueId: 'batch',
     })
 
+    const duplicateOperational = { ...entry, id: 'duplicate-claim' }
+    const duplicateDamaged = {
+      ...entry,
+      id: 'duplicate-claim',
+      sourceCondition: 'damaged' as const,
+    }
+    const hydrateDuplicates = (
+      equipmentDeconstructionQueue: typeof queued.equipmentDeconstructionQueue
+    ) =>
+      migratePersistedStore(
+        {
+          game: { ...queued, equipmentDeconstructionQueue },
+        },
+        GAME_STORE_VERSION,
+        fallback
+      ).game.equipmentDeconstructionQueue
+    expect(hydrateDuplicates([duplicateOperational, duplicateDamaged])).toEqual([])
+    expect(hydrateDuplicates([duplicateDamaged, duplicateOperational])).toEqual([])
+
     const completedWins = migratePersistedStore(
       {
         game: {

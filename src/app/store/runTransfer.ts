@@ -5754,7 +5754,14 @@ function sanitizeEquipmentDeconstructionQueue(
       explanationCodes: [...new Set(explanationCodes)],
     })
   }
-  const uniqueQueue = assignUniqueQueueEntryIds(queue, 'recovery')
+  const queueIdCounts = new Map<string, number>()
+  for (const entry of queue) {
+    queueIdCounts.set(entry.id, (queueIdCounts.get(entry.id) ?? 0) + 1)
+  }
+  const unambiguousQueue = queue.filter(
+    (entry) => !entry.sourceFabricationQueueId || (queueIdCounts.get(entry.id) ?? 0) === 1
+  )
+  const uniqueQueue = assignUniqueQueueEntryIds(unambiguousQueue, 'recovery')
   const claimedByLot = new Map<string, number>()
   const completedRecoveryByQueueId = new Map<string, EquipmentRecoveryOutcome>()
   for (const outcome of Object.values(equipmentRecoveryOutcomes)) {

@@ -32,6 +32,18 @@ const electronicComponentReclamationRule = (): EquipmentGradeRecoveryRule => ({
   wasteReduction: 1,
 })
 
+const medicalComponentReclamationRule = (): EquipmentGradeRecoveryRule => ({
+  kind: 'yield_threshold',
+  pathId: 'component_reclamation',
+  baseMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+  baseWaste: 1,
+  baseDurationWeeks: 1,
+  thresholdGradeId: 'grade_2',
+  bonusMaterialId: 'medical_supplies',
+  bonusQuantity: 1,
+  wasteReduction: 1,
+})
+
 export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
   eligible('silver_rounds', {
     kind: 'yield_threshold',
@@ -44,17 +56,8 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     bonusQuantity: 1,
     wasteReduction: 1,
   }),
-  eligible('medkits', {
-    kind: 'yield_threshold',
-    pathId: 'component_reclamation',
-    baseMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
-    baseWaste: 1,
-    baseDurationWeeks: 1,
-    thresholdGradeId: 'grade_2',
-    bonusMaterialId: 'medical_supplies',
-    bonusQuantity: 1,
-    wasteReduction: 1,
-  }),
+  eligible('medkits', medicalComponentReclamationRule()),
+  eligible('trauma_kit', medicalComponentReclamationRule()),
   eligible('signal_jammers', electronicComponentReclamationRule()),
   eligible('emf_sensors', electronicComponentReclamationRule()),
   eligible('environmental_sampler', electronicComponentReclamationRule()),
@@ -99,7 +102,6 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     'field_plate',
     'containment_staff',
     'hazmat_suit',
-    'trauma_kit',
     'combat_stims',
   ].map(deferred),
 ] as const satisfies readonly EquipmentDeconstructionProfile[])

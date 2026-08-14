@@ -32,6 +32,13 @@ const yieldRule = {
   wasteReduction: 1,
 }
 
+const medicalYieldRule = {
+  ...yieldRule,
+  baseMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+  baseWaste: 1,
+  bonusMaterialId: 'medical_supplies',
+}
+
 const handlingRule = {
   kind: 'handling_threshold' as const,
   pathId: 'ritual_disassembly' as const,
@@ -112,7 +119,7 @@ describe('equipment-grade recovery contract', () => {
 
     expect(
       EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'eligible')
-    ).toHaveLength(14)
+    ).toHaveLength(15)
     expect(
       EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'deferred').map(
         (profile) => profile.itemId
@@ -125,7 +132,6 @@ describe('equipment-grade recovery contract', () => {
       'field_plate',
       'containment_staff',
       'hazmat_suit',
-      'trauma_kit',
       'combat_stims',
     ])
     for (const itemId of technologicalProfileIds) {
@@ -135,6 +141,50 @@ describe('equipment-grade recovery contract', () => {
         rule: yieldRule,
       })
     }
+    expect(getEquipmentDeconstructionProfile('trauma_kit')).toEqual({
+      state: 'eligible',
+      itemId: 'trauma_kit',
+      rule: medicalYieldRule,
+    })
+  })
+
+  it('resolves Trauma Kit through the canonical Grade I medical recovery rule', () => {
+    const profile = getEquipmentDeconstructionProfile('trauma_kit')
+    if (!profile || profile.state !== 'eligible') throw new Error('Missing Trauma Kit profile')
+
+    const operational = resolveEquipmentGradeRecoveryOutcome(
+      profile.rule,
+      { state: 'graded', gradeId: 'grade_1' },
+      'known',
+      {
+        condition: 'operational',
+        rarity: 'legendary',
+        price: 999_999,
+        legacyEffectScale: 99,
+        provenance: 'untrusted',
+      } as Parameters<typeof resolveEquipmentGradeRecoveryOutcome>[3]
+    )
+    const damaged = resolveEquipmentGradeRecoveryOutcome(
+      profile.rule,
+      { state: 'graded', gradeId: 'grade_1' },
+      'known',
+      { condition: 'damaged' }
+    )
+
+    expect(operational).toMatchObject({
+      available: true,
+      participation: { gradeId: 'grade_1' },
+      materials: [{ materialId: 'medical_supplies', quantity: 1 }],
+      waste: 1,
+      durationWeeks: 1,
+    })
+    expect(damaged).toMatchObject({
+      available: true,
+      participation: { gradeId: 'grade_1' },
+      materials: [{ materialId: 'medical_supplies', quantity: 1 }],
+      waste: 2,
+      durationWeeks: 1,
+    })
   })
 
   it('applies the technological Grade II yield threshold without Grade III scaling', () => {
@@ -407,6 +457,46 @@ describe('equipment-grade recovery contract', () => {
         wasteQuantity: 1,
         remainingWeeks: 1,
       },
+    ])
+  })
+
+  it('queues and completes Trauma Kit recovery with matching receipt and event', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+
+    const queued = queueEquipmentDeconstruction(state, 'trauma_kit')
+    expect(queued.inventory.trauma_kit).toBe(0)
+    expect(state.inventory.trauma_kit).toBe(1)
+    expect(queued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'trauma_kit',
+      sourceGradeId: 'grade_1',
+      pathId: 'component_reclamation',
+      outputMaterials: [
+        { materialId: 'medical_supplies', materialName: 'Medical Supplies', quantity: 1 },
+      ],
+      wasteQuantity: 1,
+      remainingWeeks: 1,
+    })
+
+    const entry = queued.equipmentDeconstructionQueue![0]!
+    const completed = advanceEquipmentDeconstructionQueues(queued)
+    expect(completed.state.inventory.medical_supplies).toBe(state.inventory.medical_supplies + 1)
+    expect(completed.state.equipmentRecoveryOutcomes?.[entry.id]).toMatchObject({
+      itemId: 'trauma_kit',
+      sourceGradeId: 'grade_1',
+      outputMaterials: [
+        { materialId: 'medical_supplies', materialName: 'Medical Supplies', quantity: 1 },
+      ],
+      wasteQuantity: 1,
+    })
+    expect(completed.eventDrafts).toEqual([
+      expect.objectContaining({
+        type: 'equipment.recovery_completed',
+        payload: expect.objectContaining({
+          itemId: 'trauma_kit',
+          sourceGradeId: 'grade_1',
+        }),
+      }),
     ])
   })
 

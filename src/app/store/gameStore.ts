@@ -105,7 +105,10 @@ import {
 } from '../../domain/publicDisclosurePostureChoice'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
-import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
+import {
+  queueEquipmentDeconstruction,
+  type EquipmentDeconstructionSourceRef,
+} from '../../domain/sim/equipmentDeconstruction'
 import {
   disableEquipmentAutoScrapPolicy,
   enableEquipmentAutoScrapPolicy,
@@ -391,7 +394,7 @@ interface GameStore {
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
-  queueEquipmentDeconstruction: (itemId: string) => void
+  queueEquipmentDeconstruction: (itemId: string, source?: EquipmentDeconstructionSourceRef) => void
   enableEquipmentAutoScrap: (thresholdGradeId: EquipmentGradeId) => void
   disableEquipmentAutoScrap: () => void
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
@@ -1774,8 +1777,8 @@ export const useGameStore = create<GameStore>()(
 
       queueFabrication: (recipeId) => set((s) => ({ game: queueFabrication(s.game, recipeId) })),
 
-      queueEquipmentDeconstruction: (itemId) =>
-        set((s) => ({ game: queueEquipmentDeconstruction(s.game, itemId) })),
+      queueEquipmentDeconstruction: (itemId, source) =>
+        set((s) => ({ game: queueEquipmentDeconstruction(s.game, itemId, source) })),
 
       enableEquipmentAutoScrap: (thresholdGradeId) =>
         set((s) => ({ game: enableEquipmentAutoScrapPolicy(s.game, thresholdGradeId) })),

@@ -238,6 +238,39 @@ describe('equipment Auto-Scrap contract', () => {
     })
   })
 
+  it('unblocks catalog Auto-Scrap only after every fabricated-lot unit is explicitly claimed', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'ward-seals',
+        itemId: 'ward_seals',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    expect(resolveEquipmentAutoScrapPreview(state, 'grade_1').entries[0]).toMatchObject({
+      itemId: 'ward_seals',
+      decision: 'exclude',
+      quantity: 2,
+      reasonCodes: ['auto_scrap.fabricated_lot_selection_unavailable'],
+    })
+
+    const claimed = queueEquipmentDeconstruction(state, 'ward_seals', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    expect(resolveEquipmentAutoScrapPreview(claimed, 'grade_1').entries[0]).toMatchObject({
+      itemId: 'ward_seals',
+      decision: 'include',
+      quantity: 1,
+      reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+    })
+  })
+
   it('disables future routing without cancelling canonical work already queued', () => {
     const state = createStartingState()
     state.inventory.medkits = 1

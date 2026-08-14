@@ -71,8 +71,13 @@ never acts as a universal value, rarity, condition, or potency multiplier.
 
 Queue entries snapshot a known canonical source grade and resolved outcome. Hidden participation
 is unavailable and projects identically for every grade. Damage is a separate condition input that
-may add waste but cannot change grade. Because aggregate inventory cannot select individual copies,
-items with fabricated-lot provenance fail closed until a per-copy selection contract exists.
+may add waste but cannot change grade.
+
+SPE-2800 adds explicit catalog versus fabricated-lot source selection for manual recovery. A lot
+selection claims one unit from an immutable fabrication receipt and snapshots its production queue
+ID through the recovery queue, completed outcome, and events. Catalog stock is available only
+beyond all outstanding lot units. Live recovery queues plus completed outcomes are the durable
+claim ledger; the production lot itself is never decremented or rewritten.
 
 Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
 without changing inventory's quantity authority or either save version.
@@ -91,9 +96,10 @@ sorting and diagnostics cannot leak hidden grade.
 Enabled policies route all currently safe aggregate copies through the normal deconstruction
 command after fabrication and before recovery advancement at week close. They do not create a
 destruction shortcut, alternate yield semantics, or Auto-Scrap-owned protection flags. Equipped
-copies and active-process copies remain outside aggregate stock; fabricated-lot item IDs remain
-blocked wholesale until per-copy selection exists.
+copies and active-process copies remain outside aggregate stock. Auto-Scrap does not make the
+explicit provenance choice introduced by SPE-2800, so it continues to block an item while any lot
+unit is outstanding. Fully claimed historical lots no longer block later catalog stock.
 
 Broader custody/contamination/relic recovery, equipment-linked evidence and legal restrictions,
 identification workflows, favorite/lock/quest/unique state, processed-material quality, and
-per-copy fabricated-lot selection remain owned by downstream prerequisites.
+automated fabricated-lot selection remain owned by downstream prerequisites.

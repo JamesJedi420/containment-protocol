@@ -10,6 +10,7 @@ import {
   getEquipmentGradeCatalogVisibility,
 } from '../equipmentGradeCatalog'
 import { resolveEquipmentGradeProjection } from '../equipmentGrade'
+import type { EquipmentGradeProjection } from '../equipmentGrade'
 import {
   resolveEquipmentGradeRecoveryOutcome,
   type EquipmentGradeRecoveryIssue,
@@ -94,31 +95,175 @@ export interface EquipmentDeconstructionPreview {
   readonly itemId: string
   readonly itemName: string
   readonly stock: number
+  readonly source: EquipmentDeconstructionSourceRef
+  readonly sourceLabel: string
+  readonly sourceQuantity: number
+  readonly sourceIssueCode?: EquipmentDeconstructionSourceIssueCode
   readonly resolution: EquipmentGradeRecoveryResolution
+}
+
+export type EquipmentDeconstructionSourceRef =
+  Readonly<{ kind: 'catalog' }> | Readonly<{ kind: 'fabricated_lot'; fabricationQueueId: string }>
+
+export type EquipmentDeconstructionSourceIssueCode =
+  | 'catalog_stock_reserved_for_fabricated_lots'
+  | 'fabricated_lot_not_found'
+  | 'fabricated_lot_exhausted'
+  | 'stock_unavailable'
+  | 'recovery_unavailable'
+
+export interface EquipmentDeconstructionSourceChoice {
+  readonly source: EquipmentDeconstructionSourceRef
+  readonly label: string
+  readonly quantity: number
+  readonly available: boolean
+  readonly gradeProjection: EquipmentGradeProjection
+  readonly issueCode?: EquipmentDeconstructionSourceIssueCode
+  readonly completedWeek?: number
+}
+
+const CATALOG_SOURCE = Object.freeze({ kind: 'catalog' as const })
+
+function sourceClaims(state: GameState) {
+  const claims = new Map<string, number>()
+  const claim = (fabricationQueueId: string | undefined) => {
+    if (!fabricationQueueId) return
+    claims.set(fabricationQueueId, (claims.get(fabricationQueueId) ?? 0) + 1)
+  }
+  for (const outcome of Object.values(state.equipmentRecoveryOutcomes ?? {})) {
+    claim(outcome.sourceFabricationQueueId)
+  }
+  for (const entry of state.equipmentDeconstructionQueue ?? []) {
+    const completedOutcome = state.equipmentRecoveryOutcomes?.[entry.id]
+    if (!completedOutcome || !receiptMatchesEntry(completedOutcome, entry)) {
+      claim(entry.sourceFabricationQueueId)
+    }
+  }
+  return claims
+}
+
+export function resolveEquipmentDeconstructionSources(
+  state: GameState,
+  itemId: string
+): readonly EquipmentDeconstructionSourceChoice[] {
+  ensureProfilesValid()
+  const definition = getEquipmentDefinition(itemId)
+  if (!definition) return Object.freeze([])
+  const profile = getEquipmentDeconstructionProfile(itemId)
+  const stock = Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+  const visibility = getEquipmentGradeCatalogVisibility(definition.gradeProfile)
+  const claims = sourceClaims(state)
+  const lots = Object.values(state.fabricatedEquipmentLots ?? {})
+    .filter((lot) => lot.itemId === itemId)
+    .sort((left, right) => compareCodeUnits(left.queueId, right.queueId))
+  const remainingByLot = lots.map((lot) => ({
+    lot,
+    remaining: Math.max(0, lot.quantity - (claims.get(lot.queueId) ?? 0)),
+  }))
+  const outstandingLotUnits = remainingByLot.reduce((total, entry) => total + entry.remaining, 0)
+  const catalogQuantity = Math.max(0, stock - outstandingLotUnits)
+  const catalogProjection = resolveEquipmentGradeProjection(
+    getEquipmentGradeCatalogParticipation(definition.gradeProfile),
+    visibility
+  )
+  const catalogIssueCode =
+    stock < 1
+      ? ('stock_unavailable' as const)
+      : catalogQuantity < 1
+        ? ('catalog_stock_reserved_for_fabricated_lots' as const)
+        : profile?.state !== 'eligible' || catalogProjection.state !== 'graded'
+          ? ('recovery_unavailable' as const)
+          : undefined
+  const choices: EquipmentDeconstructionSourceChoice[] = [
+    Object.freeze({
+      source: CATALOG_SOURCE,
+      label: 'Catalog / unspecified stock',
+      quantity: catalogQuantity,
+      available: catalogQuantity > 0 && !catalogIssueCode,
+      gradeProjection: catalogProjection,
+      ...(catalogIssueCode ? { issueCode: catalogIssueCode } : {}),
+    }),
+  ]
+  for (const { lot, remaining } of remainingByLot) {
+    const quantity = Math.min(remaining, stock)
+    const gradeProjection = resolveEquipmentGradeProjection(
+      { state: 'graded', gradeId: lot.gradeId },
+      visibility
+    )
+    const issueCode =
+      stock < 1
+        ? ('stock_unavailable' as const)
+        : remaining < 1
+          ? ('fabricated_lot_exhausted' as const)
+          : profile?.state !== 'eligible' || gradeProjection.state !== 'graded'
+            ? ('recovery_unavailable' as const)
+            : undefined
+    choices.push(
+      Object.freeze({
+        source: Object.freeze({ kind: 'fabricated_lot' as const, fabricationQueueId: lot.queueId }),
+        label: `Fabricated batch ${lot.queueId} / week ${lot.completedWeek}`,
+        quantity,
+        available: quantity > 0 && !issueCode,
+        gradeProjection,
+        completedWeek: lot.completedWeek,
+        ...(issueCode ? { issueCode } : {}),
+      })
+    )
+  }
+  return Object.freeze(choices)
+}
+
+export function hasOutstandingFabricatedEquipmentLotUnits(state: GameState, itemId: string) {
+  return resolveEquipmentDeconstructionSources(state, itemId).some(
+    (choice) => choice.source.kind === 'fabricated_lot' && choice.quantity > 0
+  )
 }
 
 export function resolveEquipmentDeconstructionPreview(
   state: GameState,
-  itemId: string
+  itemId: string,
+  source: EquipmentDeconstructionSourceRef = CATALOG_SOURCE
 ): EquipmentDeconstructionPreview | undefined {
   ensureProfilesValid()
   const definition = getEquipmentDefinition(itemId)
   const profile = getEquipmentDeconstructionProfile(itemId)
   if (!definition || !profile) return undefined
   const stock = Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+  const choices = resolveEquipmentDeconstructionSources(state, itemId)
+  const choice = choices.find((candidate) =>
+    source.kind === 'catalog'
+      ? candidate.source.kind === 'catalog'
+      : candidate.source.kind === 'fabricated_lot' &&
+        candidate.source.fabricationQueueId === source.fabricationQueueId
+  )
+  const selectedLot =
+    choice?.source.kind === 'fabricated_lot'
+      ? state.fabricatedEquipmentLots?.[choice.source.fabricationQueueId]
+      : undefined
+  const participation = selectedLot
+    ? {
+        state: 'graded' as const,
+        gradeId: selectedLot.gradeId,
+      }
+    : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+  const visibility = getEquipmentGradeCatalogVisibility(definition.gradeProfile)
+  const sourceIssueCode = choice?.issueCode ?? (choice ? undefined : 'fabricated_lot_not_found')
+  const sourceRestrictions: EquipmentRecoveryRestrictionCode[] = sourceIssueCode
+    ? ['fabricated_lot_selection_unavailable']
+    : []
   if (profile.state === 'deferred') {
     return Object.freeze({
       itemId,
       itemName: definition.name,
       stock,
+      source,
+      sourceLabel: choice?.label ?? 'Fabricated batch unavailable',
+      sourceQuantity: choice?.quantity ?? 0,
+      ...(sourceIssueCode ? { sourceIssueCode } : {}),
       resolution: profileDeferredResolution(itemId)!,
     })
   }
 
-  const restrictions: EquipmentRecoveryRestrictionCode[] = []
-  if (Object.values(state.fabricatedEquipmentLots ?? {}).some((lot) => lot.itemId === itemId)) {
-    restrictions.push('fabricated_lot_selection_unavailable')
-  }
   const condition = (state.damagedEquipmentQueue ?? []).includes(itemId)
     ? ('damaged' as const)
     : ('operational' as const)
@@ -126,17 +271,23 @@ export function resolveEquipmentDeconstructionPreview(
     itemId,
     itemName: definition.name,
     stock,
-    resolution: resolveEquipmentGradeRecoveryOutcome(
-      profile.rule,
-      getEquipmentGradeCatalogParticipation(definition.gradeProfile),
-      getEquipmentGradeCatalogVisibility(definition.gradeProfile),
-      { condition, restrictions }
-    ),
+    source,
+    sourceLabel: choice?.label ?? 'Fabricated batch unavailable',
+    sourceQuantity: choice?.quantity ?? 0,
+    ...(sourceIssueCode ? { sourceIssueCode } : {}),
+    resolution: resolveEquipmentGradeRecoveryOutcome(profile.rule, participation, visibility, {
+      condition,
+      restrictions: sourceRestrictions,
+    }),
   })
 }
 
-export function queueEquipmentDeconstruction(state: GameState, itemId: string): GameState {
-  const preview = resolveEquipmentDeconstructionPreview(state, itemId)
+export function queueEquipmentDeconstruction(
+  state: GameState,
+  itemId: string,
+  source: EquipmentDeconstructionSourceRef = CATALOG_SOURCE
+): GameState {
+  const preview = resolveEquipmentDeconstructionPreview(state, itemId, source)
   if (!preview || preview.stock < 1 || !preview.resolution.available) {
     return ensureNormalizedGameState(state)
   }
@@ -152,6 +303,9 @@ export function queueEquipmentDeconstruction(state: GameState, itemId: string): 
     pathId: preview.resolution.pathId,
     sourceGradeId: preview.resolution.participation.gradeId,
     sourceGradeVisibility: preview.resolution.visibility,
+    ...(source.kind === 'fabricated_lot'
+      ? { sourceFabricationQueueId: source.fabricationQueueId }
+      : {}),
     sourceCondition: preview.resolution.condition,
     outputMaterials: preview.resolution.materials.map((material) => ({
       materialId: material.materialId,
@@ -180,6 +334,9 @@ export function queueEquipmentDeconstruction(state: GameState, itemId: string): 
       itemName: preview.itemName,
       pathId: entry.pathId,
       sourceGradeId: entry.sourceGradeId,
+      ...(entry.sourceFabricationQueueId
+        ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
+        : {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials: entry.outputMaterials,
       wasteQuantity: entry.wasteQuantity,
@@ -208,6 +365,7 @@ function receiptMatchesEntry(
     outcome.itemId === entry.itemId &&
     outcome.pathId === entry.pathId &&
     outcome.sourceGradeId === entry.sourceGradeId &&
+    outcome.sourceFabricationQueueId === entry.sourceFabricationQueueId &&
     outcome.sourceCondition === entry.sourceCondition &&
     outcome.wasteQuantity === entry.wasteQuantity &&
     materialOutputsMatch(outcome.outputMaterials, entry.outputMaterials)
@@ -253,6 +411,9 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
       itemId: entry.itemId,
       pathId: entry.pathId,
       sourceGradeId: entry.sourceGradeId,
+      ...(entry.sourceFabricationQueueId
+        ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
+        : {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials: entry.outputMaterials.map((material) => Object.freeze({ ...material })),
       wasteQuantity: entry.wasteQuantity,
@@ -268,6 +429,9 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
         itemName: entry.itemName,
         pathId: entry.pathId,
         sourceGradeId: entry.sourceGradeId,
+        ...(entry.sourceFabricationQueueId
+          ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
+          : {}),
         sourceCondition: entry.sourceCondition,
         outputMaterials: entry.outputMaterials,
         wasteQuantity: entry.wasteQuantity,

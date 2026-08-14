@@ -16,8 +16,10 @@ import {
 } from '../../domain/equipment'
 import { inventoryItemLabels, productionCatalog } from '../../data/production'
 import {
+  resolveEquipmentDeconstructionSources,
   resolveEquipmentDeconstructionPreview,
   getEquipmentRecoveryIssueLabel,
+  type EquipmentDeconstructionSourceRef,
 } from '../../domain/sim/equipmentDeconstruction'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
 import {
@@ -74,6 +76,10 @@ export interface EquipmentDeconstructionView {
   itemId: string
   itemName: string
   stock: number
+  source: EquipmentDeconstructionSourceRef
+  sourceLabel: string
+  sourceQuantity: number
+  sources: EquipmentDeconstructionSourceView[]
   gradeLabel: string
   available: boolean
   pathLabel: string
@@ -85,6 +91,16 @@ export interface EquipmentDeconstructionView {
   blocker?: string
 }
 
+export interface EquipmentDeconstructionSourceView {
+  source: EquipmentDeconstructionSourceRef
+  value: string
+  label: string
+  quantity: number
+  gradeLabel: string
+  available: boolean
+  blocker?: string
+}
+
 export interface EquipmentDeconstructionQueueView {
   id: string
   itemName: string
@@ -92,6 +108,7 @@ export interface EquipmentDeconstructionQueueView {
   pathLabel: string
   materialSummary: string
   remainingLabel: string
+  sourceLabel: string
 }
 
 export interface EquipmentAutoScrapEntryView {
@@ -125,18 +142,58 @@ function formatRecoveryMaterials(materials: readonly { materialName: string; qua
   return materials.map((material) => `${material.materialName} ×${material.quantity}`).join(', ')
 }
 
-export function getEquipmentDeconstructionViews(game: GameState): EquipmentDeconstructionView[] {
+function sourceValue(source: EquipmentDeconstructionSourceRef) {
+  return source.kind === 'catalog' ? 'catalog' : `fabricated:${source.fabricationQueueId}`
+}
+
+export function getEquipmentDeconstructionViews(
+  game: GameState,
+  selectedSources: Readonly<Record<string, EquipmentDeconstructionSourceRef>> = {}
+): EquipmentDeconstructionView[] {
   return getEquipmentCatalogEntries()
     .map((definition) => {
       const stock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
       if (stock < 1) return undefined
-      const preview = resolveEquipmentDeconstructionPreview(game, definition.id)
+      const sourceChoices = resolveEquipmentDeconstructionSources(game, definition.id)
+      const requestedSource = selectedSources[definition.id] ?? { kind: 'catalog' as const }
+      const selectedSource = sourceChoices.some(
+        (choice) => sourceValue(choice.source) === sourceValue(requestedSource)
+      )
+        ? requestedSource
+        : { kind: 'catalog' as const }
+      const preview = resolveEquipmentDeconstructionPreview(game, definition.id, selectedSource)
       if (!preview) return undefined
+      const sources: EquipmentDeconstructionSourceView[] = sourceChoices.map((choice) => {
+        const sourcePreview = resolveEquipmentDeconstructionPreview(
+          game,
+          definition.id,
+          choice.source
+        )!
+        return {
+          source: choice.source,
+          value: sourceValue(choice.source),
+          label: choice.label,
+          quantity: choice.quantity,
+          gradeLabel: sourcePreview.resolution.projection.label,
+          available: sourcePreview.resolution.available && choice.quantity > 0,
+          ...(!sourcePreview.resolution.available
+            ? {
+                blocker: sourcePreview.resolution.issues
+                  .map(getEquipmentRecoveryIssueLabel)
+                  .join('; '),
+              }
+            : {}),
+        }
+      })
       if (!preview.resolution.available) {
         return {
           itemId: definition.id,
           itemName: definition.name,
           stock,
+          source: selectedSource,
+          sourceLabel: preview.sourceLabel,
+          sourceQuantity: preview.sourceQuantity,
+          sources,
           gradeLabel: preview.resolution.projection.label,
           available: false,
           pathLabel: 'Recovery unavailable',
@@ -154,6 +211,10 @@ export function getEquipmentDeconstructionViews(game: GameState): EquipmentDecon
         itemId: definition.id,
         itemName: definition.name,
         stock,
+        source: selectedSource,
+        sourceLabel: preview.sourceLabel,
+        sourceQuantity: preview.sourceQuantity,
+        sources,
         gradeLabel: preview.resolution.projection.label,
         available: true,
         pathLabel: getRecoveryPathLabel(preview.resolution.pathId),
@@ -189,6 +250,9 @@ export function getEquipmentDeconstructionQueueViews(
     pathLabel: getRecoveryPathLabel(entry.pathId),
     materialSummary: formatRecoveryMaterials(entry.outputMaterials),
     remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
+    sourceLabel: entry.sourceFabricationQueueId
+      ? `Fabricated batch ${entry.sourceFabricationQueueId}`
+      : 'Catalog / unspecified stock',
   }))
 }
 

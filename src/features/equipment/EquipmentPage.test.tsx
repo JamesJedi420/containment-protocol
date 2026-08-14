@@ -152,7 +152,8 @@ describe('EquipmentPage', () => {
     expect(screen.getByText(/1 week remaining/i)).toBeInTheDocument()
   })
 
-  it('shows a stable blocker instead of consuming fabricated-lot stock', () => {
+  it('selects and confirms a fabricated batch with accessible provenance', async () => {
+    const user = userEvent.setup()
     const game = createStartingState()
     game.inventory.signal_jammers = 1
     game.fabricatedEquipmentLots = {
@@ -169,10 +170,19 @@ describe('EquipmentPage', () => {
 
     renderEquipmentPage()
 
-    expect(screen.getByText(/fabricated batch selection is unavailable/i)).toBeInTheDocument()
+    const sourceSelect = screen.getByLabelText(/recovery source for signal jammers/i)
     expect(
       screen.getByRole('button', { name: /review deconstruction signal jammers/i })
     ).toBeDisabled()
+    await user.selectOptions(sourceSelect, 'fabricated:fabricated')
+    expect(screen.getByText(/source: fabricated batch fabricated \/ week 1/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
+    expect(screen.getByText(/from fabricated batch fabricated \/ week 1/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm deconstruction signal jammers/i }))
+    expect(useGameStore.getState().game.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      sourceFabricationQueueId: 'fabricated',
+      sourceGradeId: 'grade_2',
+    })
   })
 
   it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {

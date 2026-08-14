@@ -70,10 +70,10 @@ field additions do not change `GAME_STORE_VERSION` or `GAME_SAVE_VERSION`.
 
 ## Deferred
 
-| Item                                              | Owner                     | Boundary                                                              |
-| ------------------------------------------------- | ------------------------- | --------------------------------------------------------------------- |
-| Grade-driven deconstruction and recovery          | SPE-2748                  | Consume canonical lots without deriving grade from condition or value |
-| Grade-threshold Auto-Scrap routing                | SPE-2749                  | Preserve hidden-grade opacity and deterministic lot selection         |
-| Per-copy selection, sale, and loadout consumption | create child              | Aggregate inventory remains quantity authority in this slice          |
-| Material-quality grade influence                  | SPE-1056                  | Requires canonical processed material batches, not quantity inference |
-| Specialist/provider/workspace grade influence     | SPE-1058/SPE-141/SPE-1028 | Requires explicit owner-supplied capability contracts                 |
+| Item                                          | Owner                     | Boundary                                                                        |
+| --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------- |
+| Grade-driven deconstruction and recovery      | SPE-2748                  | Consume canonical lots without deriving grade from condition or value           |
+| Grade-threshold Auto-Scrap routing            | SPE-2749                  | Preserve hidden-grade opacity and deterministic lot selection                   |
+| Per-copy sale and loadout consumption         | create child              | Manual recovery selection shipped in SPE-2800; other consumers remain aggregate |
+| Material-quality grade influence              | SPE-1056                  | Requires canonical processed material batches, not quantity inference           |
+| Specialist/provider/workspace grade influence | SPE-1058/SPE-141/SPE-1028 | Requires explicit owner-supplied capability contracts                           |

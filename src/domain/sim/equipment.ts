@@ -10,6 +10,7 @@ import {
   validateAgentLoadoutAssignment,
 } from '../equipment'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
+import { getEquipmentInstanceAtAgentSlot, type EquipmentInstance } from '../equipmentInstance'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -114,6 +115,7 @@ export function equipAgentItem(
   }
 
   const currentItemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
+  const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
   if (currentItemId === itemId) {
     return ensureNormalizedGameState(state)
   }
@@ -121,6 +123,7 @@ export function equipAgentItem(
   let nextState = state
   let nextInventory = { ...state.inventory }
   let transferredFromAssignment = false
+  let transferredInstance: EquipmentInstance | undefined
 
   const availableStock = getInventoryStock(nextState, itemId)
   if (availableStock > 0) {
@@ -130,6 +133,12 @@ export function equipAgentItem(
     if (!transferCandidate) {
       return ensureNormalizedGameState(state)
     }
+
+    transferredInstance = getEquipmentInstanceAtAgentSlot(
+      nextState,
+      transferCandidate.agentId,
+      transferCandidate.slot
+    )
 
     nextState = {
       ...nextState,
@@ -145,7 +154,7 @@ export function equipAgentItem(
     transferredFromAssignment = true
   }
 
-  if (currentItemId) {
+  if (currentItemId && !currentInstance) {
     nextInventory[currentItemId] = getInventoryStock(nextState, currentItemId) + 1
   }
 
@@ -162,9 +171,24 @@ export function equipAgentItem(
     },
   })
 
+  const nextEquipmentInstances = { ...(nextState.equipmentInstances ?? {}) }
+  if (currentInstance) {
+    nextEquipmentInstances[currentInstance.instanceId] = {
+      ...currentInstance,
+      location: { state: 'stored' },
+    }
+  }
+  if (transferredInstance) {
+    nextEquipmentInstances[transferredInstance.instanceId] = {
+      ...transferredInstance,
+      location: { state: 'equipped', agentId, slot },
+    }
+  }
+
   return normalizeGameState({
     ...nextState,
     inventory: nextInventory,
+    equipmentInstances: nextEquipmentInstances,
     agents: {
       ...nextState.agents,
       [agentId]: nextAgent,
@@ -189,13 +213,25 @@ export function unequipAgentItem(
   }
 
   const nextAgent = clearAgentSlot(agent, slot)
+  const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
 
   return normalizeGameState({
     ...state,
-    inventory: {
-      ...state.inventory,
-      [currentItemId]: getInventoryStock(state, currentItemId) + 1,
-    },
+    inventory: currentInstance
+      ? state.inventory
+      : {
+          ...state.inventory,
+          [currentItemId]: getInventoryStock(state, currentItemId) + 1,
+        },
+    equipmentInstances: currentInstance
+      ? {
+          ...(state.equipmentInstances ?? {}),
+          [currentInstance.instanceId]: {
+            ...currentInstance,
+            location: { state: 'stored' },
+          },
+        }
+      : state.equipmentInstances,
     agents: {
       ...state.agents,
       [agentId]: nextAgent,

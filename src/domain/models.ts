@@ -23,6 +23,7 @@ import type {
   EquipmentRecoveryPathId,
 } from './equipmentGradeRecovery'
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
+import type { EquipmentInstanceRegistry } from './equipmentInstance'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2765,6 +2766,8 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
+  equipmentInstances?: EquipmentInstanceRegistry
   /**
    * Canonical weekly maintenance backlog of damaged equipment item IDs.
    * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.

@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2828",
     "SPE-2826",
     "SPE-2801",
     "SPE-2800",
@@ -12,10 +13,10 @@
     "SPE-2798",
     "SPE-2269",
     "SPE-2792",
-    "SPE-2772",
-    "SPE-2788"
+    "SPE-2772"
   ],
   "sliceDocStatus": {
+    "planning/spe-2828-ordinary-equipment-instance-foundation-slice.md": "Recently shipped",
     "planning/spe-2826-trauma-kit-recovery-profile-slice.md": "Recently shipped",
     "planning/spe-2801-technological-equipment-recovery-profile-expansion-slice.md": "Recently shipped",
     "planning/spe-2800-fabricated-equipment-lot-recovery-selection-slice.md": "Recently shipped",

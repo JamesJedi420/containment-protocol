@@ -1,0 +1,455 @@
+import type { Agent, GameState, Id } from './models'
+import {
+  EQUIPMENT_SLOT_KINDS,
+  getEquipmentDefinition,
+  getEquipmentSlotAliases,
+  getEquipmentSlotItemId,
+  validateAgentLoadoutAssignment,
+  type EquipmentSlotKind,
+} from './equipment'
+import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
+
+export type EquipmentInstanceId = string
+export type EquipmentInstanceCondition = 'operational' | 'damaged'
+
+export type EquipmentInstanceLocation =
+  { state: 'stored' } | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
+
+export interface EquipmentInstanceConsumablePayload {
+  resourceId: string
+  capacity: number
+  remaining: number
+}
+
+export interface EquipmentInstance {
+  instanceId: EquipmentInstanceId
+  definitionId: string
+  location: EquipmentInstanceLocation
+  condition: EquipmentInstanceCondition
+  payload?: EquipmentInstanceConsumablePayload
+}
+
+export type EquipmentInstanceRegistry = Record<EquipmentInstanceId, EquipmentInstance>
+
+export type EquipmentInstanceFailureCode =
+  | 'invalid_instance_id'
+  | 'unknown_definition'
+  | 'unknown_agent'
+  | 'inventory_unavailable'
+  | 'damaged_stock_ambiguity'
+  | 'invalid_slot'
+  | 'invalid_location'
+  | 'slot_not_allowed'
+  | 'slot_occupied'
+  | 'agent_not_idle'
+  | 'duplicate_claim'
+  | 'stale_transition'
+  | 'immutable_identity'
+  | 'invalid_condition'
+  | 'malformed_payload_bounds'
+
+export type EquipmentInstanceMutationResult =
+  | { ok: true; state: GameState; instance: EquipmentInstance }
+  | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
+
+const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,127}$/
+const INSTANCE_ID_PREFIX = 'equipment-instance'
+const PROTOTYPE_SENSITIVE_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+
+export function isSafeEquipmentInstanceId(value: unknown): value is EquipmentInstanceId {
+  return (
+    typeof value === 'string' && SAFE_ID_PATTERN.test(value) && !PROTOTYPE_SENSITIVE_IDS.has(value)
+  )
+}
+
+function isSafeResourceId(value: unknown): value is string {
+  return (
+    typeof value === 'string' && SAFE_ID_PATTERN.test(value) && !PROTOTYPE_SENSITIVE_IDS.has(value)
+  )
+}
+
+function readAggregateStock(state: GameState, definitionId: string) {
+  const value = state.inventory[definitionId]
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]) {
+  return Object.keys(value).every((key) => allowed.includes(key))
+}
+
+function isValidPayload(value: unknown): value is EquipmentInstanceConsumablePayload {
+  if (!isRecord(value) || !hasOnlyKeys(value, ['resourceId', 'capacity', 'remaining'])) {
+    return false
+  }
+
+  return (
+    isSafeResourceId(value.resourceId) &&
+    Number.isSafeInteger(value.capacity) &&
+    Number.isSafeInteger(value.remaining) &&
+    (value.capacity as number) >= 0 &&
+    (value.remaining as number) >= 0 &&
+    (value.remaining as number) <= (value.capacity as number)
+  )
+}
+
+function isEquipmentSlotKind(value: unknown): value is EquipmentSlotKind {
+  return EQUIPMENT_SLOT_KINDS.includes(value as EquipmentSlotKind)
+}
+
+function isValidLocation(
+  value: unknown,
+  definitionId: string,
+  agents: GameState['agents']
+): value is EquipmentInstanceLocation {
+  if (!isRecord(value) || typeof value.state !== 'string') return false
+  if (value.state === 'stored') return hasOnlyKeys(value, ['state'])
+  if (
+    value.state !== 'equipped' ||
+    !hasOnlyKeys(value, ['state', 'agentId', 'slot']) ||
+    !isSafeResourceId(value.agentId) ||
+    !isEquipmentSlotKind(value.slot)
+  ) {
+    return false
+  }
+
+  const definition = getEquipmentDefinition(definitionId)
+  return Boolean(agents[value.agentId] && definition?.allowedSlots.includes(value.slot))
+}
+
+function validateInstance(
+  value: unknown,
+  key: string,
+  agents: GameState['agents']
+): EquipmentInstance | undefined {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, ['instanceId', 'definitionId', 'location', 'condition', 'payload']) ||
+    !isSafeEquipmentInstanceId(key) ||
+    value.instanceId !== key ||
+    typeof value.definitionId !== 'string' ||
+    !getEquipmentDefinition(value.definitionId) ||
+    (value.condition !== 'operational' && value.condition !== 'damaged') ||
+    !isValidLocation(value.location, value.definitionId, agents) ||
+    (value.payload !== undefined && !isValidPayload(value.payload))
+  ) {
+    return undefined
+  }
+
+  return {
+    instanceId: key,
+    definitionId: value.definitionId,
+    location: { ...value.location } as EquipmentInstanceLocation,
+    condition: value.condition,
+    ...(value.payload
+      ? { payload: { ...value.payload } as EquipmentInstanceConsumablePayload }
+      : {}),
+  }
+}
+
+function withProjectedSlot(agent: Agent, slot: EquipmentSlotKind, definitionId?: string): Agent {
+  const equipmentSlots = { ...(agent.equipmentSlots ?? {}) }
+  for (const alias of getEquipmentSlotAliases(slot)) delete equipmentSlots[alias]
+  if (definitionId) equipmentSlots[slot] = definitionId
+  const slottedDefinitionIds = new Set(
+    EQUIPMENT_SLOT_KINDS.map((slotKind) => getEquipmentSlotItemId(equipmentSlots, slotKind)).filter(
+      (itemId): itemId is string => Boolean(itemId)
+    )
+  )
+  const equipmentEffectScales = Object.fromEntries(
+    Object.entries(agent.equipmentEffectScales ?? {}).filter(([itemId]) =>
+      slottedDefinitionIds.has(itemId)
+    )
+  )
+  const definition = definitionId ? getEquipmentDefinition(definitionId) : undefined
+  if (definition) {
+    equipmentEffectScales[definition.id] = Math.max(1, Math.trunc(definition.legacyEffectScale))
+  }
+  return { ...agent, equipmentSlots, equipmentEffectScales }
+}
+
+function isIdleAgent(agent: Agent | undefined) {
+  return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
+}
+
+function locationsEqual(left: EquipmentInstanceLocation, right: EquipmentInstanceLocation) {
+  return (
+    left.state === right.state &&
+    (left.state === 'stored' ||
+      (right.state === 'equipped' && left.agentId === right.agentId && left.slot === right.slot))
+  )
+}
+
+function payloadsEqual(
+  left: EquipmentInstanceConsumablePayload | undefined,
+  right: EquipmentInstanceConsumablePayload | undefined
+) {
+  return (
+    left === right ||
+    (Boolean(left) &&
+      Boolean(right) &&
+      left?.resourceId === right?.resourceId &&
+      left?.capacity === right?.capacity &&
+      left?.remaining === right?.remaining)
+  )
+}
+
+function instancesEqual(left: EquipmentInstance, right: EquipmentInstance) {
+  return (
+    left.instanceId === right.instanceId &&
+    left.definitionId === right.definitionId &&
+    left.condition === right.condition &&
+    locationsEqual(left.location, right.location) &&
+    payloadsEqual(left.payload, right.payload)
+  )
+}
+
+function nextInstanceId(state: GameState): EquipmentInstanceId {
+  const registry = state.equipmentInstances ?? {}
+  let ordinal = 1
+  while (registry[`${INSTANCE_ID_PREFIX}-${state.week}-${ordinal}`]) ordinal += 1
+  return `${INSTANCE_ID_PREFIX}-${state.week}-${ordinal}`
+}
+
+export function getEquipmentInstance(
+  state: Pick<GameState, 'equipmentInstances'>,
+  instanceId: EquipmentInstanceId
+): EquipmentInstance | undefined {
+  return isSafeEquipmentInstanceId(instanceId) ? state.equipmentInstances?.[instanceId] : undefined
+}
+
+export function getEquipmentInstanceAtAgentSlot(
+  state: Pick<GameState, 'equipmentInstances'>,
+  agentId: Id,
+  slot: EquipmentSlotKind
+): EquipmentInstance | undefined {
+  return Object.values(state.equipmentInstances ?? {})
+    .filter(
+      (instance) =>
+        instance.location.state === 'equipped' &&
+        instance.location.agentId === agentId &&
+        instance.location.slot === slot
+    )
+    .sort((left, right) =>
+      left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
+    )
+    .at(0)
+}
+
+function validateTargetLocation(
+  state: GameState,
+  definitionId: string,
+  location: unknown,
+  movingInstanceId?: EquipmentInstanceId
+): EquipmentInstanceFailureCode | undefined {
+  if (!isRecord(location) || typeof location.state !== 'string') return 'invalid_location'
+  if (location.state === 'stored') {
+    return hasOnlyKeys(location, ['state']) ? undefined : 'invalid_location'
+  }
+  if (location.state !== 'equipped' || !hasOnlyKeys(location, ['state', 'agentId', 'slot'])) {
+    return 'invalid_location'
+  }
+  if (!isSafeResourceId(location.agentId)) return 'unknown_agent'
+  if (!isEquipmentSlotKind(location.slot)) return 'invalid_slot'
+  const agent = state.agents[location.agentId]
+  if (!agent) return 'unknown_agent'
+  if (!isIdleAgent(agent)) return 'agent_not_idle'
+  const definition = getEquipmentDefinition(definitionId)
+  if (!definition?.allowedSlots.includes(location.slot)) return 'slot_not_allowed'
+  const occupying = getEquipmentInstanceAtAgentSlot(state, location.agentId, location.slot)
+  if (occupying && occupying.instanceId !== movingInstanceId) return 'slot_occupied'
+  const projectedItem = getEquipmentSlotItemId(agent.equipmentSlots, location.slot)
+  if (projectedItem && (!occupying || occupying.instanceId !== movingInstanceId)) {
+    return 'slot_occupied'
+  }
+  const validation = validateAgentLoadoutAssignment(agent, location.slot, definitionId, {
+    state: {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        [definitionId]: readAggregateStock(state, definitionId) + 1,
+      },
+    },
+  })
+  return validation.valid ? undefined : 'slot_not_allowed'
+}
+
+export function instantiateEquipmentInstance(
+  state: GameState,
+  definitionId: string,
+  options: {
+    location?: EquipmentInstanceLocation
+    condition?: EquipmentInstanceCondition
+    payload?: EquipmentInstanceConsumablePayload
+  } = {}
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  const definition = getEquipmentDefinition(definitionId)
+  if (!definition) return { ok: false, state: normalized, code: 'unknown_definition' }
+  const stock = readAggregateStock(normalized, definitionId)
+  if (stock < 1) return { ok: false, state: normalized, code: 'inventory_unavailable' }
+  if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
+    return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
+  }
+  const condition = options.condition ?? 'operational'
+  if (condition !== 'operational' && condition !== 'damaged') {
+    return { ok: false, state: normalized, code: 'invalid_condition' }
+  }
+  if (options.payload !== undefined && !isValidPayload(options.payload)) {
+    return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
+  }
+  const location = options.location ?? { state: 'stored' as const }
+  const locationFailure = validateTargetLocation(normalized, definitionId, location)
+  if (locationFailure) return { ok: false, state: normalized, code: locationFailure }
+
+  const instance: EquipmentInstance = {
+    instanceId: nextInstanceId(normalized),
+    definitionId,
+    location,
+    condition,
+    ...(options.payload ? { payload: { ...options.payload } } : {}),
+  }
+  const agents = { ...normalized.agents }
+  if (location.state === 'equipped') {
+    agents[location.agentId] = withProjectedSlot(
+      agents[location.agentId],
+      location.slot,
+      definitionId
+    )
+  }
+  const nextState = normalizeGameState({
+    ...normalized,
+    agents,
+    inventory: { ...normalized.inventory, [definitionId]: stock - 1 },
+    equipmentInstances: {
+      ...(normalized.equipmentInstances ?? {}),
+      [instance.instanceId]: instance,
+    },
+  })
+  return { ok: true, state: nextState, instance }
+}
+
+export function applyEquipmentInstanceTransition(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  expected: EquipmentInstance,
+  next: EquipmentInstance
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current || !instancesEqual(current, expected)) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
+    return { ok: false, state: normalized, code: 'immutable_identity' }
+  }
+  if (next.condition !== 'operational' && next.condition !== 'damaged') {
+    return { ok: false, state: normalized, code: 'invalid_condition' }
+  }
+  if (next.payload !== undefined && !isValidPayload(next.payload)) {
+    return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
+  }
+  const locationFailure = validateTargetLocation(
+    normalized,
+    current.definitionId,
+    next.location,
+    instanceId
+  )
+  if (locationFailure) return { ok: false, state: normalized, code: locationFailure }
+  if (
+    current.location.state === 'equipped' &&
+    !isIdleAgent(normalized.agents[current.location.agentId])
+  ) {
+    return { ok: false, state: normalized, code: 'agent_not_idle' }
+  }
+
+  const agents = { ...normalized.agents }
+  if (current.location.state === 'equipped') {
+    agents[current.location.agentId] = withProjectedSlot(
+      agents[current.location.agentId],
+      current.location.slot
+    )
+  }
+  if (next.location.state === 'equipped') {
+    agents[next.location.agentId] = withProjectedSlot(
+      agents[next.location.agentId],
+      next.location.slot,
+      next.definitionId
+    )
+  }
+  const persisted = {
+    ...next,
+    location: { ...next.location },
+    ...(next.payload ? { payload: { ...next.payload } } : {}),
+  }
+  const nextState = normalizeGameState({
+    ...normalized,
+    agents,
+    equipmentInstances: { ...(normalized.equipmentInstances ?? {}), [instanceId]: persisted },
+  })
+  return { ok: true, state: nextState, instance: persisted }
+}
+
+export function relocateEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  location: EquipmentInstanceLocation
+): EquipmentInstanceMutationResult {
+  const current = getEquipmentInstance(state, instanceId)
+  if (!current) {
+    return {
+      ok: false,
+      state: ensureNormalizedGameState(state),
+      code: isSafeEquipmentInstanceId(instanceId) ? 'stale_transition' : 'invalid_instance_id',
+    }
+  }
+  return applyEquipmentInstanceTransition(state, instanceId, current, { ...current, location })
+}
+
+export function sanitizeEquipmentInstanceRegistry(
+  raw: unknown,
+  agents: GameState['agents']
+): {
+  equipmentInstances: EquipmentInstanceRegistry
+  agents: GameState['agents']
+  issues: Array<{ instanceId: string; code: EquipmentInstanceFailureCode }>
+} {
+  const equipmentInstances: EquipmentInstanceRegistry = {}
+  const issues: Array<{ instanceId: string; code: EquipmentInstanceFailureCode }> = []
+  const reconciledAgents = Object.fromEntries(
+    Object.entries(agents).map(([agentId, agent]) => [agentId, { ...agent }])
+  )
+  if (!isRecord(raw)) return { equipmentInstances, agents: reconciledAgents, issues }
+
+  const claimedSlots = new Set<string>()
+  for (const instanceId of Object.keys(raw).sort()) {
+    const instance = validateInstance(raw[instanceId], instanceId, reconciledAgents)
+    if (!instance) {
+      issues.push({ instanceId, code: 'invalid_instance_id' })
+      continue
+    }
+    if (instance.location.state === 'equipped') {
+      const claimKey = `${instance.location.agentId}:${instance.location.slot}`
+      if (claimedSlots.has(claimKey)) {
+        issues.push({ instanceId, code: 'duplicate_claim' })
+        instance.location = { state: 'stored' }
+      } else {
+        claimedSlots.add(claimKey)
+        reconciledAgents[instance.location.agentId] = withProjectedSlot(
+          reconciledAgents[instance.location.agentId],
+          instance.location.slot,
+          instance.definitionId
+        )
+      }
+    }
+    equipmentInstances[instanceId] = instance
+  }
+
+  return { equipmentInstances, agents: reconciledAgents, issues }
+}

@@ -7,6 +7,7 @@ import {
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
   sanitizeEquipmentInstanceRegistry,
+  type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
 import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
 import { hydrateGame } from '../app/store/runTransfer'
@@ -61,10 +62,16 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
   it('equips and directly transfers the same authoritative instance between idle agents', () => {
     const state = createStartingState()
     state.inventory.signal_jammers = 1
+    const callerLocation: EquipmentInstanceLocation = {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    }
     const created = instantiateEquipmentInstance(state, 'signal_jammers', {
-      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+      location: callerLocation,
     })
     if (!created.ok) throw new Error(created.code)
+    callerLocation.slot = 'utility2'
 
     expect(created.state.agents.a_mina.equipmentSlots?.utility1).toBe('signal_jammers')
     expect(created.state.agents.a_mina.equipmentEffectScales).toEqual({ signal_jammers: 1 })
@@ -74,6 +81,11 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     const retrieved = getEquipmentInstance(created.state, created.instance.instanceId)!
     expect(retrieved).not.toBe(created.state.equipmentInstances?.[created.instance.instanceId])
     expect(Object.isFrozen(retrieved)).toBe(true)
+    expect(created.state.equipmentInstances?.[created.instance.instanceId].location).toEqual({
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
 
     const transferred = relocateEquipmentInstance(created.state, created.instance.instanceId, {
       state: 'equipped',

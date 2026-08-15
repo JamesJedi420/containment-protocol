@@ -353,7 +353,7 @@ export function instantiateEquipmentInstance(
   const instance: EquipmentInstance = {
     instanceId: nextInstanceId(normalized),
     definitionId,
-    location,
+    location: { ...location },
     condition,
     ...(options.payload ? { payload: { ...options.payload } } : {}),
   }

@@ -389,6 +389,33 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     })
   })
 
+  it('does not transfer an authoritative instance through a mismatched compatibility projection', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.ward_seals = 0
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const staleProjection = {
+      ...created.state,
+      agents: {
+        ...created.state.agents,
+        a_mina: {
+          ...created.state.agents.a_mina,
+          equipmentSlots: { ...created.state.agents.a_mina.equipmentSlots, utility1: 'ward_seals' },
+        },
+      },
+    }
+
+    const attempted = equipAgentItem(staleProjection, 'a_casey', 'utility1', 'ward_seals')
+    expect(attempted.agents.a_casey.equipmentSlots?.utility1).toBeUndefined()
+    expect(attempted.inventory.ward_seals).toBe(0)
+    expect(getEquipmentInstanceAtAgentSlot(attempted, 'a_mina', 'utility1')?.definitionId).toBe(
+      'signal_jammers'
+    )
+  })
+
   it('accepts known roster IDs independently of the narrower payload resource-ID format', () => {
     const state = createStartingState()
     const agentId = 'Agent:Upper'

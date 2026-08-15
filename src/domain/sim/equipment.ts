@@ -75,7 +75,9 @@ function findTransferCandidate(
     .filter(
       (assignment) =>
         !(assignment.agentId === targetAgentId && assignment.slot === targetSlot) &&
-        canEditAgentEquipment(state.agents[assignment.agentId])
+        canEditAgentEquipment(state.agents[assignment.agentId]) &&
+        (getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
+          ?.definitionId ?? itemId) === itemId
     )
     .sort((left, right) => {
       const leftSameAgent = left.agentId === targetAgentId ? 0 : 1

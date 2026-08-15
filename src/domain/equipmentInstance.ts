@@ -110,53 +110,72 @@ function isEquipmentSlotKind(value: unknown): value is EquipmentSlotKind {
   return EQUIPMENT_SLOT_KINDS.includes(value as EquipmentSlotKind)
 }
 
-function isValidLocation(
+function validatePersistedLocation(
   value: unknown,
   definitionId: string,
   agents: GameState['agents']
-): value is EquipmentInstanceLocation {
-  if (!isRecord(value) || typeof value.state !== 'string') return false
-  if (value.state === 'stored') return hasOnlyKeys(value, ['state'])
-  if (
-    value.state !== 'equipped' ||
-    !hasOnlyKeys(value, ['state', 'agentId', 'slot']) ||
-    !isKnownAgentId(value.agentId, agents) ||
-    !isEquipmentSlotKind(value.slot)
-  ) {
-    return false
+):
+  | { valid: true; location: EquipmentInstanceLocation }
+  | { valid: false; code: EquipmentInstanceFailureCode } {
+  if (!isRecord(value) || typeof value.state !== 'string') {
+    return { valid: false, code: 'invalid_location' }
   }
-
+  if (value.state === 'stored') {
+    return hasOnlyKeys(value, ['state'])
+      ? { valid: true, location: { state: 'stored' } }
+      : { valid: false, code: 'invalid_location' }
+  }
+  if (value.state !== 'equipped' || !hasOnlyKeys(value, ['state', 'agentId', 'slot'])) {
+    return { valid: false, code: 'invalid_location' }
+  }
+  if (!isKnownAgentId(value.agentId, agents)) return { valid: false, code: 'unknown_agent' }
+  if (!isEquipmentSlotKind(value.slot)) return { valid: false, code: 'invalid_slot' }
   const definition = getEquipmentDefinition(definitionId)
-  return Boolean(agents[value.agentId] && definition?.allowedSlots.includes(value.slot))
+  if (!definition?.allowedSlots.includes(value.slot)) {
+    return { valid: false, code: 'slot_not_allowed' }
+  }
+  return {
+    valid: true,
+    location: { state: 'equipped', agentId: value.agentId, slot: value.slot },
+  }
 }
 
 function validateInstance(
   value: unknown,
   key: string,
   agents: GameState['agents']
-): EquipmentInstance | undefined {
-  if (
-    !isRecord(value) ||
-    !hasOnlyKeys(value, ['instanceId', 'definitionId', 'location', 'condition', 'payload']) ||
-    !isSafeEquipmentInstanceId(key) ||
-    value.instanceId !== key ||
-    typeof value.definitionId !== 'string' ||
-    !getEquipmentDefinition(value.definitionId) ||
-    (value.condition !== 'operational' && value.condition !== 'damaged') ||
-    !isValidLocation(value.location, value.definitionId, agents) ||
-    (value.payload !== undefined && !isValidPayload(value.payload))
-  ) {
-    return undefined
+):
+  | { valid: true; instance: EquipmentInstance }
+  | { valid: false; code: EquipmentInstanceFailureCode } {
+  if (!isRecord(value) || !isSafeEquipmentInstanceId(key) || value.instanceId !== key) {
+    return { valid: false, code: 'invalid_instance_id' }
+  }
+  if (!hasOnlyKeys(value, ['instanceId', 'definitionId', 'location', 'condition', 'payload'])) {
+    return { valid: false, code: 'invalid_instance_shape' }
+  }
+  if (typeof value.definitionId !== 'string' || !getEquipmentDefinition(value.definitionId)) {
+    return { valid: false, code: 'unknown_definition' }
+  }
+  if (value.condition !== 'operational' && value.condition !== 'damaged') {
+    return { valid: false, code: 'invalid_condition' }
+  }
+  const location = validatePersistedLocation(value.location, value.definitionId, agents)
+  if (!location.valid) return location
+  if (value.payload !== undefined && !isValidPayload(value.payload)) {
+    return { valid: false, code: 'malformed_payload_bounds' }
   }
 
   return {
-    instanceId: key,
-    definitionId: value.definitionId,
-    location: { ...value.location } as EquipmentInstanceLocation,
-    condition: value.condition,
-    ...(value.payload
-      ? { payload: { ...value.payload } as EquipmentInstanceConsumablePayload }
-      : {}),
+    valid: true,
+    instance: {
+      instanceId: key,
+      definitionId: value.definitionId,
+      location: location.location,
+      condition: value.condition,
+      ...(value.payload
+        ? { payload: { ...value.payload } as EquipmentInstanceConsumablePayload }
+        : {}),
+    },
   }
 }
 
@@ -463,11 +482,12 @@ export function sanitizeEquipmentInstanceRegistry(
 
   const claimedSlots = new Set<string>()
   for (const instanceId of Object.keys(raw).sort()) {
-    const instance = validateInstance(raw[instanceId], instanceId, reconciledAgents)
-    if (!instance) {
-      issues.push({ instanceId, code: 'invalid_instance_id' })
+    const validation = validateInstance(raw[instanceId], instanceId, reconciledAgents)
+    if (!validation.valid) {
+      issues.push({ instanceId, code: validation.code })
       continue
     }
+    const instance = validation.instance
     if (instance.location.state === 'equipped') {
       const claimKey = `${instance.location.agentId}:${instance.location.slot}`
       if (claimedSlots.has(claimKey)) {

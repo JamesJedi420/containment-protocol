@@ -109,13 +109,22 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
       slot: 'utility1',
     })
     if (!equipped.ok) throw new Error(equipped.code)
-    equipped.state.agents.a_mina.assignment = {
-      state: 'training',
-      startedWeek: 1,
-      trainingProgramId: 'analysis-lab',
+    const trainingState = {
+      ...equipped.state,
+      agents: {
+        ...equipped.state.agents,
+        a_mina: {
+          ...equipped.state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
     }
     expect(
-      relocateEquipmentInstance(equipped.state, equipped.instance.instanceId, { state: 'stored' })
+      relocateEquipmentInstance(trainingState, equipped.instance.instanceId, { state: 'stored' })
     ).toMatchObject({ ok: false, code: 'agent_not_idle' })
   })
 
@@ -138,6 +147,14 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
       instance: { condition: 'damaged', payload: { capacity: 2, remaining: 1 } },
     })
     if (!changed.ok) throw new Error(changed.code)
+
+    expect(relocateEquipmentInstance(changed.state, 'Bad Id', { state: 'stored' })).toMatchObject({
+      ok: false,
+      code: 'invalid_instance_id',
+    })
+    expect(
+      relocateEquipmentInstance(changed.state, 'equipment-instance-9-9', { state: 'stored' })
+    ).toMatchObject({ ok: false, code: 'stale_transition' })
 
     expect(
       applyEquipmentInstanceTransition(changed.state, expected.instanceId, expected, {
@@ -190,6 +207,19 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
       (changed.state.equipmentInstances?.[changed.instance.instanceId] as Record<string, unknown>)
         .debug
     ).toBeUndefined()
+    const clearedPayload = applyEquipmentInstanceTransition(
+      changed.state,
+      changed.instance.instanceId,
+      changed.instance,
+      { ...changed.instance, payload: undefined }
+    )
+    if (!clearedPayload.ok) throw new Error(clearedPayload.code)
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        clearedPayload.state.equipmentInstances?.[changed.instance.instanceId] ?? {},
+        'payload'
+      )
+    ).toBe(false)
   })
 
   it('preserves instance identity through legacy unequip, replacement, and transfer functions', () => {
@@ -220,6 +250,8 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     })
 
     const clearedReplacement = unequipAgentItem(replaced, 'a_mina', 'utility1')
+    expect(clearedReplacement.inventory.ward_seals).toBe(1)
+    expect(clearedReplacement.inventory.signal_jammers).toBe(0)
     const moved = relocateEquipmentInstance(clearedReplacement, created.instance.instanceId, {
       state: 'equipped',
       agentId: 'a_casey',
@@ -313,9 +345,36 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
 
     expect(Object.keys(result.equipmentInstances)).toEqual(['good'])
     expect(result.issues).toEqual([
-      { instanceId: 'foreign', code: 'invalid_instance_id' },
-      { instanceId: 'overflow', code: 'invalid_instance_id' },
+      { instanceId: 'foreign', code: 'unknown_definition' },
+      { instanceId: 'overflow', code: 'malformed_payload_bounds' },
     ])
+  })
+
+  it('treats instance identity as authoritative over a stale compatibility slot projection', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.ward_seals = 0
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const staleProjection = {
+      ...created.state,
+      agents: {
+        ...created.state.agents,
+        a_mina: {
+          ...created.state.agents.a_mina,
+          equipmentSlots: { ...created.state.agents.a_mina.equipmentSlots, utility1: 'ward_seals' },
+        },
+      },
+    }
+
+    const unequipped = unequipAgentItem(staleProjection, 'a_mina', 'utility1')
+    expect(unequipped.inventory.signal_jammers).toBe(0)
+    expect(unequipped.inventory.ward_seals).toBe(0)
+    expect(getEquipmentInstance(unequipped, created.instance.instanceId)?.location).toEqual({
+      state: 'stored',
+    })
   })
 
   it('accepts known roster IDs independently of the narrower payload resource-ID format', () => {

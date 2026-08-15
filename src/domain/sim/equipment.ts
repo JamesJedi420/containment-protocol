@@ -114,8 +114,9 @@ export function equipAgentItem(
     return ensureNormalizedGameState(state)
   }
 
-  const currentItemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
   const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
+  const currentItemId =
+    currentInstance?.definitionId ?? getEquipmentSlotItemId(agent.equipmentSlots, slot)
   if (currentItemId === itemId) {
     return ensureNormalizedGameState(state)
   }
@@ -207,14 +208,14 @@ export function unequipAgentItem(
     return ensureNormalizedGameState(state)
   }
 
-  const currentItemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
+  const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
+  const currentItemId =
+    currentInstance?.definitionId ?? getEquipmentSlotItemId(agent.equipmentSlots, slot)
   if (!currentItemId) {
     return ensureNormalizedGameState(state)
   }
 
   const nextAgent = clearAgentSlot(agent, slot)
-  const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
-
   return normalizeGameState({
     ...state,
     inventory: currentInstance

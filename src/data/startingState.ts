@@ -40,6 +40,7 @@ const startingStateTemplate: GameState = {
   caseScopedPrerequisiteProcessingReservations: {},
   caseScopedPrerequisiteProcessingTerminalSignals: {},
   inventory: createStartingInventory(),
+  equipmentInstances: {},
   damagedEquipmentQueue: [],
   caseQueue: {
     queuedCaseIds: [],

@@ -18,6 +18,7 @@ import {
   reconcileProductionQueueStartedFields,
 } from '../../domain/sim/production'
 import { isSafeEquipmentRecoveryQueueId } from '../../domain/sim/equipmentDeconstruction'
+import { sanitizeEquipmentInstanceRegistry } from '../../domain/equipmentInstance'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
 import { sanitizeEquipmentAutoScrapPolicy } from '../../domain/equipmentAutoScrap'
@@ -9638,7 +9639,7 @@ export function hydrateGame(
     fallback.templates
   )
   const teams = sanitizeTeamsMap(game.teams, provisionalAgents, provisionalCases, fallback.teams)
-  const agents = sanitizeAgentsMap(game.agents, fallback.agents, {
+  let agents = sanitizeAgentsMap(game.agents, fallback.agents, {
     cases: provisionalCases,
     teams,
     campaignWeek: week,
@@ -10092,6 +10093,12 @@ export function hydrateGame(
     inventory,
     fallback.damagedEquipmentQueue
   )
+  const equipmentInstanceHydration = sanitizeEquipmentInstanceRegistry(
+    game.equipmentInstances,
+    agents
+  )
+  agents = equipmentInstanceHydration.agents
+  const equipmentInstances = equipmentInstanceHydration.equipmentInstances
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
 
   const hydratedBase = stripUndefinedFields({
@@ -10193,6 +10200,7 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingReservations,
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
+    equipmentInstances,
     damagedEquipmentQueue,
     authorityGraphState,
     runtimeState,

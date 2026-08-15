@@ -351,6 +351,12 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
           condition: 'operational',
           location: { state: 'stored' },
         },
+        inherited: {
+          instanceId: 'inherited',
+          definitionId: 'constructor',
+          condition: 'operational',
+          location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+        },
       },
       state.agents
     )
@@ -358,6 +364,7 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     expect(Object.keys(result.equipmentInstances)).toEqual(['good'])
     expect(result.issues).toEqual([
       { instanceId: 'foreign', code: 'unknown_definition' },
+      { instanceId: 'inherited', code: 'unknown_definition' },
       { instanceId: 'overflow', code: 'malformed_payload_bounds' },
     ])
   })

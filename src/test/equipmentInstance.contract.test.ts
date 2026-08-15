@@ -28,6 +28,9 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     })
     if (!first.ok) throw new Error(first.code)
     expect(first.state.inventory.signal_jammers).toBe(1)
+    expect(Object.isFrozen(first.instance)).toBe(true)
+    expect(Object.isFrozen(first.instance.location)).toBe(true)
+    expect(first.instance).not.toBe(first.state.equipmentInstances?.[first.instance.instanceId])
 
     const second = instantiateEquipmentInstance(first.state, 'signal_jammers')
     expect(second).toMatchObject({ ok: true, instance: { instanceId: 'equipment-instance-1-2' } })
@@ -68,6 +71,9 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     expect(getEquipmentInstanceAtAgentSlot(created.state, 'a_mina', 'utility1')?.instanceId).toBe(
       created.instance.instanceId
     )
+    const retrieved = getEquipmentInstance(created.state, created.instance.instanceId)!
+    expect(retrieved).not.toBe(created.state.equipmentInstances?.[created.instance.instanceId])
+    expect(Object.isFrozen(retrieved)).toBe(true)
 
     const transferred = relocateEquipmentInstance(created.state, created.instance.instanceId, {
       state: 'equipped',
@@ -172,6 +178,18 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
         } as never
       )
     ).toMatchObject({ ok: false, code: 'invalid_location' })
+    expect(
+      applyEquipmentInstanceTransition(
+        changed.state,
+        changed.instance.instanceId,
+        changed.instance,
+        { ...changed.instance, debug: true } as never
+      )
+    ).toMatchObject({ ok: false, code: 'invalid_instance_shape' })
+    expect(
+      (changed.state.equipmentInstances?.[changed.instance.instanceId] as Record<string, unknown>)
+        .debug
+    ).toBeUndefined()
   })
 
   it('preserves instance identity through legacy unequip, replacement, and transfer functions', () => {
@@ -298,5 +316,33 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
       { instanceId: 'foreign', code: 'invalid_instance_id' },
       { instanceId: 'overflow', code: 'invalid_instance_id' },
     ])
+  })
+
+  it('accepts known roster IDs independently of the narrower payload resource-ID format', () => {
+    const state = createStartingState()
+    const agentId = 'Agent:Upper'
+    const agents = {
+      ...state.agents,
+      [agentId]: { ...state.agents.a_mina, id: agentId },
+    }
+    const result = sanitizeEquipmentInstanceRegistry(
+      {
+        'equipment-instance-custom-agent': {
+          instanceId: 'equipment-instance-custom-agent',
+          definitionId: 'signal_jammers',
+          condition: 'operational',
+          location: { state: 'equipped', agentId, slot: 'utility1' },
+        },
+      },
+      agents
+    )
+
+    expect(result.issues).toEqual([])
+    expect(result.equipmentInstances['equipment-instance-custom-agent'].location).toEqual({
+      state: 'equipped',
+      agentId,
+      slot: 'utility1',
+    })
+    expect(result.agents[agentId].equipmentSlots?.utility1).toBe('signal_jammers')
   })
 })

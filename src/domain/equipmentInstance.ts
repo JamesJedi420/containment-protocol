@@ -46,6 +46,7 @@ export type EquipmentInstanceFailureCode =
   | 'stale_transition'
   | 'immutable_identity'
   | 'invalid_condition'
+  | 'invalid_instance_shape'
   | 'malformed_payload_bounds'
 
 export type EquipmentInstanceMutationResult =
@@ -65,6 +66,15 @@ export function isSafeEquipmentInstanceId(value: unknown): value is EquipmentIns
 function isSafeResourceId(value: unknown): value is string {
   return (
     typeof value === 'string' && SAFE_ID_PATTERN.test(value) && !PROTOTYPE_SENSITIVE_IDS.has(value)
+  )
+}
+
+function isKnownAgentId(value: unknown, agents: GameState['agents']): value is Id {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    !PROTOTYPE_SENSITIVE_IDS.has(value) &&
+    Object.prototype.hasOwnProperty.call(agents, value)
   )
 }
 
@@ -110,7 +120,7 @@ function isValidLocation(
   if (
     value.state !== 'equipped' ||
     !hasOnlyKeys(value, ['state', 'agentId', 'slot']) ||
-    !isSafeResourceId(value.agentId) ||
+    !isKnownAgentId(value.agentId, agents) ||
     !isEquipmentSlotKind(value.slot)
   ) {
     return false
@@ -207,6 +217,18 @@ function instancesEqual(left: EquipmentInstance, right: EquipmentInstance) {
   )
 }
 
+function createEquipmentInstanceSnapshot(instance: EquipmentInstance): EquipmentInstance {
+  const location = Object.freeze({ ...instance.location }) as EquipmentInstanceLocation
+  const payload = instance.payload ? Object.freeze({ ...instance.payload }) : undefined
+  return Object.freeze({
+    instanceId: instance.instanceId,
+    definitionId: instance.definitionId,
+    location,
+    condition: instance.condition,
+    ...(payload ? { payload } : {}),
+  })
+}
+
 function nextInstanceId(state: GameState): EquipmentInstanceId {
   const registry = state.equipmentInstances ?? {}
   let ordinal = 1
@@ -218,7 +240,10 @@ export function getEquipmentInstance(
   state: Pick<GameState, 'equipmentInstances'>,
   instanceId: EquipmentInstanceId
 ): EquipmentInstance | undefined {
-  return isSafeEquipmentInstanceId(instanceId) ? state.equipmentInstances?.[instanceId] : undefined
+  const instance = isSafeEquipmentInstanceId(instanceId)
+    ? state.equipmentInstances?.[instanceId]
+    : undefined
+  return instance ? createEquipmentInstanceSnapshot(instance) : undefined
 }
 
 export function getEquipmentInstanceAtAgentSlot(
@@ -226,7 +251,7 @@ export function getEquipmentInstanceAtAgentSlot(
   agentId: Id,
   slot: EquipmentSlotKind
 ): EquipmentInstance | undefined {
-  return Object.values(state.equipmentInstances ?? {})
+  const instance = Object.values(state.equipmentInstances ?? {})
     .filter(
       (instance) =>
         instance.location.state === 'equipped' &&
@@ -237,6 +262,7 @@ export function getEquipmentInstanceAtAgentSlot(
       left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
     )
     .at(0)
+  return instance ? createEquipmentInstanceSnapshot(instance) : undefined
 }
 
 function validateTargetLocation(
@@ -252,7 +278,7 @@ function validateTargetLocation(
   if (location.state !== 'equipped' || !hasOnlyKeys(location, ['state', 'agentId', 'slot'])) {
     return 'invalid_location'
   }
-  if (!isSafeResourceId(location.agentId)) return 'unknown_agent'
+  if (!isKnownAgentId(location.agentId, state.agents)) return 'unknown_agent'
   if (!isEquipmentSlotKind(location.slot)) return 'invalid_slot'
   const agent = state.agents[location.agentId]
   if (!agent) return 'unknown_agent'
@@ -329,7 +355,7 @@ export function instantiateEquipmentInstance(
       [instance.instanceId]: instance,
     },
   })
-  return { ok: true, state: nextState, instance }
+  return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
 export function applyEquipmentInstanceTransition(
@@ -345,6 +371,12 @@ export function applyEquipmentInstanceTransition(
   const current = normalized.equipmentInstances?.[instanceId]
   if (!current || !instancesEqual(current, expected)) {
     return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (
+    !isRecord(next) ||
+    !hasOnlyKeys(next, ['instanceId', 'definitionId', 'location', 'condition', 'payload'])
+  ) {
+    return { ok: false, state: normalized, code: 'invalid_instance_shape' }
   }
   if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
@@ -383,9 +415,11 @@ export function applyEquipmentInstanceTransition(
       next.definitionId
     )
   }
-  const persisted = {
-    ...next,
+  const persisted: EquipmentInstance = {
+    instanceId,
+    definitionId: current.definitionId,
     location: { ...next.location },
+    condition: next.condition,
     ...(next.payload ? { payload: { ...next.payload } } : {}),
   }
   const nextState = normalizeGameState({
@@ -393,7 +427,7 @@ export function applyEquipmentInstanceTransition(
     agents,
     equipmentInstances: { ...(normalized.equipmentInstances ?? {}), [instanceId]: persisted },
   })
-  return { ok: true, state: nextState, instance: persisted }
+  return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(persisted) }
 }
 
 export function relocateEquipmentInstance(

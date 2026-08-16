@@ -60,6 +60,7 @@ const RECOVERY_RESTRICTION_REASON: Readonly<
   Partial<Record<EquipmentGradeRecoveryIssueCode, EquipmentAutoScrapReasonCode>>
 > = Object.freeze({
   fabricated_lot_selection_unavailable: 'auto_scrap.fabricated_lot_selection_unavailable',
+  equipment_instance_selection_unavailable: 'auto_scrap.equipment_instance_selection_unavailable',
 })
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -333,6 +334,8 @@ export function getEquipmentAutoScrapReasonLabel(code: EquipmentAutoScrapReasonC
       return 'Recovery profile unavailable'
     case 'auto_scrap.fabricated_lot_selection_unavailable':
       return 'Fabricated batch selection unavailable'
+    case 'auto_scrap.equipment_instance_selection_unavailable':
+      return 'Manual equipment-instance selection required'
     default:
       return 'Recovery unavailable'
   }

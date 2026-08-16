@@ -64,7 +64,8 @@ integrated.
 | Per-instance artifact approval                                     | SPE-1766                                                    | Equipment-instance identity and approval projection                             |
 | Favorite, player lock, quest-bound, unique copy                    | owner reconciliation / create inventory-state child         | No authoritative owner or runtime state currently exists                        |
 | Automated fabricated-lot selection                                 | SPE-2749                                                    | SPE-2800 ships explicit manual selection; automation does not choose provenance |
-| Remaining recovery profiles                                        | SPE-1055                                                    | SPE-2826 raises eligibility to fifteen; eight definitions remain deferred       |
+| Automated equipment-instance selection                             | SPE-2749                                                    | SPE-2830 keeps depleted Combat Stim recovery explicitly manual                  |
+| Remaining recovery profiles                                        | SPE-1055                                                    | SPE-2830 raises eligibility to sixteen; seven definitions remain deferred       |
 
 ## Validation
 

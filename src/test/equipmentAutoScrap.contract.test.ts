@@ -186,7 +186,7 @@ describe('equipment Auto-Scrap contract', () => {
     })
   })
 
-  it('routes Grade I Trauma Kit while leaving Combat Stims deferred', () => {
+  it('routes Grade I Trauma Kit while requiring manual Combat Stim instance selection', () => {
     const state = createStartingState()
     state.inventory.trauma_kit = 1
     state.inventory.combat_stims = 1
@@ -202,7 +202,7 @@ describe('equipment Auto-Scrap contract', () => {
       {
         itemId: 'combat_stims',
         decision: 'exclude',
-        reasonCodes: ['auto_scrap.recovery_profile_unavailable'],
+        reasonCodes: ['auto_scrap.equipment_instance_selection_unavailable'],
       },
       {
         itemId: 'trauma_kit',

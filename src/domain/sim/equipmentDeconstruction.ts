@@ -12,6 +12,12 @@ import {
 import { resolveEquipmentGradeProjection } from '../equipmentGrade'
 import type { EquipmentGradeProjection } from '../equipmentGrade'
 import {
+  isCanonicalCombatStimPayload,
+  isSafeEquipmentInstanceId,
+  type EquipmentInstance,
+  type EquipmentInstanceId,
+} from '../equipmentInstance'
+import {
   resolveEquipmentGradeRecoveryOutcome,
   type EquipmentGradeRecoveryIssue,
   type EquipmentGradeRecoveryResolution,
@@ -103,12 +109,20 @@ export interface EquipmentDeconstructionPreview {
 }
 
 export type EquipmentDeconstructionSourceRef =
-  Readonly<{ kind: 'catalog' }> | Readonly<{ kind: 'fabricated_lot'; fabricationQueueId: string }>
+  | Readonly<{ kind: 'catalog' }>
+  | Readonly<{ kind: 'fabricated_lot'; fabricationQueueId: string }>
+  | Readonly<{ kind: 'equipment_instance'; instanceId: EquipmentInstanceId }>
 
 export type EquipmentDeconstructionSourceIssueCode =
   | 'catalog_stock_reserved_for_fabricated_lots'
   | 'fabricated_lot_not_found'
   | 'fabricated_lot_exhausted'
+  | 'equipment_instance_required'
+  | 'equipment_instance_not_found'
+  | 'equipment_instance_not_stored'
+  | 'equipment_instance_has_live_doses'
+  | 'equipment_instance_payload_malformed'
+  | 'equipment_instance_active_overdrive'
   | 'stock_unavailable'
   | 'recovery_unavailable'
 
@@ -120,9 +134,54 @@ export interface EquipmentDeconstructionSourceChoice {
   readonly gradeProjection: EquipmentGradeProjection
   readonly issueCode?: EquipmentDeconstructionSourceIssueCode
   readonly completedWeek?: number
+  readonly condition?: 'operational' | 'damaged'
+  readonly resourceRemaining?: number
+  readonly resourceCapacity?: number
 }
 
 const CATALOG_SOURCE = Object.freeze({ kind: 'catalog' as const })
+
+function sourceMatches(
+  left: EquipmentDeconstructionSourceRef,
+  right: EquipmentDeconstructionSourceRef
+) {
+  if (left.kind !== right.kind) return false
+  if (left.kind === 'catalog') return true
+  if (left.kind === 'fabricated_lot') {
+    return right.kind === 'fabricated_lot' && left.fabricationQueueId === right.fabricationQueueId
+  }
+  return right.kind === 'equipment_instance' && left.instanceId === right.instanceId
+}
+
+function instanceHasActiveOverdrive(state: GameState, instanceId: string) {
+  return Object.values(state.agents).some(
+    (agent) =>
+      agent.overdrive?.source?.kind === 'combat_stim' &&
+      agent.overdrive.source.equipmentInstanceId === instanceId &&
+      (agent.overdrive.active || agent.overdrive.recoveryDebt > 0)
+  )
+}
+
+function resolveInstanceIssue(
+  state: GameState,
+  instance: EquipmentInstance,
+  profile: ReturnType<typeof getEquipmentDeconstructionProfile>
+): EquipmentDeconstructionSourceIssueCode | undefined {
+  if (profile?.state !== 'eligible' || profile.sourceAuthority !== 'equipment_instance') {
+    return 'recovery_unavailable'
+  }
+  if (!isSafeEquipmentInstanceId(instance.instanceId)) return 'equipment_instance_not_found'
+  if (instance.definitionId !== 'combat_stims') return 'recovery_unavailable'
+  if (instance.location.state !== 'stored') return 'equipment_instance_not_stored'
+  if (!isCanonicalCombatStimPayload(instance.payload)) {
+    return 'equipment_instance_payload_malformed'
+  }
+  if (instance.payload.remaining > 0) return 'equipment_instance_has_live_doses'
+  if (instanceHasActiveOverdrive(state, instance.instanceId)) {
+    return 'equipment_instance_active_overdrive'
+  }
+  return undefined
+}
 
 function sourceClaims(state: GameState) {
   const claims = new Map<string, number>()
@@ -167,13 +226,15 @@ export function resolveEquipmentDeconstructionSources(
     visibility
   )
   const catalogIssueCode =
-    stock < 1
-      ? ('stock_unavailable' as const)
-      : catalogQuantity < 1
-        ? ('catalog_stock_reserved_for_fabricated_lots' as const)
-        : profile?.state !== 'eligible' || catalogProjection.state !== 'graded'
-          ? ('recovery_unavailable' as const)
-          : undefined
+    profile?.state === 'eligible' && profile.sourceAuthority === 'equipment_instance'
+      ? ('equipment_instance_required' as const)
+      : stock < 1
+        ? ('stock_unavailable' as const)
+        : catalogQuantity < 1
+          ? ('catalog_stock_reserved_for_fabricated_lots' as const)
+          : profile?.state !== 'eligible' || catalogProjection.state !== 'graded'
+            ? ('recovery_unavailable' as const)
+            : undefined
   const choices: EquipmentDeconstructionSourceChoice[] = [
     Object.freeze({
       source: CATALOG_SOURCE,
@@ -191,13 +252,15 @@ export function resolveEquipmentDeconstructionSources(
       visibility
     )
     const issueCode =
-      stock < 1
-        ? ('stock_unavailable' as const)
-        : remaining < 1
-          ? ('fabricated_lot_exhausted' as const)
-          : profile?.state !== 'eligible' || gradeProjection.state !== 'graded'
-            ? ('recovery_unavailable' as const)
-            : undefined
+      profile?.state === 'eligible' && profile.sourceAuthority === 'equipment_instance'
+        ? ('equipment_instance_required' as const)
+        : stock < 1
+          ? ('stock_unavailable' as const)
+          : remaining < 1
+            ? ('fabricated_lot_exhausted' as const)
+            : profile?.state !== 'eligible' || gradeProjection.state !== 'graded'
+              ? ('recovery_unavailable' as const)
+              : undefined
     choices.push(
       Object.freeze({
         source: Object.freeze({ kind: 'fabricated_lot' as const, fabricationQueueId: lot.queueId }),
@@ -206,6 +269,33 @@ export function resolveEquipmentDeconstructionSources(
         available: quantity > 0 && !issueCode,
         gradeProjection,
         completedWeek: lot.completedWeek,
+        ...(issueCode ? { issueCode } : {}),
+      })
+    )
+  }
+  for (const instance of Object.values(state.equipmentInstances ?? {})
+    .filter((candidate) => candidate.definitionId === itemId)
+    .sort((left, right) => compareCodeUnits(left.instanceId, right.instanceId))) {
+    const issueCode =
+      resolveInstanceIssue(state, instance, profile) ??
+      (catalogProjection.state !== 'graded' ? 'recovery_unavailable' : undefined)
+    const payload = isCanonicalCombatStimPayload(instance.payload) ? instance.payload : undefined
+    choices.push(
+      Object.freeze({
+        source: Object.freeze({
+          kind: 'equipment_instance' as const,
+          instanceId: instance.instanceId,
+        }),
+        label: payload
+          ? `Equipment instance ${instance.instanceId} / ${payload.remaining} of ${payload.capacity} doses`
+          : `Equipment instance ${instance.instanceId} / dose state unavailable`,
+        quantity: 1,
+        available: !issueCode,
+        gradeProjection: catalogProjection,
+        condition: instance.condition,
+        ...(payload
+          ? { resourceRemaining: payload.remaining, resourceCapacity: payload.capacity }
+          : {}),
         ...(issueCode ? { issueCode } : {}),
       })
     )
@@ -228,17 +318,16 @@ export function resolveEquipmentDeconstructionPreview(
   const definition = getEquipmentDefinition(itemId)
   const profile = getEquipmentDeconstructionProfile(itemId)
   if (!definition || !profile) return undefined
-  const stock = Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+  const aggregateStock = Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
   const choices = resolveEquipmentDeconstructionSources(state, itemId)
-  const choice = choices.find((candidate) =>
-    source.kind === 'catalog'
-      ? candidate.source.kind === 'catalog'
-      : candidate.source.kind === 'fabricated_lot' &&
-        candidate.source.fabricationQueueId === source.fabricationQueueId
-  )
+  const choice = choices.find((candidate) => sourceMatches(candidate.source, source))
   const selectedLot =
     choice?.source.kind === 'fabricated_lot'
       ? state.fabricatedEquipmentLots?.[choice.source.fabricationQueueId]
+      : undefined
+  const selectedInstance =
+    choice?.source.kind === 'equipment_instance'
+      ? state.equipmentInstances?.[choice.source.instanceId]
       : undefined
   const participation = selectedLot
     ? {
@@ -247,32 +336,50 @@ export function resolveEquipmentDeconstructionPreview(
       }
     : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
   const visibility = getEquipmentGradeCatalogVisibility(definition.gradeProfile)
-  const sourceIssueCode = choice?.issueCode ?? (choice ? undefined : 'fabricated_lot_not_found')
+  const sourceIssueCode =
+    choice?.issueCode ??
+    (choice
+      ? undefined
+      : source.kind === 'equipment_instance'
+        ? 'equipment_instance_not_found'
+        : 'fabricated_lot_not_found')
   const sourceRestrictions: EquipmentRecoveryRestrictionCode[] = sourceIssueCode
-    ? ['fabricated_lot_selection_unavailable']
+    ? [
+        source.kind === 'equipment_instance' || sourceIssueCode === 'equipment_instance_required'
+          ? 'equipment_instance_selection_unavailable'
+          : 'fabricated_lot_selection_unavailable',
+      ]
     : []
+  const stock =
+    profile.state === 'eligible' && profile.sourceAuthority === 'equipment_instance'
+      ? Object.values(state.equipmentInstances ?? {}).filter(
+          (instance) => instance.definitionId === itemId
+        ).length
+      : aggregateStock
   if (profile.state === 'deferred') {
     return Object.freeze({
       itemId,
       itemName: definition.name,
       stock,
       source,
-      sourceLabel: choice?.label ?? 'Fabricated batch unavailable',
+      sourceLabel: choice?.label ?? 'Recovery source unavailable',
       sourceQuantity: choice?.quantity ?? 0,
       ...(sourceIssueCode ? { sourceIssueCode } : {}),
       resolution: profileDeferredResolution(itemId)!,
     })
   }
 
-  const condition = (state.damagedEquipmentQueue ?? []).includes(itemId)
-    ? ('damaged' as const)
-    : ('operational' as const)
+  const condition =
+    selectedInstance?.condition ??
+    ((state.damagedEquipmentQueue ?? []).includes(itemId)
+      ? ('damaged' as const)
+      : ('operational' as const))
   return Object.freeze({
     itemId,
     itemName: definition.name,
     stock,
     source,
-    sourceLabel: choice?.label ?? 'Fabricated batch unavailable',
+    sourceLabel: choice?.label ?? 'Recovery source unavailable',
     sourceQuantity: choice?.quantity ?? 0,
     ...(sourceIssueCode ? { sourceIssueCode } : {}),
     resolution: resolveEquipmentGradeRecoveryOutcome(profile.rule, participation, visibility, {
@@ -288,7 +395,7 @@ export function queueEquipmentDeconstruction(
   source: EquipmentDeconstructionSourceRef = CATALOG_SOURCE
 ): GameState {
   const preview = resolveEquipmentDeconstructionPreview(state, itemId, source)
-  if (!preview || preview.stock < 1 || !preview.resolution.available) {
+  if (!preview || preview.sourceQuantity < 1 || !preview.resolution.available) {
     return ensureNormalizedGameState(state)
   }
   if (preview.resolution.participation.state !== 'graded') {
@@ -296,6 +403,20 @@ export function queueEquipmentDeconstruction(
   }
 
   const queueId = nextQueueId(state)
+  const sourceInstance =
+    source.kind === 'equipment_instance' ? state.equipmentInstances?.[source.instanceId] : undefined
+  const sourceInstancePayload = sourceInstance?.payload
+  if (
+    source.kind === 'equipment_instance' &&
+    (!sourceInstance ||
+      !isSafeEquipmentInstanceId(source.instanceId) ||
+      sourceInstance.definitionId !== itemId ||
+      sourceInstance.location.state !== 'stored' ||
+      !isCanonicalCombatStimPayload(sourceInstancePayload) ||
+      sourceInstancePayload.remaining !== 0)
+  ) {
+    return ensureNormalizedGameState(state)
+  }
   const entry: EquipmentDeconstructionQueueEntry = Object.freeze({
     id: queueId,
     itemId,
@@ -305,6 +426,14 @@ export function queueEquipmentDeconstruction(
     sourceGradeVisibility: preview.resolution.visibility,
     ...(source.kind === 'fabricated_lot'
       ? { sourceFabricationQueueId: source.fabricationQueueId }
+      : {}),
+    ...(source.kind === 'equipment_instance'
+      ? {
+          sourceEquipmentInstanceId: source.instanceId,
+          sourceEquipmentInstanceResourceId: sourceInstancePayload!.resourceId,
+          sourceEquipmentInstanceCapacity: sourceInstancePayload!.capacity,
+          sourceEquipmentInstanceRemaining: sourceInstancePayload!.remaining,
+        }
       : {}),
     sourceCondition: preview.resolution.condition,
     outputMaterials: preview.resolution.materials.map((material) => ({
@@ -319,10 +448,19 @@ export function queueEquipmentDeconstruction(
     explanationCodes: [...preview.resolution.explanationCodes],
   })
 
+  const nextEquipmentInstances = { ...(state.equipmentInstances ?? {}) }
+  if (source.kind === 'equipment_instance') delete nextEquipmentInstances[source.instanceId]
   const nextState = normalizeGameState({
     ...state,
-    inventory: { ...state.inventory, [itemId]: preview.stock - 1 },
-    damagedEquipmentQueue: (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
+    inventory:
+      source.kind === 'equipment_instance'
+        ? state.inventory
+        : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
+    equipmentInstances: nextEquipmentInstances,
+    damagedEquipmentQueue:
+      source.kind === 'equipment_instance'
+        ? state.damagedEquipmentQueue
+        : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
     equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],
   })
 
@@ -336,6 +474,14 @@ export function queueEquipmentDeconstruction(
       sourceGradeId: entry.sourceGradeId,
       ...(entry.sourceFabricationQueueId
         ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
+        : {}),
+      ...(entry.sourceEquipmentInstanceId
+        ? {
+            sourceEquipmentInstanceId: entry.sourceEquipmentInstanceId,
+            sourceEquipmentInstanceResourceId: entry.sourceEquipmentInstanceResourceId!,
+            sourceEquipmentInstanceCapacity: entry.sourceEquipmentInstanceCapacity!,
+            sourceEquipmentInstanceRemaining: entry.sourceEquipmentInstanceRemaining!,
+          }
         : {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials: entry.outputMaterials,
@@ -366,6 +512,10 @@ function receiptMatchesEntry(
     outcome.pathId === entry.pathId &&
     outcome.sourceGradeId === entry.sourceGradeId &&
     outcome.sourceFabricationQueueId === entry.sourceFabricationQueueId &&
+    outcome.sourceEquipmentInstanceId === entry.sourceEquipmentInstanceId &&
+    outcome.sourceEquipmentInstanceResourceId === entry.sourceEquipmentInstanceResourceId &&
+    outcome.sourceEquipmentInstanceCapacity === entry.sourceEquipmentInstanceCapacity &&
+    outcome.sourceEquipmentInstanceRemaining === entry.sourceEquipmentInstanceRemaining &&
     outcome.sourceCondition === entry.sourceCondition &&
     outcome.wasteQuantity === entry.wasteQuantity &&
     materialOutputsMatch(outcome.outputMaterials, entry.outputMaterials)
@@ -414,6 +564,14 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
       ...(entry.sourceFabricationQueueId
         ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
         : {}),
+      ...(entry.sourceEquipmentInstanceId
+        ? {
+            sourceEquipmentInstanceId: entry.sourceEquipmentInstanceId,
+            sourceEquipmentInstanceResourceId: entry.sourceEquipmentInstanceResourceId!,
+            sourceEquipmentInstanceCapacity: entry.sourceEquipmentInstanceCapacity!,
+            sourceEquipmentInstanceRemaining: entry.sourceEquipmentInstanceRemaining!,
+          }
+        : {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials: entry.outputMaterials.map((material) => Object.freeze({ ...material })),
       wasteQuantity: entry.wasteQuantity,
@@ -431,6 +589,14 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
         sourceGradeId: entry.sourceGradeId,
         ...(entry.sourceFabricationQueueId
           ? { sourceFabricationQueueId: entry.sourceFabricationQueueId }
+          : {}),
+        ...(entry.sourceEquipmentInstanceId
+          ? {
+              sourceEquipmentInstanceId: entry.sourceEquipmentInstanceId,
+              sourceEquipmentInstanceResourceId: entry.sourceEquipmentInstanceResourceId!,
+              sourceEquipmentInstanceCapacity: entry.sourceEquipmentInstanceCapacity!,
+              sourceEquipmentInstanceRemaining: entry.sourceEquipmentInstanceRemaining!,
+            }
           : {}),
         sourceCondition: entry.sourceCondition,
         outputMaterials: entry.outputMaterials,
@@ -457,6 +623,8 @@ export function getEquipmentRecoveryIssueLabel(issue: EquipmentGradeRecoveryIssu
       return 'Recovery profile not yet authored'
     case 'fabricated_lot_selection_unavailable':
       return 'Fabricated batch selection is unavailable'
+    case 'equipment_instance_selection_unavailable':
+      return 'An eligible stored equipment instance must be selected'
     case 'hidden_grade':
       return 'Grade outcome is hidden'
     case 'custody_restricted':
@@ -474,4 +642,24 @@ export function getEquipmentRecoveryIssueLabel(issue: EquipmentGradeRecoveryIssu
     default:
       return 'Recovery outcome unavailable'
   }
+}
+
+export function getEquipmentDeconstructionSourceIssueLabel(
+  code: EquipmentDeconstructionSourceIssueCode
+) {
+  const labels: Record<EquipmentDeconstructionSourceIssueCode, string> = {
+    catalog_stock_reserved_for_fabricated_lots:
+      'Catalog stock is reserved for outstanding fabricated batches',
+    fabricated_lot_not_found: 'Fabricated batch is unavailable',
+    fabricated_lot_exhausted: 'Fabricated batch has already been claimed',
+    equipment_instance_required: 'Manual equipment-instance selection is required',
+    equipment_instance_not_found: 'Equipment instance is unavailable',
+    equipment_instance_not_stored: 'Equipment instance must be stored before recovery',
+    equipment_instance_has_live_doses: 'Live Combat Stim doses must be used or disposed separately',
+    equipment_instance_payload_malformed: 'Combat Stim dose state is malformed',
+    equipment_instance_active_overdrive: 'Combat Stim instance still owns active recovery debt',
+    stock_unavailable: 'Aggregate stock is unavailable',
+    recovery_unavailable: 'Recovery is unavailable for this source',
+  }
+  return labels[code]
 }

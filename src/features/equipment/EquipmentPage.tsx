@@ -233,7 +233,9 @@ function EquipmentPage() {
                           value={
                             view.source.kind === 'catalog'
                               ? 'catalog'
-                              : `fabricated:${view.source.fabricationQueueId}`
+                              : view.source.kind === 'fabricated_lot'
+                                ? `fabricated:${view.source.fabricationQueueId}`
+                                : `instance:${view.source.instanceId}`
                           }
                           onChange={(event) => {
                             const selected = view.sources.find(
@@ -280,8 +282,8 @@ function EquipmentPage() {
                 {pendingDeconstructionItemId === view.itemId && view.available ? (
                   <div className="mt-3 rounded border border-amber-300/30 bg-amber-950/20 px-3 py-2">
                     <p className="text-sm">
-                      This permanently consumes one {view.itemName} from {view.sourceLabel} and
-                      queues the displayed recovery outcome.
+                      This permanently consumes one {view.itemName} from {view.sourceLabel}, cannot
+                      be refilled or re-equipped, and queues the displayed recovery outcome.
                     </p>
                     <div className="mt-2 flex gap-2">
                       <button

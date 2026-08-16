@@ -18,8 +18,15 @@ import {
   reconcileProductionQueueStartedFields,
 } from '../../domain/sim/production'
 import { isSafeEquipmentRecoveryQueueId } from '../../domain/sim/equipmentDeconstruction'
-import { sanitizeEquipmentInstanceRegistry } from '../../domain/equipmentInstance'
+import {
+  COMBAT_STIM_CAPACITY,
+  COMBAT_STIM_DEFINITION_ID,
+  COMBAT_STIM_RESOURCE_ID,
+  isSafeEquipmentInstanceId,
+  sanitizeEquipmentInstanceRegistry,
+} from '../../domain/equipmentInstance'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
+import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
 import { sanitizeEquipmentAutoScrapPolicy } from '../../domain/equipmentAutoScrap'
 import {
@@ -5602,6 +5609,50 @@ function sanitizeEquipmentRecoveryMaterials(
   )
 }
 
+interface SanitizedEquipmentRecoveryInstanceProvenance {
+  sourceEquipmentInstanceId: string
+  sourceEquipmentInstanceResourceId: string
+  sourceEquipmentInstanceCapacity: number
+  sourceEquipmentInstanceRemaining: number
+}
+
+function sanitizeEquipmentRecoveryInstanceProvenance(
+  value: Record<string, unknown>,
+  itemId: string,
+  sourceGradeId: unknown
+): SanitizedEquipmentRecoveryInstanceProvenance | null | undefined {
+  const keys = [
+    'sourceEquipmentInstanceId',
+    'sourceEquipmentInstanceResourceId',
+    'sourceEquipmentInstanceCapacity',
+    'sourceEquipmentInstanceRemaining',
+  ] as const
+  const present = keys.filter((key) => Object.prototype.hasOwnProperty.call(value, key))
+  if (present.length === 0) return undefined
+  if (present.length !== keys.length) return null
+  const definition = getEquipmentDefinition(itemId)
+  const participation = definition
+    ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+    : undefined
+  if (
+    itemId !== COMBAT_STIM_DEFINITION_ID ||
+    participation?.state !== 'graded' ||
+    sourceGradeId !== participation.gradeId ||
+    !isSafeEquipmentInstanceId(value.sourceEquipmentInstanceId) ||
+    value.sourceEquipmentInstanceResourceId !== COMBAT_STIM_RESOURCE_ID ||
+    value.sourceEquipmentInstanceCapacity !== COMBAT_STIM_CAPACITY ||
+    value.sourceEquipmentInstanceRemaining !== 0
+  ) {
+    return null
+  }
+  return {
+    sourceEquipmentInstanceId: value.sourceEquipmentInstanceId,
+    sourceEquipmentInstanceResourceId: COMBAT_STIM_RESOURCE_ID,
+    sourceEquipmentInstanceCapacity: COMBAT_STIM_CAPACITY,
+    sourceEquipmentInstanceRemaining: 0,
+  }
+}
+
 function sanitizeEquipmentRecoveryOutcomes(
   value: unknown,
   campaignWeek: number,
@@ -5610,6 +5661,7 @@ function sanitizeEquipmentRecoveryOutcomes(
   if (!isRecord(value)) return {}
   const outcomes: EquipmentRecoveryOutcomeRegistry = {}
   const claimedByLot = new Map<string, number>()
+  const claimedInstances = new Set<string>()
   const queueIds = Object.keys(value).sort((left, right) => {
     const leftWeek =
       isRecord(value[left]) && Number.isInteger(value[left].completedWeek)
@@ -5645,6 +5697,18 @@ function sanitizeEquipmentRecoveryOutcomes(
       'sourceFabricationQueueId'
     )
     const sourceFabricationQueueId = outcome.sourceFabricationQueueId
+    const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
+      outcome,
+      outcome.itemId,
+      outcome.sourceGradeId
+    )
+    if (
+      instanceProvenance === null ||
+      (hasSourceFabricationQueueId && instanceProvenance !== undefined) ||
+      (instanceProvenance && claimedInstances.has(instanceProvenance.sourceEquipmentInstanceId))
+    ) {
+      continue
+    }
     let sourceLotClaim: { queueId: string; claimed: number } | undefined
     if (hasSourceFabricationQueueId) {
       if (!isSafeProductionQueueId(sourceFabricationQueueId)) continue
@@ -5666,6 +5730,7 @@ function sanitizeEquipmentRecoveryOutcomes(
     if (sourceLotClaim) {
       claimedByLot.set(sourceLotClaim.queueId, sourceLotClaim.claimed + 1)
     }
+    if (instanceProvenance) claimedInstances.add(instanceProvenance.sourceEquipmentInstanceId)
     outcomes[queueId] = Object.freeze({
       queueId,
       itemId: outcome.itemId,
@@ -5674,6 +5739,7 @@ function sanitizeEquipmentRecoveryOutcomes(
       ...(hasSourceFabricationQueueId
         ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
         : {}),
+      ...(instanceProvenance ?? {}),
       sourceCondition: outcome.sourceCondition,
       outputMaterials,
       wasteQuantity: outcome.wasteQuantity as number,
@@ -5725,6 +5791,11 @@ function sanitizeEquipmentDeconstructionQueue(
       'sourceFabricationQueueId'
     )
     const sourceFabricationQueueId = entry.sourceFabricationQueueId
+    const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
+      entry,
+      entry.itemId,
+      entry.sourceGradeId
+    )
     const rawEntryId = typeof entry.id === 'string' ? entry.id.trim() : ''
     if (
       !definition ||
@@ -5735,7 +5806,10 @@ function sanitizeEquipmentDeconstructionQueue(
       new Set(explanationCodes).size !== explanationCodes.length ||
       (hasSourceFabricationQueueId &&
         (!isSafeProductionQueueId(sourceFabricationQueueId) ||
-          !isSafeEquipmentRecoveryQueueId(rawEntryId)))
+          !isSafeEquipmentRecoveryQueueId(rawEntryId))) ||
+      instanceProvenance === null ||
+      (hasSourceFabricationQueueId && instanceProvenance !== undefined) ||
+      (instanceProvenance !== undefined && !isSafeEquipmentRecoveryQueueId(rawEntryId))
     ) {
       continue
     }
@@ -5749,6 +5823,7 @@ function sanitizeEquipmentDeconstructionQueue(
       ...(hasSourceFabricationQueueId
         ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
         : {}),
+      ...(instanceProvenance ?? {}),
       sourceCondition: entry.sourceCondition,
       outputMaterials,
       wasteQuantity: entry.wasteQuantity as number,
@@ -5763,7 +5838,9 @@ function sanitizeEquipmentDeconstructionQueue(
     queueIdCounts.set(entry.id, (queueIdCounts.get(entry.id) ?? 0) + 1)
   }
   const unambiguousQueue = queue.filter(
-    (entry) => !entry.sourceFabricationQueueId || (queueIdCounts.get(entry.id) ?? 0) === 1
+    (entry) =>
+      (!entry.sourceFabricationQueueId && !entry.sourceEquipmentInstanceId) ||
+      (queueIdCounts.get(entry.id) ?? 0) === 1
   )
   const uniqueQueue = assignUniqueQueueEntryIds(unambiguousQueue, 'recovery')
   const canonicalQueue = [...uniqueQueue].sort(
@@ -5772,6 +5849,7 @@ function sanitizeEquipmentDeconstructionQueue(
   )
   const claimedByLot = new Map<string, number>()
   const completedRecoveryByQueueId = new Map<string, EquipmentRecoveryOutcome>()
+  const claimedInstances = new Set<string>()
   for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
     completedRecoveryByQueueId.set(outcome.queueId, outcome)
     if (!outcome.sourceFabricationQueueId) continue
@@ -5780,9 +5858,27 @@ function sanitizeEquipmentDeconstructionQueue(
       (claimedByLot.get(outcome.sourceFabricationQueueId) ?? 0) + 1
     )
   }
+  for (const outcome of Object.values(equipmentRecoveryOutcomes)) {
+    if (outcome.sourceEquipmentInstanceId) {
+      claimedInstances.add(outcome.sourceEquipmentInstanceId)
+    }
+  }
   const accepted = new Set<string>()
   for (const entry of canonicalQueue) {
     const completedOutcome = completedRecoveryByQueueId.get(entry.id)
+    if (entry.sourceEquipmentInstanceId) {
+      if (
+        completedOutcome !== undefined &&
+        equipmentRecoveryReceiptMatchesQueue(completedOutcome, entry)
+      ) {
+        if (entry.startedWeek <= completedOutcome.completedWeek) accepted.add(entry.id)
+        continue
+      }
+      if (claimedInstances.has(entry.sourceEquipmentInstanceId)) continue
+      claimedInstances.add(entry.sourceEquipmentInstanceId)
+      accepted.add(entry.id)
+      continue
+    }
     if (!entry.sourceFabricationQueueId) {
       accepted.add(entry.id)
       continue
@@ -5827,6 +5923,10 @@ function equipmentRecoveryReceiptMatchesQueue(
     outcome.pathId === entry.pathId &&
     outcome.sourceGradeId === entry.sourceGradeId &&
     outcome.sourceFabricationQueueId === entry.sourceFabricationQueueId &&
+    outcome.sourceEquipmentInstanceId === entry.sourceEquipmentInstanceId &&
+    outcome.sourceEquipmentInstanceResourceId === entry.sourceEquipmentInstanceResourceId &&
+    outcome.sourceEquipmentInstanceCapacity === entry.sourceEquipmentInstanceCapacity &&
+    outcome.sourceEquipmentInstanceRemaining === entry.sourceEquipmentInstanceRemaining &&
     outcome.sourceCondition === entry.sourceCondition &&
     outcome.wasteQuantity === entry.wasteQuantity &&
     outcome.outputMaterials.length === entry.outputMaterials.length &&
@@ -8713,6 +8813,11 @@ function sanitizeOperationEvents(
             'sourceFabricationQueueId'
           )
           const sourceFabricationQueueId = payload.sourceFabricationQueueId
+          const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
+            payload,
+            itemId,
+            sourceGradeId
+          )
           const sourceLot = hasSourceFabricationQueueId
             ? options.fabricatedEquipmentLots?.[sourceFabricationQueueId as string]
             : undefined
@@ -8728,6 +8833,8 @@ function sanitizeOperationEvents(
                 sourceLot.itemId !== itemId ||
                 sourceLot.gradeId !== sourceGradeId ||
                 sourceLot.completedWeek > week)) ||
+            instanceProvenance === null ||
+            (hasSourceFabricationQueueId && instanceProvenance !== undefined) ||
             (sourceCondition !== 'operational' && sourceCondition !== 'damaged')
           ) {
             break
@@ -8743,6 +8850,7 @@ function sanitizeOperationEvents(
             ...(hasSourceFabricationQueueId
               ? { sourceFabricationQueueId: sourceFabricationQueueId as string }
               : {}),
+            ...(instanceProvenance ?? {}),
             sourceCondition: sourceCondition as 'operational' | 'damaged',
             outputMaterials,
             wasteQuantity: sanitizeInteger(payload.wasteQuantity as number | undefined, 0, 0),
@@ -8756,14 +8864,18 @@ function sanitizeOperationEvents(
           const activeClaim = options.equipmentDeconstructionQueue?.find(
             (claim) => claim.id === queueId
           )
+          const hasSourceInstance = instanceProvenance !== undefined
           if (
             !hasSourceFabricationQueueId &&
+            !hasSourceInstance &&
             (completedClaim?.sourceFabricationQueueId !== undefined ||
-              activeClaim?.sourceFabricationQueueId !== undefined)
+              activeClaim?.sourceFabricationQueueId !== undefined ||
+              completedClaim?.sourceEquipmentInstanceId !== undefined ||
+              activeClaim?.sourceEquipmentInstanceId !== undefined)
           ) {
             break
           }
-          if (hasSourceFabricationQueueId) {
+          if (hasSourceFabricationQueueId || hasSourceInstance) {
             const claimMatchesEvent = (
               claim: EquipmentDeconstructionQueueEntry | EquipmentRecoveryOutcomeRegistry[string]
             ) =>
@@ -8771,6 +8883,11 @@ function sanitizeOperationEvents(
               claim.pathId === common.pathId &&
               claim.sourceGradeId === common.sourceGradeId &&
               claim.sourceFabricationQueueId === common.sourceFabricationQueueId &&
+              claim.sourceEquipmentInstanceId === common.sourceEquipmentInstanceId &&
+              claim.sourceEquipmentInstanceResourceId ===
+                common.sourceEquipmentInstanceResourceId &&
+              claim.sourceEquipmentInstanceCapacity === common.sourceEquipmentInstanceCapacity &&
+              claim.sourceEquipmentInstanceRemaining === common.sourceEquipmentInstanceRemaining &&
               claim.sourceCondition === common.sourceCondition &&
               claim.wasteQuantity === common.wasteQuantity &&
               claim.outputMaterials.length === common.outputMaterials.length &&
@@ -10093,8 +10210,23 @@ export function hydrateGame(
     inventory,
     fallback.damagedEquipmentQueue
   )
+  const claimedEquipmentInstanceIds = new Set([
+    ...Object.values(equipmentRecoveryOutcomes)
+      .map((outcome) => outcome.sourceEquipmentInstanceId)
+      .filter((instanceId): instanceId is string => Boolean(instanceId)),
+    ...equipmentDeconstructionQueue
+      .map((entry) => entry.sourceEquipmentInstanceId)
+      .filter((instanceId): instanceId is string => Boolean(instanceId)),
+  ])
+  const unclaimedRawEquipmentInstances = isRecord(game.equipmentInstances)
+    ? Object.fromEntries(
+        Object.entries(game.equipmentInstances).filter(
+          ([instanceId]) => !claimedEquipmentInstanceIds.has(instanceId)
+        )
+      )
+    : game.equipmentInstances
   const equipmentInstanceHydration = sanitizeEquipmentInstanceRegistry(
-    game.equipmentInstances,
+    unclaimedRawEquipmentInstances,
     agents
   )
   agents = equipmentInstanceHydration.agents

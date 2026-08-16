@@ -256,6 +256,7 @@ function EquipmentPage() {
                               disabled={!source.available}
                             >
                               {source.label} — {source.gradeLabel} — {source.quantity} available
+                              {source.blocker ? ` — ${source.blocker}` : ''}
                             </option>
                           ))}
                         </select>

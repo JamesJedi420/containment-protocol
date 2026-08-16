@@ -336,7 +336,7 @@ describe('EquipmentPage', () => {
     ).toBeDisabled()
     expect(
       screen.getByRole('option', {
-        name: /equipment instance equipment-instance-partial.*0 available/i,
+        name: /equipment instance equipment-instance-partial.*0 available.*live combat stim doses must be used or disposed separately/i,
       })
     ).toBeDisabled()
     expect(

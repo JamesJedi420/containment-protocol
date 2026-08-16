@@ -1091,6 +1091,58 @@ describe('equipment-grade recovery contract', () => {
     })
   })
 
+  it('clears an equipped compatibility projection when a recovery claim wins the instance', () => {
+    const fallback = createStartingState()
+    const instanceId = 'equipment-instance-empty'
+    fallback.equipmentInstances = {
+      [instanceId]: {
+        instanceId,
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+    const queued = queueEquipmentDeconstruction(fallback, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId,
+    })
+    const agentId = Object.keys(queued.agents).sort()[0]!
+    const agent = queued.agents[agentId]!
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          agents: {
+            ...queued.agents,
+            [agentId]: {
+              ...agent,
+              equipmentSlots: { ...(agent.equipmentSlots ?? {}), utility1: 'combat_stims' },
+              equipmentEffectScales: {
+                ...(agent.equipmentEffectScales ?? {}),
+                combat_stims: 1,
+              },
+            },
+          },
+          equipmentInstances: {
+            [instanceId]: {
+              ...fallback.equipmentInstances[instanceId]!,
+              location: { state: 'equipped', agentId, slot: 'utility1' },
+            },
+          },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentDeconstructionQueue?.[0]?.sourceEquipmentInstanceId).toBe(instanceId)
+    expect(hydrated.equipmentInstances).toEqual({})
+    expect(hydrated.agents[agentId]?.equipmentSlots?.utility1).toBeUndefined()
+    expect(hydrated.agents[agentId]?.equipmentEffectScales?.combat_stims).toBeUndefined()
+  })
+
   it('hydrates fabricated claims deterministically and gives completed outcomes priority', () => {
     const fallback = createStartingState()
     fallback.inventory.signal_jammers = 1

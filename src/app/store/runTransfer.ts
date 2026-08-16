@@ -10235,16 +10235,10 @@ export function hydrateGame(
       .map((entry) => entry.sourceEquipmentInstanceId)
       .filter((instanceId): instanceId is string => Boolean(instanceId)),
   ])
-  const unclaimedRawEquipmentInstances = isRecord(game.equipmentInstances)
-    ? Object.fromEntries(
-        Object.entries(game.equipmentInstances).filter(
-          ([instanceId]) => !claimedEquipmentInstanceIds.has(instanceId)
-        )
-      )
-    : game.equipmentInstances
   const equipmentInstanceHydration = sanitizeEquipmentInstanceRegistry(
-    unclaimedRawEquipmentInstances,
-    agents
+    game.equipmentInstances,
+    agents,
+    claimedEquipmentInstanceIds
   )
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances

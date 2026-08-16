@@ -6,6 +6,7 @@ import {
   createAgencyFrontBusinessOpenedDraft,
   createAgentInstructorAssignedDraft,
   createAgentInstructorUnassignedDraft,
+  createEquipmentInstanceMaterializedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
 import {
@@ -80,7 +81,11 @@ import {
   type WeeklyDirectiveId,
 } from '../../domain/models'
 import { createSeededRng, normalizeSeed } from '../../domain/math'
-import type { EquipmentSlotKind } from '../../domain/equipment'
+import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equipment'
+import {
+  COMBAT_STIM_DEFINITION_ID,
+  getEquipmentInstanceAtAgentSlot,
+} from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
@@ -127,6 +132,7 @@ import { hireCandidate } from '../../domain/sim/hire'
 import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { transitionRecruitmentCandidate } from '../../domain/recruitment'
 import { equipAgentItem, unequipAgentItem } from '../../domain/sim/equipment'
+import { activateCombatStim, equipStoredCombatStimInstance } from '../../domain/combatStim'
 import {
   createTeam,
   deleteEmptyTeam,
@@ -392,6 +398,8 @@ interface GameStore {
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
+  equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
+  activateCombatStim: (instanceId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
   queueEquipmentDeconstruction: (itemId: string, source?: EquipmentDeconstructionSourceRef) => void
@@ -1770,7 +1778,41 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({ game: reconcileAgents(s.game, leftId, rightId) })),
 
       equipAgentItem: (agentId, slot, itemId) =>
-        set((s) => ({ game: equipAgentItem(s.game, agentId, slot, itemId) })),
+        set((s) => {
+          const next = equipAgentItem(s.game, agentId, slot, itemId)
+          if (itemId !== COMBAT_STIM_DEFINITION_ID) return { game: next }
+          const instance = getEquipmentInstanceAtAgentSlot(next, agentId, slot)
+          if (!instance || s.game.equipmentInstances?.[instance.instanceId]) return { game: next }
+          const definition = getEquipmentDefinition(itemId)
+          const payload = instance.payload
+          return {
+            game: appendOperationEventDrafts(next, [
+              createEquipmentInstanceMaterializedDraft({
+                week: s.game.week,
+                instanceId: instance.instanceId,
+                definitionId: itemId,
+                definitionName: definition?.name ?? itemId,
+                condition: instance.condition,
+                locationState: 'equipped',
+                agentId,
+                slot,
+                ...(payload
+                  ? {
+                      resourceId: payload.resourceId,
+                      capacity: payload.capacity,
+                      remaining: payload.remaining,
+                    }
+                  : {}),
+              }),
+            ]),
+          }
+        }),
+
+      equipStoredCombatStimInstance: (instanceId, agentId, slot) =>
+        set((s) => ({ game: equipStoredCombatStimInstance(s.game, instanceId, agentId, slot) })),
+
+      activateCombatStim: (instanceId) =>
+        set((s) => ({ game: activateCombatStim(s.game, instanceId).state })),
 
       unequipAgentItem: (agentId, slot) =>
         set((s) => ({ game: unequipAgentItem(s.game, agentId, slot) })),

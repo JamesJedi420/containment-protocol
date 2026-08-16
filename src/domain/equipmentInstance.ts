@@ -48,6 +48,8 @@ export type EquipmentInstanceFailureCode =
   | 'invalid_condition'
   | 'invalid_instance_shape'
   | 'malformed_payload_bounds'
+  | 'invalid_consumable_profile'
+  | 'unauthorized_payload_transition'
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
@@ -56,6 +58,30 @@ export type EquipmentInstanceMutationResult =
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const INSTANCE_ID_PREFIX = 'equipment-instance'
 const PROTOTYPE_SENSITIVE_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+export const COMBAT_STIM_DEFINITION_ID = 'combat_stims'
+export const COMBAT_STIM_RESOURCE_ID = 'combat_stim_dose'
+export const COMBAT_STIM_CAPACITY = 2
+
+export function createCanonicalCombatStimPayload(): EquipmentInstanceConsumablePayload {
+  return { resourceId: COMBAT_STIM_RESOURCE_ID, capacity: COMBAT_STIM_CAPACITY, remaining: 2 }
+}
+
+export function isCanonicalCombatStimPayload(
+  value: EquipmentInstanceConsumablePayload | undefined
+): value is EquipmentInstanceConsumablePayload {
+  return Boolean(
+    value &&
+    Object.keys(value).length === 3 &&
+    Object.hasOwn(value, 'resourceId') &&
+    Object.hasOwn(value, 'capacity') &&
+    Object.hasOwn(value, 'remaining') &&
+    value.resourceId === COMBAT_STIM_RESOURCE_ID &&
+    value.capacity === COMBAT_STIM_CAPACITY &&
+    Number.isSafeInteger(value.remaining) &&
+    value.remaining >= 0 &&
+    value.remaining <= COMBAT_STIM_CAPACITY
+  )
+}
 
 export function isSafeEquipmentInstanceId(value: unknown): value is EquipmentInstanceId {
   return (
@@ -346,6 +372,16 @@ export function instantiateEquipmentInstance(
   if (options.payload !== undefined && !isValidPayload(options.payload)) {
     return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
   }
+  const payload =
+    definitionId === COMBAT_STIM_DEFINITION_ID
+      ? (options.payload ?? createCanonicalCombatStimPayload())
+      : options.payload
+  if (
+    definitionId === COMBAT_STIM_DEFINITION_ID &&
+    (!isCanonicalCombatStimPayload(payload) || payload.remaining !== COMBAT_STIM_CAPACITY)
+  ) {
+    return { ok: false, state: normalized, code: 'invalid_consumable_profile' }
+  }
   const location = options.location ?? { state: 'stored' as const }
   const locationFailure = validateTargetLocation(normalized, definitionId, location)
   if (locationFailure) return { ok: false, state: normalized, code: locationFailure }
@@ -355,7 +391,7 @@ export function instantiateEquipmentInstance(
     definitionId,
     location: { ...location },
     condition,
-    ...(options.payload ? { payload: { ...options.payload } } : {}),
+    ...(payload ? { payload: { ...payload } } : {}),
   }
   const agents = { ...normalized.agents }
   if (location.state === 'equipped') {
@@ -405,6 +441,12 @@ export function applyEquipmentInstanceTransition(
   }
   if (next.payload !== undefined && !isValidPayload(next.payload)) {
     return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
+  }
+  if (
+    current.definitionId === COMBAT_STIM_DEFINITION_ID &&
+    !payloadsEqual(current.payload, next.payload)
+  ) {
+    return { ok: false, state: normalized, code: 'unauthorized_payload_transition' }
   }
   const locationFailure = validateTargetLocation(
     normalized,

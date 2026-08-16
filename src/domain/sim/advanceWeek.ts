@@ -83,6 +83,10 @@ function applyEquipmentRecoveryBottleneck(
 }
 import { clamp, createSeededRng } from '../math'
 import {
+  applyCombatStimRecoveryDebtAtWeekClose,
+  expireCombatStimOverdrivesAtWeekClose,
+} from '../combatStimWeekClose'
+import {
   processDepartmentWorkshopTick,
   readDepartmentWorkshopState,
   reconcileDepartmentWorkshopTerminalLanes,
@@ -4856,9 +4860,12 @@ export function advanceWeek(
     return ensureNormalizedGameState(reconcileDepartmentWorkshopCaseHandoffs(state))
   }
 
-  const sourceReports = getSimulationSourceReports(state.reports)
+  const debtAdjustedState = applyCombatStimRecoveryDebtAtWeekClose(state)
+  const sourceReports = getSimulationSourceReports(debtAdjustedState.reports)
   const sourceStateBase =
-    sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+    sourceReports === debtAdjustedState.reports
+      ? debtAdjustedState
+      : { ...debtAdjustedState, reports: sourceReports }
   const weeklyCivicConsequencePackets = deriveWeeklyCivicConsequencePackets(sourceStateBase)
   const sourceState = {
     ...sourceStateBase,
@@ -4934,6 +4941,9 @@ export function advanceWeek(
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)
   finalizeMissionResults(context)
+  const combatStimExpiry = expireCombatStimOverdrivesAtWeekClose(context.nextState)
+  context.nextState = combatStimExpiry.state
+  context.eventDrafts.push(...combatStimExpiry.eventDrafts)
   applyRecoveryDowntimeAfterMissions(context)
   applyCourierShellFrontWeeklyResolution(context)
   // SPE-53: Generate hub simulation and attach notes

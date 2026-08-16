@@ -142,9 +142,9 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
 
   it('applies compare-and-swap mutable state while enforcing identity and payload bounds', () => {
     const state = createStartingState()
-    state.inventory.combat_stims = 1
-    const created = instantiateEquipmentInstance(state, 'combat_stims', {
-      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+    state.inventory.signal_jammers = 1
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', {
+      payload: { resourceId: 'battery_charge', capacity: 2, remaining: 2 },
     })
     if (!created.ok) throw new Error(created.code)
     const expected = created.instance

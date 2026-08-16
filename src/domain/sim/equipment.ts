@@ -10,7 +10,12 @@ import {
   validateAgentLoadoutAssignment,
 } from '../equipment'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
-import { getEquipmentInstanceAtAgentSlot, type EquipmentInstance } from '../equipmentInstance'
+import {
+  COMBAT_STIM_DEFINITION_ID,
+  getEquipmentInstanceAtAgentSlot,
+  instantiateEquipmentInstance,
+  type EquipmentInstance,
+} from '../equipmentInstance'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -121,6 +126,14 @@ export function equipAgentItem(
     currentInstance?.definitionId ?? getEquipmentSlotItemId(agent.equipmentSlots, slot)
   if (currentItemId === itemId) {
     return ensureNormalizedGameState(state)
+  }
+
+  if (itemId === COMBAT_STIM_DEFINITION_ID && getInventoryStock(state, itemId) > 0) {
+    const interim = currentItemId ? unequipAgentItem(state, agentId, slot) : state
+    const materialized = instantiateEquipmentInstance(interim, itemId, {
+      location: { state: 'equipped', agentId, slot },
+    })
+    return materialized.ok ? materialized.state : ensureNormalizedGameState(state)
   }
 
   let nextState = state

@@ -52,7 +52,8 @@ deployed even though ordinary loadout editing is locked.
 - SPE-1485 exact crisis phases and SPE-714 generalized prerequisite packets;
 - overdose, contraindication medicine beyond the existing prohibition flag, healing, and injection
   into another responder;
-- re-aggregation, loss, destruction, Combat Stim recovery/salvage, and Auto-Scrap integration.
+- re-aggregation, loss, general destruction, live-dose recovery/disposal, and Auto-Scrap instance
+  selection. SPE-2830 subsequently authorizes manual recovery of stored depleted 0/2 instances.
 
 ## Validation
 

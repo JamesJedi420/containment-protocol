@@ -19,6 +19,7 @@ import {
   resolveEquipmentDeconstructionSources,
   resolveEquipmentDeconstructionPreview,
   getEquipmentRecoveryIssueLabel,
+  getEquipmentDeconstructionSourceIssueLabel,
   type EquipmentDeconstructionSourceRef,
 } from '../../domain/sim/equipmentDeconstruction'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
@@ -168,7 +169,10 @@ function formatRecoveryMaterials(materials: readonly { materialName: string; qua
 }
 
 function sourceValue(source: EquipmentDeconstructionSourceRef) {
-  return source.kind === 'catalog' ? 'catalog' : `fabricated:${source.fabricationQueueId}`
+  if (source.kind === 'catalog') return 'catalog'
+  return source.kind === 'fabricated_lot'
+    ? `fabricated:${source.fabricationQueueId}`
+    : `instance:${source.instanceId}`
 }
 
 export function getEquipmentDeconstructionViews(
@@ -177,15 +181,18 @@ export function getEquipmentDeconstructionViews(
 ): EquipmentDeconstructionView[] {
   return getEquipmentCatalogEntries()
     .map((definition) => {
-      const stock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
-      if (stock < 1) return undefined
       const sourceChoices = resolveEquipmentDeconstructionSources(game, definition.id)
+      const aggregateStock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
+      const hasInstanceSource = sourceChoices.some(
+        (choice) => choice.source.kind === 'equipment_instance'
+      )
+      if (aggregateStock < 1 && !hasInstanceSource) return undefined
       const requestedSource = selectedSources[definition.id] ?? { kind: 'catalog' as const }
       const selectedSource = sourceChoices.some(
         (choice) => sourceValue(choice.source) === sourceValue(requestedSource)
       )
         ? requestedSource
-        : { kind: 'catalog' as const }
+        : (sourceChoices.find((choice) => choice.available)?.source ?? { kind: 'catalog' as const })
       const preview = resolveEquipmentDeconstructionPreview(game, definition.id, selectedSource)
       if (!preview) return undefined
       const sources: EquipmentDeconstructionSourceView[] = sourceChoices.map((choice) => {
@@ -203,9 +210,9 @@ export function getEquipmentDeconstructionViews(
           available: sourcePreview.resolution.available && choice.quantity > 0,
           ...(!sourcePreview.resolution.available
             ? {
-                blocker: sourcePreview.resolution.issues
-                  .map(getEquipmentRecoveryIssueLabel)
-                  .join('; '),
+                blocker: choice.issueCode
+                  ? getEquipmentDeconstructionSourceIssueLabel(choice.issueCode)
+                  : sourcePreview.resolution.issues.map(getEquipmentRecoveryIssueLabel).join('; '),
               }
             : {}),
         }
@@ -214,7 +221,7 @@ export function getEquipmentDeconstructionViews(
         return {
           itemId: definition.id,
           itemName: definition.name,
-          stock,
+          stock: preview.stock,
           source: selectedSource,
           sourceLabel: preview.sourceLabel,
           sourceQuantity: preview.sourceQuantity,
@@ -225,17 +232,24 @@ export function getEquipmentDeconstructionViews(
           materialSummary: 'No safe recovery projection',
           wasteLabel: 'Waste unknown',
           durationLabel: 'Duration unknown',
-          conditionLabel: (game.damagedEquipmentQueue ?? []).includes(definition.id)
-            ? 'Damaged'
-            : 'Operational',
+          conditionLabel:
+            sourceChoices.find(
+              (choice) => sourceValue(choice.source) === sourceValue(selectedSource)
+            )?.condition === 'damaged' ||
+            (selectedSource.kind !== 'equipment_instance' &&
+              (game.damagedEquipmentQueue ?? []).includes(definition.id))
+              ? 'Damaged'
+              : 'Operational',
           explanation: 'This item cannot enter the bounded recovery flow.',
-          blocker: preview.resolution.issues.map(getEquipmentRecoveryIssueLabel).join('; '),
+          blocker: preview.sourceIssueCode
+            ? getEquipmentDeconstructionSourceIssueLabel(preview.sourceIssueCode)
+            : preview.resolution.issues.map(getEquipmentRecoveryIssueLabel).join('; '),
         }
       }
       return {
         itemId: definition.id,
         itemName: definition.name,
-        stock,
+        stock: preview.stock,
         source: selectedSource,
         sourceLabel: preview.sourceLabel,
         sourceQuantity: preview.sourceQuantity,
@@ -275,9 +289,11 @@ export function getEquipmentDeconstructionQueueViews(
     pathLabel: getRecoveryPathLabel(entry.pathId),
     materialSummary: formatRecoveryMaterials(entry.outputMaterials),
     remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
-    sourceLabel: entry.sourceFabricationQueueId
-      ? `Fabricated batch ${entry.sourceFabricationQueueId}`
-      : 'Catalog / unspecified stock',
+    sourceLabel: entry.sourceEquipmentInstanceId
+      ? `Equipment instance ${entry.sourceEquipmentInstanceId} / ${entry.sourceEquipmentInstanceRemaining} of ${entry.sourceEquipmentInstanceCapacity} doses`
+      : entry.sourceFabricationQueueId
+        ? `Fabricated batch ${entry.sourceFabricationQueueId}`
+        : 'Catalog / unspecified stock',
   }))
 }
 

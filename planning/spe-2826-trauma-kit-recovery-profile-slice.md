@@ -31,6 +31,9 @@ or save/store version change.
 | Repair, custody, and authorization | SPE-1055 prerequisites | Require equipment-linked state rather than recovery-owned flags                             |
 | Contamination and relic outcomes   | SPE-1055 prerequisites | Require deterministic fallout and provenance-loss authorities                               |
 
+SPE-2829 subsequently supplied consumable depletion, and SPE-2830 now authorizes recovery only for
+explicitly selected stored depleted 0/2 Combat Stim instances. Live-dose disposal remains deferred.
+
 ## Validation
 
 - exact fifteen-eligible/eight-deferred registry coverage and Trauma Kit rule authoring;

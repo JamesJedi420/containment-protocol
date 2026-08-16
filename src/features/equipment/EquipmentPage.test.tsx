@@ -305,6 +305,69 @@ describe('EquipmentPage', () => {
     })
   })
 
+  it('selects and permanently recovers a stored depleted Combat Stim instance', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 0
+    game.equipmentInstances = {
+      'equipment-instance-empty': {
+        instanceId: 'equipment-instance-empty',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+      'equipment-instance-partial': {
+        instanceId: 'equipment-instance-partial',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    const sourceSelect = screen.getByLabelText(/recovery source for combat stims/i)
+    expect(sourceSelect).toHaveValue('catalog')
+    expect(
+      screen.getByRole('button', { name: /review deconstruction combat stims/i })
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('option', {
+        name: /equipment instance equipment-instance-partial.*0 available.*live combat stim doses must be used or disposed separately/i,
+      })
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('option', {
+        name: /equipment instance equipment-instance-empty.*1 available/i,
+      })
+    ).toBeEnabled()
+
+    await user.selectOptions(sourceSelect, 'instance:equipment-instance-empty')
+    expect(
+      screen.getByText(/source: equipment instance equipment-instance-empty \/ 0 of 2 doses/i)
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review deconstruction combat stims/i }))
+    expect(screen.getByText(/cannot be refilled or re-equipped/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm deconstruction combat stims/i }))
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(0)
+    expect(next.equipmentInstances).toEqual({
+      'equipment-instance-partial': game.equipmentInstances['equipment-instance-partial'],
+    })
+    expect(next.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'combat_stims',
+      sourceEquipmentInstanceId: 'equipment-instance-empty',
+      sourceEquipmentInstanceRemaining: 0,
+    })
+    expect(
+      screen.getByText(/equipment instance equipment-instance-empty \/ 0 of 2 doses/i)
+    ).toBeInTheDocument()
+  })
+
   it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

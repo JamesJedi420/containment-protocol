@@ -119,7 +119,7 @@ describe('equipment-grade recovery contract', () => {
 
     expect(
       EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'eligible')
-    ).toHaveLength(15)
+    ).toHaveLength(16)
     expect(
       EQUIPMENT_DECONSTRUCTION_PROFILES.filter((profile) => profile.state === 'deferred').map(
         (profile) => profile.itemId
@@ -132,20 +132,217 @@ describe('equipment-grade recovery contract', () => {
       'field_plate',
       'containment_staff',
       'hazmat_suit',
-      'combat_stims',
     ])
     for (const itemId of technologicalProfileIds) {
       expect(getEquipmentDeconstructionProfile(itemId)).toEqual({
         state: 'eligible',
         itemId,
         rule: yieldRule,
+        sourceAuthority: 'aggregate',
       })
     }
     expect(getEquipmentDeconstructionProfile('trauma_kit')).toEqual({
       state: 'eligible',
       itemId: 'trauma_kit',
       rule: medicalYieldRule,
+      sourceAuthority: 'aggregate',
     })
+    expect(getEquipmentDeconstructionProfile('combat_stims')).toEqual({
+      state: 'eligible',
+      itemId: 'combat_stims',
+      rule: medicalYieldRule,
+      sourceAuthority: 'equipment_instance',
+    })
+    expect(() =>
+      validateEquipmentDeconstructionProfiles(
+        EQUIPMENT_DECONSTRUCTION_PROFILES.map((profile) =>
+          profile.itemId === 'medkits' && profile.state === 'eligible'
+            ? { ...profile, sourceAuthority: 'equipment_instance' as const }
+            : profile
+        ),
+        catalog.map((definition) => ({
+          id: definition.id,
+          origin: definition.gradeProfile.origin,
+        }))
+      )
+    ).toThrow('Unsupported equipment instance recovery profile: medkits')
+  })
+
+  it('recovers only an explicitly selected stored depleted Combat Stim instance', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    state.equipmentInstances = {
+      'equipment-instance-empty': {
+        instanceId: 'equipment-instance-empty',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+
+    expect(resolveEquipmentDeconstructionSources(state, 'combat_stims')).toMatchObject([
+      {
+        source: { kind: 'catalog' },
+        available: false,
+        issueCode: 'equipment_instance_required',
+      },
+      {
+        source: { kind: 'equipment_instance', instanceId: 'equipment-instance-empty' },
+        quantity: 1,
+        available: true,
+        condition: 'operational',
+        resourceRemaining: 0,
+        resourceCapacity: 2,
+      },
+    ])
+    expect(queueEquipmentDeconstruction(state, 'combat_stims')).toBe(state)
+    state.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+    expect(resolveEquipmentDeconstructionSources(state, 'combat_stims')).toContainEqual(
+      expect.objectContaining({
+        source: { kind: 'fabricated_lot', fabricationQueueId: 'combat-stim-batch' },
+        available: false,
+        issueCode: 'equipment_instance_required',
+      })
+    )
+
+    const queued = queueEquipmentDeconstruction(state, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: 'equipment-instance-empty',
+    })
+    expect(queued.inventory.combat_stims).toBe(1)
+    expect(queued.equipmentInstances).toEqual({})
+    expect(queued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'combat_stims',
+      sourceGradeId: 'grade_1',
+      sourceCondition: 'operational',
+      sourceEquipmentInstanceId: 'equipment-instance-empty',
+      sourceEquipmentInstanceResourceId: 'combat_stim_dose',
+      sourceEquipmentInstanceCapacity: 2,
+      sourceEquipmentInstanceRemaining: 0,
+      outputMaterials: [
+        { materialId: 'medical_supplies', materialName: 'Medical Supplies', quantity: 1 },
+      ],
+      wasteQuantity: 1,
+      durationWeeks: 1,
+    })
+    expect(queued.events.at(-1)).toMatchObject({
+      type: 'equipment.recovery_started',
+      payload: {
+        sourceEquipmentInstanceId: 'equipment-instance-empty',
+        sourceEquipmentInstanceResourceId: 'combat_stim_dose',
+        sourceEquipmentInstanceCapacity: 2,
+        sourceEquipmentInstanceRemaining: 0,
+      },
+    })
+
+    const completed = advanceEquipmentDeconstructionQueues(queued)
+    const queueId = queued.equipmentDeconstructionQueue![0]!.id
+    expect(completed.state.equipmentRecoveryOutcomes?.[queueId]).toMatchObject({
+      sourceEquipmentInstanceId: 'equipment-instance-empty',
+      sourceEquipmentInstanceResourceId: 'combat_stim_dose',
+      sourceEquipmentInstanceCapacity: 2,
+      sourceEquipmentInstanceRemaining: 0,
+    })
+    expect(completed.eventDrafts[0]).toMatchObject({
+      type: 'equipment.recovery_completed',
+      payload: { sourceEquipmentInstanceId: 'equipment-instance-empty' },
+    })
+  })
+
+  it('fails Combat Stim recovery closed for live doses, equipped units, malformed payloads, and debt', () => {
+    const state = createStartingState()
+    state.equipmentInstances = {
+      'equipment-instance-full': {
+        instanceId: 'equipment-instance-full',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+      'equipment-instance-partial': {
+        instanceId: 'equipment-instance-partial',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+      'equipment-instance-equipped': {
+        instanceId: 'equipment-instance-equipped',
+        definitionId: 'combat_stims',
+        location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+      'equipment-instance-malformed': {
+        instanceId: 'equipment-instance-malformed',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'wrong', capacity: 2, remaining: 0 },
+      },
+      'equipment-instance-debt': {
+        instanceId: 'equipment-instance-debt',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+      constructor: {
+        instanceId: 'constructor',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+    state.agents.a_mina.overdrive = {
+      active: false,
+      remainingPhases: 0,
+      recoveryDebt: 1,
+      source: {
+        kind: 'combat_stim',
+        activationId: 'combat-stim-equipment-instance-debt-dose-2',
+        equipmentInstanceId: 'equipment-instance-debt',
+        caseId: 'c_briarwood',
+      },
+    }
+
+    const blockedSources = resolveEquipmentDeconstructionSources(state, 'combat_stims').filter(
+      (choice) => choice.source.kind === 'equipment_instance'
+    )
+    const issues = Object.fromEntries(
+      blockedSources.map((choice) => [
+        choice.source.kind === 'equipment_instance' ? choice.source.instanceId : '',
+        choice.issueCode,
+      ])
+    )
+    expect(issues).toEqual({
+      'equipment-instance-debt': 'equipment_instance_active_overdrive',
+      'equipment-instance-equipped': 'equipment_instance_not_stored',
+      'equipment-instance-full': 'equipment_instance_has_live_doses',
+      'equipment-instance-malformed': 'equipment_instance_payload_malformed',
+      'equipment-instance-partial': 'equipment_instance_has_live_doses',
+      constructor: 'equipment_instance_not_found',
+    })
+    expect(blockedSources.every((choice) => choice.quantity === 0 && !choice.available)).toBe(true)
+    for (const instanceId of Object.keys(state.equipmentInstances)) {
+      expect(
+        queueEquipmentDeconstruction(state, 'combat_stims', {
+          kind: 'equipment_instance',
+          instanceId,
+        })
+      ).toBe(state)
+    }
   })
 
   it('resolves Trauma Kit through the canonical Grade I medical recovery rule', () => {
@@ -764,6 +961,186 @@ describe('equipment-grade recovery contract', () => {
     const conflictReplay = advanceEquipmentDeconstructionQueues(conflictHydrated)
     expect(conflictReplay.state.inventory).toEqual(conflictHydrated.inventory)
     expect(conflictReplay.state.equipmentDeconstructionQueue?.[0]?.id).toBe(entry.id)
+  })
+
+  it('hydrates instance recovery provenance deterministically and removes duplicate live identity', () => {
+    const fallback = createStartingState()
+    fallback.equipmentInstances = {
+      'equipment-instance-empty': {
+        instanceId: 'equipment-instance-empty',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+    const queued = queueEquipmentDeconstruction(fallback, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: 'equipment-instance-empty',
+    })
+    const entry = queued.equipmentDeconstructionQueue![0]!
+    const duplicateLive = fallback.equipmentInstances!['equipment-instance-empty']!
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          equipmentInstances: { 'equipment-instance-empty': duplicateLive },
+          equipmentDeconstructionQueue: [
+            { ...entry, id: 'recovery-z' },
+            entry,
+            {
+              ...entry,
+              id: 'recovery-malformed',
+              sourceEquipmentInstanceRemaining: 1,
+            },
+            { ...entry, id: 'recovery-wrong-grade', sourceGradeId: 'grade_2' },
+          ],
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentDeconstructionQueue).toHaveLength(1)
+    expect(hydrated.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      id: entry.id,
+      sourceEquipmentInstanceId: 'equipment-instance-empty',
+      sourceEquipmentInstanceRemaining: 0,
+    })
+    expect(hydrated.equipmentInstances).toEqual({})
+    expect(hydrated.events).toContainEqual(
+      expect.objectContaining({
+        type: 'equipment.recovery_started',
+        payload: expect.objectContaining({
+          queueId: entry.id,
+          sourceEquipmentInstanceId: 'equipment-instance-empty',
+        }),
+      })
+    )
+
+    const completed = advanceEquipmentDeconstructionQueues(queued)
+    const completedState = {
+      ...completed.state,
+      events: queued.events,
+      equipmentInstances: { 'equipment-instance-empty': duplicateLive },
+    }
+    const completedHydrated = migratePersistedStore(
+      { game: completedState },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+    expect(completedHydrated.equipmentRecoveryOutcomes?.[entry.id]).toMatchObject({
+      sourceEquipmentInstanceId: 'equipment-instance-empty',
+      sourceEquipmentInstanceRemaining: 0,
+    })
+    expect(completedHydrated.equipmentInstances).toEqual({})
+  })
+
+  it('drops hydrated instance recovery claims while Combat Stim overdrive debt owns the instance', () => {
+    const fallback = createStartingState()
+    const instance = {
+      instanceId: 'equipment-instance-empty',
+      definitionId: 'combat_stims' as const,
+      location: { state: 'stored' as const },
+      condition: 'operational' as const,
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+    }
+    fallback.equipmentInstances = { [instance.instanceId]: instance }
+    const queued = queueEquipmentDeconstruction(fallback, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: instance.instanceId,
+    })
+    const agentId = Object.keys(queued.agents).sort()[0]!
+    const agent = queued.agents[agentId]!
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          agents: {
+            ...queued.agents,
+            [agentId]: {
+              ...agent,
+              overdrive: {
+                active: false,
+                remainingPhases: 0,
+                recoveryDebt: 1,
+                source: {
+                  kind: 'combat_stim',
+                  activationId: 'combat-stim-equipment-instance-empty-dose-2',
+                  equipmentInstanceId: instance.instanceId,
+                  caseId: 'case-001',
+                },
+              },
+            },
+          },
+          equipmentInstances: { [instance.instanceId]: instance },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentDeconstructionQueue).toEqual([])
+    expect(hydrated.equipmentRecoveryOutcomes).toEqual({})
+    expect(hydrated.equipmentInstances?.[instance.instanceId]).toEqual(instance)
+    expect(hydrated.agents[agentId]?.overdrive).toMatchObject({
+      recoveryDebt: 1,
+      source: { equipmentInstanceId: instance.instanceId },
+    })
+  })
+
+  it('clears an equipped compatibility projection when a recovery claim wins the instance', () => {
+    const fallback = createStartingState()
+    const instanceId = 'equipment-instance-empty'
+    fallback.equipmentInstances = {
+      [instanceId]: {
+        instanceId,
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+    const queued = queueEquipmentDeconstruction(fallback, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId,
+    })
+    const agentId = Object.keys(queued.agents).sort()[0]!
+    const agent = queued.agents[agentId]!
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          agents: {
+            ...queued.agents,
+            [agentId]: {
+              ...agent,
+              equipmentSlots: { ...(agent.equipmentSlots ?? {}), utility1: 'combat_stims' },
+              equipmentEffectScales: {
+                ...(agent.equipmentEffectScales ?? {}),
+                combat_stims: 1,
+              },
+            },
+          },
+          equipmentInstances: {
+            [instanceId]: {
+              ...fallback.equipmentInstances[instanceId]!,
+              location: { state: 'equipped', agentId, slot: 'utility1' },
+            },
+          },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentDeconstructionQueue?.[0]?.sourceEquipmentInstanceId).toBe(instanceId)
+    expect(hydrated.equipmentInstances).toEqual({})
+    expect(hydrated.agents[agentId]?.equipmentSlots?.utility1).toBeUndefined()
+    expect(hydrated.agents[agentId]?.equipmentEffectScales?.combat_stims).toBeUndefined()
   })
 
   it('hydrates fabricated claims deterministically and gives completed outcomes priority', () => {

@@ -10,6 +10,10 @@ import {
   type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
 import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
+import {
+  advanceEquipmentDeconstructionQueues,
+  queueEquipmentDeconstruction,
+} from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
 
 describe('SPE-2828 ordinary equipment instance authority', () => {
@@ -36,6 +40,42 @@ describe('SPE-2828 ordinary equipment instance authority', () => {
     const second = instantiateEquipmentInstance(first.state, 'signal_jammers')
     expect(second).toMatchObject({ ok: true, instance: { instanceId: 'equipment-instance-1-2' } })
     expect(second.state.inventory.signal_jammers).toBe(0)
+  })
+
+  it('reserves instance IDs owned by active and completed recovery claims', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+    const first = instantiateEquipmentInstance(state, 'combat_stims')
+    if (!first.ok) throw new Error(first.code)
+    const firstId = first.instance.instanceId
+    first.state.equipmentInstances![firstId] = {
+      ...first.state.equipmentInstances![firstId]!,
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+    }
+    const queued = queueEquipmentDeconstruction(first.state, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: firstId,
+    })
+
+    const whileQueued = instantiateEquipmentInstance(queued, 'combat_stims')
+    expect(whileQueued).toMatchObject({
+      ok: true,
+      instance: { instanceId: 'equipment-instance-1-2' },
+    })
+
+    const completed = advanceEquipmentDeconstructionQueues({
+      ...queued,
+      equipmentDeconstructionQueue: queued.equipmentDeconstructionQueue?.map((entry) => ({
+        ...entry,
+        remainingWeeks: 1,
+      })),
+    }).state
+    completed.inventory.combat_stims = 1
+    const afterCompletion = instantiateEquipmentInstance(completed, 'combat_stims')
+    expect(afterCompletion).toMatchObject({
+      ok: true,
+      instance: { instanceId: 'equipment-instance-1-2' },
+    })
   })
 
   it('fails closed for unavailable, unknown, and item-level damaged stock', () => {

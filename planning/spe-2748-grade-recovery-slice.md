@@ -13,9 +13,9 @@
 This slice adds deterministic grade-aware recovery for supported catalog equipment without
 changing equipment stats, rarity, condition, aggregate inventory semantics, or fabrication lots.
 Seven craftable equipment definitions established the initial eligible set. SPE-2801 subsequently
-added seven technological definitions, and SPE-2826 added Trauma Kit through the existing medical
-rule. The remaining eight definitions stay explicitly deferred rather than silently receiving a
-fallback rule.
+added seven technological definitions, SPE-2826 added Trauma Kit, and SPE-2830 added instance-only
+depleted Combat Stim recovery through the existing medical rule. The remaining seven definitions
+stay explicitly deferred rather than silently receiving a fallback rule.
 
 The two supported paths are:
 
@@ -59,6 +59,10 @@ SPE-2800 subsequently added explicit manual catalog/fabricated-lot source select
 lot units remain protected until selected, and their canonical grade/provenance is snapshotted
 without mutating the fabrication receipt.
 
+SPE-2830 subsequently added an instance-only source for depleted Combat Stims. Queueing removes the
+selected stored 0/2 instance instead of aggregate inventory and snapshots its immutable identity and
+payload provenance. Catalog, fabricated-lot, live-dose, and automated sources remain unavailable.
+
 ## Live assignments
 
 | Equipment              | Path                  | Grade behavior     |
@@ -78,6 +82,7 @@ without mutating the fabrication receipt.
 | Tactical Radio         | component reclamation | yield threshold    |
 | Breach Visor           | component reclamation | yield threshold    |
 | Trauma Kit             | component reclamation | yield threshold    |
+| Combat Stims           | component reclamation | yield threshold    |
 
 ## Deferred
 
@@ -87,4 +92,4 @@ without mutating the fabrication receipt.
 | Processed-material quality and batch semantics               | SPE-1056 | Recovered aggregate quantities do not author material grade        |
 | Automated fabricated-lot selection                           | SPE-2749 | Manual selection shipped in SPE-2800; automation stays fail-closed |
 | Grade-threshold Auto-Scrap routing                           | SPE-2749 | Must preserve hidden-grade opacity and explicit selection          |
-| Remaining eight catalog recovery profiles                    | SPE-1055 | Explicitly deferred in the exhaustive registry                     |
+| Remaining seven catalog recovery profiles                    | SPE-1055 | Explicitly deferred in the exhaustive registry                     |

@@ -83,10 +83,11 @@ SPE-2801 expands component reclamation to seven additional technological definit
 existing Grade II electronic-parts threshold. Grade I yields one part and 2 waste; Grade II and
 III yield two parts and 1 waste, with no higher-grade multiplier.
 
-SPE-2826 adds Trauma Kit through the established medical-supplies threshold. Its catalog Grade I
-outcome returns one medical supply, produces 1 waste, and takes one week. Fifteen definitions are
-now eligible and eight remain explicitly deferred under SPE-1055. Combat Stims remains deferred
-until consumable-depletion authority exists.
+SPE-2826 adds Trauma Kit through the established medical-supplies threshold. SPE-2830 subsequently
+adds depleted Combat Stim instances through the same Grade II threshold while requiring an explicit
+stored 0/2 instance source. Its catalog Grade I outcome returns one medical supply, produces 1
+waste, and takes one week. Sixteen definitions are now eligible and seven remain explicitly
+deferred under SPE-1055.
 
 Optional recovery queues and immutable outcome receipts preserve the snapshot through save/load
 without changing inventory's quantity authority or either save version.
@@ -108,6 +109,8 @@ destruction shortcut, alternate yield semantics, or Auto-Scrap-owned protection 
 copies and active-process copies remain outside aggregate stock. Auto-Scrap does not make the
 explicit provenance choice introduced by SPE-2800, so it continues to block an item while any lot
 unit is outstanding. Fully claimed historical lots no longer block later catalog stock.
+SPE-2830 likewise keeps Combat Stim recovery instance-only, so aggregate stock and stored instances
+are never routed by Auto-Scrap.
 
 Broader custody/contamination/relic recovery, equipment-linked evidence and legal restrictions,
 identification workflows, favorite/lock/quest/unique state, processed-material quality, and

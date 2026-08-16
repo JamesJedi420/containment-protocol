@@ -35,6 +35,18 @@ unresolved raid or Stage IV+ assignment, at depleted/overdrawn underlying energy
 overdrive/recovery lockout, and without `stimulant-prohibited`. The instance ID remains the durable
 provenance anchor for activation, overdrive, events, UI, and save/load.
 
+## Depleted Combat Stim recovery (SPE-2830)
+
+Recovery is the first authorized instance-destruction consumer. It accepts only an explicitly
+selected stored `combat_stims` instance whose governed payload is exactly 0/2. Live-dose,
+equipped, malformed, and active-overdrive/debt instances remain durable and unavailable. Queueing
+removes the instance atomically without changing aggregate inventory, then moves immutable
+identity, condition, grade, and payload provenance into the recovery queue and outcome receipt.
+
+Hydration accepts completed provenance claims before active claims and removes a duplicate live
+registry identity only after accepting a canonical claim. Auto-Scrap remains aggregate-only and
+cannot choose an instance source.
+
 ## Compatibility and hydration
 
 Definition-only loadouts remain supported. When a valid instance claims an agent slot, its location
@@ -44,7 +56,7 @@ independently. Missing registry state becomes `{}` without a save-version change
 
 ## Deferred consumers
 
-Facility replenishment, readiness/access, maintenance, loss, destruction, repair, mutation, and
-instance-aware recovery require separate children and their owning domain authorities. Combat Stim
-overdrive adds depletion only; it does not imply refill, healing, overdose, re-aggregation, or
-salvage mechanics.
+Facility replenishment, readiness/access, maintenance, loss, general destruction, repair, and
+mutation require separate children and their owning domain authorities. SPE-2830 authorizes only
+manual recovery of depleted Combat Stim instances; it does not imply live-dose disposal, refill,
+healing, overdose, re-aggregation, or general instance salvage.

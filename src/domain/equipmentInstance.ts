@@ -276,8 +276,17 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
 
 function nextInstanceId(state: GameState): EquipmentInstanceId {
   const registry = state.equipmentInstances ?? {}
+  const reservedIds = new Set([
+    ...Object.keys(registry),
+    ...(state.equipmentDeconstructionQueue ?? [])
+      .map((entry) => entry.sourceEquipmentInstanceId)
+      .filter((instanceId): instanceId is string => Boolean(instanceId)),
+    ...Object.values(state.equipmentRecoveryOutcomes ?? {})
+      .map((outcome) => outcome.sourceEquipmentInstanceId)
+      .filter((instanceId): instanceId is string => Boolean(instanceId)),
+  ])
   let ordinal = 1
-  while (registry[`${INSTANCE_ID_PREFIX}-${state.week}-${ordinal}`]) ordinal += 1
+  while (reservedIds.has(`${INSTANCE_ID_PREFIX}-${state.week}-${ordinal}`)) ordinal += 1
   return `${INSTANCE_ID_PREFIX}-${state.week}-${ordinal}`
 }
 
@@ -509,7 +518,8 @@ export function relocateEquipmentInstance(
 
 export function sanitizeEquipmentInstanceRegistry(
   raw: unknown,
-  agents: GameState['agents']
+  agents: GameState['agents'],
+  excludedInstanceIds: ReadonlySet<string> = new Set()
 ): {
   equipmentInstances: EquipmentInstanceRegistry
   agents: GameState['agents']
@@ -530,6 +540,18 @@ export function sanitizeEquipmentInstanceRegistry(
       continue
     }
     const instance = validation.instance
+    if (excludedInstanceIds.has(instanceId)) {
+      if (instance.location.state === 'equipped') {
+        const claimKey = `${instance.location.agentId}:${instance.location.slot}`
+        if (!claimedSlots.has(claimKey)) {
+          reconciledAgents[instance.location.agentId] = withProjectedSlot(
+            reconciledAgents[instance.location.agentId],
+            instance.location.slot
+          )
+        }
+      }
+      continue
+    }
     if (instance.location.state === 'equipped') {
       const claimKey = `${instance.location.agentId}:${instance.location.slot}`
       if (claimedSlots.has(claimKey)) {

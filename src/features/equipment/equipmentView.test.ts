@@ -3,9 +3,53 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import {
   getAgentEquipmentLoadoutViews,
+  getEquipmentDeconstructionViews,
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
+
+describe('getEquipmentDeconstructionViews', () => {
+  it('keeps instance condition independent from aggregate damaged stock', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 1
+    game.damagedEquipmentQueue = ['combat_stims']
+    game.equipmentInstances = {
+      'equipment-instance-live': {
+        instanceId: 'equipment-instance-live',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+
+    const view = getEquipmentDeconstructionViews(game, {
+      combat_stims: { kind: 'equipment_instance', instanceId: 'equipment-instance-live' },
+    }).find((candidate) => candidate.itemId === 'combat_stims')
+
+    expect(view).toMatchObject({
+      available: false,
+      conditionLabel: 'Operational',
+    })
+  })
+
+  it('does not expose dead recovery rows for instances without instance recovery authority', () => {
+    const game = createStartingState()
+    game.inventory.medkits = 0
+    game.equipmentInstances = {
+      'equipment-instance-medkit': {
+        instanceId: 'equipment-instance-medkit',
+        definitionId: 'medkits',
+        location: { state: 'stored' },
+        condition: 'operational',
+      },
+    }
+
+    expect(
+      getEquipmentDeconstructionViews(game).find((candidate) => candidate.itemId === 'medkits')
+    ).toBeUndefined()
+  })
+})
 
 describe('getGearRecommendationsForActiveCases', () => {
   it('returns at most five unresolved cases sorted by stage then deadline', () => {

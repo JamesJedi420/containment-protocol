@@ -714,6 +714,10 @@ const equipmentRecoveryEventShape = {
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
   sourceFabricationQueueId: idSchema.optional(),
+  sourceEquipmentInstanceId: idSchema.optional(),
+  sourceEquipmentInstanceResourceId: idSchema.optional(),
+  sourceEquipmentInstanceCapacity: finiteNonNegativeIntSchema.optional(),
+  sourceEquipmentInstanceRemaining: finiteNonNegativeIntSchema.optional(),
   sourceCondition: z.enum(['operational', 'damaged']),
   outputMaterials: z
     .array(
@@ -733,6 +737,40 @@ function refineEquipmentRecoveryEvent(
   payload: z.infer<z.ZodObject<typeof equipmentRecoveryEventShape>>,
   context: z.RefinementCtx
 ) {
+  const instanceFields = [
+    payload.sourceEquipmentInstanceId,
+    payload.sourceEquipmentInstanceResourceId,
+    payload.sourceEquipmentInstanceCapacity,
+    payload.sourceEquipmentInstanceRemaining,
+  ].filter((value) => value !== undefined)
+  if (instanceFields.length !== 0 && instanceFields.length !== 4) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery instance provenance fields must be supplied together',
+    })
+  }
+  if (payload.sourceFabricationQueueId && payload.sourceEquipmentInstanceId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery cannot claim fabrication and instance provenance together',
+    })
+  }
+  if (
+    payload.sourceEquipmentInstanceId &&
+    (payload.itemId !== 'combat_stims' ||
+      payload.sourceGradeId !== 'grade_1' ||
+      payload.sourceEquipmentInstanceResourceId !== 'combat_stim_dose' ||
+      payload.sourceEquipmentInstanceCapacity !== 2 ||
+      payload.sourceEquipmentInstanceRemaining !== 0)
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'instance recovery must snapshot a depleted canonical Combat Stim',
+    })
+  }
   const definition = getEquipmentDefinition(payload.itemId)
   if (!definition || definition.name !== payload.itemName) {
     context.addIssue({

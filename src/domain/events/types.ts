@@ -415,6 +415,10 @@ export interface OperationEventPayloadMap {
     pathId: 'component_reclamation' | 'ritual_disassembly'
     sourceGradeId: EquipmentGradeId
     sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
     sourceCondition: 'operational' | 'damaged'
     outputMaterials: ProductionMaterialRequirement[]
     wasteQuantity: number
@@ -428,6 +432,10 @@ export interface OperationEventPayloadMap {
     pathId: 'component_reclamation' | 'ritual_disassembly'
     sourceGradeId: EquipmentGradeId
     sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
     sourceCondition: 'operational' | 'damaged'
     outputMaterials: ProductionMaterialRequirement[]
     wasteQuantity: number

@@ -9,14 +9,34 @@ const RECOVERABLE_PRODUCTION_MATERIAL_IDS = new Set(
 )
 
 export type EquipmentDeconstructionProfile =
-  | Readonly<{ state: 'eligible'; itemId: string; rule: EquipmentGradeRecoveryRule }>
+  | Readonly<{
+      state: 'eligible'
+      itemId: string
+      rule: EquipmentGradeRecoveryRule
+      sourceAuthority: 'aggregate' | 'equipment_instance'
+    }>
   | Readonly<{ state: 'deferred'; itemId: string; reasonCode: 'recovery_profile_not_authored' }>
 
 const eligible = (
   itemId: string,
   rule: EquipmentGradeRecoveryRule
 ): EquipmentDeconstructionProfile =>
-  Object.freeze({ state: 'eligible', itemId, rule: Object.freeze(rule) })
+  Object.freeze({
+    state: 'eligible',
+    itemId,
+    rule: Object.freeze(rule),
+    sourceAuthority: 'aggregate',
+  })
+const eligibleInstance = (
+  itemId: string,
+  rule: EquipmentGradeRecoveryRule
+): EquipmentDeconstructionProfile =>
+  Object.freeze({
+    state: 'eligible',
+    itemId,
+    rule: Object.freeze(rule),
+    sourceAuthority: 'equipment_instance',
+  })
 const deferred = (itemId: string): EquipmentDeconstructionProfile =>
   Object.freeze({ state: 'deferred', itemId, reasonCode: 'recovery_profile_not_authored' })
 
@@ -58,6 +78,7 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
   }),
   eligible('medkits', medicalComponentReclamationRule()),
   eligible('trauma_kit', medicalComponentReclamationRule()),
+  eligibleInstance('combat_stims', medicalComponentReclamationRule()),
   eligible('signal_jammers', electronicComponentReclamationRule()),
   eligible('emf_sensors', electronicComponentReclamationRule()),
   eligible('environmental_sampler', electronicComponentReclamationRule()),
@@ -102,7 +123,6 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     'field_plate',
     'containment_staff',
     'hazmat_suit',
-    'combat_stims',
   ].map(deferred),
 ] as const satisfies readonly EquipmentDeconstructionProfile[])
 
@@ -129,6 +149,9 @@ export function validateEquipmentDeconstructionProfiles(
     if (!catalogById.has(profile.itemId))
       throw new Error(`Unknown equipment recovery item: ${profile.itemId}`)
     if (profile.state === 'deferred') continue
+    if (profile.sourceAuthority === 'equipment_instance' && profile.itemId !== 'combat_stims') {
+      throw new Error(`Unsupported equipment instance recovery profile: ${profile.itemId}`)
+    }
     const validation = validateEquipmentGradeRecoveryRule(profile.rule)
     if (!validation.valid) {
       throw new Error(

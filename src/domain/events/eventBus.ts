@@ -652,6 +652,24 @@ export function createEquipmentAutoScrapRoutedDraft(
   }
 }
 
+export function createEquipmentInstanceMaterializedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_materialized']
+): OperationEventDraft<'equipment.instance_materialized'> {
+  return { type: 'equipment.instance_materialized', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimActivatedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_activated']
+): OperationEventDraft<'equipment.combat_stim_activated'> {
+  return { type: 'equipment.combat_stim_activated', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimOverdriveExpiredDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_overdrive_expired']
+): OperationEventDraft<'equipment.combat_stim_overdrive_expired'> {
+  return { type: 'equipment.combat_stim_overdrive_expired', sourceSystem: 'agent', payload }
+}
+
 export function createMarketShiftedDraft(
   payload: OperationEventPayloadMap['market.shifted']
 ): OperationEventDraft<'market.shifted'> {
@@ -750,6 +768,11 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'production.queue_completed',
   'equipment.recovery_started',
   'equipment.recovery_completed',
+  'equipment.auto_scrap_policy_changed',
+  'equipment.auto_scrap_routed',
+  'equipment.instance_materialized',
+  'equipment.combat_stim_activated',
+  'equipment.combat_stim_overdrive_expired',
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',

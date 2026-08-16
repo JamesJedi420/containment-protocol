@@ -762,6 +762,121 @@ const equipmentRecoveryCompletedSchema = z
   .strict()
   .superRefine(refineEquipmentRecoveryEvent)
 
+const equipmentInstanceMaterializedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: idSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    locationState: z.enum(['stored', 'equipped']),
+    agentId: idSchema.optional(),
+    slot: idSchema.optional(),
+    resourceId: idSchema.optional(),
+    capacity: finiteNonNegativeIntSchema.optional(),
+    remaining: finiteNonNegativeIntSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'materialized instance must reference the equipment catalog',
+      })
+    }
+    const locationFields = [payload.agentId, payload.slot].filter((value) => value !== undefined)
+    if (
+      (payload.locationState === 'equipped' && locationFields.length !== 2) ||
+      (payload.locationState === 'stored' && locationFields.length !== 0)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['locationState'],
+        message: 'materialized location fields must match locationState',
+      })
+    }
+    const payloadFields = [payload.resourceId, payload.capacity, payload.remaining].filter(
+      (value) => value !== undefined
+    )
+    if (payloadFields.length !== 0 && payloadFields.length !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'materialized resource fields must be supplied together',
+      })
+    }
+    if (
+      payload.capacity !== undefined &&
+      payload.remaining !== undefined &&
+      payload.remaining > payload.capacity
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['remaining'],
+        message: 'materialized remaining resource cannot exceed capacity',
+      })
+    }
+    if (
+      payload.definitionId === 'combat_stims' &&
+      (payload.resourceId !== 'combat_stim_dose' ||
+        payload.capacity !== 2 ||
+        payload.remaining !== 2)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
+  })
+
+const combatStimActivatedSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    caseTitle: z.string().min(1),
+    dosesBefore: z.number().int().min(1).max(2),
+    dosesAfter: z.number().int().min(0).max(1),
+    underlyingBand: z.enum(['depleted', 'overdrawn']),
+    effectiveBand: z.enum(['taxed', 'depleted']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.dosesAfter !== payload.dosesBefore - 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['dosesAfter'],
+        message: 'Combat Stim activation must consume exactly one dose',
+      })
+    }
+    const expectedBand = payload.underlyingBand === 'overdrawn' ? 'depleted' : 'taxed'
+    if (payload.effectiveBand !== expectedBand) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['effectiveBand'],
+        message: 'Combat Stim activation must advance exactly one energy band',
+      })
+    }
+  })
+
+const combatStimOverdriveExpiredSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    recoveryDebt: finitePositiveIntSchema,
+  })
+  .strict()
+
 const equipmentAutoScrapPolicyChangedSchema = z
   .object({
     week: weekSchema,
@@ -1365,6 +1480,9 @@ export const operationEventPayloadSchemas = {
   'equipment.recovery_completed': equipmentRecoveryCompletedSchema,
   'equipment.auto_scrap_policy_changed': equipmentAutoScrapPolicyChangedSchema,
   'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
+  'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
+  'equipment.combat_stim_activated': combatStimActivatedSchema,
+  'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,

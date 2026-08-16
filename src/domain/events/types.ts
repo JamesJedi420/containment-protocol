@@ -454,6 +454,41 @@ export interface OperationEventPayloadMap {
       count: number
     }>
   }
+  'equipment.instance_materialized': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    locationState: 'stored' | 'equipped'
+    agentId?: Id
+    slot?: string
+    resourceId?: string
+    capacity?: number
+    remaining?: number
+  }
+  'equipment.combat_stim_activated': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    caseTitle: string
+    dosesBefore: number
+    dosesAfter: number
+    underlyingBand: 'depleted' | 'overdrawn'
+    effectiveBand: 'taxed' | 'depleted'
+  }
+  'equipment.combat_stim_overdrive_expired': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    recoveryDebt: number
+  }
   'market.shifted': {
     week: number
     featuredRecipeId: string
@@ -784,6 +819,9 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.recovery_completed': 'production'
   'equipment.auto_scrap_policy_changed': 'production'
   'equipment.auto_scrap_routed': 'production'
+  'equipment.instance_materialized': 'agent'
+  'equipment.combat_stim_activated': 'agent'
+  'equipment.combat_stim_overdrive_expired': 'agent'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -847,6 +885,9 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.recovery_completed': 'production',
   'equipment.auto_scrap_policy_changed': 'production',
   'equipment.auto_scrap_routed': 'production',
+  'equipment.instance_materialized': 'agent',
+  'equipment.combat_stim_activated': 'agent',
+  'equipment.combat_stim_overdrive_expired': 'agent',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

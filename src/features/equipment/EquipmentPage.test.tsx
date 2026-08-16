@@ -1,11 +1,16 @@
 // cspell:words lockdown unequip unequips
 import '../../test/setup'
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { equipStoredCombatStimInstance } from '../../domain/combatStim'
+import {
+  getEquipmentInstanceAtAgentSlot,
+  instantiateEquipmentInstance,
+} from '../../domain/equipmentInstance'
 import EquipmentPage from './EquipmentPage'
 
 function renderEquipmentPage() {
@@ -126,6 +131,98 @@ describe('EquipmentPage', () => {
 
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(1)
     expect(useGameStore.getState().game.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+  })
+
+  it('materializes Combat Stims and confirms an emergency dose while deployed', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const caseId = Object.keys(game.cases).sort()[0]
+    game.inventory.combat_stims = 1
+    game.agents.a_ava.equipmentSlots = {}
+    game.agents.a_ava.equipmentEffectScales = {}
+    game.cases[caseId] = {
+      ...game.cases[caseId],
+      kind: 'raid',
+      stage: 4,
+      status: 'in_progress',
+    }
+    useGameStore.setState({ game })
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', { name: /equip combat stims to ava brooks utility 1/i })
+    )
+    const materialized = useGameStore.getState().game
+    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
+    expect(
+      materialized.events.filter((event) => event.type === 'equipment.instance_materialized')
+    ).toHaveLength(1)
+    act(() => {
+      useGameStore.setState({
+        game: {
+          ...materialized,
+          agents: {
+            ...materialized.agents,
+            a_ava: {
+              ...materialized.agents.a_ava,
+              assignment: {
+                state: 'assigned',
+                caseId,
+                teamId: 't_nightwatch',
+                startedWeek: materialized.week,
+              },
+              energyBudget: {
+                currentReserve: 5,
+                reserveBand: 'depleted',
+                exertionDebt: 0,
+                estimateConfidence: 'high',
+              },
+            },
+          },
+        },
+      })
+    })
+
+    expect(screen.getByText(`Instance ${instanceId}`)).toBeInTheDocument()
+    expect(screen.getByText('2/2 doses')).toBeInTheDocument()
+    expect(screen.getByText(/effective energy depleted → taxed/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /review emergency dose/i }))
+    expect(
+      screen.getByRole('group', { name: /confirm combat stim activation/i })
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /confirm dose/i }))
+
+    expect(useGameStore.getState().game.equipmentInstances?.[instanceId].payload?.remaining).toBe(1)
+    expect(screen.getByText('1/2 doses')).toBeInTheDocument()
+    expect(screen.getByText(/combat stim overdrive active/i)).toBeInTheDocument()
+  })
+
+  it('offers and equips a different stored Combat Stim instance of the same definition', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    game.agents.a_ava.equipmentSlots = {}
+    game.agents.a_ava.equipmentEffectScales = {}
+    const first = instantiateEquipmentInstance(game, 'combat_stims')
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'combat_stims')
+    if (!second.ok) throw new Error(second.code)
+    const equipped = equipStoredCombatStimInstance(
+      second.state,
+      first.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+    useGameStore.setState({ game: equipped })
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', { name: /equip combat stims to ava brooks utility 1/i })
+    )
+
+    expect(
+      getEquipmentInstanceAtAgentSlot(useGameStore.getState().game, 'a_ava', 'utility1')?.instanceId
+    ).toBe(second.instance.instanceId)
   })
 
   it('previews and confirms canonical-grade equipment deconstruction', async () => {

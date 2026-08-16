@@ -5,6 +5,7 @@ import {
   getAgentEquipmentLoadoutViews,
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
+import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
 
 describe('getGearRecommendationsForActiveCases', () => {
   it('returns at most five unresolved cases sorted by stage then deadline', () => {
@@ -164,6 +165,27 @@ describe('getGearRecommendationsForActiveCases', () => {
         expect.objectContaining({
           itemId: 'signal_jammers',
           stock: 2,
+        }),
+      ])
+    )
+  })
+
+  it('surfaces stored Combat Stim instances as durable dose-aware choices', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 1
+    const created = instantiateEquipmentInstance(game, 'combat_stims')
+    if (!created.ok) throw new Error(created.code)
+
+    const ava = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_ava'
+    )
+    expect(ava?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemId: 'combat_stims',
+          instanceId: created.instance.instanceId,
+          doseLabel: '2/2 doses',
+          stock: 0,
         }),
       ])
     )

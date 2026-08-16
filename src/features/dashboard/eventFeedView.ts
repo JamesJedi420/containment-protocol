@@ -214,6 +214,9 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.recovery_completed': 'Equipment Recovery Complete',
   'equipment.auto_scrap_policy_changed': 'Auto-Scrap Policy Changed',
   'equipment.auto_scrap_routed': 'Auto-Scrap Routed',
+  'equipment.instance_materialized': 'Equipment Instance Materialized',
+  'equipment.combat_stim_activated': 'Combat Stim Activated',
+  'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
@@ -278,6 +281,9 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.recovery_completed': 'operations_logistics',
   'equipment.auto_scrap_policy_changed': 'operations_logistics',
   'equipment.auto_scrap_routed': 'operations_logistics',
+  'equipment.instance_materialized': 'operations_logistics',
+  'equipment.combat_stim_activated': 'personnel',
+  'equipment.combat_stim_overdrive_expired': 'personnel',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -878,6 +884,57 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'neutral',
         searchText:
           `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.instance_materialized': {
+      const materializedResourceDetail =
+        event.payload.resourceId !== undefined &&
+        event.payload.capacity !== undefined &&
+        event.payload.remaining !== undefined
+          ? ` / ${event.payload.remaining}/${event.payload.capacity} ${event.payload.resourceId}`
+          : ''
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} materialized`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId}${materializedResourceDetail}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.agentId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.combat_stim_activated':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} activated Combat Stims`,
+        detail: `Week ${event.payload.week} / ${event.payload.caseTitle} / Energy ${event.payload.underlyingBand} → ${event.payload.effectiveBand} / Doses ${event.payload.dosesBefore} → ${event.payload.dosesAfter}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_overdrive_expired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} Combat Stim overdrive expired`,
+        detail: `Week ${event.payload.week} / Recovery debt ${event.payload.recoveryDebt} tick(s) / Instance ${event.payload.instanceId}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
       }
 
     case 'equipment.recovery_completed':

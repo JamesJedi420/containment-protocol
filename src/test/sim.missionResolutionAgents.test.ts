@@ -231,6 +231,47 @@ describe('applyMissionResolutionAgentMutations', () => {
     expect(highResult.missionInjuries.length).toBeLessThanOrEqual(lowResult.missionInjuries.length)
   })
 
+  it('preserves Combat Stim overdrive through casualty resolution for canonical week-close expiry', () => {
+    const state = createStartingState()
+    const team = state.teams.t_nightwatch
+    const subjectId = team.agentIds[0]
+    const subject = {
+      ...state.agents[subjectId]!,
+      fatigue: 50,
+      status: 'active' as const,
+      overdrive: {
+        active: true,
+        remainingPhases: 1,
+        recoveryDebt: 2,
+        source: {
+          kind: 'combat_stim' as const,
+          activationId: 'combat-stim-equipment-instance-1-1-dose-1',
+          equipmentInstanceId: 'equipment-instance-1-1',
+          caseId: 'case-001',
+        },
+      },
+    }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, [subject.id]: subject },
+      assignedAgents: [subject],
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: state.week,
+      rng: () => 0.9,
+    })
+
+    expect(result.nextAgents[subjectId]?.overdrive).toMatchObject({
+      active: true,
+      source: { kind: 'combat_stim', equipmentInstanceId: 'equipment-instance-1-1' },
+    })
+  })
+
   it('transit vulnerability can trigger return-route ambush injury outside main fail roll', () => {
     const state = createStartingState()
     const team = state.teams['t_nightwatch']

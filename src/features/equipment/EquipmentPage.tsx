@@ -15,6 +15,8 @@ function EquipmentPage() {
   const {
     game,
     equipAgentItem,
+    equipStoredCombatStimInstance,
+    activateCombatStim,
     unequipAgentItem,
     queueEquipmentDeconstruction,
     enableEquipmentAutoScrap,
@@ -30,6 +32,7 @@ function EquipmentPage() {
   )
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
+  const [pendingCombatStimInstanceId, setPendingCombatStimInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
   >(
@@ -399,6 +402,20 @@ function EquipmentPage() {
                             {slot.slotLabel}
                           </p>
                           <p className="font-medium">{slot.itemName}</p>
+                          {slot.instanceId ? (
+                            <p className="text-xs opacity-60">Instance {slot.instanceId}</p>
+                          ) : null}
+                          {slot.doseLabel ? (
+                            <p className="text-xs font-medium text-cyan-100">{slot.doseLabel}</p>
+                          ) : null}
+                          {slot.effectiveEnergyLabel ? (
+                            <p className="text-xs opacity-70">
+                              Effective energy {slot.effectiveEnergyLabel}
+                            </p>
+                          ) : null}
+                          {slot.overdriveLabel ? (
+                            <p className="text-xs text-amber-200">{slot.overdriveLabel}</p>
+                          ) : null}
                           <p className="text-xs opacity-60">
                             {slot.tags.length > 0 ? slot.tags.join(', ') : 'No gear tags'}
                           </p>
@@ -417,23 +434,90 @@ function EquipmentPage() {
                         ) : null}
                       </div>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {slot.stockOptions.filter((option) => option.itemId !== slot.itemId)
-                          .length > 0 ? (
-                          slot.stockOptions
-                            .filter((option) => option.itemId !== slot.itemId)
-                            .map((option) => (
+                      {slot.instanceId && slot.combatStimActivation ? (
+                        <div className="mt-3 rounded border border-cyan-300/20 p-2">
+                          {slot.combatStimActivation.available ? (
+                            pendingCombatStimInstanceId === slot.instanceId ? (
+                              <div
+                                className="space-y-2"
+                                role="group"
+                                aria-label="Confirm Combat Stim activation"
+                              >
+                                <p className="text-xs">
+                                  Consume one dose for one-phase emergency overdrive?
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs"
+                                    onClick={() => {
+                                      activateCombatStim(slot.instanceId!)
+                                      setPendingCombatStimInstanceId(undefined)
+                                    }}
+                                  >
+                                    Confirm dose
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost"
+                                    onClick={() => setPendingCombatStimInstanceId(undefined)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
                               <button
-                                key={`${view.agentId}-${slot.slot}-${option.itemId}`}
                                 type="button"
                                 className="btn btn-xs"
-                                onClick={() =>
-                                  equipAgentItem(view.agentId, slot.slot, option.itemId)
-                                }
+                                onClick={() => setPendingCombatStimInstanceId(slot.instanceId)}
+                              >
+                                Review emergency dose
+                              </button>
+                            )
+                          ) : (
+                            <p className="text-xs opacity-70">
+                              {slot.combatStimActivation.blocker}
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {slot.stockOptions.filter((option) =>
+                          option.instanceId
+                            ? option.instanceId !== slot.instanceId
+                            : option.itemId !== slot.itemId
+                        ).length > 0 ? (
+                          slot.stockOptions
+                            .filter((option) =>
+                              option.instanceId
+                                ? option.instanceId !== slot.instanceId
+                                : option.itemId !== slot.itemId
+                            )
+                            .map((option) => (
+                              <button
+                                key={`${view.agentId}-${slot.slot}-${option.instanceId ?? option.itemId}`}
+                                type="button"
+                                className="btn btn-xs"
+                                onClick={() => {
+                                  if (option.instanceId) {
+                                    equipStoredCombatStimInstance(
+                                      option.instanceId,
+                                      view.agentId,
+                                      slot.slot
+                                    )
+                                  } else {
+                                    equipAgentItem(view.agentId, slot.slot, option.itemId)
+                                  }
+                                }}
                                 disabled={!view.editable}
                                 aria-label={`Equip ${option.itemName} to ${view.agentName} ${slot.slotLabel}`}
                               >
-                                {option.itemName} ({option.stock})
+                                {option.itemName}{' '}
+                                {option.instanceId
+                                  ? `${option.instanceId} · ${option.doseLabel}`
+                                  : `(${option.stock})`}
                               </button>
                             ))
                         ) : (

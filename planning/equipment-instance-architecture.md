@@ -22,6 +22,19 @@ unequip and replacement store the instance, while direct transfer moves the same
 The foundation exposes no generic delete or inventory-credit operation. This prevents callers from
 silently converting a durable object back into aggregate stock.
 
+## Combat Stim governed payload (SPE-2829)
+
+`combat_stims` is the first governed instance payload consumer. Materialization always creates
+`combat_stim_dose` at exactly 2/2. Generic compare-and-swap transitions cannot initialize an
+alternate payload, consume a dose, or refill it; the explicit activation command is the only
+decrement authority. Partially used and empty instances keep their immutable identity and may move
+between storage and compatible loadout slots without returning to aggregate stock.
+
+An equipped operational instance can self-activate only for its active responder during an
+unresolved raid or Stage IV+ assignment, at depleted/overdrawn underlying energy, outside active
+overdrive/recovery lockout, and without `stimulant-prohibited`. The instance ID remains the durable
+provenance anchor for activation, overdrive, events, UI, and save/load.
+
 ## Compatibility and hydration
 
 Definition-only loadouts remain supported. When a valid instance claims an agent slot, its location
@@ -31,6 +44,7 @@ independently. Missing registry state becomes `{}` without a save-version change
 
 ## Deferred consumers
 
-Combat Stim consumption, facility replenishment, readiness/access, maintenance, loss, destruction,
-repair, mutation, and instance-aware recovery require separate children and their owning domain
-authorities. Condition and payload storage alone do not imply those mechanics.
+Facility replenishment, readiness/access, maintenance, loss, destruction, repair, mutation, and
+instance-aware recovery require separate children and their owning domain authorities. Combat Stim
+overdrive adds depletion only; it does not imply refill, healing, overdose, re-aggregation, or
+salvage mechanics.

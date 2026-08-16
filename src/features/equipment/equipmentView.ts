@@ -31,6 +31,21 @@ import {
   getEquipmentAutoScrapReasonLabel,
   resolveEquipmentAutoScrapPreview,
 } from '../../domain/equipmentAutoScrap'
+import {
+  getCombatStimActivationReasonLabel,
+  listStoredCombatStimInstances,
+  resolveCombatStimActivation,
+  resolveEffectiveResponderEnergyBand,
+} from '../../domain/combatStim'
+import {
+  COMBAT_STIM_DEFINITION_ID,
+  getEquipmentInstanceAtAgentSlot,
+  isCanonicalCombatStimPayload,
+} from '../../domain/equipmentInstance'
+import {
+  createDefaultResponderEnergyBudget,
+  normalizeEnergyBudget,
+} from '../../domain/responderEnergyBudget'
 
 export interface GearRecommendation {
   caseId: string
@@ -49,6 +64,8 @@ export interface EquipmentLoadoutOptionView {
   itemName: string
   tags: string[]
   stock: number
+  instanceId?: string
+  doseLabel?: string
 }
 
 export interface EquipmentLoadoutSlotView {
@@ -57,6 +74,14 @@ export interface EquipmentLoadoutSlotView {
   itemId?: string
   itemName: string
   tags: string[]
+  instanceId?: string
+  doseLabel?: string
+  effectiveEnergyLabel?: string
+  combatStimActivation?: {
+    available: boolean
+    blocker?: string
+  }
+  overdriveLabel?: string
   stockOptions: EquipmentLoadoutOptionView[]
 }
 
@@ -362,24 +387,72 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
         readiness: buildAgentLoadoutReadinessSummary(agent, { state: game }),
         slots: EQUIPMENT_SLOT_KINDS.map((slot) => {
           const itemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
+          const equippedInstance = getEquipmentInstanceAtAgentSlot(game, agent.id, slot)
+          const combatStimActivation =
+            equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID
+              ? resolveCombatStimActivation(game, equippedInstance.instanceId)
+              : undefined
+          const compatibleDefinitions = getRoleCompatibleEquipmentDefinitions(slot, agent.role)
+          const compatibleIds = new Set(compatibleDefinitions.map((definition) => definition.id))
+          const storedCombatStims = compatibleIds.has(COMBAT_STIM_DEFINITION_ID)
+            ? listStoredCombatStimInstances(game).map((instance) => ({
+                itemId: instance.definitionId,
+                itemName: getEquipmentLabel(instance.definitionId),
+                tags: getCompatibleItemTags(instance.definitionId),
+                stock: 0,
+                instanceId: instance.instanceId,
+                doseLabel: isCanonicalCombatStimPayload(instance.payload)
+                  ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
+                  : 'Dose state unavailable',
+              }))
+            : []
           return {
             slot,
             slotLabel: EQUIPMENT_SLOT_LABELS[slot],
             itemId,
             itemName: itemId ? getEquipmentLabel(itemId) : 'Empty slot',
             tags: itemId ? getCompatibleItemTags(itemId) : [],
-            stockOptions: getRoleCompatibleEquipmentDefinitions(slot, agent.role)
-              .map((definition) => ({
-                itemId: definition.id,
-                itemName: definition.name,
-                tags: [...definition.tags],
-                stock: Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0)),
-              }))
-              .filter((option) => option.stock > 0)
-              .sort(
-                (left, right) =>
-                  right.stock - left.stock || left.itemName.localeCompare(right.itemName)
-              ),
+            instanceId: equippedInstance?.instanceId,
+            doseLabel:
+              equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID
+                ? isCanonicalCombatStimPayload(equippedInstance.payload)
+                  ? `${equippedInstance.payload.remaining}/${equippedInstance.payload.capacity} doses`
+                  : 'Dose state unavailable'
+                : undefined,
+            effectiveEnergyLabel:
+              equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID
+                ? `${normalizeEnergyBudget(agent.energyBudget ?? createDefaultResponderEnergyBudget()).reserveBand} → ${combatStimActivation?.effectiveBand ?? resolveEffectiveResponderEnergyBand(agent)}`
+                : undefined,
+            combatStimActivation: combatStimActivation
+              ? {
+                  available: combatStimActivation.available,
+                  blocker: combatStimActivation.reasonCode
+                    ? getCombatStimActivationReasonLabel(combatStimActivation.reasonCode)
+                    : undefined,
+                }
+              : undefined,
+            overdriveLabel:
+              equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID &&
+              agent.overdrive?.source?.kind === 'combat_stim'
+                ? agent.overdrive.active
+                  ? 'Combat Stim overdrive active'
+                  : `Combat Stim recovery debt: ${agent.overdrive.recoveryDebt}`
+                : undefined,
+            stockOptions: [
+              ...compatibleDefinitions
+                .map((definition) => ({
+                  itemId: definition.id,
+                  itemName: definition.name,
+                  tags: [...definition.tags],
+                  stock: Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0)),
+                }))
+                .filter((option) => option.stock > 0)
+                .sort(
+                  (left, right) =>
+                    right.stock - left.stock || left.itemName.localeCompare(right.itemName)
+                ),
+              ...storedCombatStims,
+            ],
           } satisfies EquipmentLoadoutSlotView
         }),
       } satisfies AgentEquipmentLoadoutView

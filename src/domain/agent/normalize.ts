@@ -28,10 +28,7 @@ import { createDefaultFatigueChannels } from '../agentFatigueChannels'
 import { normalizeEnergyBudget } from '../responderEnergyBudget'
 import { isAgentAttritionUnavailable } from './attrition'
 import { getEquipmentCatalogEntries } from '../equipment'
-import {
-  PERFORMANCE_PENALTY_MULTIPLIER,
-  reconcileAgentBetrayedFields,
-} from '../sim/betrayal'
+import { PERFORMANCE_PENALTY_MULTIPLIER, reconcileAgentBetrayedFields } from '../sim/betrayal'
 import { reconcileAgentInstructorAssignmentFields } from '../sim/instructorAssignment'
 import { reconcileAgentRelationshipChangedFields } from '../sim/relationshipProjection'
 import {
@@ -86,11 +83,7 @@ import type {
 import type { OperationEvent, OperationEventType } from '../events/types'
 
 const LEGACY_STAT_DOMAINS = ['combat', 'investigation', 'utility', 'social'] as const
-const TRAIT_MODIFIER_KEYS = new Set<string>([
-  ...LEGACY_STAT_DOMAINS,
-  ...STAT_DOMAINS,
-  'overall',
-])
+const TRAIT_MODIFIER_KEYS = new Set<string>([...LEGACY_STAT_DOMAINS, ...STAT_DOMAINS, 'overall'])
 const VALID_OPERATION_EVENT_TYPES = new Set(
   Object.keys(operationEventPayloadSchemas) as OperationEventType[]
 )
@@ -140,7 +133,11 @@ const SIDE_WORK_OPTION_IDS = new Set<AgentDowntimeSideWorkLast['optionId']>([
   'offBooksCourier',
   'trustedCourier',
 ])
-const SIDE_WORK_OUTCOMES = new Set<AgentDowntimeSideWorkLast['outcome']>(['paid', 'lockout', 'denied'])
+const SIDE_WORK_OUTCOMES = new Set<AgentDowntimeSideWorkLast['outcome']>([
+  'paid',
+  'lockout',
+  'denied',
+])
 const SKILL_SPECIALIZATIONS = new Set<NonNullable<SkillTree['specialization']>>([
   'combat',
   'investigation',
@@ -153,9 +150,7 @@ const PORTRAIT_ID_PATTERN = /^portrait-[a-z0-9-]+$/
 const KNOWN_CERTIFICATION_IDS = new Set(
   getCertificationDefinitions().map((definition) => definition.certificationId)
 )
-const KNOWN_TRAINING_PROGRAM_IDS = new Set(
-  trainingCatalog.map((program) => program.trainingId)
-)
+const KNOWN_TRAINING_PROGRAM_IDS = new Set(trainingCatalog.map((program) => program.trainingId))
 const TRAINING_HISTORY_MAX_ENTRIES = 24
 const ATTRITION_STATUSES = new Set<AgentAttritionStatus>([
   'active',
@@ -201,7 +196,10 @@ function finiteNonNegativeInt(value: unknown, fallback: number) {
 
 function finiteLevel(value: unknown, fallback: number) {
   const level = finiteNonNegativeInt(value, fallback)
-  return Math.min(PROGRESSION_MAX_LEVEL, Math.max(PROGRESSION_MIN_LEVEL, level || PROGRESSION_MIN_LEVEL))
+  return Math.min(
+    PROGRESSION_MAX_LEVEL,
+    Math.max(PROGRESSION_MIN_LEVEL, level || PROGRESSION_MIN_LEVEL)
+  )
 }
 
 function finiteWeekValue(value: unknown, fallback?: number) {
@@ -253,8 +251,7 @@ function isKnownFailedAttemptKey(key: string) {
 function isAllowedTimelineEventType(value: unknown): value is AgentHistoryEntry['eventType'] {
   return (
     value === 'simulation.weekly_tick' ||
-    (typeof value === 'string' &&
-      VALID_OPERATION_EVENT_TYPES.has(value as OperationEventType))
+    (typeof value === 'string' && VALID_OPERATION_EVENT_TYPES.has(value as OperationEventType))
   )
 }
 
@@ -359,7 +356,9 @@ function normalizeTrauma(trauma: Agent['trauma'] | undefined): AgentTraumaState 
       : 1
   const traumaTags = [
     ...new Set(
-      (trauma.traumaTags ?? []).filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
+      (trauma.traumaTags ?? []).filter(
+        (tag): tag is string => typeof tag === 'string' && tag.length > 0
+      )
     ),
   ]
 
@@ -392,8 +391,9 @@ function normalizeDowntimeActivity(
       : 1
   const foregoneThisInterval = [
     ...new Set(
-      (downtimeActivity.foregoneThisInterval ?? []).filter((entry): entry is AgentDowntimeActivity['activity'] =>
-        DOWNTIME_ACTIVITIES.has(entry as AgentDowntimeActivity['activity'])
+      (downtimeActivity.foregoneThisInterval ?? []).filter(
+        (entry): entry is AgentDowntimeActivity['activity'] =>
+          DOWNTIME_ACTIVITIES.has(entry as AgentDowntimeActivity['activity'])
       )
     ),
   ]
@@ -457,10 +457,7 @@ function normalizeFatigueChannels(
     capabilityUsesThisPhase: Math.max(
       0,
       Math.trunc(
-        finiteNonNegativeNumber(
-          channels.capabilityUsesThisPhase,
-          fallback.capabilityUsesThisPhase
-        )
+        finiteNonNegativeNumber(channels.capabilityUsesThisPhase, fallback.capabilityUsesThisPhase)
       )
     ),
   }
@@ -477,15 +474,19 @@ function normalizeFatigueChannels(
   return normalized
 }
 
-function normalizeOverdrive(overdrive: Agent['overdrive'] | undefined): AgentOverdriveState | undefined {
+function normalizeOverdrive(
+  overdrive: Agent['overdrive'] | undefined
+): AgentOverdriveState | undefined {
   if (!overdrive || typeof overdrive !== 'object') {
     return undefined
   }
 
-  const normalized = {
+  const source = normalizeOverdriveSource(overdrive.source)
+  const normalized: AgentOverdriveState = {
     active: overdrive.active === true,
     remainingPhases: Math.max(0, Math.trunc(finiteNonNegativeNumber(overdrive.remainingPhases, 0))),
     recoveryDebt: Math.max(0, Math.trunc(finiteNonNegativeNumber(overdrive.recoveryDebt, 0))),
+    ...(source ? { source } : {}),
   }
 
   if (!normalized.active && normalized.remainingPhases <= 0 && normalized.recoveryDebt <= 0) {
@@ -493,6 +494,31 @@ function normalizeOverdrive(overdrive: Agent['overdrive'] | undefined): AgentOve
   }
 
   return normalized
+}
+
+function normalizeOverdriveSource(value: unknown): AgentOverdriveState['source'] | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const source = value as Record<string, unknown>
+  if (
+    Object.keys(source).some(
+      (key) => !['kind', 'activationId', 'equipmentInstanceId', 'caseId'].includes(key)
+    ) ||
+    source.kind !== 'combat_stim' ||
+    typeof source.activationId !== 'string' ||
+    source.activationId.length === 0 ||
+    typeof source.equipmentInstanceId !== 'string' ||
+    source.equipmentInstanceId.length === 0 ||
+    typeof source.caseId !== 'string' ||
+    source.caseId.length === 0
+  ) {
+    return undefined
+  }
+  return {
+    kind: 'combat_stim',
+    activationId: source.activationId,
+    equipmentInstanceId: source.equipmentInstanceId,
+    caseId: source.caseId,
+  }
 }
 
 function normalizeTrustDamageByAgent(
@@ -768,11 +794,11 @@ function normalizeTrainingHistory(
     .filter((entry) =>
       Boolean(
         entry &&
-          typeof entry.trainingId === 'string' &&
-          entry.trainingId.length > 0 &&
-          KNOWN_TRAINING_PROGRAM_IDS.has(entry.trainingId) &&
-          typeof entry.week === 'number' &&
-          Number.isFinite(entry.week)
+        typeof entry.trainingId === 'string' &&
+        entry.trainingId.length > 0 &&
+        KNOWN_TRAINING_PROGRAM_IDS.has(entry.trainingId) &&
+        typeof entry.week === 'number' &&
+        Number.isFinite(entry.week)
       )
     )
     .map((entry) => ({
@@ -793,8 +819,7 @@ function normalizeTrainingHistory(
       return true
     })
     .sort(
-      (left, right) =>
-        left.week - right.week || left.trainingId.localeCompare(right.trainingId)
+      (left, right) => left.week - right.week || left.trainingId.localeCompare(right.trainingId)
     )
     .slice(-TRAINING_HISTORY_MAX_ENTRIES)
 }
@@ -814,9 +839,7 @@ function normalizeCertProgress(progress: AgentProgression['certProgress']) {
   ) as NonNullable<AgentProgression['certProgress']>
 }
 
-function normalizeFailedAttempts(
-  failedAttempts: AgentProgression['failedAttemptsByTrainingId']
-) {
+function normalizeFailedAttempts(failedAttempts: AgentProgression['failedAttemptsByTrainingId']) {
   return Object.fromEntries(
     Object.entries(failedAttempts ?? {})
       .filter(
@@ -844,11 +867,7 @@ export function normalizeCertifications(certifications: AgentProgression['certif
       .map(([certificationId, certification]) => {
         const awardedWeek = finiteWeekValue(certification?.awardedWeek)
         let expiresWeek = finiteWeekValue(certification?.expiresWeek)
-        if (
-          awardedWeek !== undefined &&
-          expiresWeek !== undefined &&
-          expiresWeek < awardedWeek
-        ) {
+        if (awardedWeek !== undefined && expiresWeek !== undefined && expiresWeek < awardedWeek) {
           expiresWeek = awardedWeek
         }
 
@@ -856,9 +875,7 @@ export function normalizeCertifications(certifications: AgentProgression['certif
           ...new Set(
             (certification?.sourceTrainingIds ?? []).filter(
               (entry): entry is string =>
-                typeof entry === 'string' &&
-                entry.length > 0 &&
-                Boolean(getTrainingProgram(entry))
+                typeof entry === 'string' && entry.length > 0 && Boolean(getTrainingProgram(entry))
             )
           ),
         ]
@@ -930,7 +947,8 @@ function normalizeTrainingProfile(
   const trainingStartedWeek = finiteWeekValue(source?.trainingStartedWeek)
   let trainingEtaWeek = finiteWeekValue(source?.trainingEtaWeek)
   const trainingQueuePosition =
-    typeof source?.trainingQueuePosition === 'number' && Number.isFinite(source.trainingQueuePosition)
+    typeof source?.trainingQueuePosition === 'number' &&
+    Number.isFinite(source.trainingQueuePosition)
       ? Math.max(1, Math.trunc(source.trainingQueuePosition))
       : undefined
 
@@ -943,9 +961,7 @@ function normalizeTrainingProfile(
   }
 
   const requiresAssignment =
-    trainingStatus === 'queued' ||
-    trainingStatus === 'in_progress' ||
-    trainingStatus === 'blocked'
+    trainingStatus === 'queued' || trainingStatus === 'in_progress' || trainingStatus === 'blocked'
 
   const normalizedAssignedTrainingId =
     trainingStatus === 'idle' || (requiresAssignment && !assignedTrainingId)
@@ -954,16 +970,14 @@ function normalizeTrainingProfile(
 
   const normalizedStartedWeek =
     normalizedAssignedTrainingId === undefined ? undefined : trainingStartedWeek
-  const normalizedEtaWeek =
-    normalizedAssignedTrainingId === undefined ? undefined : trainingEtaWeek
+  const normalizedEtaWeek = normalizedAssignedTrainingId === undefined ? undefined : trainingEtaWeek
   const normalizedQueuePosition =
     normalizedAssignedTrainingId === undefined ? undefined : trainingQueuePosition
 
   return {
     agentId: agent.id,
     currentRole: role,
-    trainingStatus:
-      requiresAssignment && !normalizedAssignedTrainingId ? 'idle' : trainingStatus,
+    trainingStatus: requiresAssignment && !normalizedAssignedTrainingId ? 'idle' : trainingStatus,
     readinessImpact:
       typeof source?.readinessImpact === 'number' && Number.isFinite(source.readinessImpact)
         ? clamp(source.readinessImpact, -100, 100)
@@ -1161,7 +1175,10 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     return null
   }
 
-  if (typeof entry.type !== 'string' || !VALID_OPERATION_EVENT_TYPES.has(entry.type as OperationEventType)) {
+  if (
+    typeof entry.type !== 'string' ||
+    !VALID_OPERATION_EVENT_TYPES.has(entry.type as OperationEventType)
+  ) {
     return null
   }
 
@@ -1194,10 +1211,7 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
                     (
                       consequence
                     ): consequence is
-                      | 'benching'
-                      | 'performance_penalty'
-                      | 'disciplinary'
-                      | 'resignation' =>
+                      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
                       consequence === 'benching' ||
                       consequence === 'performance_penalty' ||
                       consequence === 'disciplinary' ||
@@ -1354,19 +1368,13 @@ function normalizeAgentHistory(
     anomalyExposures: Math.max(
       0,
       Math.trunc(
-        finiteNonNegativeNumber(
-          rawCounters?.anomalyExposures,
-          fallback.counters.anomalyExposures
-        )
+        finiteNonNegativeNumber(rawCounters?.anomalyExposures, fallback.counters.anomalyExposures)
       )
     ),
     evidenceRecovered: Math.max(
       0,
       Math.trunc(
-        finiteNonNegativeNumber(
-          rawCounters?.evidenceRecovered,
-          fallback.counters.evidenceRecovered
-        )
+        finiteNonNegativeNumber(rawCounters?.evidenceRecovered, fallback.counters.evidenceRecovered)
       )
     ),
   }
@@ -1380,7 +1388,10 @@ function normalizeAgentHistory(
     trainingsDone,
     bonds: Object.fromEntries(
       Object.entries(history?.bonds ?? {})
-        .filter(([counterpartId, value]) => isKnownRosterAlly(counterpartId) && typeof value === 'number' && Number.isFinite(value))
+        .filter(
+          ([counterpartId, value]) =>
+            isKnownRosterAlly(counterpartId) && typeof value === 'number' && Number.isFinite(value)
+        )
         .map(([counterpartId, value]) => [counterpartId, clamp(value, -100, 100)])
     ),
     performanceStats: normalizePerformanceStats(history),
@@ -1419,11 +1430,7 @@ function normalizeAgentHistory(
   }
 }
 
-function clampServiceRecordWeek(
-  value: number | undefined,
-  minWeek: number,
-  campaignWeek?: number
-) {
+function clampServiceRecordWeek(value: number | undefined, minWeek: number, campaignWeek?: number) {
   const week = normalizeWeek(value)
   if (week === undefined) {
     return undefined
@@ -1463,11 +1470,8 @@ function normalizeAgentServiceRecord(
     agent.serviceRecord ?? createDefaultAgentServiceRecord(earliestTimelineWeek ?? 1)
 
   const joinedWeek =
-    clampServiceRecordWeek(
-      serviceRecord.joinedWeek ?? earliestTimelineWeek,
-      1,
-      campaignWeek
-    ) ?? createDefaultAgentServiceRecord().joinedWeek
+    clampServiceRecordWeek(serviceRecord.joinedWeek ?? earliestTimelineWeek, 1, campaignWeek) ??
+    createDefaultAgentServiceRecord().joinedWeek
   const lastAssignmentWeek = clampServiceRecordWeek(
     serviceRecord.lastAssignmentWeek ??
       (assignment.state === 'assigned' ? assignment.startedWeek : undefined) ??
@@ -1591,8 +1595,7 @@ export function reconcileAgentAssignmentAgainstGame(
 
   if (assignment.state === 'training') {
     const trainingProgramId = assignment.trainingProgramId
-    const teamId =
-      assignment.teamId && assignment.teamId in teams ? assignment.teamId : undefined
+    const teamId = assignment.teamId && assignment.teamId in teams ? assignment.teamId : undefined
 
     if (trainingProgramId && !getTrainingProgram(trainingProgramId)) {
       return {
@@ -1701,15 +1704,14 @@ function normalizeEquipmentEffectScales(effectScales: Agent['equipmentEffectScal
   const knownEquipmentIds = getKnownEquipmentIds()
 
   return Object.fromEntries(
-    Object.entries(effectScales ?? {})
-      .filter(
-        ([itemId, value]) =>
-          knownEquipmentIds.has(itemId) &&
-          typeof value === 'number' &&
-          Number.isFinite(value) &&
-          Number.isInteger(value) &&
-          value > 0
-      )
+    Object.entries(effectScales ?? {}).filter(
+      ([itemId, value]) =>
+        knownEquipmentIds.has(itemId) &&
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        Number.isInteger(value) &&
+        value > 0
+    )
   )
 }
 
@@ -1718,8 +1720,7 @@ function normalizeEquipmentSlots(equipmentSlots: Agent['equipmentSlots']): Equip
 
   return Object.fromEntries(
     Object.entries(equipmentSlots ?? {}).filter(
-      ([, value]) =>
-        typeof value === 'string' && value.length > 0 && knownEquipmentIds.has(value)
+      ([, value]) => typeof value === 'string' && value.length > 0 && knownEquipmentIds.has(value)
     )
   )
 }
@@ -1971,9 +1972,7 @@ export function normalizeAgent(agent: Agent, options: NormalizeAgentOptions = {}
   const copingStreak = normalizeCopingStreak(agent.copingStreak)
   const fatigueChannels = normalizeFatigueChannels(agent.fatigueChannels)
   const overdrive = normalizeOverdrive(agent.overdrive)
-  const energyBudget = agent.energyBudget
-    ? normalizeEnergyBudget(agent.energyBudget)
-    : undefined
+  const energyBudget = agent.energyBudget ? normalizeEnergyBudget(agent.energyBudget) : undefined
   const recoveryRateBonus =
     typeof agent.recoveryRateBonus === 'number' && Number.isFinite(agent.recoveryRateBonus)
       ? Math.max(0, agent.recoveryRateBonus)
@@ -2010,7 +2009,10 @@ export function normalizeAgent(agent: Agent, options: NormalizeAgentOptions = {}
       ...new Set((agent.tags ?? []).filter((tag) => typeof tag === 'string' && tag.length > 0)),
     ],
     relationships: normalizeRelationships(agent),
-    trustDamageByAgent: normalizeTrustDamageByAgent(agent.trustDamageByAgent, options.knownAgentIds),
+    trustDamageByAgent: normalizeTrustDamageByAgent(
+      agent.trustDamageByAgent,
+      options.knownAgentIds
+    ),
     trustConsequenceStack,
     performancePenaltyMultiplier: normalizePerformancePenaltyMultiplier(
       agent.performancePenaltyMultiplier,

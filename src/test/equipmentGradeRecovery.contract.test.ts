@@ -317,13 +317,14 @@ describe('equipment-grade recovery contract', () => {
       },
     }
 
+    const blockedSources = resolveEquipmentDeconstructionSources(state, 'combat_stims').filter(
+      (choice) => choice.source.kind === 'equipment_instance'
+    )
     const issues = Object.fromEntries(
-      resolveEquipmentDeconstructionSources(state, 'combat_stims')
-        .filter((choice) => choice.source.kind === 'equipment_instance')
-        .map((choice) => [
-          choice.source.kind === 'equipment_instance' ? choice.source.instanceId : '',
-          choice.issueCode,
-        ])
+      blockedSources.map((choice) => [
+        choice.source.kind === 'equipment_instance' ? choice.source.instanceId : '',
+        choice.issueCode,
+      ])
     )
     expect(issues).toEqual({
       'equipment-instance-debt': 'equipment_instance_active_overdrive',
@@ -333,6 +334,7 @@ describe('equipment-grade recovery contract', () => {
       'equipment-instance-partial': 'equipment_instance_has_live_doses',
       constructor: 'equipment_instance_not_found',
     })
+    expect(blockedSources.every((choice) => choice.quantity === 0 && !choice.available)).toBe(true)
     for (const instanceId of Object.keys(state.equipmentInstances)) {
       expect(
         queueEquipmentDeconstruction(state, 'combat_stims', {

@@ -273,32 +273,34 @@ export function resolveEquipmentDeconstructionSources(
       })
     )
   }
-  for (const instance of Object.values(state.equipmentInstances ?? {})
-    .filter((candidate) => candidate.definitionId === itemId)
-    .sort((left, right) => compareCodeUnits(left.instanceId, right.instanceId))) {
-    const issueCode =
-      resolveInstanceIssue(state, instance, profile) ??
-      (catalogProjection.state !== 'graded' ? 'recovery_unavailable' : undefined)
-    const payload = isCanonicalCombatStimPayload(instance.payload) ? instance.payload : undefined
-    choices.push(
-      Object.freeze({
-        source: Object.freeze({
-          kind: 'equipment_instance' as const,
-          instanceId: instance.instanceId,
-        }),
-        label: payload
-          ? `Equipment instance ${instance.instanceId} / ${payload.remaining} of ${payload.capacity} doses`
-          : `Equipment instance ${instance.instanceId} / dose state unavailable`,
-        quantity: 1,
-        available: !issueCode,
-        gradeProjection: catalogProjection,
-        condition: instance.condition,
-        ...(payload
-          ? { resourceRemaining: payload.remaining, resourceCapacity: payload.capacity }
-          : {}),
-        ...(issueCode ? { issueCode } : {}),
-      })
-    )
+  if (profile?.state === 'eligible' && profile.sourceAuthority === 'equipment_instance') {
+    for (const instance of Object.values(state.equipmentInstances ?? {})
+      .filter((candidate) => candidate.definitionId === itemId)
+      .sort((left, right) => compareCodeUnits(left.instanceId, right.instanceId))) {
+      const issueCode =
+        resolveInstanceIssue(state, instance, profile) ??
+        (catalogProjection.state !== 'graded' ? 'recovery_unavailable' : undefined)
+      const payload = isCanonicalCombatStimPayload(instance.payload) ? instance.payload : undefined
+      choices.push(
+        Object.freeze({
+          source: Object.freeze({
+            kind: 'equipment_instance' as const,
+            instanceId: instance.instanceId,
+          }),
+          label: payload
+            ? `Equipment instance ${instance.instanceId} / ${payload.remaining} of ${payload.capacity} doses`
+            : `Equipment instance ${instance.instanceId} / dose state unavailable`,
+          quantity: issueCode ? 0 : 1,
+          available: !issueCode,
+          gradeProjection: catalogProjection,
+          condition: instance.condition,
+          ...(payload
+            ? { resourceRemaining: payload.remaining, resourceCapacity: payload.capacity }
+            : {}),
+          ...(issueCode ? { issueCode } : {}),
+        })
+      )
+    }
   }
   return Object.freeze(choices)
 }

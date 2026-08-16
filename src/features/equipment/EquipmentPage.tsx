@@ -250,7 +250,11 @@ function EquipmentPage() {
                           }}
                         >
                           {view.sources.map((source) => (
-                            <option key={source.value} value={source.value}>
+                            <option
+                              key={source.value}
+                              value={source.value}
+                              disabled={!source.available}
+                            >
                               {source.label} — {source.gradeLabel} — {source.quantity} available
                             </option>
                           ))}

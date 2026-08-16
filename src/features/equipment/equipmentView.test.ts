@@ -32,6 +32,23 @@ describe('getEquipmentDeconstructionViews', () => {
       conditionLabel: 'Operational',
     })
   })
+
+  it('does not expose dead recovery rows for instances without instance recovery authority', () => {
+    const game = createStartingState()
+    game.inventory.medkits = 0
+    game.equipmentInstances = {
+      'equipment-instance-medkit': {
+        instanceId: 'equipment-instance-medkit',
+        definitionId: 'medkits',
+        location: { state: 'stored' },
+        condition: 'operational',
+      },
+    }
+
+    expect(
+      getEquipmentDeconstructionViews(game).find((candidate) => candidate.itemId === 'medkits')
+    ).toBeUndefined()
+  })
 })
 
 describe('getGearRecommendationsForActiveCases', () => {

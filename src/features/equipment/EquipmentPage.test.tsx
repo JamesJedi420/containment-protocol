@@ -334,13 +334,16 @@ describe('EquipmentPage', () => {
     expect(
       screen.getByRole('button', { name: /review deconstruction combat stims/i })
     ).toBeDisabled()
-    await user.selectOptions(sourceSelect, 'instance:equipment-instance-partial')
     expect(
-      screen.getByText(/live combat stim doses must be used or disposed separately/i)
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /review deconstruction combat stims/i })
+      screen.getByRole('option', {
+        name: /equipment instance equipment-instance-partial.*0 available/i,
+      })
     ).toBeDisabled()
+    expect(
+      screen.getByRole('option', {
+        name: /equipment instance equipment-instance-empty.*1 available/i,
+      })
+    ).toBeEnabled()
 
     await user.selectOptions(sourceSelect, 'instance:equipment-instance-empty')
     expect(

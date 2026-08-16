@@ -760,6 +760,7 @@ function refineEquipmentRecoveryEvent(
   if (
     payload.sourceEquipmentInstanceId &&
     (payload.itemId !== 'combat_stims' ||
+      payload.sourceGradeId !== 'grade_1' ||
       payload.sourceEquipmentInstanceResourceId !== 'combat_stim_dose' ||
       payload.sourceEquipmentInstanceCapacity !== 2 ||
       payload.sourceEquipmentInstanceRemaining !== 0)

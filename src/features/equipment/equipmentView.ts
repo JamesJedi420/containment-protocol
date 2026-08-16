@@ -235,7 +235,9 @@ export function getEquipmentDeconstructionViews(
           conditionLabel:
             sourceChoices.find(
               (choice) => sourceValue(choice.source) === sourceValue(selectedSource)
-            )?.condition === 'damaged' || (game.damagedEquipmentQueue ?? []).includes(definition.id)
+            )?.condition === 'damaged' ||
+            (selectedSource.kind !== 'equipment_instance' &&
+              (game.damagedEquipmentQueue ?? []).includes(definition.id))
               ? 'Damaged'
               : 'Operational',
           explanation: 'This item cannot enter the bounded recovery flow.',

@@ -5656,7 +5656,8 @@ function sanitizeEquipmentRecoveryInstanceProvenance(
 function sanitizeEquipmentRecoveryOutcomes(
   value: unknown,
   campaignWeek: number,
-  fabricatedEquipmentLots: FabricatedEquipmentLotRegistry
+  fabricatedEquipmentLots: FabricatedEquipmentLotRegistry,
+  recoveryLockedEquipmentInstanceIds: ReadonlySet<string>
 ): EquipmentRecoveryOutcomeRegistry {
   if (!isRecord(value)) return {}
   const outcomes: EquipmentRecoveryOutcomeRegistry = {}
@@ -5705,6 +5706,8 @@ function sanitizeEquipmentRecoveryOutcomes(
     if (
       instanceProvenance === null ||
       (hasSourceFabricationQueueId && instanceProvenance !== undefined) ||
+      (instanceProvenance !== undefined &&
+        recoveryLockedEquipmentInstanceIds.has(instanceProvenance.sourceEquipmentInstanceId)) ||
       (instanceProvenance && claimedInstances.has(instanceProvenance.sourceEquipmentInstanceId))
     ) {
       continue
@@ -5753,7 +5756,8 @@ function sanitizeEquipmentDeconstructionQueue(
   value: unknown,
   campaignWeek: number,
   fabricatedEquipmentLots: FabricatedEquipmentLotRegistry,
-  equipmentRecoveryOutcomes: EquipmentRecoveryOutcomeRegistry
+  equipmentRecoveryOutcomes: EquipmentRecoveryOutcomeRegistry,
+  recoveryLockedEquipmentInstanceIds: ReadonlySet<string>
 ): EquipmentDeconstructionQueueEntry[] {
   if (!Array.isArray(value)) return []
   const queue: EquipmentDeconstructionQueueEntry[] = []
@@ -5809,6 +5813,8 @@ function sanitizeEquipmentDeconstructionQueue(
           !isSafeEquipmentRecoveryQueueId(rawEntryId))) ||
       instanceProvenance === null ||
       (hasSourceFabricationQueueId && instanceProvenance !== undefined) ||
+      (instanceProvenance !== undefined &&
+        recoveryLockedEquipmentInstanceIds.has(instanceProvenance.sourceEquipmentInstanceId)) ||
       (instanceProvenance !== undefined && !isSafeEquipmentRecoveryQueueId(rawEntryId))
     ) {
       continue
@@ -10180,16 +10186,27 @@ export function hydrateGame(
     game.fabricatedEquipmentLots,
     week
   )
+  const recoveryLockedEquipmentInstanceIds = new Set(
+    Object.values(agents).flatMap((agent) => {
+      const overdrive = agent.overdrive
+      return overdrive?.source?.kind === 'combat_stim' &&
+        (overdrive.active || overdrive.recoveryDebt > 0)
+        ? [overdrive.source.equipmentInstanceId]
+        : []
+    })
+  )
   const equipmentRecoveryOutcomes = sanitizeEquipmentRecoveryOutcomes(
     game.equipmentRecoveryOutcomes,
     week,
-    fabricatedEquipmentLots
+    fabricatedEquipmentLots,
+    recoveryLockedEquipmentInstanceIds
   )
   const equipmentDeconstructionQueue = sanitizeEquipmentDeconstructionQueue(
     game.equipmentDeconstructionQueue,
     week,
     fabricatedEquipmentLots,
-    equipmentRecoveryOutcomes
+    equipmentRecoveryOutcomes,
+    recoveryLockedEquipmentInstanceIds
   )
   const sanitizedEvents = sanitizeOperationEvents(game.events, fallback.events, {
     allowLegacySyntheticRepair:

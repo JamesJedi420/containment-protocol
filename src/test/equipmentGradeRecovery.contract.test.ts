@@ -1035,6 +1035,60 @@ describe('equipment-grade recovery contract', () => {
     expect(completedHydrated.equipmentInstances).toEqual({})
   })
 
+  it('drops hydrated instance recovery claims while Combat Stim overdrive debt owns the instance', () => {
+    const fallback = createStartingState()
+    const instance = {
+      instanceId: 'equipment-instance-empty',
+      definitionId: 'combat_stims' as const,
+      location: { state: 'stored' as const },
+      condition: 'operational' as const,
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+    }
+    fallback.equipmentInstances = { [instance.instanceId]: instance }
+    const queued = queueEquipmentDeconstruction(fallback, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: instance.instanceId,
+    })
+    const agentId = Object.keys(queued.agents).sort()[0]!
+    const agent = queued.agents[agentId]!
+
+    const hydrated = migratePersistedStore(
+      {
+        game: {
+          ...queued,
+          agents: {
+            ...queued.agents,
+            [agentId]: {
+              ...agent,
+              overdrive: {
+                active: false,
+                remainingPhases: 0,
+                recoveryDebt: 1,
+                source: {
+                  kind: 'combat_stim',
+                  activationId: 'combat-stim-equipment-instance-empty-dose-2',
+                  equipmentInstanceId: instance.instanceId,
+                  caseId: 'case-001',
+                },
+              },
+            },
+          },
+          equipmentInstances: { [instance.instanceId]: instance },
+        },
+      },
+      GAME_STORE_VERSION,
+      fallback
+    ).game
+
+    expect(hydrated.equipmentDeconstructionQueue).toEqual([])
+    expect(hydrated.equipmentRecoveryOutcomes).toEqual({})
+    expect(hydrated.equipmentInstances?.[instance.instanceId]).toEqual(instance)
+    expect(hydrated.agents[agentId]?.overdrive).toMatchObject({
+      recoveryDebt: 1,
+      source: { equipmentInstanceId: instance.instanceId },
+    })
+  })
+
   it('hydrates fabricated claims deterministically and gives completed outcomes priority', () => {
     const fallback = createStartingState()
     fallback.inventory.signal_jammers = 1

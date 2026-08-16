@@ -2097,4 +2097,30 @@ describe('event payload validation coverage', () => {
       ).toBe(false)
     }
   )
+
+  it.each(['equipment.recovery_started', 'equipment.recovery_completed'] as const)(
+    'rejects %s instance provenance with a noncanonical Combat Stim grade',
+    (type) => {
+      const validation = validateOperationEventPayload(type, {
+        week: 1,
+        queueId: 'recovery-instance-1',
+        itemId: 'combat_stims',
+        itemName: 'Combat Stims',
+        pathId: 'component_reclamation',
+        sourceGradeId: 'grade_2',
+        sourceEquipmentInstanceId: 'equipment-instance-empty',
+        sourceEquipmentInstanceResourceId: 'combat_stim_dose',
+        sourceEquipmentInstanceCapacity: 2,
+        sourceEquipmentInstanceRemaining: 0,
+        sourceCondition: 'operational',
+        outputMaterials: [
+          { materialId: 'medical_supplies', materialName: 'Medical Supplies', quantity: 1 },
+        ],
+        wasteQuantity: 1,
+        ...(type === 'equipment.recovery_started' ? { etaWeeks: 1 } : {}),
+      })
+
+      expect(validation.success).toBe(false)
+    }
+  )
 })

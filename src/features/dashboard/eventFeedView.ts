@@ -886,12 +886,18 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
       }
 
-    case 'equipment.instance_materialized':
+    case 'equipment.instance_materialized': {
+      const materializedResourceDetail =
+        event.payload.resourceId !== undefined &&
+        event.payload.capacity !== undefined &&
+        event.payload.remaining !== undefined
+          ? ` / ${event.payload.remaining}/${event.payload.capacity} ${event.payload.resourceId}`
+          : ''
       return {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} materialized`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId}${event.payload.remaining !== undefined ? ` / ${event.payload.remaining}/${event.payload.capacity} ${event.payload.resourceId}` : ''}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId}${materializedResourceDetail}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
@@ -899,6 +905,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.agentId ?? ''}`.toLowerCase(),
       }
+    }
 
     case 'equipment.combat_stim_activated':
       return {
@@ -910,6 +917,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
         searchText:
           `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
       }
@@ -924,6 +932,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
         searchText:
           `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
       }

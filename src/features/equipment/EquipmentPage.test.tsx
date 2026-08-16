@@ -6,6 +6,11 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { equipStoredCombatStimInstance } from '../../domain/combatStim'
+import {
+  getEquipmentInstanceAtAgentSlot,
+  instantiateEquipmentInstance,
+} from '../../domain/equipmentInstance'
 import EquipmentPage from './EquipmentPage'
 
 function renderEquipmentPage() {
@@ -190,6 +195,34 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.equipmentInstances?.[instanceId].payload?.remaining).toBe(1)
     expect(screen.getByText('1/2 doses')).toBeInTheDocument()
     expect(screen.getByText(/combat stim overdrive active/i)).toBeInTheDocument()
+  })
+
+  it('offers and equips a different stored Combat Stim instance of the same definition', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    game.agents.a_ava.equipmentSlots = {}
+    game.agents.a_ava.equipmentEffectScales = {}
+    const first = instantiateEquipmentInstance(game, 'combat_stims')
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'combat_stims')
+    if (!second.ok) throw new Error(second.code)
+    const equipped = equipStoredCombatStimInstance(
+      second.state,
+      first.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+    useGameStore.setState({ game: equipped })
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', { name: /equip combat stims to ava brooks utility 1/i })
+    )
+
+    expect(
+      getEquipmentInstanceAtAgentSlot(useGameStore.getState().game, 'a_ava', 'utility1')?.instanceId
+    ).toBe(second.instance.instanceId)
   })
 
   it('previews and confirms canonical-grade equipment deconstruction', async () => {

@@ -38,7 +38,8 @@ export function applyCombatStimRecoveryDebtAtWeekClose(state: GameState): GameSt
 
 /** Expire all current Combat Stim overdrives after mission resolution, regardless of outcome. */
 export function expireCombatStimOverdrivesAtWeekClose(
-  state: GameState
+  state: GameState,
+  closedWeek: number = state.week
 ): CombatStimWeekCloseExpiryResult {
   let changed = false
   const agents = { ...state.agents }
@@ -56,7 +57,7 @@ export function expireCombatStimOverdrivesAtWeekClose(
       type: 'equipment.combat_stim_overdrive_expired',
       sourceSystem: 'agent',
       payload: {
-        week: state.week,
+        week: closedWeek,
         activationId: source.activationId,
         instanceId: source.equipmentInstanceId,
         agentId,

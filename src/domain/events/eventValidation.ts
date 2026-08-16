@@ -818,6 +818,18 @@ const equipmentInstanceMaterializedSchema = z
         message: 'materialized remaining resource cannot exceed capacity',
       })
     }
+    if (
+      payload.definitionId === 'combat_stims' &&
+      (payload.resourceId !== 'combat_stim_dose' ||
+        payload.capacity !== 2 ||
+        payload.remaining !== 2)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
   })
 
 const combatStimActivatedSchema = z

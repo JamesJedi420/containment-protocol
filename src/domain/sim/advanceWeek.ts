@@ -4941,7 +4941,10 @@ export function advanceWeek(
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)
   finalizeMissionResults(context)
-  const combatStimExpiry = expireCombatStimOverdrivesAtWeekClose(context.nextState)
+  const combatStimExpiry = expireCombatStimOverdrivesAtWeekClose(
+    context.nextState,
+    context.sourceState.week
+  )
   context.nextState = combatStimExpiry.state
   context.eventDrafts.push(...combatStimExpiry.eventDrafts)
   applyRecoveryDowntimeAfterMissions(context)

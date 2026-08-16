@@ -18,6 +18,11 @@ import {
   createAssignmentTeamUnassignedDraft,
   createFactionStandingChangedDraft,
   createFactionUnlockAvailableDraft,
+  createEquipmentAutoScrapPolicyChangedDraft,
+  createEquipmentAutoScrapRoutedDraft,
+  createCombatStimActivatedDraft,
+  createCombatStimOverdriveExpiredDraft,
+  createEquipmentInstanceMaterializedDraft,
   createEquipmentRecoveryCompletedDraft,
   createEquipmentRecoveryStartedDraft,
   createMarketShiftedDraft,
@@ -86,6 +91,16 @@ function createFactoryDraft<TType extends (typeof OPERATION_EVENT_FACTORY_TYPES)
       return createEquipmentRecoveryStartedDraft(payload)
     case 'equipment.recovery_completed':
       return createEquipmentRecoveryCompletedDraft(payload)
+    case 'equipment.auto_scrap_policy_changed':
+      return createEquipmentAutoScrapPolicyChangedDraft(payload)
+    case 'equipment.auto_scrap_routed':
+      return createEquipmentAutoScrapRoutedDraft(payload)
+    case 'equipment.instance_materialized':
+      return createEquipmentInstanceMaterializedDraft(payload)
+    case 'equipment.combat_stim_activated':
+      return createCombatStimActivatedDraft(payload)
+    case 'equipment.combat_stim_overdrive_expired':
+      return createCombatStimOverdriveExpiredDraft(payload)
     case 'market.shifted':
       return createMarketShiftedDraft(payload)
     case 'market.transaction_recorded':

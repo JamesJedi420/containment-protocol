@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import {
   activateCombatStim,
   applyCombatStimRecoveryDebtAtWeekClose,
+  equipStoredCombatStimInstance,
   expireCombatStimOverdrivesAtWeekClose,
   resolveCombatStimActivation,
   resolveEffectiveResponderEnergyBand,
@@ -18,6 +19,8 @@ import {
 import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { hydrateGame } from '../app/store/runTransfer'
+import { validateOperationEventPayload } from '../domain/events/eventValidation'
+import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
 
 function createCriticalStimState(reserveBand: 'depleted' | 'overdrawn' = 'depleted') {
   const state = createStartingState()
@@ -59,6 +62,30 @@ function equipAndAssignCriticalStim(reserveBand: 'depleted' | 'overdrawn' = 'dep
 }
 
 describe('SPE-2829 Combat Stim emergency overdrive', () => {
+  it('strictly validates the governed 2/2 materialization event payload', () => {
+    const canonical = minimalOperationEventPayloads['equipment.instance_materialized']
+    expect(
+      validateOperationEventPayload('equipment.instance_materialized', canonical).success
+    ).toBe(true)
+
+    const missingResource = { ...canonical, resourceId: undefined }
+    expect(
+      validateOperationEventPayload('equipment.instance_materialized', missingResource).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_materialized', {
+        ...canonical,
+        capacity: 3,
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_materialized', {
+        ...canonical,
+        remaining: 1,
+      }).success
+    ).toBe(false)
+  })
+
   it('materializes one aggregate unit atomically as one equipped 2/2 instance', () => {
     const state = createStartingState()
     state.inventory.combat_stims = 1
@@ -382,6 +409,40 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
     })
   })
 
+  it('atomically swaps a stored Combat Stim into an occupied instance-backed slot', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+    state.agents.a_ava.equipmentSlots = {}
+    state.agents.a_ava.equipmentEffectScales = {}
+    const first = instantiateEquipmentInstance(state, 'combat_stims')
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'combat_stims')
+    if (!second.ok) throw new Error(second.code)
+
+    const equippedFirst = equipStoredCombatStimInstance(
+      second.state,
+      first.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+    const swapped = equipStoredCombatStimInstance(
+      equippedFirst,
+      second.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+
+    expect(swapped.equipmentInstances?.[first.instance.instanceId].location).toEqual({
+      state: 'stored',
+    })
+    expect(swapped.equipmentInstances?.[second.instance.instanceId].location).toEqual({
+      state: 'equipped',
+      agentId: 'a_ava',
+      slot: 'utility1',
+    })
+    expect(swapped.inventory.combat_stims).toBe(0)
+  })
+
   it('round-trips partial and empty instances plus strict provenance without inventing legacy doses', () => {
     const equipped = equipAndAssignCriticalStim()
     const instance = getEquipmentInstanceAtAgentSlot(equipped, 'a_ava', 'utility1')!
@@ -462,7 +523,9 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
       ),
     }).toMatchObject({
       overdrive: { active: false, recoveryDebt: 2 },
-      expiryEvents: [{ type: 'equipment.combat_stim_overdrive_expired' }],
+      expiryEvents: [
+        { type: 'equipment.combat_stim_overdrive_expired', payload: { week: state.week } },
+      ],
     })
   })
 })

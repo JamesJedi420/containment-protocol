@@ -484,10 +484,17 @@ function EquipmentPage() {
                       ) : null}
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {slot.stockOptions.filter((option) => option.itemId !== slot.itemId)
-                          .length > 0 ? (
+                        {slot.stockOptions.filter((option) =>
+                          option.instanceId
+                            ? option.instanceId !== slot.instanceId
+                            : option.itemId !== slot.itemId
+                        ).length > 0 ? (
                           slot.stockOptions
-                            .filter((option) => option.itemId !== slot.itemId)
+                            .filter((option) =>
+                              option.instanceId
+                                ? option.instanceId !== slot.instanceId
+                                : option.itemId !== slot.itemId
+                            )
                             .map((option) => (
                               <button
                                 key={`${view.agentId}-${slot.slot}-${option.instanceId ?? option.itemId}`}

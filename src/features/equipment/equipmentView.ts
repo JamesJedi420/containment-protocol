@@ -42,6 +42,10 @@ import {
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
 } from '../../domain/equipmentInstance'
+import {
+  createDefaultResponderEnergyBudget,
+  normalizeEnergyBudget,
+} from '../../domain/responderEnergyBudget'
 
 export interface GearRecommendation {
   caseId: string
@@ -415,10 +419,9 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                   ? `${equippedInstance.payload.remaining}/${equippedInstance.payload.capacity} doses`
                   : 'Dose state unavailable'
                 : undefined,
-            effectiveEnergyLabel: combatStimActivation?.underlyingBand
-              ? `${combatStimActivation.underlyingBand} → ${combatStimActivation.effectiveBand}`
-              : equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID
-                ? resolveEffectiveResponderEnergyBand(agent)
+            effectiveEnergyLabel:
+              equippedInstance?.definitionId === COMBAT_STIM_DEFINITION_ID
+                ? `${normalizeEnergyBudget(agent.energyBudget ?? createDefaultResponderEnergyBudget()).reserveBand} → ${combatStimActivation?.effectiveBand ?? resolveEffectiveResponderEnergyBand(agent)}`
                 : undefined,
             combatStimActivation: combatStimActivation
               ? {

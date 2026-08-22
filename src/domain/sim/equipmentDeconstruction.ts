@@ -373,9 +373,11 @@ export function resolveEquipmentDeconstructionPreview(
 
   const condition =
     selectedInstance?.condition ??
-    ((state.damagedEquipmentQueue ?? []).includes(itemId)
-      ? ('damaged' as const)
-      : ('operational' as const))
+    (source.kind === 'fabricated_lot'
+      ? ('operational' as const)
+      : (state.damagedEquipmentQueue ?? []).includes(itemId)
+        ? ('damaged' as const)
+        : ('operational' as const))
   return Object.freeze({
     itemId,
     itemName: definition.name,
@@ -460,7 +462,7 @@ export function queueEquipmentDeconstruction(
         : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
     equipmentInstances: nextEquipmentInstances,
     damagedEquipmentQueue:
-      source.kind === 'equipment_instance'
+      source.kind !== 'catalog'
         ? state.damagedEquipmentQueue
         : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
     equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],

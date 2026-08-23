@@ -380,7 +380,7 @@ function EquipmentPage() {
                           queueEquipmentDeconstruction(view.itemId, view.source)
                           setPendingDeconstructionItemId(undefined)
                         }}
-                        aria-label={`Confirm deconstruction ${view.itemName}`}
+                        aria-label={`Confirm deconstruction ${view.itemName} from ${view.sourceLabel}`}
                       >
                         Confirm deconstruction
                       </button>

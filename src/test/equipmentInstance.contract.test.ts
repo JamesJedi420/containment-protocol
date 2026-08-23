@@ -88,6 +88,10 @@ describe('ordinary equipment instance authority', () => {
     ).toMatchObject([
       { source: { kind: 'catalog' }, quantity: 0 },
       { source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' }, quantity: 1 },
+      {
+        source: { kind: 'equipment_instance', instanceId: materialized.instance.instanceId },
+        quantity: 1,
+      },
     ])
   })
 

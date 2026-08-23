@@ -382,6 +382,48 @@ describe('EquipmentPage', () => {
     })
   })
 
+  it('selects and permanently recovers an exact stored ordinary instance', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.equipmentInstances = {
+      'equipment-instance-ordinary': {
+        instanceId: 'equipment-instance-ordinary',
+        definitionId: 'signal_jammers',
+        location: { state: 'stored' },
+        condition: 'damaged',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    const sourceSelect = screen.getByLabelText(/recovery source for signal jammers/i)
+    await user.selectOptions(sourceSelect, 'instance:equipment-instance-ordinary')
+    expect(
+      screen.getByText(/source: equipment instance equipment-instance-ordinary \/ 1 available/i)
+    ).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
+    expect(screen.getByText(/from equipment instance equipment-instance-ordinary/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: /confirm deconstruction signal jammers from equipment instance equipment-instance-ordinary/i,
+      })
+    )
+
+    const queued = useGameStore.getState().game
+    expect(queued.inventory.signal_jammers).toBe(1)
+    expect(queued.equipmentInstances).toEqual({})
+    expect(queued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'signal_jammers',
+      sourceEquipmentInstanceId: 'equipment-instance-ordinary',
+      sourceCondition: 'damaged',
+    })
+    expect(
+      screen.getByText(/equipment instance equipment-instance-ordinary \/ 1 week remaining/i)
+    ).toBeVisible()
+  })
+
   it('selects and permanently recovers a stored depleted Combat Stim instance', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

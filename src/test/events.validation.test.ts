@@ -2123,4 +2123,52 @@ describe('event payload validation coverage', () => {
       expect(validation.success).toBe(false)
     }
   )
+
+  it.each(['equipment.recovery_started', 'equipment.recovery_completed'] as const)(
+    'accepts %s ID-only ordinary instance provenance',
+    (type) => {
+      const payload = {
+        week: 1,
+        queueId: 'recovery-ordinary-1',
+        itemId: 'signal_jammers',
+        itemName: 'Signal Jammers',
+        pathId: 'component_reclamation',
+        sourceGradeId: 'grade_2',
+        sourceEquipmentInstanceId: 'equipment-instance-ordinary',
+        sourceCondition: 'damaged',
+        outputMaterials: [
+          { materialId: 'electronic_parts', materialName: 'Electronic Parts', quantity: 1 },
+        ],
+        wasteQuantity: 2,
+        ...(type === 'equipment.recovery_started' ? { etaWeeks: 1 } : {}),
+      }
+
+      expect(validateOperationEventPayload(type, payload).success).toBe(true)
+      expect(
+        validateOperationEventPayload(type, {
+          ...payload,
+          sourceEquipmentInstanceResourceId: 'unsupported_charge',
+        }).success
+      ).toBe(false)
+      expect(
+        validateOperationEventPayload(type, {
+          ...payload,
+          sourceFabricationQueueId: 'batch',
+        }).success
+      ).toBe(false)
+      expect(
+        validateOperationEventPayload(type, {
+          ...payload,
+          sourceEquipmentInstanceId: '__proto__',
+        }).success
+      ).toBe(false)
+      expect(
+        validateOperationEventPayload(type, {
+          ...payload,
+          itemId: 'diplomatic_kit',
+          itemName: 'Diplomatic Kit',
+        }).success
+      ).toBe(false)
+    }
+  )
 })

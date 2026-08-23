@@ -34,7 +34,7 @@ describe('getEquipmentDeconstructionViews', () => {
     })
   })
 
-  it('does not expose dead recovery rows for instances without instance recovery authority', () => {
+  it('selects an available ordinary instance when aggregate stock is unavailable', () => {
     const game = createStartingState()
     game.inventory.medkits = 0
     game.equipmentInstances = {
@@ -48,7 +48,12 @@ describe('getEquipmentDeconstructionViews', () => {
 
     expect(
       getEquipmentDeconstructionViews(game).find((candidate) => candidate.itemId === 'medkits')
-    ).toBeUndefined()
+    ).toMatchObject({
+      available: true,
+      source: { kind: 'equipment_instance', instanceId: 'equipment-instance-medkit' },
+      sourceQuantity: 1,
+      conditionLabel: 'Operational',
+    })
   })
 })
 

@@ -200,11 +200,22 @@ export function getEquipmentDeconstructionViews(
       )
       if (aggregateStock < 1 && !hasInstanceSource) return undefined
       const requestedSource = selectedSources[definition.id] ?? { kind: 'catalog' as const }
-      const selectedSource = sourceChoices.some(
+      const requestedChoice = sourceChoices.find(
         (choice) => sourceValue(choice.source) === sourceValue(requestedSource)
       )
-        ? requestedSource
-        : (sourceChoices.find((choice) => choice.available)?.source ?? { kind: 'catalog' as const })
+      const ordinaryInstanceFallback =
+        selectedSources[definition.id] === undefined && definition.id !== COMBAT_STIM_DEFINITION_ID
+          ? sourceChoices.find(
+              (choice) => choice.available && choice.source.kind === 'equipment_instance'
+            )?.source
+          : undefined
+      const selectedSource = requestedChoice
+        ? requestedChoice.available || selectedSources[definition.id] !== undefined
+          ? requestedSource
+          : (ordinaryInstanceFallback ?? requestedSource)
+        : (sourceChoices.find((choice) => choice.available)?.source ?? {
+            kind: 'catalog' as const,
+          })
       const preview = resolveEquipmentDeconstructionPreview(game, definition.id, selectedSource)
       if (!preview) return undefined
       const sources: EquipmentDeconstructionSourceView[] = sourceChoices.map((choice) => {
@@ -302,7 +313,10 @@ export function getEquipmentDeconstructionQueueViews(
     materialSummary: formatRecoveryMaterials(entry.outputMaterials),
     remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
     sourceLabel: entry.sourceEquipmentInstanceId
-      ? `Equipment instance ${entry.sourceEquipmentInstanceId} / ${entry.sourceEquipmentInstanceRemaining} of ${entry.sourceEquipmentInstanceCapacity} doses`
+      ? entry.sourceEquipmentInstanceRemaining !== undefined &&
+        entry.sourceEquipmentInstanceCapacity !== undefined
+        ? `Equipment instance ${entry.sourceEquipmentInstanceId} / ${entry.sourceEquipmentInstanceRemaining} of ${entry.sourceEquipmentInstanceCapacity} doses`
+        : `Equipment instance ${entry.sourceEquipmentInstanceId}`
       : entry.sourceFabricationQueueId
         ? `Fabricated batch ${entry.sourceFabricationQueueId}`
         : 'Catalog / unspecified stock',

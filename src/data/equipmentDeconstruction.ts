@@ -13,7 +13,7 @@ export type EquipmentDeconstructionProfile =
       state: 'eligible'
       itemId: string
       rule: EquipmentGradeRecoveryRule
-      sourceAuthority: 'aggregate' | 'equipment_instance'
+      sourceAuthority: 'aggregate' | 'aggregate_and_instance' | 'equipment_instance'
     }>
   | Readonly<{ state: 'deferred'; itemId: string; reasonCode: 'recovery_profile_not_authored' }>
 
@@ -25,7 +25,7 @@ const eligible = (
     state: 'eligible',
     itemId,
     rule: Object.freeze(rule),
-    sourceAuthority: 'aggregate',
+    sourceAuthority: 'aggregate_and_instance',
   })
 const eligibleInstance = (
   itemId: string,
@@ -151,6 +151,9 @@ export function validateEquipmentDeconstructionProfiles(
     if (profile.state === 'deferred') continue
     if (profile.sourceAuthority === 'equipment_instance' && profile.itemId !== 'combat_stims') {
       throw new Error(`Unsupported equipment instance recovery profile: ${profile.itemId}`)
+    }
+    if (profile.itemId === 'combat_stims' && profile.sourceAuthority !== 'equipment_instance') {
+      throw new Error('Combat Stim recovery must remain equipment-instance only')
     }
     const validation = validateEquipmentGradeRecoveryRule(profile.rule)
     if (!validation.valid) {

@@ -12,9 +12,12 @@ import {
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  getEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
+  relocateEquipmentInstance,
   type EquipmentInstance,
+  type EquipmentInstanceId,
 } from '../equipmentInstance'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
@@ -210,6 +213,45 @@ export function equipAgentItem(
       [agentId]: nextAgent,
     },
   })
+}
+
+export function equipStoredEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  agentId: Id,
+  slot: EquipmentSlotKind
+): GameState {
+  const instance = getEquipmentInstance(state, instanceId)
+  if (!instance || instance.location.state !== 'stored') {
+    return ensureNormalizedGameState(state)
+  }
+
+  const direct = relocateEquipmentInstance(state, instanceId, {
+    state: 'equipped',
+    agentId,
+    slot,
+  })
+  if (direct.ok) return direct.state
+  if (direct.code !== 'slot_occupied') return ensureNormalizedGameState(state)
+
+  const occupyingInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
+  let interim = state
+  if (occupyingInstance) {
+    const stored = relocateEquipmentInstance(state, occupyingInstance.instanceId, {
+      state: 'stored',
+    })
+    if (!stored.ok) return ensureNormalizedGameState(state)
+    interim = stored.state
+  } else if (getEquipmentSlotItemId(state.agents[agentId]?.equipmentSlots, slot)) {
+    interim = unequipAgentItem(state, agentId, slot)
+  }
+
+  const relocated = relocateEquipmentInstance(interim, instanceId, {
+    state: 'equipped',
+    agentId,
+    slot,
+  })
+  return relocated.ok ? relocated.state : ensureNormalizedGameState(state)
 }
 
 export function unequipAgentItem(

@@ -9,17 +9,16 @@ import {
   COMBAT_STIM_CAPACITY,
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstance,
-  getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
   isSafeEquipmentInstanceId,
-  relocateEquipmentInstance,
   type EquipmentInstance,
   type EquipmentInstanceId,
 } from './equipmentInstance'
 import { createDefaultResponderEnergyBudget, normalizeEnergyBudget } from './responderEnergyBudget'
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
 import { appendOperationEventDrafts, createCombatStimActivatedDraft } from './events'
-import { getEquipmentSlotItemId, unequipAgentItem, type EquipmentSlotKind } from './equipment'
+import type { EquipmentSlotKind } from './equipment'
+import { equipStoredEquipmentInstance } from './sim/equipment'
 
 export const COMBAT_STIM_ACTIVATION_REASON_CODES = [
   'invalid_instance_id',
@@ -236,23 +235,7 @@ export function equipStoredCombatStimInstance(
   ) {
     return ensureNormalizedGameState(state)
   }
-  const occupyingInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
-  let interim = state
-  if (occupyingInstance) {
-    const stored = relocateEquipmentInstance(state, occupyingInstance.instanceId, {
-      state: 'stored',
-    })
-    if (!stored.ok) return ensureNormalizedGameState(state)
-    interim = stored.state
-  } else if (getEquipmentSlotItemId(state.agents[agentId]?.equipmentSlots, slot)) {
-    interim = unequipAgentItem(state, agentId, slot)
-  }
-  const relocated = relocateEquipmentInstance(interim, instanceId, {
-    state: 'equipped',
-    agentId,
-    slot,
-  })
-  return relocated.ok ? relocated.state : ensureNormalizedGameState(state)
+  return equipStoredEquipmentInstance(state, instanceId, agentId, slot)
 }
 
 export function listStoredCombatStimInstances(

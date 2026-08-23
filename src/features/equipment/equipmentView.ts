@@ -34,7 +34,6 @@ import {
 } from '../../domain/equipmentAutoScrap'
 import {
   getCombatStimActivationReasonLabel,
-  listStoredCombatStimInstances,
   resolveCombatStimActivation,
   resolveEffectiveResponderEnergyBand,
 } from '../../domain/combatStim'
@@ -42,6 +41,7 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
+  listStoredEquipmentInstances,
 } from '../../domain/equipmentInstance'
 import {
   createDefaultResponderEnergyBudget,
@@ -66,7 +66,17 @@ export interface EquipmentLoadoutOptionView {
   tags: string[]
   stock: number
   instanceId?: string
+  instanceLabel?: string
   doseLabel?: string
+}
+
+export interface EquipmentInstanceMaterializationView {
+  itemId: string
+  itemName: string
+  aggregateStock: number
+  storedInstanceCount: number
+  equippedInstanceCount: number
+  canMaterialize: boolean
 }
 
 export interface EquipmentLoadoutSlotView {
@@ -410,18 +420,19 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
               : undefined
           const compatibleDefinitions = getRoleCompatibleEquipmentDefinitions(slot, agent.role)
           const compatibleIds = new Set(compatibleDefinitions.map((definition) => definition.id))
-          const storedCombatStims = compatibleIds.has(COMBAT_STIM_DEFINITION_ID)
-            ? listStoredCombatStimInstances(game).map((instance) => ({
-                itemId: instance.definitionId,
-                itemName: getEquipmentLabel(instance.definitionId),
-                tags: getCompatibleItemTags(instance.definitionId),
-                stock: 0,
-                instanceId: instance.instanceId,
-                doseLabel: isCanonicalCombatStimPayload(instance.payload)
-                  ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
-                  : 'Dose state unavailable',
-              }))
-            : []
+          const storedInstances = listStoredEquipmentInstances(game)
+            .filter((instance) => compatibleIds.has(instance.definitionId))
+            .map((instance) => ({
+              itemId: instance.definitionId,
+              itemName: getEquipmentLabel(instance.definitionId),
+              tags: getCompatibleItemTags(instance.definitionId),
+              stock: 0,
+              instanceId: instance.instanceId,
+              instanceLabel: instance.instanceId,
+              doseLabel: isCanonicalCombatStimPayload(instance.payload)
+                ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
+                : undefined,
+            }))
           return {
             slot,
             slotLabel: EQUIPMENT_SLOT_LABELS[slot],
@@ -467,12 +478,42 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                   (left, right) =>
                     right.stock - left.stock || left.itemName.localeCompare(right.itemName)
                 ),
-              ...storedCombatStims,
+              ...storedInstances,
             ],
           } satisfies EquipmentLoadoutSlotView
         }),
       } satisfies AgentEquipmentLoadoutView
     })
+}
+
+export function getEquipmentInstanceMaterializationViews(
+  game: GameState
+): EquipmentInstanceMaterializationView[] {
+  return getEquipmentCatalogEntries()
+    .filter((definition) => definition.id !== COMBAT_STIM_DEFINITION_ID)
+    .map((definition) => {
+      const instances = Object.values(game.equipmentInstances ?? {}).filter(
+        (instance) => instance.definitionId === definition.id
+      )
+      const aggregateStock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
+      return {
+        itemId: definition.id,
+        itemName: definition.name,
+        aggregateStock,
+        storedInstanceCount: instances.filter((instance) => instance.location.state === 'stored')
+          .length,
+        equippedInstanceCount: instances.filter(
+          (instance) => instance.location.state === 'equipped'
+        ).length,
+        canMaterialize:
+          aggregateStock > 0 && !(game.damagedEquipmentQueue ?? []).includes(definition.id),
+      }
+    })
+    .filter(
+      (view) =>
+        view.aggregateStock > 0 || view.storedInstanceCount > 0 || view.equippedInstanceCount > 0
+    )
+    .sort((left, right) => left.itemName.localeCompare(right.itemName))
 }
 
 function getCompatibleItemTags(itemId: string) {

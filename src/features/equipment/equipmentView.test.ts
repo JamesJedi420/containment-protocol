@@ -4,6 +4,7 @@ import { createStartingState } from '../../data/startingState'
 import {
   getAgentEquipmentLoadoutViews,
   getEquipmentDeconstructionViews,
+  getEquipmentInstanceMaterializationViews,
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
@@ -229,6 +230,40 @@ describe('getGearRecommendationsForActiveCases', () => {
           itemId: 'combat_stims',
           instanceId: created.instance.instanceId,
           doseLabel: '2/2 doses',
+          stock: 0,
+        }),
+      ])
+    )
+  })
+
+  it('surfaces generic stored instances separately from aggregate stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+
+    const materialization = getEquipmentInstanceMaterializationViews(created.state).find(
+      (view) => view.itemId === 'signal_jammers'
+    )
+    expect(materialization).toEqual({
+      itemId: 'signal_jammers',
+      itemName: 'Signal Jammers',
+      aggregateStock: 1,
+      storedInstanceCount: 1,
+      equippedInstanceCount: 0,
+      canMaterialize: true,
+    })
+
+    const mina = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ itemId: 'signal_jammers', stock: 1 }),
+        expect.objectContaining({
+          itemId: 'signal_jammers',
+          instanceId: created.instance.instanceId,
+          instanceLabel: created.instance.instanceId,
           stock: 0,
         }),
       ])

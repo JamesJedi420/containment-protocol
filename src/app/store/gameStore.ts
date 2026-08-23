@@ -85,6 +85,7 @@ import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equ
 import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstanceAtAgentSlot,
+  materializeStoredOrdinaryEquipmentInstance,
 } from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -131,7 +132,11 @@ import {
 import { hireCandidate } from '../../domain/sim/hire'
 import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { transitionRecruitmentCandidate } from '../../domain/recruitment'
-import { equipAgentItem, unequipAgentItem } from '../../domain/sim/equipment'
+import {
+  equipAgentItem,
+  equipStoredEquipmentInstance,
+  unequipAgentItem,
+} from '../../domain/sim/equipment'
 import { activateCombatStim, equipStoredCombatStimInstance } from '../../domain/combatStim'
 import {
   createTeam,
@@ -397,7 +402,9 @@ interface GameStore {
   assignInstructor: (staffId: Id, agentId: Id) => void
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
+  materializeStoredEquipmentInstance: (itemId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
+  equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   activateCombatStim: (instanceId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
@@ -1777,6 +1784,25 @@ export const useGameStore = create<GameStore>()(
       reconcileAgents: (leftId, rightId) =>
         set((s) => ({ game: reconcileAgents(s.game, leftId, rightId) })),
 
+      materializeStoredEquipmentInstance: (itemId) =>
+        set((s) => {
+          const result = materializeStoredOrdinaryEquipmentInstance(s.game, itemId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(itemId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceMaterializedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: itemId,
+                definitionName: definition?.name ?? itemId,
+                condition: result.instance.condition,
+                locationState: 'stored',
+              }),
+            ]),
+          }
+        }),
+
       equipAgentItem: (agentId, slot, itemId) =>
         set((s) => {
           const next = equipAgentItem(s.game, agentId, slot, itemId)
@@ -1807,6 +1833,9 @@ export const useGameStore = create<GameStore>()(
             ]),
           }
         }),
+
+      equipStoredEquipmentInstance: (instanceId, agentId, slot) =>
+        set((s) => ({ game: equipStoredEquipmentInstance(s.game, instanceId, agentId, slot) })),
 
       equipStoredCombatStimInstance: (instanceId, agentId, slot) =>
         set((s) => ({ game: equipStoredCombatStimInstance(s.game, instanceId, agentId, slot) })),

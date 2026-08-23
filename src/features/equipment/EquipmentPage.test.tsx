@@ -133,6 +133,55 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
   })
 
+  it('materializes and assigns an exact ordinary equipment copy', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    await user.click(screen.getByRole('button', { name: /track one signal jammers copy/i }))
+    expect(screen.getByRole('group', { name: /confirm tracking signal jammers/i })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /confirm tracking/i }))
+
+    const materialized = useGameStore.getState().game
+    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
+    expect(instanceId).toBe('equipment-instance-1-1')
+    expect(materialized.inventory.signal_jammers).toBe(0)
+    expect(materialized.equipmentInstances?.[instanceId]).toMatchObject({
+      definitionId: 'signal_jammers',
+      condition: 'operational',
+      location: { state: 'stored' },
+    })
+    expect(
+      materialized.events.find((event) => event.type === 'equipment.instance_materialized')
+    ).toMatchObject({
+      payload: {
+        instanceId,
+        definitionId: 'signal_jammers',
+        locationState: 'stored',
+      },
+    })
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /equip signal jammers to mina park utility 1/i,
+      })
+    )
+    const equipped = useGameStore.getState().game
+    expect(getEquipmentInstanceAtAgentSlot(equipped, 'a_mina', 'utility1')?.instanceId).toBe(
+      instanceId
+    )
+    expect(equipped.inventory.signal_jammers).toBe(0)
+
+    await user.click(screen.getByRole('button', { name: /unequip utility 1 from mina park/i }))
+    expect(useGameStore.getState().game.equipmentInstances?.[instanceId].location).toEqual({
+      state: 'stored',
+    })
+    expect(useGameStore.getState().game.inventory.signal_jammers).toBe(0)
+  })
+
   it('materializes Combat Stims and confirms an emergency dose while deployed', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

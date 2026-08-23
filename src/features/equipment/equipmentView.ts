@@ -22,6 +22,7 @@ import {
   getEquipmentDeconstructionSourceIssueLabel,
   type EquipmentDeconstructionSourceRef,
 } from '../../domain/sim/equipmentDeconstruction'
+import { canEquipStoredEquipmentInstance } from '../../domain/sim/equipment'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
 import {
   EQUIPMENT_GRADE_DEFINITIONS,
@@ -421,7 +422,11 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
           const compatibleDefinitions = getRoleCompatibleEquipmentDefinitions(slot, agent.role)
           const compatibleIds = new Set(compatibleDefinitions.map((definition) => definition.id))
           const storedInstances = listStoredEquipmentInstances(game)
-            .filter((instance) => compatibleIds.has(instance.definitionId))
+            .filter(
+              (instance) =>
+                compatibleIds.has(instance.definitionId) &&
+                canEquipStoredEquipmentInstance(game, instance.instanceId, agent.id, slot)
+            )
             .map((instance) => ({
               itemId: instance.definitionId,
               itemName: getEquipmentLabel(instance.definitionId),

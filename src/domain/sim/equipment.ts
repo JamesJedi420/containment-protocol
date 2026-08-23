@@ -254,6 +254,16 @@ export function equipStoredEquipmentInstance(
   return relocated.ok ? relocated.state : ensureNormalizedGameState(state)
 }
 
+export function canEquipStoredEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  agentId: Id,
+  slot: EquipmentSlotKind
+): boolean {
+  const projected = equipStoredEquipmentInstance(state, instanceId, agentId, slot)
+  return getEquipmentInstanceAtAgentSlot(projected, agentId, slot)?.instanceId === instanceId
+}
+
 export function unequipAgentItem(
   state: GameState,
   agentId: Id,

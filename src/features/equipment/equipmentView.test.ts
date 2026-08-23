@@ -269,4 +269,31 @@ describe('getGearRecommendationsForActiveCases', () => {
       ])
     )
   })
+
+  it('hides stored instances that fail the full loadout assignment contract', () => {
+    const game = createStartingState()
+    game.inventory.advanced_recon_suite = 1
+    game.agents.a_rook = {
+      ...game.agents.a_rook,
+      level: 1,
+      progression: {
+        ...(game.agents.a_rook.progression ?? {
+          xp: 0,
+          level: 1,
+          potentialTier: 'B',
+          growthProfile: 'balanced',
+        }),
+        level: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'advanced_recon_suite')
+    if (!created.ok) throw new Error(created.code)
+
+    const rook = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_rook'
+    )
+    expect(rook?.slots.find((slot) => slot.slot === 'headgear')?.stockOptions).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ instanceId: created.instance.instanceId })])
+    )
+  })
 })

@@ -599,7 +599,7 @@ function EquipmentPage() {
                                   }
                                 }}
                                 disabled={!view.editable}
-                                aria-label={`Equip ${option.itemName} to ${view.agentName} ${slot.slotLabel}`}
+                                aria-label={`Equip ${option.itemName}${option.instanceId ? ` instance ${option.instanceLabel ?? option.instanceId}` : ''} to ${view.agentName} ${slot.slotLabel}`}
                               >
                                 {option.itemName}{' '}
                                 {option.instanceId

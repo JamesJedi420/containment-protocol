@@ -166,7 +166,7 @@ describe('EquipmentPage', () => {
 
     await user.click(
       screen.getByRole('button', {
-        name: /equip signal jammers to mina park utility 1/i,
+        name: /equip signal jammers instance equipment-instance-1-1 to mina park utility 1/i,
       })
     )
     const equipped = useGameStore.getState().game
@@ -199,7 +199,9 @@ describe('EquipmentPage', () => {
     renderEquipmentPage()
 
     await user.click(
-      screen.getByRole('button', { name: /equip combat stims to ava brooks utility 1/i })
+      screen.getByRole('button', {
+        name: /equip combat stims to ava brooks utility 1/i,
+      })
     )
     const materialized = useGameStore.getState().game
     const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
@@ -266,7 +268,12 @@ describe('EquipmentPage', () => {
     renderEquipmentPage()
 
     await user.click(
-      screen.getByRole('button', { name: /equip combat stims to ava brooks utility 1/i })
+      screen.getByRole('button', {
+        name: new RegExp(
+          `equip combat stims instance ${second.instance.instanceId} to ava brooks utility 1`,
+          'i'
+        ),
+      })
     )
 
     expect(

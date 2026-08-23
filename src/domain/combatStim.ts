@@ -11,6 +11,7 @@ import {
   getEquipmentInstance,
   isCanonicalCombatStimPayload,
   isSafeEquipmentInstanceId,
+  listStoredEquipmentInstances,
   type EquipmentInstance,
   type EquipmentInstanceId,
 } from './equipmentInstance'
@@ -241,17 +242,7 @@ export function equipStoredCombatStimInstance(
 export function listStoredCombatStimInstances(
   state: Pick<GameState, 'equipmentInstances'>
 ): EquipmentInstance[] {
-  return Object.values(state.equipmentInstances ?? {})
-    .filter(
-      (instance) =>
-        instance.definitionId === COMBAT_STIM_DEFINITION_ID && instance.location.state === 'stored'
-    )
-    .sort((left, right) => left.instanceId.localeCompare(right.instanceId))
-    .map((instance) => ({
-      ...instance,
-      location: { ...instance.location },
-      ...(instance.payload ? { payload: { ...instance.payload } } : {}),
-    }))
+  return listStoredEquipmentInstances(state, COMBAT_STIM_DEFINITION_ID)
 }
 
 export {

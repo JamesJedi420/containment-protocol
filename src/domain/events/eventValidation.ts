@@ -1,7 +1,9 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
 import { getProductionRecipe, productionMaterialCatalog } from '../../data/production'
+import { getEquipmentDeconstructionProfile } from '../../data/equipmentDeconstruction'
 import { getEquipmentDefinition } from '../equipment'
+import { getEquipmentGradeCatalogParticipation } from '../equipmentGradeCatalog'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
 import {
   getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
@@ -714,7 +716,11 @@ const equipmentRecoveryEventShape = {
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
   sourceFabricationQueueId: idSchema.optional(),
-  sourceEquipmentInstanceId: idSchema.optional(),
+  sourceEquipmentInstanceId: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/)
+    .refine((value) => value !== '__proto__' && value !== 'constructor' && value !== 'prototype')
+    .optional(),
   sourceEquipmentInstanceResourceId: idSchema.optional(),
   sourceEquipmentInstanceCapacity: finiteNonNegativeIntSchema.optional(),
   sourceEquipmentInstanceRemaining: finiteNonNegativeIntSchema.optional(),
@@ -737,17 +743,16 @@ function refineEquipmentRecoveryEvent(
   payload: z.infer<z.ZodObject<typeof equipmentRecoveryEventShape>>,
   context: z.RefinementCtx
 ) {
-  const instanceFields = [
-    payload.sourceEquipmentInstanceId,
+  const instanceResourceFields = [
     payload.sourceEquipmentInstanceResourceId,
     payload.sourceEquipmentInstanceCapacity,
     payload.sourceEquipmentInstanceRemaining,
   ].filter((value) => value !== undefined)
-  if (instanceFields.length !== 0 && instanceFields.length !== 4) {
+  if (!payload.sourceEquipmentInstanceId && instanceResourceFields.length > 0) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['sourceEquipmentInstanceId'],
-      message: 'recovery instance provenance fields must be supplied together',
+      message: 'recovery instance resource provenance requires an instance ID',
     })
   }
   if (payload.sourceFabricationQueueId && payload.sourceEquipmentInstanceId) {
@@ -757,19 +762,36 @@ function refineEquipmentRecoveryEvent(
       message: 'recovery cannot claim fabrication and instance provenance together',
     })
   }
-  if (
-    payload.sourceEquipmentInstanceId &&
-    (payload.itemId !== 'combat_stims' ||
-      payload.sourceGradeId !== 'grade_1' ||
-      payload.sourceEquipmentInstanceResourceId !== 'combat_stim_dose' ||
-      payload.sourceEquipmentInstanceCapacity !== 2 ||
-      payload.sourceEquipmentInstanceRemaining !== 0)
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['sourceEquipmentInstanceId'],
-      message: 'instance recovery must snapshot a depleted canonical Combat Stim',
-    })
+  if (payload.sourceEquipmentInstanceId) {
+    const profile = getEquipmentDeconstructionProfile(payload.itemId)
+    const definition = getEquipmentDefinition(payload.itemId)
+    const participation = definition
+      ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+      : undefined
+    const hasCanonicalCatalogGrade =
+      participation?.state === 'graded' && payload.sourceGradeId === participation.gradeId
+    const validCombatStimProvenance =
+      payload.itemId === 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'equipment_instance' &&
+      hasCanonicalCatalogGrade &&
+      instanceResourceFields.length === 3 &&
+      payload.sourceEquipmentInstanceResourceId === 'combat_stim_dose' &&
+      payload.sourceEquipmentInstanceCapacity === 2 &&
+      payload.sourceEquipmentInstanceRemaining === 0
+    const validOrdinaryProvenance =
+      payload.itemId !== 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'aggregate_and_instance' &&
+      hasCanonicalCatalogGrade &&
+      instanceResourceFields.length === 0
+    if (!validCombatStimProvenance && !validOrdinaryProvenance) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceEquipmentInstanceId'],
+        message: 'instance recovery provenance does not match its authored source authority',
+      })
+    }
   }
   const definition = getEquipmentDefinition(payload.itemId)
   if (!definition || definition.name !== payload.itemName) {

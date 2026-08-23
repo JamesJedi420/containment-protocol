@@ -1862,8 +1862,9 @@ export interface EquipmentDeconstructionQueueEntry {
   sourceGradeVisibility: EquipmentGradeVisibility
   /** SPE-2800: immutable fabrication provenance for an explicitly selected batch unit. */
   sourceFabricationQueueId?: Id
-  /** SPE-2830: immutable provenance for an explicitly selected equipment instance. */
+  /** SPE-2830 / SPE-2841: immutable provenance for an explicitly selected equipment instance. */
   sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
   sourceEquipmentInstanceResourceId?: string
   sourceEquipmentInstanceCapacity?: number
   sourceEquipmentInstanceRemaining?: number
@@ -1883,8 +1884,9 @@ export interface EquipmentRecoveryOutcome {
   sourceGradeId: EquipmentGradeId
   /** SPE-2800: retained fabrication provenance; omitted for catalog-source recovery. */
   sourceFabricationQueueId?: Id
-  /** SPE-2830: retained instance provenance; supplied together for instance-source recovery. */
+  /** SPE-2830 / SPE-2841: retained exact identity; ordinary recovery uses this field alone. */
   sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
   sourceEquipmentInstanceResourceId?: string
   sourceEquipmentInstanceCapacity?: number
   sourceEquipmentInstanceRemaining?: number

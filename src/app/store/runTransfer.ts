@@ -11,6 +11,7 @@ import {
   type ProductionRecipe,
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
+import { getEquipmentDeconstructionProfile } from '../../data/equipmentDeconstruction'
 import {
   isSafeProductionQueueId,
   reconcileProductionGradeSnapshot,
@@ -5611,9 +5612,9 @@ function sanitizeEquipmentRecoveryMaterials(
 
 interface SanitizedEquipmentRecoveryInstanceProvenance {
   sourceEquipmentInstanceId: string
-  sourceEquipmentInstanceResourceId: string
-  sourceEquipmentInstanceCapacity: number
-  sourceEquipmentInstanceRemaining: number
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
 }
 
 function sanitizeEquipmentRecoveryInstanceProvenance(
@@ -5621,24 +5622,43 @@ function sanitizeEquipmentRecoveryInstanceProvenance(
   itemId: string,
   sourceGradeId: unknown
 ): SanitizedEquipmentRecoveryInstanceProvenance | null | undefined {
-  const keys = [
-    'sourceEquipmentInstanceId',
+  const resourceKeys = [
     'sourceEquipmentInstanceResourceId',
     'sourceEquipmentInstanceCapacity',
     'sourceEquipmentInstanceRemaining',
   ] as const
-  const present = keys.filter((key) => Object.prototype.hasOwnProperty.call(value, key))
-  if (present.length === 0) return undefined
-  if (present.length !== keys.length) return null
+  const hasInstanceId = Object.prototype.hasOwnProperty.call(value, 'sourceEquipmentInstanceId')
+  const presentResourceKeys = resourceKeys.filter((key) =>
+    Object.prototype.hasOwnProperty.call(value, key)
+  )
+  if (!hasInstanceId && presentResourceKeys.length === 0) return undefined
+  if (!hasInstanceId) return null
   const definition = getEquipmentDefinition(itemId)
   const participation = definition
     ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
     : undefined
+  const profile = getEquipmentDeconstructionProfile(itemId)
   if (
-    itemId !== COMBAT_STIM_DEFINITION_ID ||
     participation?.state !== 'graded' ||
     sourceGradeId !== participation.gradeId ||
-    !isSafeEquipmentInstanceId(value.sourceEquipmentInstanceId) ||
+    !isSafeEquipmentInstanceId(value.sourceEquipmentInstanceId)
+  ) {
+    return null
+  }
+  if (itemId !== COMBAT_STIM_DEFINITION_ID) {
+    if (
+      profile?.state !== 'eligible' ||
+      profile.sourceAuthority !== 'aggregate_and_instance' ||
+      presentResourceKeys.length !== 0
+    ) {
+      return null
+    }
+    return { sourceEquipmentInstanceId: value.sourceEquipmentInstanceId }
+  }
+  if (
+    profile?.state !== 'eligible' ||
+    profile.sourceAuthority !== 'equipment_instance' ||
+    presentResourceKeys.length !== resourceKeys.length ||
     value.sourceEquipmentInstanceResourceId !== COMBAT_STIM_RESOURCE_ID ||
     value.sourceEquipmentInstanceCapacity !== COMBAT_STIM_CAPACITY ||
     value.sourceEquipmentInstanceRemaining !== 0

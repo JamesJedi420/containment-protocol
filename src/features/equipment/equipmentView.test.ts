@@ -236,6 +236,29 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
   })
 
+  it('preserves unavailable dose labels for noncanonical stored Combat Stims', () => {
+    const game = createStartingState()
+    game.equipmentInstances = {
+      'equipment-instance-legacy': {
+        instanceId: 'equipment-instance-legacy',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 3, remaining: 2 },
+      },
+    }
+
+    const ava = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_ava')
+    expect(ava?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: 'equipment-instance-legacy',
+          doseLabel: 'Dose state unavailable',
+        }),
+      ])
+    )
+  })
+
   it('surfaces generic stored instances separately from aggregate stock', () => {
     const game = createStartingState()
     game.inventory.signal_jammers = 2

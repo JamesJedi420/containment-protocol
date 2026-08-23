@@ -434,9 +434,12 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
               stock: 0,
               instanceId: instance.instanceId,
               instanceLabel: instance.instanceId,
-              doseLabel: isCanonicalCombatStimPayload(instance.payload)
-                ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
-                : undefined,
+              doseLabel:
+                instance.definitionId === COMBAT_STIM_DEFINITION_ID
+                  ? isCanonicalCombatStimPayload(instance.payload)
+                    ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
+                    : 'Dose state unavailable'
+                  : undefined,
             }))
           return {
             slot,

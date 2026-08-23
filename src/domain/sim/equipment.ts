@@ -260,8 +260,21 @@ export function canEquipStoredEquipmentInstance(
   agentId: Id,
   slot: EquipmentSlotKind
 ): boolean {
-  const projected = equipStoredEquipmentInstance(state, instanceId, agentId, slot)
-  return getEquipmentInstanceAtAgentSlot(projected, agentId, slot)?.instanceId === instanceId
+  const instance = getEquipmentInstance(state, instanceId)
+  const agent = state.agents[agentId]
+  if (!instance || instance.location.state !== 'stored' || !canEditAgentEquipment(agent)) {
+    return false
+  }
+
+  return validateAgentLoadoutAssignment(agent, slot, instance.definitionId, {
+    state: {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        [instance.definitionId]: getInventoryStock(state, instance.definitionId) + 1,
+      },
+    },
+  }).valid
 }
 
 export function unequipAgentItem(

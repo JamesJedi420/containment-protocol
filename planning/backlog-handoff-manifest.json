@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2840",
     "SPE-2830",
     "SPE-2829",
     "SPE-2828",
@@ -12,10 +13,10 @@
     "SPE-2748",
     "SPE-2750",
     "SPE-2751",
-    "SPE-2798",
-    "SPE-2269"
+    "SPE-2798"
   ],
   "sliceDocStatus": {
+    "planning/spe-2840-generic-equipment-instance-materialization-surface-slice.md": "Recently shipped",
     "planning/spe-2830-depleted-combat-stim-instance-recovery-slice.md": "Recently shipped",
     "planning/spe-2829-combat-stim-emergency-overdrive-slice.md": "Recently shipped",
     "planning/spe-2828-ordinary-equipment-instance-foundation-slice.md": "Recently shipped",

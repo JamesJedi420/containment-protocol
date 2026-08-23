@@ -5,18 +5,189 @@ import {
   getEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
+  listStoredEquipmentInstances,
   relocateEquipmentInstance,
   sanitizeEquipmentInstanceRegistry,
   type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
-import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
+import {
+  equipAgentItem,
+  equipStoredEquipmentInstance,
+  materializeStoredOrdinaryEquipmentInstance,
+  unequipAgentItem,
+} from '../domain/sim/equipment'
 import {
   advanceEquipmentDeconstructionQueues,
   queueEquipmentDeconstruction,
+  resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
 
-describe('SPE-2828 ordinary equipment instance authority', () => {
+describe('ordinary equipment instance authority', () => {
+  it('materializes only ordinary stock through the guarded stored-instance command', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.combat_stims = 1
+
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    expect(materialized).toMatchObject({
+      ok: true,
+      instance: {
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+      state: { inventory: { signal_jammers: 0, combat_stims: 1 } },
+    })
+    expect(materializeStoredOrdinaryEquipmentInstance(state, 'combat_stims')).toMatchObject({
+      ok: false,
+      code: 'specialized_materialization_required',
+      state: { inventory: { signal_jammers: 1, combat_stims: 1 } },
+    })
+    expect(materializeStoredOrdinaryEquipmentInstance(state, 'missing')).toMatchObject({
+      ok: false,
+      code: 'unknown_definition',
+    })
+
+    state.damagedEquipmentQueue = ['signal_jammers']
+    expect(materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')).toMatchObject({
+      ok: false,
+      code: 'damaged_stock_ambiguity',
+    })
+  })
+
+  it('fails closed when only fabricated-lot stock remains unclaimed', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    expect(materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')).toMatchObject({
+      ok: false,
+      code: 'fabricated_provenance_required',
+      state: { inventory: { signal_jammers: 1 } },
+    })
+
+    state.inventory.signal_jammers = 2
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    expect(materialized).toMatchObject({
+      ok: true,
+      state: { inventory: { signal_jammers: 1 } },
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+    expect(
+      resolveEquipmentDeconstructionSources(materialized.state, 'signal_jammers')
+    ).toMatchObject([
+      { source: { kind: 'catalog' }, quantity: 0 },
+      { source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' }, quantity: 1 },
+    ])
+  })
+
+  it('lists stored instances in stable code-unit order as immutable snapshots', () => {
+    const state = createStartingState()
+    state.equipmentInstances = {
+      'equipment-instance-z': {
+        instanceId: 'equipment-instance-z',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+      'equipment-instance-a': {
+        instanceId: 'equipment-instance-a',
+        definitionId: 'medkits',
+        condition: 'damaged',
+        location: { state: 'stored' },
+      },
+    }
+
+    const instances = listStoredEquipmentInstances(state)
+    expect(instances.map((instance) => instance.instanceId)).toEqual([
+      'equipment-instance-a',
+      'equipment-instance-z',
+    ])
+    expect(listStoredEquipmentInstances(state, 'signal_jammers')).toHaveLength(1)
+    expect(Object.isFrozen(instances[0])).toBe(true)
+    expect(instances[0]).not.toBe(state.equipmentInstances['equipment-instance-a'])
+  })
+
+  it('assigns an exact stored instance while atomically preserving displaced stock', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.medkits = 0
+    state.agents.a_mina.equipmentSlots = { utility1: 'medkits' }
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+
+    const equipped = equipStoredEquipmentInstance(
+      materialized.state,
+      materialized.instance.instanceId,
+      'a_mina',
+      'utility1'
+    )
+    expect(equipped.inventory.signal_jammers).toBe(0)
+    expect(equipped.inventory.medkits).toBe(1)
+    expect(getEquipmentInstanceAtAgentSlot(equipped, 'a_mina', 'utility1')?.instanceId).toBe(
+      materialized.instance.instanceId
+    )
+
+    const unequipped = unequipAgentItem(equipped, 'a_mina', 'utility1')
+    expect(unequipped.inventory.signal_jammers).toBe(0)
+    expect(getEquipmentInstance(unequipped, materialized.instance.instanceId)?.location).toEqual({
+      state: 'stored',
+    })
+  })
+
+  it('rejects stale, incompatible, and non-idle generic instance assignment without mutation', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+
+    expect(
+      equipStoredEquipmentInstance(
+        materialized.state,
+        'equipment-instance-missing',
+        'a_mina',
+        'utility1'
+      )
+    ).toEqual(materialized.state)
+    expect(
+      equipStoredEquipmentInstance(
+        materialized.state,
+        materialized.instance.instanceId,
+        'a_mina',
+        'weapon'
+      )
+    ).toEqual(materialized.state)
+
+    const assigned = {
+      ...materialized.state,
+      agents: {
+        ...materialized.state.agents,
+        a_mina: {
+          ...materialized.state.agents.a_mina,
+          assignment: {
+            state: 'assigned' as const,
+            caseId: 'case-1',
+            teamId: 't-01',
+            startedWeek: 1,
+          },
+        },
+      },
+    }
+    expect(
+      equipStoredEquipmentInstance(assigned, materialized.instance.instanceId, 'a_mina', 'utility1')
+    ).toEqual(assigned)
+  })
+
   it('instantiates one deterministic stored object and decrements aggregate stock exactly once', () => {
     const state = createStartingState()
     state.inventory.signal_jammers = 2

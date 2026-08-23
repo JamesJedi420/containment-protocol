@@ -13,7 +13,8 @@ export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
 
 export type EquipmentInstanceLocation =
-  { state: 'stored' } | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
+  | { state: 'stored' }
+  | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
 
 export interface EquipmentInstanceConsumablePayload {
   resourceId: string
@@ -49,6 +50,8 @@ export type EquipmentInstanceFailureCode =
   | 'invalid_instance_shape'
   | 'malformed_payload_bounds'
   | 'invalid_consumable_profile'
+  | 'specialized_materialization_required'
+  | 'fabricated_provenance_required'
   | 'unauthorized_payload_transition'
 
 export type EquipmentInstanceMutationResult =
@@ -317,6 +320,22 @@ export function getEquipmentInstanceAtAgentSlot(
     )
     .at(0)
   return instance ? createEquipmentInstanceSnapshot(instance) : undefined
+}
+
+export function listStoredEquipmentInstances(
+  state: Pick<GameState, 'equipmentInstances'>,
+  definitionId?: string
+): EquipmentInstance[] {
+  return Object.values(state.equipmentInstances ?? {})
+    .filter(
+      (instance) =>
+        instance.location.state === 'stored' &&
+        (definitionId === undefined || instance.definitionId === definitionId)
+    )
+    .sort((left, right) =>
+      left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
+    )
+    .map(createEquipmentInstanceSnapshot)
 }
 
 function validateTargetLocation(

@@ -4,6 +4,7 @@ import { createStartingState } from '../../data/startingState'
 import {
   getAgentEquipmentLoadoutViews,
   getEquipmentDeconstructionViews,
+  getEquipmentInstanceMaterializationViews,
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
@@ -232,6 +233,115 @@ describe('getGearRecommendationsForActiveCases', () => {
           stock: 0,
         }),
       ])
+    )
+  })
+
+  it('preserves unavailable dose labels for noncanonical stored Combat Stims', () => {
+    const game = createStartingState()
+    game.equipmentInstances = {
+      'equipment-instance-legacy': {
+        instanceId: 'equipment-instance-legacy',
+        definitionId: 'combat_stims',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 3, remaining: 2 },
+      },
+    }
+
+    const ava = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_ava')
+    expect(ava?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: 'equipment-instance-legacy',
+          doseLabel: 'Dose state unavailable',
+        }),
+      ])
+    )
+  })
+
+  it('surfaces generic stored instances separately from aggregate stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+
+    const materialization = getEquipmentInstanceMaterializationViews(created.state).find(
+      (view) => view.itemId === 'signal_jammers'
+    )
+    expect(materialization).toEqual({
+      itemId: 'signal_jammers',
+      itemName: 'Signal Jammers',
+      aggregateStock: 1,
+      storedInstanceCount: 1,
+      equippedInstanceCount: 0,
+      canMaterialize: true,
+    })
+
+    const mina = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ itemId: 'signal_jammers', stock: 1 }),
+        expect.objectContaining({
+          itemId: 'signal_jammers',
+          instanceId: created.instance.instanceId,
+          instanceLabel: created.instance.instanceId,
+          stock: 0,
+        }),
+      ])
+    )
+  })
+
+  it('blocks materialization when only provenance-owned fabricated stock remains', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    expect(
+      getEquipmentInstanceMaterializationViews(game).find(
+        (view) => view.itemId === 'signal_jammers'
+      )
+    ).toMatchObject({
+      aggregateStock: 1,
+      canMaterialize: false,
+      materializationBlocker: 'fabricated_provenance_required',
+    })
+  })
+
+  it('hides stored instances that fail the full loadout assignment contract', () => {
+    const game = createStartingState()
+    game.inventory.advanced_recon_suite = 1
+    game.agents.a_rook = {
+      ...game.agents.a_rook,
+      level: 1,
+      progression: {
+        ...(game.agents.a_rook.progression ?? {
+          xp: 0,
+          level: 1,
+          potentialTier: 'B',
+          growthProfile: 'balanced',
+        }),
+        level: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'advanced_recon_suite')
+    if (!created.ok) throw new Error(created.code)
+
+    const rook = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_rook'
+    )
+    expect(rook?.slots.find((slot) => slot.slot === 'headgear')?.stockOptions).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ instanceId: created.instance.instanceId })])
     )
   })
 })

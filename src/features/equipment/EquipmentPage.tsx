@@ -8,14 +8,16 @@ import {
   getEquipmentAutoScrapView,
   getEquipmentDeconstructionQueueViews,
   getEquipmentDeconstructionViews,
+  getEquipmentInstanceMaterializationViews,
   type EquipmentAutoScrapView,
 } from './equipmentView'
 
 function EquipmentPage() {
   const {
     game,
+    materializeStoredEquipmentInstance,
     equipAgentItem,
-    equipStoredCombatStimInstance,
+    equipStoredEquipmentInstance,
     activateCombatStim,
     unequipAgentItem,
     queueEquipmentDeconstruction,
@@ -23,6 +25,10 @@ function EquipmentPage() {
     disableEquipmentAutoScrap,
   } = useGameStore()
   const loadoutViews = getAgentEquipmentLoadoutViews(game)
+  const instanceMaterializationViews = useMemo(
+    () => getEquipmentInstanceMaterializationViews(game),
+    [game]
+  )
   const [deconstructionSources, setDeconstructionSources] = useState<
     Record<string, EquipmentDeconstructionSourceRef>
   >({})
@@ -33,6 +39,7 @@ function EquipmentPage() {
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const [pendingCombatStimInstanceId, setPendingCombatStimInstanceId] = useState<string>()
+  const [pendingMaterializationItemId, setPendingMaterializationItemId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
   >(
@@ -198,6 +205,81 @@ function EquipmentPage() {
             </div>
           </div>
         ) : null}
+      </article>
+
+      <article className="panel space-y-3" aria-labelledby="tracked-equipment-heading">
+        <div>
+          <h3 id="tracked-equipment-heading" className="text-base font-semibold">
+            Tracked equipment copies
+          </h3>
+          <p className="text-sm opacity-60">
+            Convert one aggregate stock unit into a durable stored copy before assigning that exact
+            instance to an operative. Tracking preserves identity and does not create extra stock.
+          </p>
+        </div>
+
+        {instanceMaterializationViews.length === 0 ? (
+          <p className="text-sm opacity-60">No ordinary equipment is available to track.</p>
+        ) : (
+          <ul className="grid gap-2 md:grid-cols-2">
+            {instanceMaterializationViews.map((view) => (
+              <li key={view.itemId} className="rounded border border-white/10 px-3 py-3">
+                <p className="font-medium">{view.itemName}</p>
+                <p className="text-xs opacity-60">
+                  Aggregate {view.aggregateStock} / Stored {view.storedInstanceCount} / Equipped{' '}
+                  {view.equippedInstanceCount}
+                </p>
+                {pendingMaterializationItemId === view.itemId ? (
+                  <div
+                    className="mt-2 space-y-2"
+                    role="group"
+                    aria-label={`Confirm tracking ${view.itemName}`}
+                  >
+                    <p className="text-xs">
+                      Convert one aggregate {view.itemName} unit into a durable stored instance?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-xs"
+                        onClick={() => {
+                          materializeStoredEquipmentInstance(view.itemId)
+                          setPendingMaterializationItemId(undefined)
+                        }}
+                      >
+                        Confirm tracking
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => setPendingMaterializationItemId(undefined)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-xs mt-2"
+                    disabled={!view.canMaterialize}
+                    onClick={() => setPendingMaterializationItemId(view.itemId)}
+                    aria-label={`Track one ${view.itemName} copy`}
+                  >
+                    Track individual copy
+                  </button>
+                )}
+                {view.materializationBlocker ? (
+                  <p className="mt-1 text-xs text-amber-200/80">
+                    {view.materializationBlocker === 'damaged_aggregate_stock'
+                      ? 'Resolve damaged aggregate stock before tracking a specific copy.'
+                      : 'Fabricated batch stock retains its grade provenance and cannot be tracked as an unspecified copy.'}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </article>
 
       <article className="panel space-y-3">
@@ -509,7 +591,7 @@ function EquipmentPage() {
                                 className="btn btn-xs"
                                 onClick={() => {
                                   if (option.instanceId) {
-                                    equipStoredCombatStimInstance(
+                                    equipStoredEquipmentInstance(
                                       option.instanceId,
                                       view.agentId,
                                       slot.slot
@@ -519,11 +601,11 @@ function EquipmentPage() {
                                   }
                                 }}
                                 disabled={!view.editable}
-                                aria-label={`Equip ${option.itemName} to ${view.agentName} ${slot.slotLabel}`}
+                                aria-label={`Equip ${option.itemName}${option.instanceId ? ` instance ${option.instanceLabel ?? option.instanceId}` : ''} to ${view.agentName} ${slot.slotLabel}`}
                               >
                                 {option.itemName}{' '}
                                 {option.instanceId
-                                  ? `${option.instanceId} · ${option.doseLabel}`
+                                  ? `${option.instanceLabel ?? option.instanceId}${option.doseLabel ? ` · ${option.doseLabel}` : ''}`
                                   : `(${option.stock})`}
                               </button>
                             ))

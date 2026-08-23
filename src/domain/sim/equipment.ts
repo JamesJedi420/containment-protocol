@@ -12,10 +12,15 @@ import {
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  getEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
+  relocateEquipmentInstance,
   type EquipmentInstance,
+  type EquipmentInstanceId,
+  type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { resolveEquipmentDeconstructionSources } from './equipmentDeconstruction'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -23,6 +28,34 @@ function canEditAgentEquipment(agent: Agent | undefined) {
 
 function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+}
+
+export function materializeStoredOrdinaryEquipmentInstance(
+  state: GameState,
+  definitionId: string
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  const definition = getEquipmentDefinition(definitionId)
+  if (!definition) return { ok: false, state: normalized, code: 'unknown_definition' }
+  if (definitionId === COMBAT_STIM_DEFINITION_ID) {
+    return { ok: false, state: normalized, code: 'specialized_materialization_required' }
+  }
+  if (getInventoryStock(normalized, definitionId) < 1) {
+    return { ok: false, state: normalized, code: 'inventory_unavailable' }
+  }
+  if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
+    return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
+  }
+  const catalogSource = resolveEquipmentDeconstructionSources(normalized, definitionId).find(
+    (choice) => choice.source.kind === 'catalog'
+  )
+  if (!catalogSource || catalogSource.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  return instantiateEquipmentInstance(normalized, definitionId, {
+    location: { state: 'stored' },
+    condition: 'operational',
+  })
 }
 
 function withSlotItem(agent: Agent, slot: EquipmentSlotKind, itemId?: string): Agent {
@@ -210,6 +243,68 @@ export function equipAgentItem(
       [agentId]: nextAgent,
     },
   })
+}
+
+export function equipStoredEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  agentId: Id,
+  slot: EquipmentSlotKind
+): GameState {
+  const instance = getEquipmentInstance(state, instanceId)
+  if (!instance || instance.location.state !== 'stored') {
+    return ensureNormalizedGameState(state)
+  }
+
+  const direct = relocateEquipmentInstance(state, instanceId, {
+    state: 'equipped',
+    agentId,
+    slot,
+  })
+  if (direct.ok) return direct.state
+  if (direct.code !== 'slot_occupied') return ensureNormalizedGameState(state)
+
+  const occupyingInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
+  let interim = state
+  if (occupyingInstance) {
+    const stored = relocateEquipmentInstance(state, occupyingInstance.instanceId, {
+      state: 'stored',
+    })
+    if (!stored.ok) return ensureNormalizedGameState(state)
+    interim = stored.state
+  } else if (getEquipmentSlotItemId(state.agents[agentId]?.equipmentSlots, slot)) {
+    interim = unequipAgentItem(state, agentId, slot)
+  }
+
+  const relocated = relocateEquipmentInstance(interim, instanceId, {
+    state: 'equipped',
+    agentId,
+    slot,
+  })
+  return relocated.ok ? relocated.state : ensureNormalizedGameState(state)
+}
+
+export function canEquipStoredEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  agentId: Id,
+  slot: EquipmentSlotKind
+): boolean {
+  const instance = getEquipmentInstance(state, instanceId)
+  const agent = state.agents[agentId]
+  if (!instance || instance.location.state !== 'stored' || !canEditAgentEquipment(agent)) {
+    return false
+  }
+
+  return validateAgentLoadoutAssignment(agent, slot, instance.definitionId, {
+    state: {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        [instance.definitionId]: getInventoryStock(state, instance.definitionId) + 1,
+      },
+    },
+  }).valid
 }
 
 export function unequipAgentItem(

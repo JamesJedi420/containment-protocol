@@ -293,6 +293,31 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
   })
 
+  it('blocks materialization when only provenance-owned fabricated stock remains', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    expect(
+      getEquipmentInstanceMaterializationViews(game).find(
+        (view) => view.itemId === 'signal_jammers'
+      )
+    ).toMatchObject({
+      aggregateStock: 1,
+      canMaterialize: false,
+      materializationBlocker: 'fabricated_provenance_required',
+    })
+  })
+
   it('hides stored instances that fail the full loadout assignment contract', () => {
     const game = createStartingState()
     game.inventory.advanced_recon_suite = 1

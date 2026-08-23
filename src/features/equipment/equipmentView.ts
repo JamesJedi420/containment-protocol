@@ -78,6 +78,7 @@ export interface EquipmentInstanceMaterializationView {
   storedInstanceCount: number
   equippedInstanceCount: number
   canMaterialize: boolean
+  materializationBlocker?: 'damaged_aggregate_stock' | 'fabricated_provenance_required'
 }
 
 export interface EquipmentLoadoutSlotView {
@@ -504,6 +505,11 @@ export function getEquipmentInstanceMaterializationViews(
         (instance) => instance.definitionId === definition.id
       )
       const aggregateStock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
+      const hasDamagedAggregateStock = (game.damagedEquipmentQueue ?? []).includes(definition.id)
+      const catalogQuantity =
+        resolveEquipmentDeconstructionSources(game, definition.id).find(
+          (choice) => choice.source.kind === 'catalog'
+        )?.quantity ?? 0
       return {
         itemId: definition.id,
         itemName: definition.name,
@@ -513,8 +519,12 @@ export function getEquipmentInstanceMaterializationViews(
         equippedInstanceCount: instances.filter(
           (instance) => instance.location.state === 'equipped'
         ).length,
-        canMaterialize:
-          aggregateStock > 0 && !(game.damagedEquipmentQueue ?? []).includes(definition.id),
+        canMaterialize: aggregateStock > 0 && !hasDamagedAggregateStock && catalogQuantity > 0,
+        ...(aggregateStock > 0 && hasDamagedAggregateStock
+          ? { materializationBlocker: 'damaged_aggregate_stock' as const }
+          : aggregateStock > 0 && catalogQuantity < 1
+            ? { materializationBlocker: 'fabricated_provenance_required' as const }
+            : {}),
       }
     })
     .filter(

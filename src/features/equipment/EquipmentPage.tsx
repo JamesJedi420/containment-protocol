@@ -269,9 +269,11 @@ function EquipmentPage() {
                     Track individual copy
                   </button>
                 )}
-                {!view.canMaterialize && view.aggregateStock > 0 ? (
+                {view.materializationBlocker ? (
                   <p className="mt-1 text-xs text-amber-200/80">
-                    Resolve damaged aggregate stock before tracking a specific copy.
+                    {view.materializationBlocker === 'damaged_aggregate_stock'
+                      ? 'Resolve damaged aggregate stock before tracking a specific copy.'
+                      : 'Fabricated batch stock retains its grade provenance and cannot be tracked as an unspecified copy.'}
                   </p>
                 ) : null}
               </li>

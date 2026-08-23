@@ -182,6 +182,27 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(0)
   })
 
+  it('explains why fabricated batch stock cannot be tracked as unspecified', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByRole('button', { name: /track one signal jammers copy/i })).toBeDisabled()
+    expect(screen.getByText(/fabricated batch stock retains its grade provenance/i)).toBeVisible()
+  })
+
   it('materializes Combat Stims and confirms an emergency dose while deployed', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

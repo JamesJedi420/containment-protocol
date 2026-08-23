@@ -18,7 +18,9 @@ import {
   relocateEquipmentInstance,
   type EquipmentInstance,
   type EquipmentInstanceId,
+  type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { resolveEquipmentDeconstructionSources } from './equipmentDeconstruction'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -26,6 +28,34 @@ function canEditAgentEquipment(agent: Agent | undefined) {
 
 function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+}
+
+export function materializeStoredOrdinaryEquipmentInstance(
+  state: GameState,
+  definitionId: string
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  const definition = getEquipmentDefinition(definitionId)
+  if (!definition) return { ok: false, state: normalized, code: 'unknown_definition' }
+  if (definitionId === COMBAT_STIM_DEFINITION_ID) {
+    return { ok: false, state: normalized, code: 'specialized_materialization_required' }
+  }
+  if (getInventoryStock(normalized, definitionId) < 1) {
+    return { ok: false, state: normalized, code: 'inventory_unavailable' }
+  }
+  if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
+    return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
+  }
+  const catalogSource = resolveEquipmentDeconstructionSources(normalized, definitionId).find(
+    (choice) => choice.source.kind === 'catalog'
+  )
+  if (!catalogSource || catalogSource.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  return instantiateEquipmentInstance(normalized, definitionId, {
+    location: { state: 'stored' },
+    condition: 'operational',
+  })
 }
 
 function withSlotItem(agent: Agent, slot: EquipmentSlotKind, itemId?: string): Agent {

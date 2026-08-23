@@ -51,6 +51,7 @@ export type EquipmentInstanceFailureCode =
   | 'malformed_payload_bounds'
   | 'invalid_consumable_profile'
   | 'specialized_materialization_required'
+  | 'fabricated_provenance_required'
   | 'unauthorized_payload_transition'
 
 export type EquipmentInstanceMutationResult =
@@ -438,20 +439,6 @@ export function instantiateEquipmentInstance(
     },
   })
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
-}
-
-export function materializeStoredOrdinaryEquipmentInstance(
-  state: GameState,
-  definitionId: string
-): EquipmentInstanceMutationResult {
-  const normalized = ensureNormalizedGameState(state)
-  if (definitionId === COMBAT_STIM_DEFINITION_ID) {
-    return { ok: false, state: normalized, code: 'specialized_materialization_required' }
-  }
-  return instantiateEquipmentInstance(normalized, definitionId, {
-    location: { state: 'stored' },
-    condition: 'operational',
-  })
 }
 
 export function applyEquipmentInstanceTransition(

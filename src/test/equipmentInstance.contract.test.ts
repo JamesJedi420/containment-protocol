@@ -6,7 +6,6 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
   listStoredEquipmentInstances,
-  materializeStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
   sanitizeEquipmentInstanceRegistry,
   type EquipmentInstanceLocation,
@@ -14,11 +13,13 @@ import {
 import {
   equipAgentItem,
   equipStoredEquipmentInstance,
+  materializeStoredOrdinaryEquipmentInstance,
   unequipAgentItem,
 } from '../domain/sim/equipment'
 import {
   advanceEquipmentDeconstructionQueues,
   queueEquipmentDeconstruction,
+  resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
 
@@ -53,6 +54,41 @@ describe('ordinary equipment instance authority', () => {
       ok: false,
       code: 'damaged_stock_ambiguity',
     })
+  })
+
+  it('fails closed when only fabricated-lot stock remains unclaimed', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    expect(materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')).toMatchObject({
+      ok: false,
+      code: 'fabricated_provenance_required',
+      state: { inventory: { signal_jammers: 1 } },
+    })
+
+    state.inventory.signal_jammers = 2
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    expect(materialized).toMatchObject({
+      ok: true,
+      state: { inventory: { signal_jammers: 1 } },
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+    expect(
+      resolveEquipmentDeconstructionSources(materialized.state, 'signal_jammers')
+    ).toMatchObject([
+      { source: { kind: 'catalog' }, quantity: 0 },
+      { source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' }, quantity: 1 },
+    ])
   })
 
   it('lists stored instances in stable code-unit order as immutable snapshots', () => {

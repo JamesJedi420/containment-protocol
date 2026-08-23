@@ -85,7 +85,6 @@ import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equ
 import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstanceAtAgentSlot,
-  materializeStoredOrdinaryEquipmentInstance,
 } from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -135,6 +134,7 @@ import { transitionRecruitmentCandidate } from '../../domain/recruitment'
 import {
   equipAgentItem,
   equipStoredEquipmentInstance,
+  materializeStoredOrdinaryEquipmentInstance,
   unequipAgentItem,
 } from '../../domain/sim/equipment'
 import { activateCombatStim, equipStoredCombatStimInstance } from '../../domain/combatStim'

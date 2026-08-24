@@ -203,6 +203,58 @@ describe('EquipmentPage', () => {
     expect(screen.getByText(/fabricated batch stock retains its grade provenance/i)).toBeVisible()
   })
 
+  it('confirms destruction of one exact stored ordinary copy without restoring aggregate stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', { condition: 'damaged' })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(screen.getByText(`Signal Jammers — ${created.instance.instanceId}`)).toBeVisible()
+    expect(screen.getByText('Damaged')).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review destruction Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm destruction Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(/cannot be recovered and does not restore aggregate stock/i)
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Permanently destroy Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(1)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.events.filter((event) => event.type === 'equipment.instance_destroyed')).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          definitionId: 'signal_jammers',
+          condition: 'damaged',
+          reason: 'manual_disposal',
+        }),
+      }),
+    ])
+    act(() => useGameStore.getState().destroyStoredEquipmentInstance(created.instance.instanceId))
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.instance_destroyed')
+    ).toHaveLength(1)
+  })
+
   it('materializes Combat Stims and confirms an emergency dose while deployed', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

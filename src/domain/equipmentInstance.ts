@@ -13,8 +13,7 @@ export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
 
 export type EquipmentInstanceLocation =
-  | { state: 'stored' }
-  | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
+  { state: 'stored' } | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
 
 export interface EquipmentInstanceConsumablePayload {
   resourceId: string
@@ -51,7 +50,11 @@ export type EquipmentInstanceFailureCode =
   | 'malformed_payload_bounds'
   | 'invalid_consumable_profile'
   | 'specialized_materialization_required'
+  | 'specialized_destruction_required'
   | 'fabricated_provenance_required'
+  | 'instance_not_stored'
+  | 'payload_destruction_unsupported'
+  | 'recovery_claimed'
   | 'unauthorized_payload_transition'
 
 export type EquipmentInstanceMutationResult =
@@ -336,6 +339,50 @@ export function listStoredEquipmentInstances(
       left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
     )
     .map(createEquipmentInstanceSnapshot)
+}
+
+export function isEquipmentInstanceClaimedForRecovery(
+  state: Pick<GameState, 'equipmentDeconstructionQueue' | 'equipmentRecoveryOutcomes'>,
+  instanceId: EquipmentInstanceId
+): boolean {
+  if (!isSafeEquipmentInstanceId(instanceId)) return false
+  return (
+    (state.equipmentDeconstructionQueue ?? []).some(
+      (entry) => entry.sourceEquipmentInstanceId === instanceId
+    ) ||
+    Object.values(state.equipmentRecoveryOutcomes ?? {}).some(
+      (outcome) => outcome.sourceEquipmentInstanceId === instanceId
+    )
+  )
+}
+
+export function destroyStoredOrdinaryEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const instance = normalized.equipmentInstances?.[instanceId]
+  if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
+  if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
+    return { ok: false, state: normalized, code: 'specialized_destruction_required' }
+  }
+  if (instance.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
+  }
+  if (instance.payload !== undefined) {
+    return { ok: false, state: normalized, code: 'payload_destruction_unsupported' }
+  }
+  if (isEquipmentInstanceClaimedForRecovery(normalized, instanceId)) {
+    return { ok: false, state: normalized, code: 'recovery_claimed' }
+  }
+
+  const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
+  delete equipmentInstances[instanceId]
+  const nextState = normalizeGameState({ ...normalized, equipmentInstances })
+  return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
 function validateTargetLocation(

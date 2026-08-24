@@ -14,6 +14,42 @@ describe('event payload validation coverage', () => {
     expect(schemaTypes).toEqual(eventTypes)
   })
 
+  it('strictly validates ordinary instance destruction provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.instance_destroyed']
+    expect(validateOperationEventPayload('equipment.instance_destroyed', valid).success).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
+        instanceId: 'constructor',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
+        definitionName: 'Wrong name',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
+        reason: 'recovery',
+      }).success
+    ).toBe(false)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
+        extra: true,
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts agent.relationship_changed payloads with external_event reason', () => {
     const validation = validateOperationEventPayload('agent.relationship_changed', {
       week: 3,

@@ -6,6 +6,7 @@ import {
   createAgencyFrontBusinessOpenedDraft,
   createAgentInstructorAssignedDraft,
   createAgentInstructorUnassignedDraft,
+  createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceMaterializedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
@@ -84,6 +85,7 @@ import { createSeededRng, normalizeSeed } from '../../domain/math'
 import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equipment'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
 } from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
@@ -403,6 +405,7 @@ interface GameStore {
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
   materializeStoredEquipmentInstance: (itemId: string) => void
+  destroyStoredEquipmentInstance: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
@@ -1798,6 +1801,25 @@ export const useGameStore = create<GameStore>()(
                 definitionName: definition?.name ?? itemId,
                 condition: result.instance.condition,
                 locationState: 'stored',
+              }),
+            ]),
+          }
+        }),
+
+      destroyStoredEquipmentInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredOrdinaryEquipmentInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceDestroyedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: result.instance.condition,
+                reason: 'manual_disposal',
               }),
             ]),
           }

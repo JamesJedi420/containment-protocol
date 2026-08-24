@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   applyEquipmentInstanceTransition,
+  destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
@@ -22,6 +23,7 @@ import {
   resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
+import { appendOperationEventDrafts, createEquipmentInstanceDestroyedDraft } from '../domain/events'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -120,6 +122,185 @@ describe('ordinary equipment instance authority', () => {
     expect(listStoredEquipmentInstances(state, 'signal_jammers')).toHaveLength(1)
     expect(Object.isFrozen(instances[0])).toBe(true)
     expect(instances[0]).not.toBe(state.equipmentInstances['equipment-instance-a'])
+  })
+
+  it('destroys only the selected stored ordinary identity without restoring aggregate stock', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 3
+    state.inventory.electronics = 4
+    state.damagedEquipmentQueue = ['signal_jammers']
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    state.equipmentInstances = {
+      selected: {
+        instanceId: 'selected',
+        definitionId: 'signal_jammers',
+        condition: 'damaged',
+        location: { state: 'stored' },
+      },
+      sibling: {
+        instanceId: 'sibling',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+    }
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(state, 'selected')
+    expect(destroyed).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: 'selected',
+        definitionId: 'signal_jammers',
+        condition: 'damaged',
+      },
+      state: {
+        damagedEquipmentQueue: ['signal_jammers'],
+        inventory: { signal_jammers: 3, electronics: 4 },
+        fabricatedEquipmentLots: { batch: { quantity: 1 } },
+        equipmentInstances: { sibling: { instanceId: 'sibling' } },
+      },
+    })
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    expect(destroyed.state.equipmentInstances).not.toHaveProperty('selected')
+    expect(Object.isFrozen(destroyed.instance)).toBe(true)
+    expect(destroyStoredOrdinaryEquipmentInstance(destroyed.state, 'selected')).toMatchObject({
+      ok: false,
+      code: 'stale_transition',
+      state: destroyed.state,
+    })
+  })
+
+  it('fails closed for unsafe, equipped, Combat Stim, payload-bearing, and recovery-claimed copies', () => {
+    const state = createStartingState()
+    state.equipmentInstances = {
+      equipped: {
+        instanceId: 'equipped',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+      },
+      stim: {
+        instanceId: 'stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+      payload: {
+        instanceId: 'payload',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'test_payload', capacity: 1, remaining: 1 },
+      },
+    }
+
+    expect(destroyStoredOrdinaryEquipmentInstance(state, 'constructor')).toMatchObject({
+      ok: false,
+      code: 'invalid_instance_id',
+    })
+    expect(destroyStoredOrdinaryEquipmentInstance(state, 'missing')).toMatchObject({
+      ok: false,
+      code: 'stale_transition',
+    })
+    expect(destroyStoredOrdinaryEquipmentInstance(state, 'equipped')).toMatchObject({
+      ok: false,
+      code: 'instance_not_stored',
+    })
+    expect(destroyStoredOrdinaryEquipmentInstance(state, 'stim')).toMatchObject({
+      ok: false,
+      code: 'specialized_destruction_required',
+    })
+    expect(destroyStoredOrdinaryEquipmentInstance(state, 'payload')).toMatchObject({
+      ok: false,
+      code: 'payload_destruction_unsupported',
+    })
+
+    const source = createStartingState()
+    source.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(source, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+    const queued = queueEquipmentDeconstruction(materialized.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: materialized.instance.instanceId,
+    })
+    expect(queued.equipmentDeconstructionQueue).toHaveLength(1)
+    const conflicting = {
+      ...queued,
+      equipmentInstances: {
+        ...(queued.equipmentInstances ?? {}),
+        [materialized.instance.instanceId]: materialized.instance,
+      },
+    }
+    expect(
+      destroyStoredOrdinaryEquipmentInstance(conflicting, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+
+    const completed = advanceEquipmentDeconstructionQueues({
+      ...queued,
+      equipmentDeconstructionQueue: queued.equipmentDeconstructionQueue?.map((entry) => ({
+        ...entry,
+        remainingWeeks: 1,
+      })),
+    }).state
+    const completedConflict = {
+      ...completed,
+      equipmentInstances: {
+        ...(completed.equipmentInstances ?? {}),
+        [materialized.instance.instanceId]: materialized.instance,
+      },
+    }
+    expect(
+      destroyStoredOrdinaryEquipmentInstance(completedConflict, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+  })
+
+  it('round-trips a strict destruction event without recreating the deleted identity', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    const withEvent = appendOperationEventDrafts(destroyed.state, [
+      createEquipmentInstanceDestroyedDraft({
+        week: destroyed.state.week,
+        instanceId: destroyed.instance.instanceId,
+        definitionId: destroyed.instance.definitionId,
+        definitionName: 'Signal Jammers',
+        condition: destroyed.instance.condition,
+        reason: 'manual_disposal',
+      }),
+    ])
+
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    const validEvent = serialized.events.at(-1)
+    serialized.events.push({
+      ...validEvent,
+      id: 'evt-malformed-destruction',
+      payload: { ...validEvent.payload, instanceId: 'constructor' },
+    })
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.equipmentInstances).not.toHaveProperty(destroyed.instance.instanceId)
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.instance_destroyed')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ instanceId: destroyed.instance.instanceId }),
+      }),
+    ])
   })
 
   it('assigns an exact stored instance while atomically preserving displaced stock', () => {

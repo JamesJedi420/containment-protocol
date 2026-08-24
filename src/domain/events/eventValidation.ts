@@ -21,6 +21,10 @@ import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGrade
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
+const equipmentInstanceIdSchema = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/)
+  .refine((value) => value !== '__proto__' && value !== 'constructor' && value !== 'prototype')
 const weekSchema = z.number().int().min(1)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
 const finitePositiveIntSchema = z.number().finite().int().min(1)
@@ -716,11 +720,7 @@ const equipmentRecoveryEventShape = {
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
   sourceFabricationQueueId: idSchema.optional(),
-  sourceEquipmentInstanceId: z
-    .string()
-    .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/)
-    .refine((value) => value !== '__proto__' && value !== 'constructor' && value !== 'prototype')
-    .optional(),
+  sourceEquipmentInstanceId: equipmentInstanceIdSchema.optional(),
   sourceEquipmentInstanceResourceId: idSchema.optional(),
   sourceEquipmentInstanceCapacity: finiteNonNegativeIntSchema.optional(),
   sourceEquipmentInstanceRemaining: finiteNonNegativeIntSchema.optional(),
@@ -888,6 +888,31 @@ const equipmentInstanceMaterializedSchema = z
         code: z.ZodIssueCode.custom,
         path: ['resourceId'],
         message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
+  })
+
+const equipmentInstanceDestroyedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    reason: z.literal('manual_disposal'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'destroyed instance must reference an ordinary equipment catalog definition',
       })
     }
   })
@@ -1541,6 +1566,7 @@ export const operationEventPayloadSchemas = {
   'equipment.auto_scrap_policy_changed': equipmentAutoScrapPolicyChangedSchema,
   'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
   'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
+  'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'market.shifted': marketShiftedSchema,

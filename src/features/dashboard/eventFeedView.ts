@@ -215,6 +215,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.auto_scrap_policy_changed': 'Auto-Scrap Policy Changed',
   'equipment.auto_scrap_routed': 'Auto-Scrap Routed',
   'equipment.instance_materialized': 'Equipment Instance Materialized',
+  'equipment.instance_destroyed': 'Equipment Instance Destroyed',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'market.shifted': 'Market Shift',
@@ -282,6 +283,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.auto_scrap_policy_changed': 'operations_logistics',
   'equipment.auto_scrap_routed': 'operations_logistics',
   'equipment.instance_materialized': 'operations_logistics',
+  'equipment.instance_destroyed': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'market.shifted': 'operations_logistics',
@@ -906,6 +908,20 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.agentId ?? ''}`.toLowerCase(),
       }
     }
+
+    case 'equipment.instance_destroyed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance destroyed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.condition} / Manual disposal`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} manual disposal`.toLowerCase(),
+      }
 
     case 'equipment.combat_stim_activated':
       return {

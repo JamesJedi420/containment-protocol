@@ -8,6 +8,7 @@ import {
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
+import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 
 describe('getEquipmentDeconstructionViews', () => {
   it('keeps instance condition independent from aggregate damaged stock', () => {
@@ -280,6 +281,14 @@ describe('getGearRecommendationsForActiveCases', () => {
       storedInstanceCount: 1,
       equippedInstanceCount: 0,
       canMaterialize: true,
+      storedInstances: [
+        {
+          instanceId: created.instance.instanceId,
+          instanceLabel: `Signal Jammers — ${created.instance.instanceId}`,
+          conditionLabel: 'Operational',
+          canDestroy: true,
+        },
+      ],
     })
 
     const mina = getAgentEquipmentLoadoutViews(created.state).find(
@@ -296,6 +305,75 @@ describe('getGearRecommendationsForActiveCases', () => {
         }),
       ])
     )
+  })
+
+  it('lists exact stored identities stably and blocks generic payload destruction', () => {
+    const game = createStartingState()
+    game.equipmentInstances = {
+      z_copy: {
+        instanceId: 'z_copy',
+        definitionId: 'signal_jammers',
+        location: { state: 'stored' },
+        condition: 'damaged',
+      },
+      a_copy: {
+        instanceId: 'a_copy',
+        definitionId: 'signal_jammers',
+        location: { state: 'stored' },
+        condition: 'operational',
+        payload: { resourceId: 'battery_charge', capacity: 2, remaining: 1 },
+      },
+    }
+
+    expect(
+      getEquipmentInstanceMaterializationViews(game).find(
+        (view) => view.itemId === 'signal_jammers'
+      )?.storedInstances
+    ).toEqual([
+      {
+        instanceId: 'a_copy',
+        instanceLabel: 'Signal Jammers — a_copy',
+        conditionLabel: 'Operational',
+        canDestroy: false,
+        destructionBlocker: 'payload_unsupported',
+      },
+      {
+        instanceId: 'z_copy',
+        instanceLabel: 'Signal Jammers — z_copy',
+        conditionLabel: 'Damaged',
+        canDestroy: true,
+      },
+    ])
+  })
+
+  it('disables destruction for a live identity already claimed by recovery', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    const created = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+    const queued = queueEquipmentDeconstruction(created.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: created.instance.instanceId,
+    })
+    const conflicting = {
+      ...queued,
+      equipmentInstances: {
+        ...(queued.equipmentInstances ?? {}),
+        [created.instance.instanceId]: created.instance,
+      },
+    }
+
+    expect(
+      getEquipmentInstanceMaterializationViews(conflicting).find(
+        (view) => view.itemId === 'signal_jammers'
+      )?.storedInstances
+    ).toEqual([
+      expect.objectContaining({
+        instanceId: created.instance.instanceId,
+        canDestroy: false,
+        destructionBlocker: 'recovery_claimed',
+      }),
+    ])
   })
 
   it('blocks materialization when only provenance-owned fabricated stock remains', () => {

@@ -38,6 +38,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'equipment.auto_scrap_policy_changed': 'covered',
   'equipment.auto_scrap_routed': 'covered',
   'equipment.instance_materialized': 'covered',
+  'equipment.instance_destroyed': 'covered',
   'equipment.combat_stim_activated': 'covered',
   'equipment.combat_stim_overdrive_expired': 'covered',
   'system.equipment_recovered': 'covered',

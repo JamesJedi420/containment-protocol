@@ -16,6 +16,7 @@ function EquipmentPage() {
   const {
     game,
     materializeStoredEquipmentInstance,
+    destroyStoredEquipmentInstance,
     equipAgentItem,
     equipStoredEquipmentInstance,
     activateCombatStim,
@@ -40,6 +41,7 @@ function EquipmentPage() {
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const [pendingCombatStimInstanceId, setPendingCombatStimInstanceId] = useState<string>()
   const [pendingMaterializationItemId, setPendingMaterializationItemId] = useState<string>()
+  const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
   >(
@@ -275,6 +277,68 @@ function EquipmentPage() {
                       ? 'Resolve damaged aggregate stock before tracking a specific copy.'
                       : 'Fabricated batch stock retains its grade provenance and cannot be tracked as an unspecified copy.'}
                   </p>
+                ) : null}
+                {view.storedInstances.length > 0 ? (
+                  <ul className="mt-3 space-y-2" aria-label={`${view.itemName} stored instances`}>
+                    {view.storedInstances.map((instance) => (
+                      <li
+                        key={instance.instanceId}
+                        className="rounded border border-white/10 px-2 py-2"
+                      >
+                        <p className="text-xs font-medium">{instance.instanceLabel}</p>
+                        <p className="text-xs opacity-60">{instance.conditionLabel}</p>
+                        {pendingDestructionInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm destruction ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-red-200">
+                              Permanently destroy this exact stored copy? This cannot be recovered
+                              and does not restore aggregate stock.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Permanently destroy ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  destroyStoredEquipmentInstance(instance.instanceId)
+                                  setPendingDestructionInstanceId(undefined)
+                                }}
+                              >
+                                Confirm destruction
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingDestructionInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            disabled={!instance.canDestroy}
+                            aria-label={`Review destruction ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => setPendingDestructionInstanceId(instance.instanceId)}
+                          >
+                            Destroy exact copy
+                          </button>
+                        )}
+                        {instance.destructionBlocker ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            {instance.destructionBlocker === 'payload_unsupported'
+                              ? 'Payload-bearing copies require a specialized destruction flow.'
+                              : 'This copy is already claimed by equipment recovery.'}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
               </li>
             ))}

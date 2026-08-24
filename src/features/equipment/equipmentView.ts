@@ -42,6 +42,7 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
+  isEquipmentInstanceClaimedForRecovery,
   listStoredEquipmentInstances,
 } from '../../domain/equipmentInstance'
 import {
@@ -79,6 +80,13 @@ export interface EquipmentInstanceMaterializationView {
   equippedInstanceCount: number
   canMaterialize: boolean
   materializationBlocker?: 'damaged_aggregate_stock' | 'fabricated_provenance_required'
+  storedInstances: Array<{
+    instanceId: string
+    instanceLabel: string
+    conditionLabel: string
+    canDestroy: boolean
+    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
+  }>
 }
 
 export interface EquipmentLoadoutSlotView {
@@ -524,6 +532,20 @@ export function getEquipmentInstanceMaterializationViews(
         resolveEquipmentDeconstructionSources(game, definition.id).find(
           (choice) => choice.source.kind === 'catalog'
         )?.quantity ?? 0
+      const storedInstances = listStoredEquipmentInstances(game, definition.id).map((instance) => {
+        const destructionBlocker = instance.payload
+          ? ('payload_unsupported' as const)
+          : isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
+            ? ('recovery_claimed' as const)
+            : undefined
+        return {
+          instanceId: instance.instanceId,
+          instanceLabel: `${definition.name} — ${instance.instanceId}`,
+          conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
+          canDestroy: destructionBlocker === undefined,
+          ...(destructionBlocker ? { destructionBlocker } : {}),
+        }
+      })
       return {
         itemId: definition.id,
         itemName: definition.name,
@@ -534,6 +556,7 @@ export function getEquipmentInstanceMaterializationViews(
           (instance) => instance.location.state === 'equipped'
         ).length,
         canMaterialize: aggregateStock > 0 && !hasDamagedAggregateStock && catalogQuantity > 0,
+        storedInstances,
         ...(aggregateStock > 0 && hasDamagedAggregateStock
           ? { materializationBlocker: 'damaged_aggregate_stock' as const }
           : aggregateStock > 0 && catalogQuantity < 1

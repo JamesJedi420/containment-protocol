@@ -8992,6 +8992,21 @@ function sanitizeOperationEvents(
         break
       }
 
+      case 'equipment.instance_materialized': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_materialized'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_materialized'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
       case 'equipment.instance_destroyed': {
         const parsed = operationEventPayloadSchemas['equipment.instance_destroyed'].safeParse({
           ...payload,

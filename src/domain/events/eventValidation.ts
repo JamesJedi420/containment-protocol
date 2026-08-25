@@ -825,7 +825,7 @@ const equipmentRecoveryCompletedSchema = z
 const equipmentInstanceMaterializedSchema = z
   .object({
     week: weekSchema,
-    instanceId: idSchema,
+    instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
     condition: z.enum(['operational', 'damaged']),

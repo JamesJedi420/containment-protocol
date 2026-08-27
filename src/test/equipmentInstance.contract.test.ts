@@ -7,6 +7,7 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
   listStoredEquipmentInstances,
+  reaggregateStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
   sanitizeEquipmentInstanceRegistry,
   type EquipmentInstanceLocation,
@@ -23,7 +24,11 @@ import {
   resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
-import { appendOperationEventDrafts, createEquipmentInstanceDestroyedDraft } from '../domain/events'
+import {
+  appendOperationEventDrafts,
+  createEquipmentInstanceDestroyedDraft,
+  createEquipmentInstanceReaggregatedDraft,
+} from '../domain/events'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -262,6 +267,211 @@ describe('ordinary equipment instance authority', () => {
     expect(
       destroyStoredOrdinaryEquipmentInstance(completedConflict, materialized.instance.instanceId)
     ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+  })
+
+  it('re-aggregates one exact operational copy without mutating sibling authorities', () => {
+    const state = createStartingState()
+    state.inventory = { signal_jammers: 3, electronics: 4 }
+    state.damagedEquipmentQueue = ['signal_jammers']
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    state.equipmentInstances = {
+      selected: {
+        instanceId: 'selected',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+      sibling: {
+        instanceId: 'sibling',
+        definitionId: 'signal_jammers',
+        condition: 'damaged',
+        location: { state: 'stored' },
+      },
+    }
+
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(state, 'selected')
+    expect(reaggregated).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: 'selected',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+      },
+      state: {
+        damagedEquipmentQueue: ['signal_jammers'],
+        inventory: { signal_jammers: 4, electronics: 4 },
+        fabricatedEquipmentLots: { batch: { quantity: 1 } },
+        equipmentInstances: { sibling: { instanceId: 'sibling', condition: 'damaged' } },
+      },
+    })
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    expect(Object.isFrozen(reaggregated.instance)).toBe(true)
+    expect(reaggregated.state.equipmentDeconstructionQueue).toEqual(
+      state.equipmentDeconstructionQueue
+    )
+    expect(reaggregated.state.equipmentRecoveryOutcomes).toEqual(state.equipmentRecoveryOutcomes)
+    expect(reaggregated.state.agents.a_mina.equipmentSlots).toEqual(
+      state.agents.a_mina.equipmentSlots
+    )
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(reaggregated.state, 'selected')
+    ).toMatchObject({ ok: false, code: 'stale_transition', state: reaggregated.state })
+  })
+
+  it('fails re-aggregation closed for unsupported identities and unsafe aggregate credit', () => {
+    const state = createStartingState()
+    state.equipmentInstances = {
+      equipped: {
+        instanceId: 'equipped',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+      },
+      damaged: {
+        instanceId: 'damaged',
+        definitionId: 'signal_jammers',
+        condition: 'damaged',
+        location: { state: 'stored' },
+      },
+      stim: {
+        instanceId: 'stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+      payload: {
+        instanceId: 'payload',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'test_payload', capacity: 1, remaining: 1 },
+      },
+      overflow: {
+        instanceId: 'overflow',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+    }
+    state.inventory.signal_jammers = Number.MAX_SAFE_INTEGER
+
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'constructor')).toMatchObject({
+      ok: false,
+      code: 'invalid_instance_id',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'missing')).toMatchObject({
+      ok: false,
+      code: 'stale_transition',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'equipped')).toMatchObject({
+      ok: false,
+      code: 'instance_not_stored',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'damaged')).toMatchObject({
+      ok: false,
+      code: 'condition_reaggregation_unsupported',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'stim')).toMatchObject({
+      ok: false,
+      code: 'specialized_reaggregation_required',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'payload')).toMatchObject({
+      ok: false,
+      code: 'payload_reaggregation_unsupported',
+    })
+    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'overflow')).toMatchObject({
+      ok: false,
+      code: 'inventory_capacity_exceeded',
+      state: { equipmentInstances: { overflow: { instanceId: 'overflow' } } },
+    })
+  })
+
+  it('rejects re-aggregation for active and completed recovery claims', () => {
+    const source = createStartingState()
+    source.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(source, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+    const queued = queueEquipmentDeconstruction(materialized.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: materialized.instance.instanceId,
+    })
+    const conflicting = {
+      ...queued,
+      equipmentInstances: {
+        ...(queued.equipmentInstances ?? {}),
+        [materialized.instance.instanceId]: materialized.instance,
+      },
+    }
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(conflicting, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+
+    const completed = advanceEquipmentDeconstructionQueues({
+      ...queued,
+      equipmentDeconstructionQueue: queued.equipmentDeconstructionQueue?.map((entry) => ({
+        ...entry,
+        remainingWeeks: 1,
+      })),
+    }).state
+    const completedConflict = {
+      ...completed,
+      equipmentInstances: {
+        ...(completed.equipmentInstances ?? {}),
+        [materialized.instance.instanceId]: materialized.instance,
+      },
+    }
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(
+        completedConflict,
+        materialized.instance.instanceId
+      )
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+  })
+
+  it('round-trips strict re-aggregation history without recreating or re-crediting identity', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    const withEvent = appendOperationEventDrafts(reaggregated.state, [
+      createEquipmentInstanceReaggregatedDraft({
+        week: reaggregated.state.week,
+        instanceId: reaggregated.instance.instanceId,
+        definitionId: reaggregated.instance.definitionId,
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    const validEvent = serialized.events.at(-1)
+    serialized.events.push({
+      ...validEvent,
+      id: 'evt-malformed-reaggregation',
+      payload: { ...validEvent.payload, condition: 'damaged' },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.inventory.signal_jammers).toBe(1)
+    expect(hydrated.equipmentInstances).not.toHaveProperty(reaggregated.instance.instanceId)
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
   })
 
   it('round-trips a strict destruction event without recreating the deleted identity', () => {

@@ -50,6 +50,25 @@ describe('event payload validation coverage', () => {
     ).toBe(false)
   })
 
+  it('strictly validates ordinary instance re-aggregation provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.instance_reaggregated']
+    expect(validateOperationEventPayload('equipment.instance_reaggregated', valid).success).toBe(
+      true
+    )
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, definitionId: 'combat_stims', definitionName: 'Combat Stims' },
+      { ...valid, condition: 'damaged' },
+      { ...valid, reason: 'manual_disposal' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.instance_reaggregated', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('accepts agent.relationship_changed payloads with external_event reason', () => {
     const validation = validateOperationEventPayload('agent.relationship_changed', {
       week: 3,

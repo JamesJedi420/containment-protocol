@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2843",
     "SPE-2842",
     "SPE-2841",
     "SPE-2840",
@@ -12,10 +13,10 @@
     "SPE-2801",
     "SPE-2800",
     "SPE-2799",
-    "SPE-2748",
-    "SPE-2750"
+    "SPE-2748"
   ],
   "sliceDocStatus": {
+    "planning/spe-2843-stored-ordinary-equipment-instance-re-aggregation-command-slice.md": "Recently shipped",
     "planning/spe-2842-stored-ordinary-equipment-instance-destruction-command-slice.md": "Recently shipped",
     "planning/spe-2841-stored-ordinary-equipment-instance-recovery-selection-slice.md": "Recently shipped",
     "planning/spe-2840-generic-equipment-instance-materialization-surface-slice.md": "Recently shipped",

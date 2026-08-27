@@ -917,6 +917,31 @@ const equipmentInstanceDestroyedSchema = z
     }
   })
 
+const equipmentInstanceReaggregatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.literal('operational'),
+    reason: z.literal('manual_untracking'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 're-aggregated instance must reference an ordinary equipment catalog definition',
+      })
+    }
+  })
+
 const combatStimActivatedSchema = z
   .object({
     week: weekSchema,
@@ -1567,6 +1592,7 @@ export const operationEventPayloadSchemas = {
   'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
   'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
   'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
+  'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'market.shifted': marketShiftedSchema,

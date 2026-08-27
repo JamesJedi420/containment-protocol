@@ -1042,6 +1042,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.recovery_started': ['queueId', 'itemId'],
   'equipment.recovery_completed': ['queueId', 'itemId'],
   'equipment.instance_destroyed': ['instanceId', 'definitionId'],
+  'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
   'market.shifted': ['featuredRecipeId'],
   'market.transaction_recorded': ['transactionId', 'listingId', 'itemId'],
   'faction.standing_changed': ['factionId'],
@@ -9001,6 +9002,21 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.instance_destroyed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_reaggregated': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_reaggregated'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_reaggregated'),
             payload: parsed.data,
           })
         )

@@ -483,6 +483,14 @@ export interface OperationEventPayloadMap {
     condition: 'operational' | 'damaged'
     reason: 'manual_disposal'
   }
+  'equipment.instance_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational'
+    reason: 'manual_untracking'
+  }
   'equipment.combat_stim_activated': {
     week: number
     activationId: Id
@@ -837,6 +845,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.auto_scrap_routed': 'production'
   'equipment.instance_materialized': 'agent'
   'equipment.instance_destroyed': 'agent'
+  'equipment.instance_reaggregated': 'agent'
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
   'market.shifted': 'production'
@@ -904,6 +913,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.auto_scrap_routed': 'production',
   'equipment.instance_materialized': 'agent',
   'equipment.instance_destroyed': 'agent',
+  'equipment.instance_reaggregated': 'agent',
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',
   'market.shifted': 'production',

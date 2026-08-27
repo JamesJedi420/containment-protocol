@@ -287,6 +287,7 @@ describe('getGearRecommendationsForActiveCases', () => {
           instanceLabel: `Signal Jammers — ${created.instance.instanceId}`,
           conditionLabel: 'Operational',
           canDestroy: true,
+          canReaggregate: true,
         },
       ],
     })
@@ -336,12 +337,16 @@ describe('getGearRecommendationsForActiveCases', () => {
         conditionLabel: 'Operational',
         canDestroy: false,
         destructionBlocker: 'payload_unsupported',
+        canReaggregate: false,
+        reaggregationBlocker: 'payload_unsupported',
       },
       {
         instanceId: 'z_copy',
         instanceLabel: 'Signal Jammers — z_copy',
         conditionLabel: 'Damaged',
         canDestroy: true,
+        canReaggregate: false,
+        reaggregationBlocker: 'condition_unsupported',
       },
     ])
   })
@@ -372,6 +377,8 @@ describe('getGearRecommendationsForActiveCases', () => {
         instanceId: created.instance.instanceId,
         canDestroy: false,
         destructionBlocker: 'recovery_claimed',
+        canReaggregate: false,
+        reaggregationBlocker: 'recovery_claimed',
       }),
     ])
   })

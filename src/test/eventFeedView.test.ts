@@ -647,6 +647,27 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-2')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('market.shifted tight pressure — warning tone', () => {
     const event = makeEvent('market.shifted', {
       week: 5,

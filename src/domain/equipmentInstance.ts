@@ -51,9 +51,13 @@ export type EquipmentInstanceFailureCode =
   | 'invalid_consumable_profile'
   | 'specialized_materialization_required'
   | 'specialized_destruction_required'
+  | 'specialized_reaggregation_required'
   | 'fabricated_provenance_required'
   | 'instance_not_stored'
   | 'payload_destruction_unsupported'
+  | 'payload_reaggregation_unsupported'
+  | 'condition_reaggregation_unsupported'
+  | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
   | 'unauthorized_payload_transition'
 
@@ -382,6 +386,47 @@ export function destroyStoredOrdinaryEquipmentInstance(
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
   const nextState = normalizeGameState({ ...normalized, equipmentInstances })
+  return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
+}
+
+export function reaggregateStoredOrdinaryEquipmentInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const instance = normalized.equipmentInstances?.[instanceId]
+  if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
+  if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
+    return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
+  }
+  if (instance.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
+  }
+  if (instance.condition !== 'operational') {
+    return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
+  }
+  if (instance.payload !== undefined) {
+    return { ok: false, state: normalized, code: 'payload_reaggregation_unsupported' }
+  }
+  if (isEquipmentInstanceClaimedForRecovery(normalized, instanceId)) {
+    return { ok: false, state: normalized, code: 'recovery_claimed' }
+  }
+
+  const stock = readAggregateStock(normalized, instance.definitionId)
+  if (!Number.isSafeInteger(stock) || stock >= Number.MAX_SAFE_INTEGER) {
+    return { ok: false, state: normalized, code: 'inventory_capacity_exceeded' }
+  }
+
+  const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
+  delete equipmentInstances[instanceId]
+  const nextState = normalizeGameState({
+    ...normalized,
+    inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
+    equipmentInstances,
+  })
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 

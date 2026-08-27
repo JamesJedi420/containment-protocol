@@ -86,6 +86,12 @@ export interface EquipmentInstanceMaterializationView {
     conditionLabel: string
     canDestroy: boolean
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
+    canReaggregate: boolean
+    reaggregationBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
   }>
 }
 
@@ -533,17 +539,30 @@ export function getEquipmentInstanceMaterializationViews(
           (choice) => choice.source.kind === 'catalog'
         )?.quantity ?? 0
       const storedInstances = listStoredEquipmentInstances(game, definition.id).map((instance) => {
+        const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
         const destructionBlocker = instance.payload
           ? ('payload_unsupported' as const)
-          : isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
+          : recoveryClaimed
             ? ('recovery_claimed' as const)
             : undefined
+        const reaggregationBlocker =
+          instance.condition !== 'operational'
+            ? ('condition_unsupported' as const)
+            : instance.payload
+              ? ('payload_unsupported' as const)
+              : recoveryClaimed
+                ? ('recovery_claimed' as const)
+                : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                  ? ('inventory_capacity_exceeded' as const)
+                  : undefined
         return {
           instanceId: instance.instanceId,
           instanceLabel: `${definition.name} — ${instance.instanceId}`,
           conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
           canDestroy: destructionBlocker === undefined,
+          canReaggregate: reaggregationBlocker === undefined,
           ...(destructionBlocker ? { destructionBlocker } : {}),
+          ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
         }
       })
       return {

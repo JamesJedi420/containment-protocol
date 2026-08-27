@@ -17,6 +17,7 @@ function EquipmentPage() {
     game,
     materializeStoredEquipmentInstance,
     destroyStoredEquipmentInstance,
+    reaggregateStoredEquipmentInstance,
     equipAgentItem,
     equipStoredEquipmentInstance,
     activateCombatStim,
@@ -42,6 +43,7 @@ function EquipmentPage() {
   const [pendingCombatStimInstanceId, setPendingCombatStimInstanceId] = useState<string>()
   const [pendingMaterializationItemId, setPendingMaterializationItemId] = useState<string>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
+  const [pendingReaggregationInstanceId, setPendingReaggregationInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
   >(
@@ -324,7 +326,10 @@ function EquipmentPage() {
                             className="btn btn-xs btn-ghost mt-2"
                             disabled={!instance.canDestroy}
                             aria-label={`Review destruction ${view.itemName} instance ${instance.instanceId}`}
-                            onClick={() => setPendingDestructionInstanceId(instance.instanceId)}
+                            onClick={() => {
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingDestructionInstanceId(instance.instanceId)
+                            }}
                           >
                             Destroy exact copy
                           </button>
@@ -334,6 +339,62 @@ function EquipmentPage() {
                             {instance.destructionBlocker === 'payload_unsupported'
                               ? 'Payload-bearing copies require a specialized destruction flow.'
                               : 'This copy is already claimed by equipment recovery.'}
+                          </p>
+                        ) : null}
+                        {pendingReaggregationInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm re-aggregation ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Stop tracking this exact copy and return one unit to aggregate stock?
+                              The individual identity will be removed.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Re-aggregate ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  reaggregateStoredEquipmentInstance(instance.instanceId)
+                                  setPendingReaggregationInstanceId(undefined)
+                                }}
+                              >
+                                Confirm re-aggregation
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingReaggregationInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            disabled={!instance.canReaggregate}
+                            aria-label={`Review re-aggregation ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingReaggregationInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Return to aggregate stock
+                          </button>
+                        )}
+                        {instance.reaggregationBlocker ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            {instance.reaggregationBlocker === 'condition_unsupported'
+                              ? 'Damaged copies cannot return to operational aggregate stock.'
+                              : instance.reaggregationBlocker === 'payload_unsupported'
+                                ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                : instance.reaggregationBlocker === 'recovery_claimed'
+                                  ? 'This copy is already claimed by equipment recovery.'
+                                  : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                       </li>

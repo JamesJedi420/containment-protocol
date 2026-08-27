@@ -664,6 +664,12 @@ export function createEquipmentInstanceDestroyedDraft(
   return { type: 'equipment.instance_destroyed', sourceSystem: 'agent', payload }
 }
 
+export function createEquipmentInstanceReaggregatedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_reaggregated']
+): OperationEventDraft<'equipment.instance_reaggregated'> {
+  return { type: 'equipment.instance_reaggregated', sourceSystem: 'agent', payload }
+}
+
 export function createCombatStimActivatedDraft(
   payload: OperationEventPayloadMap['equipment.combat_stim_activated']
 ): OperationEventDraft<'equipment.combat_stim_activated'> {
@@ -778,6 +784,7 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'equipment.auto_scrap_routed',
   'equipment.instance_materialized',
   'equipment.instance_destroyed',
+  'equipment.instance_reaggregated',
   'equipment.combat_stim_activated',
   'equipment.combat_stim_overdrive_expired',
   'market.shifted',

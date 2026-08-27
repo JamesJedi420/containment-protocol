@@ -255,6 +255,59 @@ describe('EquipmentPage', () => {
     ).toHaveLength(1)
   })
 
+  it('confirms re-aggregation of one exact operational copy and credits stock once', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm re-aggregation Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/return one unit to aggregate stock/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Re-aggregate Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.events.filter((event) => event.type === 'equipment.instance_reaggregated')).toEqual(
+      [
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            instanceId: created.instance.instanceId,
+            definitionId: 'signal_jammers',
+            condition: 'operational',
+            reason: 'manual_untracking',
+          }),
+        }),
+      ]
+    )
+    act(() =>
+      useGameStore.getState().reaggregateStoredEquipmentInstance(created.instance.instanceId)
+    )
+    expect(useGameStore.getState().game.inventory.signal_jammers).toBe(2)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
+  })
+
   it('materializes Combat Stims and confirms an emergency dose while deployed', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

@@ -27,6 +27,7 @@ import { hydrateGame } from '../app/store/runTransfer'
 import {
   appendOperationEventDrafts,
   createEquipmentInstanceDestroyedDraft,
+  createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
 } from '../domain/events'
 
@@ -61,6 +62,81 @@ describe('ordinary equipment instance authority', () => {
       ok: false,
       code: 'damaged_stock_ambiguity',
     })
+  })
+
+  it('does not reuse a same-week instance identity after manual destruction records it', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+
+    const first = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!first.ok) throw new Error(first.code)
+    const tracked = appendOperationEventDrafts(first.state, [
+      createEquipmentInstanceMaterializedDraft({
+        week: state.week,
+        instanceId: first.instance.instanceId,
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        locationState: 'stored',
+      }),
+    ])
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(tracked, first.instance.instanceId)
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    const terminal = appendOperationEventDrafts(destroyed.state, [
+      createEquipmentInstanceDestroyedDraft({
+        week: state.week,
+        instanceId: destroyed.instance.instanceId,
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_disposal',
+      }),
+    ])
+
+    const second = materializeStoredOrdinaryEquipmentInstance(terminal, 'signal_jammers')
+    if (!second.ok) throw new Error(second.code)
+
+    expect(first.instance.instanceId).toBe('equipment-instance-1-1')
+    expect(second.instance.instanceId).toBe('equipment-instance-1-2')
+  })
+
+  it('does not reuse a same-week instance identity after re-aggregation records it', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+
+    const first = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!first.ok) throw new Error(first.code)
+    const tracked = appendOperationEventDrafts(first.state, [
+      createEquipmentInstanceMaterializedDraft({
+        week: state.week,
+        instanceId: first.instance.instanceId,
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        locationState: 'stored',
+      }),
+    ])
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      tracked,
+      first.instance.instanceId
+    )
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    const terminal = appendOperationEventDrafts(reaggregated.state, [
+      createEquipmentInstanceReaggregatedDraft({
+        week: state.week,
+        instanceId: reaggregated.instance.instanceId,
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      }),
+    ])
+
+    const second = materializeStoredOrdinaryEquipmentInstance(terminal, 'signal_jammers')
+    if (!second.ok) throw new Error(second.code)
+
+    expect(first.instance.instanceId).toBe('equipment-instance-1-1')
+    expect(second.instance.instanceId).toBe('equipment-instance-1-2')
   })
 
   it('fails closed when only fabricated-lot stock remains unclaimed', () => {

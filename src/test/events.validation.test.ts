@@ -69,6 +69,23 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates Combat Stim disposal provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
+    expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, remaining: 3 },
+      { ...valid, capacity: 1 },
+      { ...valid, reason: 'recovery' },
+      { ...valid, extra: true },
+    ]) {
+      expect(validateOperationEventPayload('equipment.combat_stim_disposed', payload).success).toBe(
+        false
+      )
+    }
+  })
+
   it('accepts agent.relationship_changed payloads with external_event reason', () => {
     const validation = validateOperationEventPayload('agent.relationship_changed', {
       week: 3,

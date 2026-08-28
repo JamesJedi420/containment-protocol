@@ -647,6 +647,30 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-3',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance disposed')
+    expect(view.detail).toContain('equipment-instance-7-3')
+    expect(view.detail).toContain('1/2 doses')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
     const event = makeEvent(
       'equipment.instance_reaggregated',

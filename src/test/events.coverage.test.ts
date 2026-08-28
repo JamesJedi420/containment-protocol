@@ -42,6 +42,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'equipment.instance_reaggregated': 'covered',
   'equipment.combat_stim_activated': 'covered',
   'equipment.combat_stim_overdrive_expired': 'covered',
+  'equipment.combat_stim_disposed': 'covered',
   'system.equipment_recovered': 'covered',
   'market.shifted': 'covered',
   'market.transaction_recorded': 'covered',

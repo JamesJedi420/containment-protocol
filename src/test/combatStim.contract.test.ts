@@ -3,9 +3,12 @@ import { createStartingState } from '../data/startingState'
 import {
   activateCombatStim,
   applyCombatStimRecoveryDebtAtWeekClose,
+  destroyStoredCombatStimInstance,
   equipStoredCombatStimInstance,
   expireCombatStimOverdrivesAtWeekClose,
+  getCombatStimStoredInstanceDisposalViews,
   resolveCombatStimActivation,
+  resolveCombatStimDisposal,
   resolveEffectiveResponderEnergyBand,
   type CombatStimActivationReasonCode,
 } from '../domain/combatStim'
@@ -17,8 +20,10 @@ import {
   isCanonicalCombatStimPayload,
 } from '../domain/equipmentInstance'
 import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
+import { queueEquipmentDeconstruction } from '../domain/sim/equipmentDeconstruction'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { hydrateGame } from '../app/store/runTransfer'
+import { appendOperationEventDrafts, createCombatStimDisposedDraft } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
 import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
 
@@ -526,6 +531,175 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
       expiryEvents: [
         { type: 'equipment.combat_stim_overdrive_expired', payload: { week: state.week } },
       ],
+    })
+  })
+})
+
+describe('SPE-2844 Combat Stim stored-instance disposal', () => {
+  function seedStoredStim(remaining: number, instanceId = 'equipment-instance-stored-stim') {
+    const state = createStartingState()
+    state.inventory.combat_stims = 0
+    state.equipmentInstances = {
+      [instanceId]: {
+        instanceId,
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining },
+      },
+    }
+    return state
+  }
+
+  it('disposes stored canonical instances at 2/2, 1/2, and 0/2 without changing aggregate stock', () => {
+    for (const remaining of [2, 1, 0] as const) {
+      const state = seedStoredStim(remaining, `equipment-instance-stored-${remaining}`)
+      const disposed = destroyStoredCombatStimInstance(state, `equipment-instance-stored-${remaining}`)
+      expect(disposed.ok).toBe(true)
+      if (!disposed.ok) throw new Error('expected disposal success')
+      expect(disposed.state.inventory.combat_stims).toBe(0)
+      expect(disposed.state.equipmentInstances).toEqual({})
+      expect(disposed.instance.payload).toEqual({
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining,
+      })
+    }
+  })
+
+  it('fails closed for equipped, missing, malformed, recovery-claimed, and overdrive-provenance instances', () => {
+    const stored = seedStoredStim(1)
+    const equipped = equipStoredCombatStimInstance(stored, 'equipment-instance-stored-stim', 'a_ava', 'utility1')
+    expect(destroyStoredCombatStimInstance(equipped, 'equipment-instance-stored-stim')).toMatchObject({
+      ok: false,
+      code: 'not_stored',
+    })
+
+    expect(destroyStoredCombatStimInstance(stored, 'missing')).toMatchObject({
+      ok: false,
+      code: 'unknown_instance',
+    })
+
+    const malformed = {
+      ...stored,
+      equipmentInstances: {
+        'equipment-instance-malformed': {
+          instanceId: 'equipment-instance-malformed',
+          definitionId: 'combat_stims',
+          condition: 'operational' as const,
+          location: { state: 'stored' as const },
+          payload: { resourceId: 'combat_stim_dose', capacity: 3, remaining: 2 },
+        },
+      },
+    }
+    expect(destroyStoredCombatStimInstance(malformed, 'equipment-instance-malformed')).toMatchObject({
+      ok: false,
+      code: 'malformed_payload',
+    })
+
+    const depleted = seedStoredStim(0, 'equipment-instance-depleted-stim')
+    const queuedDepleted = queueEquipmentDeconstruction(depleted, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: 'equipment-instance-depleted-stim',
+    })
+    expect(queuedDepleted.equipmentDeconstructionQueue).toHaveLength(1)
+    const conflicting = {
+      ...queuedDepleted,
+      equipmentInstances: {
+        ...(queuedDepleted.equipmentInstances ?? {}),
+        'equipment-instance-depleted-stim': depleted.equipmentInstances!['equipment-instance-depleted-stim'],
+      },
+    }
+    expect(
+      destroyStoredCombatStimInstance(conflicting, 'equipment-instance-depleted-stim')
+    ).toMatchObject({
+      ok: false,
+      code: 'recovery_claimed',
+    })
+
+    const overdrive = {
+      ...stored,
+      agents: {
+        ...stored.agents,
+        a_ava: {
+          ...stored.agents.a_ava,
+          overdrive: {
+            active: false,
+            remainingPhases: 0,
+            recoveryDebt: 1,
+            source: {
+              kind: 'combat_stim' as const,
+              activationId: 'combat-stim-equipment-instance-stored-stim-dose-1',
+              equipmentInstanceId: 'equipment-instance-stored-stim',
+              caseId: 'case-1',
+            },
+          },
+        },
+      },
+    }
+    expect(destroyStoredCombatStimInstance(overdrive, 'equipment-instance-stored-stim')).toMatchObject({
+      ok: false,
+      code: 'overdrive_provenance',
+    })
+  })
+
+  it('is idempotent on stale replay and round-trips strict disposal events without recreating identity', () => {
+    const state = seedStoredStim(2, 'equipment-instance-dispose-a')
+    state.equipmentInstances!['equipment-instance-dispose-b'] = {
+      instanceId: 'equipment-instance-dispose-b',
+      definitionId: 'combat_stims',
+      condition: 'operational',
+      location: { state: 'stored' },
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+    }
+    const disposed = destroyStoredCombatStimInstance(state, 'equipment-instance-dispose-a')
+    if (!disposed.ok) throw new Error('expected disposal success')
+    expect(destroyStoredCombatStimInstance(disposed.state, 'equipment-instance-dispose-a')).toMatchObject({
+      ok: false,
+      code: 'unknown_instance',
+    })
+    expect(Object.keys(disposed.state.equipmentInstances ?? {})).toEqual(['equipment-instance-dispose-b'])
+
+    const withEvent = appendOperationEventDrafts(disposed.state, [
+      createCombatStimDisposedDraft({
+        week: disposed.state.week,
+        instanceId: 'equipment-instance-dispose-a',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_disposal',
+      }),
+    ])
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(withEvent)))
+    expect(hydrated.equipmentInstances).not.toHaveProperty('equipment-instance-dispose-a')
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.combat_stim_disposed')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ instanceId: 'equipment-instance-dispose-a', remaining: 2 }),
+      }),
+    ])
+  })
+
+  it('projects stable stored-instance disposal views in code-unit order', () => {
+    const state = seedStoredStim(1, 'equipment-instance-b')
+    state.equipmentInstances!['equipment-instance-a'] = {
+      instanceId: 'equipment-instance-a',
+      definitionId: 'combat_stims',
+      condition: 'operational',
+      location: { state: 'stored' },
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+    }
+    expect(getCombatStimStoredInstanceDisposalViews(state).map((view) => view.instanceId)).toEqual([
+      'equipment-instance-a',
+      'equipment-instance-b',
+    ])
+    expect(resolveCombatStimDisposal(state, 'equipment-instance-a')).toMatchObject({
+      canDispose: true,
+      doseLabel: '2/2 doses',
     })
   })
 })

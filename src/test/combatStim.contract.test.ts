@@ -500,6 +500,58 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
     expect(malformedSemantic.agents.a_ava.overdrive?.source).toBeUndefined()
   })
 
+  it('round-trips Combat Stim activation and expiry audit events through hydration', () => {
+    const equipped = equipAndAssignCriticalStim()
+    const instance = getEquipmentInstanceAtAgentSlot(equipped, 'a_ava', 'utility1')!
+    const activated = activateCombatStim(equipped, instance.instanceId)
+    if (!activated.ok) throw new Error(activated.code)
+    const advanced = advanceWeek(activated.state, 1_000)
+    const serialized = JSON.parse(JSON.stringify(advanced))
+    const activationEvent = serialized.events.find(
+      (event: { type?: string }) => event.type === 'equipment.combat_stim_activated'
+    )
+    const expiryEvent = serialized.events.find(
+      (event: { type?: string }) => event.type === 'equipment.combat_stim_overdrive_expired'
+    )
+    if (!activationEvent || !expiryEvent) throw new Error('Expected Combat Stim audit events')
+
+    serialized.events.push({
+      ...activationEvent,
+      id: 'evt-malformed-combat-stim-activation',
+      payload: { ...activationEvent.payload, dosesAfter: activationEvent.payload.dosesBefore },
+    })
+    serialized.events.push({
+      ...expiryEvent,
+      id: 'evt-malformed-combat-stim-expiry',
+      payload: { ...expiryEvent.payload, recoveryDebt: 0 },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.combat_stim_activated')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          activationId: activated.activationId,
+          instanceId: instance.instanceId,
+          dosesBefore: 2,
+          dosesAfter: 1,
+        }),
+      }),
+    ])
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.combat_stim_overdrive_expired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          activationId: activated.activationId,
+          instanceId: instance.instanceId,
+          recoveryDebt: 2,
+        }),
+      }),
+    ])
+  })
+
   it('expires active Combat Stim overdrive through canonical week close and retains its event', () => {
     const state = createStartingState()
     const caseId = Object.keys(state.cases).sort()[0]

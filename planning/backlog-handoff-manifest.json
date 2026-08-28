@@ -1,6 +1,6 @@
 {
   "primary": null,
-  "inProgress": [],
+  "inProgress": ["SPE-2844"],
   "recentlyShipped": [
     "SPE-2843",
     "SPE-2842",
@@ -16,6 +16,7 @@
     "SPE-2748"
   ],
   "sliceDocStatus": {
+    "planning/spe-2844-combat-stim-stored-instance-disposal-slice.md": "In Progress",
     "planning/spe-2843-stored-ordinary-equipment-instance-re-aggregation-command-slice.md": "Recently shipped",
     "planning/spe-2842-stored-ordinary-equipment-instance-destruction-command-slice.md": "Recently shipped",
     "planning/spe-2841-stored-ordinary-equipment-instance-recovery-selection-slice.md": "Recently shipped",

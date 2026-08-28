@@ -1043,6 +1043,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.recovery_completed': ['queueId', 'itemId'],
   'equipment.instance_destroyed': ['instanceId', 'definitionId'],
   'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
+  'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
   'market.shifted': ['featuredRecipeId'],
   'market.transaction_recorded': ['transactionId', 'listingId', 'itemId'],
   'faction.standing_changed': ['factionId'],
@@ -9017,6 +9018,21 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.instance_reaggregated'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.combat_stim_disposed': {
+        const parsed = operationEventPayloadSchemas['equipment.combat_stim_disposed'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.combat_stim_disposed'),
             payload: parsed.data,
           })
         )

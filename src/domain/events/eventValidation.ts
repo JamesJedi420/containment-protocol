@@ -987,6 +987,30 @@ const combatStimOverdriveExpiredSchema = z
   })
   .strict()
 
+const combatStimDisposedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: z.literal('combat_stims'),
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    resourceId: z.literal('combat_stim_dose'),
+    capacity: z.literal(2),
+    remaining: z.number().int().min(0).max(2),
+    reason: z.literal('manual_disposal'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'disposed instance must reference the Combat Stims catalog definition',
+      })
+    }
+  })
+
 const equipmentAutoScrapPolicyChangedSchema = z
   .object({
     week: weekSchema,
@@ -1595,6 +1619,7 @@ export const operationEventPayloadSchemas = {
   'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
+  'equipment.combat_stim_disposed': combatStimDisposedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,

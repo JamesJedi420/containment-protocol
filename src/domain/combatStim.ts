@@ -10,10 +10,12 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstance,
   isCanonicalCombatStimPayload,
+  isEquipmentInstanceClaimedForRecovery,
   isSafeEquipmentInstanceId,
   listStoredEquipmentInstances,
   type EquipmentInstance,
   type EquipmentInstanceId,
+  type EquipmentInstanceLocation,
 } from './equipmentInstance'
 import { createDefaultResponderEnergyBudget, normalizeEnergyBudget } from './responderEnergyBudget'
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
@@ -245,10 +247,123 @@ export function listStoredCombatStimInstances(
   return listStoredEquipmentInstances(state, COMBAT_STIM_DEFINITION_ID)
 }
 
+export const COMBAT_STIM_DISPOSAL_REASON_CODES = [
+  'invalid_instance_id',
+  'unknown_instance',
+  'wrong_definition',
+  'malformed_payload',
+  'not_stored',
+  'recovery_claimed',
+  'overdrive_provenance',
+] as const
+
+export type CombatStimDisposalReasonCode = (typeof COMBAT_STIM_DISPOSAL_REASON_CODES)[number]
+
+export interface CombatStimDisposalPreview {
+  instanceId: EquipmentInstanceId
+  canDispose: boolean
+  reasonCode?: CombatStimDisposalReasonCode
+  doseLabel?: string
+  conditionLabel: string
+}
+
+export type CombatStimDisposalResult =
+  | { ok: true; state: GameState; instance: EquipmentInstance }
+  | { ok: false; state: GameState; code: CombatStimDisposalReasonCode }
+
+function snapshotCombatStimInstance(instance: EquipmentInstance): EquipmentInstance {
+  const location = Object.freeze({ ...instance.location }) as EquipmentInstanceLocation
+  const payload = instance.payload ? Object.freeze({ ...instance.payload }) : undefined
+  return Object.freeze({
+    instanceId: instance.instanceId,
+    definitionId: instance.definitionId,
+    location,
+    condition: instance.condition,
+    ...(payload ? { payload } : {}),
+  })
+}
+
+function instanceHasActiveOverdriveProvenance(state: GameState, instanceId: string) {
+  return Object.values(state.agents).some(
+    (agent) =>
+      agent.overdrive?.source?.kind === 'combat_stim' &&
+      agent.overdrive.source.equipmentInstanceId === instanceId &&
+      (agent.overdrive.active || agent.overdrive.recoveryDebt > 0)
+  )
+}
+
+export function resolveCombatStimDisposal(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): CombatStimDisposalPreview {
+  const conditionLabel = (condition: EquipmentInstance['condition']) =>
+    condition === 'damaged' ? 'Damaged' : 'Operational'
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { instanceId, canDispose: false, reasonCode: 'invalid_instance_id', conditionLabel: '—' }
+  }
+  const instance = getEquipmentInstance(state, instanceId)
+  if (!instance) {
+    return { instanceId, canDispose: false, reasonCode: 'unknown_instance', conditionLabel: '—' }
+  }
+  const base = { instanceId, conditionLabel: conditionLabel(instance.condition) }
+  if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
+    return { ...base, canDispose: false, reasonCode: 'wrong_definition' }
+  }
+  if (instance.location.state !== 'stored') {
+    return { ...base, canDispose: false, reasonCode: 'not_stored' }
+  }
+  if (!isCanonicalCombatStimPayload(instance.payload)) {
+    return { ...base, canDispose: false, reasonCode: 'malformed_payload', doseLabel: 'Unavailable' }
+  }
+  const doseLabel = `${instance.payload.remaining}/${instance.payload.capacity} doses`
+  if (isEquipmentInstanceClaimedForRecovery(state, instanceId)) {
+    return { ...base, canDispose: false, reasonCode: 'recovery_claimed', doseLabel }
+  }
+  if (instanceHasActiveOverdriveProvenance(state, instanceId)) {
+    return { ...base, canDispose: false, reasonCode: 'overdrive_provenance', doseLabel }
+  }
+  return { ...base, canDispose: true, doseLabel }
+}
+
+export function getCombatStimStoredInstanceDisposalViews(state: GameState): CombatStimDisposalPreview[] {
+  return listStoredCombatStimInstances(state).map((instance) =>
+    resolveCombatStimDisposal(state, instance.instanceId)
+  )
+}
+
+export function destroyStoredCombatStimInstance(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): CombatStimDisposalResult {
+  const normalized = ensureNormalizedGameState(state)
+  const preview = resolveCombatStimDisposal(normalized, instanceId)
+  if (!preview.canDispose) {
+    return { ok: false, state: normalized, code: preview.reasonCode! }
+  }
+  const instance = normalized.equipmentInstances![instanceId]!
+  const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
+  delete equipmentInstances[instanceId]
+  const nextState = normalizeGameState({ ...normalized, equipmentInstances })
+  return { ok: true, state: nextState, instance: snapshotCombatStimInstance(instance) }
+}
+
 export {
   applyCombatStimRecoveryDebtAtWeekClose,
   expireCombatStimOverdrivesAtWeekClose,
 } from './combatStimWeekClose'
+
+export function getCombatStimDisposalReasonLabel(code: CombatStimDisposalReasonCode) {
+  const labels: Record<CombatStimDisposalReasonCode, string> = {
+    invalid_instance_id: 'Invalid equipment instance.',
+    unknown_instance: 'Equipment instance unavailable.',
+    wrong_definition: 'This instance is not Combat Stims.',
+    malformed_payload: 'Dose state is unavailable.',
+    not_stored: 'Only stored Combat Stim instances can be disposed.',
+    recovery_claimed: 'Recovery is already queued or completed for this instance.',
+    overdrive_provenance: 'Active overdrive or recovery debt still references this instance.',
+  }
+  return labels[code]
+}
 
 export function getCombatStimActivationReasonLabel(code: CombatStimActivationReasonCode) {
   const labels: Record<CombatStimActivationReasonCode, string> = {

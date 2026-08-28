@@ -219,6 +219,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
+  'equipment.combat_stim_disposed': 'Combat Stim Disposed',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
@@ -288,6 +289,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_reaggregated': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
+  'equipment.combat_stim_disposed': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -967,6 +969,20 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.agentDetail(event.payload.agentId),
         searchText:
           `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_disposed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance disposed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / ${event.payload.condition} / Manual disposal`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual disposal`.toLowerCase(),
       }
 
     case 'equipment.recovery_completed':

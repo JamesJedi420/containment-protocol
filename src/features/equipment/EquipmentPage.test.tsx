@@ -592,6 +592,60 @@ describe('EquipmentPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('confirms disposal of a stored Combat Stim with live doses without restoring aggregate stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 0
+    game.equipmentInstances = {
+      'equipment-instance-live-dose': {
+        instanceId: 'equipment-instance-live-dose',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(screen.getByText('equipment-instance-live-dose')).toBeVisible()
+    expect(screen.getByText(/Operational \/ 1\/2 doses/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Review disposal Combat Stim instance equipment-instance-live-dose',
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: 'Confirm Combat Stim disposal equipment-instance-live-dose',
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(/does not restore aggregate stock, and is not deconstruction recovery/i)
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Permanently dispose Combat Stim instance equipment-instance-live-dose',
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(0)
+    expect(next.equipmentInstances).toEqual({})
+    expect(next.events.filter((event) => event.type === 'equipment.combat_stim_disposed')).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: 'equipment-instance-live-dose',
+          definitionId: 'combat_stims',
+          remaining: 1,
+          capacity: 2,
+          reason: 'manual_disposal',
+        }),
+      }),
+    ])
+  })
+
   it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

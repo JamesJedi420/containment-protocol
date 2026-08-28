@@ -682,6 +682,12 @@ export function createCombatStimOverdriveExpiredDraft(
   return { type: 'equipment.combat_stim_overdrive_expired', sourceSystem: 'agent', payload }
 }
 
+export function createCombatStimDisposedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_disposed']
+): OperationEventDraft<'equipment.combat_stim_disposed'> {
+  return { type: 'equipment.combat_stim_disposed', sourceSystem: 'agent', payload }
+}
+
 export function createMarketShiftedDraft(
   payload: OperationEventPayloadMap['market.shifted']
 ): OperationEventDraft<'market.shifted'> {
@@ -787,6 +793,7 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'equipment.instance_reaggregated',
   'equipment.combat_stim_activated',
   'equipment.combat_stim_overdrive_expired',
+  'equipment.combat_stim_disposed',
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',

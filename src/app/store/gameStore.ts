@@ -9,6 +9,7 @@ import {
   createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
+  createCombatStimDisposedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
 import {
@@ -141,7 +142,7 @@ import {
   materializeStoredOrdinaryEquipmentInstance,
   unequipAgentItem,
 } from '../../domain/sim/equipment'
-import { activateCombatStim, equipStoredCombatStimInstance } from '../../domain/combatStim'
+import { activateCombatStim, destroyStoredCombatStimInstance, equipStoredCombatStimInstance } from '../../domain/combatStim'
 import {
   createTeam,
   deleteEmptyTeam,
@@ -408,6 +409,7 @@ interface GameStore {
   reconcileAgents: (leftId: Id, rightId: Id) => void
   materializeStoredEquipmentInstance: (itemId: string) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
+  disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
@@ -1822,6 +1824,30 @@ export const useGameStore = create<GameStore>()(
                 definitionId: result.instance.definitionId,
                 definitionName: definition?.name ?? result.instance.definitionId,
                 condition: result.instance.condition,
+                reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      disposeStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredCombatStimInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimDisposedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: result.instance.condition,
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: payload.remaining,
                 reason: 'manual_disposal',
               }),
             ]),

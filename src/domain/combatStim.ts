@@ -282,6 +282,7 @@ export const COMBAT_STIM_REAGGREGATION_REASON_CODES = [
   'depleted_dose',
   'recovery_claimed',
   'overdrive_provenance',
+  'fabricated_provenance_required',
   'inventory_capacity_exceeded',
 ] as const
 
@@ -308,12 +309,16 @@ function readCombatStimAggregateStock(state: GameState) {
 function snapshotCombatStimInstance(instance: EquipmentInstance): EquipmentInstance {
   const location = Object.freeze({ ...instance.location }) as EquipmentInstanceLocation
   const payload = instance.payload ? Object.freeze({ ...instance.payload }) : undefined
+  const fabricationOrigin = instance.fabricationOrigin
+    ? Object.freeze({ ...instance.fabricationOrigin })
+    : undefined
   return Object.freeze({
     instanceId: instance.instanceId,
     definitionId: instance.definitionId,
     location,
     condition: instance.condition,
     ...(payload ? { payload } : {}),
+    ...(fabricationOrigin ? { fabricationOrigin } : {}),
   })
 }
 
@@ -431,6 +436,14 @@ export function resolveCombatStimReaggregation(
   if (instance.payload.remaining !== COMBAT_STIM_CAPACITY) {
     return { ...base, canReaggregate: false, reasonCode: 'partial_dose', doseLabel }
   }
+  if (instance.fabricationOrigin !== undefined) {
+    return {
+      ...base,
+      canReaggregate: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+    }
+  }
   if (isEquipmentInstanceClaimedForRecovery(state, instanceId)) {
     return { ...base, canReaggregate: false, reasonCode: 'recovery_claimed', doseLabel }
   }
@@ -511,6 +524,8 @@ export function getCombatStimReaggregationReasonLabel(code: CombatStimReaggregat
       'Depleted Combat Stim copies cannot return to aggregate stock. Use recovery or disposal instead.',
     recovery_claimed: 'Recovery is already queued or completed for this instance.',
     overdrive_provenance: 'Active overdrive or recovery debt still references this instance.',
+    fabricated_provenance_required:
+      'Fabricated Combat Stim copies cannot return to catalog stock. Use a lot return command when available.',
     inventory_capacity_exceeded: 'Aggregate Combat Stim stock is already at its safe capacity.',
   }
   return labels[code]

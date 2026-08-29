@@ -140,6 +140,7 @@ import { transitionRecruitmentCandidate } from '../../domain/recruitment'
 import {
   equipAgentItem,
   equipStoredEquipmentInstance,
+  materializeStoredCombatStimInstance,
   materializeStoredOrdinaryEquipmentInstance,
   returnFabricatedOrdinaryEquipmentInstanceToLot,
   unequipAgentItem,
@@ -1806,10 +1807,14 @@ export const useGameStore = create<GameStore>()(
 
       materializeStoredEquipmentInstance: (itemId, source) =>
         set((s) => {
-          const result = materializeStoredOrdinaryEquipmentInstance(s.game, itemId, source)
+          const result =
+            itemId === COMBAT_STIM_DEFINITION_ID
+              ? materializeStoredCombatStimInstance(s.game, source)
+              : materializeStoredOrdinaryEquipmentInstance(s.game, itemId, source)
           if (!result.ok) return { game: result.state }
           const definition = getEquipmentDefinition(itemId)
           const origin = result.instance.fabricationOrigin
+          const payload = result.instance.payload
           return {
             game: appendOperationEventDrafts(result.state, [
               createEquipmentInstanceMaterializedDraft({
@@ -1819,6 +1824,13 @@ export const useGameStore = create<GameStore>()(
                 definitionName: definition?.name ?? itemId,
                 condition: result.instance.condition,
                 locationState: 'stored',
+                ...(payload
+                  ? {
+                      resourceId: payload.resourceId,
+                      capacity: payload.capacity,
+                      remaining: payload.remaining,
+                    }
+                  : {}),
                 ...(origin
                   ? {
                       fabricationQueueId: origin.queueId,

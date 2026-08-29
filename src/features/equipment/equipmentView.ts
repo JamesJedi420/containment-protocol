@@ -544,7 +544,6 @@ export function getEquipmentInstanceMaterializationViews(
   game: GameState
 ): EquipmentInstanceMaterializationView[] {
   return getEquipmentCatalogEntries()
-    .filter((definition) => definition.id !== COMBAT_STIM_DEFINITION_ID)
     .map((definition) => {
       const instances = Object.values(game.equipmentInstances ?? {}).filter(
         (instance) => instance.definitionId === definition.id
@@ -571,64 +570,73 @@ export function getEquipmentInstanceMaterializationViews(
             : {}),
         }))
       const canMaterialize = materializationSources.some((source) => source.available)
-      const storedInstances = listStoredEquipmentInstances(game, definition.id).map((instance) => {
-        const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
-        const destructionBlocker = instance.payload
-          ? ('payload_unsupported' as const)
-          : recoveryClaimed
-            ? ('recovery_claimed' as const)
-            : undefined
-        const reaggregationBlocker =
-          instance.condition !== 'operational'
-            ? ('condition_unsupported' as const)
-            : instance.payload
-              ? ('payload_unsupported' as const)
-              : instance.fabricationOrigin
-                ? ('fabricated_provenance_required' as const)
+      // Combat Stim disposal / re-aggregation remain on the dedicated Combat Stim surface.
+      const storedInstances =
+        definition.id === COMBAT_STIM_DEFINITION_ID
+          ? []
+          : listStoredEquipmentInstances(game, definition.id).map((instance) => {
+              const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(
+                game,
+                instance.instanceId
+              )
+              const destructionBlocker = instance.payload
+                ? ('payload_unsupported' as const)
                 : recoveryClaimed
                   ? ('recovery_claimed' as const)
-                  : !Number.isSafeInteger(aggregateStock) ||
-                      aggregateStock >= Number.MAX_SAFE_INTEGER
-                    ? ('inventory_capacity_exceeded' as const)
-                    : undefined
-        const returnToLotBlocker = !instance.fabricationOrigin
-          ? undefined
-          : instance.condition !== 'operational'
-            ? ('condition_unsupported' as const)
-            : instance.payload
-              ? ('payload_unsupported' as const)
-              : recoveryClaimed
-                ? ('recovery_claimed' as const)
-                : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
-                  ? ('inventory_capacity_exceeded' as const)
-                  : (() => {
-                      const resolved = resolveFabricationOriginForDefinition(
-                        game,
-                        definition.id,
-                        instance.fabricationOrigin
-                      )
-                      if (!resolved.ok) return 'lot_unavailable' as const
-                      const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
-                      const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
-                      return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
-                    })()
-        return {
-          instanceId: instance.instanceId,
-          instanceLabel: `${definition.name} — ${instance.instanceId}`,
-          conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
-          ...(instance.fabricationOrigin
-            ? {
-                provenanceLabel: `Fabricated batch ${instance.fabricationOrigin.queueId} / week ${instance.fabricationOrigin.completedWeek}`,
+                  : undefined
+              const reaggregationBlocker =
+                instance.condition !== 'operational'
+                  ? ('condition_unsupported' as const)
+                  : instance.payload
+                    ? ('payload_unsupported' as const)
+                    : instance.fabricationOrigin
+                      ? ('fabricated_provenance_required' as const)
+                      : recoveryClaimed
+                        ? ('recovery_claimed' as const)
+                        : !Number.isSafeInteger(aggregateStock) ||
+                            aggregateStock >= Number.MAX_SAFE_INTEGER
+                          ? ('inventory_capacity_exceeded' as const)
+                          : undefined
+              const returnToLotBlocker = !instance.fabricationOrigin
+                ? undefined
+                : instance.condition !== 'operational'
+                  ? ('condition_unsupported' as const)
+                  : instance.payload
+                    ? ('payload_unsupported' as const)
+                    : recoveryClaimed
+                      ? ('recovery_claimed' as const)
+                      : !Number.isSafeInteger(aggregateStock) ||
+                          aggregateStock >= Number.MAX_SAFE_INTEGER
+                        ? ('inventory_capacity_exceeded' as const)
+                        : (() => {
+                            const resolved = resolveFabricationOriginForDefinition(
+                              game,
+                              definition.id,
+                              instance.fabricationOrigin
+                            )
+                            if (!resolved.ok) return 'lot_unavailable' as const
+                            const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
+                            const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
+                            return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
+                          })()
+              return {
+                instanceId: instance.instanceId,
+                instanceLabel: `${definition.name} — ${instance.instanceId}`,
+                conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
+                ...(instance.fabricationOrigin
+                  ? {
+                      provenanceLabel: `Fabricated batch ${instance.fabricationOrigin.queueId} / week ${instance.fabricationOrigin.completedWeek}`,
+                    }
+                  : {}),
+                canDestroy: destructionBlocker === undefined,
+                canReaggregate: reaggregationBlocker === undefined,
+                canReturnToLot:
+                  Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
+                ...(destructionBlocker ? { destructionBlocker } : {}),
+                ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
+                ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
               }
-            : {}),
-          canDestroy: destructionBlocker === undefined,
-          canReaggregate: reaggregationBlocker === undefined,
-          canReturnToLot: Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
-          ...(destructionBlocker ? { destructionBlocker } : {}),
-          ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
-          ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
-        }
-      })
+            })
       return {
         itemId: definition.id,
         itemName: definition.name,

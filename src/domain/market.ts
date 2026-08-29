@@ -353,7 +353,8 @@ const PROCUREMENT_MARKET_PACKET_DEFINITIONS: Record<
   },
 }
 
-const DIRECT_EQUIPMENT_MARKET_PACKETS: Partial<Record<string, ProcurementMarketPacketId>> = {
+const EQUIPMENT_MARKET_PACKET_OVERRIDES: Partial<Record<string, ProcurementMarketPacketId>> = {
+  // Combat Stims remain covert broker inventory even when also fabricable (SPE-2849).
   combat_stims: 'gray_market_broker',
 }
 
@@ -545,11 +546,7 @@ function buildMarketPacket(
 function getMarketPacketIdForDefinition(
   definition: ProcurementListingDefinition
 ): ProcurementMarketPacketId {
-  if (definition.source === 'direct_equipment') {
-    return DIRECT_EQUIPMENT_MARKET_PACKETS[definition.itemId] ?? 'agency_supplier_roster'
-  }
-
-  return 'agency_supplier_roster'
+  return EQUIPMENT_MARKET_PACKET_OVERRIDES[definition.itemId] ?? 'agency_supplier_roster'
 }
 
 export function getProcurementMarketPackets(game: ProcurementMarketPacketContext) {

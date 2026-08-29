@@ -138,6 +138,90 @@ export function materializeStoredOrdinaryEquipmentInstance(
 }
 
 /**
+ * SPE-2849: materialize one Combat Stim identity from catalog or a fabricated lot.
+ * Lot path retains fabricationOrigin with canonical 2/2 payload and increments trackedInstanceUnits.
+ */
+export function materializeStoredCombatStimInstance(
+  state: GameState,
+  source: EquipmentDeconstructionSourceRef = { kind: 'catalog' }
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  const definitionId = COMBAT_STIM_DEFINITION_ID
+  if (getInventoryStock(normalized, definitionId) < 1) {
+    return { ok: false, state: normalized, code: 'inventory_unavailable' }
+  }
+  if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
+    return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
+  }
+  if (source.kind === 'equipment_instance') {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+
+  const choices = resolveEquipmentDeconstructionSources(normalized, definitionId)
+  if (source.kind === 'catalog') {
+    const catalogSource = choices.find((choice) => choice.source.kind === 'catalog')
+    if (!catalogSource || catalogSource.quantity < 1) {
+      return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+    }
+    return instantiateEquipmentInstance(normalized, definitionId, {
+      location: { state: 'stored' },
+      condition: 'operational',
+    })
+  }
+
+  const lotChoice = choices.find(
+    (choice) =>
+      choice.source.kind === 'fabricated_lot' &&
+      choice.source.fabricationQueueId === source.fabricationQueueId
+  )
+  if (!lotChoice || lotChoice.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const lot = normalized.fabricatedEquipmentLots?.[source.fabricationQueueId]
+  if (!lot || !isCanonicalFabricatedLotForDefinition(normalized, definitionId, lot)) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+
+  const created = instantiateEquipmentInstance(normalized, definitionId, {
+    location: { state: 'stored' },
+    condition: 'operational',
+    fabricationOrigin: {
+      queueId: lot.queueId,
+      recipeId: lot.recipeId,
+      gradeId: lot.gradeId,
+      completedWeek: lot.completedWeek,
+    },
+  })
+  if (!created.ok) return created
+
+  const nextLots = { ...(created.state.fabricatedEquipmentLots ?? {}) }
+  const currentLot = nextLots[lot.queueId]
+  if (
+    !currentLot ||
+    !isCanonicalFabricatedLotForDefinition(created.state, definitionId, currentLot)
+  ) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const trackedInstanceUnits = Math.max(0, Math.trunc(currentLot.trackedInstanceUnits ?? 0)) + 1
+  if (trackedInstanceUnits > currentLot.quantity) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  nextLots[lot.queueId] = Object.freeze({
+    ...currentLot,
+    trackedInstanceUnits,
+  })
+  const nextState = normalizeGameState({
+    ...created.state,
+    fabricatedEquipmentLots: nextLots,
+  })
+  return {
+    ok: true,
+    state: nextState,
+    instance: created.instance,
+  }
+}
+
+/**
  * SPE-2848: guarded inverse of fabricated-lot ordinary materialization.
  * Deletes one stored fabricated-origin identity, credits aggregate inventory once,
  * and decrements the source lot's trackedInstanceUnits (never mutates quantity).

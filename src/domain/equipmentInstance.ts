@@ -14,7 +14,8 @@ export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
 
 export type EquipmentInstanceLocation =
-  { state: 'stored' } | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
+  | { state: 'stored' }
+  | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
 
 export interface EquipmentInstanceConsumablePayload {
   resourceId: string
@@ -158,9 +159,7 @@ function isSafeFabricationRecipeId(value: unknown): value is string {
   )
 }
 
-function isValidFabricationOrigin(
-  value: unknown
-): value is EquipmentInstanceFabricationOrigin {
+function isValidFabricationOrigin(value: unknown): value is EquipmentInstanceFabricationOrigin {
   if (
     !isRecord(value) ||
     !hasOnlyKeys(value, ['queueId', 'recipeId', 'gradeId', 'completedWeek'])
@@ -222,9 +221,6 @@ export function resolveFabricationOriginForDefinition(
   }
   if (!isValidFabricationOrigin(value)) {
     return { ok: false, code: 'invalid_instance_shape' }
-  }
-  if (definitionId === COMBAT_STIM_DEFINITION_ID) {
-    return { ok: false, code: 'specialized_materialization_required' }
   }
   const lot = state.fabricatedEquipmentLots?.[value.queueId]
   if (!lot) {
@@ -321,7 +317,16 @@ function validateInstance(
   let fabricationOrigin: EquipmentInstanceFabricationOrigin | undefined
   if (value.fabricationOrigin !== undefined) {
     if (value.payload !== undefined) {
-      return { valid: false, code: 'fabricated_provenance_required' }
+      // SPE-2849: Combat Stim may retain lot provenance with a canonical dose payload.
+      // Ordinary payload-bearing identities still fail closed.
+      if (
+        value.definitionId !== COMBAT_STIM_DEFINITION_ID ||
+        !isCanonicalCombatStimPayload(
+          value.payload as EquipmentInstanceConsumablePayload | undefined
+        )
+      ) {
+        return { valid: false, code: 'fabricated_provenance_required' }
+      }
     }
     const resolved = resolveFabricationOriginForDefinition(
       { fabricatedEquipmentLots },
@@ -635,7 +640,9 @@ export function instantiateEquipmentInstance(
   }
   let fabricationOrigin: EquipmentInstanceFabricationOrigin | undefined
   if (options.fabricationOrigin !== undefined) {
-    if (definitionId === COMBAT_STIM_DEFINITION_ID || options.payload !== undefined) {
+    // SPE-2849: Combat Stim may materialize with lot provenance + canonical 2/2 payload.
+    // Ordinary identities still reject any payload alongside fabricationOrigin.
+    if (definitionId !== COMBAT_STIM_DEFINITION_ID && options.payload !== undefined) {
       return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
     }
     const resolved = resolveFabricationOriginForDefinition(
@@ -767,9 +774,7 @@ export function applyEquipmentInstanceTransition(
     location: { ...next.location },
     condition: next.condition,
     ...(next.payload ? { payload: { ...next.payload } } : {}),
-    ...(current.fabricationOrigin
-      ? { fabricationOrigin: { ...current.fabricationOrigin } }
-      : {}),
+    ...(current.fabricationOrigin ? { fabricationOrigin: { ...current.fabricationOrigin } } : {}),
   }
   const nextState = normalizeGameState({
     ...normalized,

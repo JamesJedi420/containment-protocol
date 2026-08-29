@@ -288,10 +288,16 @@ function EquipmentPage() {
                             >
                               <p className="text-xs">
                                 {source.source.kind === 'fabricated_lot'
-                                  ? `Convert one fabricated ${view.itemName} unit from ${source.label}${
-                                      source.provenanceLabel ? ` (${source.provenanceLabel})` : ''
-                                    } into a durable stored instance that retains that batch grade?`
-                                  : `Convert one catalog ${view.itemName} unit into a durable stored instance?`}
+                                  ? view.itemId === 'combat_stims'
+                                    ? `Convert one fabricated Combat Stim unit from ${source.label}${
+                                        source.provenanceLabel ? ` (${source.provenanceLabel})` : ''
+                                      } into a durable stored 2/2 dose instance that retains that batch grade?`
+                                    : `Convert one fabricated ${view.itemName} unit from ${source.label}${
+                                        source.provenanceLabel ? ` (${source.provenanceLabel})` : ''
+                                      } into a durable stored instance that retains that batch grade?`
+                                  : view.itemId === 'combat_stims'
+                                    ? `Convert one catalog Combat Stim unit into a durable stored 2/2 dose instance?`
+                                    : `Convert one catalog ${view.itemName} unit into a durable stored instance?`}
                               </p>
                               <div className="flex gap-2">
                                 <button

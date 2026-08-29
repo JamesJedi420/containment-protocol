@@ -1,11 +1,11 @@
 # SPE-2846 — Fabricated-Lot Ordinary-Equipment Instance Materialization Provenance
 
-| Field      | Value                                                                                                                             |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status** | **Recently shipped**                                                                                              |
+| Field      | Value                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Status** | **Recently shipped**                                                                                                            |
 | **Linear** | [SPE-2846](https://linear.app/spectranoir/issue/SPE-2846/fabricated-lot-ordinary-equipment-instance-materialization-provenance) |
-| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                           |
-| **Branch** | `jamesdyedbq/spe-2846-fabricated-lot-equipment-instance-provenance`                                                              |
+| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                         |
+| **Branch** | `jamesdyedbq/spe-2846-fabricated-lot-equipment-instance-provenance`                                                             |
 
 ## Boundary
 
@@ -40,13 +40,13 @@ ambiguity, and stale replay fail closed. Auto-Scrap remains aggregate-only.
 
 ## Deferred
 
-| Item or mechanic                                         | Owner or prerequisite | Reason                                                              |
-| -------------------------------------------------------- | --------------------- | ------------------------------------------------------------------- |
-| Provenance-preserving fabricated-instance return-to-lot  | [SPE-2848](https://linear.app/spectranoir/issue/SPE-2848/provenance-preserving-fabricated-ordinary-equipment-instance-return-to) | Shipped via PR #3553 |
-| Fabricated Combat Stim or generic payload materialization| SPE-2827 child        | Specialized payload policy                                          |
-| Automated lot or instance selection                      | SPE-2749 child        | Auto-Scrap remains aggregate-only                                   |
-| Repair, damage production, custody, readiness, mission loss | SPE-877 / SPE-1055 / SPE-1658 | Broader lifecycle authorities                                 |
-| Recovery balancing                                       | SPE-1055              | Outputs and thresholds stay separately owned                        |
+| Item or mechanic                                            | Owner or prerequisite                                                                                                            | Reason                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Provenance-preserving fabricated-instance return-to-lot     | [SPE-2848](https://linear.app/spectranoir/issue/SPE-2848/provenance-preserving-fabricated-ordinary-equipment-instance-return-to) | Shipped via PR #3553                         |
+| Fabricated Combat Stim or generic payload materialization   | [SPE-2849](https://linear.app/spectranoir/issue/SPE-2849/fabricated-lot-combat-stim-instance-materialization-provenance)         | In progress — Combat Stim lot path           |
+| Automated lot or instance selection                         | SPE-2749 child                                                                                                                   | Auto-Scrap remains aggregate-only            |
+| Repair, damage production, custody, readiness, mission loss | SPE-877 / SPE-1055 / SPE-1658                                                                                                    | Broader lifecycle authorities                |
+| Recovery balancing                                          | SPE-1055                                                                                                                         | Outputs and thresholds stay separately owned |
 
 ## Validation
 

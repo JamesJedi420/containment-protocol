@@ -55,6 +55,17 @@ describe('event payload validation coverage', () => {
     expect(validateOperationEventPayload('equipment.instance_reaggregated', valid).success).toBe(
       true
     )
+    const fabricatedReturn = {
+      ...valid,
+      reason: 'fabricated_lot_return' as const,
+      fabricationQueueId: 'batch',
+      fabricationRecipeId: 'signal-jammers',
+      fabricationGradeId: 'grade_2' as const,
+      fabricationCompletedWeek: 1,
+    }
+    expect(
+      validateOperationEventPayload('equipment.instance_reaggregated', fabricatedReturn).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, definitionName: 'Wrong name' },
@@ -62,6 +73,9 @@ describe('event payload validation coverage', () => {
       { ...valid, condition: 'damaged' },
       { ...valid, reason: 'manual_disposal' },
       { ...valid, extra: true },
+      { ...valid, fabricationQueueId: 'batch' },
+      { ...fabricatedReturn, fabricationRecipeId: undefined },
+      { ...fabricatedReturn, reason: 'manual_untracking' },
     ]) {
       expect(
         validateOperationEventPayload('equipment.instance_reaggregated', payload).success
@@ -71,7 +85,9 @@ describe('event payload validation coverage', () => {
 
   it('strictly validates Combat Stim disposal provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
-    expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(true)
+    expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(
+      true
+    )
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, definitionName: 'Wrong name' },
@@ -88,9 +104,9 @@ describe('event payload validation coverage', () => {
 
   it('strictly validates Combat Stim re-aggregation provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_reaggregated']
-    expect(
-      validateOperationEventPayload('equipment.combat_stim_reaggregated', valid).success
-    ).toBe(true)
+    expect(validateOperationEventPayload('equipment.combat_stim_reaggregated', valid).success).toBe(
+      true
+    )
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, definitionName: 'Wrong name' },

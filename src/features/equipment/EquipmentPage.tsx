@@ -26,6 +26,7 @@ function EquipmentPage() {
     disposeStoredCombatStimInstance,
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
+    returnFabricatedStoredEquipmentInstanceToLot,
     equipAgentItem,
     equipStoredEquipmentInstance,
     activateCombatStim,
@@ -60,6 +61,7 @@ function EquipmentPage() {
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
     useState<string>()
   const [pendingReaggregationInstanceId, setPendingReaggregationInstanceId] = useState<string>()
+  const [pendingReturnToLotInstanceId, setPendingReturnToLotInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
   >(
@@ -287,9 +289,7 @@ function EquipmentPage() {
                               <p className="text-xs">
                                 {source.source.kind === 'fabricated_lot'
                                   ? `Convert one fabricated ${view.itemName} unit from ${source.label}${
-                                      source.provenanceLabel
-                                        ? ` (${source.provenanceLabel})`
-                                        : ''
+                                      source.provenanceLabel ? ` (${source.provenanceLabel})` : ''
                                     } into a durable stored instance that retains that batch grade?`
                                   : `Convert one catalog ${view.itemName} unit into a durable stored instance?`}
                               </p>
@@ -298,10 +298,7 @@ function EquipmentPage() {
                                   type="button"
                                   className="btn btn-xs"
                                   onClick={() => {
-                                    materializeStoredEquipmentInstance(
-                                      view.itemId,
-                                      source.source
-                                    )
+                                    materializeStoredEquipmentInstance(view.itemId, source.source)
                                     setPendingMaterialization(undefined)
                                   }}
                                 >
@@ -413,6 +410,7 @@ function EquipmentPage() {
                             aria-label={`Review destruction ${view.itemName} instance ${instance.instanceId}`}
                             onClick={() => {
                               setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
                               setPendingDestructionInstanceId(instance.instanceId)
                             }}
                           >
@@ -465,6 +463,7 @@ function EquipmentPage() {
                             aria-label={`Review re-aggregation ${view.itemName} instance ${instance.instanceId}`}
                             onClick={() => {
                               setPendingDestructionInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
                               setPendingReaggregationInstanceId(instance.instanceId)
                             }}
                           >
@@ -481,6 +480,67 @@ function EquipmentPage() {
                                   ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
                                   : instance.reaggregationBlocker === 'recovery_claimed'
                                     ? 'This copy is already claimed by equipment recovery.'
+                                    : 'Aggregate stock is already at its safe capacity.'}
+                          </p>
+                        ) : null}
+                        {pendingReturnToLotInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm fabricated lot return ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Return this exact fabricated copy to its source batch tracking and
+                              credit one aggregate unit? Lot production quantity stays unchanged;
+                              the individual identity will be removed.
+                              {instance.provenanceLabel ? ` (${instance.provenanceLabel})` : ''}
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Confirm return ${view.itemName} instance ${instance.instanceId} to fabricated lot`}
+                                onClick={() => {
+                                  returnFabricatedStoredEquipmentInstanceToLot(instance.instanceId)
+                                  setPendingReturnToLotInstanceId(undefined)
+                                }}
+                              >
+                                Confirm return to lot
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingReturnToLotInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.provenanceLabel ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            disabled={!instance.canReturnToLot}
+                            aria-label={`Review fabricated lot return ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Return to fabricated lot
+                          </button>
+                        ) : null}
+                        {instance.returnToLotBlocker ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            {instance.returnToLotBlocker === 'condition_unsupported'
+                              ? 'Damaged copies cannot return to fabricated-lot tracking.'
+                              : instance.returnToLotBlocker === 'payload_unsupported'
+                                ? 'Payload-bearing copies require a specialized return flow.'
+                                : instance.returnToLotBlocker === 'recovery_claimed'
+                                  ? 'This copy is already claimed by equipment recovery.'
+                                  : instance.returnToLotBlocker === 'lot_unavailable'
+                                    ? 'The source fabricated lot is missing or cannot absorb this return.'
                                     : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}

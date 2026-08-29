@@ -24,6 +24,7 @@ import {
 } from '../../domain/sim/equipmentDeconstruction'
 import { canEquipStoredEquipmentInstance } from '../../domain/sim/equipment'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
+import { resolveFabricationOriginForDefinition } from '../../domain/equipmentInstance'
 import {
   EQUIPMENT_GRADE_DEFINITIONS,
   getEquipmentGradeDefinition,
@@ -101,6 +102,13 @@ export interface EquipmentInstanceMaterializationView {
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
       | 'fabricated_provenance_required'
+    canReturnToLot: boolean
+    returnToLotBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
+      | 'lot_unavailable'
   }>
 }
 
@@ -546,8 +554,7 @@ export function getEquipmentInstanceMaterializationViews(
       const sources = resolveEquipmentDeconstructionSources(game, definition.id)
       const materializationSources = sources
         .filter(
-          (choice) =>
-            choice.source.kind === 'catalog' || choice.source.kind === 'fabricated_lot'
+          (choice) => choice.source.kind === 'catalog' || choice.source.kind === 'fabricated_lot'
         )
         .map((choice) => ({
           source: choice.source,
@@ -580,9 +587,31 @@ export function getEquipmentInstanceMaterializationViews(
                 ? ('fabricated_provenance_required' as const)
                 : recoveryClaimed
                   ? ('recovery_claimed' as const)
-                  : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                  : !Number.isSafeInteger(aggregateStock) ||
+                      aggregateStock >= Number.MAX_SAFE_INTEGER
                     ? ('inventory_capacity_exceeded' as const)
                     : undefined
+        const returnToLotBlocker = !instance.fabricationOrigin
+          ? undefined
+          : instance.condition !== 'operational'
+            ? ('condition_unsupported' as const)
+            : instance.payload
+              ? ('payload_unsupported' as const)
+              : recoveryClaimed
+                ? ('recovery_claimed' as const)
+                : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                  ? ('inventory_capacity_exceeded' as const)
+                  : (() => {
+                      const resolved = resolveFabricationOriginForDefinition(
+                        game,
+                        definition.id,
+                        instance.fabricationOrigin
+                      )
+                      if (!resolved.ok) return 'lot_unavailable' as const
+                      const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
+                      const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
+                      return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
+                    })()
         return {
           instanceId: instance.instanceId,
           instanceLabel: `${definition.name} — ${instance.instanceId}`,
@@ -594,8 +623,10 @@ export function getEquipmentInstanceMaterializationViews(
             : {}),
           canDestroy: destructionBlocker === undefined,
           canReaggregate: reaggregationBlocker === undefined,
+          canReturnToLot: Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
           ...(destructionBlocker ? { destructionBlocker } : {}),
           ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
+          ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
         }
       })
       return {

@@ -717,6 +717,33 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('neutral')
   })
 
+  it('equipment.instance_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-5',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'batch',
+        fabricationRecipeId: 'signal-jammers',
+        fabricationGradeId: 'grade_2',
+        fabricationCompletedWeek: 3,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-5')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('batch')
+    expect(view.detail).toContain('week 3')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('market.shifted tight pressure — warning tone', () => {
     const event = makeEvent('market.shifted', {
       week: 5,

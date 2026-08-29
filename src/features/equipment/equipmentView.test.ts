@@ -340,6 +340,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         destructionBlocker: 'payload_unsupported',
         canReaggregate: false,
         reaggregationBlocker: 'payload_unsupported',
+        canReturnToLot: false,
       },
       {
         instanceId: 'z_copy',
@@ -348,6 +349,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         canDestroy: true,
         canReaggregate: false,
         reaggregationBlocker: 'condition_unsupported',
+        canReturnToLot: false,
       },
     ])
   })

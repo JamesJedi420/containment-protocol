@@ -441,6 +441,107 @@ describe('ordinary equipment instance authority', () => {
       returnFabricatedOrdinaryEquipmentInstanceToLot(zeroTracked, fabricated.instance.instanceId)
     ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
 
+    const fractionalTracked = {
+      ...fabricated.state,
+      fabricatedEquipmentLots: {
+        batch: {
+          ...fabricated.state.fabricatedEquipmentLots!.batch,
+          trackedInstanceUnits: 1.5 as unknown as number,
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(
+        fractionalTracked,
+        fabricated.instance.instanceId
+      )
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+    expect(fractionalTracked.equipmentInstances?.[fabricated.instance.instanceId]).toBeDefined()
+
+    const mismatchedOrigin = {
+      ...fabricated.state,
+      equipmentInstances: {
+        ...fabricated.state.equipmentInstances,
+        [fabricated.instance.instanceId]: {
+          ...fabricated.instance,
+          fabricationOrigin: {
+            ...fabricated.instance.fabricationOrigin!,
+            gradeId: 'grade_3' as const,
+          },
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(
+        mismatchedOrigin,
+        fabricated.instance.instanceId
+      )
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+
+    const damaged = {
+      ...fabricated.state,
+      equipmentInstances: {
+        ...fabricated.state.equipmentInstances,
+        [fabricated.instance.instanceId]: {
+          ...fabricated.instance,
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(damaged, fabricated.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_reaggregation_unsupported' })
+
+    const withPayload = {
+      ...fabricated.state,
+      equipmentInstances: {
+        ...fabricated.state.equipmentInstances,
+        [fabricated.instance.instanceId]: {
+          ...fabricated.instance,
+          payload: { resourceId: 'battery_charge', capacity: 2, remaining: 2 },
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(withPayload, fabricated.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'payload_reaggregation_unsupported' })
+
+    const overflow = {
+      ...fabricated.state,
+      inventory: { ...fabricated.state.inventory, signal_jammers: Number.MAX_SAFE_INTEGER },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(overflow, fabricated.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'inventory_capacity_exceeded' })
+
+    const recoveryClaimed = queueEquipmentDeconstruction(fabricated.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: fabricated.instance.instanceId,
+    })
+    const withClaimedIdentity = {
+      ...recoveryClaimed,
+      equipmentInstances: {
+        ...(recoveryClaimed.equipmentInstances ?? {}),
+        [fabricated.instance.instanceId]: fabricated.instance,
+      },
+      fabricatedEquipmentLots: fabricated.state.fabricatedEquipmentLots,
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(
+        withClaimedIdentity,
+        fabricated.instance.instanceId
+      )
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+
+    const stimState = createStartingState()
+    stimState.inventory.combat_stims = 1
+    const stim = instantiateEquipmentInstance(stimState, 'combat_stims')
+    expect(stim).toMatchObject({ ok: true })
+    if (!stim.ok) throw new Error(stim.code)
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(stim.state, stim.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'specialized_reaggregation_required' })
+
     expect(
       returnFabricatedOrdinaryEquipmentInstanceToLot(fabricated.state, 'missing')
     ).toMatchObject({ ok: false, code: 'stale_transition' })

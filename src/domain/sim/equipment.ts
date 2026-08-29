@@ -184,7 +184,15 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   if (!lot || !isCanonicalFabricatedLotForDefinition(normalized, instance.definitionId, lot)) {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
-  const tracked = Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+  const rawTracked = lot.trackedInstanceUnits ?? 0
+  if (
+    !Number.isSafeInteger(rawTracked) ||
+    (rawTracked as number) < 0 ||
+    (rawTracked as number) > lot.quantity
+  ) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const tracked = rawTracked as number
   if (tracked < 1) {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }

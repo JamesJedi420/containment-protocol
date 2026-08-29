@@ -671,6 +671,31 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.combat_stim_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-4')
+    expect(view.detail).toContain('2/2 doses')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
     const event = makeEvent(
       'equipment.instance_reaggregated',

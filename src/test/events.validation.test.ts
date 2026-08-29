@@ -86,6 +86,26 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates Combat Stim re-aggregation provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.combat_stim_reaggregated']
+    expect(
+      validateOperationEventPayload('equipment.combat_stim_reaggregated', valid).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, remaining: 1 },
+      { ...valid, capacity: 1 },
+      { ...valid, condition: 'damaged' },
+      { ...valid, reason: 'manual_disposal' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.combat_stim_reaggregated', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('accepts agent.relationship_changed payloads with external_event reason', () => {
     const validation = validateOperationEventPayload('agent.relationship_changed', {
       week: 3,

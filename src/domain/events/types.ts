@@ -524,6 +524,17 @@ export interface OperationEventPayloadMap {
     remaining: number
     reason: 'manual_disposal'
   }
+  'equipment.combat_stim_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: 'combat_stims'
+    definitionName: string
+    condition: 'operational'
+    resourceId: 'combat_stim_dose'
+    capacity: 2
+    remaining: 2
+    reason: 'manual_untracking'
+  }
   'market.shifted': {
     week: number
     featuredRecipeId: string
@@ -860,6 +871,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
   'equipment.combat_stim_disposed': 'agent'
+  'equipment.combat_stim_reaggregated': 'agent'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -929,6 +941,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',
   'equipment.combat_stim_disposed': 'agent',
+  'equipment.combat_stim_reaggregated': 'agent',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

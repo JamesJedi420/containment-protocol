@@ -457,6 +457,17 @@ export const minimalOperationEventPayloads = {
     remaining: 1,
     reason: 'manual_disposal',
   },
+  'equipment.combat_stim_reaggregated': {
+    week: WEEK,
+    instanceId: 'equipment-instance-1-5',
+    definitionId: 'combat_stims',
+    definitionName: 'Combat Stims',
+    condition: 'operational',
+    resourceId: 'combat_stim_dose',
+    capacity: 2,
+    remaining: 2,
+    reason: 'manual_untracking',
+  },
   'market.shifted': {
     week: WEEK,
     // SPE-2661: validate requires productionCatalog membership (not opaque recipe-min).

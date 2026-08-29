@@ -646,6 +646,80 @@ describe('EquipmentPage', () => {
     ])
   })
 
+  it('confirms return of a full Combat Stim to aggregate stock without disposing partial doses', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 0
+    game.equipmentInstances = {
+      'equipment-instance-full-dose': {
+        instanceId: 'equipment-instance-full-dose',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+      'equipment-instance-partial-dose': {
+        instanceId: 'equipment-instance-partial-dose',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Review re-aggregation Combat Stim instance equipment-instance-full-dose',
+      })
+    ).toBeEnabled()
+    expect(
+      screen.getByRole('button', {
+        name: 'Review re-aggregation Combat Stim instance equipment-instance-partial-dose',
+      })
+    ).toBeDisabled()
+    expect(
+      screen.getByText(/Only full 2\/2 Combat Stim copies can return to aggregate stock/i)
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Review re-aggregation Combat Stim instance equipment-instance-full-dose',
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: 'Confirm Combat Stim re-aggregation equipment-instance-full-dose',
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/This is not disposal/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Re-aggregate Combat Stim instance equipment-instance-full-dose',
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(1)
+    expect(next.equipmentInstances).toEqual({
+      'equipment-instance-partial-dose': game.equipmentInstances['equipment-instance-partial-dose'],
+    })
+    expect(
+      next.events.filter((event) => event.type === 'equipment.combat_stim_reaggregated')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: 'equipment-instance-full-dose',
+          remaining: 2,
+          capacity: 2,
+          reason: 'manual_untracking',
+        }),
+      }),
+    ])
+  })
+
   it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

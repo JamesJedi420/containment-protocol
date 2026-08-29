@@ -12,8 +12,9 @@
 This slice materializes one exact ordinary-equipment identity from a selected fabricated lot while
 retaining the lot's canonical grade provenance. The player selects catalog stock or one safe
 outstanding fabricated lot whose definition matches. Success atomically decrements aggregate
-inventory and only that lot's quantity, and creates one stored operational payload-free non-Combat
-identity with an optional nested fabrication-origin snapshot.
+inventory and increments that lot's `trackedInstanceUnits` (production `quantity` stays the immutable
+SPE-2800 receipt), and creates one stored operational payload-free non-Combat identity with an
+optional nested fabrication-origin snapshot.
 
 Catalog-created and legacy instances omit the snapshot. Assignment, transfer, unequip, save/load,
 and events preserve provenance. Exact-instance recovery resolves grade from the retained snapshot
@@ -27,11 +28,13 @@ ambiguity, and stale replay fail closed. Auto-Scrap remains aggregate-only.
 ## Determinism and compatibility
 
 - materialization source projection reuses `resolveEquipmentDeconstructionSources` so recovery
-  claims continue to reserve lot units;
+  claims continue to reserve lot units; outstanding remaining is quantity − recovery claims −
+  trackedInstanceUnits;
 - fabrication-origin snapshots are immutable through relocate/CAS; hydration rejects partial,
-  unsafe, unknown, or lot-mismatched provenance while preserving valid siblings;
+  unsafe, unknown, lot-mismatched, or payload-bearing provenance while preserving valid siblings;
 - successful lot materialization emits `equipment.instance_materialized` with an all-or-none
-  fabrication snapshot; catalog materialization omits those fields;
+  fabrication snapshot that hydrates on save/load; catalog materialization omits those fields;
+- exact-instance recovery may retain a fabricated grade distinct from catalog grade;
 - `GAME_STORE_VERSION`, `GAME_SAVE_VERSION`, and the operation-event schema version remain unchanged
   unless hydration evidence requires otherwise.
 

@@ -217,7 +217,10 @@ describe('EquipmentPage', () => {
     const materialized = useGameStore.getState().game
     const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
     expect(materialized.inventory.signal_jammers).toBe(0)
-    expect(materialized.fabricatedEquipmentLots?.batch.quantity).toBe(0)
+    expect(materialized.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 1,
+    })
     expect(materialized.equipmentInstances?.[instanceId]).toMatchObject({
       fabricationOrigin: {
         queueId: 'batch',

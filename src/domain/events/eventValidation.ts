@@ -783,7 +783,6 @@ function refineEquipmentRecoveryEvent(
       payload.itemId !== 'combat_stims' &&
       profile?.state === 'eligible' &&
       profile.sourceAuthority === 'aggregate_and_instance' &&
-      hasCanonicalCatalogGrade &&
       instanceResourceFields.length === 0
     if (!validCombatStimProvenance && !validOrdinaryProvenance) {
       context.addIssue({

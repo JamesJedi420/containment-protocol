@@ -320,6 +320,9 @@ function validateInstance(
   }
   let fabricationOrigin: EquipmentInstanceFabricationOrigin | undefined
   if (value.fabricationOrigin !== undefined) {
+    if (value.payload !== undefined) {
+      return { valid: false, code: 'fabricated_provenance_required' }
+    }
     const resolved = resolveFabricationOriginForDefinition(
       { fabricatedEquipmentLots },
       value.definitionId,

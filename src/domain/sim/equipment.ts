@@ -20,10 +20,12 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { getProductionRecipe } from '../../data/production'
 import {
   resolveEquipmentDeconstructionSources,
   type EquipmentDeconstructionSourceRef,
 } from './equipmentDeconstruction'
+import { isSafeProductionQueueId } from './production'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -31,6 +33,21 @@ function canEditAgentEquipment(agent: Agent | undefined) {
 
 function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
+}
+
+function isCanonicalFabricatedLotForDefinition(
+  state: GameState,
+  definitionId: string,
+  lot: NonNullable<GameState['fabricatedEquipmentLots']>[string]
+) {
+  if (!isSafeProductionQueueId(lot.queueId)) return false
+  const recipe = getProductionRecipe(lot.recipeId)
+  if (!recipe || recipe.outputItemId !== lot.itemId || lot.itemId !== definitionId) return false
+  if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 1) return false
+  if (!Number.isSafeInteger(lot.completedWeek) || lot.completedWeek < 1) return false
+  if (lot.completedWeek > state.week) return false
+  const tracked = Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+  return tracked <= lot.quantity
 }
 
 export function materializeStoredOrdinaryEquipmentInstance(
@@ -75,7 +92,7 @@ export function materializeStoredOrdinaryEquipmentInstance(
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
   const lot = normalized.fabricatedEquipmentLots?.[source.fabricationQueueId]
-  if (!lot || lot.itemId !== definitionId || lot.quantity < 1) {
+  if (!lot || !isCanonicalFabricatedLotForDefinition(normalized, definitionId, lot)) {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
 
@@ -93,12 +110,16 @@ export function materializeStoredOrdinaryEquipmentInstance(
 
   const nextLots = { ...(created.state.fabricatedEquipmentLots ?? {}) }
   const currentLot = nextLots[lot.queueId]
-  if (!currentLot || currentLot.quantity < 1) {
+  if (!currentLot || !isCanonicalFabricatedLotForDefinition(created.state, definitionId, currentLot)) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const trackedInstanceUnits = Math.max(0, Math.trunc(currentLot.trackedInstanceUnits ?? 0)) + 1
+  if (trackedInstanceUnits > currentLot.quantity) {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
   nextLots[lot.queueId] = Object.freeze({
     ...currentLot,
-    quantity: currentLot.quantity - 1,
+    trackedInstanceUnits,
   })
   const nextState = normalizeGameState({
     ...created.state,

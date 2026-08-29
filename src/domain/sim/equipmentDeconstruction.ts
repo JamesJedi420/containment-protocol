@@ -249,7 +249,10 @@ export function resolveEquipmentDeconstructionSources(
     .sort((left, right) => compareCodeUnits(left.queueId, right.queueId))
   const remainingByLot = lots.map((lot) => ({
     lot,
-    remaining: Math.max(0, lot.quantity - (claims.get(lot.queueId) ?? 0)),
+    remaining: Math.max(
+      0,
+      lot.quantity - (claims.get(lot.queueId) ?? 0) - Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+    ),
   }))
   const outstandingLotUnits = remainingByLot.reduce((total, entry) => total + entry.remaining, 0)
   const catalogQuantity = Math.max(0, stock - outstandingLotUnits)

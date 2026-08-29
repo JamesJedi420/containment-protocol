@@ -138,7 +138,7 @@ describe('ordinary equipment instance authority', () => {
       },
       state: {
         inventory: { signal_jammers: 0 },
-        fabricatedEquipmentLots: { batch: { quantity: 0 } },
+        fabricatedEquipmentLots: { batch: { quantity: 1, trackedInstanceUnits: 1 } },
       },
     })
     if (!materialized.ok) throw new Error(materialized.code)
@@ -220,7 +220,10 @@ describe('ordinary equipment instance authority', () => {
     expect(destroyed).toMatchObject({ ok: true })
     if (!destroyed.ok) throw new Error(destroyed.code)
     expect(destroyed.state.inventory.signal_jammers).toBe(0)
-    expect(destroyed.state.fabricatedEquipmentLots?.batch.quantity).toBe(0)
+    expect(destroyed.state.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 1,
+    })
   })
 
   it('hydrates fabricated-origin instances and rejects mismatched provenance siblings', () => {
@@ -232,9 +235,10 @@ describe('ordinary equipment instance authority', () => {
         queueId: 'batch',
         recipeId: 'signal-jammers',
         itemId: 'signal_jammers',
-        quantity: 0,
+        quantity: 1,
         gradeId: 'grade_2',
         completedWeek: 1,
+        trackedInstanceUnits: 1,
       },
     }
     state.equipmentInstances = {
@@ -282,7 +286,10 @@ describe('ordinary equipment instance authority', () => {
     })
     expect(hydrated.equipmentInstances?.['equipment-instance-1-2']).toBeUndefined()
     expect(hydrated.equipmentInstances?.['equipment-instance-1-3']).toBeUndefined()
-    expect(hydrated.fabricatedEquipmentLots?.batch.quantity).toBe(0)
+    expect(hydrated.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 1,
+    })
   })
 
   it('lists stored instances in stable code-unit order as immutable snapshots', () => {

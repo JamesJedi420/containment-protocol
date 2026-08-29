@@ -141,6 +141,7 @@ import {
   equipAgentItem,
   equipStoredEquipmentInstance,
   materializeStoredOrdinaryEquipmentInstance,
+  returnFabricatedOrdinaryEquipmentInstanceToLot,
   unequipAgentItem,
 } from '../../domain/sim/equipment'
 import {
@@ -421,6 +422,7 @@ interface GameStore {
   disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
+  returnFabricatedStoredEquipmentInstanceToLot: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
@@ -1911,6 +1913,31 @@ export const useGameStore = create<GameStore>()(
                 definitionName: definition?.name ?? result.instance.definitionId,
                 condition: 'operational',
                 reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredEquipmentInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedOrdinaryEquipmentInstanceToLot(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: 'operational',
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
               }),
             ]),
           }

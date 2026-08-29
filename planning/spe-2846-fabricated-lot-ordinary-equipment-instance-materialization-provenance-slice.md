@@ -42,7 +42,7 @@ ambiguity, and stale replay fail closed. Auto-Scrap remains aggregate-only.
 
 | Item or mechanic                                         | Owner or prerequisite | Reason                                                              |
 | -------------------------------------------------------- | --------------------- | ------------------------------------------------------------------- |
-| Provenance-preserving fabricated-instance return-to-lot  | SPE-2827 child        | Generic re-aggregation must not erase grade provenance              |
+| Provenance-preserving fabricated-instance return-to-lot  | [SPE-2848](https://linear.app/spectranoir/issue/SPE-2848/provenance-preserving-fabricated-ordinary-equipment-instance-return-to) | Guarded inverse of lot materialization; in progress |
 | Fabricated Combat Stim or generic payload materialization| SPE-2827 child        | Specialized payload policy                                          |
 | Automated lot or instance selection                      | SPE-2749 child        | Auto-Scrap remains aggregate-only                                   |
 | Repair, damage production, custody, readiness, mission loss | SPE-877 / SPE-1055 / SPE-1658 | Broader lifecycle authorities                                 |

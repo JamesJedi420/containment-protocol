@@ -19,7 +19,13 @@ import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGrade
 import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
 
 export type OperationEventSourceSystem =
-  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
+  | 'assignment'
+  | 'incident'
+  | 'intel'
+  | 'agent'
+  | 'production'
+  | 'faction'
+  | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -33,7 +39,9 @@ export type CaseSpawnTrigger =
   | 'workshop_unsafe'
 
 export type MarketTransactionListingResourceClass =
-  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
+  | 'supplier_attention_slot'
+  | 'reagent_stock'
+  | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -494,7 +502,12 @@ export interface OperationEventPayloadMap {
     definitionId: string
     definitionName: string
     condition: 'operational'
-    reason: 'manual_untracking'
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    /** SPE-2848: all-or-none fabricated-lot snapshot when returning to a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
   }
   'equipment.combat_stim_activated': {
     week: number

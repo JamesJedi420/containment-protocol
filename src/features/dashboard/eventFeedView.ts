@@ -23,7 +23,11 @@ export type EventFeedFilters = {
 }
 
 export type EventFeedCategory =
-  'incident_response' | 'personnel' | 'intel_briefing' | 'operations_logistics' | 'agency_posture'
+  | 'incident_response'
+  | 'personnel'
+  | 'intel_briefing'
+  | 'operations_logistics'
+  | 'agency_posture'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -929,19 +933,32 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} manual disposal`.toLowerCase(),
       }
 
-    case 'equipment.instance_reaggregated':
+    case 'equipment.instance_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
+      const provenanceDetail = fabricatedReturn
+        ? ` / Fabricated batch ${event.payload.fabricationQueueId} / week ${event.payload.fabricationCompletedWeek}`
+        : ''
       return {
         event,
         week: event.payload.week,
-        title: `${event.payload.definitionName} instance returned to aggregate stock`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Operational / Manual untracking`,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Operational / ${
+          fabricatedReturn ? 'Fabricated lot return' : 'Manual untracking'
+        }${provenanceDetail}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'neutral',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} operational manual untracking`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} operational ${
+            fabricatedReturn
+              ? `fabricated lot return ${event.payload.fabricationQueueId ?? ''}`
+              : 'manual untracking'
+          }`.toLowerCase(),
       }
+    }
 
     case 'equipment.combat_stim_activated':
       return {

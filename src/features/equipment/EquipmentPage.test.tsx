@@ -235,9 +235,34 @@ describe('EquipmentPage', () => {
         name: /review re-aggregation signal jammers instance/i,
       })
     ).toBeDisabled()
+    expect(screen.getByText(/fabricated-batch copies retain grade provenance/i)).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /review fabricated lot return signal jammers instance/i,
+      })
+    )
     expect(
-      screen.getByText(/fabricated-batch copies retain grade provenance/i)
+      screen.getByRole('group', {
+        name: /confirm fabricated lot return signal jammers instance/i,
+      })
     ).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /confirm return .* to fabricated lot/i }))
+
+    const returned = useGameStore.getState().game
+    expect(returned.inventory.signal_jammers).toBe(1)
+    expect(returned.equipmentInstances?.[instanceId]).toBeUndefined()
+    expect(returned.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 0,
+    })
+    expect(
+      returned.events.filter(
+        (event) =>
+          event.type === 'equipment.instance_reaggregated' &&
+          event.payload.reason === 'fabricated_lot_return'
+      )
+    ).toHaveLength(1)
   })
 
   it('confirms destruction of one exact stored ordinary copy without restoring aggregate stock', async () => {

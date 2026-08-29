@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                                    |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Status** | **In progress**                                                                                                          |
+| **Status** | **Recently shipped**                                                                                                     |
 | **Linear** | [SPE-2849](https://linear.app/spectranoir/issue/SPE-2849/fabricated-lot-combat-stim-instance-materialization-provenance) |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                  |
 | **Branch** | `jamesdyedbq/spe-2849-fabricated-combat-stim-lot-materialization`                                                        |

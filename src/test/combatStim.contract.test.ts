@@ -22,7 +22,11 @@ import {
   instantiateEquipmentInstance,
   isCanonicalCombatStimPayload,
 } from '../domain/equipmentInstance'
-import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
+import {
+  equipAgentItem,
+  materializeStoredCombatStimInstance,
+  unequipAgentItem,
+} from '../domain/sim/equipment'
 import { queueEquipmentDeconstruction } from '../domain/sim/equipmentDeconstruction'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { hydrateGame } from '../app/store/runTransfer'
@@ -30,6 +34,7 @@ import {
   appendOperationEventDrafts,
   createCombatStimDisposedDraft,
   createCombatStimReaggregatedDraft,
+  createEquipmentInstanceMaterializedDraft,
 } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
 import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
@@ -970,5 +975,131 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
       reasonCode: 'partial_dose',
       doseLabel: '1/2 doses',
     })
+  })
+})
+
+describe('SPE-2849 fabricated-lot Combat Stim materialization', () => {
+  it('materializes from a fabricated lot with 2/2 payload and retained provenance', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    state.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    const materialized = materializeStoredCombatStimInstance(state, {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'combat-stim-batch',
+    })
+    expect(materialized).toMatchObject({
+      ok: true,
+      instance: {
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+        fabricationOrigin: {
+          queueId: 'combat-stim-batch',
+          recipeId: 'combat-stims',
+          gradeId: 'grade_1',
+          completedWeek: 1,
+        },
+      },
+      state: {
+        inventory: { combat_stims: 0 },
+        fabricatedEquipmentLots: {
+          'combat-stim-batch': { quantity: 1, trackedInstanceUnits: 1 },
+        },
+      },
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+
+    expect(
+      validateOperationEventPayload(
+        'equipment.instance_materialized',
+        createEquipmentInstanceMaterializedDraft({
+          week: 1,
+          instanceId: materialized.instance.instanceId,
+          definitionId: 'combat_stims',
+          definitionName: 'Combat Stims',
+          condition: 'operational',
+          locationState: 'stored',
+          resourceId: 'combat_stim_dose',
+          capacity: 2,
+          remaining: 2,
+          fabricationQueueId: 'combat-stim-batch',
+          fabricationRecipeId: 'combat-stims',
+          fabricationGradeId: 'grade_1',
+          fabricationCompletedWeek: 1,
+        }).payload
+      ).success
+    ).toBe(true)
+
+    const hydrated = hydrateGame(materialized.state)
+    expect(hydrated.equipmentInstances?.[materialized.instance.instanceId]).toMatchObject({
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      fabricationOrigin: {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    })
+
+    expect(
+      reaggregateStoredCombatStimInstance(materialized.state, materialized.instance.instanceId)
+    ).toMatchObject({
+      ok: false,
+      code: 'fabricated_provenance_required',
+    })
+    expect(materialized.state.inventory.combat_stims).toBe(0)
+    expect(
+      materialized.state.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits
+    ).toBe(1)
+  })
+
+  it('materializes catalog Combat Stim without fabrication provenance', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    const materialized = materializeStoredCombatStimInstance(state, { kind: 'catalog' })
+    expect(materialized).toMatchObject({
+      ok: true,
+      instance: {
+        definitionId: 'combat_stims',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+      state: { inventory: { combat_stims: 0 } },
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+    expect(materialized.instance.fabricationOrigin).toBeUndefined()
+  })
+
+  it('rejects exhausted or mismatched Combat Stim lots without mutation', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    state.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    expect(
+      materializeStoredCombatStimInstance(state, {
+        kind: 'fabricated_lot',
+        fabricationQueueId: 'combat-stim-batch',
+      })
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+    expect(state.inventory.combat_stims).toBe(1)
   })
 })

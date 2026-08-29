@@ -221,6 +221,46 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
   })
 
+  it('surfaces Combat Stim catalog and fabricated-lot tracking sources', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    game.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    const view = getEquipmentInstanceMaterializationViews(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+    expect(view).toMatchObject({
+      itemId: 'combat_stims',
+      aggregateStock: 2,
+      canMaterialize: true,
+      storedInstances: [],
+    })
+    expect(view?.materializationSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: { kind: 'catalog' },
+          available: true,
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          source: { kind: 'fabricated_lot', fabricationQueueId: 'combat-stim-batch' },
+          available: true,
+          quantity: 1,
+          provenanceLabel: expect.any(String),
+        }),
+      ])
+    )
+  })
+
   it('surfaces stored Combat Stim instances as durable dose-aware choices', () => {
     const game = createStartingState()
     game.inventory.combat_stims = 1

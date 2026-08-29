@@ -38,7 +38,7 @@ describe('FabricationPage', () => {
   it('renders recipe material requirements from the domain recipe catalog', () => {
     renderFabricationPage()
 
-    expect(screen.getByText(/Materials: Medical Supplies x2/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Materials: Medical Supplies x2/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/Material stores/i)).toBeInTheDocument()
     expect(screen.getByText(/^Electronic Parts$/i)).toBeInTheDocument()
     expect(screen.getAllByText(/Grade outcome: Grade I/i).length).toBeGreaterThan(0)
@@ -70,6 +70,7 @@ describe('FabricationPage', () => {
     renderFabricationPage()
 
     expect(screen.getByLabelText(/Queue Emergency Medkits/i)).toBeDisabled()
-    expect(screen.getByText(/Missing: Medical Supplies x2/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Queue Combat Stim Batch/i)).toBeDisabled()
+    expect(screen.getAllByText(/Missing: Medical Supplies x2/i).length).toBeGreaterThan(0)
   })
 })

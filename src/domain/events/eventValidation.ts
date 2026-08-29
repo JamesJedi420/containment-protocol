@@ -906,14 +906,13 @@ const equipmentInstanceMaterializedSchema = z
         message: 'materialized fabrication provenance fields must be supplied together',
       })
     }
-    if (fabricationFields.length === 4 && payload.definitionId === 'combat_stims') {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['fabricationQueueId'],
-        message: 'Combat Stim materialization cannot carry fabricated-lot provenance',
-      })
-    }
-    if (fabricationFields.length === 4 && payloadFields.length !== 0) {
+    // SPE-2849: Combat Stim lot materialization carries 2/2 resource fields + all-or-none
+    // fabrication provenance. Ordinary fabricated materialization still forbids resource fields.
+    if (
+      fabricationFields.length === 4 &&
+      payloadFields.length !== 0 &&
+      payload.definitionId !== 'combat_stims'
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fabricationQueueId'],

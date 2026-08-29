@@ -4,7 +4,9 @@ import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
 import {
   getCombatStimDisposalReasonLabel,
+  getCombatStimReaggregationReasonLabel,
   getCombatStimStoredInstanceDisposalViews,
+  getCombatStimStoredInstanceReaggregationViews,
 } from '../../domain/combatStim'
 import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
@@ -22,6 +24,7 @@ function EquipmentPage() {
     materializeStoredEquipmentInstance,
     destroyStoredEquipmentInstance,
     disposeStoredCombatStimInstance,
+    reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
     equipAgentItem,
     equipStoredEquipmentInstance,
@@ -50,6 +53,8 @@ function EquipmentPage() {
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
+  const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
+    useState<string>()
   const [pendingReaggregationInstanceId, setPendingReaggregationInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
     EquipmentAutoScrapView['previewThresholdGradeId']
@@ -67,6 +72,12 @@ function EquipmentPage() {
     () => getCombatStimStoredInstanceDisposalViews(game),
     [game]
   )
+  const combatStimReaggregationById = useMemo(() => {
+    const map = new Map(
+      getCombatStimStoredInstanceReaggregationViews(game).map((view) => [view.instanceId, view])
+    )
+    return map
+  }, [game])
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (
@@ -424,8 +435,9 @@ function EquipmentPage() {
             Combat Stim stored copies
           </h3>
           <p className="text-sm opacity-60">
-            Permanently dispose stored Combat Stim instances with live or depleted doses. Disposal
-            does not restore aggregate stock and is separate from deconstruction recovery.
+            Permanently dispose stored Combat Stim instances with live or depleted doses, or return
+            a full 2/2 copy to aggregate stock. Disposal does not restore aggregate stock. Return to
+            stock is separate from disposal and from ordinary equipment re-aggregation.
           </p>
         </div>
 
@@ -433,71 +445,126 @@ function EquipmentPage() {
           <p className="text-sm opacity-60">No stored Combat Stim instances are available.</p>
         ) : (
           <ul className="space-y-2" aria-label="Combat Stim stored instances">
-            {combatStimDisposalViews.map((instance) => (
-              <li
-                key={instance.instanceId}
-                className="rounded border border-white/10 px-3 py-3"
-              >
-                <p className="text-sm font-medium">{instance.instanceId}</p>
-                <p className="text-xs opacity-60">
-                  {instance.conditionLabel}
-                  {instance.doseLabel ? ` / ${instance.doseLabel}` : ''}
-                </p>
-                {pendingCombatStimDisposalInstanceId === instance.instanceId ? (
-                  <div
-                    className="mt-2 space-y-2"
-                    role="group"
-                    aria-label={`Confirm Combat Stim disposal ${instance.instanceId}`}
-                  >
-                    <p className="text-xs text-red-200">
-                      Permanently dispose this stored Combat Stim
-                      {instance.doseLabel ? ` (${instance.doseLabel})` : ''}? This cannot be
-                      recovered, does not restore aggregate stock, and is not deconstruction
-                      recovery.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-xs"
-                        aria-label={`Permanently dispose Combat Stim instance ${instance.instanceId}`}
-                        onClick={() => {
-                          disposeStoredCombatStimInstance(instance.instanceId)
-                          setPendingCombatStimDisposalInstanceId(undefined)
-                        }}
-                      >
-                        Confirm disposal
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-ghost"
-                        onClick={() => setPendingCombatStimDisposalInstanceId(undefined)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost mt-2"
-                    disabled={!instance.canDispose}
-                    aria-label={`Review disposal Combat Stim instance ${instance.instanceId}`}
-                    onClick={() => {
-                      setPendingCombatStimDisposalInstanceId(instance.instanceId)
-                      setPendingDestructionInstanceId(undefined)
-                      setPendingReaggregationInstanceId(undefined)
-                    }}
-                  >
-                    Dispose instance
-                  </button>
-                )}
-                {!instance.canDispose && instance.reasonCode ? (
-                  <p className="mt-1 text-xs text-amber-200/80">
-                    {getCombatStimDisposalReasonLabel(instance.reasonCode)}
+            {combatStimDisposalViews.map((instance) => {
+              const reaggregation = combatStimReaggregationById.get(instance.instanceId)
+              return (
+                <li key={instance.instanceId} className="rounded border border-white/10 px-3 py-3">
+                  <p className="text-sm font-medium">{instance.instanceId}</p>
+                  <p className="text-xs opacity-60">
+                    {instance.conditionLabel}
+                    {instance.doseLabel ? ` / ${instance.doseLabel}` : ''}
                   </p>
-                ) : null}
-              </li>
-            ))}
+                  {pendingCombatStimDisposalInstanceId === instance.instanceId ? (
+                    <div
+                      className="mt-2 space-y-2"
+                      role="group"
+                      aria-label={`Confirm Combat Stim disposal ${instance.instanceId}`}
+                    >
+                      <p className="text-xs text-red-200">
+                        Permanently dispose this stored Combat Stim
+                        {instance.doseLabel ? ` (${instance.doseLabel})` : ''}? This cannot be
+                        recovered, does not restore aggregate stock, and is not deconstruction
+                        recovery.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-xs"
+                          aria-label={`Permanently dispose Combat Stim instance ${instance.instanceId}`}
+                          onClick={() => {
+                            disposeStoredCombatStimInstance(instance.instanceId)
+                            setPendingCombatStimDisposalInstanceId(undefined)
+                          }}
+                        >
+                          Confirm disposal
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => setPendingCombatStimDisposalInstanceId(undefined)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost mt-2"
+                      disabled={!instance.canDispose}
+                      aria-label={`Review disposal Combat Stim instance ${instance.instanceId}`}
+                      onClick={() => {
+                        setPendingCombatStimDisposalInstanceId(instance.instanceId)
+                        setPendingCombatStimReaggregationInstanceId(undefined)
+                        setPendingDestructionInstanceId(undefined)
+                        setPendingReaggregationInstanceId(undefined)
+                      }}
+                    >
+                      Dispose instance
+                    </button>
+                  )}
+                  {!instance.canDispose && instance.reasonCode ? (
+                    <p className="mt-1 text-xs text-amber-200/80">
+                      {getCombatStimDisposalReasonLabel(instance.reasonCode)}
+                    </p>
+                  ) : null}
+                  {pendingCombatStimReaggregationInstanceId === instance.instanceId ? (
+                    <div
+                      className="mt-2 space-y-2"
+                      role="group"
+                      aria-label={`Confirm Combat Stim re-aggregation ${instance.instanceId}`}
+                    >
+                      <p className="text-xs text-amber-100">
+                        Stop tracking this full Combat Stim
+                        {instance.doseLabel ? ` (${instance.doseLabel})` : ''} and return one unit
+                        to aggregate stock? The individual identity will be removed. This is not
+                        disposal.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-xs"
+                          aria-label={`Re-aggregate Combat Stim instance ${instance.instanceId}`}
+                          onClick={() => {
+                            reaggregateStoredCombatStimInstance(instance.instanceId)
+                            setPendingCombatStimReaggregationInstanceId(undefined)
+                          }}
+                        >
+                          Confirm return to stock
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => setPendingCombatStimReaggregationInstanceId(undefined)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost mt-2"
+                      disabled={!reaggregation?.canReaggregate}
+                      aria-label={`Review re-aggregation Combat Stim instance ${instance.instanceId}`}
+                      onClick={() => {
+                        setPendingCombatStimReaggregationInstanceId(instance.instanceId)
+                        setPendingCombatStimDisposalInstanceId(undefined)
+                        setPendingDestructionInstanceId(undefined)
+                        setPendingReaggregationInstanceId(undefined)
+                      }}
+                    >
+                      Return to aggregate stock
+                    </button>
+                  )}
+                  {reaggregation && !reaggregation.canReaggregate && reaggregation.reasonCode ? (
+                    <p className="mt-1 text-xs text-amber-200/80">
+                      {getCombatStimReaggregationReasonLabel(reaggregation.reasonCode)}
+                    </p>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         )}
       </article>

@@ -1,7 +1,8 @@
 {
-  "primary": null,
-  "inProgress": ["SPE-2844"],
+  "primary": "SPE-2845",
+  "inProgress": ["SPE-2845"],
   "recentlyShipped": [
+    "SPE-2844",
     "SPE-2843",
     "SPE-2842",
     "SPE-2841",
@@ -12,11 +13,11 @@
     "SPE-2826",
     "SPE-2801",
     "SPE-2800",
-    "SPE-2799",
-    "SPE-2748"
+    "SPE-2799"
   ],
   "sliceDocStatus": {
-    "planning/spe-2844-combat-stim-stored-instance-disposal-slice.md": "In Progress",
+    "planning/spe-2845-combat-stim-stored-instance-re-aggregation-slice.md": "In Progress",
+    "planning/spe-2844-combat-stim-stored-instance-disposal-slice.md": "Recently shipped",
     "planning/spe-2843-stored-ordinary-equipment-instance-re-aggregation-command-slice.md": "Recently shipped",
     "planning/spe-2842-stored-ordinary-equipment-instance-destruction-command-slice.md": "Recently shipped",
     "planning/spe-2841-stored-ordinary-equipment-instance-recovery-selection-slice.md": "Recently shipped",

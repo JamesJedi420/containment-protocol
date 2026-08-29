@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                                                     |
+| **Status** | **Recently shipped**                                                                                            |
 | **Linear** | [SPE-2844](https://linear.app/spectranoir/issue/SPE-2844/combat-stim-stored-instance-disposal-command)              |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)             |
 | **Branch** | `jamesdyedbq/spe-2844-combat-stim-stored-instance-disposal`                                                         |
@@ -35,7 +35,7 @@ no-ops and emit no duplicate event.
 
 | Item or mechanic                        | Owner or prerequisite | Reason                                                       |
 | --------------------------------------- | --------------------- | ------------------------------------------------------------ |
-| Combat Stim re-aggregation              | SPE-2827 child        | Inverse materialization requires specialized dose policy    |
+| Combat Stim re-aggregation              | SPE-2845              | Inverse materialization; specialized full-dose policy shipped separately |
 | Live-dose material recovery             | SPE-1055 child        | Recovery outputs for partial doses remain separately owned   |
 | Equipped-instance disposal              | SPE-2827 child        | Requires unequip or mission-loss lifecycle triggers          |
 | SPE-1027 refill and facility stock      | SPE-1027              | Replenishment port not yet authoritative                       |

@@ -10,6 +10,7 @@ import {
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
   createCombatStimDisposedDraft,
+  createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
 import {
@@ -142,7 +143,12 @@ import {
   materializeStoredOrdinaryEquipmentInstance,
   unequipAgentItem,
 } from '../../domain/sim/equipment'
-import { activateCombatStim, destroyStoredCombatStimInstance, equipStoredCombatStimInstance } from '../../domain/combatStim'
+import {
+  activateCombatStim,
+  destroyStoredCombatStimInstance,
+  equipStoredCombatStimInstance,
+  reaggregateStoredCombatStimInstance as reaggregateStoredCombatStimInstanceState,
+} from '../../domain/combatStim'
 import {
   createTeam,
   deleteEmptyTeam,
@@ -410,6 +416,7 @@ interface GameStore {
   materializeStoredEquipmentInstance: (itemId: string) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
+  reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
@@ -1849,6 +1856,30 @@ export const useGameStore = create<GameStore>()(
                 capacity: 2,
                 remaining: payload.remaining,
                 reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      reaggregateStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = reaggregateStoredCombatStimInstanceState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'manual_untracking',
               }),
             ]),
           }

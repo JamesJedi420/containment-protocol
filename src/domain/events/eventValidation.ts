@@ -783,7 +783,6 @@ function refineEquipmentRecoveryEvent(
       payload.itemId !== 'combat_stims' &&
       profile?.state === 'eligible' &&
       profile.sourceAuthority === 'aggregate_and_instance' &&
-      hasCanonicalCatalogGrade &&
       instanceResourceFields.length === 0
     if (!validCombatStimProvenance && !validOrdinaryProvenance) {
       context.addIssue({
@@ -835,6 +834,10 @@ const equipmentInstanceMaterializedSchema = z
     resourceId: idSchema.optional(),
     capacity: finiteNonNegativeIntSchema.optional(),
     remaining: finiteNonNegativeIntSchema.optional(),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -888,6 +891,33 @@ const equipmentInstanceMaterializedSchema = z
         code: z.ZodIssueCode.custom,
         path: ['resourceId'],
         message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (fabricationFields.length !== 0 && fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'materialized fabrication provenance fields must be supplied together',
+      })
+    }
+    if (fabricationFields.length === 4 && payload.definitionId === 'combat_stims') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'Combat Stim materialization cannot carry fabricated-lot provenance',
+      })
+    }
+    if (fabricationFields.length === 4 && payloadFields.length !== 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot materialization cannot carry resource payload fields',
       })
     }
   })

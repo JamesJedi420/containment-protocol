@@ -20,7 +20,12 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
-import { resolveEquipmentDeconstructionSources } from './equipmentDeconstruction'
+import { getProductionRecipe } from '../../data/production'
+import {
+  resolveEquipmentDeconstructionSources,
+  type EquipmentDeconstructionSourceRef,
+} from './equipmentDeconstruction'
+import { isSafeProductionQueueId } from './production'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -30,9 +35,25 @@ function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
 
+function isCanonicalFabricatedLotForDefinition(
+  state: GameState,
+  definitionId: string,
+  lot: NonNullable<GameState['fabricatedEquipmentLots']>[string]
+) {
+  if (!isSafeProductionQueueId(lot.queueId)) return false
+  const recipe = getProductionRecipe(lot.recipeId)
+  if (!recipe || recipe.outputItemId !== lot.itemId || lot.itemId !== definitionId) return false
+  if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 1) return false
+  if (!Number.isSafeInteger(lot.completedWeek) || lot.completedWeek < 1) return false
+  if (lot.completedWeek > state.week) return false
+  const tracked = Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+  return tracked <= lot.quantity
+}
+
 export function materializeStoredOrdinaryEquipmentInstance(
   state: GameState,
-  definitionId: string
+  definitionId: string,
+  source: EquipmentDeconstructionSourceRef = { kind: 'catalog' }
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   const definition = getEquipmentDefinition(definitionId)
@@ -46,16 +67,69 @@ export function materializeStoredOrdinaryEquipmentInstance(
   if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
     return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
   }
-  const catalogSource = resolveEquipmentDeconstructionSources(normalized, definitionId).find(
-    (choice) => choice.source.kind === 'catalog'
-  )
-  if (!catalogSource || catalogSource.quantity < 1) {
+  if (source.kind === 'equipment_instance') {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
-  return instantiateEquipmentInstance(normalized, definitionId, {
+
+  const choices = resolveEquipmentDeconstructionSources(normalized, definitionId)
+  if (source.kind === 'catalog') {
+    const catalogSource = choices.find((choice) => choice.source.kind === 'catalog')
+    if (!catalogSource || catalogSource.quantity < 1) {
+      return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+    }
+    return instantiateEquipmentInstance(normalized, definitionId, {
+      location: { state: 'stored' },
+      condition: 'operational',
+    })
+  }
+
+  const lotChoice = choices.find(
+    (choice) =>
+      choice.source.kind === 'fabricated_lot' &&
+      choice.source.fabricationQueueId === source.fabricationQueueId
+  )
+  if (!lotChoice || lotChoice.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const lot = normalized.fabricatedEquipmentLots?.[source.fabricationQueueId]
+  if (!lot || !isCanonicalFabricatedLotForDefinition(normalized, definitionId, lot)) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+
+  const created = instantiateEquipmentInstance(normalized, definitionId, {
     location: { state: 'stored' },
     condition: 'operational',
+    fabricationOrigin: {
+      queueId: lot.queueId,
+      recipeId: lot.recipeId,
+      gradeId: lot.gradeId,
+      completedWeek: lot.completedWeek,
+    },
   })
+  if (!created.ok) return created
+
+  const nextLots = { ...(created.state.fabricatedEquipmentLots ?? {}) }
+  const currentLot = nextLots[lot.queueId]
+  if (!currentLot || !isCanonicalFabricatedLotForDefinition(created.state, definitionId, currentLot)) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const trackedInstanceUnits = Math.max(0, Math.trunc(currentLot.trackedInstanceUnits ?? 0)) + 1
+  if (trackedInstanceUnits > currentLot.quantity) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  nextLots[lot.queueId] = Object.freeze({
+    ...currentLot,
+    trackedInstanceUnits,
+  })
+  const nextState = normalizeGameState({
+    ...created.state,
+    fabricatedEquipmentLots: nextLots,
+  })
+  return {
+    ok: true,
+    state: nextState,
+    instance: created.instance,
+  }
 }
 
 function withSlotItem(agent: Agent, slot: EquipmentSlotKind, itemId?: string): Agent {

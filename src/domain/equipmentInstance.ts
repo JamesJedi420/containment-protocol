@@ -7,6 +7,7 @@ import {
   validateAgentLoadoutAssignment,
   type EquipmentSlotKind,
 } from './equipment'
+import { isEquipmentGradeId, type EquipmentGradeId } from './equipmentGrade'
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
 
 export type EquipmentInstanceId = string
@@ -21,12 +22,21 @@ export interface EquipmentInstanceConsumablePayload {
   remaining: number
 }
 
+/** SPE-2846: immutable fabricated-lot snapshot retained on ordinary identities. */
+export interface EquipmentInstanceFabricationOrigin {
+  queueId: Id
+  recipeId: string
+  gradeId: EquipmentGradeId
+  completedWeek: number
+}
+
 export interface EquipmentInstance {
   instanceId: EquipmentInstanceId
   definitionId: string
   location: EquipmentInstanceLocation
   condition: EquipmentInstanceCondition
   payload?: EquipmentInstanceConsumablePayload
+  fabricationOrigin?: EquipmentInstanceFabricationOrigin
 }
 
 export type EquipmentInstanceRegistry = Record<EquipmentInstanceId, EquipmentInstance>
@@ -142,6 +152,104 @@ function isValidPayload(value: unknown): value is EquipmentInstanceConsumablePay
   )
 }
 
+function isSafeFabricationRecipeId(value: unknown): value is string {
+  return (
+    typeof value === 'string' && SAFE_ID_PATTERN.test(value) && !PROTOTYPE_SENSITIVE_IDS.has(value)
+  )
+}
+
+function isValidFabricationOrigin(
+  value: unknown
+): value is EquipmentInstanceFabricationOrigin {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, ['queueId', 'recipeId', 'gradeId', 'completedWeek'])
+  ) {
+    return false
+  }
+  return (
+    typeof value.queueId === 'string' &&
+    value.queueId.length > 0 &&
+    value.queueId === value.queueId.trim() &&
+    !/^(0|[1-9]\d*)$/.test(value.queueId) &&
+    !PROTOTYPE_SENSITIVE_IDS.has(value.queueId) &&
+    isSafeFabricationRecipeId(value.recipeId) &&
+    isEquipmentGradeId(value.gradeId) &&
+    Number.isSafeInteger(value.completedWeek) &&
+    (value.completedWeek as number) >= 1
+  )
+}
+
+function fabricationOriginsEqual(
+  left: EquipmentInstanceFabricationOrigin | undefined,
+  right: EquipmentInstanceFabricationOrigin | undefined
+) {
+  return (
+    left === right ||
+    (Boolean(left) &&
+      Boolean(right) &&
+      left?.queueId === right?.queueId &&
+      left?.recipeId === right?.recipeId &&
+      left?.gradeId === right?.gradeId &&
+      left?.completedWeek === right?.completedWeek)
+  )
+}
+
+function snapshotFabricationOrigin(
+  origin: EquipmentInstanceFabricationOrigin
+): EquipmentInstanceFabricationOrigin {
+  return Object.freeze({
+    queueId: origin.queueId,
+    recipeId: origin.recipeId,
+    gradeId: origin.gradeId,
+    completedWeek: origin.completedWeek,
+  })
+}
+
+/**
+ * Validates an optional fabrication-origin snapshot against the live lot registry when present.
+ * Missing lots reject as unknown provenance; matching lots must agree on recipe/grade/week/item.
+ */
+export function resolveFabricationOriginForDefinition(
+  state: Pick<GameState, 'fabricatedEquipmentLots'>,
+  definitionId: string,
+  value: unknown
+):
+  | { ok: true; origin: EquipmentInstanceFabricationOrigin }
+  | { ok: false; code: EquipmentInstanceFailureCode } {
+  if (value === undefined) {
+    return { ok: false, code: 'invalid_instance_shape' }
+  }
+  if (!isValidFabricationOrigin(value)) {
+    return { ok: false, code: 'invalid_instance_shape' }
+  }
+  if (definitionId === COMBAT_STIM_DEFINITION_ID) {
+    return { ok: false, code: 'specialized_materialization_required' }
+  }
+  const lot = state.fabricatedEquipmentLots?.[value.queueId]
+  if (!lot) {
+    return { ok: false, code: 'fabricated_provenance_required' }
+  }
+  if (
+    lot.queueId !== value.queueId ||
+    lot.itemId !== definitionId ||
+    lot.recipeId !== value.recipeId ||
+    lot.gradeId !== value.gradeId ||
+    lot.completedWeek !== value.completedWeek
+  ) {
+    return { ok: false, code: 'fabricated_provenance_required' }
+  }
+  return {
+    ok: true,
+    origin: {
+      queueId: value.queueId,
+      recipeId: value.recipeId,
+      gradeId: value.gradeId,
+      completedWeek: value.completedWeek,
+    },
+  }
+}
+
 function isEquipmentSlotKind(value: unknown): value is EquipmentSlotKind {
   return EQUIPMENT_SLOT_KINDS.includes(value as EquipmentSlotKind)
 }
@@ -179,14 +287,24 @@ function validatePersistedLocation(
 function validateInstance(
   value: unknown,
   key: string,
-  agents: GameState['agents']
+  agents: GameState['agents'],
+  fabricatedEquipmentLots: GameState['fabricatedEquipmentLots']
 ):
   | { valid: true; instance: EquipmentInstance }
   | { valid: false; code: EquipmentInstanceFailureCode } {
   if (!isRecord(value) || !isSafeEquipmentInstanceId(key) || value.instanceId !== key) {
     return { valid: false, code: 'invalid_instance_id' }
   }
-  if (!hasOnlyKeys(value, ['instanceId', 'definitionId', 'location', 'condition', 'payload'])) {
+  if (
+    !hasOnlyKeys(value, [
+      'instanceId',
+      'definitionId',
+      'location',
+      'condition',
+      'payload',
+      'fabricationOrigin',
+    ])
+  ) {
     return { valid: false, code: 'invalid_instance_shape' }
   }
   if (typeof value.definitionId !== 'string' || !getEquipmentDefinition(value.definitionId)) {
@@ -200,6 +318,19 @@ function validateInstance(
   if (value.payload !== undefined && !isValidPayload(value.payload)) {
     return { valid: false, code: 'malformed_payload_bounds' }
   }
+  let fabricationOrigin: EquipmentInstanceFabricationOrigin | undefined
+  if (value.fabricationOrigin !== undefined) {
+    if (value.payload !== undefined) {
+      return { valid: false, code: 'fabricated_provenance_required' }
+    }
+    const resolved = resolveFabricationOriginForDefinition(
+      { fabricatedEquipmentLots },
+      value.definitionId,
+      value.fabricationOrigin
+    )
+    if (!resolved.ok) return { valid: false, code: resolved.code }
+    fabricationOrigin = resolved.origin
+  }
 
   return {
     valid: true,
@@ -211,6 +342,7 @@ function validateInstance(
       ...(value.payload
         ? { payload: { ...value.payload } as EquipmentInstanceConsumablePayload }
         : {}),
+      ...(fabricationOrigin ? { fabricationOrigin } : {}),
     },
   }
 }
@@ -268,19 +400,24 @@ function instancesEqual(left: EquipmentInstance, right: EquipmentInstance) {
     left.definitionId === right.definitionId &&
     left.condition === right.condition &&
     locationsEqual(left.location, right.location) &&
-    payloadsEqual(left.payload, right.payload)
+    payloadsEqual(left.payload, right.payload) &&
+    fabricationOriginsEqual(left.fabricationOrigin, right.fabricationOrigin)
   )
 }
 
 function createEquipmentInstanceSnapshot(instance: EquipmentInstance): EquipmentInstance {
   const location = Object.freeze({ ...instance.location }) as EquipmentInstanceLocation
   const payload = instance.payload ? Object.freeze({ ...instance.payload }) : undefined
+  const fabricationOrigin = instance.fabricationOrigin
+    ? snapshotFabricationOrigin(instance.fabricationOrigin)
+    : undefined
   return Object.freeze({
     instanceId: instance.instanceId,
     definitionId: instance.definitionId,
     location,
     condition: instance.condition,
     ...(payload ? { payload } : {}),
+    ...(fabricationOrigin ? { fabricationOrigin } : {}),
   })
 }
 
@@ -411,6 +548,9 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   if (instance.payload !== undefined) {
     return { ok: false, state: normalized, code: 'payload_reaggregation_unsupported' }
   }
+  if (instance.fabricationOrigin !== undefined) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
   if (isEquipmentInstanceClaimedForRecovery(normalized, instanceId)) {
     return { ok: false, state: normalized, code: 'recovery_claimed' }
   }
@@ -475,6 +615,7 @@ export function instantiateEquipmentInstance(
     location?: EquipmentInstanceLocation
     condition?: EquipmentInstanceCondition
     payload?: EquipmentInstanceConsumablePayload
+    fabricationOrigin?: EquipmentInstanceFabricationOrigin
   } = {}
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
@@ -491,6 +632,19 @@ export function instantiateEquipmentInstance(
   }
   if (options.payload !== undefined && !isValidPayload(options.payload)) {
     return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
+  }
+  let fabricationOrigin: EquipmentInstanceFabricationOrigin | undefined
+  if (options.fabricationOrigin !== undefined) {
+    if (definitionId === COMBAT_STIM_DEFINITION_ID || options.payload !== undefined) {
+      return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+    }
+    const resolved = resolveFabricationOriginForDefinition(
+      normalized,
+      definitionId,
+      options.fabricationOrigin
+    )
+    if (!resolved.ok) return { ok: false, state: normalized, code: resolved.code }
+    fabricationOrigin = resolved.origin
   }
   const payload =
     definitionId === COMBAT_STIM_DEFINITION_ID
@@ -512,6 +666,7 @@ export function instantiateEquipmentInstance(
     location: { ...location },
     condition,
     ...(payload ? { payload: { ...payload } } : {}),
+    ...(fabricationOrigin ? { fabricationOrigin: { ...fabricationOrigin } } : {}),
   }
   const agents = { ...normalized.agents }
   if (location.state === 'equipped') {
@@ -549,11 +704,21 @@ export function applyEquipmentInstanceTransition(
   }
   if (
     !isRecord(next) ||
-    !hasOnlyKeys(next, ['instanceId', 'definitionId', 'location', 'condition', 'payload'])
+    !hasOnlyKeys(next, [
+      'instanceId',
+      'definitionId',
+      'location',
+      'condition',
+      'payload',
+      'fabricationOrigin',
+    ])
   ) {
     return { ok: false, state: normalized, code: 'invalid_instance_shape' }
   }
   if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
+    return { ok: false, state: normalized, code: 'immutable_identity' }
+  }
+  if (!fabricationOriginsEqual(current.fabricationOrigin, next.fabricationOrigin)) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
   }
   if (next.condition !== 'operational' && next.condition !== 'damaged') {
@@ -602,6 +767,9 @@ export function applyEquipmentInstanceTransition(
     location: { ...next.location },
     condition: next.condition,
     ...(next.payload ? { payload: { ...next.payload } } : {}),
+    ...(current.fabricationOrigin
+      ? { fabricationOrigin: { ...current.fabricationOrigin } }
+      : {}),
   }
   const nextState = normalizeGameState({
     ...normalized,
@@ -630,7 +798,8 @@ export function relocateEquipmentInstance(
 export function sanitizeEquipmentInstanceRegistry(
   raw: unknown,
   agents: GameState['agents'],
-  excludedInstanceIds: ReadonlySet<string> = new Set()
+  excludedInstanceIds: ReadonlySet<string> = new Set(),
+  fabricatedEquipmentLots: GameState['fabricatedEquipmentLots'] = undefined
 ): {
   equipmentInstances: EquipmentInstanceRegistry
   agents: GameState['agents']
@@ -645,7 +814,12 @@ export function sanitizeEquipmentInstanceRegistry(
 
   const claimedSlots = new Set<string>()
   for (const instanceId of Object.keys(raw).sort()) {
-    const validation = validateInstance(raw[instanceId], instanceId, reconciledAgents)
+    const validation = validateInstance(
+      raw[instanceId],
+      instanceId,
+      reconciledAgents,
+      fabricatedEquipmentLots
+    )
     if (!validation.valid) {
       issues.push({ instanceId, code: validation.code })
       continue

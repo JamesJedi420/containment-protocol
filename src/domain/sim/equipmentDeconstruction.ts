@@ -249,7 +249,10 @@ export function resolveEquipmentDeconstructionSources(
     .sort((left, right) => compareCodeUnits(left.queueId, right.queueId))
   const remainingByLot = lots.map((lot) => ({
     lot,
-    remaining: Math.max(0, lot.quantity - (claims.get(lot.queueId) ?? 0)),
+    remaining: Math.max(
+      0,
+      lot.quantity - (claims.get(lot.queueId) ?? 0) - Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+    ),
   }))
   const outstandingLotUnits = remainingByLot.reduce((total, entry) => total + entry.remaining, 0)
   const catalogQuantity = Math.max(0, stock - outstandingLotUnits)
@@ -309,8 +312,19 @@ export function resolveEquipmentDeconstructionSources(
       .sort((left, right) => compareCodeUnits(left.instanceId, right.instanceId))) {
       const issueCode =
         resolveInstanceIssue(state, instance, profile) ??
-        (catalogProjection.state !== 'graded' ? 'recovery_unavailable' : undefined)
+        (catalogProjection.state !== 'graded' && !instance.fabricationOrigin
+          ? 'recovery_unavailable'
+          : undefined)
       const payload = isCanonicalCombatStimPayload(instance.payload) ? instance.payload : undefined
+      const gradeProjection = instance.fabricationOrigin
+        ? resolveEquipmentGradeProjection(
+            { state: 'graded', gradeId: instance.fabricationOrigin.gradeId },
+            visibility
+          )
+        : catalogProjection
+      const instanceIssueCode =
+        issueCode ??
+        (gradeProjection.state !== 'graded' ? ('recovery_unavailable' as const) : undefined)
       choices.push(
         Object.freeze({
           source: Object.freeze({
@@ -319,18 +333,20 @@ export function resolveEquipmentDeconstructionSources(
           }),
           label:
             instance.definitionId !== COMBAT_STIM_DEFINITION_ID
-              ? `Equipment instance ${instance.instanceId}`
+              ? instance.fabricationOrigin
+                ? `Equipment instance ${instance.instanceId} / fabricated ${instance.fabricationOrigin.queueId}`
+                : `Equipment instance ${instance.instanceId}`
               : payload
                 ? `Equipment instance ${instance.instanceId} / ${payload.remaining} of ${payload.capacity} doses`
                 : `Equipment instance ${instance.instanceId} / dose state unavailable`,
-          quantity: issueCode ? 0 : 1,
-          available: !issueCode,
-          gradeProjection: catalogProjection,
+          quantity: instanceIssueCode ? 0 : 1,
+          available: !instanceIssueCode,
+          gradeProjection,
           condition: instance.condition,
           ...(payload
             ? { resourceRemaining: payload.remaining, resourceCapacity: payload.capacity }
             : {}),
-          ...(issueCode ? { issueCode } : {}),
+          ...(instanceIssueCode ? { issueCode: instanceIssueCode } : {}),
         })
       )
     }
@@ -369,7 +385,12 @@ export function resolveEquipmentDeconstructionPreview(
         state: 'graded' as const,
         gradeId: selectedLot.gradeId,
       }
-    : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+    : selectedInstance?.fabricationOrigin
+      ? {
+          state: 'graded' as const,
+          gradeId: selectedInstance.fabricationOrigin.gradeId,
+        }
+      : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
   const visibility = getEquipmentGradeCatalogVisibility(definition.gradeProfile)
   const sourceIssueCode =
     choice?.issueCode ??

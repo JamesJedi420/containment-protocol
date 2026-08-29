@@ -49,7 +49,11 @@ function EquipmentPage() {
   const deconstructionQueue = useMemo(() => getEquipmentDeconstructionQueueViews(game), [game])
   const [pendingDeconstructionItemId, setPendingDeconstructionItemId] = useState<string>()
   const [pendingCombatStimInstanceId, setPendingCombatStimInstanceId] = useState<string>()
-  const [pendingMaterializationItemId, setPendingMaterializationItemId] = useState<string>()
+  const [pendingMaterialization, setPendingMaterialization] = useState<{
+    itemId: string
+    source: EquipmentDeconstructionSourceRef
+    label: string
+  }>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
@@ -255,41 +259,97 @@ function EquipmentPage() {
                   Aggregate {view.aggregateStock} / Stored {view.storedInstanceCount} / Equipped{' '}
                   {view.equippedInstanceCount}
                 </p>
-                {pendingMaterializationItemId === view.itemId ? (
-                  <div
-                    className="mt-2 space-y-2"
-                    role="group"
-                    aria-label={`Confirm tracking ${view.itemName}`}
-                  >
-                    <p className="text-xs">
-                      Convert one aggregate {view.itemName} unit into a durable stored instance?
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-xs"
-                        onClick={() => {
-                          materializeStoredEquipmentInstance(view.itemId)
-                          setPendingMaterializationItemId(undefined)
-                        }}
-                      >
-                        Confirm tracking
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-ghost"
-                        onClick={() => setPendingMaterializationItemId(undefined)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                {view.materializationSources.some((source) => source.available) ? (
+                  <ul className="mt-2 space-y-2" aria-label={`${view.itemName} tracking sources`}>
+                    {view.materializationSources.map((source) => {
+                      const sourceKey =
+                        source.source.kind === 'catalog'
+                          ? `${view.itemId}:catalog`
+                          : source.source.kind === 'fabricated_lot'
+                            ? `${view.itemId}:lot:${source.source.fabricationQueueId}`
+                            : `${view.itemId}:other`
+                      const isPending =
+                        pendingMaterialization?.itemId === view.itemId &&
+                        ((pendingMaterialization.source.kind === 'catalog' &&
+                          source.source.kind === 'catalog') ||
+                          (pendingMaterialization.source.kind === 'fabricated_lot' &&
+                            source.source.kind === 'fabricated_lot' &&
+                            pendingMaterialization.source.fabricationQueueId ===
+                              source.source.fabricationQueueId))
+                      return (
+                        <li key={sourceKey}>
+                          {isPending ? (
+                            <div
+                              className="space-y-2"
+                              role="group"
+                              aria-label={`Confirm tracking ${view.itemName} from ${source.label}`}
+                            >
+                              <p className="text-xs">
+                                {source.source.kind === 'fabricated_lot'
+                                  ? `Convert one fabricated ${view.itemName} unit from ${source.label}${
+                                      source.provenanceLabel
+                                        ? ` (${source.provenanceLabel})`
+                                        : ''
+                                    } into a durable stored instance that retains that batch grade?`
+                                  : `Convert one catalog ${view.itemName} unit into a durable stored instance?`}
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs"
+                                  onClick={() => {
+                                    materializeStoredEquipmentInstance(
+                                      view.itemId,
+                                      source.source
+                                    )
+                                    setPendingMaterialization(undefined)
+                                  }}
+                                >
+                                  Confirm tracking
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() => setPendingMaterialization(undefined)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-xs"
+                              disabled={!source.available}
+                              onClick={() =>
+                                setPendingMaterialization({
+                                  itemId: view.itemId,
+                                  source: source.source,
+                                  label: source.label,
+                                })
+                              }
+                              aria-label={
+                                source.source.kind === 'fabricated_lot'
+                                  ? `Track one ${view.itemName} copy from ${source.label}`
+                                  : `Track one catalog ${view.itemName} copy`
+                              }
+                            >
+                              {source.source.kind === 'fabricated_lot'
+                                ? `Track from ${source.label}`
+                                : 'Track catalog copy'}
+                              {source.provenanceLabel ? ` (${source.provenanceLabel})` : ''}
+                              {` ×${source.quantity}`}
+                            </button>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
                 ) : (
                   <button
                     type="button"
                     className="btn btn-xs mt-2"
-                    disabled={!view.canMaterialize}
-                    onClick={() => setPendingMaterializationItemId(view.itemId)}
+                    disabled
                     aria-label={`Track one ${view.itemName} copy`}
                   >
                     Track individual copy
@@ -299,7 +359,7 @@ function EquipmentPage() {
                   <p className="mt-1 text-xs text-amber-200/80">
                     {view.materializationBlocker === 'damaged_aggregate_stock'
                       ? 'Resolve damaged aggregate stock before tracking a specific copy.'
-                      : 'Fabricated batch stock retains its grade provenance and cannot be tracked as an unspecified copy.'}
+                      : 'No catalog or fabricated-batch units are currently available to track.'}
                   </p>
                 ) : null}
                 {view.storedInstances.length > 0 ? (
@@ -311,6 +371,9 @@ function EquipmentPage() {
                       >
                         <p className="text-xs font-medium">{instance.instanceLabel}</p>
                         <p className="text-xs opacity-60">{instance.conditionLabel}</p>
+                        {instance.provenanceLabel ? (
+                          <p className="text-xs opacity-60">{instance.provenanceLabel}</p>
+                        ) : null}
                         {pendingDestructionInstanceId === instance.instanceId ? (
                           <div
                             className="mt-2 space-y-2"
@@ -414,9 +477,11 @@ function EquipmentPage() {
                               ? 'Damaged copies cannot return to operational aggregate stock.'
                               : instance.reaggregationBlocker === 'payload_unsupported'
                                 ? 'Payload-bearing copies require a specialized re-aggregation flow.'
-                                : instance.reaggregationBlocker === 'recovery_claimed'
-                                  ? 'This copy is already claimed by equipment recovery.'
-                                  : 'Aggregate stock is already at its safe capacity.'}
+                                : instance.reaggregationBlocker === 'fabricated_provenance_required'
+                                  ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                  : instance.reaggregationBlocker === 'recovery_claimed'
+                                    ? 'This copy is already claimed by equipment recovery.'
+                                    : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                       </li>

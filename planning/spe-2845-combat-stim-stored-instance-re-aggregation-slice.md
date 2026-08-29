@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                        |
 | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| **Status** | **In Progress**                                                                                              |
+| **Status** | **Recently shipped**                                                                                         |
 | **Linear** | [SPE-2845](https://linear.app/spectranoir/issue/SPE-2845/combat-stim-stored-instance-re-aggregation-command) |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)      |
 | **Branch** | `jamesdyedbq/spe-2845-combat-stim-stored-instance-re-aggregation-command`                                    |

@@ -79,11 +79,19 @@ export interface EquipmentInstanceMaterializationView {
   storedInstanceCount: number
   equippedInstanceCount: number
   canMaterialize: boolean
-  materializationBlocker?: 'damaged_aggregate_stock' | 'fabricated_provenance_required'
+  materializationBlocker?: 'damaged_aggregate_stock' | 'no_materializable_stock'
+  materializationSources: Array<{
+    source: EquipmentDeconstructionSourceRef
+    label: string
+    quantity: number
+    available: boolean
+    provenanceLabel?: string
+  }>
   storedInstances: Array<{
     instanceId: string
     instanceLabel: string
     conditionLabel: string
+    provenanceLabel?: string
     canDestroy: boolean
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
     canReaggregate: boolean
@@ -92,6 +100,7 @@ export interface EquipmentInstanceMaterializationView {
       | 'payload_unsupported'
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
+      | 'fabricated_provenance_required'
   }>
 }
 
@@ -534,10 +543,27 @@ export function getEquipmentInstanceMaterializationViews(
       )
       const aggregateStock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
       const hasDamagedAggregateStock = (game.damagedEquipmentQueue ?? []).includes(definition.id)
-      const catalogQuantity =
-        resolveEquipmentDeconstructionSources(game, definition.id).find(
-          (choice) => choice.source.kind === 'catalog'
-        )?.quantity ?? 0
+      const sources = resolveEquipmentDeconstructionSources(game, definition.id)
+      const materializationSources = sources
+        .filter(
+          (choice) =>
+            choice.source.kind === 'catalog' || choice.source.kind === 'fabricated_lot'
+        )
+        .map((choice) => ({
+          source: choice.source,
+          label: choice.label,
+          quantity: choice.quantity,
+          available: !hasDamagedAggregateStock && aggregateStock > 0 && choice.quantity > 0,
+          ...(choice.source.kind === 'fabricated_lot'
+            ? {
+                provenanceLabel:
+                  choice.gradeProjection.state === 'graded'
+                    ? getEquipmentGradeDefinition(choice.gradeProjection.gradeId).label
+                    : 'Grade unknown',
+              }
+            : {}),
+        }))
+      const canMaterialize = materializationSources.some((source) => source.available)
       const storedInstances = listStoredEquipmentInstances(game, definition.id).map((instance) => {
         const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
         const destructionBlocker = instance.payload
@@ -550,15 +576,22 @@ export function getEquipmentInstanceMaterializationViews(
             ? ('condition_unsupported' as const)
             : instance.payload
               ? ('payload_unsupported' as const)
-              : recoveryClaimed
-                ? ('recovery_claimed' as const)
-                : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
-                  ? ('inventory_capacity_exceeded' as const)
-                  : undefined
+              : instance.fabricationOrigin
+                ? ('fabricated_provenance_required' as const)
+                : recoveryClaimed
+                  ? ('recovery_claimed' as const)
+                  : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                    ? ('inventory_capacity_exceeded' as const)
+                    : undefined
         return {
           instanceId: instance.instanceId,
           instanceLabel: `${definition.name} — ${instance.instanceId}`,
           conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
+          ...(instance.fabricationOrigin
+            ? {
+                provenanceLabel: `Fabricated batch ${instance.fabricationOrigin.queueId} / week ${instance.fabricationOrigin.completedWeek}`,
+              }
+            : {}),
           canDestroy: destructionBlocker === undefined,
           canReaggregate: reaggregationBlocker === undefined,
           ...(destructionBlocker ? { destructionBlocker } : {}),
@@ -574,12 +607,13 @@ export function getEquipmentInstanceMaterializationViews(
         equippedInstanceCount: instances.filter(
           (instance) => instance.location.state === 'equipped'
         ).length,
-        canMaterialize: aggregateStock > 0 && !hasDamagedAggregateStock && catalogQuantity > 0,
+        canMaterialize,
+        materializationSources,
         storedInstances,
         ...(aggregateStock > 0 && hasDamagedAggregateStock
           ? { materializationBlocker: 'damaged_aggregate_stock' as const }
-          : aggregateStock > 0 && catalogQuantity < 1
-            ? { materializationBlocker: 'fabricated_provenance_required' as const }
+          : aggregateStock > 0 && !canMaterialize
+            ? { materializationBlocker: 'no_materializable_stock' as const }
             : {}),
       }
     })

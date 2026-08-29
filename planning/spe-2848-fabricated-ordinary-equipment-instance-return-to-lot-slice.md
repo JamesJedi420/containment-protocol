@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                                                                  |
+| **Status** | **Recently shipped**                                                                                                             |
 | **Linear** | [SPE-2848](https://linear.app/spectranoir/issue/SPE-2848/provenance-preserving-fabricated-ordinary-equipment-instance-return-to) |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                          |
 | **Branch** | `jamesdyedbq/spe-2848-fabricated-ordinary-return-to-lot`                                                                         |

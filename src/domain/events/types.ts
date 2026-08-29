@@ -474,6 +474,11 @@ export interface OperationEventPayloadMap {
     resourceId?: string
     capacity?: number
     remaining?: number
+    /** SPE-2846: all-or-none fabricated-lot snapshot when materializing from a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
   }
   'equipment.instance_destroyed': {
     week: number

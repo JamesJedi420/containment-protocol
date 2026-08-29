@@ -274,13 +274,14 @@ describe('getGearRecommendationsForActiveCases', () => {
     const materialization = getEquipmentInstanceMaterializationViews(created.state).find(
       (view) => view.itemId === 'signal_jammers'
     )
-    expect(materialization).toEqual({
+    expect(materialization).toMatchObject({
       itemId: 'signal_jammers',
       itemName: 'Signal Jammers',
       aggregateStock: 1,
       storedInstanceCount: 1,
       equippedInstanceCount: 0,
       canMaterialize: true,
+      materializationSources: [{ source: { kind: 'catalog' }, quantity: 1, available: true }],
       storedInstances: [
         {
           instanceId: created.instance.instanceId,
@@ -383,7 +384,7 @@ describe('getGearRecommendationsForActiveCases', () => {
     ])
   })
 
-  it('blocks materialization when only provenance-owned fabricated stock remains', () => {
+  it('exposes fabricated-lot tracking sources when only batch stock remains', () => {
     const game = createStartingState()
     game.inventory.signal_jammers = 1
     game.fabricatedEquipmentLots = {
@@ -403,8 +404,16 @@ describe('getGearRecommendationsForActiveCases', () => {
       )
     ).toMatchObject({
       aggregateStock: 1,
-      canMaterialize: false,
-      materializationBlocker: 'fabricated_provenance_required',
+      canMaterialize: true,
+      materializationSources: [
+        { source: { kind: 'catalog' }, quantity: 0, available: false },
+        {
+          source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' },
+          quantity: 1,
+          available: true,
+          provenanceLabel: 'Grade II',
+        },
+      ],
     })
   })
 

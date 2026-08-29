@@ -141,8 +141,10 @@ describe('EquipmentPage', () => {
 
     renderEquipmentPage()
 
-    await user.click(screen.getByRole('button', { name: /track one signal jammers copy/i }))
-    expect(screen.getByRole('group', { name: /confirm tracking signal jammers/i })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /track one catalog signal jammers copy/i }))
+    expect(
+      screen.getByRole('group', { name: /confirm tracking signal jammers from catalog/i })
+    ).toBeVisible()
     await user.click(screen.getByRole('button', { name: /confirm tracking/i }))
 
     const materialized = useGameStore.getState().game
@@ -182,7 +184,8 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(0)
   })
 
-  it('explains why fabricated batch stock cannot be tracked as unspecified', () => {
+  it('tracks a fabricated batch copy with retained provenance labels', async () => {
+    const user = userEvent.setup()
     const game = createStartingState()
     game.inventory.signal_jammers = 1
     game.fabricatedEquipmentLots = {
@@ -199,8 +202,39 @@ describe('EquipmentPage', () => {
 
     renderEquipmentPage()
 
-    expect(screen.getByRole('button', { name: /track one signal jammers copy/i })).toBeDisabled()
-    expect(screen.getByText(/fabricated batch stock retains its grade provenance/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: /track one signal jammers copy from fabricated batch batch/i,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: /confirm tracking signal jammers from fabricated batch batch/i,
+      })
+    ).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /confirm tracking/i }))
+
+    const materialized = useGameStore.getState().game
+    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
+    expect(materialized.inventory.signal_jammers).toBe(0)
+    expect(materialized.fabricatedEquipmentLots?.batch.quantity).toBe(0)
+    expect(materialized.equipmentInstances?.[instanceId]).toMatchObject({
+      fabricationOrigin: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    })
+    expect(screen.getAllByText(/fabricated batch batch \/ week 1/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', {
+        name: /review re-aggregation signal jammers instance/i,
+      })
+    ).toBeDisabled()
+    expect(
+      screen.getByText(/fabricated-batch copies retain grade provenance/i)
+    ).toBeVisible()
   })
 
   it('confirms destruction of one exact stored ordinary copy without restoring aggregate stock', async () => {
@@ -479,8 +513,16 @@ describe('EquipmentPage', () => {
     await user.selectOptions(sourceSelect, 'fabricated:fabricated')
     expect(screen.getByText(/source: fabricated batch fabricated \/ week 1/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /review deconstruction signal jammers/i }))
-    expect(screen.getByText(/from fabricated batch fabricated \/ week 1/i)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /confirm deconstruction signal jammers/i }))
+    expect(
+      screen.getByRole('button', {
+        name: /confirm deconstruction signal jammers from fabricated batch fabricated \/ week 1/i,
+      })
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: /confirm deconstruction signal jammers from fabricated batch fabricated \/ week 1/i,
+      })
+    )
     expect(useGameStore.getState().game.equipmentDeconstructionQueue?.[0]).toMatchObject({
       sourceFabricationQueueId: 'fabricated',
       sourceGradeId: 'grade_2',

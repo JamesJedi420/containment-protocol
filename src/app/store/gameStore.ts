@@ -413,7 +413,10 @@ interface GameStore {
   assignInstructor: (staffId: Id, agentId: Id) => void
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
-  materializeStoredEquipmentInstance: (itemId: string) => void
+  materializeStoredEquipmentInstance: (
+    itemId: string,
+    source?: EquipmentDeconstructionSourceRef
+  ) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
@@ -1799,11 +1802,12 @@ export const useGameStore = create<GameStore>()(
       reconcileAgents: (leftId, rightId) =>
         set((s) => ({ game: reconcileAgents(s.game, leftId, rightId) })),
 
-      materializeStoredEquipmentInstance: (itemId) =>
+      materializeStoredEquipmentInstance: (itemId, source) =>
         set((s) => {
-          const result = materializeStoredOrdinaryEquipmentInstance(s.game, itemId)
+          const result = materializeStoredOrdinaryEquipmentInstance(s.game, itemId, source)
           if (!result.ok) return { game: result.state }
           const definition = getEquipmentDefinition(itemId)
+          const origin = result.instance.fabricationOrigin
           return {
             game: appendOperationEventDrafts(result.state, [
               createEquipmentInstanceMaterializedDraft({
@@ -1813,6 +1817,14 @@ export const useGameStore = create<GameStore>()(
                 definitionName: definition?.name ?? itemId,
                 condition: result.instance.condition,
                 locationState: 'stored',
+                ...(origin
+                  ? {
+                      fabricationQueueId: origin.queueId,
+                      fabricationRecipeId: origin.recipeId,
+                      fabricationGradeId: origin.gradeId,
+                      fabricationCompletedWeek: origin.completedWeek,
+                    }
+                  : {}),
               }),
             ]),
           }

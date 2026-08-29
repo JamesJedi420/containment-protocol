@@ -20,7 +20,10 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
-import { resolveEquipmentDeconstructionSources } from './equipmentDeconstruction'
+import {
+  resolveEquipmentDeconstructionSources,
+  type EquipmentDeconstructionSourceRef,
+} from './equipmentDeconstruction'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -32,7 +35,8 @@ function getInventoryStock(state: GameState, itemId: string) {
 
 export function materializeStoredOrdinaryEquipmentInstance(
   state: GameState,
-  definitionId: string
+  definitionId: string,
+  source: EquipmentDeconstructionSourceRef = { kind: 'catalog' }
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   const definition = getEquipmentDefinition(definitionId)
@@ -46,16 +50,65 @@ export function materializeStoredOrdinaryEquipmentInstance(
   if ((normalized.damagedEquipmentQueue ?? []).includes(definitionId)) {
     return { ok: false, state: normalized, code: 'damaged_stock_ambiguity' }
   }
-  const catalogSource = resolveEquipmentDeconstructionSources(normalized, definitionId).find(
-    (choice) => choice.source.kind === 'catalog'
-  )
-  if (!catalogSource || catalogSource.quantity < 1) {
+  if (source.kind === 'equipment_instance') {
     return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
   }
-  return instantiateEquipmentInstance(normalized, definitionId, {
+
+  const choices = resolveEquipmentDeconstructionSources(normalized, definitionId)
+  if (source.kind === 'catalog') {
+    const catalogSource = choices.find((choice) => choice.source.kind === 'catalog')
+    if (!catalogSource || catalogSource.quantity < 1) {
+      return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+    }
+    return instantiateEquipmentInstance(normalized, definitionId, {
+      location: { state: 'stored' },
+      condition: 'operational',
+    })
+  }
+
+  const lotChoice = choices.find(
+    (choice) =>
+      choice.source.kind === 'fabricated_lot' &&
+      choice.source.fabricationQueueId === source.fabricationQueueId
+  )
+  if (!lotChoice || lotChoice.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const lot = normalized.fabricatedEquipmentLots?.[source.fabricationQueueId]
+  if (!lot || lot.itemId !== definitionId || lot.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+
+  const created = instantiateEquipmentInstance(normalized, definitionId, {
     location: { state: 'stored' },
     condition: 'operational',
+    fabricationOrigin: {
+      queueId: lot.queueId,
+      recipeId: lot.recipeId,
+      gradeId: lot.gradeId,
+      completedWeek: lot.completedWeek,
+    },
   })
+  if (!created.ok) return created
+
+  const nextLots = { ...(created.state.fabricatedEquipmentLots ?? {}) }
+  const currentLot = nextLots[lot.queueId]
+  if (!currentLot || currentLot.quantity < 1) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  nextLots[lot.queueId] = Object.freeze({
+    ...currentLot,
+    quantity: currentLot.quantity - 1,
+  })
+  const nextState = normalizeGameState({
+    ...created.state,
+    fabricatedEquipmentLots: nextLots,
+  })
+  return {
+    ok: true,
+    state: nextState,
+    instance: created.instance,
+  }
 }
 
 function withSlotItem(agent: Agent, slot: EquipmentSlotKind, itemId?: string): Agent {

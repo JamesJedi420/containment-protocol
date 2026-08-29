@@ -35,7 +35,7 @@ and unsafe identities are no-ops without inventory credit or duplicate events.
 | --------------------------------------- | --------------------- | ------------------------------------------------------------ |
 | Damaged-instance re-aggregation         | SPE-877 / child       | Repair and condition conversion remain separately owned      |
 | Combat Stim or generic payload return   | SPE-2827 child        | Resource payload disposition requires specialized policy     |
-| Fabricated-lot instance materialization | SPE-1055 / child      | Grade provenance cannot be discarded by generic tracking     |
+| Fabricated-lot instance materialization | SPE-2846              | Grade provenance cannot be discarded by generic tracking     |
 | Automatic instance selection            | SPE-2749 / child      | Auto-Scrap remains aggregate-only                            |
 | Damage production and repair economics  | SPE-877               | Broader condition lifecycle is outside this identity command |
 | Custody and readiness restrictions      | SPE-1055 / SPE-1658   | Protected/live access states remain deferred                 |

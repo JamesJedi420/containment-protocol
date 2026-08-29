@@ -5565,7 +5565,7 @@ function sanitizeFabricatedEquipmentLots(
       typeof lot.recipeId !== 'string' ||
       typeof lot.itemId !== 'string' ||
       !Number.isInteger(lot.quantity) ||
-      (lot.quantity as number) < 1 ||
+      (lot.quantity as number) < 0 ||
       !isEquipmentGradeId(lot.gradeId) ||
       !Number.isInteger(lot.completedWeek) ||
       (lot.completedWeek as number) < 1 ||
@@ -10322,7 +10322,8 @@ export function hydrateGame(
   const equipmentInstanceHydration = sanitizeEquipmentInstanceRegistry(
     game.equipmentInstances,
     agents,
-    claimedEquipmentInstanceIds
+    claimedEquipmentInstanceIds,
+    fabricatedEquipmentLots
   )
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances

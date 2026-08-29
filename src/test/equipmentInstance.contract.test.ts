@@ -21,14 +21,17 @@ import {
 import {
   advanceEquipmentDeconstructionQueues,
   queueEquipmentDeconstruction,
+  resolveEquipmentDeconstructionPreview,
   resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { hydrateGame } from '../app/store/runTransfer'
 import {
   appendOperationEventDrafts,
   createEquipmentInstanceDestroyedDraft,
+  createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
 } from '../domain/events'
+import { validateOperationEventPayload } from '../domain/events/eventValidation'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -63,7 +66,7 @@ describe('ordinary equipment instance authority', () => {
     })
   })
 
-  it('fails closed when only fabricated-lot stock remains unclaimed', () => {
+  it('fails closed when catalog materialization is requested but only fabricated-lot stock remains unclaimed', () => {
     const state = createStartingState()
     state.inventory.signal_jammers = 1
     state.fabricatedEquipmentLots = {
@@ -100,6 +103,186 @@ describe('ordinary equipment instance authority', () => {
         quantity: 1,
       },
     ])
+  })
+
+  it('materializes one fabricated-lot identity with retained grade provenance', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    expect(materialized).toMatchObject({
+      ok: true,
+      instance: {
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        fabricationOrigin: {
+          queueId: 'batch',
+          recipeId: 'signal-jammers',
+          gradeId: 'grade_2',
+          completedWeek: 1,
+        },
+      },
+      state: {
+        inventory: { signal_jammers: 0 },
+        fabricatedEquipmentLots: { batch: { quantity: 0 } },
+      },
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+
+    expect(
+      validateOperationEventPayload(
+        'equipment.instance_materialized',
+        createEquipmentInstanceMaterializedDraft({
+          week: 1,
+          instanceId: materialized.instance.instanceId,
+          definitionId: 'signal_jammers',
+          definitionName: 'Signal Jammers',
+          condition: 'operational',
+          locationState: 'stored',
+          fabricationQueueId: 'batch',
+          fabricationRecipeId: 'signal-jammers',
+          fabricationGradeId: 'grade_2',
+          fabricationCompletedWeek: 1,
+        }).payload
+      ).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload(
+        'equipment.instance_materialized',
+        createEquipmentInstanceMaterializedDraft({
+          week: 1,
+          instanceId: materialized.instance.instanceId,
+          definitionId: 'signal_jammers',
+          definitionName: 'Signal Jammers',
+          condition: 'operational',
+          locationState: 'stored',
+          fabricationQueueId: 'batch',
+        }).payload
+      ).success
+    ).toBe(false)
+
+    expect(
+      materializeStoredOrdinaryEquipmentInstance(materialized.state, 'signal_jammers', {
+        kind: 'fabricated_lot',
+        fabricationQueueId: 'batch',
+      })
+    ).toMatchObject({ ok: false, code: 'inventory_unavailable' })
+
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(
+        materialized.state,
+        materialized.instance.instanceId
+      )
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+
+    const relocated = relocateEquipmentInstance(materialized.state, materialized.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(relocated).toMatchObject({
+      ok: true,
+      instance: {
+        fabricationOrigin: {
+          queueId: 'batch',
+          gradeId: 'grade_2',
+        },
+      },
+    })
+
+    const preview = resolveEquipmentDeconstructionPreview(materialized.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: materialized.instance.instanceId,
+    })
+    expect(preview?.resolution.participation).toMatchObject({
+      state: 'graded',
+      gradeId: 'grade_2',
+    })
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    expect(destroyed).toMatchObject({ ok: true })
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    expect(destroyed.state.inventory.signal_jammers).toBe(0)
+    expect(destroyed.state.fabricatedEquipmentLots?.batch.quantity).toBe(0)
+  })
+
+  it('hydrates fabricated-origin instances and rejects mismatched provenance siblings', () => {
+    const state = createStartingState()
+    state.week = 2
+    state.inventory.signal_jammers = 0
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 0,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    state.equipmentInstances = {
+      'equipment-instance-1-1': {
+        instanceId: 'equipment-instance-1-1',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        fabricationOrigin: {
+          queueId: 'batch',
+          recipeId: 'signal-jammers',
+          gradeId: 'grade_2',
+          completedWeek: 1,
+        },
+      },
+      'equipment-instance-1-2': {
+        instanceId: 'equipment-instance-1-2',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        fabricationOrigin: {
+          queueId: 'batch',
+          recipeId: 'signal-jammers',
+          gradeId: 'grade_3',
+          completedWeek: 1,
+        },
+      },
+      'equipment-instance-1-3': {
+        instanceId: 'equipment-instance-1-3',
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+        fabricationOrigin: {
+          queueId: 'missing',
+          recipeId: 'signal-jammers',
+          gradeId: 'grade_2',
+          completedWeek: 1,
+        },
+      },
+    }
+
+    const hydrated = hydrateGame(state)
+    expect(hydrated.equipmentInstances?.['equipment-instance-1-1']).toMatchObject({
+      fabricationOrigin: { queueId: 'batch', gradeId: 'grade_2' },
+    })
+    expect(hydrated.equipmentInstances?.['equipment-instance-1-2']).toBeUndefined()
+    expect(hydrated.equipmentInstances?.['equipment-instance-1-3']).toBeUndefined()
+    expect(hydrated.fabricatedEquipmentLots?.batch.quantity).toBe(0)
   })
 
   it('lists stored instances in stable code-unit order as immutable snapshots', () => {

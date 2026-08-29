@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                                             |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                                                                   |
+| **Status** | **Recently shipped**                                                                                              |
 | **Linear** | [SPE-2846](https://linear.app/spectranoir/issue/SPE-2846/fabricated-lot-ordinary-equipment-instance-materialization-provenance) |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                           |
 | **Branch** | `jamesdyedbq/spe-2846-fabricated-lot-equipment-instance-provenance`                                                              |

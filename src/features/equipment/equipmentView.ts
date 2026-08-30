@@ -22,7 +22,10 @@ import {
   getEquipmentDeconstructionSourceIssueLabel,
   type EquipmentDeconstructionSourceRef,
 } from '../../domain/sim/equipmentDeconstruction'
-import { canEquipStoredEquipmentInstance } from '../../domain/sim/equipment'
+import {
+  canEquipStoredEquipmentInstance,
+  getCatalogEquipmentStock,
+} from '../../domain/sim/equipment'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
 import { resolveFabricationOriginForDefinition } from '../../domain/equipmentInstance'
 import {
@@ -527,7 +530,7 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                   itemId: definition.id,
                   itemName: definition.name,
                   tags: [...definition.tags],
-                  stock: Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0)),
+                  stock: getCatalogEquipmentStock(game, definition.id),
                 }))
                 .filter((option) => option.stock > 0)
                 .sort(

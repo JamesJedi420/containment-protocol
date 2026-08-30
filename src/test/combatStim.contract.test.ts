@@ -130,6 +130,51 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
     expect(unavailable.equipmentInstances).toEqual({})
   })
 
+  it('blocks direct loadout assignment from consuming fabricated Combat Stim stock anonymously', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    state.agents.a_ava.equipmentSlots = {}
+    state.agents.a_ava.equipmentEffectScales = {}
+    state.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    const anonymousEquip = equipAgentItem(state, 'a_ava', 'utility1', 'combat_stims')
+    expect(anonymousEquip.inventory.combat_stims).toBe(1)
+    expect(anonymousEquip.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      anonymousEquip.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits
+    ).toBeUndefined()
+    expect(getEquipmentInstanceAtAgentSlot(anonymousEquip, 'a_ava', 'utility1')).toBeUndefined()
+
+    const materialized = materializeStoredCombatStimInstance(state, {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'combat-stim-batch',
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+    const equipped = equipStoredCombatStimInstance(
+      materialized.state,
+      materialized.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+
+    expect(equipped.inventory.combat_stims).toBe(0)
+    expect(equipped.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits).toBe(1)
+    expect(getEquipmentInstanceAtAgentSlot(equipped, 'a_ava', 'utility1')).toMatchObject({
+      instanceId: materialized.instance.instanceId,
+      payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      fabricationOrigin: { queueId: 'combat-stim-batch', gradeId: 'grade_1' },
+    })
+  })
+
   it('governs Combat Stim initialization and rejects generic dose mutation or refill', () => {
     const state = createStartingState()
     state.inventory.combat_stims = 2

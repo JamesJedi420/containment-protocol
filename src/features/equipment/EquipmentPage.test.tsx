@@ -317,6 +317,86 @@ describe('EquipmentPage', () => {
     ).toHaveLength(1)
   })
 
+  it('confirms condition repair of a damaged stored copy then allows re-aggregation', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', { condition: 'damaged' })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(screen.getByText('Damaged')).toBeVisible()
+    expect(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    ).toBeDisabled()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review condition repair Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm condition repair Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        /aggregate stock, fabricated-lot tracking, and recovery claims stay unchanged/i
+      )
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Repair condition Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const repaired = useGameStore.getState().game
+    expect(repaired.inventory.signal_jammers).toBe(1)
+    expect(repaired.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+    expect(
+      repaired.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          definitionId: 'signal_jammers',
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
+    act(() =>
+      useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+    )
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toHaveLength(1)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: `Re-aggregate Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(useGameStore.getState().game.inventory.signal_jammers).toBe(2)
+    expect(useGameStore.getState().game.equipmentInstances).not.toHaveProperty(
+      created.instance.instanceId
+    )
+  })
+
   it('confirms re-aggregation of one exact operational copy and credits stock once', async () => {
     const user = userEvent.setup()
     const game = createStartingState()
@@ -714,6 +794,89 @@ describe('EquipmentPage', () => {
         }),
       }),
     ])
+  })
+
+  it('confirms Combat Stim condition repair without changing remaining doses or aggregate stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 0
+    game.equipmentInstances = {
+      'equipment-instance-damaged-full': {
+        instanceId: 'equipment-instance-damaged-full',
+        definitionId: 'combat_stims',
+        condition: 'damaged',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+      'equipment-instance-partial-dose': {
+        instanceId: 'equipment-instance-partial-dose',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Review re-aggregation Combat Stim instance equipment-instance-damaged-full',
+      })
+    ).toBeDisabled()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Review condition repair Combat Stim instance equipment-instance-damaged-full',
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: 'Confirm Combat Stim condition repair equipment-instance-damaged-full',
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/remaining doses and aggregate stock stay unchanged/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Repair condition Combat Stim instance equipment-instance-damaged-full',
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(0)
+    expect(next.equipmentInstances?.['equipment-instance-damaged-full']).toMatchObject({
+      condition: 'operational',
+      payload: { remaining: 2, capacity: 2 },
+    })
+    expect(next.equipmentInstances?.['equipment-instance-partial-dose']?.payload?.remaining).toBe(1)
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: 'equipment-instance-damaged-full',
+          definitionId: 'combat_stims',
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Review re-aggregation Combat Stim instance equipment-instance-damaged-full',
+      })
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Re-aggregate Combat Stim instance equipment-instance-damaged-full',
+      })
+    )
+    expect(useGameStore.getState().game.inventory.combat_stims).toBe(1)
+    expect(useGameStore.getState().game.equipmentInstances).toEqual({
+      'equipment-instance-partial-dose': game.equipmentInstances['equipment-instance-partial-dose'],
+    })
   })
 
   it('confirms return of a full Combat Stim to aggregate stock without disposing partial doses', async () => {

@@ -9,6 +9,7 @@ import {
   listStoredEquipmentInstances,
   reaggregateStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
+  repairStoredEquipmentInstanceCondition,
   sanitizeEquipmentInstanceRegistry,
   type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
@@ -31,6 +32,7 @@ import {
   createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
+  createEquipmentInstanceConditionRepairedDraft,
 } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
 
@@ -1569,5 +1571,196 @@ describe('ordinary equipment instance authority', () => {
       slot: 'utility1',
     })
     expect(result.agents[agentId].equipmentSlots?.utility1).toBe('signal_jammers')
+  })
+
+  it('repairs a stored damaged ordinary identity without mutating inventory or lots', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+    state.damagedEquipmentQueue = ['medkits']
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', { condition: 'damaged' })
+    expect(created).toMatchObject({ ok: true })
+    if (!created.ok) throw new Error(created.code)
+
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_reaggregation_unsupported' })
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_reaggregation_unsupported' })
+
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: created.instance.instanceId,
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+        location: { state: 'stored' },
+      },
+    })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.state.inventory.signal_jammers).toBe(1)
+    expect(repaired.state.damagedEquipmentQueue).toEqual(['medkits'])
+    expect(repaired.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      repaired.state,
+      created.instance.instanceId
+    )
+    expect(reaggregated).toMatchObject({ ok: true })
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    expect(reaggregated.state.inventory.signal_jammers).toBe(2)
+    expect(reaggregated.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+  })
+
+  it('fails closed for missing, equipped, already-operational, and recovery-claimed repair', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 3
+    const operational = instantiateEquipmentInstance(state, 'signal_jammers')
+    if (!operational.ok) throw new Error(operational.code)
+    const damaged = instantiateEquipmentInstance(operational.state, 'signal_jammers', {
+      condition: 'damaged',
+    })
+    if (!damaged.ok) throw new Error(damaged.code)
+    const equipped = relocateEquipmentInstance(damaged.state, damaged.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+
+    expect(repairStoredEquipmentInstanceCondition(equipped.state, 'constructor')).toMatchObject({
+      ok: false,
+      code: 'invalid_instance_id',
+    })
+    expect(repairStoredEquipmentInstanceCondition(equipped.state, 'missing')).toMatchObject({
+      ok: false,
+      code: 'stale_transition',
+    })
+    expect(
+      repairStoredEquipmentInstanceCondition(equipped.state, operational.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_already_operational' })
+    expect(
+      repairStoredEquipmentInstanceCondition(equipped.state, damaged.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'instance_not_stored' })
+
+    const queued = queueEquipmentDeconstruction(damaged.state, 'signal_jammers', {
+      kind: 'equipment_instance',
+      instanceId: damaged.instance.instanceId,
+    })
+    const conflicting = {
+      ...queued,
+      equipmentInstances: {
+        ...(queued.equipmentInstances ?? {}),
+        [damaged.instance.instanceId]: damaged.instance,
+      },
+    }
+    expect(
+      repairStoredEquipmentInstanceCondition(conflicting, damaged.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+    expect(conflicting.inventory.signal_jammers).toBe(1)
+  })
+
+  it('repairs a fabricated damaged identity then returns it to the source lot', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+    const damaged = {
+      ...materialized.state,
+      equipmentInstances: {
+        ...(materialized.state.equipmentInstances ?? {}),
+        [materialized.instance.instanceId]: {
+          ...materialized.instance,
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(damaged, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_reaggregation_unsupported' })
+
+    const repaired = repairStoredEquipmentInstanceCondition(
+      damaged,
+      materialized.instance.instanceId
+    )
+    expect(repaired).toMatchObject({ ok: true, instance: { condition: 'operational' } })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.state.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 1,
+    })
+
+    const returned = returnFabricatedOrdinaryEquipmentInstanceToLot(
+      repaired.state,
+      materialized.instance.instanceId
+    )
+    expect(returned).toMatchObject({ ok: true })
+    if (!returned.ok) throw new Error(returned.code)
+    expect(returned.state.inventory.signal_jammers).toBe(1)
+    expect(returned.state.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 0,
+    })
+  })
+
+  it('round-trips a strict condition-repair event without mutating inventory', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', { condition: 'damaged' })
+    if (!created.ok) throw new Error(created.code)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId
+    )
+    if (!repaired.ok) throw new Error(repaired.code)
+    const withEvent = appendOperationEventDrafts(repaired.state, [
+      createEquipmentInstanceConditionRepairedDraft({
+        week: repaired.state.week,
+        instanceId: repaired.instance.instanceId,
+        definitionId: repaired.instance.definitionId,
+        definitionName: 'Signal Jammers',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    const validEvent = serialized.events.at(-1)
+    serialized.events.push({
+      ...validEvent,
+      id: 'evt-malformed-repair',
+      payload: { ...validEvent.payload, previousCondition: 'operational' },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.inventory.signal_jammers).toBe(0)
+    expect(hydrated.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toHaveLength(1)
+
+    const second = repairStoredEquipmentInstanceCondition(hydrated, created.instance.instanceId)
+    expect(second).toMatchObject({ ok: false, code: 'condition_already_operational' })
   })
 })

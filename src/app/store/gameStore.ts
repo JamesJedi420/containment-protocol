@@ -9,6 +9,7 @@ import {
   createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
+  createEquipmentInstanceConditionRepairedDraft,
   createCombatStimDisposedDraft,
   createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
@@ -91,6 +92,7 @@ import {
   destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   reaggregateStoredOrdinaryEquipmentInstance,
+  repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
 } from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -421,6 +423,7 @@ interface GameStore {
     source?: EquipmentDeconstructionSourceRef
   ) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
+  repairStoredEquipmentInstanceCondition: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
@@ -1860,6 +1863,26 @@ export const useGameStore = create<GameStore>()(
                 definitionName: definition?.name ?? result.instance.definitionId,
                 condition: result.instance.condition,
                 reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      repairStoredEquipmentInstanceCondition: (instanceId) =>
+        set((s) => {
+          const result = repairStoredEquipmentInstanceConditionState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceConditionRepairedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                previousCondition: 'damaged',
+                condition: 'operational',
+                reason: 'manual_condition_repair',
               }),
             ]),
           }

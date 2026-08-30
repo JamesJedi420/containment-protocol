@@ -95,6 +95,8 @@ export interface EquipmentInstanceMaterializationView {
     provenanceLabel?: string
     canDestroy: boolean
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
+    canRepairCondition: boolean
+    repairConditionBlocker?: 'recovery_claimed'
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
@@ -584,6 +586,10 @@ export function getEquipmentInstanceMaterializationViews(
                 : recoveryClaimed
                   ? ('recovery_claimed' as const)
                   : undefined
+              const repairConditionBlocker =
+                instance.condition === 'damaged' && recoveryClaimed
+                  ? ('recovery_claimed' as const)
+                  : undefined
               const reaggregationBlocker =
                 instance.condition !== 'operational'
                   ? ('condition_unsupported' as const)
@@ -629,10 +635,13 @@ export function getEquipmentInstanceMaterializationViews(
                     }
                   : {}),
                 canDestroy: destructionBlocker === undefined,
+                canRepairCondition:
+                  instance.condition === 'damaged' && repairConditionBlocker === undefined,
                 canReaggregate: reaggregationBlocker === undefined,
                 canReturnToLot:
                   Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
                 ...(destructionBlocker ? { destructionBlocker } : {}),
+                ...(repairConditionBlocker ? { repairConditionBlocker } : {}),
                 ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
                 ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
               }

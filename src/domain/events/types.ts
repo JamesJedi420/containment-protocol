@@ -509,6 +509,15 @@ export interface OperationEventPayloadMap {
     fabricationGradeId?: EquipmentGradeId
     fabricationCompletedWeek?: number
   }
+  'equipment.instance_condition_repaired': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    previousCondition: 'damaged'
+    condition: 'operational'
+    reason: 'manual_condition_repair'
+  }
   'equipment.combat_stim_activated': {
     week: number
     activationId: Id
@@ -890,6 +899,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.instance_materialized': 'agent'
   'equipment.instance_destroyed': 'agent'
   'equipment.instance_reaggregated': 'agent'
+  'equipment.instance_condition_repaired': 'agent'
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
   'equipment.combat_stim_disposed': 'agent'
@@ -960,6 +970,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.instance_materialized': 'agent',
   'equipment.instance_destroyed': 'agent',
   'equipment.instance_reaggregated': 'agent',
+  'equipment.instance_condition_repaired': 'agent',
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',
   'equipment.combat_stim_disposed': 'agent',

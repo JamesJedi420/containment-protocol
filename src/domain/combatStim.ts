@@ -13,6 +13,7 @@ import {
   isEquipmentInstanceClaimedForRecovery,
   isSafeEquipmentInstanceId,
   listStoredEquipmentInstances,
+  resolveStoredEquipmentInstanceConditionRepair,
   type EquipmentInstance,
   type EquipmentInstanceId,
   type EquipmentInstanceLocation,
@@ -376,6 +377,12 @@ export function getCombatStimStoredInstanceDisposalViews(
   )
 }
 
+export function getCombatStimStoredInstanceConditionRepairViews(state: GameState) {
+  return listStoredCombatStimInstances(state).map((instance) =>
+    resolveStoredEquipmentInstanceConditionRepair(state, instance.instanceId)
+  )
+}
+
 export function destroyStoredCombatStimInstance(
   state: GameState,
   instanceId: EquipmentInstanceId
@@ -647,10 +654,7 @@ export function resolveCombatStimReturnToLot(
   }
   const origin = originResolved.origin
   const lot = state.fabricatedEquipmentLots?.[origin.queueId]
-  if (
-    !lot ||
-    !isCanonicalFabricatedLotForDefinition(state, instance.definitionId, lot)
-  ) {
+  if (!lot || !isCanonicalFabricatedLotForDefinition(state, instance.definitionId, lot)) {
     return {
       ...base,
       canReturnToLot: false,
@@ -767,8 +771,7 @@ export function getCombatStimReturnToLotReasonLabel(code: CombatStimReturnToLotR
     wrong_definition: 'This instance is not Combat Stims.',
     malformed_payload: 'Dose state is unavailable.',
     not_stored: 'Only stored Combat Stim instances can return to a fabricated lot.',
-    condition_unsupported:
-      'Damaged Combat Stim copies cannot return to fabricated-lot tracking.',
+    condition_unsupported: 'Damaged Combat Stim copies cannot return to fabricated-lot tracking.',
     partial_dose:
       'Only full 2/2 Combat Stim copies can return to a fabricated lot. Dispose or recover partial doses separately.',
     depleted_dose:

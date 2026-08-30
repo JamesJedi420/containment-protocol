@@ -647,6 +647,29 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.instance_condition_repaired — names the exact identity and repair', () => {
+    const event = makeEvent(
+      'equipment.instance_condition_repaired',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance repaired')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Damaged → operational')
+    expect(view.detail).toContain('Manual condition repair')
+    expect(view.tone).toBe('success')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

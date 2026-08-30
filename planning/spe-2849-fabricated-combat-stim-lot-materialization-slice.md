@@ -40,7 +40,7 @@ non-Combat payload invent, Auto-Scrap instance selection, and repair remain out 
 
 | Item or mechanic                         | Owner or prerequisite | Reason                                  |
 | ---------------------------------------- | --------------------- | --------------------------------------- |
-| Fabricated Combat Stim return-to-lot     | SPE-2827 child        | Inverse of this materialize path        |
+| Fabricated Combat Stim return-to-lot     | [SPE-2850](https://linear.app/spectranoir/issue/SPE-2850) (in progress) | Inverse of this materialize path |
 | Damaged-instance return                  | SPE-877 / child       | Condition conversion separately owned   |
 | Partial-dose re-aggregation              | SPE-2827 child        | Specialized stock / disposal / recovery |
 | Automated lot or instance selection      | SPE-2749 child        | Auto-Scrap remains aggregate-only       |

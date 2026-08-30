@@ -150,6 +150,7 @@ import {
   destroyStoredCombatStimInstance,
   equipStoredCombatStimInstance,
   reaggregateStoredCombatStimInstance as reaggregateStoredCombatStimInstanceState,
+  returnFabricatedCombatStimInstanceToLot as returnFabricatedCombatStimInstanceToLotState,
 } from '../../domain/combatStim'
 import {
   createTeam,
@@ -424,6 +425,7 @@ interface GameStore {
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
   returnFabricatedStoredEquipmentInstanceToLot: (instanceId: string) => void
+  returnFabricatedStoredCombatStimInstanceToLot: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
@@ -1906,6 +1908,34 @@ export const useGameStore = create<GameStore>()(
                 capacity: 2,
                 remaining: 2,
                 reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredCombatStimInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedCombatStimInstanceToLotState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
               }),
             ]),
           }

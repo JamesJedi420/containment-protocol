@@ -551,7 +551,11 @@ export interface OperationEventPayloadMap {
     resourceId: 'combat_stim_dose'
     capacity: 2
     remaining: 2
-    reason: 'manual_untracking'
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    fabricationQueueId?: Id
+    fabricationRecipeId?: Id
+    fabricationGradeId?: 'grade_1' | 'grade_2' | 'grade_3' | 'grade_4' | 'grade_5'
+    fabricationCompletedWeek?: number
   }
   'market.shifted': {
     week: number

@@ -2,6 +2,7 @@
   "primary": null,
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2852",
     "SPE-2851",
     "SPE-2850",
     "SPE-2849",
@@ -12,10 +13,10 @@
     "SPE-2843",
     "SPE-2842",
     "SPE-2841",
-    "SPE-2840",
-    "SPE-2830"
+    "SPE-2840"
   ],
   "sliceDocStatus": {
+    "planning/spe-2852-partial-depleted-combat-stim-lot-return-policy-slice.md": "Closed / docs-satisfied",
     "planning/spe-2851-stored-equipment-instance-condition-repair-slice.md": "Recently shipped",
     "planning/spe-2850-fabricated-combat-stim-return-to-lot-slice.md": "Recently shipped",
     "planning/spe-2849-fabricated-combat-stim-lot-materialization-slice.md": "Recently shipped",

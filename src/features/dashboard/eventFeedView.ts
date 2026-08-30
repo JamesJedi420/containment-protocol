@@ -221,6 +221,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_materialized': 'Equipment Instance Materialized',
   'equipment.instance_destroyed': 'Equipment Instance Destroyed',
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
+  'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'equipment.combat_stim_disposed': 'Combat Stim Disposed',
@@ -292,6 +293,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_materialized': 'operations_logistics',
   'equipment.instance_destroyed': 'operations_logistics',
   'equipment.instance_reaggregated': 'operations_logistics',
+  'equipment.instance_condition_repaired': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'equipment.combat_stim_disposed': 'operations_logistics',
@@ -959,6 +961,20 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           }`.toLowerCase(),
       }
     }
+
+    case 'equipment.instance_condition_repaired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance repaired`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Damaged → operational / Manual condition repair`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} damaged operational manual condition repair`.toLowerCase(),
+      }
 
     case 'equipment.combat_stim_activated':
       return {

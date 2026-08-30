@@ -42,7 +42,7 @@ automated selection, and recovery balancing remain out of slice. Auto-Scrap stay
 
 | Item or mechanic                         | Owner or prerequisite | Reason                                        |
 | ---------------------------------------- | --------------------- | --------------------------------------------- |
-| Damaged-instance return                  | SPE-877 / child       | Condition conversion remains separately owned |
+| Damaged-instance return                  | SPE-2851              | Condition conversion via stored repair, not damaged-aggregate credit |
 | Combat Stim / payload fabricated return  | SPE-2827 child        | Specialized payload policy                    |
 | Cross-lot grade migration                | SPE-2827 child        | Return targets exact source lot only          |
 | Automated lot or instance selection      | SPE-2749 child        | Auto-Scrap remains aggregate-only             |

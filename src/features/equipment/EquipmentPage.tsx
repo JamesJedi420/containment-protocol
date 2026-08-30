@@ -6,10 +6,12 @@ import {
   getCombatStimDisposalReasonLabel,
   getCombatStimReaggregationReasonLabel,
   getCombatStimReturnToLotReasonLabel,
+  getCombatStimStoredInstanceConditionRepairViews,
   getCombatStimStoredInstanceDisposalViews,
   getCombatStimStoredInstanceReaggregationViews,
   getCombatStimStoredInstanceReturnToLotViews,
 } from '../../domain/combatStim'
+import { getStoredEquipmentInstanceConditionRepairReasonLabel } from '../../domain/equipmentInstance'
 import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
   getAgentEquipmentLoadoutViews,
@@ -25,6 +27,7 @@ function EquipmentPage() {
     game,
     materializeStoredEquipmentInstance,
     destroyStoredEquipmentInstance,
+    repairStoredEquipmentInstanceCondition,
     disposeStoredCombatStimInstance,
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
@@ -59,11 +62,14 @@ function EquipmentPage() {
     label: string
   }>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
+  const [pendingRepairInstanceId, setPendingRepairInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
     useState<string>()
   const [pendingCombatStimReturnToLotInstanceId, setPendingCombatStimReturnToLotInstanceId] =
+    useState<string>()
+  const [pendingCombatStimRepairInstanceId, setPendingCombatStimRepairInstanceId] =
     useState<string>()
   const [pendingReaggregationInstanceId, setPendingReaggregationInstanceId] = useState<string>()
   const [pendingReturnToLotInstanceId, setPendingReturnToLotInstanceId] = useState<string>()
@@ -92,6 +98,12 @@ function EquipmentPage() {
   const combatStimReturnToLotById = useMemo(() => {
     const map = new Map(
       getCombatStimStoredInstanceReturnToLotViews(game).map((view) => [view.instanceId, view])
+    )
+    return map
+  }, [game])
+  const combatStimRepairById = useMemo(() => {
+    const map = new Map(
+      getCombatStimStoredInstanceConditionRepairViews(game).map((view) => [view.instanceId, view])
     )
     return map
   }, [game])
@@ -428,6 +440,7 @@ function EquipmentPage() {
                             onClick={() => {
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
                               setPendingDestructionInstanceId(instance.instanceId)
                             }}
                           >
@@ -439,6 +452,58 @@ function EquipmentPage() {
                             {instance.destructionBlocker === 'payload_unsupported'
                               ? 'Payload-bearing copies require a specialized destruction flow.'
                               : 'This copy is already claimed by equipment recovery.'}
+                          </p>
+                        ) : null}
+                        {pendingRepairInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm condition repair ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Restore this exact stored copy to operational condition? Aggregate
+                              stock, fabricated-lot tracking, and recovery claims stay unchanged.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Repair condition ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  repairStoredEquipmentInstanceCondition(instance.instanceId)
+                                  setPendingRepairInstanceId(undefined)
+                                }}
+                              >
+                                Confirm repair
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingRepairInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.conditionLabel === 'Damaged' ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            disabled={!instance.canRepairCondition}
+                            aria-label={`Review condition repair ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
+                              setPendingRepairInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Repair condition
+                          </button>
+                        ) : null}
+                        {instance.repairConditionBlocker ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            This copy is already claimed by equipment recovery.
                           </p>
                         ) : null}
                         {pendingReaggregationInstanceId === instance.instanceId ? (
@@ -481,6 +546,7 @@ function EquipmentPage() {
                             onClick={() => {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
                               setPendingReaggregationInstanceId(instance.instanceId)
                             }}
                           >
@@ -542,6 +608,7 @@ function EquipmentPage() {
                             onClick={() => {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
                               setPendingReturnToLotInstanceId(instance.instanceId)
                             }}
                           >
@@ -577,10 +644,11 @@ function EquipmentPage() {
             Combat Stim stored copies
           </h3>
           <p className="text-sm opacity-60">
-            Permanently dispose stored Combat Stim instances with live or depleted doses, return
-            a full 2/2 copy to aggregate stock, or return a fabricated-origin full copy to its source
-            lot. Disposal does not restore aggregate stock. Return paths are separate from disposal
-            and from ordinary equipment re-aggregation.
+            Permanently dispose stored Combat Stim instances with live or depleted doses, repair a
+            damaged copy to operational without changing remaining doses, return a full 2/2 copy to
+            aggregate stock, or return a fabricated-origin full copy to its source lot. Disposal
+            does not restore aggregate stock. Return paths are separate from disposal, condition
+            repair, and ordinary equipment re-aggregation.
           </p>
         </div>
 
@@ -591,6 +659,7 @@ function EquipmentPage() {
             {combatStimDisposalViews.map((instance) => {
               const reaggregation = combatStimReaggregationById.get(instance.instanceId)
               const returnToLot = combatStimReturnToLotById.get(instance.instanceId)
+              const repair = combatStimRepairById.get(instance.instanceId)
               return (
                 <li key={instance.instanceId} className="rounded border border-white/10 px-3 py-3">
                   <p className="text-sm font-medium">{instance.instanceId}</p>
@@ -642,8 +711,10 @@ function EquipmentPage() {
                         setPendingCombatStimDisposalInstanceId(instance.instanceId)
                         setPendingCombatStimReaggregationInstanceId(undefined)
                         setPendingCombatStimReturnToLotInstanceId(undefined)
+                        setPendingCombatStimRepairInstanceId(undefined)
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
+                        setPendingRepairInstanceId(undefined)
                       }}
                     >
                       Dispose instance
@@ -652,6 +723,62 @@ function EquipmentPage() {
                   {!instance.canDispose && instance.reasonCode ? (
                     <p className="mt-1 text-xs text-amber-200/80">
                       {getCombatStimDisposalReasonLabel(instance.reasonCode)}
+                    </p>
+                  ) : null}
+                  {pendingCombatStimRepairInstanceId === instance.instanceId ? (
+                    <div
+                      className="mt-2 space-y-2"
+                      role="group"
+                      aria-label={`Confirm Combat Stim condition repair ${instance.instanceId}`}
+                    >
+                      <p className="text-xs text-amber-100">
+                        Restore this stored Combat Stim to operational condition
+                        {instance.doseLabel ? ` (${instance.doseLabel})` : ''}? Remaining doses and
+                        aggregate stock stay unchanged.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-xs"
+                          aria-label={`Repair condition Combat Stim instance ${instance.instanceId}`}
+                          onClick={() => {
+                            repairStoredEquipmentInstanceCondition(instance.instanceId)
+                            setPendingCombatStimRepairInstanceId(undefined)
+                          }}
+                        >
+                          Confirm repair
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => setPendingCombatStimRepairInstanceId(undefined)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : instance.conditionLabel === 'Damaged' ? (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost mt-2"
+                      disabled={!repair?.canRepairCondition}
+                      aria-label={`Review condition repair Combat Stim instance ${instance.instanceId}`}
+                      onClick={() => {
+                        setPendingCombatStimRepairInstanceId(instance.instanceId)
+                        setPendingCombatStimDisposalInstanceId(undefined)
+                        setPendingCombatStimReaggregationInstanceId(undefined)
+                        setPendingCombatStimReturnToLotInstanceId(undefined)
+                      }}
+                    >
+                      Repair condition
+                    </button>
+                  ) : null}
+                  {repair &&
+                  !repair.canRepairCondition &&
+                  repair.reasonCode &&
+                  instance.conditionLabel === 'Damaged' ? (
+                    <p className="mt-1 text-xs text-amber-200/80">
+                      {getStoredEquipmentInstanceConditionRepairReasonLabel(repair.reasonCode)}
                     </p>
                   ) : null}
                   {pendingCombatStimReaggregationInstanceId === instance.instanceId ? (
@@ -697,6 +824,7 @@ function EquipmentPage() {
                         setPendingCombatStimReaggregationInstanceId(instance.instanceId)
                         setPendingCombatStimDisposalInstanceId(undefined)
                         setPendingCombatStimReturnToLotInstanceId(undefined)
+                        setPendingCombatStimRepairInstanceId(undefined)
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                       }}
@@ -722,7 +850,8 @@ function EquipmentPage() {
                           ? ` from ${returnToLot.provenanceLabel}`
                           : ''}{' '}
                         and return one unit to aggregate stock while decrementing the source lot
-                        tracked count? The individual identity will be removed. This is not disposal.
+                        tracked count? The individual identity will be removed. This is not
+                        disposal.
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -755,6 +884,7 @@ function EquipmentPage() {
                         setPendingCombatStimReturnToLotInstanceId(instance.instanceId)
                         setPendingCombatStimDisposalInstanceId(undefined)
                         setPendingCombatStimReaggregationInstanceId(undefined)
+                        setPendingCombatStimRepairInstanceId(undefined)
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                       }}

@@ -68,6 +68,7 @@ export type EquipmentInstanceFailureCode =
   | 'payload_destruction_unsupported'
   | 'payload_reaggregation_unsupported'
   | 'condition_reaggregation_unsupported'
+  | 'condition_already_operational'
   | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
   | 'unauthorized_payload_transition'
@@ -573,6 +574,93 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
     equipmentInstances,
   })
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
+}
+
+export type EquipmentInstanceConditionRepairReasonCode =
+  | 'invalid_instance_id'
+  | 'stale_transition'
+  | 'instance_not_stored'
+  | 'condition_already_operational'
+  | 'recovery_claimed'
+
+export interface EquipmentInstanceConditionRepairPreview {
+  instanceId: EquipmentInstanceId
+  canRepairCondition: boolean
+  reasonCode?: EquipmentInstanceConditionRepairReasonCode
+  conditionLabel: string
+}
+
+function conditionLabelForInstance(condition: EquipmentInstanceCondition) {
+  return condition === 'damaged' ? 'Damaged' : 'Operational'
+}
+
+export function resolveStoredEquipmentInstanceConditionRepair(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceConditionRepairPreview {
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return {
+      instanceId,
+      canRepairCondition: false,
+      reasonCode: 'invalid_instance_id',
+      conditionLabel: '—',
+    }
+  }
+  const instance = ensureNormalizedGameState(state).equipmentInstances?.[instanceId]
+  if (!instance) {
+    return {
+      instanceId,
+      canRepairCondition: false,
+      reasonCode: 'stale_transition',
+      conditionLabel: '—',
+    }
+  }
+  const base = {
+    instanceId,
+    conditionLabel: conditionLabelForInstance(instance.condition),
+  }
+  if (instance.location.state !== 'stored') {
+    return { ...base, canRepairCondition: false, reasonCode: 'instance_not_stored' }
+  }
+  if (isEquipmentInstanceClaimedForRecovery(ensureNormalizedGameState(state), instanceId)) {
+    return { ...base, canRepairCondition: false, reasonCode: 'recovery_claimed' }
+  }
+  if (instance.condition !== 'damaged') {
+    return { ...base, canRepairCondition: false, reasonCode: 'condition_already_operational' }
+  }
+  return { ...base, canRepairCondition: true }
+}
+
+export function getStoredEquipmentInstanceConditionRepairReasonLabel(
+  code: EquipmentInstanceConditionRepairReasonCode
+) {
+  const labels: Record<EquipmentInstanceConditionRepairReasonCode, string> = {
+    invalid_instance_id: 'Invalid equipment instance.',
+    stale_transition: 'Equipment instance unavailable.',
+    instance_not_stored: 'Only stored copies can be repaired.',
+    condition_already_operational: 'This copy is already operational.',
+    recovery_claimed: 'This copy is already claimed by equipment recovery.',
+  }
+  return labels[code]
+}
+
+export function repairStoredEquipmentInstanceCondition(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  const preview = resolveStoredEquipmentInstanceConditionRepair(normalized, instanceId)
+  if (!preview.canRepairCondition) {
+    return { ok: false, state: normalized, code: preview.reasonCode ?? 'stale_transition' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  return applyEquipmentInstanceTransition(normalized, instanceId, current, {
+    ...current,
+    condition: 'operational',
+  })
 }
 
 function validateTargetLocation(

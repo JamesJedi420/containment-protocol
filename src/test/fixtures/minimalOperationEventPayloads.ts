@@ -424,6 +424,15 @@ export const minimalOperationEventPayloads = {
     condition: 'operational',
     reason: 'manual_untracking',
   },
+  'equipment.instance_condition_repaired': {
+    week: WEEK,
+    instanceId: 'equipment-instance-1-4',
+    definitionId: 'signal_jammers',
+    definitionName: 'Signal Jammers',
+    previousCondition: 'damaged',
+    condition: 'operational',
+    reason: 'manual_condition_repair',
+  },
   'equipment.combat_stim_activated': {
     week: WEEK,
     activationId: 'combat-stim-equipment-instance-1-1-dose-1',

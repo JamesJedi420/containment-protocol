@@ -998,6 +998,28 @@ const equipmentInstanceReaggregatedSchema = z
     }
   })
 
+const equipmentInstanceConditionRepairedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    previousCondition: z.literal('damaged'),
+    condition: z.literal('operational'),
+    reason: z.literal('manual_condition_repair'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'repaired instance must reference a known equipment catalog definition',
+      })
+    }
+  })
+
 const combatStimActivatedSchema = z
   .object({
     week: weekSchema,
@@ -1724,6 +1746,7 @@ export const operationEventPayloadSchemas = {
   'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
   'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
   'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
+  'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'equipment.combat_stim_disposed': combatStimDisposedSchema,

@@ -83,6 +83,32 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates stored-instance condition repair provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.instance_condition_repaired']
+    expect(
+      validateOperationEventPayload('equipment.instance_condition_repaired', valid).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_condition_repaired', {
+        ...valid,
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, previousCondition: 'operational' },
+      { ...valid, condition: 'damaged' },
+      { ...valid, reason: 'manual_untracking' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.instance_condition_repaired', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates Combat Stim disposal provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
     expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(

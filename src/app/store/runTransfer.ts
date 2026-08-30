@@ -1044,6 +1044,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.instance_materialized': ['instanceId', 'definitionId'],
   'equipment.instance_destroyed': ['instanceId', 'definitionId'],
   'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
+  'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
   'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
   'equipment.combat_stim_reaggregated': ['instanceId', 'definitionId'],
   'market.shifted': ['featuredRecipeId'],
@@ -8550,7 +8551,10 @@ function sanitizeOperationEvents(
                     (
                       entry
                     ): entry is
-                      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
+                      | 'benching'
+                      | 'performance_penalty'
+                      | 'disciplinary'
+                      | 'resignation' =>
                       entry === 'benching' ||
                       entry === 'performance_penalty' ||
                       entry === 'disciplinary' ||
@@ -8730,7 +8734,9 @@ function sanitizeOperationEvents(
       case 'recruitment.intel_confirmed':
         {
           const stage = clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as
-            1 | 2 | 3
+            | 1
+            | 2
+            | 3
           const revealLevel = reconcileRecruitmentEventRevealLevel(
             stage,
             sanitizeRevealLevel(payload.revealLevel)
@@ -9065,6 +9071,23 @@ function sanitizeOperationEvents(
         break
       }
 
+      case 'equipment.instance_condition_repaired': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.instance_condition_repaired'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_condition_repaired'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
       case 'equipment.combat_stim_disposed': {
         const parsed = operationEventPayloadSchemas['equipment.combat_stim_disposed'].safeParse({
           ...payload,
@@ -9081,10 +9104,12 @@ function sanitizeOperationEvents(
       }
 
       case 'equipment.combat_stim_reaggregated': {
-        const parsed = operationEventPayloadSchemas['equipment.combat_stim_reaggregated'].safeParse({
-          ...payload,
-          week,
-        })
+        const parsed = operationEventPayloadSchemas['equipment.combat_stim_reaggregated'].safeParse(
+          {
+            ...payload,
+            week,
+          }
+        )
         if (!parsed.success) break
         nextEvents.push(
           migrateOperationEventToCurrentSchema({

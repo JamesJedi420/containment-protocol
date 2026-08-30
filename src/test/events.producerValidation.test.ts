@@ -27,6 +27,7 @@ import {
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceReaggregatedDraft,
+  createEquipmentInstanceConditionRepairedDraft,
   createEquipmentRecoveryCompletedDraft,
   createEquipmentRecoveryStartedDraft,
   createMarketShiftedDraft,
@@ -108,6 +109,10 @@ function createFactoryDraft<TType extends (typeof OPERATION_EVENT_FACTORY_TYPES)
     case 'equipment.instance_reaggregated':
       return createEquipmentInstanceReaggregatedDraft(
         minimalOperationEventPayloads['equipment.instance_reaggregated']
+      ) as OperationEventDraft<TType>
+    case 'equipment.instance_condition_repaired':
+      return createEquipmentInstanceConditionRepairedDraft(
+        minimalOperationEventPayloads['equipment.instance_condition_repaired']
       ) as OperationEventDraft<TType>
     case 'equipment.combat_stim_activated':
       return createCombatStimActivatedDraft(payload)

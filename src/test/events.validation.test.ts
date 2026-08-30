@@ -107,6 +107,17 @@ describe('event payload validation coverage', () => {
     expect(validateOperationEventPayload('equipment.combat_stim_reaggregated', valid).success).toBe(
       true
     )
+    const fabricatedReturn = {
+      ...valid,
+      reason: 'fabricated_lot_return' as const,
+      fabricationQueueId: 'combat-stim-batch',
+      fabricationRecipeId: 'combat-stims',
+      fabricationGradeId: 'grade_1' as const,
+      fabricationCompletedWeek: 1,
+    }
+    expect(
+      validateOperationEventPayload('equipment.combat_stim_reaggregated', fabricatedReturn).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, definitionName: 'Wrong name' },
@@ -115,6 +126,8 @@ describe('event payload validation coverage', () => {
       { ...valid, condition: 'damaged' },
       { ...valid, reason: 'manual_disposal' },
       { ...valid, extra: true },
+      { ...fabricatedReturn, fabricationQueueId: undefined },
+      { ...valid, reason: 'fabricated_lot_return' as const },
     ]) {
       expect(
         validateOperationEventPayload('equipment.combat_stim_reaggregated', payload).success

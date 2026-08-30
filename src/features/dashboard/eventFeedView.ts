@@ -1004,19 +1004,26 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual disposal`.toLowerCase(),
       }
 
-    case 'equipment.combat_stim_reaggregated':
+    case 'equipment.combat_stim_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
       return {
         event,
         week: event.payload.week,
-        title: `${event.payload.definitionName} instance returned to aggregate stock`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Manual untracking`,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: fabricatedReturn
+          ? `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Fabricated lot return / Batch ${event.payload.fabricationQueueId ?? 'unknown'}`
+          : `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Manual untracking`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'neutral',
-        searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual untracking`.toLowerCase(),
+        searchText: fabricatedReturn
+          ? `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} fabricated lot return ${event.payload.fabricationQueueId ?? ''}`.toLowerCase()
+          : `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual untracking`.toLowerCase(),
       }
+    }
 
     case 'equipment.recovery_completed':
       return {

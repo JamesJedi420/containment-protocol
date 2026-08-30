@@ -1,6 +1,6 @@
 {
-  "primary": null,
-  "inProgress": [],
+  "primary": "SPE-2850",
+  "inProgress": ["SPE-2850"],
   "recentlyShipped": [
     "SPE-2849",
     "SPE-2848",
@@ -16,6 +16,7 @@
     "SPE-2828"
   ],
   "sliceDocStatus": {
+    "planning/spe-2850-fabricated-combat-stim-return-to-lot-slice.md": "In progress",
     "planning/spe-2849-fabricated-combat-stim-lot-materialization-slice.md": "Recently shipped",
     "planning/spe-2848-fabricated-ordinary-equipment-instance-return-to-lot-slice.md": "Recently shipped",
     "planning/spe-2846-fabricated-lot-ordinary-equipment-instance-materialization-provenance-slice.md": "Recently shipped",

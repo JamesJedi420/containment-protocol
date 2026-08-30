@@ -37,7 +37,7 @@ function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
 
-function isCanonicalFabricatedLotForDefinition(
+export function isCanonicalFabricatedLotForDefinition(
   state: GameState,
   definitionId: string,
   lot: NonNullable<GameState['fabricatedEquipmentLots']>[string]

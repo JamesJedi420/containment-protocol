@@ -671,6 +671,35 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.combat_stim_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'combat-stim-batch',
+        fabricationRecipeId: 'combat-stims',
+        fabricationGradeId: 'grade_1',
+        fabricationCompletedWeek: 1,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('combat-stim-batch')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('equipment.combat_stim_reaggregated — names the exact identity and stock return', () => {
     const event = makeEvent(
       'equipment.combat_stim_reaggregated',

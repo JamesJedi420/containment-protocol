@@ -5,8 +5,10 @@ import { APP_ROUTES } from '../../app/routes'
 import {
   getCombatStimDisposalReasonLabel,
   getCombatStimReaggregationReasonLabel,
+  getCombatStimReturnToLotReasonLabel,
   getCombatStimStoredInstanceDisposalViews,
   getCombatStimStoredInstanceReaggregationViews,
+  getCombatStimStoredInstanceReturnToLotViews,
 } from '../../domain/combatStim'
 import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
@@ -27,6 +29,7 @@ function EquipmentPage() {
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
     returnFabricatedStoredEquipmentInstanceToLot,
+    returnFabricatedStoredCombatStimInstanceToLot,
     equipAgentItem,
     equipStoredEquipmentInstance,
     activateCombatStim,
@@ -60,6 +63,8 @@ function EquipmentPage() {
     useState<string>()
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
     useState<string>()
+  const [pendingCombatStimReturnToLotInstanceId, setPendingCombatStimReturnToLotInstanceId] =
+    useState<string>()
   const [pendingReaggregationInstanceId, setPendingReaggregationInstanceId] = useState<string>()
   const [pendingReturnToLotInstanceId, setPendingReturnToLotInstanceId] = useState<string>()
   const [autoScrapThresholdGradeId, setAutoScrapThresholdGradeId] = useState<
@@ -81,6 +86,12 @@ function EquipmentPage() {
   const combatStimReaggregationById = useMemo(() => {
     const map = new Map(
       getCombatStimStoredInstanceReaggregationViews(game).map((view) => [view.instanceId, view])
+    )
+    return map
+  }, [game])
+  const combatStimReturnToLotById = useMemo(() => {
+    const map = new Map(
+      getCombatStimStoredInstanceReturnToLotViews(game).map((view) => [view.instanceId, view])
     )
     return map
   }, [game])
@@ -566,9 +577,10 @@ function EquipmentPage() {
             Combat Stim stored copies
           </h3>
           <p className="text-sm opacity-60">
-            Permanently dispose stored Combat Stim instances with live or depleted doses, or return
-            a full 2/2 copy to aggregate stock. Disposal does not restore aggregate stock. Return to
-            stock is separate from disposal and from ordinary equipment re-aggregation.
+            Permanently dispose stored Combat Stim instances with live or depleted doses, return
+            a full 2/2 copy to aggregate stock, or return a fabricated-origin full copy to its source
+            lot. Disposal does not restore aggregate stock. Return paths are separate from disposal
+            and from ordinary equipment re-aggregation.
           </p>
         </div>
 
@@ -578,12 +590,14 @@ function EquipmentPage() {
           <ul className="space-y-2" aria-label="Combat Stim stored instances">
             {combatStimDisposalViews.map((instance) => {
               const reaggregation = combatStimReaggregationById.get(instance.instanceId)
+              const returnToLot = combatStimReturnToLotById.get(instance.instanceId)
               return (
                 <li key={instance.instanceId} className="rounded border border-white/10 px-3 py-3">
                   <p className="text-sm font-medium">{instance.instanceId}</p>
                   <p className="text-xs opacity-60">
                     {instance.conditionLabel}
                     {instance.doseLabel ? ` / ${instance.doseLabel}` : ''}
+                    {returnToLot?.provenanceLabel ? ` / ${returnToLot.provenanceLabel}` : ''}
                   </p>
                   {pendingCombatStimDisposalInstanceId === instance.instanceId ? (
                     <div
@@ -627,6 +641,7 @@ function EquipmentPage() {
                       onClick={() => {
                         setPendingCombatStimDisposalInstanceId(instance.instanceId)
                         setPendingCombatStimReaggregationInstanceId(undefined)
+                        setPendingCombatStimReturnToLotInstanceId(undefined)
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                       }}
@@ -681,6 +696,7 @@ function EquipmentPage() {
                       onClick={() => {
                         setPendingCombatStimReaggregationInstanceId(instance.instanceId)
                         setPendingCombatStimDisposalInstanceId(undefined)
+                        setPendingCombatStimReturnToLotInstanceId(undefined)
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                       }}
@@ -691,6 +707,64 @@ function EquipmentPage() {
                   {reaggregation && !reaggregation.canReaggregate && reaggregation.reasonCode ? (
                     <p className="mt-1 text-xs text-amber-200/80">
                       {getCombatStimReaggregationReasonLabel(reaggregation.reasonCode)}
+                    </p>
+                  ) : null}
+                  {pendingCombatStimReturnToLotInstanceId === instance.instanceId ? (
+                    <div
+                      className="mt-2 space-y-2"
+                      role="group"
+                      aria-label={`Confirm Combat Stim fabricated lot return ${instance.instanceId}`}
+                    >
+                      <p className="text-xs text-amber-100">
+                        Stop tracking this full fabricated Combat Stim
+                        {returnToLot?.doseLabel ? ` (${returnToLot.doseLabel})` : ''}
+                        {returnToLot?.provenanceLabel
+                          ? ` from ${returnToLot.provenanceLabel}`
+                          : ''}{' '}
+                        and return one unit to aggregate stock while decrementing the source lot
+                        tracked count? The individual identity will be removed. This is not disposal.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-xs"
+                          aria-label={`Return fabricated Combat Stim instance ${instance.instanceId} to lot`}
+                          onClick={() => {
+                            returnFabricatedStoredCombatStimInstanceToLot(instance.instanceId)
+                            setPendingCombatStimReturnToLotInstanceId(undefined)
+                          }}
+                        >
+                          Confirm return to lot
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => setPendingCombatStimReturnToLotInstanceId(undefined)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : returnToLot?.provenanceLabel ? (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost mt-2"
+                      disabled={!returnToLot.canReturnToLot}
+                      aria-label={`Review fabricated lot return Combat Stim instance ${instance.instanceId}`}
+                      onClick={() => {
+                        setPendingCombatStimReturnToLotInstanceId(instance.instanceId)
+                        setPendingCombatStimDisposalInstanceId(undefined)
+                        setPendingCombatStimReaggregationInstanceId(undefined)
+                        setPendingDestructionInstanceId(undefined)
+                        setPendingReaggregationInstanceId(undefined)
+                      }}
+                    >
+                      Return to fabricated lot
+                    </button>
+                  ) : null}
+                  {returnToLot && !returnToLot.canReturnToLot && returnToLot.reasonCode ? (
+                    <p className="mt-1 text-xs text-amber-200/80">
+                      {getCombatStimReturnToLotReasonLabel(returnToLot.reasonCode)}
                     </p>
                   ) : null}
                 </li>

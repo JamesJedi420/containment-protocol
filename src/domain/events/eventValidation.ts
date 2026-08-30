@@ -1077,7 +1077,11 @@ const combatStimReaggregatedSchema = z
     resourceId: z.literal('combat_stim_dose'),
     capacity: z.literal(2),
     remaining: z.literal(2),
-    reason: z.literal('manual_untracking'),
+    reason: z.enum(['manual_untracking', 'fabricated_lot_return']),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -1087,6 +1091,29 @@ const combatStimReaggregatedSchema = z
         code: z.ZodIssueCode.custom,
         path: ['definitionId'],
         message: 're-aggregated Combat Stim must reference the Combat Stims catalog definition',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (payload.reason === 'manual_untracking') {
+      if (fabricationFields.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fabricationQueueId'],
+          message: 'catalog Combat Stim re-aggregation cannot carry fabricated-lot provenance',
+        })
+      }
+      return
+    }
+    if (fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot Combat Stim return provenance fields must be supplied together',
       })
     }
   })

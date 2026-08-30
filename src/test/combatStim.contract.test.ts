@@ -8,10 +8,13 @@ import {
   expireCombatStimOverdrivesAtWeekClose,
   getCombatStimStoredInstanceDisposalViews,
   getCombatStimStoredInstanceReaggregationViews,
+  getCombatStimStoredInstanceReturnToLotViews,
   reaggregateStoredCombatStimInstance,
+  returnFabricatedCombatStimInstanceToLot,
   resolveCombatStimActivation,
   resolveCombatStimDisposal,
   resolveCombatStimReaggregation,
+  resolveCombatStimReturnToLot,
   resolveEffectiveResponderEnergyBand,
   type CombatStimActivationReasonCode,
 } from '../domain/combatStim'
@@ -1101,5 +1104,299 @@ describe('SPE-2849 fabricated-lot Combat Stim materialization', () => {
       })
     ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
     expect(state.inventory.combat_stims).toBe(1)
+  })
+})
+
+function seedFabricatedCombatStimLot(state: GameState) {
+  state.inventory.combat_stims = 1
+  state.fabricatedEquipmentLots = {
+    'combat-stim-batch': {
+      queueId: 'combat-stim-batch',
+      recipeId: 'combat-stims',
+      itemId: 'combat_stims',
+      quantity: 2,
+      gradeId: 'grade_1',
+      completedWeek: 1,
+    },
+  }
+  const materialized = materializeStoredCombatStimInstance(state, {
+    kind: 'fabricated_lot',
+    fabricationQueueId: 'combat-stim-batch',
+  })
+  if (!materialized.ok) throw new Error(materialized.code)
+  return materialized
+}
+
+describe('SPE-2850 fabricated-lot Combat Stim return-to-lot', () => {
+  it('returns one fabricated-origin 2/2 identity to lot with inventory +1 and tracked −1', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const returned = returnFabricatedCombatStimInstanceToLot(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    expect(returned).toMatchObject({
+      ok: true,
+      instance: {
+        definitionId: 'combat_stims',
+        fabricationOrigin: {
+          queueId: 'combat-stim-batch',
+          recipeId: 'combat-stims',
+          gradeId: 'grade_1',
+          completedWeek: 1,
+        },
+      },
+      state: {
+        inventory: { combat_stims: 1 },
+        fabricatedEquipmentLots: {
+          'combat-stim-batch': { quantity: 2, trackedInstanceUnits: 0 },
+        },
+      },
+    })
+    if (!returned.ok) throw new Error(returned.code)
+    expect(returned.state.equipmentInstances?.[materialized.instance.instanceId]).toBeUndefined()
+
+    expect(
+      validateOperationEventPayload(
+        'equipment.combat_stim_reaggregated',
+        createCombatStimReaggregatedDraft({
+          week: 1,
+          instanceId: materialized.instance.instanceId,
+          definitionId: 'combat_stims',
+          definitionName: 'Combat Stims',
+          condition: 'operational',
+          resourceId: 'combat_stim_dose',
+          capacity: 2,
+          remaining: 2,
+          reason: 'fabricated_lot_return',
+          fabricationQueueId: 'combat-stim-batch',
+          fabricationRecipeId: 'combat-stims',
+          fabricationGradeId: 'grade_1',
+          fabricationCompletedWeek: 1,
+        }).payload
+      ).success
+    ).toBe(true)
+
+    const hydrated = hydrateGame(returned.state)
+    expect(hydrated.inventory.combat_stims).toBe(1)
+    expect(
+      hydrated.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits
+    ).toBe(0)
+    expect(
+      hydrated.fabricatedEquipmentLots?.['combat-stim-batch']?.quantity
+    ).toBe(2)
+  })
+
+  it('keeps catalog re-aggregation fail-closed for fabricated-origin copies', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    expect(
+      reaggregateStoredCombatStimInstance(materialized.state, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+  })
+
+  it('round-trips materialize → return → re-materialize on the same lot', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const returned = returnFabricatedCombatStimInstanceToLot(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    if (!returned.ok) throw new Error(returned.code)
+    const rematerialized = materializeStoredCombatStimInstance(returned.state, {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'combat-stim-batch',
+    })
+    expect(rematerialized).toMatchObject({
+      ok: true,
+      state: {
+        inventory: { combat_stims: 0 },
+        fabricatedEquipmentLots: {
+          'combat-stim-batch': { quantity: 2, trackedInstanceUnits: 1 },
+        },
+      },
+    })
+  })
+
+  it('fail-closes equipped, partial, depleted, damaged, recovery, and overdrive cases', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const instanceId = materialized.instance.instanceId
+
+    const equipped = equipStoredCombatStimInstance(
+      materialized.state,
+      instanceId,
+      'a_ava',
+      'utility1'
+    )
+    expect(returnFabricatedCombatStimInstanceToLot(equipped, instanceId)).toMatchObject({
+      ok: false,
+      code: 'not_stored',
+    })
+
+    const partial = {
+      ...materialized.state,
+      equipmentInstances: {
+        ...(materialized.state.equipmentInstances ?? {}),
+        [instanceId]: {
+          ...materialized.instance,
+          payload: { resourceId: 'combat_stim_dose' as const, capacity: 2, remaining: 1 },
+        },
+      },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(partial, instanceId)).toMatchObject({
+      ok: false,
+      code: 'partial_dose',
+    })
+
+    const depleted = {
+      ...materialized.state,
+      equipmentInstances: {
+        ...(materialized.state.equipmentInstances ?? {}),
+        [instanceId]: {
+          ...materialized.instance,
+          payload: { resourceId: 'combat_stim_dose' as const, capacity: 2, remaining: 0 },
+        },
+      },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(depleted, instanceId)).toMatchObject({
+      ok: false,
+      code: 'depleted_dose',
+    })
+
+    const damaged = {
+      ...materialized.state,
+      equipmentInstances: {
+        ...(materialized.state.equipmentInstances ?? {}),
+        [instanceId]: { ...materialized.instance, condition: 'damaged' as const },
+      },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(damaged, instanceId)).toMatchObject({
+      ok: false,
+      code: 'condition_unsupported',
+    })
+
+    const claimed = {
+      ...materialized.state,
+      equipmentDeconstructionQueue: [
+        {
+          itemId: 'combat_stims',
+          quantity: 1,
+          weeksRemaining: 1,
+          sourceEquipmentInstanceId: instanceId,
+          sourceEquipmentInstanceResourceId: 'combat_stim_dose',
+          sourceEquipmentInstanceCapacity: 2,
+          sourceEquipmentInstanceRemaining: 2,
+        },
+      ],
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(claimed, instanceId)).toMatchObject({
+      ok: false,
+      code: 'recovery_claimed',
+    })
+
+    const overdrive = {
+      ...materialized.state,
+      agents: {
+        ...materialized.state.agents,
+        a_ava: {
+          ...materialized.state.agents.a_ava,
+          overdrive: {
+            active: false,
+            remainingPhases: 0,
+            recoveryDebt: 1,
+            source: {
+              kind: 'combat_stim' as const,
+              activationId: `combat-stim-${instanceId}-dose-1`,
+              equipmentInstanceId: instanceId,
+              caseId: Object.keys(materialized.state.cases)[0],
+            },
+          },
+        },
+      },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(overdrive, instanceId)).toMatchObject({
+      ok: false,
+      code: 'overdrive_provenance',
+    })
+  })
+
+  it('fail-closes missing lot, zero tracked, catalog-origin, and inventory overflow', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const instanceId = materialized.instance.instanceId
+
+    const missingLot = {
+      ...materialized.state,
+      fabricatedEquipmentLots: {},
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(missingLot, instanceId)).toMatchObject({
+      ok: false,
+      code: 'fabricated_provenance_required',
+    })
+
+    const zeroTracked = {
+      ...materialized.state,
+      fabricatedEquipmentLots: {
+        'combat-stim-batch': {
+          ...materialized.state.fabricatedEquipmentLots!['combat-stim-batch'],
+          trackedInstanceUnits: 0,
+        },
+      },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(zeroTracked, instanceId)).toMatchObject({
+      ok: false,
+      code: 'fabricated_provenance_required',
+    })
+
+    const catalogState = createStartingState()
+    catalogState.inventory.combat_stims = 1
+    const catalog = materializeStoredCombatStimInstance(catalogState, { kind: 'catalog' })
+    if (!catalog.ok) throw new Error(catalog.code)
+    expect(
+      returnFabricatedCombatStimInstanceToLot(catalog.state, catalog.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+
+    const overflow = {
+      ...materialized.state,
+      inventory: { ...materialized.state.inventory, combat_stims: Number.MAX_SAFE_INTEGER },
+    }
+    expect(returnFabricatedCombatStimInstanceToLot(overflow, instanceId)).toMatchObject({
+      ok: false,
+      code: 'inventory_capacity_exceeded',
+    })
+  })
+
+  it('is idempotent on stale repeat calls', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const returned = returnFabricatedCombatStimInstanceToLot(
+      materialized.state,
+      materialized.instance.instanceId
+    )
+    if (!returned.ok) throw new Error(returned.code)
+    expect(
+      returnFabricatedCombatStimInstanceToLot(returned.state, materialized.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'stale_transition' })
+    expect(returned.state.inventory.combat_stims).toBe(1)
+  })
+
+  it('surfaces return-to-lot eligibility in stored-instance views', () => {
+    const state = createStartingState()
+    const materialized = seedFabricatedCombatStimLot(state)
+    const views = getCombatStimStoredInstanceReturnToLotViews(materialized.state)
+    expect(views).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: materialized.instance.instanceId,
+          canReturnToLot: true,
+          provenanceLabel: expect.stringContaining('combat-stim-batch'),
+        }),
+      ])
+    )
+    expect(resolveCombatStimReturnToLot(materialized.state, materialized.instance.instanceId)).toMatchObject({
+      canReturnToLot: true,
+      doseLabel: '2/2 doses',
+    })
   })
 })

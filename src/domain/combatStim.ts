@@ -21,7 +21,11 @@ import { createDefaultResponderEnergyBudget, normalizeEnergyBudget } from './res
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
 import { appendOperationEventDrafts, createCombatStimActivatedDraft } from './events'
 import type { EquipmentSlotKind } from './equipment'
-import { equipStoredEquipmentInstance } from './sim/equipment'
+import {
+  equipStoredEquipmentInstance,
+  isCanonicalFabricatedLotForDefinition,
+} from './sim/equipment'
+import { resolveFabricationOriginForDefinition } from './equipmentInstance'
 
 export const COMBAT_STIM_ACTIVATION_REASON_CODES = [
   'invalid_instance_id',
@@ -491,6 +495,253 @@ export function reaggregateStoredCombatStimInstance(
   return { ok: true, state: nextState, instance: snapshotCombatStimInstance(instance) }
 }
 
+export const COMBAT_STIM_RETURN_TO_LOT_REASON_CODES = [
+  'invalid_instance_id',
+  'stale_transition',
+  'wrong_definition',
+  'malformed_payload',
+  'not_stored',
+  'condition_unsupported',
+  'partial_dose',
+  'depleted_dose',
+  'fabricated_provenance_required',
+  'recovery_claimed',
+  'overdrive_provenance',
+  'inventory_capacity_exceeded',
+] as const
+
+export type CombatStimReturnToLotReasonCode =
+  (typeof COMBAT_STIM_RETURN_TO_LOT_REASON_CODES)[number]
+
+export interface CombatStimReturnToLotPreview {
+  instanceId: EquipmentInstanceId
+  canReturnToLot: boolean
+  reasonCode?: CombatStimReturnToLotReasonCode
+  doseLabel?: string
+  conditionLabel: string
+  provenanceLabel?: string
+}
+
+export type CombatStimReturnToLotResult =
+  | { ok: true; state: GameState; instance: EquipmentInstance }
+  | { ok: false; state: GameState; code: CombatStimReturnToLotReasonCode }
+
+export function resolveCombatStimReturnToLot(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): CombatStimReturnToLotPreview {
+  const conditionLabel = (condition: EquipmentInstance['condition']) =>
+    condition === 'damaged' ? 'Damaged' : 'Operational'
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return {
+      instanceId,
+      canReturnToLot: false,
+      reasonCode: 'invalid_instance_id',
+      conditionLabel: '—',
+    }
+  }
+  const instance = getEquipmentInstance(state, instanceId)
+  if (!instance) {
+    return {
+      instanceId,
+      canReturnToLot: false,
+      reasonCode: 'stale_transition',
+      conditionLabel: '—',
+    }
+  }
+  const base = { instanceId, conditionLabel: conditionLabel(instance.condition) }
+  if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
+    return { ...base, canReturnToLot: false, reasonCode: 'wrong_definition' }
+  }
+  if (instance.location.state !== 'stored') {
+    return { ...base, canReturnToLot: false, reasonCode: 'not_stored' }
+  }
+  if (!isCanonicalCombatStimPayload(instance.payload)) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'malformed_payload',
+      doseLabel: 'Unavailable',
+    }
+  }
+  const doseLabel = `${instance.payload.remaining}/${instance.payload.capacity} doses`
+  const provenanceLabel = instance.fabricationOrigin
+    ? `Fabricated batch ${instance.fabricationOrigin.queueId} / week ${instance.fabricationOrigin.completedWeek}`
+    : undefined
+  if (instance.condition !== 'operational') {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'condition_unsupported',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  if (instance.payload.remaining === 0) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'depleted_dose',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  if (instance.payload.remaining !== COMBAT_STIM_CAPACITY) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'partial_dose',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  if (instance.fabricationOrigin === undefined) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+    }
+  }
+  if (isEquipmentInstanceClaimedForRecovery(state, instanceId)) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'recovery_claimed',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  if (instanceHasActiveOverdriveProvenance(state, instanceId)) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'overdrive_provenance',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  const stock = readCombatStimAggregateStock(state)
+  if (!Number.isSafeInteger(stock) || stock >= Number.MAX_SAFE_INTEGER) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'inventory_capacity_exceeded',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  const originResolved = resolveFabricationOriginForDefinition(
+    state,
+    instance.definitionId,
+    instance.fabricationOrigin
+  )
+  if (!originResolved.ok) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  const origin = originResolved.origin
+  const lot = state.fabricatedEquipmentLots?.[origin.queueId]
+  if (
+    !lot ||
+    !isCanonicalFabricatedLotForDefinition(state, instance.definitionId, lot)
+  ) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  const rawTracked = lot.trackedInstanceUnits ?? 0
+  if (
+    !Number.isSafeInteger(rawTracked) ||
+    (rawTracked as number) < 0 ||
+    (rawTracked as number) > lot.quantity
+  ) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  const tracked = rawTracked as number
+  if (tracked < 1) {
+    return {
+      ...base,
+      canReturnToLot: false,
+      reasonCode: 'fabricated_provenance_required',
+      doseLabel,
+      provenanceLabel,
+    }
+  }
+  return {
+    ...base,
+    canReturnToLot: true,
+    doseLabel,
+    provenanceLabel,
+  }
+}
+
+export function getCombatStimStoredInstanceReturnToLotViews(
+  state: GameState
+): CombatStimReturnToLotPreview[] {
+  return listStoredCombatStimInstances(state).map((instance) =>
+    resolveCombatStimReturnToLot(state, instance.instanceId)
+  )
+}
+
+export function returnFabricatedCombatStimInstanceToLot(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): CombatStimReturnToLotResult {
+  const normalized = ensureNormalizedGameState(state)
+  const preview = resolveCombatStimReturnToLot(normalized, instanceId)
+  if (!preview.canReturnToLot) {
+    return { ok: false, state: normalized, code: preview.reasonCode! }
+  }
+  const instance = normalized.equipmentInstances![instanceId]!
+  const originResolved = resolveFabricationOriginForDefinition(
+    normalized,
+    instance.definitionId,
+    instance.fabricationOrigin!
+  )
+  if (!originResolved.ok) {
+    return { ok: false, state: normalized, code: 'fabricated_provenance_required' }
+  }
+  const origin = originResolved.origin
+  const lot = normalized.fabricatedEquipmentLots![origin.queueId]!
+  const tracked = Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+  const nextTracked = tracked - 1
+  const stock = readCombatStimAggregateStock(normalized)
+  const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
+  delete equipmentInstances[instanceId]
+  const nextLots = { ...(normalized.fabricatedEquipmentLots ?? {}) }
+  nextLots[lot.queueId] = Object.freeze({
+    ...lot,
+    trackedInstanceUnits: nextTracked,
+  })
+  const nextState = normalizeGameState({
+    ...normalized,
+    inventory: { ...normalized.inventory, [COMBAT_STIM_DEFINITION_ID]: stock + 1 },
+    equipmentInstances,
+    fabricatedEquipmentLots: nextLots,
+  })
+  return {
+    ok: true,
+    state: nextState,
+    instance: snapshotCombatStimInstance(instance),
+  }
+}
+
 export {
   applyCombatStimRecoveryDebtAtWeekClose,
   expireCombatStimOverdrivesAtWeekClose,
@@ -505,6 +756,28 @@ export function getCombatStimDisposalReasonLabel(code: CombatStimDisposalReasonC
     not_stored: 'Only stored Combat Stim instances can be disposed.',
     recovery_claimed: 'Recovery is already queued or completed for this instance.',
     overdrive_provenance: 'Active overdrive or recovery debt still references this instance.',
+  }
+  return labels[code]
+}
+
+export function getCombatStimReturnToLotReasonLabel(code: CombatStimReturnToLotReasonCode) {
+  const labels: Record<CombatStimReturnToLotReasonCode, string> = {
+    invalid_instance_id: 'Invalid equipment instance.',
+    stale_transition: 'Equipment instance unavailable.',
+    wrong_definition: 'This instance is not Combat Stims.',
+    malformed_payload: 'Dose state is unavailable.',
+    not_stored: 'Only stored Combat Stim instances can return to a fabricated lot.',
+    condition_unsupported:
+      'Damaged Combat Stim copies cannot return to fabricated-lot tracking.',
+    partial_dose:
+      'Only full 2/2 Combat Stim copies can return to a fabricated lot. Dispose or recover partial doses separately.',
+    depleted_dose:
+      'Depleted Combat Stim copies cannot return to a fabricated lot. Use recovery or disposal instead.',
+    recovery_claimed: 'Recovery is already queued or completed for this instance.',
+    overdrive_provenance: 'Active overdrive or recovery debt still references this instance.',
+    fabricated_provenance_required:
+      'This copy lacks valid fabricated-lot provenance or the source lot cannot absorb the return.',
+    inventory_capacity_exceeded: 'Aggregate Combat Stim stock is already at its safe capacity.',
   }
   return labels[code]
 }

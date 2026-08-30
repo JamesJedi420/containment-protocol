@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                                    |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Status** | **In progress**                                                                                                          |
+| **Status** | **Recently shipped**                                                                                                     |
 | **Linear** | [SPE-2850](https://linear.app/spectranoir/issue/SPE-2850/provenance-preserving-fabricated-combat-stim-instance-return-to-lot) |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority)                  |
 | **Branch** | `jamesdyedbq/spe-2850-fabricated-combat-stim-return-to-lot`                                                              |

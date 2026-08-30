@@ -43,7 +43,7 @@ balancing remain out of slice. Auto-Scrap stays aggregate-only.
 | Item or mechanic                         | Owner or prerequisite | Reason                                        |
 | ---------------------------------------- | --------------------- | --------------------------------------------- |
 | Damaged-instance return                  | SPE-2851              | Condition conversion via stored repair, not damaged-aggregate credit |
-| Partial/depleted dose lot return         | SPE-2852              | Keep fail-closed; disposal/recovery remain    |
+| Partial/depleted dose lot return         | SPE-2852 **Done**     | Policy confirmed fail-closed; disposal/recovery remain |
 | Cross-lot grade migration                | SPE-2827 child        | Return targets exact source lot only          |
 | Automated lot or instance selection      | SPE-2749 child        | Auto-Scrap remains aggregate-only             |
 | Repair, custody, readiness, mission loss | SPE-877 / SPE-1658    | Broader lifecycle authorities                 |

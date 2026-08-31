@@ -881,6 +881,51 @@ describe('equipment-grade recovery contract', () => {
     expect(lotQueued.fabricatedEquipmentLots).toEqual(fabricated.fabricatedEquipmentLots)
   })
 
+  it('keeps fabricated-lot recovery operational when sibling catalog stock is damaged', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+    state.damagedEquipmentQueue = ['signal_jammers']
+    state.fabricatedEquipmentLots = {
+      completed: {
+        queueId: 'completed',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    const fabricatedPreview = resolveEquipmentDeconstructionPreview(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'completed',
+    })
+    expect(fabricatedPreview?.resolution).toMatchObject({
+      available: true,
+      condition: 'operational',
+      waste: 1,
+    })
+
+    const lotQueued = queueEquipmentDeconstruction(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'completed',
+    })
+    expect(lotQueued.inventory.signal_jammers).toBe(1)
+    expect(lotQueued.damagedEquipmentQueue).toEqual(['signal_jammers'])
+    expect(lotQueued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      sourceFabricationQueueId: 'completed',
+      sourceCondition: 'operational',
+      wasteQuantity: 1,
+    })
+
+    expect(
+      resolveEquipmentDeconstructionPreview(lotQueued, 'signal_jammers')?.resolution
+    ).toMatchObject({
+      condition: 'damaged',
+      waste: 2,
+    })
+  })
+
   it('queues newly eligible technological stock through the canonical recovery path', () => {
     let state = createStartingState()
     state.inventory.tactical_radio = 1

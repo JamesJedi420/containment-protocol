@@ -427,10 +427,24 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
   })
 }
 
+function getHistoricalEquipmentInstanceId(event: GameState['events'][number]) {
+  if (
+    event.type !== 'equipment.instance_materialized' &&
+    event.type !== 'equipment.instance_destroyed' &&
+    event.type !== 'equipment.instance_reaggregated'
+  ) {
+    return undefined
+  }
+  return isSafeEquipmentInstanceId(event.payload.instanceId) ? event.payload.instanceId : undefined
+}
+
 function nextInstanceId(state: GameState): EquipmentInstanceId {
   const registry = state.equipmentInstances ?? {}
   const reservedIds = new Set([
     ...Object.keys(registry),
+    ...state.events
+      .map(getHistoricalEquipmentInstanceId)
+      .filter((instanceId): instanceId is EquipmentInstanceId => Boolean(instanceId)),
     ...(state.equipmentDeconstructionQueue ?? [])
       .map((entry) => entry.sourceEquipmentInstanceId)
       .filter((instanceId): instanceId is string => Boolean(instanceId)),

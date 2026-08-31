@@ -463,6 +463,40 @@ describe('getGearRecommendationsForActiveCases', () => {
     })
   })
 
+  it('does not expose fabricated-lot stock as direct aggregate loadout stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.inventory.combat_stims = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    const ava = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_ava')
+    const utilityOptions = ava?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions ?? []
+
+    expect(utilityOptions).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ itemId: 'signal_jammers' }),
+        expect.objectContaining({ itemId: 'combat_stims' }),
+      ])
+    )
+  })
+
   it('hides stored instances that fail the full loadout assignment contract', () => {
     const game = createStartingState()
     game.inventory.advanced_recon_suite = 1

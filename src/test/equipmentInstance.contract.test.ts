@@ -458,6 +458,46 @@ describe('ordinary equipment instance authority', () => {
     ).toHaveLength(1)
   })
 
+  it('blocks legacy aggregate loadout assignment from consuming fabricated-lot stock anonymously', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    const anonymousEquip = equipAgentItem(state, 'a_mina', 'utility1', 'signal_jammers')
+    expect(anonymousEquip.inventory.signal_jammers).toBe(1)
+    expect(anonymousEquip.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(anonymousEquip.fabricatedEquipmentLots?.batch?.trackedInstanceUnits).toBeUndefined()
+    expect(getEquipmentInstanceAtAgentSlot(anonymousEquip, 'a_mina', 'utility1')).toBeUndefined()
+
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    if (!materialized.ok) throw new Error(materialized.code)
+
+    const equipped = equipStoredEquipmentInstance(
+      materialized.state,
+      materialized.instance.instanceId,
+      'a_mina',
+      'utility1'
+    )
+    expect(equipped.inventory.signal_jammers).toBe(0)
+    expect(equipped.fabricatedEquipmentLots?.batch?.trackedInstanceUnits).toBe(1)
+    expect(getEquipmentInstanceAtAgentSlot(equipped, 'a_mina', 'utility1')).toMatchObject({
+      instanceId: materialized.instance.instanceId,
+      fabricationOrigin: { queueId: 'batch', gradeId: 'grade_2' },
+    })
+  })
+
   it('fails fabricated return-to-lot closed for unsupported identities and missing lots', () => {
     const base = createStartingState()
     base.inventory.signal_jammers = 3

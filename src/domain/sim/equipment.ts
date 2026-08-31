@@ -37,6 +37,14 @@ function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
 
+export function getCatalogEquipmentStock(state: GameState, itemId: string) {
+  return (
+    resolveEquipmentDeconstructionSources(state, itemId).find(
+      (choice) => choice.source.kind === 'catalog'
+    )?.quantity ?? 0
+  )
+}
+
 export function isCanonicalFabricatedLotForDefinition(
   state: GameState,
   definitionId: string,
@@ -424,7 +432,7 @@ export function equipAgentItem(
     return ensureNormalizedGameState(state)
   }
 
-  if (itemId === COMBAT_STIM_DEFINITION_ID && getInventoryStock(state, itemId) > 0) {
+  if (itemId === COMBAT_STIM_DEFINITION_ID && getCatalogEquipmentStock(state, itemId) > 0) {
     const interim = currentItemId ? unequipAgentItem(state, agentId, slot) : state
     const materialized = instantiateEquipmentInstance(interim, itemId, {
       location: { state: 'equipped', agentId, slot },
@@ -438,7 +446,8 @@ export function equipAgentItem(
   let transferredInstance: EquipmentInstance | undefined
 
   const availableStock = getInventoryStock(nextState, itemId)
-  if (availableStock > 0) {
+  const catalogStock = getCatalogEquipmentStock(nextState, itemId)
+  if (catalogStock > 0) {
     nextInventory[itemId] = availableStock - 1
   } else {
     const transferCandidate = findTransferCandidate(nextState, itemId, agentId, slot)

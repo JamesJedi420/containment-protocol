@@ -48,7 +48,10 @@ import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
 import { appendExposureResidueToFlags } from './recoveryImpairments'
 import { applyBetrayalConsequences } from './betrayal'
-import { createDefaultAgentProgression, createSimulationAgentVitalsBaseline } from '../agentDefaults'
+import {
+  createDefaultAgentProgression,
+  createSimulationAgentVitalsBaseline,
+} from '../agentDefaults'
 import { evaluateMissionAgentFailureRisk } from './injuryForecast'
 
 const XP_GAIN_SUCCESS = 150
@@ -265,8 +268,7 @@ function aggregateAssignedPerformanceSummary(outcome: ResolutionOutcome) {
       ),
       containmentActionsCompleted: Number(
         (
-          summary.containmentActionsCompleted +
-          (performance.containmentActionsCompleted ?? 0)
+          summary.containmentActionsCompleted + (performance.containmentActionsCompleted ?? 0)
         ).toFixed(2)
       ),
     }),
@@ -475,7 +477,8 @@ function rollMissionCasualty(input: {
   overdrive: NonNullable<GameState['agents'][string]>['overdrive']
   transitAmbushTriggered: boolean
 } {
-  const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } = input
+  const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } =
+    input
   let overdrive = agent.overdrive ?? createDefaultOverdriveState()
   const channels = agent.fatigueChannels ?? createDefaultFatigueChannels()
   const transitVulnerable = isTransitAmbushVulnerable({
@@ -483,13 +486,15 @@ function rollMissionCasualty(input: {
     isSoloTransit: assignedAgents.length === 1,
     onRoutineReturnPath: outcome.result === 'fail',
   })
+  const expireResolvedOverdrive = () =>
+    overdrive.source?.kind === 'combat_stim' ? overdrive : expireAgentOverdrive(overdrive)
 
   const maybeTransitAmbush = () => {
     if (transitVulnerable && rng() <= TRANSIT_AMBUSH_TRIGGER_CHANCE) {
       return {
         injurySeverity: 'minor' as const,
         fatal: false,
-        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
         transitAmbushTriggered: true,
       }
     }
@@ -497,7 +502,7 @@ function rollMissionCasualty(input: {
     return {
       injurySeverity: null,
       fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
@@ -526,18 +531,16 @@ function rollMissionCasualty(input: {
   }
 
   const injuryChance =
-    riskProfile.injuryChanceOnFailure *
-    (overdrive.active ? OVERDRIVE_INJURY_CHANCE_MULTIPLIER : 1)
+    riskProfile.injuryChanceOnFailure * (overdrive.active ? OVERDRIVE_INJURY_CHANCE_MULTIPLIER : 1)
   const deathChance =
-    riskProfile.deathChanceOnFailure *
-    (overdrive.active ? OVERDRIVE_FATALITY_CHANCE_MULTIPLIER : 1)
+    riskProfile.deathChanceOnFailure * (overdrive.active ? OVERDRIVE_FATALITY_CHANCE_MULTIPLIER : 1)
 
   if (agent.fatigue >= GUARANTEED_INJURY_FATIGUE) {
     if (deathChance > 0 && rng() <= deathChance) {
       return {
         injurySeverity: null,
         fatal: true,
-        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
         transitAmbushTriggered: false,
       }
     }
@@ -545,14 +548,18 @@ function rollMissionCasualty(input: {
     return {
       injurySeverity: 'moderate',
       fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
 
   const combatStressBypassesGate = combatStress >= COMBAT_STRESS_INJURY_THRESHOLD
 
-  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0 && !combatStressBypassesGate) {
+  if (
+    agent.fatigue < INJURY_RISK_FATIGUE_MIN &&
+    riskProfile.injuryChanceOnFailure <= 0 &&
+    !combatStressBypassesGate
+  ) {
     return maybeTransitAmbush()
   }
 
@@ -560,14 +567,11 @@ function rollMissionCasualty(input: {
     return maybeTransitAmbush()
   }
 
-  if (
-    deathChance > 0 &&
-    rng() <= deathChance / Math.max(injuryChance, 0.001)
-  ) {
+  if (deathChance > 0 && rng() <= deathChance / Math.max(injuryChance, 0.001)) {
     return {
       injurySeverity: null,
       fatal: true,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
@@ -588,7 +592,7 @@ function rollMissionCasualty(input: {
   return {
     injurySeverity: forceModerate ? 'moderate' : 'minor',
     fatal: false,
-    overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
     transitAmbushTriggered: false,
   }
 }
@@ -676,12 +680,12 @@ export function applyMissionResolutionAgentMutations({
     const nextAssignment = casualty.fatal
       ? ({ state: 'idle' } as const)
       : injurySeverity
-      ? {
-          state: 'recovery' as const,
-          teamId: agent.assignment?.teamId,
-          startedWeek: week,
-        }
-      : ({ state: 'idle' } as const)
+        ? {
+            state: 'recovery' as const,
+            teamId: agent.assignment?.teamId,
+            startedWeek: week,
+          }
+        : ({ state: 'idle' } as const)
     const nextVitals = casualty.fatal
       ? {
           ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
@@ -691,24 +695,24 @@ export function applyMissionResolutionAgentMutations({
           statusFlags: ['fatality'],
         }
       : injurySeverity
-      ? {
-          ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
-          health: clamp(
-            (agent.vitals?.health ?? 100) - (injurySeverity === 'moderate' ? 25 : 10),
-            0,
-            100
-          ),
-          morale: clamp(
+        ? {
+            ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
+            health: clamp(
+              (agent.vitals?.health ?? 100) - (injurySeverity === 'moderate' ? 25 : 10),
+              0,
+              100
+            ),
+            morale: clamp(
               (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
-              (injurySeverity === 'moderate' ? 18 : 8) -
-              (casualty.transitAmbushTriggered ? TRANSIT_AMBUSH_MORALE_PENALTY : 0),
-            0,
-            100
-          ),
-          wounds: injurySeverity === 'moderate' ? 25 : 10,
-          statusFlags: withInjuryFlags(agent.vitals?.statusFlags, injurySeverity),
-        }
-      : agent.vitals
+                (injurySeverity === 'moderate' ? 18 : 8) -
+                (casualty.transitAmbushTriggered ? TRANSIT_AMBUSH_MORALE_PENALTY : 0),
+              0,
+              100
+            ),
+            wounds: injurySeverity === 'moderate' ? 25 : 10,
+            statusFlags: withInjuryFlags(agent.vitals?.statusFlags, injurySeverity),
+          }
+        : agent.vitals
 
     const resolvedAgent = appendAgentHistoryEntries(
       setAgentAssignment(

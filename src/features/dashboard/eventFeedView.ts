@@ -23,7 +23,11 @@ export type EventFeedFilters = {
 }
 
 export type EventFeedCategory =
-  'incident_response' | 'personnel' | 'intel_briefing' | 'operations_logistics' | 'agency_posture'
+  | 'incident_response'
+  | 'personnel'
+  | 'intel_briefing'
+  | 'operations_logistics'
+  | 'agency_posture'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -214,6 +218,14 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.recovery_completed': 'Equipment Recovery Complete',
   'equipment.auto_scrap_policy_changed': 'Auto-Scrap Policy Changed',
   'equipment.auto_scrap_routed': 'Auto-Scrap Routed',
+  'equipment.instance_materialized': 'Equipment Instance Materialized',
+  'equipment.instance_destroyed': 'Equipment Instance Destroyed',
+  'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
+  'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
+  'equipment.combat_stim_activated': 'Combat Stim Activated',
+  'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
+  'equipment.combat_stim_disposed': 'Combat Stim Disposed',
+  'equipment.combat_stim_reaggregated': 'Combat Stim Re-aggregated',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
@@ -278,6 +290,14 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.recovery_completed': 'operations_logistics',
   'equipment.auto_scrap_policy_changed': 'operations_logistics',
   'equipment.auto_scrap_routed': 'operations_logistics',
+  'equipment.instance_materialized': 'operations_logistics',
+  'equipment.instance_destroyed': 'operations_logistics',
+  'equipment.instance_reaggregated': 'operations_logistics',
+  'equipment.instance_condition_repaired': 'operations_logistics',
+  'equipment.combat_stim_activated': 'personnel',
+  'equipment.combat_stim_overdrive_expired': 'personnel',
+  'equipment.combat_stim_disposed': 'operations_logistics',
+  'equipment.combat_stim_reaggregated': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -879,6 +899,147 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
       }
+
+    case 'equipment.instance_materialized': {
+      const materializedResourceDetail =
+        event.payload.resourceId !== undefined &&
+        event.payload.capacity !== undefined &&
+        event.payload.remaining !== undefined
+          ? ` / ${event.payload.remaining}/${event.payload.capacity} ${event.payload.resourceId}`
+          : ''
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} materialized`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId}${materializedResourceDetail}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.agentId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_destroyed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance destroyed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.condition} / Manual disposal`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} manual disposal`.toLowerCase(),
+      }
+
+    case 'equipment.instance_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
+      const provenanceDetail = fabricatedReturn
+        ? ` / Fabricated batch ${event.payload.fabricationQueueId} / week ${event.payload.fabricationCompletedWeek}`
+        : ''
+      return {
+        event,
+        week: event.payload.week,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Operational / ${
+          fabricatedReturn ? 'Fabricated lot return' : 'Manual untracking'
+        }${provenanceDetail}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} operational ${
+            fabricatedReturn
+              ? `fabricated lot return ${event.payload.fabricationQueueId ?? ''}`
+              : 'manual untracking'
+          }`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_condition_repaired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance repaired`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Damaged → operational / Manual condition repair`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} damaged operational manual condition repair`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_activated':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} activated Combat Stims`,
+        detail: `Week ${event.payload.week} / ${event.payload.caseTitle} / Energy ${event.payload.underlyingBand} → ${event.payload.effectiveBand} / Doses ${event.payload.dosesBefore} → ${event.payload.dosesAfter}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_overdrive_expired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} Combat Stim overdrive expired`,
+        detail: `Week ${event.payload.week} / Recovery debt ${event.payload.recoveryDebt} tick(s) / Instance ${event.payload.instanceId}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_disposed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance disposed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / ${event.payload.condition} / Manual disposal`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual disposal`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
+      return {
+        event,
+        week: event.payload.week,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: fabricatedReturn
+          ? `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Fabricated lot return / Batch ${event.payload.fabricationQueueId ?? 'unknown'}`
+          : `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Manual untracking`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText: fabricatedReturn
+          ? `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} fabricated lot return ${event.payload.fabricationQueueId ?? ''}`.toLowerCase()
+          : `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual untracking`.toLowerCase(),
+      }
+    }
 
     case 'equipment.recovery_completed':
       return {

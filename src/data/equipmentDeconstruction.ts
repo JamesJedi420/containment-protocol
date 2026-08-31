@@ -9,16 +9,60 @@ const RECOVERABLE_PRODUCTION_MATERIAL_IDS = new Set(
 )
 
 export type EquipmentDeconstructionProfile =
-  | Readonly<{ state: 'eligible'; itemId: string; rule: EquipmentGradeRecoveryRule }>
+  | Readonly<{
+      state: 'eligible'
+      itemId: string
+      rule: EquipmentGradeRecoveryRule
+      sourceAuthority: 'aggregate' | 'aggregate_and_instance' | 'equipment_instance'
+    }>
   | Readonly<{ state: 'deferred'; itemId: string; reasonCode: 'recovery_profile_not_authored' }>
 
 const eligible = (
   itemId: string,
   rule: EquipmentGradeRecoveryRule
 ): EquipmentDeconstructionProfile =>
-  Object.freeze({ state: 'eligible', itemId, rule: Object.freeze(rule) })
+  Object.freeze({
+    state: 'eligible',
+    itemId,
+    rule: Object.freeze(rule),
+    sourceAuthority: 'aggregate_and_instance',
+  })
+const eligibleInstance = (
+  itemId: string,
+  rule: EquipmentGradeRecoveryRule
+): EquipmentDeconstructionProfile =>
+  Object.freeze({
+    state: 'eligible',
+    itemId,
+    rule: Object.freeze(rule),
+    sourceAuthority: 'equipment_instance',
+  })
 const deferred = (itemId: string): EquipmentDeconstructionProfile =>
   Object.freeze({ state: 'deferred', itemId, reasonCode: 'recovery_profile_not_authored' })
+
+const electronicComponentReclamationRule = (): EquipmentGradeRecoveryRule => ({
+  kind: 'yield_threshold',
+  pathId: 'component_reclamation',
+  baseMaterials: [{ materialId: 'electronic_parts', quantity: 1 }],
+  baseWaste: 2,
+  baseDurationWeeks: 1,
+  thresholdGradeId: 'grade_2',
+  bonusMaterialId: 'electronic_parts',
+  bonusQuantity: 1,
+  wasteReduction: 1,
+})
+
+const medicalComponentReclamationRule = (): EquipmentGradeRecoveryRule => ({
+  kind: 'yield_threshold',
+  pathId: 'component_reclamation',
+  baseMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+  baseWaste: 1,
+  baseDurationWeeks: 1,
+  thresholdGradeId: 'grade_2',
+  bonusMaterialId: 'medical_supplies',
+  bonusQuantity: 1,
+  wasteReduction: 1,
+})
 
 export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
   eligible('silver_rounds', {
@@ -32,39 +76,18 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     bonusQuantity: 1,
     wasteReduction: 1,
   }),
-  eligible('medkits', {
-    kind: 'yield_threshold',
-    pathId: 'component_reclamation',
-    baseMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
-    baseWaste: 1,
-    baseDurationWeeks: 1,
-    thresholdGradeId: 'grade_2',
-    bonusMaterialId: 'medical_supplies',
-    bonusQuantity: 1,
-    wasteReduction: 1,
-  }),
-  eligible('signal_jammers', {
-    kind: 'yield_threshold',
-    pathId: 'component_reclamation',
-    baseMaterials: [{ materialId: 'electronic_parts', quantity: 1 }],
-    baseWaste: 2,
-    baseDurationWeeks: 1,
-    thresholdGradeId: 'grade_2',
-    bonusMaterialId: 'electronic_parts',
-    bonusQuantity: 1,
-    wasteReduction: 1,
-  }),
-  eligible('emf_sensors', {
-    kind: 'yield_threshold',
-    pathId: 'component_reclamation',
-    baseMaterials: [{ materialId: 'electronic_parts', quantity: 1 }],
-    baseWaste: 2,
-    baseDurationWeeks: 1,
-    thresholdGradeId: 'grade_2',
-    bonusMaterialId: 'electronic_parts',
-    bonusQuantity: 1,
-    wasteReduction: 1,
-  }),
+  eligible('medkits', medicalComponentReclamationRule()),
+  eligible('trauma_kit', medicalComponentReclamationRule()),
+  eligibleInstance('combat_stims', medicalComponentReclamationRule()),
+  eligible('signal_jammers', electronicComponentReclamationRule()),
+  eligible('emf_sensors', electronicComponentReclamationRule()),
+  eligible('environmental_sampler', electronicComponentReclamationRule()),
+  eligible('encrypted_field_tablet', electronicComponentReclamationRule()),
+  eligible('advanced_recon_suite', electronicComponentReclamationRule()),
+  eligible('signal_intercept_kit', electronicComponentReclamationRule()),
+  eligible('analysis_goggles', electronicComponentReclamationRule()),
+  eligible('tactical_radio', electronicComponentReclamationRule()),
+  eligible('breach_visor', electronicComponentReclamationRule()),
   eligible('ward_seals', {
     kind: 'handling_threshold',
     pathId: 'ritual_disassembly',
@@ -96,19 +119,10 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     'diplomatic_kit',
     'anomaly_scanner',
     'spectral_em_array',
-    'environmental_sampler',
-    'encrypted_field_tablet',
-    'advanced_recon_suite',
     'occult_detection_array',
-    'signal_intercept_kit',
     'field_plate',
     'containment_staff',
     'hazmat_suit',
-    'analysis_goggles',
-    'trauma_kit',
-    'combat_stims',
-    'tactical_radio',
-    'breach_visor',
   ].map(deferred),
 ] as const satisfies readonly EquipmentDeconstructionProfile[])
 
@@ -135,6 +149,12 @@ export function validateEquipmentDeconstructionProfiles(
     if (!catalogById.has(profile.itemId))
       throw new Error(`Unknown equipment recovery item: ${profile.itemId}`)
     if (profile.state === 'deferred') continue
+    if (profile.sourceAuthority === 'equipment_instance' && profile.itemId !== 'combat_stims') {
+      throw new Error(`Unsupported equipment instance recovery profile: ${profile.itemId}`)
+    }
+    if (profile.itemId === 'combat_stims' && profile.sourceAuthority !== 'equipment_instance') {
+      throw new Error('Combat Stim recovery must remain equipment-instance only')
+    }
     const validation = validateEquipmentGradeRecoveryRule(profile.rule)
     if (!validation.valid) {
       throw new Error(

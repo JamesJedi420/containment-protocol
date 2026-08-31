@@ -2220,7 +2220,9 @@ export function getLicensedHandlingRequirement(itemId: string): boolean {
 }
 
 export function getEquipmentDefinition(itemId: string) {
-  return EQUIPMENT_CATALOG[itemId]
+  return Object.prototype.hasOwnProperty.call(EQUIPMENT_CATALOG, itemId)
+    ? EQUIPMENT_CATALOG[itemId]
+    : undefined
 }
 
 export function resolveEquipmentDefinitionGrade(

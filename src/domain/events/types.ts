@@ -19,7 +19,13 @@ import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGrade
 import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
 
 export type OperationEventSourceSystem =
-  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
+  | 'assignment'
+  | 'incident'
+  | 'intel'
+  | 'agent'
+  | 'production'
+  | 'faction'
+  | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -33,7 +39,9 @@ export type CaseSpawnTrigger =
   | 'workshop_unsafe'
 
 export type MarketTransactionListingResourceClass =
-  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
+  | 'supplier_attention_slot'
+  | 'reagent_stock'
+  | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -414,6 +422,11 @@ export interface OperationEventPayloadMap {
     itemName: string
     pathId: 'component_reclamation' | 'ritual_disassembly'
     sourceGradeId: EquipmentGradeId
+    sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
     sourceCondition: 'operational' | 'damaged'
     outputMaterials: ProductionMaterialRequirement[]
     wasteQuantity: number
@@ -426,6 +439,11 @@ export interface OperationEventPayloadMap {
     itemName: string
     pathId: 'component_reclamation' | 'ritual_disassembly'
     sourceGradeId: EquipmentGradeId
+    sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
     sourceCondition: 'operational' | 'damaged'
     outputMaterials: ProductionMaterialRequirement[]
     wasteQuantity: number
@@ -451,6 +469,102 @@ export interface OperationEventPayloadMap {
       reasonCode: EquipmentAutoScrapReasonCode
       count: number
     }>
+  }
+  'equipment.instance_materialized': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    locationState: 'stored' | 'equipped'
+    agentId?: Id
+    slot?: string
+    resourceId?: string
+    capacity?: number
+    remaining?: number
+    /** SPE-2846: all-or-none fabricated-lot snapshot when materializing from a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
+  }
+  'equipment.instance_destroyed': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    reason: 'manual_disposal'
+  }
+  'equipment.instance_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational'
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    /** SPE-2848: all-or-none fabricated-lot snapshot when returning to a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
+  }
+  'equipment.instance_condition_repaired': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    previousCondition: 'damaged'
+    condition: 'operational'
+    reason: 'manual_condition_repair'
+  }
+  'equipment.combat_stim_activated': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    caseTitle: string
+    dosesBefore: number
+    dosesAfter: number
+    underlyingBand: 'depleted' | 'overdrawn'
+    effectiveBand: 'taxed' | 'depleted'
+  }
+  'equipment.combat_stim_overdrive_expired': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    recoveryDebt: number
+  }
+  'equipment.combat_stim_disposed': {
+    week: number
+    instanceId: Id
+    definitionId: 'combat_stims'
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    resourceId: 'combat_stim_dose'
+    capacity: 2
+    remaining: number
+    reason: 'manual_disposal'
+  }
+  'equipment.combat_stim_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: 'combat_stims'
+    definitionName: string
+    condition: 'operational'
+    resourceId: 'combat_stim_dose'
+    capacity: 2
+    remaining: 2
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    fabricationQueueId?: Id
+    fabricationRecipeId?: Id
+    fabricationGradeId?: 'grade_1' | 'grade_2' | 'grade_3' | 'grade_4' | 'grade_5'
+    fabricationCompletedWeek?: number
   }
   'market.shifted': {
     week: number
@@ -782,6 +896,14 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.recovery_completed': 'production'
   'equipment.auto_scrap_policy_changed': 'production'
   'equipment.auto_scrap_routed': 'production'
+  'equipment.instance_materialized': 'agent'
+  'equipment.instance_destroyed': 'agent'
+  'equipment.instance_reaggregated': 'agent'
+  'equipment.instance_condition_repaired': 'agent'
+  'equipment.combat_stim_activated': 'agent'
+  'equipment.combat_stim_overdrive_expired': 'agent'
+  'equipment.combat_stim_disposed': 'agent'
+  'equipment.combat_stim_reaggregated': 'agent'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -845,6 +967,14 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.recovery_completed': 'production',
   'equipment.auto_scrap_policy_changed': 'production',
   'equipment.auto_scrap_routed': 'production',
+  'equipment.instance_materialized': 'agent',
+  'equipment.instance_destroyed': 'agent',
+  'equipment.instance_reaggregated': 'agent',
+  'equipment.instance_condition_repaired': 'agent',
+  'equipment.combat_stim_activated': 'agent',
+  'equipment.combat_stim_overdrive_expired': 'agent',
+  'equipment.combat_stim_disposed': 'agent',
+  'equipment.combat_stim_reaggregated': 'agent',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

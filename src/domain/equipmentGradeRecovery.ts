@@ -75,6 +75,7 @@ export type EquipmentGradeRecoveryIssueCode =
   | 'reserved'
   | 'unstable_anomaly'
   | 'fabricated_lot_selection_unavailable'
+  | 'equipment_instance_selection_unavailable'
   | 'profile_deferred'
 
 export interface EquipmentGradeRecoveryIssue {
@@ -91,6 +92,7 @@ export type EquipmentRecoveryRestrictionCode = Extract<
   | 'reserved'
   | 'unstable_anomaly'
   | 'fabricated_lot_selection_unavailable'
+  | 'equipment_instance_selection_unavailable'
 >
 
 export interface EquipmentGradeRecoveryContext {
@@ -131,6 +133,7 @@ const RESTRICTIONS = new Set<string>([
   'reserved',
   'unstable_anomaly',
   'fabricated_lot_selection_unavailable',
+  'equipment_instance_selection_unavailable',
 ])
 const EXPLANATIONS = new Set<string>(EQUIPMENT_GRADE_RECOVERY_EXPLANATION_CODES)
 

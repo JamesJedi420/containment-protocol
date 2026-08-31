@@ -1,7 +1,9 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
 import { getProductionRecipe, productionMaterialCatalog } from '../../data/production'
+import { getEquipmentDeconstructionProfile } from '../../data/equipmentDeconstruction'
 import { getEquipmentDefinition } from '../equipment'
+import { getEquipmentGradeCatalogParticipation } from '../equipmentGradeCatalog'
 import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
 import {
   getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
@@ -19,6 +21,10 @@ import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGrade
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
+const equipmentInstanceIdSchema = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/)
+  .refine((value) => value !== '__proto__' && value !== 'constructor' && value !== 'prototype')
 const weekSchema = z.number().int().min(1)
 const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
 const finitePositiveIntSchema = z.number().finite().int().min(1)
@@ -713,6 +719,11 @@ const equipmentRecoveryEventShape = {
   itemName: z.string().min(1),
   pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
   sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+  sourceFabricationQueueId: idSchema.optional(),
+  sourceEquipmentInstanceId: equipmentInstanceIdSchema.optional(),
+  sourceEquipmentInstanceResourceId: idSchema.optional(),
+  sourceEquipmentInstanceCapacity: finiteNonNegativeIntSchema.optional(),
+  sourceEquipmentInstanceRemaining: finiteNonNegativeIntSchema.optional(),
   sourceCondition: z.enum(['operational', 'damaged']),
   outputMaterials: z
     .array(
@@ -732,6 +743,55 @@ function refineEquipmentRecoveryEvent(
   payload: z.infer<z.ZodObject<typeof equipmentRecoveryEventShape>>,
   context: z.RefinementCtx
 ) {
+  const instanceResourceFields = [
+    payload.sourceEquipmentInstanceResourceId,
+    payload.sourceEquipmentInstanceCapacity,
+    payload.sourceEquipmentInstanceRemaining,
+  ].filter((value) => value !== undefined)
+  if (!payload.sourceEquipmentInstanceId && instanceResourceFields.length > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery instance resource provenance requires an instance ID',
+    })
+  }
+  if (payload.sourceFabricationQueueId && payload.sourceEquipmentInstanceId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery cannot claim fabrication and instance provenance together',
+    })
+  }
+  if (payload.sourceEquipmentInstanceId) {
+    const profile = getEquipmentDeconstructionProfile(payload.itemId)
+    const definition = getEquipmentDefinition(payload.itemId)
+    const participation = definition
+      ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+      : undefined
+    const hasCanonicalCatalogGrade =
+      participation?.state === 'graded' && payload.sourceGradeId === participation.gradeId
+    const validCombatStimProvenance =
+      payload.itemId === 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'equipment_instance' &&
+      hasCanonicalCatalogGrade &&
+      instanceResourceFields.length === 3 &&
+      payload.sourceEquipmentInstanceResourceId === 'combat_stim_dose' &&
+      payload.sourceEquipmentInstanceCapacity === 2 &&
+      payload.sourceEquipmentInstanceRemaining === 0
+    const validOrdinaryProvenance =
+      payload.itemId !== 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'aggregate_and_instance' &&
+      instanceResourceFields.length === 0
+    if (!validCombatStimProvenance && !validOrdinaryProvenance) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceEquipmentInstanceId'],
+        message: 'instance recovery provenance does not match its authored source authority',
+      })
+    }
+  }
   const definition = getEquipmentDefinition(payload.itemId)
   if (!definition || definition.name !== payload.itemName) {
     context.addIssue({
@@ -760,6 +820,325 @@ const equipmentRecoveryCompletedSchema = z
   .object(equipmentRecoveryEventShape)
   .strict()
   .superRefine(refineEquipmentRecoveryEvent)
+
+const equipmentInstanceMaterializedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: idSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    locationState: z.enum(['stored', 'equipped']),
+    agentId: idSchema.optional(),
+    slot: idSchema.optional(),
+    resourceId: idSchema.optional(),
+    capacity: finiteNonNegativeIntSchema.optional(),
+    remaining: finiteNonNegativeIntSchema.optional(),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'materialized instance must reference the equipment catalog',
+      })
+    }
+    const locationFields = [payload.agentId, payload.slot].filter((value) => value !== undefined)
+    if (
+      (payload.locationState === 'equipped' && locationFields.length !== 2) ||
+      (payload.locationState === 'stored' && locationFields.length !== 0)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['locationState'],
+        message: 'materialized location fields must match locationState',
+      })
+    }
+    const payloadFields = [payload.resourceId, payload.capacity, payload.remaining].filter(
+      (value) => value !== undefined
+    )
+    if (payloadFields.length !== 0 && payloadFields.length !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'materialized resource fields must be supplied together',
+      })
+    }
+    if (
+      payload.capacity !== undefined &&
+      payload.remaining !== undefined &&
+      payload.remaining > payload.capacity
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['remaining'],
+        message: 'materialized remaining resource cannot exceed capacity',
+      })
+    }
+    if (
+      payload.definitionId === 'combat_stims' &&
+      (payload.resourceId !== 'combat_stim_dose' ||
+        payload.capacity !== 2 ||
+        payload.remaining !== 2)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (fabricationFields.length !== 0 && fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'materialized fabrication provenance fields must be supplied together',
+      })
+    }
+    // SPE-2849: Combat Stim lot materialization carries 2/2 resource fields + all-or-none
+    // fabrication provenance. Ordinary fabricated materialization still forbids resource fields.
+    if (
+      fabricationFields.length === 4 &&
+      payloadFields.length !== 0 &&
+      payload.definitionId !== 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot materialization cannot carry resource payload fields',
+      })
+    }
+  })
+
+const equipmentInstanceDestroyedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    reason: z.literal('manual_disposal'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'destroyed instance must reference an ordinary equipment catalog definition',
+      })
+    }
+  })
+
+const equipmentInstanceReaggregatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.literal('operational'),
+    reason: z.enum(['manual_untracking', 'fabricated_lot_return']),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 're-aggregated instance must reference an ordinary equipment catalog definition',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (payload.reason === 'manual_untracking') {
+      if (fabricationFields.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fabricationQueueId'],
+          message: 'catalog re-aggregation cannot carry fabricated-lot provenance',
+        })
+      }
+      return
+    }
+    if (fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot return provenance fields must be supplied together',
+      })
+    }
+  })
+
+const equipmentInstanceConditionRepairedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    previousCondition: z.literal('damaged'),
+    condition: z.literal('operational'),
+    reason: z.literal('manual_condition_repair'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'repaired instance must reference a known equipment catalog definition',
+      })
+    }
+  })
+
+const combatStimActivatedSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    caseTitle: z.string().min(1),
+    dosesBefore: z.number().int().min(1).max(2),
+    dosesAfter: z.number().int().min(0).max(1),
+    underlyingBand: z.enum(['depleted', 'overdrawn']),
+    effectiveBand: z.enum(['taxed', 'depleted']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.dosesAfter !== payload.dosesBefore - 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['dosesAfter'],
+        message: 'Combat Stim activation must consume exactly one dose',
+      })
+    }
+    const expectedBand = payload.underlyingBand === 'overdrawn' ? 'depleted' : 'taxed'
+    if (payload.effectiveBand !== expectedBand) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['effectiveBand'],
+        message: 'Combat Stim activation must advance exactly one energy band',
+      })
+    }
+  })
+
+const combatStimOverdriveExpiredSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    recoveryDebt: finitePositiveIntSchema,
+  })
+  .strict()
+
+const combatStimDisposedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: z.literal('combat_stims'),
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    resourceId: z.literal('combat_stim_dose'),
+    capacity: z.literal(2),
+    remaining: z.number().int().min(0).max(2),
+    reason: z.literal('manual_disposal'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'disposed instance must reference the Combat Stims catalog definition',
+      })
+    }
+  })
+
+const combatStimReaggregatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: z.literal('combat_stims'),
+    definitionName: z.string().min(1),
+    condition: z.literal('operational'),
+    resourceId: z.literal('combat_stim_dose'),
+    capacity: z.literal(2),
+    remaining: z.literal(2),
+    reason: z.enum(['manual_untracking', 'fabricated_lot_return']),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 're-aggregated Combat Stim must reference the Combat Stims catalog definition',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (payload.reason === 'manual_untracking') {
+      if (fabricationFields.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fabricationQueueId'],
+          message: 'catalog Combat Stim re-aggregation cannot carry fabricated-lot provenance',
+        })
+      }
+      return
+    }
+    if (fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot Combat Stim return provenance fields must be supplied together',
+      })
+    }
+  })
 
 const equipmentAutoScrapPolicyChangedSchema = z
   .object({
@@ -1364,6 +1743,14 @@ export const operationEventPayloadSchemas = {
   'equipment.recovery_completed': equipmentRecoveryCompletedSchema,
   'equipment.auto_scrap_policy_changed': equipmentAutoScrapPolicyChangedSchema,
   'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
+  'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
+  'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
+  'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
+  'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
+  'equipment.combat_stim_activated': combatStimActivatedSchema,
+  'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
+  'equipment.combat_stim_disposed': combatStimDisposedSchema,
+  'equipment.combat_stim_reaggregated': combatStimReaggregatedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,

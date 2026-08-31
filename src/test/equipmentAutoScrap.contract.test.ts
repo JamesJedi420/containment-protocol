@@ -134,6 +134,116 @@ describe('equipment Auto-Scrap contract', () => {
     expect(preview).toMatchObject({ includedQuantity: 0, excludedQuantity: 6 })
   })
 
+  it('routes newly eligible technological stock at or below threshold in item-ID order', () => {
+    const state = createStartingState()
+    state.inventory.tactical_radio = 1
+    state.inventory.environmental_sampler = 1
+    state.inventory.advanced_recon_suite = 1
+    state.inventory.anomaly_scanner = 1
+
+    const preview = resolveEquipmentAutoScrapPreview(state, 'grade_2')
+    expect(
+      preview.entries.map((entry) => ({
+        itemId: entry.itemId,
+        decision: entry.decision,
+        reasonCodes: entry.reasonCodes,
+      }))
+    ).toEqual([
+      {
+        itemId: 'advanced_recon_suite',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.grade_above_threshold'],
+      },
+      {
+        itemId: 'anomaly_scanner',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.recovery_profile_unavailable'],
+      },
+      {
+        itemId: 'environmental_sampler',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+      {
+        itemId: 'tactical_radio',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+    ])
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_2')
+    )
+    expect(routed.equipmentDeconstructionQueue?.map((entry) => entry.itemId)).toEqual([
+      'environmental_sampler',
+      'tactical_radio',
+    ])
+    expect(routed.inventory).toMatchObject({
+      advanced_recon_suite: 1,
+      anomaly_scanner: 1,
+      environmental_sampler: 0,
+      tactical_radio: 0,
+    })
+  })
+
+  it('routes Grade I Trauma Kit while requiring manual Combat Stim instance selection', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+    state.inventory.combat_stims = 1
+
+    const preview = resolveEquipmentAutoScrapPreview(state, 'grade_1')
+    expect(
+      preview.entries.map((entry) => ({
+        itemId: entry.itemId,
+        decision: entry.decision,
+        reasonCodes: entry.reasonCodes,
+      }))
+    ).toEqual([
+      {
+        itemId: 'combat_stims',
+        decision: 'exclude',
+        reasonCodes: ['auto_scrap.equipment_instance_selection_unavailable'],
+      },
+      {
+        itemId: 'trauma_kit',
+        decision: 'include',
+        reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
+      },
+    ])
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_1')
+    )
+    expect(routed.inventory).toMatchObject({ combat_stims: 1, trauma_kit: 0 })
+    expect(routed.equipmentDeconstructionQueue?.map((entry) => entry.itemId)).toEqual([
+      'trauma_kit',
+    ])
+  })
+
+  it('routes only aggregate stock when an ordinary stored instance also exists', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.equipmentInstances = {
+      'equipment-instance-ordinary': {
+        instanceId: 'equipment-instance-ordinary',
+        definitionId: 'signal_jammers',
+        location: { state: 'stored' },
+        condition: 'operational',
+      },
+    }
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_2')
+    )
+
+    expect(routed.inventory.signal_jammers).toBe(0)
+    expect(routed.equipmentInstances).toEqual(state.equipmentInstances)
+    expect(routed.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'signal_jammers',
+    })
+    expect(routed.equipmentDeconstructionQueue?.[0]).not.toHaveProperty('sourceEquipmentInstanceId')
+  })
+
   it('keeps grade decisions independent from recovery condition and non-grade stock axes', () => {
     const operational = createStartingState()
     operational.inventory.medkits = 1
@@ -235,6 +345,39 @@ describe('equipment Auto-Scrap contract', () => {
           { reasonCode: 'auto_scrap.fabricated_lot_selection_unavailable', count: 1 },
         ],
       },
+    })
+  })
+
+  it('unblocks catalog Auto-Scrap only after every fabricated-lot unit is explicitly claimed', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'ward-seals',
+        itemId: 'ward_seals',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    expect(resolveEquipmentAutoScrapPreview(state, 'grade_1').entries[0]).toMatchObject({
+      itemId: 'ward_seals',
+      decision: 'exclude',
+      quantity: 2,
+      reasonCodes: ['auto_scrap.fabricated_lot_selection_unavailable'],
+    })
+
+    const claimed = queueEquipmentDeconstruction(state, 'ward_seals', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    expect(resolveEquipmentAutoScrapPreview(claimed, 'grade_1').entries[0]).toMatchObject({
+      itemId: 'ward_seals',
+      decision: 'include',
+      quantity: 1,
+      reasonCodes: ['auto_scrap.eligible_at_or_below_threshold'],
     })
   })
 

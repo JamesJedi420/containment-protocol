@@ -21,12 +21,7 @@ export type AgentRole =
  * These are retained for persistence compatibility and low-level stat mutation.
  */
 export type LegacyStatDomain =
-  | 'physical'
-  | 'tactical'
-  | 'cognitive'
-  | 'social'
-  | 'stability'
-  | 'technical'
+  'physical' | 'tactical' | 'cognitive' | 'social' | 'stability' | 'technical'
 
 /**
  * Canonical operational domains used by agent evaluation, team composition, and resolution.
@@ -168,11 +163,7 @@ export type PotentialTier = ExactPotentialTier | 'low' | 'mid' | 'high'
 export type PotentialIntelConfidence = 'unknown' | 'low' | 'medium' | 'high' | 'confirmed'
 
 export type PotentialIntelSource =
-  | 'recruitment_scout'
-  | 'training'
-  | 'mission'
-  | 'breakthrough'
-  | 'academy_record'
+  'recruitment_scout' | 'training' | 'mission' | 'breakthrough' | 'academy_record'
 
 export interface PotentialIntel {
   visibleTier?: ExactPotentialTier
@@ -194,12 +185,7 @@ export type TrainingCategory =
   | 'advanced_certification_programs'
 
 export type CertificationState =
-  | 'not_started'
-  | 'in_progress'
-  | 'eligible_review'
-  | 'certified'
-  | 'expired'
-  | 'revoked'
+  'not_started' | 'in_progress' | 'eligible_review' | 'certified' | 'expired' | 'revoked'
 
 export interface TrainingHistoryEntry {
   trainingId: string
@@ -524,10 +510,7 @@ export interface AgentPerformanceBlendBreakdown {
 export type ProtocolTier = 'operations' | 'containment' | 'directorate'
 
 export type ProtocolType =
-  | 'survival-focused'
-  | 'anomaly-interaction'
-  | 'investigation-efficiency'
-  | 'operational-endurance'
+  'survival-focused' | 'anomaly-interaction' | 'investigation-efficiency' | 'operational-endurance'
 
 export type ProtocolScope =
   | {
@@ -683,12 +666,7 @@ export type MarketPressure = 'discounted' | 'stable' | 'tight'
  * `fieldTech` / `analyst` are legacy specialist aliases kept for compatibility.
  */
 export type RecruitCategory =
-  | 'agent'
-  | 'staff'
-  | 'specialist'
-  | 'fieldTech'
-  | 'analyst'
-  | 'instructor'
+  'agent' | 'staff' | 'specialist' | 'fieldTech' | 'analyst' | 'instructor'
 
 /**
  * Recruitment hiring status.
@@ -777,6 +755,15 @@ export interface AgentOverdriveState {
   remainingPhases: number
   /** Deterministic recovery debt remaining after overdrive expiry. */
   recoveryDebt: number
+  /** Optional typed provenance for equipment-triggered overdrive and its later debt. */
+  source?: AgentOverdriveSource
+}
+
+export interface AgentOverdriveSource {
+  kind: 'combat_stim'
+  activationId: string
+  equipmentInstanceId: string
+  caseId: Id
 }
 
 /**

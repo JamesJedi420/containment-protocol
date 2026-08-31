@@ -23,6 +23,7 @@ import type {
   EquipmentRecoveryPathId,
 } from './equipmentGradeRecovery'
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
+import type { EquipmentInstanceRegistry } from './equipmentInstance'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -1848,6 +1849,12 @@ export interface FabricatedEquipmentLot {
   quantity: number
   gradeId: EquipmentGradeId
   completedWeek: number
+  /**
+   * SPE-2846: units taken into exact ordinary-instance tracking from this lot.
+   * Immutable production `quantity` remains the SPE-2800 receipt size; outstanding
+   * remaining is quantity − recovery claims − trackedInstanceUnits.
+   */
+  trackedInstanceUnits?: number
 }
 
 export type FabricatedEquipmentLotRegistry = Record<Id, FabricatedEquipmentLot>
@@ -1859,6 +1866,14 @@ export interface EquipmentDeconstructionQueueEntry {
   pathId: EquipmentRecoveryPathId
   sourceGradeId: EquipmentGradeId
   sourceGradeVisibility: EquipmentGradeVisibility
+  /** SPE-2800: immutable fabrication provenance for an explicitly selected batch unit. */
+  sourceFabricationQueueId?: Id
+  /** SPE-2830 / SPE-2841: immutable provenance for an explicitly selected equipment instance. */
+  sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
   sourceCondition: EquipmentRecoveryCondition
   outputMaterials: ProductionMaterialRequirement[]
   wasteQuantity: number
@@ -1873,6 +1888,14 @@ export interface EquipmentRecoveryOutcome {
   itemId: string
   pathId: EquipmentRecoveryPathId
   sourceGradeId: EquipmentGradeId
+  /** SPE-2800: retained fabrication provenance; omitted for catalog-source recovery. */
+  sourceFabricationQueueId?: Id
+  /** SPE-2830 / SPE-2841: retained exact identity; ordinary recovery uses this field alone. */
+  sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
   sourceCondition: EquipmentRecoveryCondition
   outputMaterials: ProductionMaterialRequirement[]
   wasteQuantity: number
@@ -2761,6 +2784,8 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
+  equipmentInstances?: EquipmentInstanceRegistry
   /**
    * Canonical weekly maintenance backlog of damaged equipment item IDs.
    * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.

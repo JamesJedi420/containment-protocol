@@ -626,6 +626,176 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('completed')
   })
 
+  it('equipment.instance_destroyed — names the exact identity and condition', () => {
+    const event = makeEvent(
+      'equipment.instance_destroyed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-1',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'damaged',
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance destroyed')
+    expect(view.detail).toContain('equipment-instance-7-1')
+    expect(view.detail).toContain('damaged')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.instance_condition_repaired — names the exact identity and repair', () => {
+    const event = makeEvent(
+      'equipment.instance_condition_repaired',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance repaired')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Damaged → operational')
+    expect(view.detail).toContain('Manual condition repair')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-3',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance disposed')
+    expect(view.detail).toContain('equipment-instance-7-3')
+    expect(view.detail).toContain('1/2 doses')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.combat_stim_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'combat-stim-batch',
+        fabricationRecipeId: 'combat-stims',
+        fabricationGradeId: 'grade_1',
+        fabricationCompletedWeek: 1,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('combat-stim-batch')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.combat_stim_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-4')
+    expect(view.detail).toContain('2/2 doses')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-2')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-5',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'batch',
+        fabricationRecipeId: 'signal-jammers',
+        fabricationGradeId: 'grade_2',
+        fabricationCompletedWeek: 3,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-5')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('batch')
+    expect(view.detail).toContain('week 3')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('market.shifted tight pressure — warning tone', () => {
     const event = makeEvent('market.shifted', {
       week: 5,
@@ -688,7 +858,8 @@ describe('buildEventFeedView', () => {
       waiverPrecedentCount: 2,
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
-      authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+      authorityBasis:
+        'Director institutional self-authorization under crisis procurement rules (baseline institution).',
       regulatoryArbitrageSignal: 'none',
       ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
     })
@@ -703,9 +874,7 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Institution containment_protocol')
     expect(view.detail).toContain('Authority crisis_director_self')
     expect(view.detail).toContain('Reg. arbitrage none')
-    expect(view.detail).toContain(
-      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
-    )
+    expect(view.detail).toContain('Rule conflict sanctioned_procurement_vs_crisis_waiver')
     expect(view.searchText).toContain('130')
     expect(view.searchText).toContain('sanctioned')
     expect(view.searchText).toContain('containment_protocol')
@@ -724,7 +893,8 @@ describe('buildEventFeedView', () => {
       waiverPrecedentCount: 1,
       institutionKey: 'joint_oversight_concordat',
       authorityRoute: 'joint_oversight_clearance_ratification',
-      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+      authorityBasis:
+        'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
       regulatoryArbitrageSignal: 'cross_institution_clearance_route',
       ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
     })
@@ -732,9 +902,7 @@ describe('buildEventFeedView', () => {
 
     expect(view.detail).toContain('Reg. arbitrage cross_institution_clearance_route')
     expect(view.searchText).toContain('cross_institution_clearance_route')
-    expect(view.detail).toContain(
-      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
-    )
+    expect(view.detail).toContain('Rule conflict sanctioned_procurement_vs_crisis_waiver')
   })
 
   it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {
@@ -1712,7 +1880,8 @@ describe('buildEventFeedView faction additions', () => {
       trigger: 'faction_offer',
       factionId: 'institutions',
       factionLabel: 'Academic Institutions',
-      sourceReason: 'Academic Institutions opened a cooperative mission window around archive work.',
+      sourceReason:
+        'Academic Institutions opened a cooperative mission window around archive work.',
     })
     const view = buildEventFeedView(event)
 

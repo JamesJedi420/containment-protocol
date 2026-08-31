@@ -220,6 +220,30 @@ describe('equipment Auto-Scrap contract', () => {
     ])
   })
 
+  it('routes only aggregate stock when an ordinary stored instance also exists', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.equipmentInstances = {
+      'equipment-instance-ordinary': {
+        instanceId: 'equipment-instance-ordinary',
+        definitionId: 'signal_jammers',
+        location: { state: 'stored' },
+        condition: 'operational',
+      },
+    }
+
+    const routed = applyEquipmentAutoScrapAtWeekClose(
+      enableEquipmentAutoScrapPolicy(state, 'grade_2')
+    )
+
+    expect(routed.inventory.signal_jammers).toBe(0)
+    expect(routed.equipmentInstances).toEqual(state.equipmentInstances)
+    expect(routed.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      itemId: 'signal_jammers',
+    })
+    expect(routed.equipmentDeconstructionQueue?.[0]).not.toHaveProperty('sourceEquipmentInstanceId')
+  })
+
   it('keeps grade decisions independent from recovery condition and non-grade stock axes', () => {
     const operational = createStartingState()
     operational.inventory.medkits = 1

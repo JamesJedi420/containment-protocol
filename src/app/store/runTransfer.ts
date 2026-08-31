@@ -11,6 +11,7 @@ import {
   type ProductionRecipe,
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
+import { getEquipmentDeconstructionProfile } from '../../data/equipmentDeconstruction'
 import {
   isSafeProductionQueueId,
   reconcileProductionGradeSnapshot,
@@ -1040,6 +1041,12 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'production.queue_completed': ['queueId', 'recipeId'],
   'equipment.recovery_started': ['queueId', 'itemId'],
   'equipment.recovery_completed': ['queueId', 'itemId'],
+  'equipment.instance_materialized': ['instanceId', 'definitionId'],
+  'equipment.instance_destroyed': ['instanceId', 'definitionId'],
+  'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
+  'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
+  'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
+  'equipment.combat_stim_reaggregated': ['instanceId', 'definitionId'],
   'market.shifted': ['featuredRecipeId'],
   'market.transaction_recorded': ['transactionId', 'listingId', 'itemId'],
   'faction.standing_changed': ['factionId'],
@@ -5572,6 +5579,18 @@ function sanitizeFabricatedEquipmentLots(
     const recipe = getProductionRecipe(lot.recipeId)
     if (!recipe || recipe.outputItemId !== lot.itemId) continue
 
+    const trackedInstanceUnits = Object.prototype.hasOwnProperty.call(lot, 'trackedInstanceUnits')
+      ? lot.trackedInstanceUnits
+      : undefined
+    if (
+      trackedInstanceUnits !== undefined &&
+      (!Number.isInteger(trackedInstanceUnits) ||
+        (trackedInstanceUnits as number) < 0 ||
+        (trackedInstanceUnits as number) > (lot.quantity as number))
+    ) {
+      continue
+    }
+
     lots[queueId] = Object.freeze({
       queueId,
       recipeId: lot.recipeId,
@@ -5579,6 +5598,7 @@ function sanitizeFabricatedEquipmentLots(
       quantity: lot.quantity as number,
       gradeId: lot.gradeId,
       completedWeek: lot.completedWeek as number,
+      ...(typeof trackedInstanceUnits === 'number' ? { trackedInstanceUnits } : {}),
     })
   }
 
@@ -5611,34 +5631,61 @@ function sanitizeEquipmentRecoveryMaterials(
 
 interface SanitizedEquipmentRecoveryInstanceProvenance {
   sourceEquipmentInstanceId: string
-  sourceEquipmentInstanceResourceId: string
-  sourceEquipmentInstanceCapacity: number
-  sourceEquipmentInstanceRemaining: number
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
 }
 
 function sanitizeEquipmentRecoveryInstanceProvenance(
   value: Record<string, unknown>,
   itemId: string,
-  sourceGradeId: unknown
+  sourceGradeId: unknown,
+  fabricatedEquipmentLots: FabricatedEquipmentLotRegistry = {}
 ): SanitizedEquipmentRecoveryInstanceProvenance | null | undefined {
-  const keys = [
-    'sourceEquipmentInstanceId',
+  const resourceKeys = [
     'sourceEquipmentInstanceResourceId',
     'sourceEquipmentInstanceCapacity',
     'sourceEquipmentInstanceRemaining',
   ] as const
-  const present = keys.filter((key) => Object.prototype.hasOwnProperty.call(value, key))
-  if (present.length === 0) return undefined
-  if (present.length !== keys.length) return null
+  const hasInstanceId = Object.prototype.hasOwnProperty.call(value, 'sourceEquipmentInstanceId')
+  const presentResourceKeys = resourceKeys.filter((key) =>
+    Object.prototype.hasOwnProperty.call(value, key)
+  )
+  if (!hasInstanceId && presentResourceKeys.length === 0) return undefined
+  if (!hasInstanceId) return null
   const definition = getEquipmentDefinition(itemId)
   const participation = definition
     ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
     : undefined
+  const profile = getEquipmentDeconstructionProfile(itemId)
+  const hasCanonicalCatalogGrade =
+    participation?.state === 'graded' && sourceGradeId === participation.gradeId
+  const hasFabricatedOriginGrade =
+    isEquipmentGradeId(sourceGradeId) &&
+    Object.values(fabricatedEquipmentLots).some(
+      (lot) => lot.itemId === itemId && lot.gradeId === sourceGradeId
+    )
   if (
-    itemId !== COMBAT_STIM_DEFINITION_ID ||
-    participation?.state !== 'graded' ||
-    sourceGradeId !== participation.gradeId ||
     !isSafeEquipmentInstanceId(value.sourceEquipmentInstanceId) ||
+    (!hasCanonicalCatalogGrade && !hasFabricatedOriginGrade)
+  ) {
+    return null
+  }
+  if (itemId !== COMBAT_STIM_DEFINITION_ID) {
+    if (
+      profile?.state !== 'eligible' ||
+      profile.sourceAuthority !== 'aggregate_and_instance' ||
+      presentResourceKeys.length !== 0
+    ) {
+      return null
+    }
+    return { sourceEquipmentInstanceId: value.sourceEquipmentInstanceId }
+  }
+  if (
+    !hasCanonicalCatalogGrade ||
+    profile?.state !== 'eligible' ||
+    profile.sourceAuthority !== 'equipment_instance' ||
+    presentResourceKeys.length !== resourceKeys.length ||
     value.sourceEquipmentInstanceResourceId !== COMBAT_STIM_RESOURCE_ID ||
     value.sourceEquipmentInstanceCapacity !== COMBAT_STIM_CAPACITY ||
     value.sourceEquipmentInstanceRemaining !== 0
@@ -5701,7 +5748,8 @@ function sanitizeEquipmentRecoveryOutcomes(
     const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
       outcome,
       outcome.itemId,
-      outcome.sourceGradeId
+      outcome.sourceGradeId,
+      fabricatedEquipmentLots
     )
     if (
       instanceProvenance === null ||
@@ -5798,7 +5846,8 @@ function sanitizeEquipmentDeconstructionQueue(
     const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
       entry,
       entry.itemId,
-      entry.sourceGradeId
+      entry.sourceGradeId,
+      fabricatedEquipmentLots
     )
     const rawEntryId = typeof entry.id === 'string' ? entry.id.trim() : ''
     if (
@@ -8502,7 +8551,10 @@ function sanitizeOperationEvents(
                     (
                       entry
                     ): entry is
-                      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
+                      | 'benching'
+                      | 'performance_penalty'
+                      | 'disciplinary'
+                      | 'resignation' =>
                       entry === 'benching' ||
                       entry === 'performance_penalty' ||
                       entry === 'disciplinary' ||
@@ -8682,7 +8734,9 @@ function sanitizeOperationEvents(
       case 'recruitment.intel_confirmed':
         {
           const stage = clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as
-            1 | 2 | 3
+            | 1
+            | 2
+            | 3
           const revealLevel = reconcileRecruitmentEventRevealLevel(
             stage,
             sanitizeRevealLevel(payload.revealLevel)
@@ -8822,7 +8876,8 @@ function sanitizeOperationEvents(
           const instanceProvenance = sanitizeEquipmentRecoveryInstanceProvenance(
             payload,
             itemId,
-            sourceGradeId
+            sourceGradeId,
+            options.fabricatedEquipmentLots ?? {}
           )
           const sourceLot = hasSourceFabricationQueueId
             ? options.fabricatedEquipmentLots?.[sourceFabricationQueueId as string]
@@ -8965,6 +9020,100 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.auto_scrap_routed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_materialized': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_materialized'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_materialized'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_destroyed': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_destroyed'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_destroyed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_reaggregated': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_reaggregated'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_reaggregated'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_condition_repaired': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.instance_condition_repaired'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_condition_repaired'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.combat_stim_disposed': {
+        const parsed = operationEventPayloadSchemas['equipment.combat_stim_disposed'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.combat_stim_disposed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.combat_stim_reaggregated': {
+        const parsed = operationEventPayloadSchemas['equipment.combat_stim_reaggregated'].safeParse(
+          {
+            ...payload,
+            week,
+          }
+        )
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.combat_stim_reaggregated'),
             payload: parsed.data,
           })
         )
@@ -10238,7 +10387,8 @@ export function hydrateGame(
   const equipmentInstanceHydration = sanitizeEquipmentInstanceRegistry(
     game.equipmentInstances,
     agents,
-    claimedEquipmentInstanceIds
+    claimedEquipmentInstanceIds,
+    fabricatedEquipmentLots
   )
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances

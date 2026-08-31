@@ -112,6 +112,47 @@ unit is outstanding. Fully claimed historical lots no longer block later catalog
 SPE-2830 likewise keeps Combat Stim recovery instance-only, so aggregate stock and stored instances
 are never routed by Auto-Scrap.
 
+### Auto-Scrap operational runbook
+
+Use the Equipment page when checking the shipped Auto-Scrap flow. The UI section is
+`Weekly Auto-Scrap` in `src/features/equipment/EquipmentPage.tsx`: pick a Grade I through Grade V
+threshold, click **Review activation** or **Review update**, then confirm. The preview and labels come from
+`getEquipmentAutoScrapView` in `src/features/equipment/equipmentView.ts`, which uses
+`resolveEquipmentAutoScrapPreview` and never derives grade truth in the UI. Disabling the policy
+prevents future weekly routing, but it does not cancel recovery jobs that were already queued.
+
+The persisted policy lives at `GameState.equipmentAutoScrapPolicy`. Starting state writes the
+disabled policy. Hydration calls `sanitizeEquipmentAutoScrapPolicy`, so missing, malformed,
+display-string, or extra-field values fail closed to disabled without a save-version bump. Valid
+enabled values must use canonical IDs such as `grade_2`, not display labels such as `Grade II`.
+
+The two durable event records are:
+
+| Event                                 | Meaning                                           | Main fields                                                                                       |
+| ------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `equipment.auto_scrap_policy_changed` | A player enabled, updated, or disabled the policy | `week`, `action`, optional `thresholdGradeId`, preview counts                                     |
+| `equipment.auto_scrap_routed`         | Week close evaluated the enabled policy           | `week`, `thresholdGradeId`, `routedQueueIds`, routed and excluded counts, `exclusionReasonCounts` |
+
+The dashboard event feed renders both event types through `src/features/dashboard/eventFeedView.ts`.
+Use those events before assuming the policy failed. A same-week `equipment.auto_scrap_routed` event
+also makes replay a no-op.
+
+When an expected item does not route, inspect `resolveEquipmentAutoScrapPreview(state,
+thresholdGradeId)` first. The reason codes point to the owning authority:
+
+| Reason code                                           | Usual source to inspect                                                                  |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `auto_scrap.grade_above_threshold`                    | Canonical grade is known but higher than the selected threshold                          |
+| `auto_scrap.grade_unavailable`                        | Hidden, unknown, ungraded, or invalid grade participation                                |
+| `auto_scrap.recovery_profile_unavailable`             | No explicit recovery profile for the item                                                |
+| `auto_scrap.fabricated_lot_selection_unavailable`     | Outstanding fabricated-lot units still require explicit lot selection (SPE-2800)         |
+| `auto_scrap.equipment_instance_selection_unavailable` | Stored equipment instances require explicit instance selection before aggregate recovery |
+| `auto_scrap.recovery_unavailable`                     | Recovery resolver rejected the item for another bounded reason                           |
+
+Week-close order matters. Fabrication advances first, Auto-Scrap evaluates the freshly updated
+fabricated-lot ledger, then normal equipment recovery advancement runs. A newly fabricated item can
+therefore appear in inventory and still remain protected from Auto-Scrap during that same close.
+
 Broader custody/contamination/relic recovery, equipment-linked evidence and legal restrictions,
 identification workflows, favorite/lock/quest/unique state, processed-material quality, and
 automated fabricated-lot selection remain owned by downstream prerequisites.

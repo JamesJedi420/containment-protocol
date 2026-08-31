@@ -6,7 +6,12 @@ import {
   createAgencyFrontBusinessOpenedDraft,
   createAgentInstructorAssignedDraft,
   createAgentInstructorUnassignedDraft,
+  createEquipmentInstanceDestroyedDraft,
   createEquipmentInstanceMaterializedDraft,
+  createEquipmentInstanceReaggregatedDraft,
+  createEquipmentInstanceConditionRepairedDraft,
+  createCombatStimDisposedDraft,
+  createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
 import {
@@ -84,7 +89,10 @@ import { createSeededRng, normalizeSeed } from '../../domain/math'
 import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equipment'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
+  reaggregateStoredOrdinaryEquipmentInstance,
+  repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
 } from '../../domain/equipmentInstance'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -131,8 +139,21 @@ import {
 import { hireCandidate } from '../../domain/sim/hire'
 import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { transitionRecruitmentCandidate } from '../../domain/recruitment'
-import { equipAgentItem, unequipAgentItem } from '../../domain/sim/equipment'
-import { activateCombatStim, equipStoredCombatStimInstance } from '../../domain/combatStim'
+import {
+  equipAgentItem,
+  equipStoredEquipmentInstance,
+  materializeStoredCombatStimInstance,
+  materializeStoredOrdinaryEquipmentInstance,
+  returnFabricatedOrdinaryEquipmentInstanceToLot,
+  unequipAgentItem,
+} from '../../domain/sim/equipment'
+import {
+  activateCombatStim,
+  destroyStoredCombatStimInstance,
+  equipStoredCombatStimInstance,
+  reaggregateStoredCombatStimInstance as reaggregateStoredCombatStimInstanceState,
+  returnFabricatedCombatStimInstanceToLot as returnFabricatedCombatStimInstanceToLotState,
+} from '../../domain/combatStim'
 import {
   createTeam,
   deleteEmptyTeam,
@@ -397,7 +418,19 @@ interface GameStore {
   assignInstructor: (staffId: Id, agentId: Id) => void
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
+  materializeStoredEquipmentInstance: (
+    itemId: string,
+    source?: EquipmentDeconstructionSourceRef
+  ) => void
+  destroyStoredEquipmentInstance: (instanceId: string) => void
+  repairStoredEquipmentInstanceCondition: (instanceId: string) => void
+  disposeStoredCombatStimInstance: (instanceId: string) => void
+  reaggregateStoredCombatStimInstance: (instanceId: string) => void
+  reaggregateStoredEquipmentInstance: (instanceId: string) => void
+  returnFabricatedStoredEquipmentInstanceToLot: (instanceId: string) => void
+  returnFabricatedStoredCombatStimInstanceToLot: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
+  equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   activateCombatStim: (instanceId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
@@ -1777,6 +1810,204 @@ export const useGameStore = create<GameStore>()(
       reconcileAgents: (leftId, rightId) =>
         set((s) => ({ game: reconcileAgents(s.game, leftId, rightId) })),
 
+      materializeStoredEquipmentInstance: (itemId, source) =>
+        set((s) => {
+          const result =
+            itemId === COMBAT_STIM_DEFINITION_ID
+              ? materializeStoredCombatStimInstance(s.game, source)
+              : materializeStoredOrdinaryEquipmentInstance(s.game, itemId, source)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(itemId)
+          const origin = result.instance.fabricationOrigin
+          const payload = result.instance.payload
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceMaterializedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: itemId,
+                definitionName: definition?.name ?? itemId,
+                condition: result.instance.condition,
+                locationState: 'stored',
+                ...(payload
+                  ? {
+                      resourceId: payload.resourceId,
+                      capacity: payload.capacity,
+                      remaining: payload.remaining,
+                    }
+                  : {}),
+                ...(origin
+                  ? {
+                      fabricationQueueId: origin.queueId,
+                      fabricationRecipeId: origin.recipeId,
+                      fabricationGradeId: origin.gradeId,
+                      fabricationCompletedWeek: origin.completedWeek,
+                    }
+                  : {}),
+              }),
+            ]),
+          }
+        }),
+
+      destroyStoredEquipmentInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredOrdinaryEquipmentInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceDestroyedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: result.instance.condition,
+                reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      repairStoredEquipmentInstanceCondition: (instanceId) =>
+        set((s) => {
+          const result = repairStoredEquipmentInstanceConditionState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceConditionRepairedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                previousCondition: 'damaged',
+                condition: 'operational',
+                reason: 'manual_condition_repair',
+              }),
+            ]),
+          }
+        }),
+
+      disposeStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredCombatStimInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimDisposedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: result.instance.condition,
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: payload.remaining,
+                reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      reaggregateStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = reaggregateStoredCombatStimInstanceState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredCombatStimInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedCombatStimInstanceToLotState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
+              }),
+            ]),
+          }
+        }),
+
+      reaggregateStoredEquipmentInstance: (instanceId) =>
+        set((s) => {
+          const result = reaggregateStoredOrdinaryEquipmentInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: 'operational',
+                reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredEquipmentInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedOrdinaryEquipmentInstanceToLot(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: 'operational',
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
+              }),
+            ]),
+          }
+        }),
+
       equipAgentItem: (agentId, slot, itemId) =>
         set((s) => {
           const next = equipAgentItem(s.game, agentId, slot, itemId)
@@ -1807,6 +2038,9 @@ export const useGameStore = create<GameStore>()(
             ]),
           }
         }),
+
+      equipStoredEquipmentInstance: (instanceId, agentId, slot) =>
+        set((s) => ({ game: equipStoredEquipmentInstance(s.game, instanceId, agentId, slot) })),
 
       equipStoredCombatStimInstance: (instanceId, agentId, slot) =>
         set((s) => ({ game: equipStoredCombatStimInstance(s.game, instanceId, agentId, slot) })),

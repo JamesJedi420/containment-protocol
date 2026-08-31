@@ -140,13 +140,14 @@ also makes replay a no-op.
 When an expected item does not route, inspect `resolveEquipmentAutoScrapPreview(state,
 thresholdGradeId)` first. The reason codes point to the owning authority:
 
-| Reason code                                       | Usual source to inspect                                                   |
-| ------------------------------------------------- | ------------------------------------------------------------------------- |
-| `auto_scrap.grade_above_threshold`                | Canonical grade is known but higher than the selected threshold           |
-| `auto_scrap.grade_unavailable`                    | Hidden, unknown, ungraded, or invalid grade participation                 |
-| `auto_scrap.recovery_profile_unavailable`         | No explicit recovery profile for the item                                 |
-| `auto_scrap.fabricated_lot_selection_unavailable` | `fabricatedEquipmentLots` still owns per-copy provenance for that item ID |
-| `auto_scrap.recovery_unavailable`                 | Recovery resolver rejected the item for another bounded reason            |
+| Reason code                                           | Usual source to inspect                                                                  |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `auto_scrap.grade_above_threshold`                    | Canonical grade is known but higher than the selected threshold                          |
+| `auto_scrap.grade_unavailable`                        | Hidden, unknown, ungraded, or invalid grade participation                                |
+| `auto_scrap.recovery_profile_unavailable`             | No explicit recovery profile for the item                                                |
+| `auto_scrap.fabricated_lot_selection_unavailable`     | Outstanding fabricated-lot units still require explicit lot selection (SPE-2800)         |
+| `auto_scrap.equipment_instance_selection_unavailable` | Stored equipment instances require explicit instance selection before aggregate recovery |
+| `auto_scrap.recovery_unavailable`                     | Recovery resolver rejected the item for another bounded reason                           |
 
 Week-close order matters. Fabrication advances first, Auto-Scrap evaluates the freshly updated
 fabricated-lot ledger, then normal equipment recovery advancement runs. A newly fabricated item can

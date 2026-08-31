@@ -67,6 +67,12 @@ Hydration accepts completed provenance claims before active claims and removes a
 registry identity only after accepting a canonical claim. Auto-Scrap remains aggregate-only and
 cannot choose an instance source.
 
+Recovery can also claim an explicitly selected instance from a terminal carrier: an equipped copy
+on a `dead` or `resigned` agent counts as recoverable even though active agents must store the copy
+first. Queueing that claim deletes the live identity and clears the carrier's compatibility
+projection (`equipmentSlots` plus now-unslotted `equipmentEffectScales`). Combat Stim recovery
+still fails closed when active overdrive or recovery debt references the instance.
+
 ## Condition repair
 
 Stored damaged ordinary and Combat Stim identities can be repaired through

@@ -4,7 +4,13 @@ import {
   validateEquipmentDeconstructionProfiles,
 } from '../../data/equipmentDeconstruction'
 import { inventoryItemLabels } from '../../data/production'
-import { getEquipmentCatalogEntries, getEquipmentDefinition } from '../equipment'
+import {
+  EQUIPMENT_SLOT_KINDS,
+  getEquipmentCatalogEntries,
+  getEquipmentDefinition,
+  getEquipmentSlotAliases,
+  getEquipmentSlotItemId,
+} from '../equipment'
 import {
   getEquipmentGradeCatalogParticipation,
   getEquipmentGradeCatalogVisibility,
@@ -165,6 +171,49 @@ function instanceHasActiveOverdrive(state: GameState, instanceId: string) {
   )
 }
 
+function isTerminalCarrierInstance(state: GameState, instance: EquipmentInstance) {
+  if (instance.location.state !== 'equipped') return false
+  const carrier = state.agents[instance.location.agentId]
+  return carrier?.status === 'dead' || carrier?.status === 'resigned'
+}
+
+function isRecoverableInstanceLocation(state: GameState, instance: EquipmentInstance) {
+  return instance.location.state === 'stored' || isTerminalCarrierInstance(state, instance)
+}
+
+function clearRecoveredInstanceProjection(
+  agents: GameState['agents'],
+  instance: EquipmentInstance
+): GameState['agents'] {
+  if (instance.location.state !== 'equipped') return agents
+  const agent = agents[instance.location.agentId]
+  if (!agent) return agents
+
+  const equipmentSlots = { ...(agent.equipmentSlots ?? {}) }
+  for (const alias of getEquipmentSlotAliases(instance.location.slot)) {
+    delete equipmentSlots[alias]
+  }
+  const slottedItemIds = new Set(
+    EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(equipmentSlots, slot)).filter(
+      (itemId): itemId is string => Boolean(itemId)
+    )
+  )
+  const equipmentEffectScales = Object.fromEntries(
+    Object.entries(agent.equipmentEffectScales ?? {}).filter(([itemId]) =>
+      slottedItemIds.has(itemId)
+    )
+  )
+
+  return {
+    ...agents,
+    [instance.location.agentId]: {
+      ...agent,
+      equipmentSlots,
+      equipmentEffectScales,
+    },
+  }
+}
+
 function profileAllowsAggregateRecovery(
   profile: ReturnType<typeof getEquipmentDeconstructionProfile>
 ) {
@@ -198,7 +247,7 @@ function resolveInstanceIssue(
   }
   if (!isSafeEquipmentInstanceId(instance.instanceId)) return 'equipment_instance_not_found'
   if (instance.definitionId !== profile?.itemId) return 'recovery_unavailable'
-  if (instance.location.state !== 'stored') return 'equipment_instance_not_stored'
+  if (!isRecoverableInstanceLocation(state, instance)) return 'equipment_instance_not_stored'
   if (instanceHasRecoveryClaim(state, instance.instanceId)) {
     return 'equipment_instance_already_claimed'
   }
@@ -251,7 +300,9 @@ export function resolveEquipmentDeconstructionSources(
     lot,
     remaining: Math.max(
       0,
-      lot.quantity - (claims.get(lot.queueId) ?? 0) - Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+      lot.quantity -
+        (claims.get(lot.queueId) ?? 0) -
+        Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
     ),
   }))
   const outstandingLotUnits = remainingByLot.reduce((total, entry) => total + entry.remaining, 0)
@@ -508,12 +559,17 @@ export function queueEquipmentDeconstruction(
 
   const nextEquipmentInstances = { ...(state.equipmentInstances ?? {}) }
   if (source.kind === 'equipment_instance') delete nextEquipmentInstances[source.instanceId]
+  const nextAgents =
+    source.kind === 'equipment_instance' && sourceInstance
+      ? clearRecoveredInstanceProjection(state.agents, sourceInstance)
+      : state.agents
   const nextState = normalizeGameState({
     ...state,
     inventory:
       source.kind === 'equipment_instance'
         ? state.inventory
         : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
+    agents: nextAgents,
     equipmentInstances: nextEquipmentInstances,
     damagedEquipmentQueue:
       source.kind === 'equipment_instance'

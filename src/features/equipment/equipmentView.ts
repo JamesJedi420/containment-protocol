@@ -22,7 +22,9 @@ import {
   getEquipmentDeconstructionSourceIssueLabel,
   type EquipmentDeconstructionSourceRef,
 } from '../../domain/sim/equipmentDeconstruction'
+import { canEquipStoredEquipmentInstance } from '../../domain/sim/equipment'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
+import { resolveFabricationOriginForDefinition } from '../../domain/equipmentInstance'
 import {
   EQUIPMENT_GRADE_DEFINITIONS,
   getEquipmentGradeDefinition,
@@ -34,7 +36,6 @@ import {
 } from '../../domain/equipmentAutoScrap'
 import {
   getCombatStimActivationReasonLabel,
-  listStoredCombatStimInstances,
   resolveCombatStimActivation,
   resolveEffectiveResponderEnergyBand,
 } from '../../domain/combatStim'
@@ -42,6 +43,8 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
+  isEquipmentInstanceClaimedForRecovery,
+  listStoredEquipmentInstances,
 } from '../../domain/equipmentInstance'
 import {
   createDefaultResponderEnergyBudget,
@@ -66,7 +69,49 @@ export interface EquipmentLoadoutOptionView {
   tags: string[]
   stock: number
   instanceId?: string
+  instanceLabel?: string
   doseLabel?: string
+}
+
+export interface EquipmentInstanceMaterializationView {
+  itemId: string
+  itemName: string
+  aggregateStock: number
+  storedInstanceCount: number
+  equippedInstanceCount: number
+  canMaterialize: boolean
+  materializationBlocker?: 'damaged_aggregate_stock' | 'no_materializable_stock'
+  materializationSources: Array<{
+    source: EquipmentDeconstructionSourceRef
+    label: string
+    quantity: number
+    available: boolean
+    provenanceLabel?: string
+  }>
+  storedInstances: Array<{
+    instanceId: string
+    instanceLabel: string
+    conditionLabel: string
+    provenanceLabel?: string
+    canDestroy: boolean
+    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
+    canRepairCondition: boolean
+    repairConditionBlocker?: 'recovery_claimed'
+    canReaggregate: boolean
+    reaggregationBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
+      | 'fabricated_provenance_required'
+    canReturnToLot: boolean
+    returnToLotBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
+      | 'lot_unavailable'
+  }>
 }
 
 export interface EquipmentLoadoutSlotView {
@@ -188,11 +233,22 @@ export function getEquipmentDeconstructionViews(
       )
       if (aggregateStock < 1 && !hasInstanceSource) return undefined
       const requestedSource = selectedSources[definition.id] ?? { kind: 'catalog' as const }
-      const selectedSource = sourceChoices.some(
+      const requestedChoice = sourceChoices.find(
         (choice) => sourceValue(choice.source) === sourceValue(requestedSource)
       )
-        ? requestedSource
-        : (sourceChoices.find((choice) => choice.available)?.source ?? { kind: 'catalog' as const })
+      const ordinaryInstanceFallback =
+        selectedSources[definition.id] === undefined && definition.id !== COMBAT_STIM_DEFINITION_ID
+          ? sourceChoices.find(
+              (choice) => choice.available && choice.source.kind === 'equipment_instance'
+            )?.source
+          : undefined
+      const selectedSource = requestedChoice
+        ? requestedChoice.available || selectedSources[definition.id] !== undefined
+          ? requestedSource
+          : (ordinaryInstanceFallback ?? requestedSource)
+        : (sourceChoices.find((choice) => choice.available)?.source ?? {
+            kind: 'catalog' as const,
+          })
       const preview = resolveEquipmentDeconstructionPreview(game, definition.id, selectedSource)
       if (!preview) return undefined
       const sources: EquipmentDeconstructionSourceView[] = sourceChoices.map((choice) => {
@@ -290,7 +346,10 @@ export function getEquipmentDeconstructionQueueViews(
     materialSummary: formatRecoveryMaterials(entry.outputMaterials),
     remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
     sourceLabel: entry.sourceEquipmentInstanceId
-      ? `Equipment instance ${entry.sourceEquipmentInstanceId} / ${entry.sourceEquipmentInstanceRemaining} of ${entry.sourceEquipmentInstanceCapacity} doses`
+      ? entry.sourceEquipmentInstanceRemaining !== undefined &&
+        entry.sourceEquipmentInstanceCapacity !== undefined
+        ? `Equipment instance ${entry.sourceEquipmentInstanceId} / ${entry.sourceEquipmentInstanceRemaining} of ${entry.sourceEquipmentInstanceCapacity} doses`
+        : `Equipment instance ${entry.sourceEquipmentInstanceId}`
       : entry.sourceFabricationQueueId
         ? `Fabricated batch ${entry.sourceFabricationQueueId}`
         : 'Catalog / unspecified stock',
@@ -410,18 +469,26 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
               : undefined
           const compatibleDefinitions = getRoleCompatibleEquipmentDefinitions(slot, agent.role)
           const compatibleIds = new Set(compatibleDefinitions.map((definition) => definition.id))
-          const storedCombatStims = compatibleIds.has(COMBAT_STIM_DEFINITION_ID)
-            ? listStoredCombatStimInstances(game).map((instance) => ({
-                itemId: instance.definitionId,
-                itemName: getEquipmentLabel(instance.definitionId),
-                tags: getCompatibleItemTags(instance.definitionId),
-                stock: 0,
-                instanceId: instance.instanceId,
-                doseLabel: isCanonicalCombatStimPayload(instance.payload)
-                  ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
-                  : 'Dose state unavailable',
-              }))
-            : []
+          const storedInstances = listStoredEquipmentInstances(game)
+            .filter(
+              (instance) =>
+                compatibleIds.has(instance.definitionId) &&
+                canEquipStoredEquipmentInstance(game, instance.instanceId, agent.id, slot)
+            )
+            .map((instance) => ({
+              itemId: instance.definitionId,
+              itemName: getEquipmentLabel(instance.definitionId),
+              tags: getCompatibleItemTags(instance.definitionId),
+              stock: 0,
+              instanceId: instance.instanceId,
+              instanceLabel: instance.instanceId,
+              doseLabel:
+                instance.definitionId === COMBAT_STIM_DEFINITION_ID
+                  ? isCanonicalCombatStimPayload(instance.payload)
+                    ? `${instance.payload.remaining}/${instance.payload.capacity} doses`
+                    : 'Dose state unavailable'
+                  : undefined,
+            }))
           return {
             slot,
             slotLabel: EQUIPMENT_SLOT_LABELS[slot],
@@ -467,12 +534,142 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                   (left, right) =>
                     right.stock - left.stock || left.itemName.localeCompare(right.itemName)
                 ),
-              ...storedCombatStims,
+              ...storedInstances,
             ],
           } satisfies EquipmentLoadoutSlotView
         }),
       } satisfies AgentEquipmentLoadoutView
     })
+}
+
+export function getEquipmentInstanceMaterializationViews(
+  game: GameState
+): EquipmentInstanceMaterializationView[] {
+  return getEquipmentCatalogEntries()
+    .map((definition) => {
+      const instances = Object.values(game.equipmentInstances ?? {}).filter(
+        (instance) => instance.definitionId === definition.id
+      )
+      const aggregateStock = Math.max(0, Math.trunc(game.inventory[definition.id] ?? 0))
+      const hasDamagedAggregateStock = (game.damagedEquipmentQueue ?? []).includes(definition.id)
+      const sources = resolveEquipmentDeconstructionSources(game, definition.id)
+      const materializationSources = sources
+        .filter(
+          (choice) => choice.source.kind === 'catalog' || choice.source.kind === 'fabricated_lot'
+        )
+        .map((choice) => ({
+          source: choice.source,
+          label: choice.label,
+          quantity: choice.quantity,
+          available: !hasDamagedAggregateStock && aggregateStock > 0 && choice.quantity > 0,
+          ...(choice.source.kind === 'fabricated_lot'
+            ? {
+                provenanceLabel:
+                  choice.gradeProjection.state === 'graded'
+                    ? getEquipmentGradeDefinition(choice.gradeProjection.gradeId).label
+                    : 'Grade unknown',
+              }
+            : {}),
+        }))
+      const canMaterialize = materializationSources.some((source) => source.available)
+      // Combat Stim disposal / re-aggregation remain on the dedicated Combat Stim surface.
+      const storedInstances =
+        definition.id === COMBAT_STIM_DEFINITION_ID
+          ? []
+          : listStoredEquipmentInstances(game, definition.id).map((instance) => {
+              const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(
+                game,
+                instance.instanceId
+              )
+              const destructionBlocker = instance.payload
+                ? ('payload_unsupported' as const)
+                : recoveryClaimed
+                  ? ('recovery_claimed' as const)
+                  : undefined
+              const repairConditionBlocker =
+                instance.condition === 'damaged' && recoveryClaimed
+                  ? ('recovery_claimed' as const)
+                  : undefined
+              const reaggregationBlocker =
+                instance.condition !== 'operational'
+                  ? ('condition_unsupported' as const)
+                  : instance.payload
+                    ? ('payload_unsupported' as const)
+                    : instance.fabricationOrigin
+                      ? ('fabricated_provenance_required' as const)
+                      : recoveryClaimed
+                        ? ('recovery_claimed' as const)
+                        : !Number.isSafeInteger(aggregateStock) ||
+                            aggregateStock >= Number.MAX_SAFE_INTEGER
+                          ? ('inventory_capacity_exceeded' as const)
+                          : undefined
+              const returnToLotBlocker = !instance.fabricationOrigin
+                ? undefined
+                : instance.condition !== 'operational'
+                  ? ('condition_unsupported' as const)
+                  : instance.payload
+                    ? ('payload_unsupported' as const)
+                    : recoveryClaimed
+                      ? ('recovery_claimed' as const)
+                      : !Number.isSafeInteger(aggregateStock) ||
+                          aggregateStock >= Number.MAX_SAFE_INTEGER
+                        ? ('inventory_capacity_exceeded' as const)
+                        : (() => {
+                            const resolved = resolveFabricationOriginForDefinition(
+                              game,
+                              definition.id,
+                              instance.fabricationOrigin
+                            )
+                            if (!resolved.ok) return 'lot_unavailable' as const
+                            const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
+                            const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
+                            return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
+                          })()
+              return {
+                instanceId: instance.instanceId,
+                instanceLabel: `${definition.name} — ${instance.instanceId}`,
+                conditionLabel: instance.condition === 'damaged' ? 'Damaged' : 'Operational',
+                ...(instance.fabricationOrigin
+                  ? {
+                      provenanceLabel: `Fabricated batch ${instance.fabricationOrigin.queueId} / week ${instance.fabricationOrigin.completedWeek}`,
+                    }
+                  : {}),
+                canDestroy: destructionBlocker === undefined,
+                canRepairCondition:
+                  instance.condition === 'damaged' && repairConditionBlocker === undefined,
+                canReaggregate: reaggregationBlocker === undefined,
+                canReturnToLot:
+                  Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
+                ...(destructionBlocker ? { destructionBlocker } : {}),
+                ...(repairConditionBlocker ? { repairConditionBlocker } : {}),
+                ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
+                ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
+              }
+            })
+      return {
+        itemId: definition.id,
+        itemName: definition.name,
+        aggregateStock,
+        storedInstanceCount: instances.filter((instance) => instance.location.state === 'stored')
+          .length,
+        equippedInstanceCount: instances.filter(
+          (instance) => instance.location.state === 'equipped'
+        ).length,
+        canMaterialize,
+        materializationSources,
+        storedInstances,
+        ...(aggregateStock > 0 && hasDamagedAggregateStock
+          ? { materializationBlocker: 'damaged_aggregate_stock' as const }
+          : aggregateStock > 0 && !canMaterialize
+            ? { materializationBlocker: 'no_materializable_stock' as const }
+            : {}),
+      }
+    })
+    .filter(
+      (view) =>
+        view.aggregateStock > 0 || view.storedInstanceCount > 0 || view.equippedInstanceCount > 0
+    )
+    .sort((left, right) => left.itemName.localeCompare(right.itemName))
 }
 
 function getCompatibleItemTags(itemId: string) {

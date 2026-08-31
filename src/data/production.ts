@@ -41,6 +41,7 @@ export type MarketListingCategory = 'equipment' | 'component' | 'material'
 const RECIPE_MARKET_CATEGORY: Record<string, MarketListingCategory> = {
   'ward-seals': 'component',
   'med-kits': 'equipment',
+  'combat-stims': 'equipment',
   'silver-rounds': 'component',
   'signal-jammers': 'equipment',
   'emf-sensors': 'equipment',
@@ -110,6 +111,20 @@ export const productionCatalog: ProductionRecipe[] = [
       medical_supplies: 2,
     },
     gradeOutputRule: { kind: 'catalog' },
+  },
+  {
+    recipeId: 'combat-stims',
+    name: 'Combat Stim Batch',
+    description: 'Licensed two-dose field stimulant packs for critical response units.',
+    outputItemId: 'combat_stims',
+    outputItemName: 'Combat Stims',
+    outputQuantity: 1,
+    durationWeeks: 1,
+    baseFundingCost: 18,
+    inputMaterials: {
+      medical_supplies: 2,
+    },
+    gradeOutputRule: { kind: 'fixed', gradeId: 'grade_1' },
   },
   {
     recipeId: 'silver-rounds',

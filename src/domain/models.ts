@@ -1849,6 +1849,12 @@ export interface FabricatedEquipmentLot {
   quantity: number
   gradeId: EquipmentGradeId
   completedWeek: number
+  /**
+   * SPE-2846: units taken into exact ordinary-instance tracking from this lot.
+   * Immutable production `quantity` remains the SPE-2800 receipt size; outstanding
+   * remaining is quantity − recovery claims − trackedInstanceUnits.
+   */
+  trackedInstanceUnits?: number
 }
 
 export type FabricatedEquipmentLotRegistry = Record<Id, FabricatedEquipmentLot>

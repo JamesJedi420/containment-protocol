@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                       |
 | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| **Status** | **Recently shipped**                                                                                        |
+| **Status** | **Shipped**                                                                                        |
 | **Linear** | [SPE-2800](https://linear.app/spectranoir/issue/SPE-2800/fabricated-equipment-lot-recovery-selection)       |
 | **Parent** | [SPE-1055](https://linear.app/spectranoir/issue/SPE-1055/salvage-recycling-and-anomalous-material-recovery) |
 | **Branch** | `jamesdyedbq/spe-2800-fabricated-equipment-lot-recovery-selection`                                          |

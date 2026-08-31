@@ -1045,6 +1045,8 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.instance_destroyed': ['instanceId', 'definitionId'],
   'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
   'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
+  'equipment.combat_stim_activated': ['activationId', 'instanceId', 'agentId', 'caseId'],
+  'equipment.combat_stim_overdrive_expired': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
   'equipment.combat_stim_reaggregated': ['instanceId', 'definitionId'],
   'market.shifted': ['featuredRecipeId'],
@@ -9065,6 +9067,38 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.instance_reaggregated'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.combat_stim_activated': {
+        const parsed = operationEventPayloadSchemas['equipment.combat_stim_activated'].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.combat_stim_activated'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.combat_stim_overdrive_expired': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.combat_stim_overdrive_expired'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.combat_stim_overdrive_expired'),
             payload: parsed.data,
           })
         )

@@ -4,7 +4,13 @@ import {
   validateEquipmentDeconstructionProfiles,
 } from '../../data/equipmentDeconstruction'
 import { inventoryItemLabels } from '../../data/production'
-import { getEquipmentCatalogEntries, getEquipmentDefinition } from '../equipment'
+import {
+  EQUIPMENT_SLOT_KINDS,
+  getEquipmentCatalogEntries,
+  getEquipmentDefinition,
+  getEquipmentSlotAliases,
+  getEquipmentSlotItemId,
+} from '../equipment'
 import {
   getEquipmentGradeCatalogParticipation,
   getEquipmentGradeCatalogVisibility,
@@ -165,6 +171,49 @@ function instanceHasActiveOverdrive(state: GameState, instanceId: string) {
   )
 }
 
+function isTerminalCarrierInstance(state: GameState, instance: EquipmentInstance) {
+  if (instance.location.state !== 'equipped') return false
+  const carrier = state.agents[instance.location.agentId]
+  return carrier?.status === 'dead' || carrier?.status === 'resigned'
+}
+
+function isRecoverableInstanceLocation(state: GameState, instance: EquipmentInstance) {
+  return instance.location.state === 'stored' || isTerminalCarrierInstance(state, instance)
+}
+
+function clearRecoveredInstanceProjection(
+  agents: GameState['agents'],
+  instance: EquipmentInstance
+): GameState['agents'] {
+  if (instance.location.state !== 'equipped') return agents
+  const agent = agents[instance.location.agentId]
+  if (!agent) return agents
+
+  const equipmentSlots = { ...(agent.equipmentSlots ?? {}) }
+  for (const alias of getEquipmentSlotAliases(instance.location.slot)) {
+    delete equipmentSlots[alias]
+  }
+  const slottedItemIds = new Set(
+    EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(equipmentSlots, slot)).filter(
+      (itemId): itemId is string => Boolean(itemId)
+    )
+  )
+  const equipmentEffectScales = Object.fromEntries(
+    Object.entries(agent.equipmentEffectScales ?? {}).filter(([itemId]) =>
+      slottedItemIds.has(itemId)
+    )
+  )
+
+  return {
+    ...agents,
+    [instance.location.agentId]: {
+      ...agent,
+      equipmentSlots,
+      equipmentEffectScales,
+    },
+  }
+}
+
 function profileAllowsAggregateRecovery(
   profile: ReturnType<typeof getEquipmentDeconstructionProfile>
 ) {
@@ -198,7 +247,7 @@ function resolveInstanceIssue(
   }
   if (!isSafeEquipmentInstanceId(instance.instanceId)) return 'equipment_instance_not_found'
   if (instance.definitionId !== profile?.itemId) return 'recovery_unavailable'
-  if (instance.location.state !== 'stored') return 'equipment_instance_not_stored'
+  if (!isRecoverableInstanceLocation(state, instance)) return 'equipment_instance_not_stored'
   if (instanceHasRecoveryClaim(state, instance.instanceId)) {
     return 'equipment_instance_already_claimed'
   }
@@ -249,7 +298,12 @@ export function resolveEquipmentDeconstructionSources(
     .sort((left, right) => compareCodeUnits(left.queueId, right.queueId))
   const remainingByLot = lots.map((lot) => ({
     lot,
-    remaining: Math.max(0, lot.quantity - (claims.get(lot.queueId) ?? 0)),
+    remaining: Math.max(
+      0,
+      lot.quantity -
+        (claims.get(lot.queueId) ?? 0) -
+        Math.max(0, Math.trunc(lot.trackedInstanceUnits ?? 0))
+    ),
   }))
   const outstandingLotUnits = remainingByLot.reduce((total, entry) => total + entry.remaining, 0)
   const catalogQuantity = Math.max(0, stock - outstandingLotUnits)
@@ -309,8 +363,19 @@ export function resolveEquipmentDeconstructionSources(
       .sort((left, right) => compareCodeUnits(left.instanceId, right.instanceId))) {
       const issueCode =
         resolveInstanceIssue(state, instance, profile) ??
-        (catalogProjection.state !== 'graded' ? 'recovery_unavailable' : undefined)
+        (catalogProjection.state !== 'graded' && !instance.fabricationOrigin
+          ? 'recovery_unavailable'
+          : undefined)
       const payload = isCanonicalCombatStimPayload(instance.payload) ? instance.payload : undefined
+      const gradeProjection = instance.fabricationOrigin
+        ? resolveEquipmentGradeProjection(
+            { state: 'graded', gradeId: instance.fabricationOrigin.gradeId },
+            visibility
+          )
+        : catalogProjection
+      const instanceIssueCode =
+        issueCode ??
+        (gradeProjection.state !== 'graded' ? ('recovery_unavailable' as const) : undefined)
       choices.push(
         Object.freeze({
           source: Object.freeze({
@@ -319,18 +384,20 @@ export function resolveEquipmentDeconstructionSources(
           }),
           label:
             instance.definitionId !== COMBAT_STIM_DEFINITION_ID
-              ? `Equipment instance ${instance.instanceId}`
+              ? instance.fabricationOrigin
+                ? `Equipment instance ${instance.instanceId} / fabricated ${instance.fabricationOrigin.queueId}`
+                : `Equipment instance ${instance.instanceId}`
               : payload
                 ? `Equipment instance ${instance.instanceId} / ${payload.remaining} of ${payload.capacity} doses`
                 : `Equipment instance ${instance.instanceId} / dose state unavailable`,
-          quantity: issueCode ? 0 : 1,
-          available: !issueCode,
-          gradeProjection: catalogProjection,
+          quantity: instanceIssueCode ? 0 : 1,
+          available: !instanceIssueCode,
+          gradeProjection,
           condition: instance.condition,
           ...(payload
             ? { resourceRemaining: payload.remaining, resourceCapacity: payload.capacity }
             : {}),
-          ...(issueCode ? { issueCode } : {}),
+          ...(instanceIssueCode ? { issueCode: instanceIssueCode } : {}),
         })
       )
     }
@@ -369,7 +436,12 @@ export function resolveEquipmentDeconstructionPreview(
         state: 'graded' as const,
         gradeId: selectedLot.gradeId,
       }
-    : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+    : selectedInstance?.fabricationOrigin
+      ? {
+          state: 'graded' as const,
+          gradeId: selectedInstance.fabricationOrigin.gradeId,
+        }
+      : getEquipmentGradeCatalogParticipation(definition.gradeProfile)
   const visibility = getEquipmentGradeCatalogVisibility(definition.gradeProfile)
   const sourceIssueCode =
     choice?.issueCode ??
@@ -406,9 +478,11 @@ export function resolveEquipmentDeconstructionPreview(
 
   const condition =
     selectedInstance?.condition ??
-    ((state.damagedEquipmentQueue ?? []).includes(itemId)
-      ? ('damaged' as const)
-      : ('operational' as const))
+    (source.kind === 'fabricated_lot'
+      ? ('operational' as const)
+      : (state.damagedEquipmentQueue ?? []).includes(itemId)
+        ? ('damaged' as const)
+        : ('operational' as const))
   return Object.freeze({
     itemId,
     itemName: definition.name,
@@ -487,15 +561,20 @@ export function queueEquipmentDeconstruction(
 
   const nextEquipmentInstances = { ...(state.equipmentInstances ?? {}) }
   if (source.kind === 'equipment_instance') delete nextEquipmentInstances[source.instanceId]
+  const nextAgents =
+    source.kind === 'equipment_instance' && sourceInstance
+      ? clearRecoveredInstanceProjection(state.agents, sourceInstance)
+      : state.agents
   const nextState = normalizeGameState({
     ...state,
     inventory:
       source.kind === 'equipment_instance'
         ? state.inventory
         : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
+    agents: nextAgents,
     equipmentInstances: nextEquipmentInstances,
     damagedEquipmentQueue:
-      source.kind === 'equipment_instance'
+      source.kind !== 'catalog'
         ? state.damagedEquipmentQueue
         : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
     equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],

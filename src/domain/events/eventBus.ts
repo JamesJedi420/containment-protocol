@@ -670,6 +670,12 @@ export function createEquipmentInstanceReaggregatedDraft(
   return { type: 'equipment.instance_reaggregated', sourceSystem: 'agent', payload }
 }
 
+export function createEquipmentInstanceConditionRepairedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_condition_repaired']
+): OperationEventDraft<'equipment.instance_condition_repaired'> {
+  return { type: 'equipment.instance_condition_repaired', sourceSystem: 'agent', payload }
+}
+
 export function createCombatStimActivatedDraft(
   payload: OperationEventPayloadMap['equipment.combat_stim_activated']
 ): OperationEventDraft<'equipment.combat_stim_activated'> {
@@ -680,6 +686,18 @@ export function createCombatStimOverdriveExpiredDraft(
   payload: OperationEventPayloadMap['equipment.combat_stim_overdrive_expired']
 ): OperationEventDraft<'equipment.combat_stim_overdrive_expired'> {
   return { type: 'equipment.combat_stim_overdrive_expired', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimDisposedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_disposed']
+): OperationEventDraft<'equipment.combat_stim_disposed'> {
+  return { type: 'equipment.combat_stim_disposed', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimReaggregatedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_reaggregated']
+): OperationEventDraft<'equipment.combat_stim_reaggregated'> {
+  return { type: 'equipment.combat_stim_reaggregated', sourceSystem: 'agent', payload }
 }
 
 export function createMarketShiftedDraft(
@@ -785,8 +803,11 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'equipment.instance_materialized',
   'equipment.instance_destroyed',
   'equipment.instance_reaggregated',
+  'equipment.instance_condition_repaired',
   'equipment.combat_stim_activated',
   'equipment.combat_stim_overdrive_expired',
+  'equipment.combat_stim_disposed',
+  'equipment.combat_stim_reaggregated',
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',

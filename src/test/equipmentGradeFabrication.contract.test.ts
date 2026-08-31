@@ -65,7 +65,7 @@ describe('equipment-grade fabrication contract', () => {
 
   it('authors all live recipes and covers fixed, catalog, bounded, and minimum resolution', () => {
     expect(() => validateProductionCatalogGradeRules(productionCatalog)).not.toThrow()
-    expect(productionCatalog).toHaveLength(7)
+    expect(productionCatalog).toHaveLength(8)
     expect(new Set(productionCatalog.map((recipe) => recipe.gradeOutputRule.kind))).toEqual(
       new Set(['fixed', 'catalog', 'bounded_catalog', 'minimum_catalog'])
     )

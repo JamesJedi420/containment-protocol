@@ -221,6 +221,46 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
   })
 
+  it('surfaces Combat Stim catalog and fabricated-lot tracking sources', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    game.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+    }
+
+    const view = getEquipmentInstanceMaterializationViews(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+    expect(view).toMatchObject({
+      itemId: 'combat_stims',
+      aggregateStock: 2,
+      canMaterialize: true,
+      storedInstances: [],
+    })
+    expect(view?.materializationSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: { kind: 'catalog' },
+          available: true,
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          source: { kind: 'fabricated_lot', fabricationQueueId: 'combat-stim-batch' },
+          available: true,
+          quantity: 1,
+          provenanceLabel: expect.any(String),
+        }),
+      ])
+    )
+  })
+
   it('surfaces stored Combat Stim instances as durable dose-aware choices', () => {
     const game = createStartingState()
     game.inventory.combat_stims = 1
@@ -274,19 +314,22 @@ describe('getGearRecommendationsForActiveCases', () => {
     const materialization = getEquipmentInstanceMaterializationViews(created.state).find(
       (view) => view.itemId === 'signal_jammers'
     )
-    expect(materialization).toEqual({
+    expect(materialization).toMatchObject({
       itemId: 'signal_jammers',
       itemName: 'Signal Jammers',
       aggregateStock: 1,
       storedInstanceCount: 1,
       equippedInstanceCount: 0,
       canMaterialize: true,
+      materializationSources: [{ source: { kind: 'catalog' }, quantity: 1, available: true }],
       storedInstances: [
         {
           instanceId: created.instance.instanceId,
           instanceLabel: `Signal Jammers — ${created.instance.instanceId}`,
           conditionLabel: 'Operational',
           canDestroy: true,
+          canRepairCondition: false,
+          canReaggregate: true,
         },
       ],
     })
@@ -336,12 +379,20 @@ describe('getGearRecommendationsForActiveCases', () => {
         conditionLabel: 'Operational',
         canDestroy: false,
         destructionBlocker: 'payload_unsupported',
+        canRepairCondition: false,
+        canReaggregate: false,
+        reaggregationBlocker: 'payload_unsupported',
+        canReturnToLot: false,
       },
       {
         instanceId: 'z_copy',
         instanceLabel: 'Signal Jammers — z_copy',
         conditionLabel: 'Damaged',
         canDestroy: true,
+        canRepairCondition: true,
+        canReaggregate: false,
+        reaggregationBlocker: 'condition_unsupported',
+        canReturnToLot: false,
       },
     ])
   })
@@ -372,11 +423,14 @@ describe('getGearRecommendationsForActiveCases', () => {
         instanceId: created.instance.instanceId,
         canDestroy: false,
         destructionBlocker: 'recovery_claimed',
+        canRepairCondition: false,
+        canReaggregate: false,
+        reaggregationBlocker: 'recovery_claimed',
       }),
     ])
   })
 
-  it('blocks materialization when only provenance-owned fabricated stock remains', () => {
+  it('exposes fabricated-lot tracking sources when only batch stock remains', () => {
     const game = createStartingState()
     game.inventory.signal_jammers = 1
     game.fabricatedEquipmentLots = {
@@ -396,8 +450,16 @@ describe('getGearRecommendationsForActiveCases', () => {
       )
     ).toMatchObject({
       aggregateStock: 1,
-      canMaterialize: false,
-      materializationBlocker: 'fabricated_provenance_required',
+      canMaterialize: true,
+      materializationSources: [
+        { source: { kind: 'catalog' }, quantity: 0, available: false },
+        {
+          source: { kind: 'fabricated_lot', fabricationQueueId: 'batch' },
+          quantity: 1,
+          available: true,
+          provenanceLabel: 'Grade II',
+        },
+      ],
     })
   })
 

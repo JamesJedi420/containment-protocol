@@ -647,6 +647,155 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.instance_condition_repaired — names the exact identity and repair', () => {
+    const event = makeEvent(
+      'equipment.instance_condition_repaired',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance repaired')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Damaged → operational')
+    expect(view.detail).toContain('Manual condition repair')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-3',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance disposed')
+    expect(view.detail).toContain('equipment-instance-7-3')
+    expect(view.detail).toContain('1/2 doses')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.combat_stim_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'combat-stim-batch',
+        fabricationRecipeId: 'combat-stims',
+        fabricationGradeId: 'grade_1',
+        fabricationCompletedWeek: 1,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('combat-stim-batch')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.combat_stim_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-4')
+    expect(view.detail).toContain('2/2 doses')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-2')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-5',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'batch',
+        fabricationRecipeId: 'signal-jammers',
+        fabricationGradeId: 'grade_2',
+        fabricationCompletedWeek: 3,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-5')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('batch')
+    expect(view.detail).toContain('week 3')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('market.shifted tight pressure — warning tone', () => {
     const event = makeEvent('market.shifted', {
       week: 5,

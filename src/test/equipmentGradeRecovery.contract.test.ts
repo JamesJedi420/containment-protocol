@@ -533,6 +533,101 @@ describe('equipment-grade recovery contract', () => {
     }
   })
 
+  it('keeps a dead carrier Combat Stim blocked while overdrive debt owns the instance', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 0
+    state.agents.a_ava = {
+      ...state.agents.a_ava,
+      status: 'dead',
+      equipmentSlots: { utility1: 'combat_stims' },
+      overdrive: {
+        active: false,
+        remainingPhases: 0,
+        recoveryDebt: 1,
+        source: {
+          kind: 'combat_stim',
+          activationId: 'combat-stim-equipment-instance-dead-debt-dose-2',
+          equipmentInstanceId: 'equipment-instance-dead-debt',
+          caseId: 'c_briarwood',
+        },
+      },
+    }
+    state.equipmentInstances = {
+      'equipment-instance-dead-debt': {
+        instanceId: 'equipment-instance-dead-debt',
+        definitionId: 'combat_stims',
+        location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+        condition: 'operational',
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+      },
+    }
+
+    expect(resolveEquipmentDeconstructionSources(state, 'combat_stims')).toContainEqual(
+      expect.objectContaining({
+        source: { kind: 'equipment_instance', instanceId: 'equipment-instance-dead-debt' },
+        quantity: 0,
+        available: false,
+        issueCode: 'equipment_instance_active_overdrive',
+      })
+    )
+
+    const queued = queueEquipmentDeconstruction(state, 'combat_stims', {
+      kind: 'equipment_instance',
+      instanceId: 'equipment-instance-dead-debt',
+    })
+    expect(queued.equipmentDeconstructionQueue).toEqual(state.equipmentDeconstructionQueue)
+    expect(queued.equipmentInstances?.['equipment-instance-dead-debt']).toMatchObject({
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+  })
+
+  it.each(['dead', 'resigned'] as const)(
+    'recovers a depleted Combat Stim from a %s carrier and clears the loadout projection',
+    (status) => {
+      const state = createStartingState()
+      const instanceId = `equipment-instance-${status}-carrier`
+      state.inventory.combat_stims = 0
+      state.agents.a_mina = {
+        ...state.agents.a_mina,
+        status,
+        equipmentSlots: { utility1: 'combat_stims' },
+        equipmentEffectScales: { combat_stims: 1 },
+      }
+      state.equipmentInstances = {
+        [instanceId]: {
+          instanceId,
+          definitionId: 'combat_stims',
+          location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+          condition: 'operational',
+          payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 0 },
+        },
+      }
+
+      expect(resolveEquipmentDeconstructionSources(state, 'combat_stims')).toContainEqual(
+        expect.objectContaining({
+          source: { kind: 'equipment_instance', instanceId },
+          quantity: 1,
+          available: true,
+        })
+      )
+
+      const queued = queueEquipmentDeconstruction(state, 'combat_stims', {
+        kind: 'equipment_instance',
+        instanceId,
+      })
+
+      expect(queued.inventory.combat_stims).toBe(0)
+      expect(queued.equipmentInstances).toEqual({})
+      expect(queued.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+      expect(queued.agents.a_mina.equipmentEffectScales?.combat_stims).toBeUndefined()
+      expect(queued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+        itemId: 'combat_stims',
+        sourceEquipmentInstanceId: instanceId,
+        sourceEquipmentInstanceRemaining: 0,
+      })
+    }
+  )
+
   it('resolves Trauma Kit through the canonical Grade I medical recovery rule', () => {
     const profile = getEquipmentDeconstructionProfile('trauma_kit')
     if (!profile || profile.state !== 'eligible') throw new Error('Missing Trauma Kit profile')
@@ -784,6 +879,51 @@ describe('equipment-grade recovery contract', () => {
       sourceFabricationQueueId: 'completed',
     })
     expect(lotQueued.fabricatedEquipmentLots).toEqual(fabricated.fabricatedEquipmentLots)
+  })
+
+  it('keeps fabricated-lot recovery operational when sibling catalog stock is damaged', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+    state.damagedEquipmentQueue = ['signal_jammers']
+    state.fabricatedEquipmentLots = {
+      completed: {
+        queueId: 'completed',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+
+    const fabricatedPreview = resolveEquipmentDeconstructionPreview(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'completed',
+    })
+    expect(fabricatedPreview?.resolution).toMatchObject({
+      available: true,
+      condition: 'operational',
+      waste: 1,
+    })
+
+    const lotQueued = queueEquipmentDeconstruction(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'completed',
+    })
+    expect(lotQueued.inventory.signal_jammers).toBe(1)
+    expect(lotQueued.damagedEquipmentQueue).toEqual(['signal_jammers'])
+    expect(lotQueued.equipmentDeconstructionQueue?.[0]).toMatchObject({
+      sourceFabricationQueueId: 'completed',
+      sourceCondition: 'operational',
+      wasteQuantity: 1,
+    })
+
+    expect(
+      resolveEquipmentDeconstructionPreview(lotQueued, 'signal_jammers')?.resolution
+    ).toMatchObject({
+      condition: 'damaged',
+      waste: 2,
+    })
   })
 
   it('queues newly eligible technological stock through the canonical recovery path', () => {

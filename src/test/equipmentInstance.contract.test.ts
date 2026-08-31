@@ -1029,6 +1029,40 @@ describe('ordinary equipment instance authority', () => {
     ])
   })
 
+  it('round-trips a strict materialization event with the tracked identity', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    const materialized = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers')
+    if (!materialized.ok) throw new Error(materialized.code)
+    const withEvent = appendOperationEventDrafts(materialized.state, [
+      createEquipmentInstanceMaterializedDraft({
+        week: materialized.state.week,
+        instanceId: materialized.instance.instanceId,
+        definitionId: materialized.instance.definitionId,
+        definitionName: 'Signal Jammers',
+        condition: materialized.instance.condition,
+        locationState: 'stored',
+      }),
+    ])
+
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    const validEvent = serialized.events.at(-1)
+    serialized.events.push({
+      ...validEvent,
+      id: 'evt-malformed-materialization',
+      payload: { ...validEvent.payload, instanceId: 'constructor' },
+    })
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.equipmentInstances).toHaveProperty(materialized.instance.instanceId)
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.instance_materialized')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ instanceId: materialized.instance.instanceId }),
+      }),
+    ])
+  })
+
   it('assigns an exact stored instance while atomically preserving displaced stock', () => {
     const state = createStartingState()
     state.inventory.signal_jammers = 1

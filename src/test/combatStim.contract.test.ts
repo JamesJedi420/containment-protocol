@@ -821,6 +821,35 @@ describe('SPE-2844 Combat Stim stored-instance disposal', () => {
     ])
   })
 
+  it('does not reuse a same-week instance identity after disposal records it', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+
+    const first = materializeStoredCombatStimInstance(state)
+    if (!first.ok) throw new Error(first.code)
+    const disposed = destroyStoredCombatStimInstance(first.state, first.instance.instanceId)
+    if (!disposed.ok) throw new Error(disposed.code)
+    const terminal = appendOperationEventDrafts(disposed.state, [
+      createCombatStimDisposedDraft({
+        week: state.week,
+        instanceId: disposed.instance.instanceId,
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_disposal',
+      }),
+    ])
+
+    const second = materializeStoredCombatStimInstance(terminal)
+    if (!second.ok) throw new Error(second.code)
+
+    expect(first.instance.instanceId).toBe('equipment-instance-1-1')
+    expect(second.instance.instanceId).toBe('equipment-instance-1-2')
+  })
+
   it('projects stable stored-instance disposal views in code-unit order', () => {
     const state = seedStoredStim(1, 'equipment-instance-b')
     state.equipmentInstances!['equipment-instance-a'] = {
@@ -1055,6 +1084,35 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
         }),
       }),
     ])
+  })
+
+  it('does not reuse a same-week instance identity after re-aggregation records it', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+
+    const first = materializeStoredCombatStimInstance(state)
+    if (!first.ok) throw new Error(first.code)
+    const reaggregated = reaggregateStoredCombatStimInstance(first.state, first.instance.instanceId)
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    const terminal = appendOperationEventDrafts(reaggregated.state, [
+      createCombatStimReaggregatedDraft({
+        week: state.week,
+        instanceId: reaggregated.instance.instanceId,
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_untracking',
+      }),
+    ])
+
+    const second = materializeStoredCombatStimInstance(terminal)
+    if (!second.ok) throw new Error(second.code)
+
+    expect(first.instance.instanceId).toBe('equipment-instance-1-1')
+    expect(second.instance.instanceId).toBe('equipment-instance-1-2')
   })
 
   it('projects stable re-aggregation views with full-dose eligibility only', () => {

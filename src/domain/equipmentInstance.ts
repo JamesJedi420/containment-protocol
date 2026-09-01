@@ -14,8 +14,7 @@ export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
 
 export type EquipmentInstanceLocation =
-  | { state: 'stored' }
-  | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
+  { state: 'stored' } | { state: 'equipped'; agentId: Id; slot: EquipmentSlotKind }
 
 export interface EquipmentInstanceConsumablePayload {
   resourceId: string
@@ -431,7 +430,9 @@ function getHistoricalEquipmentInstanceId(event: GameState['events'][number]) {
   if (
     event.type !== 'equipment.instance_materialized' &&
     event.type !== 'equipment.instance_destroyed' &&
-    event.type !== 'equipment.instance_reaggregated'
+    event.type !== 'equipment.instance_reaggregated' &&
+    event.type !== 'equipment.combat_stim_disposed' &&
+    event.type !== 'equipment.combat_stim_reaggregated'
   ) {
     return undefined
   }

@@ -848,9 +848,23 @@ describe('ordinary equipment instance authority', () => {
       ok: false,
       code: 'stale_transition',
     })
-    expect(destroyStoredOrdinaryEquipmentInstance(state, 'equipped')).toMatchObject({
+    const trainingState = {
+      ...state,
+      agents: {
+        ...state.agents,
+        a_mina: {
+          ...state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+    expect(destroyStoredOrdinaryEquipmentInstance(trainingState, 'equipped')).toMatchObject({
       ok: false,
-      code: 'instance_not_stored',
+      code: 'agent_not_idle',
     })
     expect(destroyStoredOrdinaryEquipmentInstance(state, 'stim')).toMatchObject({
       ok: false,
@@ -898,6 +912,65 @@ describe('ordinary equipment instance authority', () => {
     expect(
       destroyStoredOrdinaryEquipmentInstance(completedConflict, materialized.instance.instanceId)
     ).toMatchObject({ ok: false, code: 'recovery_claimed' })
+  })
+
+  it('destroys an equipped ordinary identity on an idle agent and clears only that slot', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 3
+    state.inventory.electronics = 4
+    const created = instantiateEquipmentInstance(state, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+    const sibling = instantiateEquipmentInstance(created.state, 'signal_jammers')
+    if (!sibling.ok) throw new Error(sibling.code)
+    const equipped = relocateEquipmentInstance(sibling.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const siblingEquipped = relocateEquipmentInstance(equipped.state, sibling.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_casey',
+      slot: 'utility1',
+    })
+    if (!siblingEquipped.ok) throw new Error(siblingEquipped.code)
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      siblingEquipped.state,
+      created.instance.instanceId
+    )
+    expect(destroyed).toMatchObject({
+      ok: true,
+      instance: { instanceId: created.instance.instanceId, definitionId: 'signal_jammers' },
+    })
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    expect(destroyed.state.inventory.signal_jammers).toBe(1)
+    expect(destroyed.state.inventory.electronics).toBe(4)
+    expect(destroyed.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(getEquipmentInstanceAtAgentSlot(destroyed.state, 'a_mina', 'utility1')).toBeUndefined()
+    expect(destroyed.state.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      getEquipmentInstanceAtAgentSlot(destroyed.state, 'a_casey', 'utility1')?.instanceId
+    ).toBe(sibling.instance.instanceId)
+    expect(destroyed.state.agents.a_casey.equipmentSlots?.utility1).toBe('signal_jammers')
+  })
+
+  it('does not unequip a Combat Stim when ordinary destruction is requested', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    const created = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(
+      destroyStoredOrdinaryEquipmentInstance(created.state, created.instance.instanceId)
+    ).toMatchObject({
+      ok: false,
+      code: 'specialized_destruction_required',
+    })
+    expect(getEquipmentInstanceAtAgentSlot(created.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      created.instance.instanceId
+    )
   })
 
   it('re-aggregates one exact operational copy without mutating sibling authorities', () => {
@@ -1004,9 +1077,24 @@ describe('ordinary equipment instance authority', () => {
       ok: false,
       code: 'stale_transition',
     })
-    expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'equipped')).toMatchObject({
+    const trainingState = {
+      ...state,
+      inventory: { ...state.inventory, signal_jammers: 1 },
+      agents: {
+        ...state.agents,
+        a_mina: {
+          ...state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+    expect(reaggregateStoredOrdinaryEquipmentInstance(trainingState, 'equipped')).toMatchObject({
       ok: false,
-      code: 'instance_not_stored',
+      code: 'agent_not_idle',
     })
     expect(reaggregateStoredOrdinaryEquipmentInstance(state, 'damaged')).toMatchObject({
       ok: false,
@@ -1025,6 +1113,83 @@ describe('ordinary equipment instance authority', () => {
       code: 'inventory_capacity_exceeded',
       state: { equipmentInstances: { overflow: { instanceId: 'overflow' } } },
     })
+  })
+
+  it('re-aggregates an equipped ordinary identity on an idle agent and clears only that slot', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 3
+    const created = instantiateEquipmentInstance(state, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+    const sibling = instantiateEquipmentInstance(created.state, 'signal_jammers')
+    if (!sibling.ok) throw new Error(sibling.code)
+    const equipped = relocateEquipmentInstance(sibling.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const siblingEquipped = relocateEquipmentInstance(equipped.state, sibling.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_casey',
+      slot: 'utility1',
+    })
+    if (!siblingEquipped.ok) throw new Error(siblingEquipped.code)
+
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      siblingEquipped.state,
+      created.instance.instanceId
+    )
+    expect(reaggregated).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: created.instance.instanceId,
+        definitionId: 'signal_jammers',
+        condition: 'operational',
+      },
+    })
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    expect(reaggregated.state.inventory.signal_jammers).toBe(2)
+    expect(reaggregated.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(reaggregated.state.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      getEquipmentInstanceAtAgentSlot(reaggregated.state, 'a_casey', 'utility1')?.instanceId
+    ).toBe(sibling.instance.instanceId)
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(reaggregated.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'stale_transition' })
+  })
+
+  it('rejects equipped fabricated-origin catalog re-aggregation without unequipping', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', {
+      fabricationOrigin: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+    expect(getEquipmentInstanceAtAgentSlot(created.state, 'a_mina', 'utility1')?.instanceId).toBe(
+      created.instance.instanceId
+    )
+    expect(created.state.inventory.signal_jammers).toBe(0)
   })
 
   it('rejects re-aggregation for active and completed recovery claims', () => {

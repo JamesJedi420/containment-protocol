@@ -20,6 +20,7 @@ import {
   equipAgentItem as equipAgentItemDomain,
   unequipAgentItem as unequipAgentItemDomain,
 } from '../../domain/sim/equipment'
+import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
 import { queueFabrication as queueFabricationDomain } from '../../domain/sim/production'
 import { GAME_STORE_VERSION } from './runTransfer'
 import { hydrateGame, parseRunExport, serializeRunExport } from './runTransfer'
@@ -848,6 +849,46 @@ describe('gameStore', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(1)
     expect(useGameStore.getState().game.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
     expectCanonicalTeams(useGameStore.getState().game)
+  })
+
+  it('destroyStoredEquipmentInstance clears an idle equipped ordinary copy without restoring stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().destroyStoredEquipmentInstance(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(1)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_destroyed')
+    ).toHaveLength(1)
+  })
+
+  it('reaggregateStoredEquipmentInstance credits stock and clears an idle equipped ordinary copy', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().reaggregateStoredEquipmentInstance(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
   })
 
   it('prepared support procedure actions: domain helpers equal store actions and persist encounter-local state', () => {

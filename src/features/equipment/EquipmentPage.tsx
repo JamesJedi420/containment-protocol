@@ -1145,6 +1145,136 @@ function EquipmentPage() {
                         ) : null}
                       </div>
 
+                      {slot.ordinaryLifecycle && slot.instanceId ? (
+                        <div className="mt-3 space-y-2">
+                          {pendingDestructionInstanceId === slot.instanceId ? (
+                            <div
+                              className="space-y-2"
+                              role="group"
+                              aria-label={`Confirm destruction ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                            >
+                              <p className="text-xs text-red-200">
+                                Permanently destroy this equipped copy? This unequips it from the
+                                loadout, cannot be recovered, and does not restore aggregate stock.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs"
+                                  aria-label={`Permanently destroy ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                  onClick={() => {
+                                    destroyStoredEquipmentInstance(slot.instanceId!)
+                                    setPendingDestructionInstanceId(undefined)
+                                  }}
+                                >
+                                  Confirm destruction
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() => setPendingDestructionInstanceId(undefined)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              disabled={!slot.ordinaryLifecycle.canDestroy}
+                              aria-label={`Review destruction ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              onClick={() => {
+                                setPendingReaggregationInstanceId(undefined)
+                                setPendingReturnToLotInstanceId(undefined)
+                                setPendingRepairInstanceId(undefined)
+                                setPendingCombatStimInstanceId(undefined)
+                                setPendingDestructionInstanceId(slot.instanceId)
+                              }}
+                            >
+                              Destroy equipped copy
+                            </button>
+                          )}
+                          {slot.ordinaryLifecycle.destructionBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {slot.ordinaryLifecycle.destructionBlocker === 'payload_unsupported'
+                                ? 'Payload-bearing copies require a specialized destruction flow.'
+                                : slot.ordinaryLifecycle.destructionBlocker === 'recovery_claimed'
+                                  ? 'This copy is already claimed by equipment recovery.'
+                                  : 'Loadout changes are locked while this operative is not idle.'}
+                            </p>
+                          ) : null}
+                          {pendingReaggregationInstanceId === slot.instanceId ? (
+                            <div
+                              className="space-y-2"
+                              role="group"
+                              aria-label={`Confirm re-aggregation ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                            >
+                              <p className="text-xs text-amber-100">
+                                Unequip this copy and return one unit to aggregate stock? This does
+                                not leave a stored individual identity.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs"
+                                  aria-label={`Re-aggregate ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                  onClick={() => {
+                                    reaggregateStoredEquipmentInstance(slot.instanceId!)
+                                    setPendingReaggregationInstanceId(undefined)
+                                  }}
+                                >
+                                  Confirm re-aggregation
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() => setPendingReaggregationInstanceId(undefined)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              disabled={!slot.ordinaryLifecycle.canReaggregate}
+                              aria-label={`Review re-aggregation ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              onClick={() => {
+                                setPendingDestructionInstanceId(undefined)
+                                setPendingReturnToLotInstanceId(undefined)
+                                setPendingRepairInstanceId(undefined)
+                                setPendingCombatStimInstanceId(undefined)
+                                setPendingReaggregationInstanceId(slot.instanceId)
+                              }}
+                            >
+                              Return equipped copy to stock
+                            </button>
+                          )}
+                          {slot.ordinaryLifecycle.reaggregationBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {slot.ordinaryLifecycle.reaggregationBlocker ===
+                              'condition_unsupported'
+                                ? 'Damaged copies cannot return to operational aggregate stock.'
+                                : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                    'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                  : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                      'fabricated_provenance_required'
+                                    ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                    : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                        'recovery_claimed'
+                                      ? 'This copy is already claimed by equipment recovery.'
+                                      : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                          'agent_not_idle'
+                                        ? 'Loadout changes are locked while this operative is not idle.'
+                                        : 'Aggregate stock is already at its safe capacity.'}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       {slot.instanceId && slot.combatStimActivation ? (
                         <div className="mt-3 rounded border border-cyan-300/20 p-2">
                           {slot.combatStimActivation.available ? (

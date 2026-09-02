@@ -131,6 +131,18 @@ export interface EquipmentLoadoutSlotView {
     blocker?: string
   }
   overdriveLabel?: string
+  ordinaryLifecycle?: {
+    canDestroy: boolean
+    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed' | 'agent_not_idle'
+    canReaggregate: boolean
+    reaggregationBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
+      | 'fabricated_provenance_required'
+      | 'agent_not_idle'
+  }
   stockOptions: EquipmentLoadoutOptionView[]
 }
 
@@ -436,6 +448,42 @@ export function getGearRecommendationsForActiveCases(game: GameState): GearRecom
   })
 }
 
+function resolveOrdinaryEquippedLifecycle(
+  game: GameState,
+  instance: NonNullable<ReturnType<typeof getEquipmentInstanceAtAgentSlot>>,
+  agentIdle: boolean
+): NonNullable<EquipmentLoadoutSlotView['ordinaryLifecycle']> {
+  const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
+  const aggregateStock = Math.max(0, Math.trunc(game.inventory[instance.definitionId] ?? 0))
+  const destructionBlocker = instance.payload
+    ? ('payload_unsupported' as const)
+    : recoveryClaimed
+      ? ('recovery_claimed' as const)
+      : agentIdle
+        ? undefined
+        : ('agent_not_idle' as const)
+  const reaggregationBlocker =
+    instance.condition !== 'operational'
+      ? ('condition_unsupported' as const)
+      : instance.payload
+        ? ('payload_unsupported' as const)
+        : instance.fabricationOrigin
+          ? ('fabricated_provenance_required' as const)
+          : recoveryClaimed
+            ? ('recovery_claimed' as const)
+            : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+              ? ('inventory_capacity_exceeded' as const)
+              : agentIdle
+                ? undefined
+                : ('agent_not_idle' as const)
+  return {
+    canDestroy: destructionBlocker === undefined,
+    canReaggregate: reaggregationBlocker === undefined,
+    ...(destructionBlocker ? { destructionBlocker } : {}),
+    ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
+  }
+}
+
 export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLoadoutView[] {
   return Object.values(game.agents)
     .filter((agent) => agent.status !== 'dead')
@@ -523,6 +571,10 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                 ? agent.overdrive.active
                   ? 'Combat Stim overdrive active'
                   : `Combat Stim recovery debt: ${agent.overdrive.recoveryDebt}`
+                : undefined,
+            ordinaryLifecycle:
+              equippedInstance && equippedInstance.definitionId !== COMBAT_STIM_DEFINITION_ID
+                ? resolveOrdinaryEquippedLifecycle(game, equippedInstance, editable)
                 : undefined,
             stockOptions: [
               ...compatibleDefinitions

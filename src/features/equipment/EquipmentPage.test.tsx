@@ -184,6 +184,91 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(0)
   })
 
+  it('confirms destruction of an equipped ordinary copy without restoring aggregate stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(screen.getByRole('button', { name: /unequip utility 1 from mina park/i })).toBeVisible()
+    expect(
+      screen.getByRole('button', {
+        name: `Review destruction Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review destruction Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm destruction Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(/unequips it from the loadout, cannot be recovered, and does not restore/i)
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Permanently destroy Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(1)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_destroyed')
+    ).toHaveLength(1)
+  })
+
+  it('confirms re-aggregation of an equipped ordinary copy and credits stock once', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm re-aggregation Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/does not leave a stored individual identity/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Re-aggregate Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
+  })
+
   it('tracks a fabricated batch copy with retained provenance labels', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

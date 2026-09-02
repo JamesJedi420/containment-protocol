@@ -7,7 +7,10 @@ import {
   getEquipmentInstanceMaterializationViews,
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
-import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
+import {
+  instantiateEquipmentInstance,
+  relocateEquipmentInstance,
+} from '../../domain/equipmentInstance'
 import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 
 describe('getEquipmentDeconstructionViews', () => {
@@ -348,6 +351,68 @@ describe('getGearRecommendationsForActiveCases', () => {
         }),
       ])
     )
+  })
+
+  it('exposes destroy and re-agg eligibility on idle ordinary equipped slots', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    const created = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!created.ok) throw new Error(created.code)
+    const equipped = relocateEquipmentInstance(created.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+
+    const mina = getAgentEquipmentLoadoutViews(equipped.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
+      instanceId: created.instance.instanceId,
+      ordinaryLifecycle: { canDestroy: true, canReaggregate: true },
+    })
+
+    const locked = {
+      ...equipped.state,
+      agents: {
+        ...equipped.state.agents,
+        a_mina: {
+          ...equipped.state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+    const lockedMina = getAgentEquipmentLoadoutViews(locked).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(lockedMina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual({
+      canDestroy: false,
+      destructionBlocker: 'agent_not_idle',
+      canReaggregate: false,
+      reaggregationBlocker: 'agent_not_idle',
+    })
+  })
+
+  it('omits ordinary destroy and re-agg from equipped Combat Stim slots', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 1
+    const created = instantiateEquipmentInstance(game, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const ava = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_ava'
+    )
+    expect(ava?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
+      instanceId: created.instance.instanceId,
+      ordinaryLifecycle: undefined,
+    })
   })
 
   it('lists exact stored identities stably and blocks generic payload destruction', () => {

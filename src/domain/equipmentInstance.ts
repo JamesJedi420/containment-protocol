@@ -530,14 +530,19 @@ export function destroyStoredOrdinaryEquipmentInstance(
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_destruction_required' }
   }
-  if (instance.location.state !== 'stored') {
-    return { ok: false, state: normalized, code: 'instance_not_stored' }
-  }
   if (instance.payload !== undefined) {
     return { ok: false, state: normalized, code: 'payload_destruction_unsupported' }
   }
   if (isEquipmentInstanceClaimedForRecovery(normalized, instanceId)) {
     return { ok: false, state: normalized, code: 'recovery_claimed' }
+  }
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) return relocated
+    return destroyStoredOrdinaryEquipmentInstance(relocated.state, instanceId)
+  }
+  if (instance.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
   }
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
@@ -559,9 +564,6 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
   }
-  if (instance.location.state !== 'stored') {
-    return { ok: false, state: normalized, code: 'instance_not_stored' }
-  }
   if (instance.condition !== 'operational') {
     return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
   }
@@ -578,6 +580,14 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   const stock = readAggregateStock(normalized, instance.definitionId)
   if (!Number.isSafeInteger(stock) || stock >= Number.MAX_SAFE_INTEGER) {
     return { ok: false, state: normalized, code: 'inventory_capacity_exceeded' }
+  }
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) return relocated
+    return reaggregateStoredOrdinaryEquipmentInstance(relocated.state, instanceId)
+  }
+  if (instance.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
   }
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }

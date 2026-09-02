@@ -202,6 +202,11 @@ describe('EquipmentPage', () => {
         name: `Review destruction Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
       })
     ).toBeVisible()
+    expect(
+      screen.queryByRole('button', {
+        name: `Review fabricated lot return Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).not.toBeInTheDocument()
 
     await user.click(
       screen.getByRole('button', {
@@ -266,6 +271,76 @@ describe('EquipmentPage', () => {
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
     expect(
       next.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
+  })
+
+  it('confirms equipped fabricated lot-return without catalog re-aggregation', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      fabricationOrigin: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).toBeDisabled()
+    expect(screen.getByText(/cannot return as unspecified catalog stock/i)).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review fabricated lot return Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm fabricated lot return Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1`,
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/lot production quantity stays unchanged/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Confirm return Signal Jammers instance ${created.instance.instanceId} equipped on Mina Park Utility 1 to fabricated lot`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(next.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 0,
+    })
+    expect(
+      next.events.filter(
+        (event) =>
+          event.type === 'equipment.instance_reaggregated' &&
+          event.payload.reason === 'fabricated_lot_return'
+      )
     ).toHaveLength(1)
   })
 

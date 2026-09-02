@@ -230,9 +230,11 @@ export function materializeStoredCombatStimInstance(
 }
 
 /**
- * SPE-2848: guarded inverse of fabricated-lot ordinary materialization.
- * Deletes one stored fabricated-origin identity, credits aggregate inventory once,
- * and decrements the source lot's trackedInstanceUnits (never mutates quantity).
+ * SPE-2848 / SPE-2854: guarded inverse of fabricated-lot ordinary materialization.
+ * Deletes one stored or idle-equipped fabricated-origin identity, credits aggregate
+ * inventory once, and decrements the source lot's trackedInstanceUnits (never mutates quantity).
+ * Equipped copies gate provenance/condition/payload/lot/capacity before relocate so a
+ * failed command does not unequip.
  */
 export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   state: GameState,
@@ -246,9 +248,6 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
-  }
-  if (instance.location.state !== 'stored') {
-    return { ok: false, state: normalized, code: 'instance_not_stored' }
   }
   if (instance.condition !== 'operational') {
     return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
@@ -296,6 +295,14 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   const stock = getInventoryStock(normalized, instance.definitionId)
   if (!Number.isSafeInteger(stock) || stock >= Number.MAX_SAFE_INTEGER) {
     return { ok: false, state: normalized, code: 'inventory_capacity_exceeded' }
+  }
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) return relocated
+    return returnFabricatedOrdinaryEquipmentInstanceToLot(relocated.state, instanceId)
+  }
+  if (instance.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
   }
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }

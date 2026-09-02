@@ -370,7 +370,7 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
     expect(mina?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
       instanceId: created.instance.instanceId,
-      ordinaryLifecycle: { canDestroy: true, canReaggregate: true },
+      ordinaryLifecycle: { canDestroy: true, canReaggregate: true, canReturnToLot: false },
     })
 
     const locked = {
@@ -395,6 +395,69 @@ describe('getGearRecommendationsForActiveCases', () => {
       destructionBlocker: 'agent_not_idle',
       canReaggregate: false,
       reaggregationBlocker: 'agent_not_idle',
+      canReturnToLot: false,
+    })
+  })
+
+  it('exposes equipped fabricated lot-return and keeps catalog re-agg fail-closed', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      fabricationOrigin: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const mina = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual({
+      canDestroy: true,
+      canReaggregate: false,
+      reaggregationBlocker: 'fabricated_provenance_required',
+      canReturnToLot: true,
+    })
+
+    const locked = {
+      ...created.state,
+      agents: {
+        ...created.state.agents,
+        a_mina: {
+          ...created.state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+    const lockedMina = getAgentEquipmentLoadoutViews(locked).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(lockedMina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual({
+      canDestroy: false,
+      destructionBlocker: 'agent_not_idle',
+      canReaggregate: false,
+      reaggregationBlocker: 'fabricated_provenance_required',
+      canReturnToLot: false,
+      lotReturnBlocker: 'agent_not_idle',
     })
   })
 

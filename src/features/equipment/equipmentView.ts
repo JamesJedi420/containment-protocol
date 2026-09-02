@@ -142,6 +142,14 @@ export interface EquipmentLoadoutSlotView {
       | 'inventory_capacity_exceeded'
       | 'fabricated_provenance_required'
       | 'agent_not_idle'
+    canReturnToLot: boolean
+    lotReturnBlocker?:
+      | 'condition_unsupported'
+      | 'payload_unsupported'
+      | 'recovery_claimed'
+      | 'inventory_capacity_exceeded'
+      | 'lot_unavailable'
+      | 'agent_not_idle'
   }
   stockOptions: EquipmentLoadoutOptionView[]
 }
@@ -476,11 +484,45 @@ function resolveOrdinaryEquippedLifecycle(
               : agentIdle
                 ? undefined
                 : ('agent_not_idle' as const)
+  let lotReturnBlocker:
+    | 'condition_unsupported'
+    | 'payload_unsupported'
+    | 'recovery_claimed'
+    | 'inventory_capacity_exceeded'
+    | 'lot_unavailable'
+    | 'agent_not_idle'
+    | undefined
+  if (instance.fabricationOrigin) {
+    if (instance.condition !== 'operational') {
+      lotReturnBlocker = 'condition_unsupported'
+    } else if (instance.payload) {
+      lotReturnBlocker = 'payload_unsupported'
+    } else if (recoveryClaimed) {
+      lotReturnBlocker = 'recovery_claimed'
+    } else if (!Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER) {
+      lotReturnBlocker = 'inventory_capacity_exceeded'
+    } else {
+      const resolved = resolveFabricationOriginForDefinition(
+        game,
+        instance.definitionId,
+        instance.fabricationOrigin
+      )
+      const lot = resolved.ok ? game.fabricatedEquipmentLots?.[resolved.origin.queueId] : undefined
+      const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
+      if (!resolved.ok || !lot || tracked < 1) {
+        lotReturnBlocker = 'lot_unavailable'
+      } else if (!agentIdle) {
+        lotReturnBlocker = 'agent_not_idle'
+      }
+    }
+  }
   return {
     canDestroy: destructionBlocker === undefined,
     canReaggregate: reaggregationBlocker === undefined,
+    canReturnToLot: Boolean(instance.fabricationOrigin) && lotReturnBlocker === undefined,
     ...(destructionBlocker ? { destructionBlocker } : {}),
     ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
+    ...(lotReturnBlocker ? { lotReturnBlocker } : {}),
   }
 }
 

@@ -1272,6 +1272,73 @@ function EquipmentPage() {
                                         : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
+                          {slot.ordinaryLifecycle.canReturnToLot ||
+                          slot.ordinaryLifecycle.lotReturnBlocker ? (
+                            pendingReturnToLotInstanceId === slot.instanceId ? (
+                              <div
+                                className="space-y-2"
+                                role="group"
+                                aria-label={`Confirm fabricated lot return ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              >
+                                <p className="text-xs text-amber-100">
+                                  Unequip this fabricated copy, return it to its source batch
+                                  tracking, and credit one aggregate unit? Lot production quantity
+                                  stays unchanged; the individual identity will be removed.
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs"
+                                    aria-label={`Confirm return ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel} to fabricated lot`}
+                                    onClick={() => {
+                                      returnFabricatedStoredEquipmentInstanceToLot(slot.instanceId!)
+                                      setPendingReturnToLotInstanceId(undefined)
+                                    }}
+                                  >
+                                    Confirm return to lot
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost"
+                                    onClick={() => setPendingReturnToLotInstanceId(undefined)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                disabled={!slot.ordinaryLifecycle.canReturnToLot}
+                                aria-label={`Review fabricated lot return ${slot.itemName} instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                onClick={() => {
+                                  setPendingDestructionInstanceId(undefined)
+                                  setPendingReaggregationInstanceId(undefined)
+                                  setPendingRepairInstanceId(undefined)
+                                  setPendingCombatStimInstanceId(undefined)
+                                  setPendingReturnToLotInstanceId(slot.instanceId)
+                                }}
+                              >
+                                Return equipped copy to lot
+                              </button>
+                            )
+                          ) : null}
+                          {slot.ordinaryLifecycle.lotReturnBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {slot.ordinaryLifecycle.lotReturnBlocker === 'condition_unsupported'
+                                ? 'Damaged copies cannot return to fabricated-lot tracking.'
+                                : slot.ordinaryLifecycle.lotReturnBlocker === 'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized return flow.'
+                                  : slot.ordinaryLifecycle.lotReturnBlocker === 'recovery_claimed'
+                                    ? 'This copy is already claimed by equipment recovery.'
+                                    : slot.ordinaryLifecycle.lotReturnBlocker === 'lot_unavailable'
+                                      ? 'The source fabricated lot is missing or cannot absorb this return.'
+                                      : slot.ordinaryLifecycle.lotReturnBlocker === 'agent_not_idle'
+                                        ? 'Loadout changes are locked while this operative is not idle.'
+                                        : 'Aggregate stock is already at its safe capacity.'}
+                            </p>
+                          ) : null}
                         </div>
                       ) : null}
 

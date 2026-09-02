@@ -40,7 +40,7 @@ readiness/stow remain outside this command. Non-idle equipped agents fail closed
 | Item or mechanic                      | Owner or prerequisite | Reason                                           |
 | ------------------------------------- | --------------------- | ------------------------------------------------ |
 | Combat Stim equipped dispose / re-agg | SPE-2827 child        | Overdrive provenance and specialized dose policy |
-| Equipped fabricated lot-return        | SPE-2848 / child      | Lot `trackedInstanceUnits` stay stored-only      |
+| Equipped fabricated lot-return        | SPE-2854              | Shipped as sibling of stored SPE-2848            |
 | Repair, damage production             | SPE-877               | Integrity program beyond identity commands       |
 | Ready versus stowed                   | SPE-1658              | Access-state layer remains separately owned      |
 | Mission loss                          | SPE-2827 child        | Requires authored lifecycle triggers             |

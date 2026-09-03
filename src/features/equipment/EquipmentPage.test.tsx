@@ -1113,6 +1113,170 @@ describe('EquipmentPage', () => {
     ])
   })
 
+  it('confirms disposal of an equipped Combat Stim without restoring aggregate stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    const created = instantiateEquipmentInstance(game, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(screen.getByRole('button', { name: /unequip utility 1 from ava brooks/i })).toBeVisible()
+    expect(
+      screen.queryByRole('button', {
+        name: `Review destruction Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review disposal Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm Combat Stim disposal ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(/unequips it from the loadout, cannot be recovered, does not restore/i)
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Permanently dispose Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(1)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.combat_stim_disposed')
+    ).toHaveLength(1)
+  })
+
+  it('confirms re-aggregation of an equipped catalog Combat Stim and credits stock once', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    const created = instantiateEquipmentInstance(game, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm Combat Stim re-aggregation ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/does not leave a stored individual identity/i)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Re-aggregate Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.combat_stim_reaggregated')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          remaining: 2,
+          reason: 'manual_untracking',
+        }),
+      }),
+    ])
+  })
+
+  it('confirms equipped fabricated Combat Stim lot-return without catalog re-aggregation', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.combat_stims = 2
+    game.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'combat_stims', {
+      fabricationOrigin: {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByRole('button', {
+        name: `Review re-aggregation Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    ).toBeDisabled()
+    expect(screen.getByText(/cannot return to catalog stock/i)).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review fabricated lot return Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm Combat Stim fabricated lot return ${created.instance.instanceId} equipped on Ava Brooks Utility 1`,
+      })
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Return fabricated Combat Stim instance ${created.instance.instanceId} equipped on Ava Brooks Utility 1 to lot`,
+      })
+    )
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.combat_stims).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(next.fabricatedEquipmentLots?.['combat-stim-batch']).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 0,
+    })
+    expect(
+      next.events.filter((event) => event.type === 'equipment.combat_stim_reaggregated')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          reason: 'fabricated_lot_return',
+        }),
+      }),
+    ])
+  })
+
   it('previews, confirms, updates, and disables the weekly Auto-Scrap policy', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

@@ -40,7 +40,13 @@ import {
 import {
   getCombatStimActivationReasonLabel,
   resolveCombatStimActivation,
+  resolveCombatStimDisposal,
+  resolveCombatStimReaggregation,
+  resolveCombatStimReturnToLot,
   resolveEffectiveResponderEnergyBand,
+  type CombatStimDisposalReasonCode,
+  type CombatStimReaggregationReasonCode,
+  type CombatStimReturnToLotReasonCode,
 } from '../../domain/combatStim'
 import {
   COMBAT_STIM_DEFINITION_ID,
@@ -150,6 +156,14 @@ export interface EquipmentLoadoutSlotView {
       | 'inventory_capacity_exceeded'
       | 'lot_unavailable'
       | 'agent_not_idle'
+  }
+  combatStimLifecycle?: {
+    canDispose: boolean
+    disposeBlocker?: CombatStimDisposalReasonCode
+    canReaggregate: boolean
+    reaggregationBlocker?: CombatStimReaggregationReasonCode
+    canReturnToLot: boolean
+    lotReturnBlocker?: CombatStimReturnToLotReasonCode
   }
   stockOptions: EquipmentLoadoutOptionView[]
 }
@@ -526,6 +540,28 @@ function resolveOrdinaryEquippedLifecycle(
   }
 }
 
+function resolveEquippedCombatStimLifecycle(
+  game: GameState,
+  instance: NonNullable<ReturnType<typeof getEquipmentInstanceAtAgentSlot>>
+): NonNullable<EquipmentLoadoutSlotView['combatStimLifecycle']> {
+  const disposal = resolveCombatStimDisposal(game, instance.instanceId)
+  const reaggregation = resolveCombatStimReaggregation(game, instance.instanceId)
+  const returnToLot = resolveCombatStimReturnToLot(game, instance.instanceId)
+  const hasFabricationOrigin = instance.fabricationOrigin !== undefined
+  return {
+    canDispose: disposal.canDispose,
+    ...(disposal.canDispose || !disposal.reasonCode ? {} : { disposeBlocker: disposal.reasonCode }),
+    canReaggregate: reaggregation.canReaggregate,
+    ...(reaggregation.canReaggregate || !reaggregation.reasonCode
+      ? {}
+      : { reaggregationBlocker: reaggregation.reasonCode }),
+    canReturnToLot: hasFabricationOrigin && returnToLot.canReturnToLot,
+    ...(hasFabricationOrigin && !returnToLot.canReturnToLot && returnToLot.reasonCode
+      ? { lotReturnBlocker: returnToLot.reasonCode }
+      : {}),
+  }
+}
+
 export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLoadoutView[] {
   return Object.values(game.agents)
     .filter((agent) => agent.status !== 'dead')
@@ -617,6 +653,10 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
             ordinaryLifecycle:
               equippedInstance && equippedInstance.definitionId !== COMBAT_STIM_DEFINITION_ID
                 ? resolveOrdinaryEquippedLifecycle(game, equippedInstance, editable)
+                : undefined,
+            combatStimLifecycle:
+              equippedInstance && equippedInstance.definitionId === COMBAT_STIM_DEFINITION_ID
+                ? resolveEquippedCombatStimLifecycle(game, equippedInstance)
                 : undefined,
             stockOptions: [
               ...compatibleDefinitions

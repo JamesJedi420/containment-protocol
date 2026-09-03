@@ -13,6 +13,7 @@ import {
   isEquipmentInstanceClaimedForRecovery,
   isSafeEquipmentInstanceId,
   listStoredEquipmentInstances,
+  relocateEquipmentInstance,
   resolveStoredEquipmentInstanceConditionRepair,
   type EquipmentInstance,
   type EquipmentInstanceId,
@@ -258,6 +259,7 @@ export const COMBAT_STIM_DISPOSAL_REASON_CODES = [
   'wrong_definition',
   'malformed_payload',
   'not_stored',
+  'agent_not_idle',
   'recovery_claimed',
   'overdrive_provenance',
 ] as const
@@ -282,6 +284,7 @@ export const COMBAT_STIM_REAGGREGATION_REASON_CODES = [
   'wrong_definition',
   'malformed_payload',
   'not_stored',
+  'agent_not_idle',
   'condition_unsupported',
   'partial_dose',
   'depleted_dose',
@@ -336,6 +339,30 @@ function instanceHasActiveOverdriveProvenance(state: GameState, instanceId: stri
   )
 }
 
+function isIdleAgent(agent: Agent | undefined) {
+  return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
+}
+
+/** Stored, or equipped on an idle active agent (SPE-2855). */
+function resolveCombatStimLifecycleLocation(
+  state: GameState,
+  instance: EquipmentInstance
+): 'ok' | 'not_stored' | 'agent_not_idle' {
+  if (instance.location.state === 'stored') return 'ok'
+  if (instance.location.state === 'equipped') {
+    return isIdleAgent(state.agents[instance.location.agentId]) ? 'ok' : 'agent_not_idle'
+  }
+  return 'not_stored'
+}
+
+function mapRelocateFailureToCombatStimCode(
+  code: string
+): 'agent_not_idle' | 'not_stored' | 'stale_transition' {
+  if (code === 'agent_not_idle') return 'agent_not_idle'
+  if (code === 'stale_transition') return 'stale_transition'
+  return 'not_stored'
+}
+
 export function resolveCombatStimDisposal(
   state: GameState,
   instanceId: EquipmentInstanceId
@@ -353,8 +380,9 @@ export function resolveCombatStimDisposal(
   if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
     return { ...base, canDispose: false, reasonCode: 'wrong_definition' }
   }
-  if (instance.location.state !== 'stored') {
-    return { ...base, canDispose: false, reasonCode: 'not_stored' }
+  const locationGate = resolveCombatStimLifecycleLocation(state, instance)
+  if (locationGate !== 'ok') {
+    return { ...base, canDispose: false, reasonCode: locationGate }
   }
   if (!isCanonicalCombatStimPayload(instance.payload)) {
     return { ...base, canDispose: false, reasonCode: 'malformed_payload', doseLabel: 'Unavailable' }
@@ -393,6 +421,18 @@ export function destroyStoredCombatStimInstance(
     return { ok: false, state: normalized, code: preview.reasonCode! }
   }
   const instance = normalized.equipmentInstances![instanceId]!
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) {
+      const code = mapRelocateFailureToCombatStimCode(relocated.code)
+      return {
+        ok: false,
+        state: relocated.state,
+        code: code === 'stale_transition' ? 'unknown_instance' : code,
+      }
+    }
+    return destroyStoredCombatStimInstance(relocated.state, instanceId)
+  }
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
   const nextState = normalizeGameState({ ...normalized, equipmentInstances })
@@ -426,8 +466,9 @@ export function resolveCombatStimReaggregation(
   if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
     return { ...base, canReaggregate: false, reasonCode: 'wrong_definition' }
   }
-  if (instance.location.state !== 'stored') {
-    return { ...base, canReaggregate: false, reasonCode: 'not_stored' }
+  const locationGate = resolveCombatStimLifecycleLocation(state, instance)
+  if (locationGate !== 'ok') {
+    return { ...base, canReaggregate: false, reasonCode: locationGate }
   }
   if (!isCanonicalCombatStimPayload(instance.payload)) {
     return {
@@ -491,6 +532,18 @@ export function reaggregateStoredCombatStimInstance(
     return { ok: false, state: normalized, code: preview.reasonCode! }
   }
   const instance = normalized.equipmentInstances![instanceId]!
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) {
+      const code = mapRelocateFailureToCombatStimCode(relocated.code)
+      return {
+        ok: false,
+        state: relocated.state,
+        code: code === 'stale_transition' ? 'unknown_instance' : code,
+      }
+    }
+    return reaggregateStoredCombatStimInstance(relocated.state, instanceId)
+  }
   const stock = readCombatStimAggregateStock(normalized)
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
@@ -508,6 +561,7 @@ export const COMBAT_STIM_RETURN_TO_LOT_REASON_CODES = [
   'wrong_definition',
   'malformed_payload',
   'not_stored',
+  'agent_not_idle',
   'condition_unsupported',
   'partial_dose',
   'depleted_dose',
@@ -560,8 +614,9 @@ export function resolveCombatStimReturnToLot(
   if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
     return { ...base, canReturnToLot: false, reasonCode: 'wrong_definition' }
   }
-  if (instance.location.state !== 'stored') {
-    return { ...base, canReturnToLot: false, reasonCode: 'not_stored' }
+  const locationGate = resolveCombatStimLifecycleLocation(state, instance)
+  if (locationGate !== 'ok') {
+    return { ...base, canReturnToLot: false, reasonCode: locationGate }
   }
   if (!isCanonicalCombatStimPayload(instance.payload)) {
     return {
@@ -713,6 +768,17 @@ export function returnFabricatedCombatStimInstanceToLot(
     return { ok: false, state: normalized, code: preview.reasonCode! }
   }
   const instance = normalized.equipmentInstances![instanceId]!
+  if (instance.location.state === 'equipped') {
+    const relocated = relocateEquipmentInstance(normalized, instanceId, { state: 'stored' })
+    if (!relocated.ok) {
+      return {
+        ok: false,
+        state: relocated.state,
+        code: mapRelocateFailureToCombatStimCode(relocated.code),
+      }
+    }
+    return returnFabricatedCombatStimInstanceToLot(relocated.state, instanceId)
+  }
   const originResolved = resolveFabricationOriginForDefinition(
     normalized,
     instance.definitionId,
@@ -757,7 +823,8 @@ export function getCombatStimDisposalReasonLabel(code: CombatStimDisposalReasonC
     unknown_instance: 'Equipment instance unavailable.',
     wrong_definition: 'This instance is not Combat Stims.',
     malformed_payload: 'Dose state is unavailable.',
-    not_stored: 'Only stored Combat Stim instances can be disposed.',
+    not_stored: 'Only stored or idle-equipped Combat Stim instances can be disposed.',
+    agent_not_idle: 'Loadout changes are locked while this operative is not idle.',
     recovery_claimed: 'Recovery is already queued or completed for this instance.',
     overdrive_provenance: 'Active overdrive or recovery debt still references this instance.',
   }
@@ -770,7 +837,9 @@ export function getCombatStimReturnToLotReasonLabel(code: CombatStimReturnToLotR
     stale_transition: 'Equipment instance unavailable.',
     wrong_definition: 'This instance is not Combat Stims.',
     malformed_payload: 'Dose state is unavailable.',
-    not_stored: 'Only stored Combat Stim instances can return to a fabricated lot.',
+    not_stored:
+      'Only stored or idle-equipped Combat Stim instances can return to a fabricated lot.',
+    agent_not_idle: 'Loadout changes are locked while this operative is not idle.',
     condition_unsupported: 'Damaged Combat Stim copies cannot return to fabricated-lot tracking.',
     partial_dose:
       'Only full 2/2 Combat Stim copies can return to a fabricated lot. Dispose or recover partial doses separately.',
@@ -791,7 +860,8 @@ export function getCombatStimReaggregationReasonLabel(code: CombatStimReaggregat
     unknown_instance: 'Equipment instance unavailable.',
     wrong_definition: 'This instance is not Combat Stims.',
     malformed_payload: 'Dose state is unavailable.',
-    not_stored: 'Only stored Combat Stim instances can return to aggregate stock.',
+    not_stored: 'Only stored or idle-equipped Combat Stim instances can return to aggregate stock.',
+    agent_not_idle: 'Loadout changes are locked while this operative is not idle.',
     condition_unsupported:
       'Damaged Combat Stim copies cannot return to operational aggregate stock.',
     partial_dose:

@@ -685,7 +685,7 @@ describe('SPE-2844 Combat Stim stored-instance disposal', () => {
     }
   })
 
-  it('fails closed for equipped, missing, malformed, recovery-claimed, and overdrive-provenance instances', () => {
+  it('fails closed for non-idle equipped, missing, malformed, recovery-claimed, and overdrive-provenance instances', () => {
     const stored = seedStoredStim(1)
     const equipped = equipStoredCombatStimInstance(
       stored,
@@ -693,12 +693,29 @@ describe('SPE-2844 Combat Stim stored-instance disposal', () => {
       'a_ava',
       'utility1'
     )
-    expect(
-      destroyStoredCombatStimInstance(equipped, 'equipment-instance-stored-stim')
-    ).toMatchObject({
+    const assigned = {
+      ...equipped,
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          assignment: {
+            state: 'assigned' as const,
+            caseId: Object.keys(equipped.cases).sort()[0],
+            startedWeek: 1,
+          },
+        },
+      },
+    }
+    const blocked = destroyStoredCombatStimInstance(assigned, 'equipment-instance-stored-stim')
+    expect(blocked).toMatchObject({
       ok: false,
-      code: 'not_stored',
+      code: 'agent_not_idle',
     })
+    expect(getEquipmentInstanceAtAgentSlot(blocked.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      'equipment-instance-stored-stim'
+    )
+    expect(blocked.state.inventory.combat_stims).toBe(assigned.inventory.combat_stims)
 
     expect(destroyStoredCombatStimInstance(stored, 'missing')).toMatchObject({
       ok: false,
@@ -937,7 +954,7 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
     ).toBe(true)
   })
 
-  it('fails closed for equipped, damaged, missing, malformed, recovery-claimed, overdrive, and overflow', () => {
+  it('fails closed for non-idle equipped, damaged, missing, malformed, recovery-claimed, overdrive, and overflow', () => {
     const stored = seedStoredStim(2)
     const equipped = equipStoredCombatStimInstance(
       stored,
@@ -945,12 +962,28 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
       'a_ava',
       'utility1'
     )
-    expect(
-      reaggregateStoredCombatStimInstance(equipped, 'equipment-instance-stored-stim')
-    ).toMatchObject({
+    const assigned = {
+      ...equipped,
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          assignment: {
+            state: 'assigned' as const,
+            caseId: Object.keys(equipped.cases).sort()[0],
+            startedWeek: 1,
+          },
+        },
+      },
+    }
+    const blocked = reaggregateStoredCombatStimInstance(assigned, 'equipment-instance-stored-stim')
+    expect(blocked).toMatchObject({
       ok: false,
-      code: 'not_stored',
+      code: 'agent_not_idle',
     })
+    expect(getEquipmentInstanceAtAgentSlot(blocked.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      'equipment-instance-stored-stim'
+    )
 
     const damaged = {
       ...stored,
@@ -1372,7 +1405,7 @@ describe('SPE-2850 fabricated-lot Combat Stim return-to-lot', () => {
     })
   })
 
-  it('fail-closes equipped, partial, depleted, damaged, recovery, and overdrive cases', () => {
+  it('fail-closes non-idle equipped, partial, depleted, damaged, recovery, and overdrive cases', () => {
     const state = createStartingState()
     const materialized = seedFabricatedCombatStimLot(state)
     const instanceId = materialized.instance.instanceId
@@ -1383,10 +1416,31 @@ describe('SPE-2850 fabricated-lot Combat Stim return-to-lot', () => {
       'a_ava',
       'utility1'
     )
-    expect(returnFabricatedCombatStimInstanceToLot(equipped, instanceId)).toMatchObject({
+    const assigned = {
+      ...equipped,
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          assignment: {
+            state: 'assigned' as const,
+            caseId: Object.keys(equipped.cases).sort()[0],
+            startedWeek: 1,
+          },
+        },
+      },
+    }
+    const blocked = returnFabricatedCombatStimInstanceToLot(assigned, instanceId)
+    expect(blocked).toMatchObject({
       ok: false,
-      code: 'not_stored',
+      code: 'agent_not_idle',
     })
+    expect(getEquipmentInstanceAtAgentSlot(blocked.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      instanceId
+    )
+    expect(blocked.state.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits).toBe(
+      equipped.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits
+    )
 
     const partial = {
       ...materialized.state,
@@ -1764,5 +1818,222 @@ describe('SPE-2851 Combat Stim stored-instance condition repair', () => {
     expect(
       repairStoredEquipmentInstanceCondition(hydrated, 'equipment-instance-stored-stim')
     ).toMatchObject({ ok: false, code: 'condition_already_operational' })
+  })
+})
+
+describe('SPE-2855 equipped Combat Stim dispose, re-aggregation, and lot-return', () => {
+  it('disposes an idle equipped Combat Stim without restoring aggregate stock', () => {
+    const stored = createStartingState()
+    stored.inventory.combat_stims = 3
+    stored.equipmentInstances = {
+      'equipment-instance-equipped-stim': {
+        instanceId: 'equipment-instance-equipped-stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    const equipped = equipStoredCombatStimInstance(
+      stored,
+      'equipment-instance-equipped-stim',
+      'a_ava',
+      'utility1'
+    )
+    const siblingStock = equipped.inventory.combat_stims
+    const disposed = destroyStoredCombatStimInstance(equipped, 'equipment-instance-equipped-stim')
+    expect(disposed.ok).toBe(true)
+    if (!disposed.ok) throw new Error(disposed.code)
+    expect(disposed.state.inventory.combat_stims).toBe(siblingStock)
+    expect(disposed.state.equipmentInstances).not.toHaveProperty('equipment-instance-equipped-stim')
+    expect(disposed.state.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(getEquipmentInstanceAtAgentSlot(disposed.state, 'a_ava', 'utility1')).toBeUndefined()
+  })
+
+  it('catalog-reaggregates an idle equipped 2/2 catalog Combat Stim', () => {
+    const stored = createStartingState()
+    stored.inventory.combat_stims = 1
+    stored.equipmentInstances = {
+      'equipment-instance-equipped-stim': {
+        instanceId: 'equipment-instance-equipped-stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+    }
+    const equipped = equipStoredCombatStimInstance(
+      stored,
+      'equipment-instance-equipped-stim',
+      'a_ava',
+      'utility1'
+    )
+    const stockBefore = equipped.inventory.combat_stims ?? 0
+    const reaggregated = reaggregateStoredCombatStimInstance(
+      equipped,
+      'equipment-instance-equipped-stim'
+    )
+    expect(reaggregated.ok).toBe(true)
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    expect(reaggregated.state.inventory.combat_stims).toBe(stockBefore + 1)
+    expect(reaggregated.state.equipmentInstances).not.toHaveProperty(
+      'equipment-instance-equipped-stim'
+    )
+    expect(reaggregated.state.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+  })
+
+  it('returns an idle equipped fabricated 2/2 Combat Stim to its lot', () => {
+    const materialized = seedFabricatedCombatStimLot(createStartingState())
+    const instanceId = materialized.instance.instanceId
+    const equipped = equipStoredCombatStimInstance(
+      materialized.state,
+      instanceId,
+      'a_ava',
+      'utility1'
+    )
+    const stockBefore = equipped.inventory.combat_stims ?? 0
+    const trackedBefore =
+      equipped.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits ?? 0
+    const quantityBefore = equipped.fabricatedEquipmentLots?.['combat-stim-batch']?.quantity
+    const returned = returnFabricatedCombatStimInstanceToLot(equipped, instanceId)
+    expect(returned.ok).toBe(true)
+    if (!returned.ok) throw new Error(returned.code)
+    expect(returned.state.inventory.combat_stims).toBe(stockBefore + 1)
+    expect(returned.state.fabricatedEquipmentLots?.['combat-stim-batch']).toMatchObject({
+      quantity: quantityBefore,
+      trackedInstanceUnits: trackedBefore - 1,
+    })
+    expect(returned.state.equipmentInstances).not.toHaveProperty(instanceId)
+    expect(returned.state.agents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+  })
+
+  it('fail-closes dose, provenance, overdrive, and condition gates without unequipping', () => {
+    const stored = createStartingState()
+    stored.inventory.combat_stims = 0
+    stored.equipmentInstances = {
+      'equipment-instance-equipped-stim': {
+        instanceId: 'equipment-instance-equipped-stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 1 },
+      },
+    }
+    const equipped = equipStoredCombatStimInstance(
+      stored,
+      'equipment-instance-equipped-stim',
+      'a_ava',
+      'utility1'
+    )
+
+    const reaggPartial = reaggregateStoredCombatStimInstance(
+      equipped,
+      'equipment-instance-equipped-stim'
+    )
+    expect(reaggPartial).toMatchObject({ ok: false, code: 'partial_dose' })
+    expect(
+      getEquipmentInstanceAtAgentSlot(reaggPartial.state, 'a_ava', 'utility1')?.instanceId
+    ).toBe('equipment-instance-equipped-stim')
+    expect(reaggPartial.state.inventory.combat_stims).toBe(equipped.inventory.combat_stims)
+
+    const lotPartial = returnFabricatedCombatStimInstanceToLot(
+      equipped,
+      'equipment-instance-equipped-stim'
+    )
+    expect(lotPartial).toMatchObject({ ok: false, code: 'partial_dose' })
+    expect(getEquipmentInstanceAtAgentSlot(lotPartial.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      'equipment-instance-equipped-stim'
+    )
+
+    const damaged = {
+      ...equipped,
+      equipmentInstances: {
+        ...equipped.equipmentInstances,
+        'equipment-instance-equipped-stim': {
+          ...equipped.equipmentInstances!['equipment-instance-equipped-stim']!,
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      reaggregateStoredCombatStimInstance(damaged, 'equipment-instance-equipped-stim')
+    ).toMatchObject({ ok: false, code: 'condition_unsupported' })
+    expect(getEquipmentInstanceAtAgentSlot(damaged, 'a_ava', 'utility1')?.instanceId).toBe(
+      'equipment-instance-equipped-stim'
+    )
+
+    const overdrive = {
+      ...equipped,
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          overdrive: {
+            active: true,
+            remainingPhases: 1,
+            recoveryDebt: 0,
+            source: {
+              kind: 'combat_stim' as const,
+              activationId: 'combat-stim-equipment-instance-equipped-stim-dose-1',
+              equipmentInstanceId: 'equipment-instance-equipped-stim',
+              caseId: 'case-1',
+            },
+          },
+        },
+      },
+    }
+    const overdriveBlocked = destroyStoredCombatStimInstance(
+      overdrive,
+      'equipment-instance-equipped-stim'
+    )
+    expect(overdriveBlocked).toMatchObject({ ok: false, code: 'overdrive_provenance' })
+    expect(
+      getEquipmentInstanceAtAgentSlot(overdriveBlocked.state, 'a_ava', 'utility1')?.instanceId
+    ).toBe('equipment-instance-equipped-stim')
+  })
+
+  it('fail-closes catalog re-agg of equipped fabricated origin and lot-return of catalog origin without unequip', () => {
+    const materialized = seedFabricatedCombatStimLot(createStartingState())
+    const instanceId = materialized.instance.instanceId
+    const equipped = equipStoredCombatStimInstance(
+      materialized.state,
+      instanceId,
+      'a_ava',
+      'utility1'
+    )
+    const blockedReagg = reaggregateStoredCombatStimInstance(equipped, instanceId)
+    expect(blockedReagg).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+    expect(
+      getEquipmentInstanceAtAgentSlot(blockedReagg.state, 'a_ava', 'utility1')?.instanceId
+    ).toBe(instanceId)
+    expect(
+      blockedReagg.state.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits
+    ).toBe(equipped.fabricatedEquipmentLots?.['combat-stim-batch']?.trackedInstanceUnits)
+
+    const catalog = createStartingState()
+    catalog.inventory.combat_stims = 0
+    catalog.equipmentInstances = {
+      'equipment-instance-catalog-stim': {
+        instanceId: 'equipment-instance-catalog-stim',
+        definitionId: 'combat_stims',
+        condition: 'operational',
+        location: { state: 'stored' },
+        payload: { resourceId: 'combat_stim_dose', capacity: 2, remaining: 2 },
+      },
+    }
+    const equippedCatalog = equipStoredCombatStimInstance(
+      catalog,
+      'equipment-instance-catalog-stim',
+      'a_ava',
+      'utility1'
+    )
+    const blockedLot = returnFabricatedCombatStimInstanceToLot(
+      equippedCatalog,
+      'equipment-instance-catalog-stim'
+    )
+    expect(blockedLot).toMatchObject({ ok: false, code: 'fabricated_provenance_required' })
+    expect(getEquipmentInstanceAtAgentSlot(blockedLot.state, 'a_ava', 'utility1')?.instanceId).toBe(
+      'equipment-instance-catalog-stim'
+    )
   })
 })

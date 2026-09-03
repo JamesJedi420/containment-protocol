@@ -22,16 +22,16 @@ unequip and replacement store the instance, while direct transfer moves the same
 There is still no unguarded delete or inventory-credit operation. Every identity-destroying path
 has its own source authority, eligibility check, and event payload:
 
-| Command family                     | Eligible identities                                                                 | Stock and provenance effect                                                                                                                                          | Event                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Ordinary destroy                   | Stored, non-Combat-Stim, payload-free, recovery-unclaimed identities                | Deletes only the instance; aggregate inventory and fabricated-lot receipts are unchanged                                                                             | `equipment.instance_destroyed`                                 |
-| Catalog re-aggregation             | Stored, operational, non-fabricated, payload-free ordinary identities               | Deletes the instance and credits exactly one aggregate inventory unit                                                                                                | `equipment.instance_reaggregated` / `manual_untracking`        |
-| Fabricated-lot return              | Stored, operational fabricated-origin ordinary identities                           | Deletes the instance, credits exactly one aggregate inventory unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged      | `equipment.instance_reaggregated` / `fabricated_lot_return`    |
-| Combat Stim disposal               | Stored `combat_stims` with canonical payload and no active overdrive/recovery claim | Deletes only the instance; aggregate inventory is unchanged                                                                                                          | `equipment.combat_stim_disposed`                               |
-| Combat Stim catalog re-aggregation | Stored, operational, full 2/2 catalog `combat_stims`                                | Deletes the instance and credits exactly one aggregate `combat_stims` unit                                                                                           | `equipment.combat_stim_reaggregated` / `manual_untracking`     |
-| Combat Stim fabricated-lot return  | Stored, operational, full 2/2 fabricated-origin `combat_stims`                      | Deletes the instance, credits exactly one aggregate `combat_stims` unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged | `equipment.combat_stim_reaggregated` / `fabricated_lot_return` |
+| Command family                     | Eligible identities                                                                                  | Stock and provenance effect                                                                                                                                          | Event                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Ordinary destroy                   | Stored or idle-equipped, non-Combat-Stim, payload-free, recovery-unclaimed identities                | Deletes only the instance; aggregate inventory and fabricated-lot receipts are unchanged                                                                             | `equipment.instance_destroyed`                                 |
+| Catalog re-aggregation             | Stored or idle-equipped, operational, non-fabricated, payload-free ordinary identities               | Deletes the instance and credits exactly one aggregate inventory unit                                                                                                | `equipment.instance_reaggregated` / `manual_untracking`        |
+| Fabricated-lot return              | Stored or idle-equipped, operational fabricated-origin ordinary identities                           | Deletes the instance, credits exactly one aggregate inventory unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged      | `equipment.instance_reaggregated` / `fabricated_lot_return`    |
+| Combat Stim disposal               | Stored or idle-equipped `combat_stims` with canonical payload and no active overdrive/recovery claim | Deletes only the instance; aggregate inventory is unchanged                                                                                                          | `equipment.combat_stim_disposed`                               |
+| Combat Stim catalog re-aggregation | Stored or idle-equipped, operational, full 2/2 catalog `combat_stims`                                | Deletes the instance and credits exactly one aggregate `combat_stims` unit                                                                                           | `equipment.combat_stim_reaggregated` / `manual_untracking`     |
+| Combat Stim fabricated-lot return  | Stored or idle-equipped, operational, full 2/2 fabricated-origin `combat_stims`                      | Deletes the instance, credits exactly one aggregate `combat_stims` unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged | `equipment.combat_stim_reaggregated` / `fabricated_lot_return` |
 
-All stock-crediting paths fail closed for stale IDs, equipped copies, recovery-claimed identities,
+All stock-crediting paths fail closed for stale IDs, non-idle equipped copies, recovery-claimed identities,
 safe-integer inventory overflow, damaged condition, and invalid or missing provenance for the path.
 Generic catalog re-aggregation never absorbs fabricated provenance; fabricated returns require a
 canonical source lot that can absorb one tracked unit.
@@ -51,9 +51,10 @@ provenance anchor for activation, overdrive, events, UI, and save/load.
 
 Full-dose Combat Stim stock now has two separate return paths. Catalog-origin instances can return
 to aggregate stock only through `reaggregateStoredCombatStimInstance`; fabricated-origin instances
-must use `returnFabricatedCombatStimInstanceToLot`. Both require stored, operational, canonical
-2/2 payloads. Partial 1/2 and depleted 0/2 copies stay instance-owned and must use disposal or
-recovery as their explicit next action.
+must use `returnFabricatedCombatStimInstanceToLot`. Both accept stored or idle-equipped operational
+canonical 2/2 payloads (SPE-2855 relocates idle-equipped copies before the stored helper). Partial
+1/2 and depleted 0/2 copies stay instance-owned and must use disposal or recovery as their explicit
+next action.
 
 ## Depleted Combat Stim recovery (SPE-2830)
 

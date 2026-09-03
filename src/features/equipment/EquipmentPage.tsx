@@ -1342,6 +1342,204 @@ function EquipmentPage() {
                         </div>
                       ) : null}
 
+                      {slot.combatStimLifecycle && slot.instanceId ? (
+                        <div className="mt-3 space-y-2">
+                          {pendingCombatStimDisposalInstanceId === slot.instanceId ? (
+                            <div
+                              className="space-y-2"
+                              role="group"
+                              aria-label={`Confirm Combat Stim disposal ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                            >
+                              <p className="text-xs text-red-200">
+                                Permanently dispose this equipped Combat Stim
+                                {slot.doseLabel ? ` (${slot.doseLabel})` : ''}? This unequips it
+                                from the loadout, cannot be recovered, does not restore aggregate
+                                stock, and is not deconstruction recovery.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs"
+                                  aria-label={`Permanently dispose Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                  onClick={() => {
+                                    disposeStoredCombatStimInstance(slot.instanceId!)
+                                    setPendingCombatStimDisposalInstanceId(undefined)
+                                  }}
+                                >
+                                  Confirm disposal
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() => setPendingCombatStimDisposalInstanceId(undefined)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              disabled={!slot.combatStimLifecycle.canDispose}
+                              aria-label={`Review disposal Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              onClick={() => {
+                                setPendingCombatStimDisposalInstanceId(slot.instanceId)
+                                setPendingCombatStimReaggregationInstanceId(undefined)
+                                setPendingCombatStimReturnToLotInstanceId(undefined)
+                                setPendingCombatStimRepairInstanceId(undefined)
+                                setPendingCombatStimInstanceId(undefined)
+                                setPendingDestructionInstanceId(undefined)
+                                setPendingReaggregationInstanceId(undefined)
+                                setPendingReturnToLotInstanceId(undefined)
+                                setPendingRepairInstanceId(undefined)
+                              }}
+                            >
+                              Dispose equipped copy
+                            </button>
+                          )}
+                          {slot.combatStimLifecycle.disposeBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {getCombatStimDisposalReasonLabel(
+                                slot.combatStimLifecycle.disposeBlocker
+                              )}
+                            </p>
+                          ) : null}
+                          {pendingCombatStimReaggregationInstanceId === slot.instanceId ? (
+                            <div
+                              className="space-y-2"
+                              role="group"
+                              aria-label={`Confirm Combat Stim re-aggregation ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                            >
+                              <p className="text-xs text-amber-100">
+                                Unequip this full Combat Stim
+                                {slot.doseLabel ? ` (${slot.doseLabel})` : ''} and return one unit
+                                to aggregate stock? This does not leave a stored individual identity
+                                and is not disposal.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs"
+                                  aria-label={`Re-aggregate Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                  onClick={() => {
+                                    reaggregateStoredCombatStimInstance(slot.instanceId!)
+                                    setPendingCombatStimReaggregationInstanceId(undefined)
+                                  }}
+                                >
+                                  Confirm re-aggregation
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() =>
+                                    setPendingCombatStimReaggregationInstanceId(undefined)
+                                  }
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              disabled={!slot.combatStimLifecycle.canReaggregate}
+                              aria-label={`Review re-aggregation Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              onClick={() => {
+                                setPendingCombatStimReaggregationInstanceId(slot.instanceId)
+                                setPendingCombatStimDisposalInstanceId(undefined)
+                                setPendingCombatStimReturnToLotInstanceId(undefined)
+                                setPendingCombatStimRepairInstanceId(undefined)
+                                setPendingCombatStimInstanceId(undefined)
+                                setPendingDestructionInstanceId(undefined)
+                                setPendingReaggregationInstanceId(undefined)
+                                setPendingReturnToLotInstanceId(undefined)
+                                setPendingRepairInstanceId(undefined)
+                              }}
+                            >
+                              Return equipped copy to stock
+                            </button>
+                          )}
+                          {slot.combatStimLifecycle.reaggregationBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {getCombatStimReaggregationReasonLabel(
+                                slot.combatStimLifecycle.reaggregationBlocker
+                              )}
+                            </p>
+                          ) : null}
+                          {slot.combatStimLifecycle.canReturnToLot ||
+                          slot.combatStimLifecycle.lotReturnBlocker ? (
+                            pendingCombatStimReturnToLotInstanceId === slot.instanceId ? (
+                              <div
+                                className="space-y-2"
+                                role="group"
+                                aria-label={`Confirm Combat Stim fabricated lot return ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                              >
+                                <p className="text-xs text-amber-100">
+                                  Unequip this fabricated Combat Stim
+                                  {slot.doseLabel ? ` (${slot.doseLabel})` : ''}, return it to its
+                                  source batch tracking, and credit one aggregate unit? Lot
+                                  production quantity stays unchanged; the individual identity will
+                                  be removed.
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs"
+                                    aria-label={`Return fabricated Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel} to lot`}
+                                    onClick={() => {
+                                      returnFabricatedStoredCombatStimInstanceToLot(
+                                        slot.instanceId!
+                                      )
+                                      setPendingCombatStimReturnToLotInstanceId(undefined)
+                                    }}
+                                  >
+                                    Confirm return to lot
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost"
+                                    onClick={() =>
+                                      setPendingCombatStimReturnToLotInstanceId(undefined)
+                                    }
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                disabled={!slot.combatStimLifecycle.canReturnToLot}
+                                aria-label={`Review fabricated lot return Combat Stim instance ${slot.instanceId} equipped on ${view.agentName} ${slot.slotLabel}`}
+                                onClick={() => {
+                                  setPendingCombatStimReturnToLotInstanceId(slot.instanceId)
+                                  setPendingCombatStimDisposalInstanceId(undefined)
+                                  setPendingCombatStimReaggregationInstanceId(undefined)
+                                  setPendingCombatStimRepairInstanceId(undefined)
+                                  setPendingCombatStimInstanceId(undefined)
+                                  setPendingDestructionInstanceId(undefined)
+                                  setPendingReaggregationInstanceId(undefined)
+                                  setPendingReturnToLotInstanceId(undefined)
+                                  setPendingRepairInstanceId(undefined)
+                                }}
+                              >
+                                Return equipped copy to lot
+                              </button>
+                            )
+                          ) : null}
+                          {slot.combatStimLifecycle.lotReturnBlocker ? (
+                            <p className="text-xs text-amber-200/80">
+                              {getCombatStimReturnToLotReasonLabel(
+                                slot.combatStimLifecycle.lotReturnBlocker
+                              )}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       {slot.instanceId && slot.combatStimActivation ? (
                         <div className="mt-3 rounded border border-cyan-300/20 p-2">
                           {slot.combatStimActivation.available ? (

@@ -475,6 +475,70 @@ describe('getGearRecommendationsForActiveCases', () => {
     expect(ava?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
       instanceId: created.instance.instanceId,
       ordinaryLifecycle: undefined,
+      combatStimLifecycle: {
+        canDispose: true,
+        canReaggregate: true,
+        canReturnToLot: false,
+      },
+    })
+
+    const locked = {
+      ...created.state,
+      agents: {
+        ...created.state.agents,
+        a_ava: {
+          ...created.state.agents.a_ava,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+    const lockedAva = getAgentEquipmentLoadoutViews(locked).find((view) => view.agentId === 'a_ava')
+    expect(lockedAva?.slots.find((slot) => slot.slot === 'utility1')?.combatStimLifecycle).toEqual({
+      canDispose: false,
+      disposeBlocker: 'agent_not_idle',
+      canReaggregate: false,
+      reaggregationBlocker: 'agent_not_idle',
+      canReturnToLot: false,
+    })
+  })
+
+  it('exposes equipped Combat Stim lot-return and keeps catalog re-agg fail-closed', () => {
+    const game = createStartingState()
+    game.inventory.combat_stims = 1
+    game.fabricatedEquipmentLots = {
+      'combat-stim-batch': {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        itemId: 'combat_stims',
+        quantity: 1,
+        gradeId: 'grade_1',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
+    }
+    const created = instantiateEquipmentInstance(game, 'combat_stims', {
+      fabricationOrigin: {
+        queueId: 'combat-stim-batch',
+        recipeId: 'combat-stims',
+        gradeId: 'grade_1',
+        completedWeek: 1,
+      },
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const ava = getAgentEquipmentLoadoutViews(created.state).find(
+      (view) => view.agentId === 'a_ava'
+    )
+    expect(ava?.slots.find((slot) => slot.slot === 'utility1')?.combatStimLifecycle).toEqual({
+      canDispose: true,
+      canReaggregate: false,
+      reaggregationBlocker: 'fabricated_provenance_required',
+      canReturnToLot: true,
     })
   })
 

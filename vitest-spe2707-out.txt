@@ -1,0 +1,15 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> containment-protocol-breach@0.0.0 test:run
+> vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads src/test/hiddenCellStrategicInterference.test.ts
+
+
+ RUN  v4.1.8 C:/Projects/containment-protocol
+
+
+ Test Files  1 passed (1)
+      Tests  26 passed (26)
+   Start at  04:02:25
+   Duration  5.27s (transform 2.07s, setup 529ms, import 2.56s, tests 156ms, environment 1.76s)
+
+DONE

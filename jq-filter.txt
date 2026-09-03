@@ -1,0 +1,1 @@
+.[] | select(.user.login | contains("coderabbit")) | {state, commit: .commit_id[0:8], body: .body[0:900]}

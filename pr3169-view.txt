@@ -1,0 +1,728 @@
+﻿author:	linear-code
+association:	none
+edited:	false
+status:	none
+--
+<!-- linear-linkback -->
+<p><a href="https://linear.app/spectranoir/issue/SPE-2632">SPE-2632</a></p>
+<p><a href="https://linear.app/spectranoir/issue/SPE-956">SPE-956</a></p>
+--
+author:	cursor
+association:	contributor
+edited:	false
+status:	none
+--
+<!-- BUGBOT_FREE_TIER_DISABLED_UPSELL -->
+Bugbot is not enabled for your account, so this pull request was not reviewed.
+
+Enable Bugbot in the [Cursor dashboard](https://www.cursor.com/dashboard/bugbot) to get automatic reviews on future PRs.
+--
+author:	greptile-apps
+association:	none
+edited:	false
+status:	commented
+--
+`JamesJedi420` has reached the 50-credit limit for trial accounts. To continue receiving code reviews, [upgrade your plan](https://app.greptile.com/review/github).
+--
+author:	coderabbitai
+association:	none
+edited:	true
+status:	none
+--
+<!-- This is an auto-generated comment: summarize by coderabbit.ai -->
+<!-- review_stack_entry_start -->
+
+[![Review Change Stack](https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui.svg)](https://app.coderabbit.ai/change-stack/JamesJedi420/containment-protocol/pull/3169?utm_source=github_walkthrough&utm_medium=github&utm_campaign=change_stack)
+
+<!-- review_stack_entry_end -->
+<!-- walkthrough_start -->
+
+<details>
+<summary>≡ƒô¥ Walkthrough</summary>
+
+<!-- This is an auto-generated comment: release notes by coderabbit.ai -->
+
+## Summary
+
+- **SPE-2632**, child slice of **SPE-956**, adds persistence for survivor informal registry envelopes in the Containment Protocol. The parent issue remains in Backlog.
+- Adds domain sanitization, hydration, extraction, and safe resolution for `spe956SurvivorInformalRegistryRecords`, wired through `hydrateGame` and initialized in the starting state.
+- Preserves deterministic save/load behavior with null-prototype maps, frozen records, duplicate and unsafe-ID rejection, explicit empty-map precedence, and no evaluator or week-close ordering changes.
+- Adds Vitest coverage for round trips, hydration fallbacks, invalid entries, prototype-safety, frozen shapes, and starting-state defaults.
+- Updates the schema registry, planning slice, backlog, and handoff manifest.
+
+## Scope and boundaries
+
+- **Layers touched:** domain (`src/domain`), store hydration, and persistence tests. No projections (`*View.ts`) or UI (`src/features`) changes.
+- **Out of scope:** other participatory channel maps, evaluator contract changes, UI/planning mirrors, week-close channel ticks or orchestration, and expansion of SPE-1682/860/911/875 scope.
+- No migration paths are introduced; future channel persistence and orchestration remain deferred.
+
+<!-- end of auto-generated comment: release notes by coderabbit.ai -->
+## Walkthrough
+
+Adds versioned SPE-956 survivor informal registry persistence, including runtime sanitization, safe resolution, GameState initialization, hydration wiring, save/load tests, and schema/planning documentation.
+
+### Changes
+
+**SPE-956 participatory channel persistence**
+
+|Layer / File(s)|Summary|
+|---|---|
+|**Persistence contract and sanitization** <br> `src/domain/models.ts`, `src/domain/spe956ParticipatoryChannelPersistence.ts`|Defines persisted registry types and sanitizes records by validating fields, removing unsafe or duplicate entries, using null-prototype maps, and freezing records.|
+|**GameState initialization and hydration** <br> `src/data/startingState.ts`, `src/app/store/runTransfer.ts`|Initializes the registry map and wires sanitized records into `hydrateGame`.|
+|**Persistence behavior tests** <br> `src/test/spe956ParticipatoryChannelPersistence.test.ts`|Covers defaults, sanitization, safe resolution, hydration precedence, import cleanup, and save/load round trips.|
+|**Schema and planning records** <br> `SCHEMA_REGISTRY.md`, `planning/*`|Documents the schema and marks SPE-2632 and its planning slice as in progress.|
+
+**Estimated code review effort:** 3 (Moderate) | ~20 minutes
+
+### Sequence Diagram(s)
+
+```mermaid
+sequenceDiagram
+  participant hydrateGame
+  participant Sanitizer
+  participant GameState
+  hydrateGame->>Sanitizer: sanitize persisted registry records
+  Sanitizer-->>hydrateGame: return canonical registry map
+  hydrateGame->>GameState: assign spe956SurvivorInformalRegistryRecords
+```
+
+**Possibly related issues**
+
+- JamesJedi420/containment-protocol#3167 ΓÇö Directly covers the participatory channel persistence and store wire-up implemented here.
+
+**Possibly related PRs**
+
+- [JamesJedi420/containment-protocol#3143](https://github.com/JamesJedi420/containment-protocol/pull/3143) ΓÇö Adds a parallel SPE-956 persisted GameState map through hydration wiring.
+- [JamesJedi420/containment-protocol#3149](https://github.com/JamesJedi420/containment-protocol/pull/3149) ΓÇö Applies the same persistence hardening patterns to another SPE-956 map.
+
+**Suggested labels:** `save-load`, `stability`, `system:schema`, `system:planning`
+
+**Suggested reviewers:** `copilot`, `copilot-pull-request-reviewer`, `gemini-code-assist`
+
+</details>
+
+<!-- walkthrough_end -->
+<!-- pre_merge_checks_walkthrough_start -->
+
+<details>
+<summary>≡ƒÜÑ Pre-merge checks | Γ£à 5</summary>
+
+<details>
+<summary>Γ£à Passed checks (5 passed)</summary>
+
+|         Check name         | Status   | Explanation                                                                                                             |
+| :------------------------: | :------- | :---------------------------------------------------------------------------------------------------------------------- |
+|         Title check        | Γ£à Passed | The title clearly names the SPE-2632 slice and the participatory channel persistence/store wire-up work.                |
+|      Description check     | Γ£à Passed | The description covers the required Linear metadata, shipped changes, docs, scope boundary, validation, and follow-ups. |
+|     Docstring Coverage     | Γ£à Passed | No functions found in the changed files to evaluate docstring coverage. Skipping docstring coverage check.              |
+|     Linked Issues check    | Γ£à Passed | Check skipped because no linked issues were found for this pull request.                                                |
+| Out of Scope Changes check | Γ£à Passed | Check skipped because no linked issues were found for this pull request.                                                |
+
+</details>
+
+</details>
+
+<!-- pre_merge_checks_walkthrough_end -->
+<!-- finishing_touch_checkbox_start -->
+
+<details>
+<summary>Γ£¿ Finishing Touches</summary>
+
+<details>
+<summary>≡ƒô¥ Generate docstrings</summary>
+
+- [ ] <!-- {"checkboxId": "7962f53c-55bc-4827-bfbf-6a18da830691"} --> Create stacked PR
+- [ ] <!-- {"checkboxId": "3e1879ae-f29b-4d0d-8e06-d12b7ba33d98"} --> Commit on current branch
+
+</details>
+<details>
+<summary>≡ƒº¬ Generate unit tests (beta)</summary>
+
+- [ ] <!-- {"checkboxId": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "radioGroupId": "utg-output-choice-group-unknown_comment_id"} -->   Create PR with unit tests
+- [ ] <!-- {"checkboxId": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "radioGroupId": "utg-output-choice-group-unknown_comment_id"} -->   Commit unit tests in branch `spe-956-participatory-channel-persistence-slice-1`
+
+</details>
+
+</details>
+
+<!-- finishing_touch_checkbox_end -->
+<!-- tips_start -->
+
+---
+
+
+
+
+<sub>Comment `@coderabbitai help` to get the list of available commands.</sub>
+
+<!-- tips_end -->
+--
+author:	gemini-code-assist
+association:	contributor
+edited:	false
+status:	commented
+--
+## Code Review
+
+This pull request implements SPE-2632 (slice 1 of SPE-956), introducing GameState persistence, sanitization, and hydration for survivor informal registry records. It adds validation to drop invalid entries and reject unsafe keys, wires up hydration in runTransfer.ts, and includes comprehensive unit tests. The review feedback suggests initializing fallback maps with Object.create(null) instead of {} across hydration and extraction functions to consistently guarantee a null prototype and prevent prototype pollution.
+
+> [!IMPORTANT]
+> The [consumer version of Gemini Code Assist on GitHub](https://developers.google.com/gemini-code-assist/docs/review-repo-code) is being sunset. Starting **June 18, 2026**, new organization installations will be blocked, and all code review activity will officially cease on **July 17, 2026**.
+> For more details on the timeline and next steps, please review the [Help Documentation](https://developers.google.com/gemini-code-assist/docs/deprecations/consumer-code-review).
+--
+author:	amazon-q-developer
+association:	none
+edited:	false
+status:	commented
+--
+## Review Summary
+
+This PR adds support for SPE-956 participatory channels with persistence functionality. I've identified **2 critical type safety issues** that will cause TypeScript compilation failures and must be fixed before merge.
+
+### Critical Issues Found:
+1. **Type Mismatch in Error Handling** (2 occurrences): Both `getAll()` and `getSpe956ParticipatoryChannels()` methods return `undefined` on failure, but their return type is declared as `Spe956ParticipatoryChannel[]`. This will cause TypeScript compilation to fail.
+
+### Action Required:
+Please review and address the comments on `spe956ParticipatoryChannelPersistence.ts` to fix the return type mismatches before merging.
+
+---
+You can now have the agent implement changes and create commits directly on your pull request's source branch. Simply comment with /q followed by your request in natural language to ask the agent to make changes.
+
+--
+author:	Copilot (AI)
+association:	contributor
+edited:	false
+status:	commented
+--
+## Pull request overview
+
+Implements SPE-2632 (SPE-956 slice 1) by adding GameState persistence + hydration sanitization for the survivor informal registry participatory-channel envelope, wired into `hydrateGame`, with focused Vitest coverage and schema/planning documentation updates.
+
+**Changes:**
+- Added `spe956SurvivorInformalRegistryRecords` GameState map with sanitize/hydrate helpers and safe-key handling.
+- Wired the new map into starting state + `hydrateGame`, and added round-trip + edge-case tests.
+- Documented the new persistence schema in `SCHEMA_REGISTRY.md` and updated planning/backlog handoff artifacts.
+
+### Reviewed changes
+
+Copilot reviewed 9 out of 9 changed files in this pull request and generated 1 comment.
+
+<details>
+<summary>Show a summary per file</summary>
+
+| File | Description |
+| ---- | ----------- |
+| src/test/spe956ParticipatoryChannelPersistence.test.ts | Adds targeted Vitest coverage for sanitize/hydrate behavior and save/load round-trip. |
+| src/domain/spe956ParticipatoryChannelPersistence.ts | Introduces sanitize/hydrate + resolve helpers for survivor informal registry persistence. |
+| src/domain/models.ts | Extends `GameState` with `spe956SurvivorInformalRegistryRecords` field typing/docs. |
+| src/data/startingState.ts | Initializes `spe956SurvivorInformalRegistryRecords` to an empty map in the starting template. |
+| src/app/store/runTransfer.ts | Wires `sanitizeSpe956SurvivorInformalRegistryRecords` into `hydrateGame`. |
+| SCHEMA_REGISTRY.md | Documents the new SPE-956 participatory channel persistence schema and hydration behavior. |
+| planning/spe-956-participatory-channel-persistence-slice-1.md | Adds the slice 1 implementation plan and acceptance checklist. |
+| planning/backlog.md | Updates current handoff / in-progress listings and adds the slice doc to the index table. |
+| planning/backlog-handoff-manifest.json | Updates handoff manifest to reflect SPE-2632 as in-progress + slice doc status. |
+</details>
+
+
+
+
+
+
+
+--
+author:	charliecreates
+association:	none
+edited:	false
+status:	approved
+--
+Reviewed the full diff against `main`, the slice document, persistence/hydration wiring, schema note, unsafe-id handling, frozen record shape, and focused coverage. No blocking correctness, persistence, security, scope, or architecture findings remain on this head. Existing GitHub checks were inspected; the repository test check was still in progress at review time.
+--
+author:	coderabbitai
+association:	none
+edited:	false
+status:	changes requested
+--
+**Actionable comments posted: 1**
+
+<details>
+<summary>≡ƒñû Prompt for all review comments with AI agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+Inline comments:
+In `@planning/spe-956-participatory-channel-persistence-slice-1.md`:
+- Line 47: Update the ΓÇ£Hydrated registry shape is frozen / immutable for EXAMPLE
+fixtureΓÇ¥ acceptance criterion to match the existing test, which only freezes
+each hydrated record. Narrow the criterion to state that hydrated registry
+records are frozen, unless the implementation and tests are explicitly expanded
+to verify returned registry-map immutability.
+```
+
+</details>
+
+<details>
+<summary>≡ƒ¬ä Autofix (Beta)</summary>
+
+Fix all unresolved CodeRabbit comments on this PR:
+
+- [ ] <!-- {"checkboxId": "4b0d0e0a-96d7-4f10-b296-3a18ea78f0b9"} --> Push a commit to this branch (recommended)
+- [ ] <!-- {"checkboxId": "ff5b1114-7d8c-49e6-8ac1-43f82af23a33"} --> Create a new PR with the fixes
+
+</details>
+
+---
+
+<details>
+<summary>Γä╣∩╕Å Review info</summary>
+
+<details>
+<summary>ΓÜÖ∩╕Å Run configuration</summary>
+
+**Configuration used**: Repository YAML (base), Organization UI (inherited)
+
+**Review profile**: CHILL
+
+**Plan**: Pro Plus
+
+**Run ID**: `9f45ed9a-5d0a-4347-ab7e-1b96b08bdef2`
+
+</details>
+
+<details>
+<summary>≡ƒôÑ Commits</summary>
+
+Reviewing files that changed from the base of the PR and between b289a00f0674f799bd6d769b273283dd64051740 and 208a3a4fb39945afd6ec4ebd5ea836152ca5bae2.
+
+</details>
+
+<details>
+<summary>≡ƒôÆ Files selected for processing (9)</summary>
+
+* `SCHEMA_REGISTRY.md`
+* `planning/backlog-handoff-manifest.json`
+* `planning/backlog.md`
+* `planning/spe-956-participatory-channel-persistence-slice-1.md`
+* `src/app/store/runTransfer.ts`
+* `src/data/startingState.ts`
+* `src/domain/models.ts`
+* `src/domain/spe956ParticipatoryChannelPersistence.ts`
+* `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+
+</details>
+
+</details>
+
+<details>
+<summary>≡ƒô£ Review details</summary>
+
+<details>
+<summary>ΓÅ░ Context from checks skipped due to timeout. (2)</summary>
+
+* GitHub Check: copilot-pull-request-reviewer
+* GitHub Check: test
+
+</details>
+
+<details>
+<summary>≡ƒº░ Additional context used</summary>
+
+<details>
+<summary>≡ƒôô Path-based instructions (14)</summary>
+
+<details>
+<summary>**/*</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.cursor/rules/linear-always-update.mdc)**
+
+> `**/*`: For every agent session and task type, update the relevant Linear issue; Linear is the system of record for issue state, scope, and closure.
+> At task start, find or create the slice issue and set it to In Progress before substantive code or harvest-closure work.
+> During work, perform the required harvest triage, owner-comment, owner-map QA, and SPE-2110 intake activities, and comment on the slice issue when scope or blockers materially change.
+> When a slice is ready, commit, push, and open a PR on the named branch before claiming the slice complete locally.
+> When opening a PR, link the slice issue in the PR body and comment the PR URL on the slice issue.
+> In the same session, independently review the PR, triage comments, wait for CI to pass, merge the PR, then check out main and pull origin/main.
+> After merging, set the slice issue to Done; set the parent issue to Done only when the full parent scope shipped, otherwise return it to Backlog.
+> After merge, add a short comment to the slice issue containing the PR URL and a summary of what shipped.
+> Do not skip Linear updates for docs-only, harvest-only, or review-only tasks, because of GitHub bot linkbacks, because a prior agent commented, or after a temporary Linear MCP failure; report required comments/issues and retry when possible.
+> 
+> Use Linear for the mandatory issue lifecycle, following `linear-always-update.mdc`.
+> 
+> When changing behavior, update targeted tests, preserve deterministic behavior, keep domain logic out of UI unless existing architecture requires otherwise, and update documentation that would become stale within the implementation boundary.
+> 
+> `**/*`: After merging a PR, sync `main` with `git checkout main` and `git pull origin main`, then start a new agent chat for the next task.
+> Every session and agent must update Linear: set the slice issue In Progress before substantive work, link the issue in the PR, mark it Done after merge, and record the shipped PR URL.
+> Use the repository keep-list for agent plug...
+
+Files:
+- `src/data/startingState.ts`
+- `planning/spe-956-participatory-channel-persistence-slice-1.md`
+- `src/domain/models.ts`
+- `planning/backlog-handoff-manifest.json`
+- `SCHEMA_REGISTRY.md`
+- `planning/backlog.md`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>**/*.{ts,tsx}</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (CLAUDE.md)**
+
+> `**/*.{ts,tsx}`: Keep the client-only application in React/TypeScript; domain logic belongs in `src/domain/`, Zustand orchestration in `src/app/store/`, projections in `src/features/*View.ts`, and UI in `src/features/**/*.tsx`.
+> Use `import type { ... }` for type-only imports in files loaded by the Vite 8 development server.
+> New persisted fields require normalization plus an event schema or migration documented according to `SCHEMA_REGISTRY.md`.
+> 
+> `**/*.{ts,tsx}`: Keep the client-side application free of backend, database, external-service, and required-secret dependencies; simulation logic must remain pure TypeScript and state must use Zustand with `localStorage` persistence.
+> In files loaded by the Vite 8 dev server, import interfaces and type aliases with `import type`, never as runtime value imports.
+> PR changes must match the linked Linear issue and slice acceptance; flag scope creep and avoid unrelated refactors, renames, or parallel subsystems.
+> New domain behavior or user-visible behavior requires targeted Vitest coverage.
+> Do not flag pre-existing baseline TypeScript build errors unless the PR makes them worse; Vite transpilation, tests, and the dev server remain separate validation concerns.
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>src/**/*.{ts,tsx}</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (CLAUDE.md)**
+
+> Do not wire vendor scan or search SDKs into `src/` without an explicit Linear slice.
+> 
+> New persisted fields require normalization defaults and corresponding event schema or migration updates.
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>**/*.{html,css,js,jsx,ts,tsx}</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.cursor/rules/agent-cursor-plugins.mdc)**
+
+> When Modern Web Guidance is installed, search it before inventing HTML, CSS, or client-side JavaScript UI patterns; continue following layer boundaries and the existing design system.
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>src/**</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.cursor/rules/agent-cursor-plugins.mdc)**
+
+> Do not wire search, scanning, or SaaS SDKs into `src/` unless the active Linear slice requires it.
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+---
+
+**ΓÜÖ∩╕Å CodeRabbit configuration file**
+
+> `src/**`: Flag P1 if the PR wires vendor search/scan/SaaS SDKs into src/ without an explicit Linear slice
+> (docs/agent-cursor-plugins.md). Still apply existing domain/store/UI path instructions above.
+> 
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>src/**/*.ts</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (AGENTS.md)**
+
+> Hooks whose semantics are week-close operations must run on week-close, not mutate state mid-week.
+
+Files:
+- `src/data/startingState.ts`
+- `src/domain/models.ts`
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>src/domain/**</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> Codex exclusively owns files under `src/domain/**`, including rules, math, state transitions, persistence, and engine tests.
+
+Files:
+- `src/domain/models.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+
+---
+
+**ΓÜÖ∩╕Å CodeRabbit configuration file**
+
+> `src/domain/**`: Pure deterministic simulation. Flag P0/P1: imports from src/app/, src/features/, or React;
+> Math.random()/Date.now() in sim logic; week-close mutations outside advanceWeek hooks;
+> missing normalize defaults for new persisted fields; silent mutation or hidden truth leaks.
+> 
+
+Files:
+- `src/domain/models.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+
+</details>
+<details>
+<summary>src/domain/models.ts</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> If `src/domain/models.ts` is modified, all parallel agent work must stop until the type-change task is merged and all tests pass.
+
+Files:
+- `src/domain/models.ts`
+
+</details>
+<details>
+<summary>src/domain/**/*.ts</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (CLAUDE.md)**
+
+> Files under `src/domain/**` must remain pure: they must not import React, stores, or features, and must use seeded RNG only.
+> 
+> `src/domain/**/*.ts`: Domain code must contain pure simulation logic and must not import store, projection, or UI modules.
+> Simulation outcomes must be reproducible through seeded randomness; do not introduce hidden randomness or silent mutation.
+
+Files:
+- `src/domain/models.ts`
+- `src/domain/spe956ParticipatoryChannelPersistence.ts`
+
+</details>
+<details>
+<summary>planning/backlog*.{md,json}</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (AGENTS.md)**
+
+> Keep `planning/backlog.md` synchronized with `planning/backlog-handoff-manifest.json` and run `npm run verify:backlog-handoff`.
+
+Files:
+- `planning/backlog-handoff-manifest.json`
+- `planning/backlog.md`
+
+</details>
+<details>
+<summary>**/*.{test,spec}.{ts,tsx}</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (AGENTS.md)**
+
+> Do not weaken tests, CI, or lint rules to make a change pass.
+
+Files:
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+
+</details>
+<details>
+<summary>src/test/**</summary>
+
+
+**ΓÜÖ∩╕Å CodeRabbit configuration file**
+
+> `src/test/**`: Vitest + jsdom; deterministic. Flag P1: missing coverage for new persistence/user-visible
+> behavior; order-dependent tests; weakened assertions.
+> 
+
+Files:
+- `src/test/spe956ParticipatoryChannelPersistence.test.ts`
+
+</details>
+<details>
+<summary>src/app/store/**</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> Codex exclusively owns files under `src/app/store/**`, including rules, math, state transitions, persistence, and engine tests.
+
+Files:
+- `src/app/store/runTransfer.ts`
+
+---
+
+**ΓÜÖ∩╕Å CodeRabbit configuration file**
+
+> `src/app/store/**`: Orchestration only. Flag P1: domain logic duplicated here; hydration without normalize*;
+> cross-feature imports from src/features/ except established selector patterns.
+> 
+
+Files:
+- `src/app/store/runTransfer.ts`
+
+</details>
+<details>
+<summary>src/app/store/**/*.ts</summary>
+
+
+**≡ƒôä CodeRabbit inference engine (CLAUDE.md)**
+
+> Store files under `src/app/store/**` are orchestration only and may depend on the domain, but not vice versa.
+> 
+> Store code is orchestration and may import domain code only; it must not depend on projections or UI layers.
+
+Files:
+- `src/app/store/runTransfer.ts`
+
+</details>
+
+</details>
+
+</details>
+
+<details>
+<summary>≡ƒöç Additional comments (10)</summary><blockquote>
+
+<details>
+<summary>SCHEMA_REGISTRY.md (1)</summary><blockquote>
+
+`258-294`: LGTM!
+
+<!-- cr-comment:v1:401dd462fe792b23d5cb7dfb -->
+
+</blockquote></details>
+<details>
+<summary>planning/backlog-handoff-manifest.json (1)</summary><blockquote>
+
+`3-6`: LGTM!
+
+<!-- cr-comment:v1:6b46cbd53b93f5fdbeb43548 -->
+
+</blockquote></details>
+<details>
+<summary>planning/backlog.md (1)</summary><blockquote>
+
+`75-77`: LGTM!
+
+
+
+Also applies to: 434-435
+
+<!-- cr-comment:v1:fb10f4f7efb4e4c67b681eec -->
+
+</blockquote></details>
+<details>
+<summary>planning/spe-956-participatory-channel-persistence-slice-1.md (2)</summary><blockquote>
+
+`11-11`: _≡ƒôÉ Maintainability & Code Quality_
+
+**Reconcile the documented base SHA.**
+
+This slice document references `main @ b289a00f`, while `planning/backlog.md` declares `f1d96633` as the base `main` SHA. If these identify the same planning baseline, reconcile them or label one as a historical/global baseline.
+
+<!-- cr-comment:v1:9d17af1464d716ba9a3b649d -->
+
+---
+
+`1-10`: LGTM!
+
+
+
+Also applies to: 12-46, 48-71
+
+<!-- cr-comment:v1:a29c44a54073fa27bd6b6077 -->
+
+</blockquote></details>
+<details>
+<summary>src/domain/models.ts (1)</summary><blockquote>
+
+`324-324`: LGTM! Both the `import type` and the new optional `GameState` field follow the established persistence-field pattern.
+
+
+
+Also applies to: 2872-2877
+
+<!-- cr-comment:v1:18d99fc1f7f7787e39920803 -->
+
+</blockquote></details>
+<details>
+<summary>src/domain/spe956ParticipatoryChannelPersistence.ts (1)</summary><blockquote>
+
+`1-149`: LGTM! The sanitization logic is well-structured: null-prototype output maps, safe-key validation, enum guards, deduplication, and frozen entries all follow the established SPE-2621 pattern. Domain purity is maintained ΓÇö no store/projection/UI imports.
+
+<!-- cr-comment:v1:78ad17092252ce7237974308 -->
+
+</blockquote></details>
+<details>
+<summary>src/data/startingState.ts (1)</summary><blockquote>
+
+`77-77`: LGTM! Empty-object initialization provides the correct normalization default for the new persisted map.
+
+<!-- cr-comment:v1:65ef3921e958efa9097ef7a1 -->
+
+</blockquote></details>
+<details>
+<summary>src/app/store/runTransfer.ts (1)</summary><blockquote>
+
+`263-263`: LGTM! The import, sanitization call, and `hydratedBase` wiring all follow the established `hydrateGame` pattern. The reformatting at lines 9079-9083 is cosmetic with no behavior change.
+
+
+
+Also applies to: 9079-9083, 9092-9095, 9362-9362
+
+<!-- cr-comment:v1:81f99960018be5f4c31b90c4 -->
+
+</blockquote></details>
+<details>
+<summary>src/test/spe956ParticipatoryChannelPersistence.test.ts (1)</summary><blockquote>
+
+`1-198`: LGTM! Comprehensive, deterministic test coverage covering sanitization edge cases, prototype pollution prevention, frozen shapes, hydration precedence, and save/load round-trip behavior.
+
+<!-- cr-comment:v1:40c110a188acbca4d32614ab -->
+
+</blockquote></details>
+
+</blockquote></details>
+
+</details>
+
+<!-- This is an auto-generated comment by CodeRabbit for review status -->
+--
+author:	charliecreates
+association:	none
+edited:	false
+status:	none
+--
+Formal review: **approved** on head `208a3a4fb39945afd6ec4ebd5ea836152ca5bae2` ΓÇö no blocking correctness, persistence/hydration, architecture, scope, or test-coverage findings. Review: https://github.com/JamesJedi420/containment-protocol/pull/3169#pullrequestreview-4728189237
+
+CodeQL and Amazon Q were green at review time; the repository test and CodeRabbit checks were still pending.
+
+Linear updates were blocked by an authentication error, so I could not verify/set https://linear.app/spectranoir/issue/SPE-2632 to **In Progress** or add the PR-link comment. The intended comment was: ΓÇ£PR opened: https://github.com/JamesJedi420/containment-protocol/pull/3169 ΓÇö participatory channel survivor informal-registry persistence/store wire-up (slice 1). Formal review approved.ΓÇ¥
+--

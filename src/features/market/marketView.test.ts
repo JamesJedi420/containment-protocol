@@ -41,6 +41,31 @@ describe('marketView', () => {
     expect(listings.every((listing) => listing.availableBundles >= 0)).toBe(true)
   })
 
+  it('does not expose fabricated-lot-reserved equipment as sellable stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 0,
+      },
+    }
+
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'signal_jammers'
+    )
+
+    expect(listing).toBeDefined()
+    expect(listing!.inventoryStock).toBe(1)
+    expect(listing!.canSellOne).toBe(false)
+    expect(listing!.sellBlockedReason).toMatch(/no matching stock/i)
+  })
+
   it('filters by featured category and material query text', () => {
     const game = createStartingState()
     const featuredOnly: MarketFilters = {

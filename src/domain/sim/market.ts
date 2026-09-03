@@ -5,6 +5,7 @@ import {
   assessFactionFavorExchangeProcurement,
   buildProcurementAllocationPackets,
   getProcurementListing,
+  type ProcurementListing,
 } from '../market'
 import {
   cancelProcurementOrder,
@@ -15,6 +16,7 @@ import {
 } from '../funding'
 import { FUNDING_CALIBRATION } from './calibration'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
+import { getCatalogEquipmentStock } from './equipment'
 
 function getNextMarketTransactionSequence(state: GameState) {
   return (
@@ -27,6 +29,20 @@ function getNextMarketTransactionSequence(state: GameState) {
 
 function nextTransactionId(state: GameState) {
   return `market-${state.week}-${state.market.week}-${getNextMarketTransactionSequence(state)}`
+}
+
+function readInventoryStock(state: GameState, itemId: string) {
+  const value = state.inventory[itemId]
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
+}
+
+export function getMarketSellableInventoryStock(
+  state: GameState,
+  listing: Pick<ProcurementListing, 'category' | 'itemId'>
+) {
+  const inventoryStock = readInventoryStock(state, listing.itemId)
+  if (listing.category !== 'equipment') return inventoryStock
+  return Math.min(inventoryStock, getCatalogEquipmentStock(state, listing.itemId))
 }
 
 function nextProcurementRequestId(state: GameState) {
@@ -57,9 +73,7 @@ function syncGameFundingState(state: GameState, fundingState: FundingState): Gam
   })
 }
 
-function getBacklogDelayWeeks(entry: {
-  delayWeeks?: number
-}): number {
+function getBacklogDelayWeeks(entry: { delayWeeks?: number }): number {
   return entry.delayWeeks ?? FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
 }
 
@@ -491,16 +505,17 @@ export function sellMarketInventory(state: GameState, listingId: string, bundles
 
   const normalizedBundles = Math.max(1, Math.trunc(bundles))
   const quantity = normalizedBundles * listing.bundleQuantity
-  const availableInventory = state.inventory[listing.itemId] ?? 0
+  const availableInventory = getMarketSellableInventoryStock(state, listing)
 
   if (availableInventory < quantity) {
     return ensureNormalizedGameState(state)
   }
 
   const totalPrice = normalizedBundles * listing.sellPrice
+  const inventoryStock = readInventoryStock(state, listing.itemId)
   const nextInventory = {
     ...state.inventory,
-    [listing.itemId]: Math.max(0, availableInventory - quantity),
+    [listing.itemId]: Math.max(0, inventoryStock - quantity),
   }
 
   return normalizeGameState(

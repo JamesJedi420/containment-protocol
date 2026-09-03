@@ -17,6 +17,7 @@ import {
 } from '../../domain/market'
 import { type GameState } from '../../domain/models'
 import {
+  getMarketSellableInventoryStock,
   placeDelayedMarketOrder as previewPlaceDelayedMarketOrder,
   purchaseMarketInventory as previewPurchaseMarketInventory,
 } from '../../domain/sim/market'
@@ -237,6 +238,7 @@ export function getProcurementScreenView(
 function buildListingView(listing: ProcurementListing, game: GameState): MarketListingView {
   const isDelayedSupplierListing =
     typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0
+  const sellableInventoryStock = getMarketSellableInventoryStock(game, listing)
   const canAffordOne = game.funding >= listing.buyPrice
   const canAffordThree = game.funding >= listing.buyPrice * 3
   const canBuyOne =
@@ -264,8 +266,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     canAffordThree
-  const canSellOne = listing.inventoryStock >= listing.bundleQuantity
-  const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
+  const canSellOne = sellableInventoryStock >= listing.bundleQuantity
+  const canSellThree = sellableInventoryStock >= listing.bundleQuantity * 3
   const favorAssessment =
     listing.favorExchange && assessFactionFavorExchangeProcurement(game, listing.id)
   const obligationAssessment =
@@ -341,7 +343,7 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   }
 
   let sellBlockedReason: string | undefined
-  if (listing.inventoryStock < listing.bundleQuantity) {
+  if (sellableInventoryStock < listing.bundleQuantity) {
     sellBlockedReason = MARKET_UI_TEXT.noSellStock
   }
 

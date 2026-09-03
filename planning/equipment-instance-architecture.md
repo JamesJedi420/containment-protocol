@@ -51,9 +51,10 @@ provenance anchor for activation, overdrive, events, UI, and save/load.
 
 Full-dose Combat Stim stock now has two separate return paths. Catalog-origin instances can return
 to aggregate stock only through `reaggregateStoredCombatStimInstance`; fabricated-origin instances
-must use `returnFabricatedCombatStimInstanceToLot`. Both require stored, operational, canonical
-2/2 payloads. Partial 1/2 and depleted 0/2 copies stay instance-owned and must use disposal or
-recovery as their explicit next action.
+must use `returnFabricatedCombatStimInstanceToLot`. Both accept stored or idle-equipped operational
+canonical 2/2 payloads (SPE-2855 relocates idle-equipped copies before the stored helper). Partial
+1/2 and depleted 0/2 copies stay instance-owned and must use disposal or recovery as their explicit
+next action.
 
 ## Depleted Combat Stim recovery (SPE-2830)
 

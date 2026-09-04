@@ -35,6 +35,8 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 - `AGENTS.md` — scripts, audit-index rule, documentation hygiene, **session handoff**, **mandatory Linear**
 - `.cursor/rules/linear-always-update.mdc` — `alwaysApply` Cursor rule for every agent session
+- `.cursor/rules/cloud-agent-linear-handoff.mdc` — Cloud Agents emit a local-agent Linear apply block after an implementation PR merges
+- `docs/cloud-agent-linear-handoff.md` — verbatim Linear handoff template for local agents
 - `docs/cursor-user-rules-snippet.md` — paste into Cursor User Rules (merge → main → new agent + Linear)
 - `docs/agent-session-handoff.md` — full handoff policy
 - `docs/contribution-and-release-operations.md` — contribution norms

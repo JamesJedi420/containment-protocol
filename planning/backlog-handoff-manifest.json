@@ -1,5 +1,5 @@
 {
-  "primary": "SPE-2856",
+  "primary": "SPE-2857",
   "inProgress": [],
   "recentlyShipped": [
     "SPE-2856",
@@ -16,6 +16,7 @@
     "SPE-2844"
   ],
   "sliceDocStatus": {
+    "planning/spe-2857-mission-injury-equipped-instance-loss-slice.md": "Plan ready",
     "planning/spe-2856-mission-fatality-equipped-instance-loss-slice.md": "Recently shipped",
     "planning/spe-2855-equipped-combat-stim-lifecycle-slice.md": "Recently shipped",
     "planning/spe-2854-equipped-fabricated-ordinary-lot-return-slice.md": "Recently shipped",

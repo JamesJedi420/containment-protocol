@@ -8,7 +8,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 
 | Plugin / surface | Role | Repo anchors |
 | --- | --- | --- |
-| **Linear** | System of record for issues | `.cursor/rules/linear-always-update.mdc`, `AGENTS.md` |
+| **Linear** | System of record for issues | `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/cloud-agent-linear-handoff.mdc`, `AGENTS.md`, `docs/cloud-agent-linear-handoff.md` |
 | **Tavily** | Live web research after repo sources | `AGENTS.md` § Live web research |
 | **Sonatype** | Evaluate a package before add/upgrade | Cursor skill `/check-dependency`; MCP `getComponentVersion` |
 | **Snyk** | Optional SCA/SAST / package health (on demand) | MCP `snyk_*` tools; do not add CI gates without a slice |

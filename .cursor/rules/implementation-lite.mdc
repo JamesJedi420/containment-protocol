@@ -189,7 +189,7 @@ After implementation evidence exists:
 - Keep parent issues open unless the completed children satisfy the full parent body.
 - If work is partial, add a progress comment instead of closing.
 
-If Linear tooling is unavailable, report the exact status/comment update that should be made.
+If Linear tooling is unavailable after an implementation PR merges, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) with verbatim Done + merge comments. Do not emit it for planning-only or open PRs. Do not treat GitHub as Linear closure.
 
 ## Session closeout (mandatory)
 

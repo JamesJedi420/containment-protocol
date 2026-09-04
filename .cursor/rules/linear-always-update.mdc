@@ -28,6 +28,13 @@ Linear is the **system of record** for issue state, scope, and closure. GitHub P
 - Linear MCP failed once (report the exact comments/issues to post; retry when possible)
 - A prior agent already commented (add closure for **this** session's work)
 
+## Cloud Agent → local-agent Linear handoff
+
+Emit only after a Cloud Agent **implemented a plan to completion and merged** that implementation
+PR, when Linear was not updated in-session. Planning-only PRs, open PRs, and harvest sessions do
+not trigger it. Canonical: **`docs/cloud-agent-linear-handoff.md`**; tracked rule
+**`.cursor/rules/cloud-agent-linear-handoff.mdc`**.
+
 ## Authoritative detail
 
 Full lifecycle, harvest batches, and documentation hygiene: **`AGENTS.md`** (repo root) and **`docs/agent-session-handoff.md`**.

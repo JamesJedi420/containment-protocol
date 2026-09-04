@@ -552,12 +552,13 @@ export function destroyStoredOrdinaryEquipmentInstance(
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
-/** SPE-2856: fatality-only destroy of equipped instance-backed slots. No inventory credit. */
-export function takeEquippedInstancesLostOnMissionFatalities(
+/** SPE-2856 / SPE-2857: destroy equipped instance-backed slots on mission casualty. No inventory credit. */
+export function takeEquippedInstancesLostOnMissionResolution(
   agents: GameState['agents'],
   equipmentInstances: EquipmentInstanceRegistry | undefined,
   recoveryState: Pick<GameState, 'equipmentDeconstructionQueue' | 'equipmentRecoveryOutcomes'>,
-  agentIds: readonly string[]
+  agentIds: readonly string[],
+  options?: { skipInstance?: (instance: EquipmentInstance) => boolean }
 ): {
   agents: GameState['agents']
   equipmentInstances: EquipmentInstanceRegistry
@@ -581,6 +582,9 @@ export function takeEquippedInstancesLostOnMissionFatalities(
       )
     for (const instance of equipped) {
       if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
+        continue
+      }
+      if (options?.skipInstance?.(instance)) {
         continue
       }
       delete nextRegistry[instance.instanceId]

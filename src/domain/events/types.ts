@@ -486,7 +486,7 @@ export interface OperationEventPayloadMap {
     definitionId: string
     definitionName: string
     condition: 'operational' | 'damaged'
-    reason: 'manual_disposal' | 'mission_loss'
+    reason: 'manual_disposal' | 'mission_loss' | 'mission_injury'
   }
   'equipment.instance_reaggregated': {
     week: number
@@ -541,7 +541,7 @@ export interface OperationEventPayloadMap {
     resourceId: 'combat_stim_dose'
     capacity: 2
     remaining: number
-    reason: 'manual_disposal' | 'mission_loss'
+    reason: 'manual_disposal' | 'mission_loss' | 'mission_injury'
   }
   'equipment.combat_stim_reaggregated': {
     week: number

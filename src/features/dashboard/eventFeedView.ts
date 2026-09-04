@@ -332,12 +332,14 @@ function formatTimestampLabel(timestamp: string) {
   return `${timestamp.slice(0, 10)} ${timestamp.slice(11, 19)}Z`
 }
 
-function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss') {
+function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss' | 'mission_injury') {
   switch (reason) {
     case 'manual_disposal':
       return 'Manual disposal'
     case 'mission_loss':
       return 'Mission loss'
+    case 'mission_injury':
+      return 'Mission injury'
     default: {
       const exhaustive: never = reason
       return exhaustive

@@ -330,7 +330,10 @@ function snapshotCombatStimInstance(instance: EquipmentInstance): EquipmentInsta
   })
 }
 
-function instanceHasActiveOverdriveProvenance(state: GameState, instanceId: string) {
+export function instanceHasActiveOverdriveProvenance(
+  state: Pick<GameState, 'agents'>,
+  instanceId: string
+) {
   return Object.values(state.agents).some(
     (agent) =>
       agent.overdrive?.source?.kind === 'combat_stim' &&

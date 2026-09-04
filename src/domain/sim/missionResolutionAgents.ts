@@ -14,13 +14,14 @@ import {
   recordAgentXpGain,
   setAgentAssignment,
 } from '../agent/lifecycle'
+import { instanceHasActiveOverdriveProvenance } from '../combatStim'
 import { getEquipmentDefinition } from '../equipment'
 import {
   COMBAT_STIM_CAPACITY,
   COMBAT_STIM_DEFINITION_ID,
   COMBAT_STIM_RESOURCE_ID,
   isCanonicalCombatStimPayload,
-  takeEquippedInstancesLostOnMissionFatalities,
+  takeEquippedInstancesLostOnMissionResolution,
   type EquipmentInstance,
 } from '../equipmentInstance'
 import {
@@ -162,10 +163,20 @@ function buildFatalityHistoryEntry(week: number, currentCase: CaseInstance): Age
   }
 }
 
-function pushMissionLossInstanceDrafts(
+function shouldRetainEquippedCombatStimOnMissionInjury(
+  agents: GameState['agents'],
+  instance: EquipmentInstance
+) {
+  if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) return false
+  if (!isCanonicalCombatStimPayload(instance.payload)) return true
+  return instanceHasActiveOverdriveProvenance({ agents }, instance.instanceId)
+}
+
+function pushMissionInstanceLossDrafts(
   eventDrafts: AnyOperationEventDraft[],
   week: number,
-  instance: EquipmentInstance
+  instance: EquipmentInstance,
+  reason: 'mission_loss' | 'mission_injury'
 ) {
   const definition = getEquipmentDefinition(instance.definitionId)
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
@@ -180,7 +191,7 @@ function pushMissionLossInstanceDrafts(
         resourceId: COMBAT_STIM_RESOURCE_ID,
         capacity: COMBAT_STIM_CAPACITY,
         remaining: instance.payload.remaining,
-        reason: 'mission_loss',
+        reason,
       })
     )
     return
@@ -192,7 +203,7 @@ function pushMissionLossInstanceDrafts(
       definitionId: instance.definitionId,
       definitionName: definition?.name ?? instance.definitionId,
       condition: instance.condition,
-      reason: 'mission_loss',
+      reason,
     })
   )
 }
@@ -904,6 +915,25 @@ export function applyMissionResolutionAgentMutations({
       )
     }
 
+    if (injurySeverity && !casualty.fatal) {
+      const agentsForTake = { ...nextAgents, [agent.id]: nextAgent }
+      const lostEquipped = takeEquippedInstancesLostOnMissionResolution(
+        agentsForTake,
+        nextEquipmentInstances,
+        { equipmentDeconstructionQueue, equipmentRecoveryOutcomes },
+        [agent.id],
+        {
+          skipInstance: (instance) =>
+            shouldRetainEquippedCombatStimOnMissionInjury(agentsForTake, instance),
+        }
+      )
+      nextAgent = lostEquipped.agents[agent.id] ?? nextAgent
+      nextEquipmentInstances = lostEquipped.equipmentInstances
+      for (const instance of lostEquipped.lost) {
+        pushMissionInstanceLossDrafts(eventDrafts, week, instance, 'mission_injury')
+      }
+    }
+
     if (casualty.fatal) {
       eventDrafts.push(
         createAgentKilledDraft({
@@ -914,7 +944,7 @@ export function applyMissionResolutionAgentMutations({
           caseTitle: effectiveCase.title,
         })
       )
-      const lostEquipped = takeEquippedInstancesLostOnMissionFatalities(
+      const lostEquipped = takeEquippedInstancesLostOnMissionResolution(
         { ...nextAgents, [agent.id]: nextAgent },
         nextEquipmentInstances,
         { equipmentDeconstructionQueue, equipmentRecoveryOutcomes },
@@ -923,7 +953,7 @@ export function applyMissionResolutionAgentMutations({
       nextAgent = lostEquipped.agents[agent.id] ?? nextAgent
       nextEquipmentInstances = lostEquipped.equipmentInstances
       for (const instance of lostEquipped.lost) {
-        pushMissionLossInstanceDrafts(eventDrafts, week, instance)
+        pushMissionInstanceLossDrafts(eventDrafts, week, instance, 'mission_loss')
       }
     }
 

@@ -6,6 +6,7 @@
 | **Linear** | [SPE-2857](https://linear.app/spectranoir/issue/SPE-2857/mission-injury-equipped-instance-loss)          |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) |
 | **Branch** | `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`                                            |
+| **Base**   | `main` @ `293d61eb`                                                                                     |
 
 This file is the implementation plan. Do not ship runtime in the planning PR. A later session
 implements the sequence below. Parent SPE-2827 stays **Backlog**. This issue stays **Backlog**
@@ -42,7 +43,7 @@ every equipped instance-backed slot on that carrier (ordinary + Combat Stim) wit
 
 **Implementation boundary:** injury-only lifecycle trigger in `applyMissionResolutionAgentMutations`.
 Reuse the SPE-2856 take/clear helper (rename; reason stays on drafts). Do not implement
-resignation, SPE-1484 capacity, SPE-877, SPE-1658, SPE-2847, loadout UI, or re-agg/lot-return.
+resignation, SPE-1484 capacity, SPE-877, SPE-1658, SPE-2847, Equipment UI, or re-agg/lot-return.
 
 **Known risks:**
 
@@ -72,7 +73,8 @@ not credit aggregate inventory.
 
 The hook runs inside `applyMissionResolutionAgentMutations` immediately after status → `injured`
 and `agent.injured`. Gate: `injurySeverity && !casualty.fatal`. It enumerates equipped registry
-identities for that agent in instance-ID order. It does not relocate-then-stored.
+identities for that agent in instance-ID order. It does not relocate-then-stored: the idle-agent
+gate would fail on an injured carrier.
 
 | Identity    | Mutation                                                                     | Event                                                                   |
 | ----------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -80,8 +82,14 @@ identities for that agent in instance-ID order. It does not relocate-then-stored
 | Combat Stim | Delete registry key; no inventory or lot mutation; skip player dispose gates | `equipment.combat_stim_disposed` / `mission_injury` (canonical payload) |
 
 Catalog-only slots stay projected. Minor and moderate both destroy (both set `injured`). Fatality
-keeps SPE-2856 `mission_loss`. Resignation does not run this path. Recovery-claimed identities
-are skipped so an existing queue/outcome claim remains the destruction authority.
+keeps SPE-2856 `mission_loss`. Do not emit `mission_injury` for a dead carrier. Resignation does
+not run this path. Recovery-claimed identities are skipped so an existing queue/outcome claim
+remains the destruction authority.
+
+Reuse `takeEquippedInstancesLostOnMissionFatalities` (reason-agnostic registry delete + slot
+clear). Rename if sharing with fatality; parameterize `pushMissionLossInstanceDrafts` (or successor)
+so fatality passes `mission_loss` and injury passes `mission_injury`. Do not invent a second
+destroy helper.
 
 ## Implementation sequence (later session)
 
@@ -119,7 +127,9 @@ are skipped so an existing queue/outcome claim remains the destruction authority
 - event payloads reuse existing types; `mission_injury` is added to the destroy/dispose reason
   unions beside `manual_disposal` and `mission_loss`;
 - no location fields on payloads; `GAME_STORE_VERSION`, `GAME_SAVE_VERSION`, and the operation-event
-  schema version remain unchanged.
+  schema version remain unchanged;
+- Equipment UI is out of this slice (event-feed copy must distinguish Mission injury from Mission
+  loss and Manual disposal).
 
 ## Deferred
 
@@ -131,6 +141,45 @@ are skipped so an existing queue/outcome claim remains the destruction authority
 | Repair, damage production          | SPE-877               | Integrity program beyond identity loss                      |
 | Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                 |
 | SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                          |
+| Equipment UI                       | out of scope          | Event-feed reason label only; no loadout chrome             |
+| Runtime `src/` in this planning PR | implementation agent  | Plan-only; no domain/store/UI edits here                    |
+
+## Local-agent Linear handoff
+
+Linear MCP: needsAuth
+Already posted in this session: no
+
+### SPE-2857 (slice)
+- Status: **do not change** (keep Backlog; **do not** set In Progress)
+- Comment:
+
+```markdown
+Planning PR authored. Runtime not started. **Do not** set In Progress.
+
+- Slice doc: `planning/spe-2857-mission-injury-equipped-instance-loss-slice.md`
+- Branch: `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`
+- Base: `main` @ `293d61eb`
+- PR: https://github.com/JamesJedi420/containment-protocol/pull/3579
+
+**Mechanic:** when `applyMissionResolutionAgentMutations` marks an assigned agent injured (`injurySeverity && !casualty.fatal`), destroy/dispose equipped instance-backed slots (ordinary + Combat Stim) with reason `mission_injury`, clear those projections, no inventory credit. Reuse `takeEquippedInstancesLostOnMissionFatalities` (rename/parameterize if sharing). Fatality keeps `mission_loss`. Invert the SPE-2856 “injury does not destroy” test.
+
+**Out of slice:** resignation loss; re-agg/lot-return; SPE-877; SPE-1658; SPE-1484; SPE-2847; Equipment UI; any `src/` in this planning PR.
+
+Parent SPE-2827 stays **Backlog**. Implementation starts after this planning PR merges, in a new agent chat on the named branch.
+```
+
+### SPE-2827 (parent)
+- Status: **do not change** (Backlog)
+- Comment:
+
+```markdown
+SPE-2857 is recommended next (injury equipped-instance loss, reason `mission_injury`). Planning-only PR; **do not** set SPE-2857 or SPE-2827 In Progress. Fatality loss shipped as SPE-2856 (`mission_loss`). Resignation loss remains a later child.
+```
+
+### Do not
+- Set SPE-2857 or SPE-2827 In Progress or Done
+- Merge the planning PR from the Cloud Agent session
+- Implement `src/` in the planning session
 
 ## Validation
 

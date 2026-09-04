@@ -928,7 +928,7 @@ const equipmentInstanceDestroyedSchema = z
     definitionId: idSchema,
     definitionName: z.string().min(1),
     condition: z.enum(['operational', 'damaged']),
-    reason: z.literal('manual_disposal'),
+    reason: z.enum(['manual_disposal', 'mission_loss']),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -1075,7 +1075,7 @@ const combatStimDisposedSchema = z
     resourceId: z.literal('combat_stim_dose'),
     capacity: z.literal(2),
     remaining: z.number().int().min(0).max(2),
-    reason: z.literal('manual_disposal'),
+    reason: z.enum(['manual_disposal', 'mission_loss']),
   })
   .strict()
   .superRefine((payload, context) => {

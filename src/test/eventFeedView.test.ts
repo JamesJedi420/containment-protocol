@@ -647,6 +647,26 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.instance_destroyed mission loss — names the exact identity and reason', () => {
+    const event = makeEvent(
+      'equipment.instance_destroyed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'mission_loss',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance destroyed')
+    expect(view.detail).toContain('Mission loss')
+    expect(view.searchText).toContain('mission loss')
+  })
+
   it('equipment.instance_condition_repaired — names the exact identity and repair', () => {
     const event = makeEvent(
       'equipment.instance_condition_repaired',
@@ -692,6 +712,28 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('equipment-instance-7-3')
     expect(view.detail).toContain('1/2 doses')
     expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.combat_stim_disposed mission loss — names the dose snapshot and reason', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'mission_loss',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Mission loss')
+    expect(view.searchText).toContain('mission loss')
   })
 
   it('equipment.combat_stim_reaggregated fabricated lot return — names batch provenance', () => {

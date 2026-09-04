@@ -44,13 +44,13 @@ and ready/stow remain outside this command. Non-idle equipped agents fail closed
 
 ## Deferred
 
-| Item or mechanic          | Owner or prerequisite | Reason                               |
-| ------------------------- | --------------------- | ------------------------------------ |
-| Mission loss              | SPE-2827 child        | Requires authored lifecycle triggers |
-| Repair, damage production | SPE-877               | Integrity program; store then repair |
-| Ready versus stowed       | SPE-1658              | Access-state layer separately owned  |
-| Catalog-only slot paths   | out of scope          | Unequip remains aggregate-backed     |
-| SPE-2847                  | do not pick           | Out of SPE-2827 remaining sequence   |
+| Item or mechanic          | Owner or prerequisite | Reason                                                     |
+| ------------------------- | --------------------- | ---------------------------------------------------------- |
+| Mission loss              | SPE-2856              | Shipped as fatality-only equipped instance destroy/dispose |
+| Repair, damage production | SPE-877               | Integrity program; store then repair                       |
+| Ready versus stowed       | SPE-1658              | Access-state layer separately owned                        |
+| Catalog-only slot paths   | out of scope          | Unequip remains aggregate-backed                           |
+| SPE-2847                  | do not pick           | Out of SPE-2827 remaining sequence                         |
 
 ## Linear hygiene (session)
 

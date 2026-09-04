@@ -1,5 +1,5 @@
 ---
-description: Cloud Agents must emit a local-agent Linear handoff whenever they author or implement a plan and Linear was not updated in-session.
+description: Cloud Agents emit a local-agent Linear handoff only after a plan is implemented to completion and that PR is merged.
 alwaysApply: true
 ---
 
@@ -7,32 +7,23 @@ alwaysApply: true
 
 Canonical detail: **`docs/cloud-agent-linear-handoff.md`**.
 
-When this session is a **Cloud Agent**, **background agent**, or other remote agent, after it
-**authors or implements a plan** (planning PR or runtime PR): emit a copy-paste **local-agent
-Linear handoff**. A local Cursor agent with Linear MCP `ready` applies it. GitHub PR linkbacks do
-not replace Linear.
+Emit a copy-paste **local-agent Linear handoff** only when this session is a Cloud Agent /
+background / remote agent **and** it **implemented a plan to completion** **and** **merged** that
+implementation PR, and Linear was not updated in-session. A local agent with Linear MCP `ready`
+applies slice **Done** + merge comment. GitHub PR linkbacks do not replace Linear.
 
-## Emit when
+## Do not emit when
 
-- Linear MCP is `needsAuth`, empty-tools, or failed; **or**
-- the session is remote even if Linear later succeeds (write **Posted in-session** plus the same
-  verbatim comments for verification).
+- the PR is still open;
+- the merge is planning-only or does not satisfy slice acceptance;
+- harvest / triage with no implementation merge.
 
-## Same-session destinations (all three)
+## After implementation merge (phase B)
 
-1. Slice doc `## Local-agent Linear handoff`
-2. PR body Follow-ups (verbatim comments; include PR URL)
-3. Closeout field **Local-agent Linear handoff** in `docs/agent-session-closeout.md`
-
-Required payload: issue IDs; exact status or **do not change**; verbatim comment markdown; parent
-row or **none**; **Do not** list; already-posted flag.
+Write the same payload in the slice doc `## Local-agent Linear handoff` and closeout: issue IDs;
+slice **Done** (or **do not change**); parent Backlog unless full parent shipped; verbatim comment
+(PR URL + what shipped + validation); **Do not** list; already-posted flag.
 
 ## Local agent
 
-Apply verbatim. Skip duplicates that already contain the same PR URL and facts. Honor **do not
-change** over the generic In Progress / Done table.
-
-## Do not
-
-Invent Linear tokens. Skip Linear because GitHub has a bot linkback. Collapse comments to
-one-liners. Mark In Progress / Done when the handoff or user forbade it.
+Apply verbatim. Skip duplicates with the same PR URL and facts.

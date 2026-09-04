@@ -30,7 +30,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 - Verify `git ls-remote origin <branch>` before checkout; migrated branch names from old sessions are often deleted after merge.
 - If Move to local fails (`couldn't find remote ref`), use updated **`main`** and a new branch.
-- **Linear:** Cloud Agents that author or implement a plan must leave a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can post comments and status. Paste User Rules from `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`.
+- **Linear:** After a Cloud Agent **implements a plan to completion and merges** that PR, leave a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can post Done + merge comment. Planning-only and open PRs do not trigger it. Paste User Rules from `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`.
 
 ## Each new implementation task
 

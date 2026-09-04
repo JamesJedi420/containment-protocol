@@ -30,12 +30,10 @@ Linear is the **system of record** for issue state, scope, and closure. GitHub P
 
 ## Cloud Agent → local-agent Linear handoff
 
-When this session is a Cloud Agent / background / remote agent **and it authors or implements a
-plan** (planning or runtime PR): emit a copy-paste **local-agent Linear handoff** in the slice doc,
-PR Follow-ups, and closeout. A local agent with Linear MCP `ready` applies it. Do not treat GitHub
-as Linear closure. Canonical: **`docs/cloud-agent-linear-handoff.md`**; tracked rule
-**`.cursor/rules/cloud-agent-linear-handoff.mdc`**. Honor explicit **do not change** status
-constraints from the user or that handoff.
+Emit only after a Cloud Agent **implemented a plan to completion and merged** that implementation
+PR, when Linear was not updated in-session. Planning-only PRs, open PRs, and harvest sessions do
+not trigger it. Canonical: **`docs/cloud-agent-linear-handoff.md`**; tracked rule
+**`.cursor/rules/cloud-agent-linear-handoff.mdc`**.
 
 ## Authoritative detail
 

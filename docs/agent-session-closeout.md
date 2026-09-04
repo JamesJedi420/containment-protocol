@@ -115,10 +115,7 @@ PR:
 - URL:
 
 Local-agent Linear handoff:
-- Linear MCP: needsAuth | ready | failed
-- Already posted: yes | no
-- Issues / status (or do not change) / verbatim comments / Do not:
-- (Cloud Agents that implemented a plan must fill this; see docs/cloud-agent-linear-handoff.md)
+- none (handoff fires only after an implementation PR merges; see docs/cloud-agent-linear-handoff.md)
 
 Next issue implementation plan:
 - Deferred until after merge (phase B). Do not fill this section when the PR is only open.
@@ -135,10 +132,8 @@ Merge closeout:
 - Parent issue status (open / done):
 
 Local-agent Linear handoff:
-- Linear MCP: needsAuth | ready | failed
-- Already posted: yes | no
-- Issues / status (or do not change) / verbatim comments / Do not:
-- (Required when Linear was not updated in-session; see docs/cloud-agent-linear-handoff.md)
+- none — unless this merge completed an implementation plan and Linear was not updated (docs/cloud-agent-linear-handoff.md)
+- Linear MCP / already posted / issues / status / verbatim comments / Do not: (fill only on that trigger)
 
 Next issue implementation plan:
 - Issue:
@@ -155,4 +150,4 @@ Handoff:
 - Agent already synced main in-session; remind human: new agent chat with Linear URL, slice doc, branch name, main SHA.
 ```
 
-Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next-issue plan. **Local-agent Linear handoff** is required when Linear was not updated in-session (Cloud Agents that implemented a plan).
+Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next-issue plan. **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).

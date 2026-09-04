@@ -146,40 +146,9 @@ destroy helper.
 
 ## Local-agent Linear handoff
 
-Linear MCP: needsAuth
-Already posted in this session: no
-
-### SPE-2857 (slice)
-- Status: **do not change** (keep Backlog; **do not** set In Progress)
-- Comment:
-
-```markdown
-Planning PR authored. Runtime not started. **Do not** set In Progress.
-
-- Slice doc: `planning/spe-2857-mission-injury-equipped-instance-loss-slice.md`
-- Branch: `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`
-- Base: `main` @ `293d61eb`
-- PR: https://github.com/JamesJedi420/containment-protocol/pull/3579
-
-**Mechanic:** when `applyMissionResolutionAgentMutations` marks an assigned agent injured (`injurySeverity && !casualty.fatal`), destroy/dispose equipped instance-backed slots (ordinary + Combat Stim) with reason `mission_injury`, clear those projections, no inventory credit. Reuse `takeEquippedInstancesLostOnMissionFatalities` (rename/parameterize if sharing). Fatality keeps `mission_loss`. Invert the SPE-2856 “injury does not destroy” test.
-
-**Out of slice:** resignation loss; re-agg/lot-return; SPE-877; SPE-1658; SPE-1484; SPE-2847; Equipment UI; any `src/` in this planning PR.
-
-Parent SPE-2827 stays **Backlog**. Implementation starts after this planning PR merges, in a new agent chat on the named branch.
-```
-
-### SPE-2827 (parent)
-- Status: **do not change** (Backlog)
-- Comment:
-
-```markdown
-SPE-2857 is recommended next (injury equipped-instance loss, reason `mission_injury`). Planning-only PR; **do not** set SPE-2857 or SPE-2827 In Progress. Fatality loss shipped as SPE-2856 (`mission_loss`). Resignation loss remains a later child.
-```
-
-### Do not
-- Set SPE-2857 or SPE-2827 In Progress or Done
-- Merge the planning PR from the Cloud Agent session
-- Implement `src/` in the planning session
+Not required for this planning PR. The standing rule (`docs/cloud-agent-linear-handoff.md`) fires
+only after the SPE-2857 **implementation** PR merges. Then a local agent sets SPE-2857 **Done**
+(runtime acceptance met), comments PR URL + what shipped, and leaves SPE-2827 **Backlog**.
 
 ## Validation
 

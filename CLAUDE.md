@@ -34,7 +34,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 1. One Linear slice (`SPE-####`) + `planning/*-slice.md` when present. Do not expand scope.
 2. Pre-ship audit: `docs/agent-pre-ship-audit.md` (six passes) before commit.
 3. Ship loop: commit → push → PR (`.github/pull_request_template.md`) → babysit (independent review + Greptile/CodeRabbit/Amazon Q/bot triage + CI) → merge → `git checkout main` && `git pull origin main`.
-4. Linear: In Progress before work; PR URL on slice issue; Done + merge comment after merge. Parent stays open unless full parent scope shipped. Cloud Agents that cannot auth Linear emit a local-agent handoff (`docs/cloud-agent-linear-handoff.md`); do not skip Linear because GitHub has a bot linkback.
+4. Linear: In Progress before work; PR URL on slice issue; Done + merge comment after merge. Parent stays open unless full parent scope shipped. Cloud Agents that cannot auth Linear emit a local-agent handoff only after an implementation PR merges (`docs/cloud-agent-linear-handoff.md`); do not skip Linear because GitHub has a bot linkback.
 5. Deferred work: same session — slice doc `## Deferred` + Linear parent/child comment.
 
 ## Review bar

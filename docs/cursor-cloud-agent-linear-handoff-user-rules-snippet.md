@@ -4,10 +4,10 @@ Paste into **Cursor → Settings → Rules → User Rules**. Full detail: `docs/
 
 ---
 
-Whenever a **Cloud Agent** (or background/remote agent) **implements a plan** (planning PR or runtime PR), it must provide an **agent hand-off for a local agent to update Linear**.
+A **Cloud Agent** (or background/remote agent) must provide an **agent hand-off for a local agent to update Linear** only after it **implements a plan to completion and merges that PR**.
 
-Linear MCP is often `needsAuth` in Cloud Agent VMs. GitHub PR linkbacks do not close Linear.
+Do not emit the handoff for planning-only PRs, open PRs, or harvest-only work. Linear MCP is often `needsAuth` in Cloud Agent VMs; GitHub PR linkbacks do not close Linear.
 
-The Cloud Agent writes the same copy-paste payload in (1) the slice doc `## Local-agent Linear handoff`, (2) the PR Follow-ups, and (3) session closeout. Payload: issue IDs, exact status or **do not change**, verbatim comment markdown, parent row, **Do not** list, PR URL.
+After the implementation merge, write the copy-paste payload in the slice doc `## Local-agent Linear handoff` and phase B closeout: issue IDs, slice **Done**, parent Backlog unless the parent shipped, verbatim comment (PR URL + what shipped + validation).
 
-A **local** agent with Linear MCP `ready` applies that block verbatim, skips duplicates, and honors **do not change**. Do not invent tokens or skip Linear because GitHub already has a bot comment.
+A **local** agent with Linear MCP `ready` applies that block verbatim and skips duplicates.

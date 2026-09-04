@@ -8,9 +8,10 @@
 | **Branch** | `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`                                            |
 | **Base**   | `main` @ `293d61eb`                                                                                     |
 
-This file is the implementation plan. Do not ship runtime in the planning PR. A later session
+This file is the implementation plan. Do not ship runtime in this follow-up. A later session
 implements the sequence below. Parent SPE-2827 stays **Backlog**. This issue stays **Backlog**
-until that implementation session sets **In Progress**.
+until that implementation session sets **In Progress** (explicit planning-session constraint;
+do not treat the generic docs-only In Progress table as overriding that instruction).
 
 ## Pre-coding summary
 
@@ -99,12 +100,20 @@ destroy helper.
    `reason`. Update the SPE-2856 call site and the recovery-claimed unit test import.
 2. Parameterize `pushMissionLossInstanceDrafts(eventDrafts, week, instance, reason)` with
    `reason: 'mission_loss' | 'mission_injury'`. Rename to `pushMissionInstanceLossDrafts` so the
-   injury path does not call a fatality-named pusher. Combat Stim still skips the event when
-   `!isCanonicalCombatStimPayload`; registry delete still happens in the take helper.
+   injury path does not call a fatality-named pusher. Combat Stim still skips the **event** when
+   `!isCanonicalCombatStimPayload`.
 3. After the existing `if (injurySeverity) { createAgentInjuredDraft }` block, add
    `if (injurySeverity && !casualty.fatal) { take…; for lost push drafts with mission_injury }`.
    Do not place this inside `if (casualty.fatal)`. Do not call a fatality-named helper from the
    injury path.
+   **Injury-only retain (living carrier; do not copy fatality here):**
+   - Skip take/clear for an equipped `combat_stims` identity that
+     `instanceHasActiveOverdriveProvenance` still owns (`overdrive.active` or `recoveryDebt > 0`).
+     `rollMissionCasualty` keeps Combat Stim overdrive on injury (`expireResolvedOverdrive` no-ops
+     when `source.kind === 'combat_stim'`). Deleting that identity would leave dangling expiry/debt.
+   - Skip take/clear for an equipped `combat_stims` identity whose payload is not canonical. The
+     dispose event cannot be emitted, and a living carrier must not be silent-erased. Fatality
+     SPE-2856 may still delete those copies without an event (dead carrier).
 4. Extend reason unions in `src/domain/events/types.ts` and `eventValidation.ts` on both
    `equipment.instance_destroyed` and `equipment.combat_stim_disposed` to
    `'manual_disposal' | 'mission_loss' | 'mission_injury'`. No location fields. No schema version
@@ -114,9 +123,12 @@ destroy helper.
    the `never` default. Feed copy must distinguish Mission injury / Mission loss / Manual disposal.
 6. Tests: invert the injury regression into a positive injury-loss assertion; keep fatality
    `mission_loss`; add Combat Stim injury dispose; skip recovery-claimed on an injured carrier;
-   accept `mission_injury` in event validation; add event-feed Mission injury cases.
+   retain Combat Stim with live overdrive/recovery provenance on injury; retain noncanonical
+   Combat Stim payload on injury (no silent delete, no dispose event); accept `mission_injury` in
+   event validation; add event-feed Mission injury cases.
 7. Slice Status → **Recently shipped**; backlog primary moves off SPE-2857 only when the next
-   SPE-2827 child is the handoff. Do not mark parent Done.
+   SPE-2827 child is the handoff. Do not mark parent Done. After the implementation PR merges, emit
+   the local-agent Linear handoff in **phase B closeout only** (do not edit this slice on `main`).
 
 ## Determinism and compatibility
 
@@ -146,9 +158,9 @@ destroy helper.
 
 ## Local-agent Linear handoff
 
-Not required for this planning PR. The standing rule (`docs/cloud-agent-linear-handoff.md`) fires
-only after the SPE-2857 **implementation** PR merges. Then a local agent sets SPE-2857 **Done**
-(runtime acceptance met), comments PR URL + what shipped, and leaves SPE-2827 **Backlog**.
+Not required for planning. After the SPE-2857 **implementation** PR merges, write the handoff in
+**phase B closeout only** (`docs/cloud-agent-linear-handoff.md`). Do not edit this slice on `main`
+to store it. Local agent: SPE-2857 **Done**, PR URL + what shipped, SPE-2827 **Backlog**.
 
 ## Validation
 
@@ -158,8 +170,11 @@ Implementation session must cover:
   those slots empty, catalog-only slot preserved, sibling/stored identities preserved, inventory
   unchanged, `mission_injury` destroy events in instance-ID order, `agent.injured` still emitted,
   status `'injured'` (not `'dead'`);
-- injury Combat Stim: identity gone, slot empty, inventory unchanged, `mission_injury` dispose;
-  skip SPE-2844 / SPE-2855 player dispose gates;
+- injury Combat Stim: identity gone, slot empty, inventory unchanged, `mission_injury` dispose,
+  except retain copies with live overdrive/recovery provenance and retain noncanonical payloads
+  (no silent delete on a living carrier);
+- skip SPE-2844 / SPE-2855 **player idle/dose** gates for canonical, provenance-free Combat Stim
+  on injury (still no inventory credit); do **not** skip the overdrive/recovery provenance retain;
 - minor and moderate both destroy because both set `injured`; do not branch destroy on severity
   enum. The existing injury fixture is sufficient if it yields `injured` and empty fatalities;
 - fatality path still emits `mission_loss` only; injury path emits `mission_injury` only; one

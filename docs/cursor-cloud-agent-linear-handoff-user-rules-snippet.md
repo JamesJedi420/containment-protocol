@@ -8,6 +8,8 @@ A **Cloud Agent** (or background/remote agent) must provide an **agent hand-off 
 
 Do not emit the handoff for planning-only PRs, open PRs, or harvest-only work. Linear MCP is often `needsAuth` in Cloud Agent VMs; GitHub PR linkbacks do not close Linear.
 
-After the implementation merge, write the copy-paste payload in the slice doc `## Local-agent Linear handoff` and phase B closeout: issue IDs, slice **Done**, parent Backlog unless the parent shipped, verbatim comment (PR URL + what shipped + validation).
+After the implementation merge, write the copy-paste payload in phase B closeout (not a post-merge
+edit of the tracked slice doc on `main`): issue IDs, slice **Done**, parent Backlog unless the
+parent shipped, verbatim comment (PR URL + what shipped + validation).
 
 A **local** agent with Linear MCP `ready` applies that block verbatim and skips duplicates.

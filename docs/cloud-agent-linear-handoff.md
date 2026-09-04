@@ -29,13 +29,13 @@ Do not emit when:
 
 ## Where to write it (same session, after merge)
 
-Write the same payload in:
+Write the payload in **phase B closeout**. Optionally paste the same text into a comment on the
+**already-merged** GitHub PR if the UI still accepts comments.
 
-1. Active `planning/*-slice.md` section `## Local-agent Linear handoff` (implementation merge)
-2. Merged PR Follow-ups if still editable; otherwise the closeout is enough
-3. Session closeout **Local-agent Linear handoff** (`docs/agent-session-closeout.md` phase B)
+Do **not** edit the tracked `planning/*-slice.md` after checkout of `main`. That would be an
+uncommitted post-merge change and must not open a second PR just to store the handoff.
 
-Chat-only closeout text is not enough.
+Chat-only closeout without the phase B **Local-agent Linear handoff** fields is not enough.
 
 ## Required fields
 

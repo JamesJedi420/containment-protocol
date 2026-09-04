@@ -1,0 +1,156 @@
+# SPE-2857 — Mission-Injury Equipped-Instance Loss
+
+| Field      | Value                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| **Status** | **Plan ready**                                                                                          |
+| **Linear** | [SPE-2857](https://linear.app/spectranoir/issue/SPE-2857/mission-injury-equipped-instance-loss)          |
+| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) |
+| **Branch** | `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`                                            |
+
+This file is the implementation plan. Do not ship runtime in the planning PR. A later session
+implements the sequence below. Parent SPE-2827 stays **Backlog**. This issue stays **Backlog**
+until that implementation session sets **In Progress**.
+
+## Pre-coding summary
+
+**Status:** not implemented. SPE-2856 shipped fatality-only loss. Injury still preserves equipped
+identities (`does not destroy equipped instances when the assigned agent is only injured`).
+
+**Relevant files (inspect, then edit in the implementation session only):**
+
+| Path | Role |
+| ---- | ---- |
+| `src/domain/equipmentInstance.ts` | `takeEquippedInstancesLostOnMissionFatalities` — registry delete + `withProjectedSlot` clear; no reason; no inventory |
+| `src/domain/sim/missionResolutionAgents.ts` | `applyMissionResolutionAgentMutations`; `pushMissionLossInstanceDrafts` hard-codes `mission_loss`; injury vs fatal after status write |
+| `src/domain/sim/recoveryPipeline.ts` | `InjurySeverity` = `'minor' \| 'moderate'`; both set `status: 'injured'` |
+| `src/domain/events/types.ts` | destroy/dispose `reason: 'manual_disposal' \| 'mission_loss'` |
+| `src/domain/events/eventValidation.ts` | matching `z.enum` |
+| `src/features/dashboard/eventFeedView.ts` | `instanceLossReasonLabel` exhaustive switch |
+| `src/test/sim.missionResolutionAgents.test.ts` | fatality + negative injury + recovery-claimed take-helper tests |
+| `src/test/events.validation.test.ts` | accepts `mission_loss`; rejects unknown reasons |
+| `src/test/eventFeedView.test.ts` | Mission loss vs Manual disposal copy |
+| `SCHEMA_REGISTRY.md` | SPE-2856 sentence; add SPE-2857 in the implementation session, not this planning PR |
+
+**Current behavior:** `rollMissionCasualty` returns `injurySeverity: null` on `fatal: true`. On
+injury, `nextAgent.status` becomes `'injured'` and assignment `'recovery'`. Equipped instance
+registry keys and slot projections stay. Fatality-only hook runs inside `if (casualty.fatal)`
+after `agent.killed`.
+
+**Expected behavior:** when `injurySeverity && !casualty.fatal` after status → `injured`, destroy
+every equipped instance-backed slot on that carrier (ordinary + Combat Stim) with reason
+`mission_injury`, clear those projections, emit destroy/dispose drafts, credit no inventory.
+
+**Implementation boundary:** injury-only lifecycle trigger in `applyMissionResolutionAgentMutations`.
+Reuse the SPE-2856 take/clear helper (rename; reason stays on drafts). Do not implement
+resignation, SPE-1484 capacity, SPE-877, SPE-1658, SPE-2847, loadout UI, or re-agg/lot-return.
+
+**Known risks:**
+
+- Double-path if both fatal and injury hooks run on one casualty. Keep the explicit
+  `injurySeverity && !casualty.fatal` gate even though fatal already nulls `injurySeverity`.
+- Invert the SPE-2856 injury regression; keep a fatality-vs-injury reason split.
+- Shared helper still named `…Fatalities` — rename before the injury call site.
+- Event-reason exhaustiveness: types, zod, feed switch, validation tests.
+- Relocate-then-stored fails: `isIdleAgent` requires `status === 'active'` and
+  `assignment.state === 'idle'`; injured carriers are `'injured'` + `'recovery'`.
+
+**Validation plan (implementation session):** targeted Vitest listed under Validation; eslint on
+touched TS; `npm run verify:backlog-handoff`; prettier on touched TS. No `GAME_STORE_VERSION` /
+`GAME_SAVE_VERSION` / operation-event schema bump.
+
+**Docs in this planning PR:** this slice, backlog handoff + manifest, SPE-2827 remaining line,
+SPE-2856 deferred owner → SPE-2857, architecture next-trigger note. Implementation session also
+updates `SCHEMA_REGISTRY.md` (additive SPE-2857 sentence; no version bump) and this slice Status
+→ **Recently shipped**.
+
+## Boundary
+
+When mission resolution marks an assigned agent `injured` (not `dead`), destroy/dispose every
+equipped instance-backed loadout slot on that carrier (ordinary + Combat Stim) with reason
+`mission_injury`, clear that injured carrier's instance-backed compatibility projection, and do
+not credit aggregate inventory.
+
+The hook runs inside `applyMissionResolutionAgentMutations` immediately after status → `injured`
+and `agent.injured`. Gate: `injurySeverity && !casualty.fatal`. It enumerates equipped registry
+identities for that agent in instance-ID order. It does not relocate-then-stored.
+
+| Identity    | Mutation                                                                     | Event                                                                   |
+| ----------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Ordinary    | Delete registry key; no inventory or lot mutation                            | `equipment.instance_destroyed` / `mission_injury`                       |
+| Combat Stim | Delete registry key; no inventory or lot mutation; skip player dispose gates | `equipment.combat_stim_disposed` / `mission_injury` (canonical payload) |
+
+Catalog-only slots stay projected. Minor and moderate both destroy (both set `injured`). Fatality
+keeps SPE-2856 `mission_loss`. Resignation does not run this path. Recovery-claimed identities
+are skipped so an existing queue/outcome claim remains the destruction authority.
+
+## Implementation sequence (later session)
+
+1. Rename `takeEquippedInstancesLostOnMissionFatalities` to a casualty-neutral name (for example
+   `takeEquippedInstancesLostOnMissionResolution`). Keep the signature: agents, registry,
+   recovery queues/outcomes, agent IDs → `{ agents, equipmentInstances, lost }`. Do not add
+   `reason`. Update the SPE-2856 call site and the recovery-claimed unit test import.
+2. Parameterize `pushMissionLossInstanceDrafts(eventDrafts, week, instance, reason)` with
+   `reason: 'mission_loss' | 'mission_injury'`. Rename to `pushMissionInstanceLossDrafts` so the
+   injury path does not call a fatality-named pusher. Combat Stim still skips the event when
+   `!isCanonicalCombatStimPayload`; registry delete still happens in the take helper.
+3. After the existing `if (injurySeverity) { createAgentInjuredDraft }` block, add
+   `if (injurySeverity && !casualty.fatal) { take…; for lost push drafts with mission_injury }`.
+   Do not place this inside `if (casualty.fatal)`. Do not call a fatality-named helper from the
+   injury path.
+4. Extend reason unions in `src/domain/events/types.ts` and `eventValidation.ts` on both
+   `equipment.instance_destroyed` and `equipment.combat_stim_disposed` to
+   `'manual_disposal' | 'mission_loss' | 'mission_injury'`. No location fields. No schema version
+   bump. Add SPE-2857 to the `SCHEMA_REGISTRY.md` `equipmentInstances` bullet (injury path;
+   `mission_injury`; fatality remains `mission_loss`).
+5. Extend `instanceLossReasonLabel` with `case 'mission_injury': return 'Mission injury'` and keep
+   the `never` default. Feed copy must distinguish Mission injury / Mission loss / Manual disposal.
+6. Tests: invert the injury regression into a positive injury-loss assertion; keep fatality
+   `mission_loss`; add Combat Stim injury dispose; skip recovery-claimed on an injured carrier;
+   accept `mission_injury` in event validation; add event-feed Mission injury cases.
+7. Slice Status → **Recently shipped**; backlog primary moves off SPE-2857 only when the next
+   SPE-2827 child is the handoff. Do not mark parent Done.
+
+## Determinism and compatibility
+
+- instance-ID order per injured carrier; assigned-agent loop order across carriers;
+- `rollMissionCasualty` fatal returns stay `injurySeverity: null`; do not change casualty math;
+- existing idle equipped destroy/dispose/re-agg/lot-return commands keep `manual_disposal` and
+  stored-path behavior, including SPE-2844 / SPE-2855 overdrive/recovery gates;
+- event payloads reuse existing types; `mission_injury` is added to the destroy/dispose reason
+  unions beside `manual_disposal` and `mission_loss`;
+- no location fields on payloads; `GAME_STORE_VERSION`, `GAME_SAVE_VERSION`, and the operation-event
+  schema version remain unchanged.
+
+## Deferred
+
+| Item or mechanic                   | Owner or prerequisite | Reason                                                      |
+| ---------------------------------- | --------------------- | ----------------------------------------------------------- |
+| Resignation equipped-instance loss | SPE-2827 child        | Not authored by mission resolution                          |
+| Injury *capacity* (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss |
+| Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                  |
+| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                      |
+| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                 |
+| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                          |
+
+## Validation
+
+Implementation session must cover:
+
+- injury ordinary instance-backed slots (existing fail + fatigue-90 fixture): identities gone,
+  those slots empty, catalog-only slot preserved, sibling/stored identities preserved, inventory
+  unchanged, `mission_injury` destroy events in instance-ID order, `agent.injured` still emitted,
+  status `'injured'` (not `'dead'`);
+- injury Combat Stim: identity gone, slot empty, inventory unchanged, `mission_injury` dispose;
+  skip SPE-2844 / SPE-2855 player dispose gates;
+- minor and moderate both destroy because both set `injured`; do not branch destroy on severity
+  enum. The existing injury fixture is sufficient if it yields `injured` and empty fatalities;
+- fatality path still emits `mission_loss` only; injury path emits `mission_injury` only; one
+  casualty never emits both reasons;
+- invert `does not destroy equipped instances when the assigned agent is only injured` into the
+  positive injury-loss assertion;
+- recovery-claimed equipped identity skipped on the injured carrier;
+- event-schema `mission_injury` accepted; unknown reasons still rejected; event-feed copy
+  distinguishes Mission injury / Mission loss / Manual disposal;
+- focused mission/event tests, lint, `verify:backlog-handoff`, formatting, and targeted Vitest.
+
+Planning PR validation: `npm run verify:backlog-handoff` only. No `src/` diff.

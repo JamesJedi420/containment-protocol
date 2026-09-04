@@ -32,6 +32,9 @@ has its own source authority, eligibility check, and event payload:
 | Combat Stim catalog re-aggregation | Stored or idle-equipped, operational, full 2/2 catalog `combat_stims`                                | Deletes the instance and credits exactly one aggregate `combat_stims` unit                                                                                           | `equipment.combat_stim_reaggregated` / `manual_untracking`                          |
 | Combat Stim fabricated-lot return  | Stored or idle-equipped, operational, full 2/2 fabricated-origin `combat_stims`                      | Deletes the instance, credits exactly one aggregate `combat_stims` unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged | `equipment.combat_stim_reaggregated` / `fabricated_lot_return`                      |
 
+Next authored trigger (not shipped): SPE-2857 mission-injury equipped-instance loss (`mission_injury`)
+reuses the SPE-2856 take/clear path on carriers just marked `injured`.
+
 All stock-crediting paths fail closed for stale IDs, non-idle equipped copies, recovery-claimed identities,
 safe-integer inventory overflow, damaged condition, and invalid or missing provenance for the path.
 Generic catalog re-aggregation never absorbs fabricated provenance; fabricated returns require a

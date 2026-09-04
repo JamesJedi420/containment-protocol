@@ -23,8 +23,9 @@ Backlog while independently reviewable children ship.
 2. A later child may author Combat Stim's exact two-dose activation and durable consumption events.
 3. A separate integration child may consume SPE-1027's stock-provider port for replenishment.
 4. Later bounded children may add loss, destruction, repair, mutation, and instance-aware salvage.
-   SPE-2856 ships fatality-only equipped-instance loss (`mission_loss`). Injury/resignation loss
-   remains a later child.
+   SPE-2856 ships fatality-only equipped-instance loss (`mission_loss`). SPE-2857 is the next
+   authored child (plan ready): injury-only equipped-instance loss (`mission_injury`). Resignation
+   loss remains a later child.
 
 Readiness/access remains under SPE-1658 and maintenance behavior remains under SPE-877. The
 foundation's compact condition and payload fields do not complete either adjacent program.

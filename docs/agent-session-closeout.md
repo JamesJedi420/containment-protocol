@@ -123,7 +123,11 @@ Next issue implementation plan:
 
 ### Phase B — After merge
 
-Use when the PR is **merged**, the slice issue is **Done**, the merge comment is on Linear, the agent has run **`git checkout main` && `git pull origin main`**, and backlog handoff updates are **on `main`** (`npm run verify:backlog-handoff` passes).
+Use when the PR is **merged**, the agent has run **`git checkout main` && `git pull origin main`**,
+and backlog handoff updates are **on `main`** (`npm run verify:backlog-handoff` passes). Slice
+**Done** and the Linear merge comment may still be **pending** when Linear MCP was unavailable —
+fill **Local-agent Linear handoff** in that case (`docs/cloud-agent-linear-handoff.md`). Do not
+block phase B on Linear being current.
 
 ```text
 Merge closeout:

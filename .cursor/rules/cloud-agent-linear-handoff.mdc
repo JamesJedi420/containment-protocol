@@ -20,7 +20,7 @@ applies slice **Done** + merge comment. GitHub PR linkbacks do not replace Linea
 
 ## After implementation merge (phase B)
 
-Write the same payload in the slice doc `## Local-agent Linear handoff` and closeout: issue IDs;
+Write the payload in phase B closeout only (not a post-merge slice-doc edit on `main`): issue IDs;
 slice **Done** (or **do not change**); parent Backlog unless full parent shipped; verbatim comment
 (PR URL + what shipped + validation); **Do not** list; already-posted flag.
 

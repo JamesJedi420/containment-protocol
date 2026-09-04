@@ -10,7 +10,7 @@ When commit, push, and PR are done but babysit/merge **cannot** finish in-sessio
 
 Do not implement the next issue. **Do not** write a next-issue plan yet.
 
-End using the **phase A** structure in `docs/agent-session-closeout.md`.
+End using the **phase A** structure in `docs/agent-session-closeout.md` (includes **Local-agent Linear handoff** when Linear was not updated in-session).
 
 ## Phase B — After merge (normal session end)
 

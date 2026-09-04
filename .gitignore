@@ -37,6 +37,7 @@ remaining-subset.json
 !.cursor/rules/linear-always-update.mdc
 !.cursor/rules/implementation-lite.mdc
 !.cursor/rules/agent-cursor-plugins.mdc
+!.cursor/rules/cloud-agent-linear-handoff.mdc
 .DS_Store
 *.suo
 *.ntvs*

@@ -68,4 +68,4 @@ Your job is **not** to ship code in the mirror PR; it is to **adjudicate**, **do
 
 ## When Linear MCP is unavailable
 
-Draft full comments in the session output (six-section template); post when MCP works. Do not treat GitHub or a one-line mirror note as closure.
+Draft full comments in the session output (six-section template); post when MCP works. Do not treat GitHub or a one-line mirror note as closure. Cloud Agents must also emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) in the slice/mirror doc, PR Follow-ups, and closeout.

@@ -2,9 +2,9 @@
 
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
-Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only).
+Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only), `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md` (Cloud Agent Linear apply).
 
-**Cursor rules in this repo:** `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/implementation-lite.mdc`, and `.cursor/rules/agent-cursor-plugins.mdc` are tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores other files under `.cursor/rules/`. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. If you need a per-developer local rule file, keep it untracked under `.cursor/rules/`; to add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
+**Cursor rules in this repo:** `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/implementation-lite.mdc`, `.cursor/rules/agent-cursor-plugins.mdc`, and `.cursor/rules/cloud-agent-linear-handoff.mdc` are tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores other files under `.cursor/rules/`. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. If you need a per-developer local rule file, keep it untracked under `.cursor/rules/`; to add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
 
 ## Standing policy (repo + user)
 
@@ -30,6 +30,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 - Verify `git ls-remote origin <branch>` before checkout; migrated branch names from old sessions are often deleted after merge.
 - If Move to local fails (`couldn't find remote ref`), use updated **`main`** and a new branch.
+- **Linear:** Cloud Agents that author or implement a plan must leave a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can post comments and status. Paste User Rules from `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`.
 
 ## Each new implementation task
 

@@ -20,7 +20,7 @@ Agents: when merge is complete, sync `main` in-session, then remind the user to 
 
 ### Linear — mandatory (every session, every agent)
 
-**Non-negotiable** for all agents (local, Cloud, background, subagents) and all task types: implementation, harvest reconciliation, PR babysit, reviews, and docs-only slices. Cursor loads **`.cursor/rules/linear-always-update.mdc`** (`alwaysApply: true`) on every session.
+**Non-negotiable** for all agents (local, Cloud, background, subagents) and all task types: implementation, harvest reconciliation, PR babysit, reviews, and docs-only slices. Cursor loads **`.cursor/rules/linear-always-update.mdc`** and **`.cursor/rules/cloud-agent-linear-handoff.mdc`** (`alwaysApply: true`) on every session.
 
 Linear is the system of record for issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because the task feels "metadata only."
 
@@ -34,9 +34,9 @@ Linear is the system of record for issue state and closure. **Do not** skip Line
 | **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
 | **After merge** | Short Linear comment: PR URL + what shipped. |
 
-If Linear MCP is unavailable, report the exact comments or status changes that would have been posted; do not treat that as permission to skip updates indefinitely.
+If Linear MCP is unavailable, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) with verbatim comments and status (**or do not change**); a local agent applies it. Do not treat GitHub as Linear closure.
 
-Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation.
+Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation. Also paste **`docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`** so Cloud Agent sessions leave a Linear apply block.
 
 ### During an open PR
 
@@ -45,6 +45,8 @@ One session on the **same branch** is fine (implement, CI, review). New session 
 ### Cloud / Move to local
 
 If checkout of a migrated branch fails (`couldn't find remote ref`), use updated **`main`** and a new branch; do not chase deleted remote branch names from old sessions.
+
+Whenever a Cloud Agent authors or implements a plan, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can update Linear.
 
 ---
 
@@ -103,7 +105,7 @@ When an agent needs **live web research** (current docs, vendor APIs, product ch
 
 Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cursor/rules/agent-cursor-plugins.mdc`). Summary:
 
-- **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox).
+- **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox). Cloud Agents: Linear handoff for a local agent when MCP is `needsAuth` (`docs/cloud-agent-linear-handoff.md`).
 - Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype).
 - PR review configs already in repo: `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `CLAUDE.md`.
 - Do **not** wire vendor search/scan/SaaS SDKs into the game runtime or CI unless a Linear slice requires it. Marketplace install/uninstall is human-only.

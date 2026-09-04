@@ -2,36 +2,34 @@
 
 | Field      | Value                                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------------------- |
-| **Status** | **Plan ready**                                                                                          |
-| **Linear** | [SPE-2857](https://linear.app/spectranoir/issue/SPE-2857/mission-injury-equipped-instance-loss)          |
+| **Status** | **Recently shipped**                                                                                    |
+| **Linear** | [SPE-2857](https://linear.app/spectranoir/issue/SPE-2857/mission-injury-equipped-instance-loss)         |
 | **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) |
 | **Branch** | `jamesdyedbq/spe-2857-mission-injury-equipped-instance-loss`                                            |
 | **Base**   | `main` @ `293d61eb`                                                                                     |
 
-This file is the implementation plan. Do not ship runtime in this follow-up. A later session
-implements the sequence below. Parent SPE-2827 stays **Backlog**. This issue stays **Backlog**
-until that implementation session sets **In Progress** (explicit planning-session constraint;
-do not treat the generic docs-only In Progress table as overriding that instruction).
+This file is the shipped implementation plan. Parent SPE-2827 stays **Backlog**.
 
 ## Pre-coding summary
 
-**Status:** not implemented. SPE-2856 shipped fatality-only loss. Injury still preserves equipped
-identities (`does not destroy equipped instances when the assigned agent is only injured`).
+**Status:** shipped. After `injured` (not `dead`), equipped instance-backed slots are destroyed or
+disposed with reason `mission_injury`. Fatality still uses `mission_loss`. Living-carrier Combat Stim
+copies with live overdrive/recovery provenance or noncanonical payloads are retained.
 
 **Relevant files (inspect, then edit in the implementation session only):**
 
-| Path | Role |
-| ---- | ---- |
-| `src/domain/equipmentInstance.ts` | `takeEquippedInstancesLostOnMissionFatalities` — registry delete + `withProjectedSlot` clear; no reason; no inventory |
-| `src/domain/sim/missionResolutionAgents.ts` | `applyMissionResolutionAgentMutations`; `pushMissionLossInstanceDrafts` hard-codes `mission_loss`; injury vs fatal after status write |
-| `src/domain/sim/recoveryPipeline.ts` | `InjurySeverity` = `'minor' \| 'moderate'`; both set `status: 'injured'` |
-| `src/domain/events/types.ts` | destroy/dispose `reason: 'manual_disposal' \| 'mission_loss'` |
-| `src/domain/events/eventValidation.ts` | matching `z.enum` |
-| `src/features/dashboard/eventFeedView.ts` | `instanceLossReasonLabel` exhaustive switch |
-| `src/test/sim.missionResolutionAgents.test.ts` | fatality + negative injury + recovery-claimed take-helper tests |
-| `src/test/events.validation.test.ts` | accepts `mission_loss`; rejects unknown reasons |
-| `src/test/eventFeedView.test.ts` | Mission loss vs Manual disposal copy |
-| `SCHEMA_REGISTRY.md` | SPE-2856 sentence; add SPE-2857 in the implementation session, not this planning PR |
+| Path                                           | Role                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/equipmentInstance.ts`              | `takeEquippedInstancesLostOnMissionFatalities` — registry delete + `withProjectedSlot` clear; no reason; no inventory                 |
+| `src/domain/sim/missionResolutionAgents.ts`    | `applyMissionResolutionAgentMutations`; `pushMissionLossInstanceDrafts` hard-codes `mission_loss`; injury vs fatal after status write |
+| `src/domain/sim/recoveryPipeline.ts`           | `InjurySeverity` = `'minor' \| 'moderate'`; both set `status: 'injured'`                                                              |
+| `src/domain/events/types.ts`                   | destroy/dispose `reason: 'manual_disposal' \| 'mission_loss'`                                                                         |
+| `src/domain/events/eventValidation.ts`         | matching `z.enum`                                                                                                                     |
+| `src/features/dashboard/eventFeedView.ts`      | `instanceLossReasonLabel` exhaustive switch                                                                                           |
+| `src/test/sim.missionResolutionAgents.test.ts` | fatality + negative injury + recovery-claimed take-helper tests                                                                       |
+| `src/test/events.validation.test.ts`           | accepts `mission_loss`; rejects unknown reasons                                                                                       |
+| `src/test/eventFeedView.test.ts`               | Mission loss vs Manual disposal copy                                                                                                  |
+| `SCHEMA_REGISTRY.md`                           | SPE-2856 sentence; add SPE-2857 in the implementation session, not this planning PR                                                   |
 
 **Current behavior:** `rollMissionCasualty` returns `injurySeverity: null` on `fatal: true`. On
 injury, `nextAgent.status` becomes `'injured'` and assignment `'recovery'`. Equipped instance
@@ -145,16 +143,16 @@ destroy helper.
 
 ## Deferred
 
-| Item or mechanic                   | Owner or prerequisite | Reason                                                      |
-| ---------------------------------- | --------------------- | ----------------------------------------------------------- |
-| Resignation equipped-instance loss | SPE-2827 child        | Not authored by mission resolution                          |
-| Injury *capacity* (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss |
-| Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                  |
-| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                      |
-| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                 |
-| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                          |
-| Equipment UI                       | out of scope          | Event-feed reason label only; no loadout chrome             |
-| Runtime `src/` in this planning PR | implementation agent  | Plan-only; no domain/store/UI edits here                    |
+| Item or mechanic                   | Owner or prerequisite | Reason                                                                               |
+| ---------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
+| Resignation equipped-instance loss | SPE-2827 child        | Not authored by mission resolution                                                   |
+| Injury _capacity_ (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss |
+| Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                                           |
+| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                                               |
+| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                                          |
+| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                                                   |
+| Equipment UI                       | out of scope          | Event-feed reason label only; no loadout chrome                                      |
+| Runtime `src/` in this planning PR | shipped               | Injury take/clear + `mission_injury` drafts                                          |
 
 ## Local-agent Linear handoff
 

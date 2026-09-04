@@ -19,13 +19,7 @@ import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGrade
 import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
 
 export type OperationEventSourceSystem =
-  | 'assignment'
-  | 'incident'
-  | 'intel'
-  | 'agent'
-  | 'production'
-  | 'faction'
-  | 'system'
+  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -39,9 +33,7 @@ export type CaseSpawnTrigger =
   | 'workshop_unsafe'
 
 export type MarketTransactionListingResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -494,7 +486,7 @@ export interface OperationEventPayloadMap {
     definitionId: string
     definitionName: string
     condition: 'operational' | 'damaged'
-    reason: 'manual_disposal'
+    reason: 'manual_disposal' | 'mission_loss'
   }
   'equipment.instance_reaggregated': {
     week: number
@@ -549,7 +541,7 @@ export interface OperationEventPayloadMap {
     resourceId: 'combat_stim_dose'
     capacity: 2
     remaining: number
-    reason: 'manual_disposal'
+    reason: 'manual_disposal' | 'mission_loss'
   }
   'equipment.combat_stim_reaggregated': {
     week: number

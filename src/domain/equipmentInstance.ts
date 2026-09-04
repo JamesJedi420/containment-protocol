@@ -552,6 +552,52 @@ export function destroyStoredOrdinaryEquipmentInstance(
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
+/** SPE-2856: fatality-only destroy of equipped instance-backed slots. No inventory credit. */
+export function takeEquippedInstancesLostOnMissionFatalities(
+  agents: GameState['agents'],
+  equipmentInstances: EquipmentInstanceRegistry | undefined,
+  recoveryState: Pick<GameState, 'equipmentDeconstructionQueue' | 'equipmentRecoveryOutcomes'>,
+  agentIds: readonly string[]
+): {
+  agents: GameState['agents']
+  equipmentInstances: EquipmentInstanceRegistry
+  lost: EquipmentInstance[]
+} {
+  const nextRegistry: EquipmentInstanceRegistry = { ...(equipmentInstances ?? {}) }
+  let nextAgents = { ...agents }
+  const lost: EquipmentInstance[] = []
+  const seenAgentIds = new Set<string>()
+
+  for (const agentId of agentIds) {
+    if (seenAgentIds.has(agentId)) continue
+    seenAgentIds.add(agentId)
+    const equipped = Object.values(nextRegistry)
+      .filter(
+        (instance) =>
+          instance.location.state === 'equipped' && instance.location.agentId === agentId
+      )
+      .sort((left, right) =>
+        left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
+      )
+    for (const instance of equipped) {
+      if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
+        continue
+      }
+      delete nextRegistry[instance.instanceId]
+      lost.push(createEquipmentInstanceSnapshot(instance))
+      const agent = nextAgents[agentId]
+      if (agent && instance.location.state === 'equipped') {
+        nextAgents = {
+          ...nextAgents,
+          [agentId]: withProjectedSlot(agent, instance.location.slot),
+        }
+      }
+    }
+  }
+
+  return { agents: nextAgents, equipmentInstances: nextRegistry, lost }
+}
+
 export function reaggregateStoredOrdinaryEquipmentInstance(
   state: GameState,
   instanceId: EquipmentInstanceId

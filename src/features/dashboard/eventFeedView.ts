@@ -23,11 +23,7 @@ export type EventFeedFilters = {
 }
 
 export type EventFeedCategory =
-  | 'incident_response'
-  | 'personnel'
-  | 'intel_briefing'
-  | 'operations_logistics'
-  | 'agency_posture'
+  'incident_response' | 'personnel' | 'intel_briefing' | 'operations_logistics' | 'agency_posture'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -334,6 +330,19 @@ const EVENT_FEED_RELATIONSHIP_VERBOSITY_ALLOWED = new Set<string>(['all', 'summa
 
 function formatTimestampLabel(timestamp: string) {
   return `${timestamp.slice(0, 10)} ${timestamp.slice(11, 19)}Z`
+}
+
+function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss') {
+  switch (reason) {
+    case 'manual_disposal':
+      return 'Manual disposal'
+    case 'mission_loss':
+      return 'Mission loss'
+    default: {
+      const exhaustive: never = reason
+      return exhaustive
+    }
+  }
 }
 
 function getSpawnTriggerLabel(
@@ -921,19 +930,21 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
       }
     }
 
-    case 'equipment.instance_destroyed':
+    case 'equipment.instance_destroyed': {
+      const reasonLabel = instanceLossReasonLabel(event.payload.reason)
       return {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} instance destroyed`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.condition} / Manual disposal`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.condition} / ${reasonLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} manual disposal`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} ${reasonLabel}`.toLowerCase(),
       }
+    }
 
     case 'equipment.instance_reaggregated': {
       const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
@@ -1006,19 +1017,21 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
       }
 
-    case 'equipment.combat_stim_disposed':
+    case 'equipment.combat_stim_disposed': {
+      const reasonLabel = instanceLossReasonLabel(event.payload.reason)
       return {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} instance disposed`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / ${event.payload.condition} / Manual disposal`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / ${event.payload.condition} / ${reasonLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual disposal`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} ${reasonLabel}`.toLowerCase(),
       }
+    }
 
     case 'equipment.combat_stim_reaggregated': {
       const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'

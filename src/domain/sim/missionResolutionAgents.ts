@@ -14,11 +14,22 @@ import {
   recordAgentXpGain,
   setAgentAssignment,
 } from '../agent/lifecycle'
+import { getEquipmentDefinition } from '../equipment'
+import {
+  COMBAT_STIM_CAPACITY,
+  COMBAT_STIM_DEFINITION_ID,
+  COMBAT_STIM_RESOURCE_ID,
+  isCanonicalCombatStimPayload,
+  takeEquippedInstancesLostOnMissionFatalities,
+  type EquipmentInstance,
+} from '../equipmentInstance'
 import {
   createAgentInjuredDraft,
   createAgentKilledDraft,
   createAgentPromotedDraft,
   createAgentRelationshipChangedDraft,
+  createCombatStimDisposedDraft,
+  createEquipmentInstanceDestroyedDraft,
   createProgressionXpGainedDraft,
   type AnyOperationEventDraft,
 } from '../events'
@@ -86,10 +97,14 @@ interface ApplyMissionResolutionAgentMutationsInput {
   outcome: ResolutionOutcome
   week: number
   rng: () => number
+  equipmentInstances?: GameState['equipmentInstances']
+  equipmentDeconstructionQueue?: GameState['equipmentDeconstructionQueue']
+  equipmentRecoveryOutcomes?: GameState['equipmentRecoveryOutcomes']
 }
 
 interface ApplyMissionResolutionAgentMutationsOutput {
   nextAgents: GameState['agents']
+  nextEquipmentInstances: GameState['equipmentInstances']
   missionInjuries: MissionInjuryRecord[]
   missionFatalities: MissionFatalityRecord[]
   eventDrafts: AnyOperationEventDraft[]
@@ -145,6 +160,41 @@ function buildFatalityHistoryEntry(week: number, currentCase: CaseInstance): Age
     eventType: 'simulation.weekly_tick',
     note: `Killed during ${currentCase.title}.`,
   }
+}
+
+function pushMissionLossInstanceDrafts(
+  eventDrafts: AnyOperationEventDraft[],
+  week: number,
+  instance: EquipmentInstance
+) {
+  const definition = getEquipmentDefinition(instance.definitionId)
+  if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
+    if (!isCanonicalCombatStimPayload(instance.payload)) return
+    eventDrafts.push(
+      createCombatStimDisposedDraft({
+        week,
+        instanceId: instance.instanceId,
+        definitionId: 'combat_stims',
+        definitionName: definition?.name ?? 'Combat Stims',
+        condition: instance.condition,
+        resourceId: COMBAT_STIM_RESOURCE_ID,
+        capacity: COMBAT_STIM_CAPACITY,
+        remaining: instance.payload.remaining,
+        reason: 'mission_loss',
+      })
+    )
+    return
+  }
+  eventDrafts.push(
+    createEquipmentInstanceDestroyedDraft({
+      week,
+      instanceId: instance.instanceId,
+      definitionId: instance.definitionId,
+      definitionName: definition?.name ?? instance.definitionId,
+      condition: instance.condition,
+      reason: 'mission_loss',
+    })
+  )
 }
 
 function getRelationshipDelta(result: ResolutionOutcome['result']) {
@@ -605,12 +655,16 @@ export function applyMissionResolutionAgentMutations({
   outcome,
   week,
   rng,
+  equipmentInstances,
+  equipmentDeconstructionQueue,
+  equipmentRecoveryOutcomes,
 }: ApplyMissionResolutionAgentMutationsInput): ApplyMissionResolutionAgentMutationsOutput {
   const eventDrafts: AnyOperationEventDraft[] = []
   const missionInjuries: MissionInjuryRecord[] = []
   const missionFatalities: MissionFatalityRecord[] = []
   let fundingDelta = 0
   let nextAgents = { ...agents }
+  let nextEquipmentInstances = { ...(equipmentInstances ?? {}) }
   const performanceByAgentId = new Map(
     (outcome.agentPerformance ?? []).map((performance) => [performance.agentId, performance])
   )
@@ -860,6 +914,17 @@ export function applyMissionResolutionAgentMutations({
           caseTitle: effectiveCase.title,
         })
       )
+      const lostEquipped = takeEquippedInstancesLostOnMissionFatalities(
+        { ...nextAgents, [agent.id]: nextAgent },
+        nextEquipmentInstances,
+        { equipmentDeconstructionQueue, equipmentRecoveryOutcomes },
+        [agent.id]
+      )
+      nextAgent = lostEquipped.agents[agent.id] ?? nextAgent
+      nextEquipmentInstances = lostEquipped.equipmentInstances
+      for (const instance of lostEquipped.lost) {
+        pushMissionLossInstanceDrafts(eventDrafts, week, instance)
+      }
     }
 
     if (
@@ -986,6 +1051,7 @@ export function applyMissionResolutionAgentMutations({
 
   return {
     nextAgents,
+    nextEquipmentInstances,
     missionInjuries,
     missionFatalities,
     eventDrafts,

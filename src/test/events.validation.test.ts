@@ -39,6 +39,12 @@ describe('event payload validation coverage', () => {
     expect(
       validateOperationEventPayload('equipment.instance_destroyed', {
         ...valid,
+        reason: 'mission_loss',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_destroyed', {
+        ...valid,
         reason: 'recovery',
       }).success
     ).toBe(false)
@@ -114,6 +120,12 @@ describe('event payload validation coverage', () => {
     expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(
       true
     )
+    expect(
+      validateOperationEventPayload('equipment.combat_stim_disposed', {
+        ...valid,
+        reason: 'mission_loss',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, definitionName: 'Wrong name' },

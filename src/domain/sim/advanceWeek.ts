@@ -2729,9 +2729,16 @@ function resolveAssignments(
       outcome,
       week: context.sourceState.week,
       rng: rng.next,
+      equipmentInstances: context.nextState.equipmentInstances,
+      equipmentDeconstructionQueue: context.nextState.equipmentDeconstructionQueue,
+      equipmentRecoveryOutcomes: context.nextState.equipmentRecoveryOutcomes,
     })
 
-    context.nextState.agents = missionAgentMutations.nextAgents
+    context.nextState = {
+      ...context.nextState,
+      agents: missionAgentMutations.nextAgents,
+      equipmentInstances: missionAgentMutations.nextEquipmentInstances,
+    }
     if (missionAgentMutations.fundingDelta !== 0) {
       context.nextState = {
         ...context.nextState,

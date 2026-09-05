@@ -40,7 +40,7 @@ identities are skipped so an existing queue/outcome claim remains the destructio
 | Item or mechanic                   | Owner or prerequisite | Reason                                                |
 | ---------------------------------- | --------------------- | ----------------------------------------------------- |
 | Injury equipped-instance loss      | SPE-2857              | Recently shipped; fatality-only trigger in this slice |
-| Resignation equipped-instance loss | SPE-2827 child        | Not authored by mission resolution                    |
+| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger               |
 | Re-agg / lot-return on death       | out of scope          | Loss must not credit stock                            |
 | Repair, damage production          | SPE-877               | Integrity program beyond identity loss                |
 | Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned           |

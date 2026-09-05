@@ -27,6 +27,7 @@ has its own source authority, eligibility check, and event payload:
 | Ordinary destroy                   | Stored or idle-equipped, non-Combat-Stim, payload-free, recovery-unclaimed identities                | Deletes only the instance; aggregate inventory and fabricated-lot receipts are unchanged                                                                                                                                             | `equipment.instance_destroyed` / `manual_disposal`                                    |
 | Mission-fatality equipped loss     | Equipped ordinary or Combat Stim identities on an agent just marked `dead` by mission resolution     | Deletes those registry keys and clears instance-backed slots; inventory and lot receipts unchanged; recovery-claimed identities skipped                                                                                              | `equipment.instance_destroyed` or `equipment.combat_stim_disposed` / `mission_loss`   |
 | Mission-injury equipped loss       | Equipped ordinary or Combat Stim identities on an agent just marked `injured` by mission resolution  | Deletes those registry keys and clears instance-backed slots; inventory and lot receipts unchanged; recovery-claimed identities skipped; retain Combat Stim with live overdrive/recovery provenance and retain noncanonical payloads | `equipment.instance_destroyed` or `equipment.combat_stim_disposed` / `mission_injury` |
+| Resignation (no destroy)           | Equipped ordinary or Combat Stim identities on an agent just marked `resigned` by betrayal           | Registry keys and slot projections stay; inventory and lot receipts unchanged; SPE-2830 terminal-carrier recovery remains the identity-removal path; Combat Stim overdrive/debt stays recovery-blocked                               | none at resignation                                                                   |
 | Catalog re-aggregation             | Stored or idle-equipped, operational, non-fabricated, payload-free ordinary identities               | Deletes the instance and credits exactly one aggregate inventory unit                                                                                                                                                                | `equipment.instance_reaggregated` / `manual_untracking`                               |
 | Fabricated-lot return              | Stored or idle-equipped, operational fabricated-origin ordinary identities                           | Deletes the instance, credits exactly one aggregate inventory unit, decrements source lot `trackedInstanceUnits`, and leaves immutable lot `quantity` unchanged                                                                      | `equipment.instance_reaggregated` / `fabricated_lot_return`                           |
 | Combat Stim disposal               | Stored or idle-equipped `combat_stims` with canonical payload and no active overdrive/recovery claim | Deletes only the instance; aggregate inventory is unchanged                                                                                                                                                                          | `equipment.combat_stim_disposed`                                                      |
@@ -72,8 +73,12 @@ cannot choose an instance source.
 
 Recovery can also claim an explicitly selected instance from a terminal carrier: an equipped copy
 on a `dead` or `resigned` agent counts as recoverable even though active agents must store the copy
-first. SPE-2856 mission fatality destroys equipped instance-backed copies during resolution, so
-that recovery path remains for resignation and any death that does not run the mission-loss hook.
+first. SPE-2856 mission fatality and SPE-2857 mission injury destroy equipped instance-backed copies
+during resolution (injury retains live overdrive/recovery Combat Stim and noncanonical payloads).
+SPE-2858 confirms resignation is not an identity-destroying trigger: that recovery path remains for
+resignation and any death that does not run the mission-loss hook. Do not add a destroy hook in
+`betrayal.ts`.
+
 Queueing that claim deletes the live identity and clears the carrier's compatibility projection
 (`equipmentSlots` plus now-unslotted `equipmentEffectScales`). Combat Stim recovery still fails
 closed when active overdrive or recovery debt references the instance.

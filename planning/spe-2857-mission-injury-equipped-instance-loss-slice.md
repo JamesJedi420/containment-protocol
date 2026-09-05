@@ -145,7 +145,7 @@ destroy helper.
 
 | Item or mechanic                   | Owner or prerequisite | Reason                                                                               |
 | ---------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
-| Resignation equipped-instance loss | SPE-2827 child        | Not authored by mission resolution                                                   |
+| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger; not authored by mission resolution          |
 | Injury _capacity_ (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss |
 | Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                                           |
 | Repair, damage production          | SPE-877               | Integrity program beyond identity loss                                               |

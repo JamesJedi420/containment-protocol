@@ -143,16 +143,17 @@ destroy helper.
 
 ## Deferred
 
-| Item or mechanic                   | Owner or prerequisite | Reason                                                                               |
-| ---------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
-| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger; not authored by mission resolution          |
-| Injury _capacity_ (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss |
-| Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                                           |
-| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                                               |
-| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                                          |
-| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                                                   |
-| Equipment UI                       | out of scope          | Event-feed reason label only; no loadout chrome                                      |
-| Runtime `src/` in this planning PR | shipped               | Injury take/clear + `mission_injury` drafts                                          |
+| Item or mechanic                   | Owner or prerequisite | Reason                                                                                        |
+| ---------------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger; not authored by mission resolution                   |
+| Non-mission death equipped loss    | SPE-2859              | Recovery remains; residual SPE-2830 source after SPE-2856; not authored by mission resolution |
+| Injury _capacity_ (body-use)       | SPE-1484              | Slot occupancy, climb/drive/restrain/fine-tool, recovery restore — not identity loss          |
+| Re-agg / lot-return on injury      | out of scope          | Loss must not credit stock                                                                    |
+| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                                                        |
+| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                                                   |
+| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                                                            |
+| Equipment UI                       | out of scope          | Event-feed reason label only; no loadout chrome                                               |
+| Runtime `src/` in this planning PR | shipped               | Injury take/clear + `mission_injury` drafts                                                   |
 
 ## Local-agent Linear handoff
 

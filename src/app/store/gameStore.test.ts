@@ -102,9 +102,7 @@ function makeCooperativeContractorCandidate(): Candidate {
 
 function getPersistedState() {
   return useGameStore.persist.getOptions().storage?.getItem(STORE_KEY) as
-    | { state: { game: Record<string, unknown> }; version: number }
-    | null
-    | undefined
+    { state: { game: Record<string, unknown> }; version: number } | null | undefined
 }
 
 function makeLiveSupportOperationState() {
@@ -869,6 +867,42 @@ describe('gameStore', () => {
     expect(
       next.events.filter((event) => event.type === 'equipment.instance_destroyed')
     ).toHaveLength(1)
+  })
+
+  it('repairStoredEquipmentInstanceCondition supplies the blast-door spare part without clearing hard-stop', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    const instance = next.equipmentInstances?.[created.instance.instanceId]
+    expect(instance?.condition).toBe('operational')
+    expect(instance?.containmentIntegrity?.deficiency).toEqual({ kind: 'hard_stop' })
+    expect(next.inventory.ward_seals).toBe(0)
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
   })
 
   it('reaggregateStoredEquipmentInstance credits stock and clears an idle equipped ordinary copy', () => {

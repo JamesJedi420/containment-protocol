@@ -61,16 +61,16 @@ mutations. `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` unchanged.
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite | Reason                                            |
-| --------------------------------------------- | --------------------- | ------------------------------------------------- |
-| Spare-part suitability / repair economics     | later SPE-877 child   | Needs typed deficiency before gating SPE-2851     |
-| Stabilization / deficiency clear              | later SPE-877 child   | Hard-stop is sticky; no inspect-to-clear command  |
-| Breach / `barrier_integrity` propagation      | later SPE-877 child   | SPE-1387 pairing; architecture file still missing |
-| Additional classes (pressure seal, interlock) | later SPE-877 child   | One class in this slice                           |
-| Week-close last-inspection auto-advance       | later SPE-877 child   | Schema kernel ships; `advanceWeek` stays out      |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028    | SPE-2782 stays caller-owned                       |
-| Ready / stow                                  | SPE-1658              | Access-state layer                                |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749   | Adjacent                                          |
+| Item or mechanic                              | Owner or prerequisite                                                            | Reason                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Spare-part suitability / repair economics     | SPE-877 spare-part child (`planning/spe-spare-part-suitability-repair-slice.md`) | Typed `blast_door` / `blast_door_hinge_seal` gate on SPE-2851; no stock consume |
+| Stabilization / deficiency clear              | later SPE-877 child                                                              | Hard-stop is sticky; no inspect-to-clear command                                |
+| Breach / `barrier_integrity` propagation      | later SPE-877 child                                                              | SPE-1387 pairing; architecture file still missing                               |
+| Additional classes (pressure seal, interlock) | later SPE-877 child                                                              | One class in this slice                                                         |
+| Week-close last-inspection auto-advance       | later SPE-877 child                                                              | Schema kernel ships; `advanceWeek` stays out                                    |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                                               | SPE-2782 stays caller-owned                                                     |
+| Ready / stow                                  | SPE-1658                                                                         | Access-state layer                                                              |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                                              | Adjacent                                                                        |
 
 ## Acceptance
 

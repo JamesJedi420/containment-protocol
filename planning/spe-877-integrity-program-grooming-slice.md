@@ -48,11 +48,11 @@ Parent **does not own:** instance identity/lifecycle (SPE-2827 **Done**), ready/
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Stored damaged → operational condition flip     | SPE-2851 `repairStoredEquipmentInstanceCondition`; inventory/lots/`damagedEquipmentQueue` unchanged; return/re-agg stay fail-closed until repaired | **Yes** — child only; does **not** complete the parent |
 | Inspection cadence for a critical class         | No registry, interval, or last-inspection input. Compact `condition` is not cadence                                                                | **No**                                                 |
-| Deficiency stop/continue                        | No deficiency state, stop gate, or continue-with-flag rule                                                                                         | **No**                                                 |
+| Deficiency stop/continue                        | No inspection-cadence deficiency outcome. Instance `condition` is a separate SPE-2828 / SPE-2851 axis, not this rule                               | **No**                                                 |
 | Spare-part suitability / repair economics       | SPE-2851 is a free condition flip; no parts, labor, or suitability check                                                                           | **No**                                                 |
 | Barrier-integrity coupling                      | No `barrier_integrity` consumer. `architecture/containment-environment-patterns.md` missing from this checkout. SPE-1387 has no in-repo slice      | **No**                                                 |
 | Live integrity projection into workshop quality | SPE-2782 accepts caller-owned `poor` only; live mapping deferred to SPE-877 / adapter child                                                        | **No**                                                 |
-| Mutation stations / integrity labor             | `architecture/permanent-gear-mutation-stations.md` (SPE-113) is design-only; no SPE-877 runtime                                                    | **No**                                                 |
+| Mutation stations / integrity labor             | `architecture/permanent-gear-mutation-stations.md` (SPE-113) is design-only; SPE-877 runtime is a later child (row 7), not the named next child    | **No**                                                 |
 
 **Parent [SPE-877](https://linear.app/spectranoir/issue/SPE-877) disposition:** **Backlog** — SPE-2851 is not parent completion. Remaining SPE-877-owned AC rows are unmet.
 
@@ -64,42 +64,55 @@ Parent **does not own:** instance identity/lifecycle (SPE-2827 **Done**), ready/
 
 **Parent:** [SPE-877](https://linear.app/spectranoir/issue/SPE-877). Create this as a Linear child in the next session (MCP `ready`). Do not invent an ID in docs or PRs until Linear assigns one.
 
-**Why this child first:** Parent remaining AC has four distinct deliverables. Inspection cadence and deficiency stop/continue share one kernel (interval → due/overdue → stop|continue). Spare-part suitability needs that deficiency surface before it should gate SPE-2851. Barrier-integrity coupling needs a typed deficiency outcome before it can feed `barrier_integrity`. One critical class keeps the first PR inside a SPE-2798 / SPE-2782-shaped boundary.
+**Why this child first:** Parent remaining AC has four distinct deliverables. For this child, deficiency **is** the authored stop/continue attached to inspection `due` / `overdue` — not a second physical-defect input and not SPE-2851 `damaged`. Spare-part suitability needs that typed deficiency outcome before it should gate SPE-2851. Barrier-integrity coupling needs the same outcome before it can feed `barrier_integrity`. One critical class keeps the first PR inside a SPE-2798 / SPE-2782-shaped boundary.
 
 **Why `containment`:** Catalog already authors `functionalClass: 'containment'` on `ward_seals`, `warding_kits`, `ritual_components`, and `containment_staff`. That class is the later SPE-1387 / `barrier_integrity` pairing target. Do not add `protection`, `combat`, `medical`, or other `EQUIPMENT_GRADE_FUNCTIONAL_CLASSES` in the first child.
 
 ### Child boundary (implement next)
 
-| In                                                                                                                       | Out                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| Frozen domain registry: one critical class `containment`                                                                 | Other functional classes                                            |
-| Authored positive-integer inspection cadence (weeks)                                                                     | GameState / instance last-inspection persistence                    |
-| Authored deficiency disposition `stop` \| `continue`                                                                     | Spare-part suitability / repair economics                           |
-| Pure evaluator: last-inspection week + current week + class → `{ status: 'current' \| 'due' \| 'overdue', disposition }` | Live `barrier_integrity` / SPE-1387 coupling                        |
-| Fail-closed missing, omitted, non-integer, non-containment, and malformed inputs                                         | Week-close hook, UI, workshop adapter (SPE-2782 stays caller-owned) |
-| Targeted Vitest for cadence math + fail-closed                                                                           | SPE-2851 condition mutation; re-agg / lot-return gates              |
-| Slice doc + backlog primary retarget to the new Linear child                                                             | Ready/stow (SPE-1658); salvage (SPE-1055); Auto-Scrap (SPE-2749)    |
+| In                                                                                                       | Out                                                                 |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Frozen domain registry: one critical class `containment`                                                 | Other functional classes                                            |
+| Authored positive-integer inspection cadence (weeks)                                                     | GameState / instance last-inspection persistence                    |
+| Authored deficiency disposition `stop` \| `continue` on `due` / `overdue`                                | Spare-part suitability / repair economics                           |
+| Pure evaluator: last-inspection week + current week + class → discriminated `ok` result (contract below) | Live `barrier_integrity` / SPE-1387 coupling                        |
+| Fail-closed missing, omitted, non-integer, non-containment, inverted-week, and malformed inputs          | Week-close hook, UI, workshop adapter (SPE-2782 stays caller-owned) |
+| Targeted Vitest for cadence math + fail-closed                                                           | SPE-2851 condition mutation; re-agg / lot-return gates              |
+| Slice doc + backlog primary retarget to the new Linear child                                             | Ready/stow (SPE-1658); salvage (SPE-1055); Auto-Scrap (SPE-2749)    |
 
 Reuse: `EQUIPMENT_GRADE_FUNCTIONAL_CLASSES` / catalog `containment` profiles as the class key; instance `condition` remains SPE-2828 / SPE-2851. Do not call `repairStoredEquipmentInstanceCondition` from this kernel. Do not change lot quantity, SPE-2848 lot-return, SPE-2858/2859 recovery-remains, or Auto-Scrap instance selection.
 
-Evaluator contract (binding for the child, not this grooming):
+Evaluator contract (binding for the child, not this grooming). Discriminated result; no throw, no `null`, no default `continue`:
 
-- `weeksSinceInspection < cadence` → `current`
-- `weeksSinceInspection === cadence` → `due`
-- `weeksSinceInspection > cadence` → `overdue`
-- `disposition` is authored on the class (`stop` or `continue`), not inferred from `condition`
-- First child **returns** stop/continue; it does **not** wire a consumer. Later children attach stop to a named gate (deploy / containment-critical use / workshop) without folding those gates into slice 1
-- Unknown functional class, missing cadence, non-integer weeks, or inverted last-inspection/current week → fail closed (no default continue)
+```ts
+type CadenceDeficiency = { kind: 'inspection_cadence'; disposition: 'stop' | 'continue' }
+type EvaluateResult =
+  | { ok: true; status: 'current'; deficiency: null }
+  | { ok: true; status: 'due' | 'overdue'; deficiency: CadenceDeficiency }
+  | {
+      ok: false
+      code: 'invalid_class' | 'missing_cadence' | 'invalid_weeks' | 'inverted_weeks'
+    }
+```
+
+- `weeksSinceInspection < cadence` → `{ ok: true, status: 'current', deficiency: null }`
+- `weeksSinceInspection === cadence` → `{ ok: true, status: 'due', deficiency: { kind: 'inspection_cadence', disposition } }`
+- `weeksSinceInspection > cadence` → `{ ok: true, status: 'overdue', deficiency: { kind: 'inspection_cadence', disposition } }`
+- `disposition` is authored on the class (`stop` or `continue`), not inferred from instance `condition`
+- `condition: 'damaged' | 'operational'` stays SPE-2828 / SPE-2851 and is **not** an evaluator input. This child's deficiency is inspection-cadence only
+- First child **returns** the result; it does **not** wire a consumer. Later children attach `stop` to a named gate without folding those gates into slice 1
+- Fail-closed codes: non-containment / unknown class → `invalid_class`; missing or non-positive cadence → `missing_cadence`; missing / non-integer / non-finite weeks → `invalid_weeks`; last-inspection week after current week → `inverted_weeks`
 
 ### Later SPE-877 children (after the named child)
 
 | Order | Child                                         | Why later                                                                                                                           |
 | ----- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 2     | Spare-part suitability on SPE-2851 repair     | Needs deficiency/class kernel before gating the existing repair command                                                             |
+| 2     | Spare-part suitability on SPE-2851 repair     | Needs inspection-cadence deficiency outcome before gating the existing repair command                                               |
 | 3     | Barrier-integrity coupling (SPE-1387 pairing) | Needs typed deficiency outcome; restore or author `architecture/containment-environment-patterns.md` in that slice if still missing |
 | 4     | Persistence / week-close last-inspection      | Schema + `advanceWeek`; not the authoring kernel                                                                                    |
 | 5     | Live workshop adapter                         | SPE-2782 already deferred live mapping; keep caller-owned until an explicit SPE-1028 or SPE-877 adapter child                       |
 | 6     | Additional critical classes                   | Copy the containment kernel; do not author every class in slice 1                                                                   |
+| 7     | Mutation stations / integrity labor           | SPE-113 remains design-only; SPE-877 owns runtime labor/stations after the kernel and spare-part children                           |
 
 ## Scope (this slice)
 
@@ -119,7 +132,7 @@ Evaluator contract (binding for the child, not this grooming):
 - [x] First child named: containment-class inspection cadence and deficiency stop/continue
 - [x] No invented Linear child ID
 - [x] Backlog primary + manifest retargeted off SPE-2827 onto SPE-877
-- [ ] SPE-877 comment + named-child create — Linear apply via local-agent handoff (MCP `needsAuth`)
+- [ ] SPE-877 comment + named-child create — Linear apply via local-agent handoff after merge (MCP `needsAuth`). Docs **Shipped** means this grooming record landed; it does not mean Linear was updated in-session. Same pattern as SPE-2827 parent reconciliation.
 - [x] Docs-only diff
 - [x] SPE-2827 / SPE-2848 not reopened; SPE-2847 not picked
 
@@ -133,6 +146,7 @@ Evaluator contract (binding for the child, not this grooming):
 | Last-inspection persistence / week-close                               | later SPE-877 child                         | Schema + `advanceWeek`                                                 |
 | Live workshop integrity mapping                                        | SPE-877 adapter or SPE-1028 child           | SPE-2782 stays caller-owned                                            |
 | Additional critical classes                                            | later SPE-877 children                      | One class in the first child                                           |
+| Mutation stations / integrity labor                                    | later SPE-877 child (row 7)                 | SPE-113 design-only; do not leave this AC unowned                      |
 | Ready versus stowed                                                    | SPE-1658                                    | Access-state layer                                                     |
 | Salvage / Auto-Scrap instance routing                                  | SPE-1055 / SPE-2749                         | Adjacent; do not fold into integrity                                   |
 | SPE-1028 remaining live projection                                     | SPE-2771                                    | Adjacent workshop owner                                                |
@@ -144,7 +158,7 @@ Paste onto **SPE-877** (parent). Do not invent a child SPE ID while Linear MCP i
 
 ### Parent remaining / deferred (SPE-877)
 
-SPE-2851 shipped stored `damaged` → `operational` via `applyEquipmentInstanceTransition`. Remaining SPE-877-owned AC: inspection cadence, deficiency stop/continue, spare-part suitability, barrier-integrity coupling. Parent stays **Backlog**. Do not mark Done. Do not reopen SPE-2827 / SPE-2848. Do not pick SPE-2847.
+SPE-2851 shipped stored `damaged` → `operational` via `applyEquipmentInstanceTransition`. Remaining SPE-877-owned AC: inspection cadence, deficiency stop/continue, spare-part suitability, barrier-integrity coupling, mutation stations / integrity labor (later child 7). Parent stays **Backlog**. Do not mark Done. Do not reopen SPE-2827 / SPE-2848. Do not pick SPE-2847.
 
 ### Named child to create (title only until Linear assigns an ID)
 
@@ -152,9 +166,9 @@ SPE-2851 shipped stored `damaged` → `operational` via `applyEquipmentInstanceT
 
 **Parent:** SPE-877
 
-**Goal:** Author one critical class (`containment`) plus one inspection-cadence and deficiency stop/continue rule as a frozen fail-closed domain kernel. No persistence, week-close, UI, spare parts, or `barrier_integrity` coupling.
+**Goal:** Author one critical class (`containment`) plus one inspection-cadence and deficiency stop/continue rule as a frozen fail-closed domain kernel. Deficiency in this child is the authored `stop`/`continue` on `due`/`overdue`, not SPE-2851 `damaged`. No persistence, week-close, UI, spare parts, or `barrier_integrity` coupling.
 
-**Scope:** Registry + pure evaluator in `src/domain/` with targeted Vitest. Class key is existing catalog `functionalClass: 'containment'` (`ward_seals`, `warding_kits`, `ritual_components`, `containment_staff`). Cadence is a positive integer week interval. Disposition is authored `stop` or `continue`. Evaluator inputs: last-inspection week, current week, class. Outputs: `{ status: 'current' | 'due' | 'overdue', disposition }`. Fail closed on missing/malformed/non-containment. Do not mutate instance `condition`. Do not call SPE-2851 repair. Do not gate re-agg, lot-return, or workshop.
+**Scope:** Registry + pure evaluator in `src/domain/` with targeted Vitest. Class key is existing catalog `functionalClass: 'containment'` (`ward_seals`, `warding_kits`, `ritual_components`, `containment_staff`). Cadence is a positive integer week interval. Disposition is authored `stop` or `continue`. Evaluator inputs: last-inspection week, current week, class. Success: `{ ok: true, status: 'current', deficiency: null }` or `{ ok: true, status: 'due' | 'overdue', deficiency: { kind: 'inspection_cadence', disposition } }`. Failure: `{ ok: false, code: 'invalid_class' | 'missing_cadence' | 'invalid_weeks' | 'inverted_weeks' }`. Do not mutate instance `condition`. Do not call SPE-2851 repair. Do not gate re-agg, lot-return, or workshop.
 
 **Constraints:** Do not fold SPE-1658 ready/stow or SPE-1055 salvage. Do not change lot quantity, SPE-2848, SPE-2858/2859, or Auto-Scrap instance selection. Do not author other functional classes. Do not invent `architecture/containment-environment-patterns.md` in this child unless the barrier-integrity child is the active slice.
 
@@ -162,8 +176,8 @@ SPE-2851 shipped stored `damaged` → `operational` via `applyEquipmentInstanceT
 
 - Frozen registry exposes exactly one critical class: `containment`
 - Authored cadence and stop/continue disposition validate fail-closed
-- Evaluator matches current / due / overdue math above
-- Non-containment, omitted, and malformed inputs fail closed with no default continue
+- Evaluator matches the discriminated `EvaluateResult` contract (current has `deficiency: null`; due/overdue carry `inspection_cadence` deficiency)
+- Fail-closed codes are `invalid_class` / `missing_cadence` / `invalid_weeks` / `inverted_weeks` — no throw, no `null`, no default continue
 - No GameState field, save-version bump, UI, or SPE-2851 behavior change
 - Targeted tests cover cadence edges (0, cadence, cadence+1) and fail-closed paths
 - Parent SPE-877 remains Backlog

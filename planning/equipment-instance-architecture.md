@@ -114,10 +114,14 @@ registry state becomes `{}` without a save-version change.
 SPE-2827 instance identity and lifecycle authority is **Done** as docs disposition
 (parent reconciliation `planning/spe-2827-parent-reconciliation-slice.md`; Linear apply
 pending). Facility replenishment, refills, and custody/evidence/legal holds remain
-SPE-1027 / SPE-867. Readiness/access remains SPE-1658. Maintenance labor and mutation
-stations remain SPE-877. Healing, overdose, and broader salvage semantics remain
-SPE-1055 / SPE-2749. Quest/unique artifact locks remain SPE-1766. Do not author
-destroy-on-resignation or destroy-on-non-mission-death (SPE-2858 / SPE-2859 recovery
-remains). The shipped lifecycle commands above do not imply a generic repair economy,
-automatic fabricated-lot selection, Auto-Scrap instance routing, or a universal
-instance mutation API.
+SPE-1027 / SPE-867. Readiness/access remains SPE-1658. SPE-877 still owns the integrity
+program after SPE-2851's stored condition flip: inspection cadence, deficiency
+stop/continue, spare-part suitability, and barrier-integrity coupling. Named next
+SPE-877 child (no Linear ID yet): containment-class inspection cadence and deficiency
+stop/continue — `planning/spe-877-integrity-program-grooming-slice.md`. Healing,
+overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
+artifact locks remain SPE-1766. Do not author destroy-on-resignation or
+destroy-on-non-mission-death (SPE-2858 / SPE-2859 recovery remains). The shipped
+lifecycle commands above do not imply a generic repair economy, automatic
+fabricated-lot selection, Auto-Scrap instance routing, or a universal instance
+mutation API.

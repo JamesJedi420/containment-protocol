@@ -1,5 +1,5 @@
 {
-  "primary": "SPE-2827",
+  "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
     "SPE-2827",
@@ -16,6 +16,7 @@
     "SPE-2849"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-integrity-program-grooming-slice.md": "Shipped",
     "planning/spe-2827-parent-reconciliation-slice.md": "Shipped",
     "planning/spe-2859-non-mission-death-equipped-instance-recovery-slice.md": "Closed / docs-satisfied",
     "planning/spe-2858-resignation-equipped-instance-recovery-slice.md": "Closed / docs-satisfied",

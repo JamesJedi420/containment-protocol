@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                                    |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Status** | **Recently shipped**                                                                                                 |
+| **Status** | **Recently shipped**                                                                                                     |
 | **Linear** | [SPE-2851](https://linear.app/spectranoir/issue/SPE-2851/stored-equipment-instance-condition-repair-damaged-operational) |
 | **Parent** | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control)              |
 | **Branch** | `jamesdyedbq/spe-2851-instance-condition-repair`                                                                         |
@@ -37,16 +37,16 @@ event). Auto-Scrap stays aggregate-only.
 
 ## Deferred
 
-| Item or mechanic                          | Owner or prerequisite | Reason                                       |
-| ----------------------------------------- | --------------------- | -------------------------------------------- |
-| Repair economics / spare-part suitability | SPE-877 parent        | Integrity program beyond condition flip      |
-| Inspection cadence / deficiency control   | SPE-877 parent        | Broader integrity obligations                |
-| Direct damaged return into aggregate      | rejected              | Inventory is a single count; queue is a flag |
-| Partial/depleted dose lot return          | SPE-2852 **Done**     | Policy confirmed fail-closed; disposal/recovery remain |
-| Cross-lot grade migration                 | SPE-2827 child        | Return still targets exact source lot        |
-| Automated lot or instance selection       | SPE-2749 child        | Auto-Scrap remains aggregate-only            |
-| Readiness / custody                       | SPE-1658              | Broader lifecycle authority                  |
-| Recovery balancing                        | SPE-1055              | Outputs and thresholds stay separately owned |
+| Item or mechanic                          | Owner or prerequisite | Reason                                                                                                                                       |
+| ----------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repair economics / spare-part suitability | later SPE-877 child   | After inspection/deficiency kernel; not SPE-2851                                                                                             |
+| Inspection cadence / deficiency control   | named SPE-877 child   | Containment-class inspection cadence and deficiency stop/continue — `planning/spe-877-integrity-program-grooming-slice.md`; no Linear ID yet |
+| Direct damaged return into aggregate      | rejected              | Inventory is a single count; queue is a flag                                                                                                 |
+| Partial/depleted dose lot return          | SPE-2852 **Done**     | Policy confirmed fail-closed; disposal/recovery remain                                                                                       |
+| Cross-lot grade migration                 | SPE-2827 child        | Return still targets exact source lot                                                                                                        |
+| Automated lot or instance selection       | SPE-2749 child        | Auto-Scrap remains aggregate-only                                                                                                            |
+| Readiness / custody                       | SPE-1658              | Broader lifecycle authority                                                                                                                  |
+| Recovery balancing                        | SPE-1055              | Outputs and thresholds stay separately owned                                                                                                 |
 
 ## Validation
 

@@ -111,8 +111,11 @@ registry state becomes `{}` without a save-version change.
 
 ## Deferred consumers
 
-Facility replenishment, readiness/access, maintenance labor, loss, refills, healing, overdose,
-quest/unique locks, custody/legal holds, and broader salvage semantics still require separate
-children and their owning domain authorities. The shipped lifecycle commands above do not imply a
-generic repair economy, automatic fabricated-lot selection, Auto-Scrap instance routing, or a
-universal instance mutation API.
+SPE-2827 instance identity and lifecycle authority is **Done** (parent reconciliation
+`planning/spe-2827-parent-reconciliation-slice.md`). Facility replenishment and refills remain
+SPE-1027. Readiness/access remains SPE-1658. Maintenance labor and mutation stations remain
+SPE-877. Healing, overdose, quest/unique locks, custody/legal holds, and broader salvage
+semantics remain SPE-1055 / SPE-2749 / SPE-1766. Do not author destroy-on-resignation or
+destroy-on-non-mission-death (SPE-2858 / SPE-2859 recovery remains). The shipped lifecycle
+commands above do not imply a generic repair economy, automatic fabricated-lot selection,
+Auto-Scrap instance routing, or a universal instance mutation API.

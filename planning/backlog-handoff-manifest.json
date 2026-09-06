@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2859",
+  "primary": "SPE-2860",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2860",
     "SPE-2859",
     "SPE-2858",
     "SPE-2857",
@@ -12,10 +13,10 @@
     "SPE-2852",
     "SPE-2851",
     "SPE-2850",
-    "SPE-2849",
-    "SPE-2848"
+    "SPE-2849"
   ],
   "sliceDocStatus": {
+    "planning/spe-2827-parent-reconciliation-slice.md": "Shipped",
     "planning/spe-2859-non-mission-death-equipped-instance-recovery-slice.md": "Closed / docs-satisfied",
     "planning/spe-2858-resignation-equipped-instance-recovery-slice.md": "Closed / docs-satisfied",
     "planning/spe-2857-mission-injury-equipped-instance-loss-slice.md": "Recently shipped",

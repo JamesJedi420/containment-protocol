@@ -1,11 +1,11 @@
 # SPE-2827 — Parent acceptance reconciliation (grooming)
 
-One-page grooming record. Parent [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) **Done** — children SPE-2828–SPE-2859 shipped; SPE-2827-owned AC rows **Yes**; residual **none this program still owns**. Linear MCP `needsAuth` this session — local agent creates the hygiene child (next unused SPE, likely [SPE-2860](https://linear.app/spectranoir/issue/SPE-2860)) then **Done** after merge.
+One-page grooming record. Parent [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) **Done** (docs disposition) — children SPE-2828–SPE-2859 shipped; SPE-2827-owned AC rows **Yes**; residual **none this program still owns**. Linear MCP `needsAuth` this session — local agent applies parent **Done** + merge comment. Do not invent a child SPE ID.
 
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
-| **Linear** | SPE-2827 parent reconciliation (hygiene child — create if unused; likely SPE-2860)                         |
-| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) — Generic Ordinary-Equipment Instance Authority; **Done** |
+| **Linear** | SPE-2827 parent reconciliation (hygiene on the parent; no guessed child ID)                             |
+| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) — Generic Ordinary-Equipment Instance Authority; **Done** (docs disposition; Linear apply pending) |
 | **Branch** | `cursor/spe-2827-parent-reconciliation-b65a`                                                               |
 | **Status** | **Shipped** — hygiene session (docs-only)                                                                  |
 | **Base `main` SHA** | `6312acdf`                                                                                          |
@@ -71,6 +71,9 @@ Parent **does not own:** taxonomy (SPE-462), ready/stow (SPE-1658), maintenance/
 | SPE-1027 stock-provider port / refill | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027) | Parent Constraints: SPE-1027 owns facility stock and replenishment. Foundation deferred it as adjacent. |
 | Generic mutation stations / integrity labor | [SPE-877](https://linear.app/spectranoir/issue/SPE-877) | SPE-2851 already ships stored condition repair under SPE-877. Compact condition fields do not complete integrity. |
 | Broader salvage economics / Auto-Scrap instance routing | [SPE-1055](https://linear.app/spectranoir/issue/SPE-1055) / [SPE-2749](https://linear.app/spectranoir/issue/SPE-2749) | SPE-2841 / SPE-2830 shipped instance-aware *selection*. Outputs, thresholds, and Auto-Scrap stay SPE-1055 / SPE-2749. |
+| Further governed payloads (authoring, consumption, recovery, destruction) | post-Done siblings — do not reopen SPE-2827 | Combat Stim (SPE-2829 / SPE-2844 / SPE-2830) was the in-program payload consumer. Other resources need their own authority, same pattern as SPE-75 post-Done children. |
+| Cross-lot grade migration | rejected for this program | Lot-return targets the exact source lot (SPE-2848 / SPE-2850). A later sibling would need a new issue; do not reopen SPE-2827. |
+| Custody / evidence / legal holds | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027) / [SPE-867](https://linear.app/spectranoir/issue/SPE-867) | Established in SPE-2800; not SPE-1055 / SPE-1766. |
 | Ready versus stowed | [SPE-1658](https://linear.app/spectranoir/issue/SPE-1658) | Access-state layer; do not fold into this parent. |
 | Destroy-on-resignation / destroy-on-non-mission-death | **do not author** | Would reverse SPE-2858 / SPE-2859 and delete SPE-2830 terminal-carrier recovery. |
 
@@ -93,8 +96,9 @@ Parent **does not own:** taxonomy (SPE-462), ready/stow (SPE-1658), maintenance/
 
 - [x] Parent AC re-evaluated — SPE-2827-owned rows **Yes**
 - [x] SPE-1027 / mutation / broader salvage classified as adjacent, not unmet SPE-2827 children
-- [x] SPE-2827 **Done** on Linear aligned with docs (local-agent apply if MCP `needsAuth`)
-- [x] Recommended next step retargeted off the SPE-2827 child chain
+- [x] Further payloads and cross-lot migration resolved as post-Done siblings / rejected — not remaining SPE-2827 children
+- [ ] SPE-2827 **Done** on Linear — docs disposition Done; Linear apply via local-agent handoff (MCP `needsAuth`)
+- [x] Recommended next step retargeted to this hygiene row on SPE-2827 (no guessed child ID)
 - [x] Docs-only diff
 
 ## Deferred
@@ -104,6 +108,9 @@ Parent **does not own:** taxonomy (SPE-462), ready/stow (SPE-1658), maintenance/
 | Facility stock-provider / refill | SPE-1027 | Adjacent replenishment authority |
 | Integrity labor, inspection, repair economy | SPE-877 | SPE-2851 shipped condition flip only |
 | Broader salvage outputs / Auto-Scrap instance routing | SPE-1055 / SPE-2749 | Beyond ID-only / 0/2 instance selection |
+| Further governed payloads | new Linear siblings — do not reopen SPE-2827 | Resource-specific; Combat Stim already shipped |
+| Cross-lot grade migration | do not reopen SPE-2827 | Exact source-lot return is the shipped policy |
+| Custody / evidence / legal holds | SPE-1027 / SPE-867 | Not SPE-1055 / SPE-1766 |
 | Ready versus stowed | SPE-1658 | Access-state layer |
 | Injury capacity (body-use) | SPE-1484 | Slot occupancy / verbs — not identity |
 | Destroy-on-resignation (new reason) | do not author | Reverses SPE-2858 |
@@ -112,7 +119,7 @@ Parent **does not own:** taxonomy (SPE-462), ready/stow (SPE-1658), maintenance/
 
 ## Linear issue body
 
-Paste into the SPE-2827 hygiene child (create SPE-2860 if unused; otherwise the next free SPE and retarget this file). Parent **Done** after this docs PR merges.
+Paste onto **SPE-2827** (parent). Do not invent a child SPE ID while Linear MCP is `needsAuth`. After merge: parent **Done** + comment with PR URL.
 
 ### Goal
 

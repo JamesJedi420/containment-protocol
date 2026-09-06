@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------------------- |
-| **Status** | **Done**                                                                                                |
+| **Status** | **Done** (docs disposition; Linear apply pending — MCP `needsAuth`)                                     |
 | **Linear** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) |
 | **Scope**  | Durable identity and lifecycle authority for ordinary equipment copies                                  |
 
@@ -43,6 +43,9 @@ SPE-2828–SPE-2859. Compact condition and payload fields do not complete SPE-16
 | Facility stock-provider / refill | SPE-1027 | Adjacent replenishment authority |
 | Integrity labor / mutation stations | SPE-877 | SPE-2851 shipped stored condition flip under SPE-877 |
 | Broader salvage / Auto-Scrap instance routing | SPE-1055 / SPE-2749 | Beyond ID-only / 0/2 instance selection |
+| Further governed payloads (authoring, consumption, recovery, destruction) | new Linear siblings — do not reopen SPE-2827 | Combat Stim was the in-program consumer; other resources need their own authority |
+| Cross-lot grade migration | do not reopen SPE-2827 | Shipped lot-return targets the exact source lot |
+| Custody / evidence / legal holds | SPE-1027 / SPE-867 | Established SPE-2800 owners |
 | Ready versus stowed | SPE-1658 | Access-state layer |
 | Destroy-on-resignation or destroy-on-non-mission-death | do not author | Would reverse SPE-2858 / SPE-2859 |
 | SPE-2847 | do not pick | Out of SPE-2827 remaining sequence |

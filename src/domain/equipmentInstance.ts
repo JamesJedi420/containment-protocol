@@ -9,6 +9,15 @@ import {
 } from './equipment'
 import { isEquipmentGradeId, type EquipmentGradeId } from './equipmentGrade'
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
+import {
+  containmentClassIntegritiesEqual,
+  evaluateContainmentInspection,
+  isContainmentClassInService,
+  parseContainmentClassIntegrity,
+  snapshotContainmentClassIntegrity,
+  type ContainmentClassIntegrity,
+  type ContainmentDeficiencyContinuation,
+} from './containmentClassInspection'
 
 export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
@@ -37,6 +46,8 @@ export interface EquipmentInstance {
   condition: EquipmentInstanceCondition
   payload?: EquipmentInstanceConsumablePayload
   fabricationOrigin?: EquipmentInstanceFabricationOrigin
+  /** SPE-2860: optional blast-door integrity; distinct from `condition`. */
+  containmentIntegrity?: ContainmentClassIntegrity
 }
 
 export type EquipmentInstanceRegistry = Record<EquipmentInstanceId, EquipmentInstance>
@@ -71,10 +82,24 @@ export type EquipmentInstanceFailureCode =
   | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
   | 'unauthorized_payload_transition'
+  | 'invalid_containment_class'
+  | 'malformed_containment_integrity'
+  | 'inspection_not_due'
+  | 'deficiency_hard_stop'
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
   | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
+
+const EQUIPMENT_INSTANCE_KEYS = [
+  'instanceId',
+  'definitionId',
+  'location',
+  'condition',
+  'payload',
+  'fabricationOrigin',
+  'containmentIntegrity',
+] as const
 
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const INSTANCE_ID_PREFIX = 'equipment-instance'
@@ -291,16 +316,7 @@ function validateInstance(
   if (!isRecord(value) || !isSafeEquipmentInstanceId(key) || value.instanceId !== key) {
     return { valid: false, code: 'invalid_instance_id' }
   }
-  if (
-    !hasOnlyKeys(value, [
-      'instanceId',
-      'definitionId',
-      'location',
-      'condition',
-      'payload',
-      'fabricationOrigin',
-    ])
-  ) {
+  if (!hasOnlyKeys(value, EQUIPMENT_INSTANCE_KEYS)) {
     return { valid: false, code: 'invalid_instance_shape' }
   }
   if (typeof value.definitionId !== 'string' || !getEquipmentDefinition(value.definitionId)) {
@@ -337,6 +353,21 @@ function validateInstance(
     fabricationOrigin = resolved.origin
   }
 
+  let containmentIntegrity: ContainmentClassIntegrity | undefined
+  if (value.containmentIntegrity !== undefined) {
+    const parsed = parseContainmentClassIntegrity(value.containmentIntegrity)
+    if (!parsed.ok) {
+      return {
+        valid: false,
+        code:
+          parsed.code === 'invalid_class'
+            ? 'invalid_containment_class'
+            : 'malformed_containment_integrity',
+      }
+    }
+    containmentIntegrity = parsed.integrity
+  }
+
   return {
     valid: true,
     instance: {
@@ -348,6 +379,7 @@ function validateInstance(
         ? { payload: { ...value.payload } as EquipmentInstanceConsumablePayload }
         : {}),
       ...(fabricationOrigin ? { fabricationOrigin } : {}),
+      ...(containmentIntegrity ? { containmentIntegrity } : {}),
     },
   }
 }
@@ -406,7 +438,8 @@ function instancesEqual(left: EquipmentInstance, right: EquipmentInstance) {
     left.condition === right.condition &&
     locationsEqual(left.location, right.location) &&
     payloadsEqual(left.payload, right.payload) &&
-    fabricationOriginsEqual(left.fabricationOrigin, right.fabricationOrigin)
+    fabricationOriginsEqual(left.fabricationOrigin, right.fabricationOrigin) &&
+    containmentClassIntegritiesEqual(left.containmentIntegrity, right.containmentIntegrity)
   )
 }
 
@@ -416,6 +449,9 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
   const fabricationOrigin = instance.fabricationOrigin
     ? snapshotFabricationOrigin(instance.fabricationOrigin)
     : undefined
+  const containmentIntegrity = instance.containmentIntegrity
+    ? snapshotContainmentClassIntegrity(instance.containmentIntegrity)
+    : undefined
   return Object.freeze({
     instanceId: instance.instanceId,
     definitionId: instance.definitionId,
@@ -423,6 +459,7 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
     condition: instance.condition,
     ...(payload ? { payload } : {}),
     ...(fabricationOrigin ? { fabricationOrigin } : {}),
+    ...(containmentIntegrity ? { containmentIntegrity } : {}),
   })
 }
 
@@ -738,6 +775,82 @@ export function repairStoredEquipmentInstanceCondition(
   })
 }
 
+function mapContainmentEvaluationFailure(
+  code:
+    | 'invalid_class'
+    | 'missing_cadence'
+    | 'invalid_weeks'
+    | 'inverted_weeks'
+    | 'invalid_history'
+    | 'invalid_continuation'
+): EquipmentInstanceFailureCode {
+  switch (code) {
+    case 'invalid_class':
+    case 'missing_cadence':
+      return 'invalid_containment_class'
+    case 'invalid_continuation':
+      return 'deficiency_hard_stop'
+    case 'invalid_weeks':
+    case 'inverted_weeks':
+    case 'invalid_history':
+      return 'malformed_containment_integrity'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
+}
+
+export function applyContainmentClassDeficiency(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  continuation: ContainmentDeficiencyContinuation
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (!current.containmentIntegrity) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  if (
+    current.containmentIntegrity.deficiency.kind === 'hard_stop' &&
+    continuation === 'compensating_continue'
+  ) {
+    return { ok: false, state: normalized, code: 'deficiency_hard_stop' }
+  }
+
+  const evaluation = evaluateContainmentInspection({
+    classId: current.containmentIntegrity.classId,
+    lastInspectionWeek: current.containmentIntegrity.lastInspectionWeek,
+    currentWeek: normalized.week,
+    cycleCount: current.containmentIntegrity.cycleCount,
+    existingDeficiency: current.containmentIntegrity.deficiency,
+    continuation,
+  })
+  if (!evaluation.ok) {
+    return { ok: false, state: normalized, code: mapContainmentEvaluationFailure(evaluation.code) }
+  }
+  if (evaluation.status === 'current') {
+    return { ok: false, state: normalized, code: 'inspection_not_due' }
+  }
+
+  const nextIntegrity: ContainmentClassIntegrity = snapshotContainmentClassIntegrity({
+    ...current.containmentIntegrity,
+    deficiency: evaluation.deficiency,
+  })
+  return applyEquipmentInstanceTransition(normalized, instanceId, current, {
+    ...current,
+    containmentIntegrity: nextIntegrity,
+  })
+}
+
+export { isContainmentClassInService }
+
 function validateTargetLocation(
   state: GameState,
   definitionId: string,
@@ -784,6 +897,7 @@ export function instantiateEquipmentInstance(
     condition?: EquipmentInstanceCondition
     payload?: EquipmentInstanceConsumablePayload
     fabricationOrigin?: EquipmentInstanceFabricationOrigin
+    containmentIntegrity?: ContainmentClassIntegrity
   } = {}
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
@@ -816,6 +930,21 @@ export function instantiateEquipmentInstance(
     if (!resolved.ok) return { ok: false, state: normalized, code: resolved.code }
     fabricationOrigin = resolved.origin
   }
+  let containmentIntegrity: ContainmentClassIntegrity | undefined
+  if (options.containmentIntegrity !== undefined) {
+    const parsed = parseContainmentClassIntegrity(options.containmentIntegrity)
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        state: normalized,
+        code:
+          parsed.code === 'invalid_class'
+            ? 'invalid_containment_class'
+            : 'malformed_containment_integrity',
+      }
+    }
+    containmentIntegrity = parsed.integrity
+  }
   const payload =
     definitionId === COMBAT_STIM_DEFINITION_ID
       ? (options.payload ?? createCanonicalCombatStimPayload())
@@ -837,6 +966,7 @@ export function instantiateEquipmentInstance(
     condition,
     ...(payload ? { payload: { ...payload } } : {}),
     ...(fabricationOrigin ? { fabricationOrigin: { ...fabricationOrigin } } : {}),
+    ...(containmentIntegrity ? { containmentIntegrity } : {}),
   }
   const agents = { ...normalized.agents }
   if (location.state === 'equipped') {
@@ -872,17 +1002,7 @@ export function applyEquipmentInstanceTransition(
   if (!current || !instancesEqual(current, expected)) {
     return { ok: false, state: normalized, code: 'stale_transition' }
   }
-  if (
-    !isRecord(next) ||
-    !hasOnlyKeys(next, [
-      'instanceId',
-      'definitionId',
-      'location',
-      'condition',
-      'payload',
-      'fabricationOrigin',
-    ])
-  ) {
+  if (!isRecord(next) || !hasOnlyKeys(next, EQUIPMENT_INSTANCE_KEYS)) {
     return { ok: false, state: normalized, code: 'invalid_instance_shape' }
   }
   if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
@@ -896,6 +1016,21 @@ export function applyEquipmentInstanceTransition(
   }
   if (next.payload !== undefined && !isValidPayload(next.payload)) {
     return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
+  }
+  let containmentIntegrity: ContainmentClassIntegrity | undefined
+  if (next.containmentIntegrity !== undefined) {
+    const parsed = parseContainmentClassIntegrity(next.containmentIntegrity)
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        state: normalized,
+        code:
+          parsed.code === 'invalid_class'
+            ? 'invalid_containment_class'
+            : 'malformed_containment_integrity',
+      }
+    }
+    containmentIntegrity = parsed.integrity
   }
   if (
     current.definitionId === COMBAT_STIM_DEFINITION_ID &&
@@ -938,6 +1073,7 @@ export function applyEquipmentInstanceTransition(
     condition: next.condition,
     ...(next.payload ? { payload: { ...next.payload } } : {}),
     ...(current.fabricationOrigin ? { fabricationOrigin: { ...current.fabricationOrigin } } : {}),
+    ...(containmentIntegrity ? { containmentIntegrity } : {}),
   }
   const nextState = normalizeGameState({
     ...normalized,

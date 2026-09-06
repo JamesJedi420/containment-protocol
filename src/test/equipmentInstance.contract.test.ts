@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  applyContainmentClassDeficiency,
   applyEquipmentInstanceTransition,
   destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstance,
@@ -33,8 +34,14 @@ import {
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
   createEquipmentInstanceConditionRepairedDraft,
+  createContainmentClassDeficiencyRecordedDraft,
 } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
+import {
+  BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  isContainmentClassInService,
+  type ContainmentClassIntegrity,
+} from '../domain/containmentClassInspection'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -2267,5 +2274,203 @@ describe('ordinary equipment instance authority', () => {
 
     const second = repairStoredEquipmentInstanceCondition(hydrated, created.instance.instanceId)
     expect(second).toMatchObject({ ok: false, code: 'condition_already_operational' })
+  })
+})
+
+function blastDoorIntegrity(
+  overrides: Partial<ContainmentClassIntegrity> = {}
+): ContainmentClassIntegrity {
+  return {
+    classId: 'blast_door',
+    lastInspectionWeek: 1,
+    cycleCount: 0,
+    deficiency: { kind: 'none' },
+    ...overrides,
+  }
+}
+
+describe('SPE-2860 containment-class integrity on equipment instances', () => {
+  it('hydrates compact blast-door integrity and drops unknown or malformed class', () => {
+    const state = createStartingState()
+    const result = sanitizeEquipmentInstanceRegistry(
+      {
+        'equipment-instance-1-1': {
+          instanceId: 'equipment-instance-1-1',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: blastDoorIntegrity(),
+        },
+        'equipment-instance-1-2': {
+          instanceId: 'equipment-instance-1-2',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        },
+        'equipment-instance-1-3': {
+          instanceId: 'equipment-instance-1-3',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: { classId: 'blast_door' },
+        },
+      },
+      state.agents
+    )
+
+    expect(result.equipmentInstances['equipment-instance-1-1']?.containmentIntegrity).toEqual(
+      blastDoorIntegrity()
+    )
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        { instanceId: 'equipment-instance-1-2', code: 'invalid_containment_class' },
+        { instanceId: 'equipment-instance-1-3', code: 'malformed_containment_integrity' },
+      ])
+    )
+    expect(result.equipmentInstances).not.toHaveProperty('equipment-instance-1-2')
+    expect(result.equipmentInstances).not.toHaveProperty('equipment-instance-1-3')
+  })
+
+  it('records hard-stop versus compensating continuation without touching condition', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    expect(created).toMatchObject({ ok: true })
+    if (!created.ok) throw new Error(created.code)
+
+    const continued = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'compensating_continue'
+    )
+    expect(continued).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: {
+          classId: 'blast_door',
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!continued.ok) throw new Error(continued.code)
+    expect(isContainmentClassInService(continued.instance.containmentIntegrity)).toBe(true)
+    expect(continued.state.inventory.ward_seals).toBe(0)
+
+    const stopped = applyContainmentClassDeficiency(
+      continued.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    expect(stopped).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'hard_stop' } } },
+    })
+    if (!stopped.ok) throw new Error(stopped.code)
+    expect(isContainmentClassInService(stopped.instance.containmentIntegrity)).toBe(false)
+    expect(
+      applyContainmentClassDeficiency(
+        stopped.state,
+        created.instance.instanceId,
+        'compensating_continue'
+      )
+    ).toMatchObject({ ok: false, code: 'deficiency_hard_stop' })
+    expect(stopped.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+  })
+
+  it('preserves containment integrity across SPE-2851 repair and hydrates the deficiency event', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({
+        deficiency: { kind: 'hard_stop' },
+      }),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'condition_reaggregation_unsupported' })
+
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: { deficiency: { kind: 'hard_stop' } },
+      },
+    })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(isContainmentClassInService(repaired.instance.containmentIntegrity)).toBe(false)
+
+    const withEvent = appendOperationEventDrafts(repaired.state, [
+      createContainmentClassDeficiencyRecordedDraft({
+        week: repaired.state.week,
+        instanceId: repaired.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'hard_stop',
+        inService: false,
+        reason: 'inspection_cadence_deficiency',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    serialized.events.push({
+      ...serialized.events.at(-1),
+      id: 'evt-malformed-containment',
+      payload: { ...serialized.events.at(-1).payload, classId: 'pressure_seal' },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(
+      hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toEqual(blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }))
+    expect(
+      hydrated.events.filter(
+        (event) => event.type === 'equipment.containment_class_deficiency_recorded'
+      )
+    ).toHaveLength(1)
+    expect(
+      applyContainmentClassDeficiency(
+        hydrated,
+        created.instance.instanceId,
+        'compensating_continue'
+      )
+    ).toMatchObject({ ok: false, code: 'deficiency_hard_stop' })
+  })
+
+  it('fails closed when inspection is still current', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(
+      applyContainmentClassDeficiency(created.state, created.instance.instanceId, 'hard_stop')
+    ).toMatchObject({ ok: false, code: 'inspection_not_due' })
   })
 })

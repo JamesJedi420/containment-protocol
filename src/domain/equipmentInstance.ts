@@ -1017,7 +1017,9 @@ export function applyEquipmentInstanceTransition(
   if (next.payload !== undefined && !isValidPayload(next.payload)) {
     return { ok: false, state: normalized, code: 'malformed_payload_bounds' }
   }
-  let containmentIntegrity: ContainmentClassIntegrity | undefined
+  let containmentIntegrity: ContainmentClassIntegrity | undefined = current.containmentIntegrity
+    ? snapshotContainmentClassIntegrity(current.containmentIntegrity)
+    : undefined
   if (next.containmentIntegrity !== undefined) {
     const parsed = parseContainmentClassIntegrity(next.containmentIntegrity)
     if (!parsed.ok) {
@@ -1029,6 +1031,12 @@ export function applyEquipmentInstanceTransition(
             ? 'invalid_containment_class'
             : 'malformed_containment_integrity',
       }
+    }
+    if (
+      current.containmentIntegrity?.deficiency.kind === 'hard_stop' &&
+      parsed.integrity.deficiency.kind !== 'hard_stop'
+    ) {
+      return { ok: false, state: normalized, code: 'deficiency_hard_stop' }
     }
     containmentIntegrity = parsed.integrity
   }

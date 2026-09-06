@@ -1046,6 +1046,20 @@ const equipmentContainmentClassDeficiencyRecordedSchema = z
           'containment deficiency instance must reference a known equipment catalog definition',
       })
     }
+    if (payload.status === 'due' && payload.weeksSinceInspection !== payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'due events require weeksSinceInspection to equal intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.weeksSinceInspection <= payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
+      })
+    }
     if (payload.deficiencyKind === 'compensating_continue') {
       if (payload.compensatingControlId !== 'secondary_interlock_watch') {
         context.addIssue({

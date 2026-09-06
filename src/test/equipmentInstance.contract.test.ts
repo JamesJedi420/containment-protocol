@@ -2473,4 +2473,61 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
       applyContainmentClassDeficiency(created.state, created.instance.instanceId, 'hard_stop')
     ).toMatchObject({ ok: false, code: 'inspection_not_due' })
   })
+
+  it('preserves hard-stop across generic transitions and rejects compensating overwrite', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const relocated = relocateEquipmentInstance(created.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'secondary',
+    })
+    expect(relocated).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'hard_stop' } } },
+    })
+    if (!relocated.ok) throw new Error(relocated.code)
+
+    const omitted = applyEquipmentInstanceTransition(
+      relocated.state,
+      created.instance.instanceId,
+      relocated.instance,
+      {
+        instanceId: relocated.instance.instanceId,
+        definitionId: relocated.instance.definitionId,
+        location: { state: 'stored' },
+        condition: relocated.instance.condition,
+      }
+    )
+    expect(omitted).toMatchObject({
+      ok: true,
+      instance: {
+        location: { state: 'stored' },
+        containmentIntegrity: { deficiency: { kind: 'hard_stop' } },
+      },
+    })
+    if (!omitted.ok) throw new Error(omitted.code)
+    expect(
+      applyEquipmentInstanceTransition(
+        omitted.state,
+        created.instance.instanceId,
+        omitted.instance,
+        {
+          ...omitted.instance,
+          containmentIntegrity: blastDoorIntegrity({
+            deficiency: {
+              kind: 'compensating_continue',
+              compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+            },
+          }),
+        }
+      )
+    ).toMatchObject({ ok: false, code: 'deficiency_hard_stop' })
+  })
 })

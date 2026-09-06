@@ -325,6 +325,18 @@ export function evaluateContainmentInspection(input: {
     }
   }
 
+  if (input.continuation === undefined) {
+    return {
+      ok: true,
+      classId: cadence.classId,
+      status,
+      intervalWeeks: cadence.intervalWeeks,
+      weeksSinceInspection,
+      deficiency: existing,
+      inService: existing.kind !== 'hard_stop',
+    }
+  }
+
   const continuation = parseContinuation(input.continuation)
   if (!continuation) {
     return { ok: false, code: 'invalid_continuation' }

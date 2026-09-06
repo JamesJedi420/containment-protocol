@@ -143,6 +143,7 @@ describe('event payload validation coverage', () => {
       { ...valid, inService: true },
       { ...valid, compensatingControlId: 'secondary_interlock_watch' },
       { ...valid, extra: true },
+      { ...valid, weeksSinceInspection: 0 },
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_deficiency_recorded', payload)

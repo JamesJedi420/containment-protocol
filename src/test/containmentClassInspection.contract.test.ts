@@ -55,6 +55,19 @@ describe('SPE-2860 containment-class inspection cadence', () => {
         lastInspectionWeek: 1,
         currentWeek: 5,
         cycleCount: 0,
+      })
+    ).toMatchObject({
+      ok: true,
+      status: 'due',
+      deficiency: { kind: 'none' },
+      inService: true,
+    })
+    expect(
+      evaluateContainmentInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        currentWeek: 5,
+        cycleCount: 0,
         continuation: 'hard_stop',
       })
     ).toMatchObject({

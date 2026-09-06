@@ -42,6 +42,7 @@ import {
   isContainmentClassInService,
   type ContainmentClassIntegrity,
 } from '../domain/containmentClassInspection'
+import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -2410,7 +2411,8 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
 
     const repaired = repairStoredEquipmentInstanceCondition(
       created.state,
-      created.instance.instanceId
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
     )
     expect(repaired).toMatchObject({
       ok: true,
@@ -2529,5 +2531,72 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
         }
       )
     ).toMatchObject({ ok: false, code: 'deficiency_hard_stop' })
+  })
+
+  it('fails closed for missing or unsuitable spare parts without mutating repair state', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
+
+    expect(
+      repairStoredEquipmentInstanceCondition(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'missing_part' })
+    expect(
+      repairStoredEquipmentInstanceCondition(created.state, created.instance.instanceId, null)
+    ).toMatchObject({ ok: false, code: 'missing_part' })
+    expect(
+      repairStoredEquipmentInstanceCondition(
+        created.state,
+        created.instance.instanceId,
+        'pressure_seal_gasket'
+      )
+    ).toMatchObject({ ok: false, code: 'unsuitable_part' })
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
+    expect(created.state.inventory.ward_seals).toBe(0)
+    expect(created.state.damagedEquipmentQueue ?? []).toEqual([])
+  })
+
+  it('repairs damaged blast-door with a suitable part without clearing compensating continue', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      }),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: {
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(isContainmentClassInService(repaired.instance.containmentIntegrity)).toBe(true)
+    expect(repaired.state.inventory.ward_seals).toBe(0)
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(repaired.state, created.instance.instanceId)
+    ).toMatchObject({ ok: true })
   })
 })

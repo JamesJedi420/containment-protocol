@@ -124,9 +124,10 @@ SPE-2827 instance identity and lifecycle authority is **Done** as docs dispositi
 (parent reconciliation `planning/spe-2827-parent-reconciliation-slice.md`; Linear apply
 pending). Facility replenishment, refills, and custody/evidence/legal holds remain
 SPE-1027 / SPE-867. Readiness/access remains SPE-1658. SPE-877 still owns the integrity
-program after SPE-2851's stored condition flip and SPE-2860's blast-door inspection kernel
-(`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`): spare-part
-suitability, stabilization/clear, and barrier-integrity coupling remain later children.
+program after SPE-2851's stored condition flip, SPE-2860's blast-door inspection kernel
+(`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`), and spare-part
+suitability on SPE-2851 repair (`planning/spe-spare-part-suitability-repair-slice.md`):
+stabilization/clear and barrier-integrity coupling remain later children.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

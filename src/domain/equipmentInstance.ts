@@ -18,6 +18,12 @@ import {
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
+import {
+  getRequiredRepairSparePartId,
+  resolveRepairSparePartSuitability,
+  type SparePartId,
+  type SparePartSuitabilityFailureCode,
+} from './sparePartSuitability'
 
 export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
@@ -86,6 +92,8 @@ export type EquipmentInstanceFailureCode =
   | 'malformed_containment_integrity'
   | 'inspection_not_due'
   | 'deficiency_hard_stop'
+  | 'missing_part'
+  | 'unsuitable_part'
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
@@ -694,12 +702,36 @@ export type EquipmentInstanceConditionRepairReasonCode =
   | 'instance_not_stored'
   | 'condition_already_operational'
   | 'recovery_claimed'
+  | 'missing_part'
+  | 'unsuitable_part'
+  | 'invalid_containment_class'
+  | 'malformed_containment_integrity'
 
 export interface EquipmentInstanceConditionRepairPreview {
   instanceId: EquipmentInstanceId
   canRepairCondition: boolean
   reasonCode?: EquipmentInstanceConditionRepairReasonCode
   conditionLabel: string
+  requiredSparePartId?: SparePartId
+}
+
+function mapSparePartSuitabilityFailure(
+  code: SparePartSuitabilityFailureCode
+): EquipmentInstanceConditionRepairReasonCode {
+  switch (code) {
+    case 'missing_part':
+      return 'missing_part'
+    case 'unsuitable_part':
+      return 'unsuitable_part'
+    case 'invalid_class':
+      return 'invalid_containment_class'
+    case 'malformed_deficiency':
+      return 'malformed_containment_integrity'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
 }
 
 function conditionLabelForInstance(condition: EquipmentInstanceCondition) {
@@ -708,7 +740,8 @@ function conditionLabelForInstance(condition: EquipmentInstanceCondition) {
 
 export function resolveStoredEquipmentInstanceConditionRepair(
   state: GameState,
-  instanceId: EquipmentInstanceId
+  instanceId: EquipmentInstanceId,
+  sparePartId?: unknown
 ): EquipmentInstanceConditionRepairPreview {
   if (!isSafeEquipmentInstanceId(instanceId)) {
     return {
@@ -727,9 +760,11 @@ export function resolveStoredEquipmentInstanceConditionRepair(
       conditionLabel: '—',
     }
   }
+  const requiredSparePartId = getRequiredRepairSparePartId(instance.containmentIntegrity?.classId)
   const base = {
     instanceId,
     conditionLabel: conditionLabelForInstance(instance.condition),
+    ...(requiredSparePartId ? { requiredSparePartId } : {}),
   }
   if (instance.location.state !== 'stored') {
     return { ...base, canRepairCondition: false, reasonCode: 'instance_not_stored' }
@@ -739,6 +774,18 @@ export function resolveStoredEquipmentInstanceConditionRepair(
   }
   if (instance.condition !== 'damaged') {
     return { ...base, canRepairCondition: false, reasonCode: 'condition_already_operational' }
+  }
+  const suitability = resolveRepairSparePartSuitability({
+    classId: instance.containmentIntegrity?.classId,
+    deficiency: instance.containmentIntegrity?.deficiency,
+    sparePartId,
+  })
+  if (!suitability.ok) {
+    return {
+      ...base,
+      canRepairCondition: false,
+      reasonCode: mapSparePartSuitabilityFailure(suitability.code),
+    }
   }
   return { ...base, canRepairCondition: true }
 }
@@ -752,16 +799,21 @@ export function getStoredEquipmentInstanceConditionRepairReasonLabel(
     instance_not_stored: 'Only stored copies can be repaired.',
     condition_already_operational: 'This copy is already operational.',
     recovery_claimed: 'This copy is already claimed by equipment recovery.',
+    missing_part: 'A suitable spare part is required.',
+    unsuitable_part: 'That spare part is not suitable for this repair.',
+    invalid_containment_class: 'Unknown containment class.',
+    malformed_containment_integrity: 'Containment integrity is malformed.',
   }
   return labels[code]
 }
 
 export function repairStoredEquipmentInstanceCondition(
   state: GameState,
-  instanceId: EquipmentInstanceId
+  instanceId: EquipmentInstanceId,
+  sparePartId?: unknown
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
-  const preview = resolveStoredEquipmentInstanceConditionRepair(normalized, instanceId)
+  const preview = resolveStoredEquipmentInstanceConditionRepair(normalized, instanceId, sparePartId)
   if (!preview.canRepairCondition) {
     return { ok: false, state: normalized, code: preview.reasonCode ?? 'stale_transition' }
   }

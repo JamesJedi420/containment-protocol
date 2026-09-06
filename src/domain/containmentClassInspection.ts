@@ -142,7 +142,7 @@ export function containmentClassIntegritiesEqual(
   )
 }
 
-function parseDeficiency(value: unknown): ContainmentDeficiency | undefined {
+export function parseContainmentDeficiency(value: unknown): ContainmentDeficiency | undefined {
   if (!isRecord(value) || typeof value.kind !== 'string') return undefined
   if (value.kind === 'none' || value.kind === 'hard_stop') {
     return hasOnlyKeys(value, ['kind']) ? { kind: value.kind } : undefined
@@ -181,7 +181,7 @@ export function parseContainmentClassIntegrity(value: unknown): ContainmentInteg
   ) {
     return { ok: false, code: 'malformed_integrity' }
   }
-  const deficiency = parseDeficiency(value.deficiency)
+  const deficiency = parseContainmentDeficiency(value.deficiency)
   if (!deficiency) {
     return { ok: false, code: 'malformed_integrity' }
   }
@@ -308,7 +308,7 @@ export function evaluateContainmentInspection(input: {
   const existing =
     input.existingDeficiency === undefined
       ? { kind: 'none' as const }
-      : parseDeficiency(input.existingDeficiency)
+      : parseContainmentDeficiency(input.existingDeficiency)
   if (!existing) {
     return { ok: false, code: 'invalid_continuation' }
   }

@@ -94,6 +94,7 @@ import {
   reaggregateStoredOrdinaryEquipmentInstance,
   repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
 } from '../../domain/equipmentInstance'
+import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
@@ -1870,7 +1871,13 @@ export const useGameStore = create<GameStore>()(
 
       repairStoredEquipmentInstanceCondition: (instanceId) =>
         set((s) => {
-          const result = repairStoredEquipmentInstanceConditionState(s.game, instanceId)
+          const instance = s.game.equipmentInstances?.[instanceId]
+          const sparePartId = getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
+          const result = repairStoredEquipmentInstanceConditionState(
+            s.game,
+            instanceId,
+            sparePartId
+          )
           if (!result.ok) return { game: result.state }
           const definition = getEquipmentDefinition(result.instance.definitionId)
           return {

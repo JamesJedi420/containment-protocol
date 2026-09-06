@@ -19,6 +19,7 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceLocation,
 } from './equipmentInstance'
+import { getRequiredRepairSparePartId } from './sparePartSuitability'
 import { createDefaultResponderEnergyBudget, normalizeEnergyBudget } from './responderEnergyBudget'
 import { ensureNormalizedGameState, normalizeGameState } from './teamSimulation'
 import { appendOperationEventDrafts, createCombatStimActivatedDraft } from './events'
@@ -410,7 +411,11 @@ export function getCombatStimStoredInstanceDisposalViews(
 
 export function getCombatStimStoredInstanceConditionRepairViews(state: GameState) {
   return listStoredCombatStimInstances(state).map((instance) =>
-    resolveStoredEquipmentInstanceConditionRepair(state, instance.instanceId)
+    resolveStoredEquipmentInstanceConditionRepair(
+      state,
+      instance.instanceId,
+      getRequiredRepairSparePartId(instance.containmentIntegrity?.classId)
+    )
   )
 }
 

@@ -16,6 +16,7 @@
     "SPE-2850"
   ],
   "sliceDocStatus": {
+    "planning/spe-spare-part-suitability-repair-slice.md": "Recently shipped",
     "planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md": "Recently shipped",
     "planning/spe-877-integrity-program-grooming-slice.md": "Shipped",
     "planning/spe-2827-parent-reconciliation-slice.md": "Shipped",

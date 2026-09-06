@@ -100,6 +100,15 @@ recovery-claimed identities remain locked to their recovery provenance. Once rep
 may satisfy the existing operational-condition gates for its normal catalog re-aggregation or
 fabricated-lot return path; repair itself does not choose that path.
 
+## Containment-class inspection (SPE-2860)
+
+Optional `containmentIntegrity` on an instance is a separate axis from `condition`. This slice
+authors one frozen class (`blast_door`): inspection freshness is derived from last-inspection week
+plus history-intensified cadence; deficiency is `hard_stop` (not in-service) or compensating
+continue with `secondary_interlock_watch`. Compensating continue cannot clear a later hard-stop.
+Unknown or malformed class records fail closed. SPE-2851 repair preserves this field and does not
+treat hard-stop as `damaged`.
+
 ## Compatibility and hydration
 
 Definition-only loadouts remain supported. When a valid instance claims an agent slot, its location
@@ -115,10 +124,10 @@ SPE-2827 instance identity and lifecycle authority is **Done** as docs dispositi
 (parent reconciliation `planning/spe-2827-parent-reconciliation-slice.md`; Linear apply
 pending). Facility replenishment, refills, and custody/evidence/legal holds remain
 SPE-1027 / SPE-867. Readiness/access remains SPE-1658. SPE-877 still owns the integrity
-program after SPE-2851's stored condition flip: inspection cadence, deficiency
-stop/continue, spare-part suitability, and barrier-integrity coupling. Named next
-SPE-877 child (no Linear ID yet): containment-class inspection cadence and deficiency
-stop/continue — `planning/spe-877-integrity-program-grooming-slice.md`. Healing,
+program after SPE-2851's stored condition flip and SPE-2860's blast-door inspection kernel
+(`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`): spare-part
+suitability, stabilization/clear, and barrier-integrity coupling remain later children.
+Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or
 destroy-on-non-mission-death (SPE-2858 / SPE-2859 recovery remains). The shipped

@@ -710,6 +710,33 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('success')
   })
 
+  it('equipment.containment_class_deficiency_recorded — names blast-door hard stop', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-8',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'overdue',
+        intervalWeeks: 2,
+        weeksSinceInspection: 5,
+        deficiencyKind: 'hard_stop',
+        inService: false,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment deficiency recorded')
+    expect(view.detail).toContain('equipment-instance-7-8')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Hard stop')
+    expect(view.tone).toBe('danger')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

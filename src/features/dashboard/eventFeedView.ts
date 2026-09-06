@@ -218,6 +218,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_destroyed': 'Equipment Instance Destroyed',
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
   'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
+  'equipment.containment_class_deficiency_recorded': 'Containment Class Deficiency Recorded',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'equipment.combat_stim_disposed': 'Combat Stim Disposed',
@@ -290,6 +291,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_destroyed': 'operations_logistics',
   'equipment.instance_reaggregated': 'operations_logistics',
   'equipment.instance_condition_repaired': 'operations_logistics',
+  'equipment.containment_class_deficiency_recorded': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'equipment.combat_stim_disposed': 'operations_logistics',
@@ -988,6 +990,25 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} damaged operational manual condition repair`.toLowerCase(),
       }
+
+    case 'equipment.containment_class_deficiency_recorded': {
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment deficiency recorded`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.status} / ${deficiencyLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+      }
+    }
 
     case 'equipment.combat_stim_activated':
       return {

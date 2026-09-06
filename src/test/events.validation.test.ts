@@ -121,6 +121,37 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates containment-class deficiency provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_class_deficiency_recorded']
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', valid)
+        .success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, status: 'current' },
+      { ...valid, inService: true },
+      { ...valid, compensatingControlId: 'secondary_interlock_watch' },
+      { ...valid, extra: true },
+      { ...valid, weeksSinceInspection: 0 },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_class_deficiency_recorded', payload)
+          .success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates Combat Stim disposal provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
     expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(

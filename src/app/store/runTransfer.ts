@@ -1045,6 +1045,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.instance_destroyed': ['instanceId', 'definitionId'],
   'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
   'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
+  'equipment.containment_class_deficiency_recorded': ['instanceId', 'definitionId'],
   'equipment.combat_stim_activated': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_overdrive_expired': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
@@ -8553,10 +8554,7 @@ function sanitizeOperationEvents(
                     (
                       entry
                     ): entry is
-                      | 'benching'
-                      | 'performance_penalty'
-                      | 'disciplinary'
-                      | 'resignation' =>
+                      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
                       entry === 'benching' ||
                       entry === 'performance_penalty' ||
                       entry === 'disciplinary' ||
@@ -8736,9 +8734,7 @@ function sanitizeOperationEvents(
       case 'recruitment.intel_confirmed':
         {
           const stage = clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as
-            | 1
-            | 2
-            | 3
+            1 | 2 | 3
           const revealLevel = reconcileRecruitmentEventRevealLevel(
             stage,
             sanitizeRevealLevel(payload.revealLevel)
@@ -9116,6 +9112,23 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.instance_condition_repaired'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.containment_class_deficiency_recorded': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.containment_class_deficiency_recorded'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.containment_class_deficiency_recorded'),
             payload: parsed.data,
           })
         )

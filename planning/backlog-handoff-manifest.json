@@ -2,6 +2,7 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2860",
     "SPE-2827",
     "SPE-2859",
     "SPE-2858",
@@ -12,10 +13,10 @@
     "SPE-2853",
     "SPE-2852",
     "SPE-2851",
-    "SPE-2850",
-    "SPE-2849"
+    "SPE-2850"
   ],
   "sliceDocStatus": {
+    "planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md": "Recently shipped",
     "planning/spe-877-integrity-program-grooming-slice.md": "Shipped",
     "planning/spe-2827-parent-reconciliation-slice.md": "Shipped",
     "planning/spe-2859-non-mission-death-equipped-instance-recovery-slice.md": "Closed / docs-satisfied",

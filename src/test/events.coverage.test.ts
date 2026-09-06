@@ -41,6 +41,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'equipment.instance_destroyed': 'covered',
   'equipment.instance_reaggregated': 'covered',
   'equipment.instance_condition_repaired': 'covered',
+  'equipment.containment_class_deficiency_recorded': 'covered',
   'equipment.combat_stim_activated': 'covered',
   'equipment.combat_stim_overdrive_expired': 'covered',
   'equipment.combat_stim_disposed': 'covered',

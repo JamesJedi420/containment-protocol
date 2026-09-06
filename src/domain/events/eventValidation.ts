@@ -1020,6 +1020,79 @@ const equipmentInstanceConditionRepairedSchema = z
     }
   })
 
+const equipmentContainmentClassDeficiencyRecordedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: z.literal('blast_door'),
+    status: z.enum(['due', 'overdue']),
+    intervalWeeks: finitePositiveIntSchema,
+    weeksSinceInspection: finiteNonNegativeIntSchema,
+    deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    inService: z.boolean(),
+    reason: z.literal('inspection_cadence_deficiency'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message:
+          'containment deficiency instance must reference a known equipment catalog definition',
+      })
+    }
+    if (payload.status === 'due' && payload.weeksSinceInspection !== payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'due events require weeksSinceInspection to equal intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.weeksSinceInspection <= payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
+      })
+    }
+    if (payload.deficiencyKind === 'compensating_continue') {
+      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'compensating continue requires secondary_interlock_watch',
+        })
+      }
+      if (payload.inService !== true) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['inService'],
+          message: 'compensating continue remains in-service',
+        })
+      }
+      return
+    }
+    if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'hard-stop cannot carry a compensating control',
+      })
+    }
+    if (payload.inService !== false) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'hard-stop is not in-service',
+      })
+    }
+  })
+
 const combatStimActivatedSchema = z
   .object({
     week: weekSchema,
@@ -1747,6 +1820,8 @@ export const operationEventPayloadSchemas = {
   'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
   'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
   'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
+  'equipment.containment_class_deficiency_recorded':
+    equipmentContainmentClassDeficiencyRecordedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'equipment.combat_stim_disposed': combatStimDisposedSchema,

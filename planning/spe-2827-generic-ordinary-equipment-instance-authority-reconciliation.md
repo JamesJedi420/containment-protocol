@@ -25,7 +25,8 @@ Backlog while independently reviewable children ship.
 4. Later bounded children may add loss, destruction, repair, mutation, and instance-aware salvage.
    SPE-2856 ships fatality-only equipped-instance loss (`mission_loss`). SPE-2857 ships
    injury-only equipped-instance loss (`mission_injury`). SPE-2858 confirms resignation
-   does not destroy equipped copies; SPE-2830 terminal-carrier recovery remains.
+   does not destroy equipped copies. SPE-2859 confirms non-mission death does not either;
+   SPE-2830 terminal-carrier recovery remains for those residual dead carriers.
 
 Readiness/access remains under SPE-1658 and maintenance behavior remains under SPE-877. The
 foundation's compact condition and payload fields do not complete either adjacent program.

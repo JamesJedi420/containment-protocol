@@ -37,14 +37,15 @@ identities are skipped so an existing queue/outcome claim remains the destructio
 
 ## Deferred
 
-| Item or mechanic                   | Owner or prerequisite | Reason                                                |
-| ---------------------------------- | --------------------- | ----------------------------------------------------- |
-| Injury equipped-instance loss      | SPE-2857              | Recently shipped; fatality-only trigger in this slice |
-| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger               |
-| Re-agg / lot-return on death       | out of scope          | Loss must not credit stock                            |
-| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                |
-| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned           |
-| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                    |
+| Item or mechanic                   | Owner or prerequisite | Reason                                                              |
+| ---------------------------------- | --------------------- | ------------------------------------------------------------------- |
+| Injury equipped-instance loss      | SPE-2857              | Recently shipped; fatality-only trigger in this slice               |
+| Resignation equipped-instance loss | SPE-2858              | Recovery remains; not a destroy trigger                             |
+| Non-mission death equipped loss    | SPE-2859              | Recovery remains; residual SPE-2830 source after this fatality hook |
+| Re-agg / lot-return on death       | out of scope          | Loss must not credit stock                                          |
+| Repair, damage production          | SPE-877               | Integrity program beyond identity loss                              |
+| Ready versus stowed                | SPE-1658              | Access-state layer remains separately owned                         |
+| SPE-2847                           | do not pick           | Out of SPE-2827 remaining sequence                                  |
 
 ## Validation
 

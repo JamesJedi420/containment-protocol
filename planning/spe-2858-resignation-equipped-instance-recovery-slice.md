@@ -106,7 +106,7 @@ fails on a resigned carrier).
 | Item or mechanic                         | Owner or prerequisite | Reason                                                                 |
 | ---------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
 | Destroy-on-resignation (new reason)      | new SPE-2827 child    | Would mutate SPE-2830; not this policy                                 |
-| Non-mission death equipped loss          | SPE-2827 child        | Residual terminal-carrier recovery after SPE-2856                      |
+| Non-mission death equipped loss          | SPE-2859              | Recovery remains; residual SPE-2830 source after SPE-2856              |
 | Injury capacity (body-use)               | SPE-1484              | Slot occupancy / verbs / restore — not identity                        |
 | Repair, damage production                | SPE-877               | Integrity program                                                      |
 | Ready versus stowed                      | SPE-1658              | Access-state layer                                                     |

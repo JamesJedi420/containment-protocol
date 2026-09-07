@@ -19,6 +19,7 @@ import {
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
+import { resolveContainmentBarrierIntegrityCoupling } from './containmentBarrierIntegrity'
 import {
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
@@ -897,9 +898,33 @@ export function applyContainmentClassDeficiency(
     ...current.containmentIntegrity,
     deficiency: evaluation.deficiency,
   })
-  return applyEquipmentInstanceTransition(normalized, instanceId, current, {
+  const transitioned = applyEquipmentInstanceTransition(normalized, instanceId, current, {
     ...current,
     containmentIntegrity: nextIntegrity,
+  })
+  if (!transitioned.ok) return transitioned
+  return {
+    ...transitioned,
+    state: persistContainmentBarrierCoupling(transitioned.state, instanceId, evaluation.deficiency),
+  }
+}
+
+function persistContainmentBarrierCoupling(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  deficiency: ContainmentClassIntegrity['deficiency']
+): GameState {
+  const resolved = resolveContainmentBarrierIntegrityCoupling({
+    existing: state.containmentBarrierIntegrity,
+    deficiency,
+    sourceInstanceId: instanceId,
+  })
+  if (!resolved.ok || !resolved.changed || !resolved.barrier) {
+    return state
+  }
+  return normalizeGameState({
+    ...state,
+    containmentBarrierIntegrity: resolved.barrier,
   })
 }
 

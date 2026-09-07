@@ -65,7 +65,7 @@ mutations. `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` unchanged.
 | --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Spare-part suitability / repair economics     | [SPE-2861](https://linear.app/spectranoir/issue/SPE-2861) | Typed `blast_door` / `blast_door_hinge_seal` gate on SPE-2851; no stock consume |
 | Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862) | Technician relief/clear; inspection sticky hard-stop stays                      |
-| Breach / `barrier_integrity` propagation      | later SPE-877 child                                       | SPE-1387 pairing; architecture file still missing                               |
+| Breach / `barrier_integrity` propagation      | shipped SPE-877 child                                     | `planning/spe-barrier-integrity-coupling-slice.md`                              |
 | Additional classes (pressure seal, interlock) | later SPE-877 child                                       | One class in this slice                                                         |
 | Week-close last-inspection auto-advance       | later SPE-877 child                                       | Schema kernel ships; `advanceWeek` stays out                                    |
 | Live workshop integrity mapping               | SPE-877 / SPE-1028                                        | SPE-2782 stays caller-owned                                                     |

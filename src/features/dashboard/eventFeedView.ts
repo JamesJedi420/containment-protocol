@@ -220,6 +220,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
   'equipment.containment_class_deficiency_recorded': 'Containment Class Deficiency Recorded',
   'equipment.containment_class_stabilized': 'Containment Class Stabilized',
+  'equipment.containment_barrier_integrity_changed': 'Containment Barrier Integrity Changed',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'equipment.combat_stim_disposed': 'Combat Stim Disposed',
@@ -294,6 +295,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_condition_repaired': 'operations_logistics',
   'equipment.containment_class_deficiency_recorded': 'operations_logistics',
   'equipment.containment_class_stabilized': 'operations_logistics',
+  'equipment.containment_barrier_integrity_changed': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'equipment.combat_stim_disposed': 'operations_logistics',
@@ -1030,6 +1032,25 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'success',
         searchText:
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_barrier_integrity_changed': {
+      const statusLabel =
+        event.payload.status === 'zone_breach'
+          ? 'Zone breach'
+          : 'Flow restraint / barrier integrity watch'
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} barrier integrity changed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door membrane / ${statusLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.status === 'zone_breach' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door membrane ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
       }
     }
 

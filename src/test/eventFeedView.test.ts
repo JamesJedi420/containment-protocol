@@ -765,6 +765,32 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('success')
   })
 
+  it('equipment.containment_barrier_integrity_changed — names blast-door zone breach', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        zoneId: 'blast_door_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('equipment-instance-7-10')
+    expect(view.detail).toContain('Blast door membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

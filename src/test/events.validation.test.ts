@@ -174,6 +174,7 @@ describe('event payload validation coverage', () => {
       { ...valid, deficiencyKind: 'hard_stop' },
       { ...valid, inService: false },
       { ...valid, cycleCount: 0 },
+      { ...valid, previousCycleCount: 9007199254740992, cycleCount: 9007199254740992 },
       { ...valid, extra: true },
     ]) {
       expect(

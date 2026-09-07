@@ -1119,7 +1119,11 @@ const equipmentContainmentClassStabilizedSchema = z
           'containment stabilization instance must reference a known equipment catalog definition',
       })
     }
-    if (payload.cycleCount !== payload.previousCycleCount + 1) {
+    if (
+      !Number.isSafeInteger(payload.previousCycleCount) ||
+      !Number.isSafeInteger(payload.cycleCount) ||
+      payload.cycleCount !== payload.previousCycleCount + 1
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['cycleCount'],

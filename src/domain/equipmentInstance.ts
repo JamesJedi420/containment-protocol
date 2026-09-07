@@ -938,7 +938,7 @@ export function stabilizeContainmentClassDeficiency(
     cycleCount: nextCycleCount,
     deficiency: resolved.deficiency,
   })
-  return applyEquipmentInstanceTransition(
+  return applyEquipmentInstanceTransitionInternal(
     normalized,
     instanceId,
     current,
@@ -1090,6 +1090,15 @@ export function instantiateEquipmentInstance(
 }
 
 export function applyEquipmentInstanceTransition(
+  state: GameState,
+  instanceId: EquipmentInstanceId,
+  expected: EquipmentInstance,
+  next: EquipmentInstance
+): EquipmentInstanceMutationResult {
+  return applyEquipmentInstanceTransitionInternal(state, instanceId, expected, next)
+}
+
+function applyEquipmentInstanceTransitionInternal(
   state: GameState,
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,

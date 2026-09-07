@@ -2945,6 +2945,32 @@ describe('SPE-877 barrier-integrity coupling', () => {
     expect(repaired.state.containmentBarrierIntegrity).toBeUndefined()
   })
 
+  it('round-trips a valid recorded zone breach through hydration', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+    expect(stopped.state.containmentBarrierIntegrity).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: created.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(stopped.state)))
+    expect(hydrated.containmentBarrierIntegrity).toEqual(stopped.state.containmentBarrierIntegrity)
+    expect(hydrated.containmentBarrierIntegrity?.status).toBe('zone_breach')
+  })
+
   it('hydrates the barrier event as history without replaying mutation', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1

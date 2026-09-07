@@ -524,6 +524,20 @@ export interface OperationEventPayloadMap {
     inService: boolean
     reason: 'inspection_cadence_deficiency'
   }
+  'equipment.containment_class_stabilized': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: 'blast_door'
+    previousDeficiencyKind: 'hard_stop' | 'compensating_continue'
+    deficiencyKind: 'compensating_continue' | 'none'
+    compensatingControlId?: 'secondary_interlock_watch'
+    previousCycleCount: number
+    cycleCount: number
+    inService: boolean
+    reason: 'technician_stabilization'
+  }
   'equipment.combat_stim_activated': {
     week: number
     activationId: Id
@@ -907,6 +921,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.instance_reaggregated': 'agent'
   'equipment.instance_condition_repaired': 'agent'
   'equipment.containment_class_deficiency_recorded': 'agent'
+  'equipment.containment_class_stabilized': 'agent'
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
   'equipment.combat_stim_disposed': 'agent'
@@ -979,6 +994,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.instance_reaggregated': 'agent',
   'equipment.instance_condition_repaired': 'agent',
   'equipment.containment_class_deficiency_recorded': 'agent',
+  'equipment.containment_class_stabilized': 'agent',
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',
   'equipment.combat_stim_disposed': 'agent',

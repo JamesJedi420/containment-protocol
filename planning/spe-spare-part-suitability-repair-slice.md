@@ -1,12 +1,12 @@
 # Spare-part suitability on SPE-2851 repair
 
-| Field               | Value                                                                                                                                                     |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **Recently shipped**                                                                                                                                      |
-| **Linear**          | SPE-877 child — **no ID until Linear MCP assigns one**. Do not invent a SPE number. Create under [SPE-877](https://linear.app/spectranoir/issue/SPE-877). |
-| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog**                           |
-| **Branch**          | `cursor/spare-part-suitability-repair-68fb`                                                                                                               |
-| **Base `main` SHA** | `dfe2ab52696c44ae6903e9ad46fc7c13ee7a1e5f`                                                                                                                |
+| Field               | Value                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**          | **Recently shipped**                                                                                                            |
+| **Linear**          | [SPE-2861](https://linear.app/spectranoir/issue/SPE-2861/spare-part-suitability-on-spe-2851-repair)                             |
+| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog** |
+| **Branch**          | `cursor/spare-part-suitability-repair-68fb`                                                                                     |
+| **Base `main` SHA** | `dfe2ab52696c44ae6903e9ad46fc7c13ee7a1e5f`                                                                                      |
 
 ## Boundary
 
@@ -38,16 +38,16 @@ Deficiency kind does **not** select a different part. Hard-stop, compensating co
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite  | Reason                                               |
-| --------------------------------------------- | ---------------------- | ---------------------------------------------------- |
-| Stabilization / deficiency clear              | later SPE-877 child    | Hard-stop stays sticky; repair must not clear it     |
-| Breach / `barrier_integrity` propagation      | later SPE-877 child    | SPE-1387 pairing; after typed deficiency + this gate |
-| Additional classes (pressure seal, interlock) | later SPE-877 child    | One named part / one class in this slice             |
-| Week-close last-inspection auto-advance       | later SPE-877 child    | Schema kernel already shipped in SPE-2860            |
-| SPE-1027 stock consume of the named part      | SPE-1027 / later child | This child is suitability only — no inventory debit  |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                          |
-| Ready / stow                                  | SPE-1658               | Access-state layer                                   |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749    | Adjacent                                             |
+| Item or mechanic                              | Owner or prerequisite                                     | Reason                                               |
+| --------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862) | Hard-stop stays sticky; repair must not clear it     |
+| Breach / `barrier_integrity` propagation      | later SPE-877 child                                       | SPE-1387 pairing; after typed deficiency + this gate |
+| Additional classes (pressure seal, interlock) | later SPE-877 child                                       | One named part / one class in this slice             |
+| Week-close last-inspection auto-advance       | later SPE-877 child                                       | Schema kernel already shipped in SPE-2860            |
+| SPE-1027 stock consume of the named part      | SPE-1027 / later child                                    | This child is suitability only — no inventory debit  |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                        | SPE-2782 stays caller-owned                          |
+| Ready / stow                                  | SPE-1658                                                  | Access-state layer                                   |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                       | Adjacent                                             |
 
 ## Acceptance
 
@@ -57,11 +57,10 @@ Deficiency kind does **not** select a different part. Hard-stop, compensating co
 - Hard-stop remains sticky after repair; compensating continue unchanged
 - SPE-2851 existing ordinary success/fail-closed cases still pass
 - No new persisted field or event; parent SPE-877 remains Backlog
-- No invented Linear child ID in docs
 
 ## Linear issue body
 
-Paste as a **new Linear child of SPE-877** when MCP is `ready`. Do not invent an ID in the repo until Linear assigns one.
+Created as [SPE-2861](https://linear.app/spectranoir/issue/SPE-2861/spare-part-suitability-on-spe-2851-repair). Do not invent a second spare-part child.
 
 **Title:** Spare-part suitability on SPE-2851 repair
 

@@ -275,6 +275,41 @@ export function resolveStickyContainmentDeficiency(
   return { ok: true, deficiency: next }
 }
 
+export type TechnicianStabilizationFailureCode = 'no_deficiency' | 'malformed_deficiency'
+
+export type TechnicianStabilizationResult =
+  | { ok: true; deficiency: ContainmentDeficiency; cycleDelta: 1 }
+  | { ok: false; code: TechnicianStabilizationFailureCode }
+
+/**
+ * Technician-only relief/clear. Inspection sticky hard-stop stays on
+ * `resolveStickyContainmentDeficiency`.
+ */
+export function resolveTechnicianStabilization(existing: unknown): TechnicianStabilizationResult {
+  const deficiency = parseContainmentDeficiency(existing)
+  if (!deficiency) {
+    return { ok: false, code: 'malformed_deficiency' }
+  }
+  if (deficiency.kind === 'none') {
+    return { ok: false, code: 'no_deficiency' }
+  }
+  if (deficiency.kind === 'hard_stop') {
+    return {
+      ok: true,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+      cycleDelta: 1,
+    }
+  }
+  if (deficiency.kind === 'compensating_continue') {
+    return { ok: true, deficiency: { kind: 'none' }, cycleDelta: 1 }
+  }
+  const exhaustive: never = deficiency
+  return exhaustive
+}
+
 export function evaluateContainmentInspection(input: {
   classId: unknown
   lastInspectionWeek: unknown

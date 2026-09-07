@@ -14,6 +14,7 @@ import {
   evaluateContainmentInspection,
   isContainmentClassInService,
   parseContainmentClassIntegrity,
+  resolveTechnicianStabilization,
   snapshotContainmentClassIntegrity,
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
@@ -92,6 +93,7 @@ export type EquipmentInstanceFailureCode =
   | 'malformed_containment_integrity'
   | 'inspection_not_due'
   | 'deficiency_hard_stop'
+  | 'no_containment_deficiency'
   | 'missing_part'
   | 'unsuitable_part'
 
@@ -901,6 +903,53 @@ export function applyContainmentClassDeficiency(
   })
 }
 
+export function stabilizeContainmentClassDeficiency(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (!current.containmentIntegrity) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const resolved = resolveTechnicianStabilization(current.containmentIntegrity.deficiency)
+  if (!resolved.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        resolved.code === 'no_deficiency'
+          ? 'no_containment_deficiency'
+          : 'malformed_containment_integrity',
+    }
+  }
+  const nextCycleCount = current.containmentIntegrity.cycleCount + resolved.cycleDelta
+  if (!Number.isSafeInteger(nextCycleCount) || nextCycleCount < 0) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const nextIntegrity = snapshotContainmentClassIntegrity({
+    ...current.containmentIntegrity,
+    cycleCount: nextCycleCount,
+    deficiency: resolved.deficiency,
+  })
+  return applyEquipmentInstanceTransition(
+    normalized,
+    instanceId,
+    current,
+    {
+      ...current,
+      containmentIntegrity: nextIntegrity,
+    },
+    { allowHardStopRelief: true }
+  )
+}
+
 export { isContainmentClassInService }
 
 function validateTargetLocation(
@@ -1044,7 +1093,8 @@ export function applyEquipmentInstanceTransition(
   state: GameState,
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,
-  next: EquipmentInstance
+  next: EquipmentInstance,
+  options?: { allowHardStopRelief?: boolean }
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
@@ -1085,6 +1135,7 @@ export function applyEquipmentInstanceTransition(
       }
     }
     if (
+      !options?.allowHardStopRelief &&
       current.containmentIntegrity?.deficiency.kind === 'hard_stop' &&
       parsed.integrity.deficiency.kind !== 'hard_stop'
     ) {

@@ -152,6 +152,36 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates containment-class technician stabilization provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_class_stabilized']
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', valid).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', {
+        ...valid,
+        previousDeficiencyKind: 'compensating_continue',
+        deficiencyKind: 'none',
+        compensatingControlId: undefined,
+        previousCycleCount: 2,
+        cycleCount: 3,
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, deficiencyKind: 'hard_stop' },
+      { ...valid, inService: false },
+      { ...valid, cycleCount: 0 },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_class_stabilized', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates Combat Stim disposal provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
     expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(

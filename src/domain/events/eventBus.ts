@@ -682,6 +682,12 @@ export function createContainmentClassDeficiencyRecordedDraft(
   return { type: 'equipment.containment_class_deficiency_recorded', sourceSystem: 'agent', payload }
 }
 
+export function createContainmentClassStabilizedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_class_stabilized']
+): OperationEventDraft<'equipment.containment_class_stabilized'> {
+  return { type: 'equipment.containment_class_stabilized', sourceSystem: 'agent', payload }
+}
+
 export function createCombatStimActivatedDraft(
   payload: OperationEventPayloadMap['equipment.combat_stim_activated']
 ): OperationEventDraft<'equipment.combat_stim_activated'> {
@@ -811,6 +817,7 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'equipment.instance_reaggregated',
   'equipment.instance_condition_repaired',
   'equipment.containment_class_deficiency_recorded',
+  'equipment.containment_class_stabilized',
   'equipment.combat_stim_activated',
   'equipment.combat_stim_overdrive_expired',
   'equipment.combat_stim_disposed',

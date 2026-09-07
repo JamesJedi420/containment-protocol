@@ -219,6 +219,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
   'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
   'equipment.containment_class_deficiency_recorded': 'Containment Class Deficiency Recorded',
+  'equipment.containment_class_stabilized': 'Containment Class Stabilized',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'equipment.combat_stim_disposed': 'Combat Stim Disposed',
@@ -292,6 +293,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_reaggregated': 'operations_logistics',
   'equipment.instance_condition_repaired': 'operations_logistics',
   'equipment.containment_class_deficiency_recorded': 'operations_logistics',
+  'equipment.containment_class_stabilized': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'equipment.combat_stim_disposed': 'operations_logistics',
@@ -1007,6 +1009,27 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_class_stabilized': {
+      const previousLabel =
+        event.payload.previousDeficiencyKind === 'hard_stop' ? 'Hard stop' : 'Compensating continue'
+      const nextLabel =
+        event.payload.deficiencyKind === 'none'
+          ? 'Cleared'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment class stabilized`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

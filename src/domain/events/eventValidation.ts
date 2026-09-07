@@ -1093,6 +1093,83 @@ const equipmentContainmentClassDeficiencyRecordedSchema = z
     }
   })
 
+const equipmentContainmentClassStabilizedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: z.literal('blast_door'),
+    previousDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    deficiencyKind: z.enum(['compensating_continue', 'none']),
+    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    previousCycleCount: finiteNonNegativeIntSchema,
+    cycleCount: finiteNonNegativeIntSchema,
+    inService: z.boolean(),
+    reason: z.literal('technician_stabilization'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message:
+          'containment stabilization instance must reference a known equipment catalog definition',
+      })
+    }
+    if (
+      !Number.isSafeInteger(payload.previousCycleCount) ||
+      !Number.isSafeInteger(payload.cycleCount) ||
+      payload.cycleCount !== payload.previousCycleCount + 1
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cycleCount'],
+        message: 'technician stabilization must increment cycleCount by 1',
+      })
+    }
+    if (payload.inService !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'technician stabilization remains in-service',
+      })
+    }
+    if (payload.previousDeficiencyKind === 'hard_stop') {
+      if (payload.deficiencyKind !== 'compensating_continue') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['deficiencyKind'],
+          message: 'hard-stop relief must become compensating continue',
+        })
+      }
+      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'hard-stop relief requires secondary_interlock_watch',
+        })
+      }
+      return
+    }
+    if (payload.deficiencyKind !== 'none') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deficiencyKind'],
+        message: 'compensating continue clear must become none',
+      })
+    }
+    if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'cleared deficiency cannot carry a compensating control',
+      })
+    }
+  })
+
 const combatStimActivatedSchema = z
   .object({
     week: weekSchema,
@@ -1822,6 +1899,7 @@ export const operationEventPayloadSchemas = {
   'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
   'equipment.containment_class_deficiency_recorded':
     equipmentContainmentClassDeficiencyRecordedSchema,
+  'equipment.containment_class_stabilized': equipmentContainmentClassStabilizedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'equipment.combat_stim_disposed': combatStimDisposedSchema,

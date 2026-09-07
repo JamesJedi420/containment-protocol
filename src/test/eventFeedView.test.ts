@@ -737,6 +737,34 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('danger')
   })
 
+  it('equipment.containment_class_stabilized — names blast-door hard-stop relief', () => {
+    const event = makeEvent(
+      'equipment.containment_class_stabilized',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-9',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        previousDeficiencyKind: 'hard_stop',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        inService: true,
+        reason: 'technician_stabilization',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class stabilized')
+    expect(view.detail).toContain('equipment-instance-7-9')
+    expect(view.detail).toContain('Hard stop')
+    expect(view.detail).toContain('Compensating continue')
+    expect(view.tone).toBe('success')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

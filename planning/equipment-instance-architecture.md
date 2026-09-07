@@ -107,7 +107,18 @@ authors one frozen class (`blast_door`): inspection freshness is derived from la
 plus history-intensified cadence; deficiency is `hard_stop` (not in-service) or compensating
 continue with `secondary_interlock_watch`. Compensating continue cannot clear a later hard-stop.
 Unknown or malformed class records fail closed. SPE-2851 repair preserves this field and does not
-treat hard-stop as `damaged`.
+treat hard-stop as `damaged`. SPE-2861 spare-part suitability gates that repair for `blast_door`
+identities without consuming stock or clearing deficiency.
+
+## Technician stabilization (SPE-2862)
+
+`stabilizeContainmentClassDeficiency` is the technician exception to sticky hard-stop. It relieves
+`hard_stop` into compensating `secondary_interlock_watch` (temporary in-service) or clears
+compensating continue to `none`. Each success increments `cycleCount` by 1 so cadence intensifies.
+`condition`, inventory, lots, and last-inspection week stay unchanged. Inspection
+`applyContainmentClassDeficiency` and generic transitions still reject hard-stop overwrite.
+Successful stabilization hydrates as `equipment.containment_class_stabilized` history without
+replaying the mutation.
 
 ## Compatibility and hydration
 
@@ -125,9 +136,10 @@ SPE-2827 instance identity and lifecycle authority is **Done** as docs dispositi
 pending). Facility replenishment, refills, and custody/evidence/legal holds remain
 SPE-1027 / SPE-867. Readiness/access remains SPE-1658. SPE-877 still owns the integrity
 program after SPE-2851's stored condition flip, SPE-2860's blast-door inspection kernel
-(`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`), and spare-part
-suitability on SPE-2851 repair (`planning/spe-spare-part-suitability-repair-slice.md`):
-stabilization/clear and barrier-integrity coupling remain later children.
+(`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`), SPE-2861 spare-part
+suitability (`planning/spe-spare-part-suitability-repair-slice.md`), and SPE-2862 technician
+stabilization (`planning/spe-2862-stabilization-deficiency-clear-slice.md`): barrier-integrity
+coupling remains a later child.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

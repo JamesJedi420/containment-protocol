@@ -1170,6 +1170,62 @@ const equipmentContainmentClassStabilizedSchema = z
     }
   })
 
+const equipmentContainmentBarrierIntegrityChangedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: z.literal('blast_door'),
+    zoneId: z.literal('blast_door_membrane'),
+    previousStatus: z.enum(['intact', 'flow_restraint', 'zone_breach']),
+    status: z.enum(['flow_restraint', 'zone_breach']),
+    sourceDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    reason: z.literal('deficiency_coupling'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'barrier integrity instance must reference a known equipment catalog definition',
+      })
+    }
+    if (payload.status === 'flow_restraint') {
+      if (payload.previousStatus !== 'intact') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['previousStatus'],
+          message: 'flow-restraint can only open from intact',
+        })
+      }
+      if (payload.sourceDeficiencyKind !== 'compensating_continue') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['sourceDeficiencyKind'],
+          message: 'flow-restraint requires compensating continue',
+        })
+      }
+      return
+    }
+    if (payload.previousStatus === 'zone_breach') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['previousStatus'],
+        message: 'zone breach cannot re-open from itself',
+      })
+    }
+    if (payload.sourceDeficiencyKind !== 'hard_stop') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceDeficiencyKind'],
+        message: 'zone breach requires hard-stop',
+      })
+    }
+  })
+
 const combatStimActivatedSchema = z
   .object({
     week: weekSchema,
@@ -1900,6 +1956,8 @@ export const operationEventPayloadSchemas = {
   'equipment.containment_class_deficiency_recorded':
     equipmentContainmentClassDeficiencyRecordedSchema,
   'equipment.containment_class_stabilized': equipmentContainmentClassStabilizedSchema,
+  'equipment.containment_barrier_integrity_changed':
+    equipmentContainmentBarrierIntegrityChangedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,
   'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
   'equipment.combat_stim_disposed': combatStimDisposedSchema,

@@ -460,6 +460,18 @@ export const minimalOperationEventPayloads = {
     inService: true,
     reason: 'technician_stabilization',
   },
+  'equipment.containment_barrier_integrity_changed': {
+    week: WEEK,
+    instanceId: 'equipment-instance-1-7',
+    definitionId: 'ward_seals',
+    definitionName: 'Ward Seals',
+    classId: 'blast_door',
+    zoneId: 'blast_door_membrane',
+    previousStatus: 'intact',
+    status: 'zone_breach',
+    sourceDeficiencyKind: 'hard_stop',
+    reason: 'deficiency_coupling',
+  },
   'equipment.combat_stim_activated': {
     week: WEEK,
     activationId: 'combat-stim-equipment-instance-1-1-dose-1',

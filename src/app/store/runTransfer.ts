@@ -26,6 +26,7 @@ import {
   isSafeEquipmentInstanceId,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
+import { parseContainmentBarrierIntegrity } from '../../domain/containmentBarrierIntegrity'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -1047,6 +1048,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
   'equipment.containment_class_deficiency_recorded': ['instanceId', 'definitionId'],
   'equipment.containment_class_stabilized': ['instanceId', 'definitionId'],
+  'equipment.containment_barrier_integrity_changed': ['instanceId', 'definitionId'],
   'equipment.combat_stim_activated': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_overdrive_expired': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
@@ -9153,6 +9155,23 @@ function sanitizeOperationEvents(
         break
       }
 
+      case 'equipment.containment_barrier_integrity_changed': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.containment_barrier_integrity_changed'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.containment_barrier_integrity_changed'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
       case 'equipment.combat_stim_disposed': {
         const parsed = operationEventPayloadSchemas['equipment.combat_stim_disposed'].safeParse({
           ...payload,
@@ -10458,6 +10477,8 @@ export function hydrateGame(
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
+  const barrierParsed = parseContainmentBarrierIntegrity(game.containmentBarrierIntegrity)
+  const containmentBarrierIntegrity = barrierParsed.ok ? barrierParsed.barrier : undefined
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10559,6 +10580,7 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
     equipmentInstances,
+    containmentBarrierIntegrity,
     damagedEquipmentQueue,
     authorityGraphState,
     runtimeState,

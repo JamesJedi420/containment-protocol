@@ -183,6 +183,45 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates containment barrier-integrity coupling provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_barrier_integrity_changed']
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', valid)
+        .success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        previousStatus: 'flow_restraint',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, zoneId: 'other_membrane' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, status: 'intact' },
+      { ...valid, previousStatus: 'zone_breach' },
+      { ...valid, sourceDeficiencyKind: 'compensating_continue' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_barrier_integrity_changed', payload)
+          .success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates Combat Stim disposal provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.combat_stim_disposed']
     expect(validateOperationEventPayload('equipment.combat_stim_disposed', valid).success).toBe(

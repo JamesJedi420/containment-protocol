@@ -688,6 +688,12 @@ export function createContainmentClassStabilizedDraft(
   return { type: 'equipment.containment_class_stabilized', sourceSystem: 'agent', payload }
 }
 
+export function createContainmentBarrierIntegrityChangedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_barrier_integrity_changed']
+): OperationEventDraft<'equipment.containment_barrier_integrity_changed'> {
+  return { type: 'equipment.containment_barrier_integrity_changed', sourceSystem: 'agent', payload }
+}
+
 export function createCombatStimActivatedDraft(
   payload: OperationEventPayloadMap['equipment.combat_stim_activated']
 ): OperationEventDraft<'equipment.combat_stim_activated'> {
@@ -818,6 +824,7 @@ export const OPERATION_EVENT_FACTORY_TYPES = [
   'equipment.instance_condition_repaired',
   'equipment.containment_class_deficiency_recorded',
   'equipment.containment_class_stabilized',
+  'equipment.containment_barrier_integrity_changed',
   'equipment.combat_stim_activated',
   'equipment.combat_stim_overdrive_expired',
   'equipment.combat_stim_disposed',

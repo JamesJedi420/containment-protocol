@@ -24,6 +24,7 @@ import type {
 } from './equipmentGradeRecovery'
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 import type { EquipmentInstanceRegistry } from './equipmentInstance'
+import type { ContainmentBarrierIntegrity } from './containmentBarrierIntegrity'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2786,6 +2787,11 @@ export interface GameState {
   inventory: Record<string, number>
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
+  /**
+   * SPE-877 barrier-integrity coupling: frozen blast-door membrane status (SPE-1387 / SPE-471).
+   * Omit hydrates as intact. Recorded zone_breach does not downgrade.
+   */
+  containmentBarrierIntegrity?: ContainmentBarrierIntegrity
   /**
    * Canonical weekly maintenance backlog of damaged equipment item IDs.
    * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.

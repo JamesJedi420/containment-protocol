@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import {
+  applyEquipmentInstanceTransition,
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
@@ -130,6 +131,17 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       'equipment.containment_class_inspected',
       'equipment.containment_class_deficiency_recorded',
     ])
+    const equippedInstance = trainingState.equipmentInstances?.[created.instance.instanceId]
+    if (!equippedInstance) throw new Error('missing equipped instance')
+    expect(
+      applyEquipmentInstanceTransition(
+        trainingState,
+        created.instance.instanceId,
+        equippedInstance,
+        { ...equippedInstance, location: { state: 'stored' } },
+        { allowNonIdleCarrier: true }
+      )
+    ).toMatchObject({ ok: false, code: 'agent_not_idle' })
   })
 
   it('stamps overdue last-inspection to hard-stop and couples barrier breach', () => {

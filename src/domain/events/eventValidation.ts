@@ -1159,6 +1159,13 @@ const equipmentContainmentClassInspectedSchema = z
         message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
       })
     }
+    if (payload.status === 'overdue' && payload.deficiencyKind !== 'hard_stop') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deficiencyKind'],
+        message: 'overdue week-close inspect records hard_stop',
+      })
+    }
     if (payload.deficiencyKind === 'compensating_continue') {
       if (payload.compensatingControlId !== 'secondary_interlock_watch') {
         context.addIssue({

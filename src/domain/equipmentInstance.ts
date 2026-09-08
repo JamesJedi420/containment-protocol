@@ -1119,7 +1119,7 @@ export function applyEquipmentInstanceTransition(
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,
   next: EquipmentInstance,
-  options?: { allowHardStopRelief?: boolean; allowNonIdleCarrier?: boolean }
+  options?: { allowNonIdleCarrier?: boolean }
 ): EquipmentInstanceMutationResult {
   return applyEquipmentInstanceTransitionInternal(state, instanceId, expected, next, options)
 }
@@ -1190,18 +1190,16 @@ function applyEquipmentInstanceTransitionInternal(
     next.location,
     instanceId
   )
+  const keepEquippedOnNonIdleCarrier =
+    options?.allowNonIdleCarrier === true && locationsEqual(current.location, next.location)
   if (locationFailure) {
-    if (!(
-      options?.allowNonIdleCarrier &&
-      locationFailure === 'agent_not_idle' &&
-      locationsEqual(current.location, next.location)
-    )) {
+    if (!(keepEquippedOnNonIdleCarrier && locationFailure === 'agent_not_idle')) {
       return { ok: false, state: normalized, code: locationFailure }
     }
   }
   if (
     current.location.state === 'equipped' &&
-    !options?.allowNonIdleCarrier &&
+    !keepEquippedOnNonIdleCarrier &&
     !isIdleAgent(normalized.agents[current.location.agentId])
   ) {
     return { ok: false, state: normalized, code: 'agent_not_idle' }

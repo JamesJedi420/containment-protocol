@@ -178,6 +178,13 @@ describe('event payload validation coverage', () => {
       { ...valid, previousLastInspectionWeek: 5 },
       { ...valid, inService: false },
       { ...valid, extra: true },
+      {
+        ...valid,
+        status: 'overdue',
+        week: 6,
+        lastInspectionWeek: 6,
+        weeksSinceInspection: 5,
+      },
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_inspected', payload).success

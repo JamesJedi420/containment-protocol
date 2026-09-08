@@ -737,6 +737,32 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('danger')
   })
 
+  it('equipment.containment_class_deficiency_recorded — names pressure-seal compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        status: 'due',
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.containment_class_inspected — names blast-door week-close auto-advance', () => {
     const event = makeEvent(
       'equipment.containment_class_inspected',

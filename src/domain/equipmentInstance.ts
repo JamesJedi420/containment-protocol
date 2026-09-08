@@ -914,6 +914,9 @@ export function persistContainmentBarrierCoupling(
   instanceId: EquipmentInstanceId,
   deficiency: ContainmentClassIntegrity['deficiency']
 ): GameState {
+  if (state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId !== 'blast_door') {
+    return state
+  }
   const resolved = resolveContainmentBarrierIntegrityCoupling({
     existing: state.containmentBarrierIntegrity,
     deficiency,
@@ -942,6 +945,9 @@ export function stabilizeContainmentClassDeficiency(
   }
   if (!current.containmentIntegrity) {
     return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  if (current.containmentIntegrity.classId !== 'blast_door') {
+    return { ok: false, state: normalized, code: 'invalid_containment_class' }
   }
   const resolved = resolveTechnicianStabilization(current.containmentIntegrity.deficiency)
   if (!resolved.ok) {

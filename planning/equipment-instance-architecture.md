@@ -102,13 +102,14 @@ fabricated-lot return path; repair itself does not choose that path.
 
 ## Containment-class inspection (SPE-2860)
 
-Optional `containmentIntegrity` on an instance is a separate axis from `condition`. This slice
-authors one frozen class (`blast_door`): inspection freshness is derived from last-inspection week
-plus history-intensified cadence; deficiency is `hard_stop` (not in-service) or compensating
-continue with `secondary_interlock_watch`. Compensating continue cannot clear a later hard-stop.
-Unknown or malformed class records fail closed. SPE-2851 repair preserves this field and does not
-treat hard-stop as `damaged`. SPE-2861 spare-part suitability gates that repair for `blast_door`
-identities without consuming stock or clearing deficiency.
+Optional `containmentIntegrity` on an instance is a separate axis from `condition`. Frozen
+classes are `blast_door` and `pressure_seal`: inspection freshness is derived from last-inspection
+week plus history-intensified cadence; deficiency is `hard_stop` (not in-service) or compensating
+continue with the class-authored control (`secondary_interlock_watch` or `backup_gasket_watch`).
+Compensating continue cannot clear a later hard-stop. Mixed class/control pairings and unknown
+class records fail closed. SPE-2851 repair preserves this field and does not treat hard-stop as
+`damaged`. SPE-2861 spare-part suitability gates that repair for `blast_door` identities without
+consuming stock or clearing deficiency. SPE-2864 added `pressure_seal`; interlock remains later.
 
 ## Technician stabilization (SPE-2862)
 
@@ -123,18 +124,20 @@ replaying the mutation.
 ## Week-close last-inspection (SPE-877 child)
 
 `advanceContainmentClassInspectionsAtWeekClose` stamps `lastInspectionWeek` to the closing week
-when freshness is `due` or `overdue`. Due records compensating `secondary_interlock_watch`;
+when freshness is `due` or `overdue`. Due records the class-authored compensating continue;
 overdue records `hard_stop`. Sticky hard-stop is preserved and still stamped. Ordinary identities
 and malformed records skip independently. Successful stamps emit
-`equipment.containment_class_inspected` with reason `week_close_auto_advance`. See
-`planning/spe-877-week-close-last-inspection-advance-slice.md`.
+`equipment.containment_class_inspected` with reason `week_close_auto_advance`. SPE-2864 widened
+the inspect/deficiency `classId` union to include `pressure_seal`. See
+`planning/spe-877-week-close-last-inspection-advance-slice.md` and
+`planning/spe-877-pressure-seal-containment-class-inspection-slice.md`.
 
 ## Barrier-integrity coupling (SPE-877 child)
 
 Optional `GameState.containmentBarrierIntegrity` is the SPE-1387 / SPE-471 blast-door membrane.
 `applyContainmentClassDeficiency` writes `zone_breach` from hard-stop and `flow_restraint`
 (`barrier_integrity_watch`) from compensating continue. Week-close inspect advance reuses the
-same `persistContainmentBarrierCoupling` helper. Recorded `zone_breach` does not downgrade
+same `persistContainmentBarrierCoupling` helper, which no-ops for non-`blast_door` classes. Recorded `zone_breach` does not downgrade
 on technician relief or SPE-2851 repair. See `architecture/containment-environment-patterns.md`.
 
 ## Compatibility and hydration

@@ -1,10 +1,16 @@
-/** SPE-2860 — frozen blast-door inspection cadence and deficiency stop/continue. */
+/** SPE-2860 / SPE-2864 — frozen containment-class inspection cadence and deficiency stop/continue. */
 
-export const CONTAINMENT_CLASS_IDS = ['blast_door'] as const
+export const CONTAINMENT_CLASS_IDS = ['blast_door', 'pressure_seal'] as const
 export type ContainmentClassId = (typeof CONTAINMENT_CLASS_IDS)[number]
 
 export const BLAST_DOOR_COMPENSATING_CONTROL_ID = 'secondary_interlock_watch' as const
 export type BlastDoorCompensatingControlId = typeof BLAST_DOOR_COMPENSATING_CONTROL_ID
+
+export const PRESSURE_SEAL_COMPENSATING_CONTROL_ID = 'backup_gasket_watch' as const
+export type PressureSealCompensatingControlId = typeof PRESSURE_SEAL_COMPENSATING_CONTROL_ID
+
+export type ContainmentCompensatingControlId =
+  BlastDoorCompensatingControlId | PressureSealCompensatingControlId
 
 export type ContainmentInspectionStatus = 'current' | 'due' | 'overdue'
 
@@ -13,7 +19,7 @@ export type ContainmentDeficiency =
   | { kind: 'hard_stop' }
   | {
       kind: 'compensating_continue'
-      compensatingControlId: BlastDoorCompensatingControlId
+      compensatingControlId: ContainmentCompensatingControlId
     }
 
 export type ContainmentDeficiencyContinuation = 'hard_stop' | 'compensating_continue'
@@ -29,7 +35,7 @@ export interface ContainmentClassCadenceSpec {
   readonly classId: ContainmentClassId
   readonly authoredIntervalWeeks: number
   readonly intensificationCycleBucket: number
-  readonly compensatingControlId: BlastDoorCompensatingControlId
+  readonly compensatingControlId: ContainmentCompensatingControlId
   readonly weekCloseDueContinuation: ContainmentDeficiencyContinuation
   readonly weekCloseOverdueContinuation: ContainmentDeficiencyContinuation
 }
@@ -79,10 +85,24 @@ export const BLAST_DOOR_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.
   weekCloseOverdueContinuation: 'hard_stop',
 })
 
+export const PRESSURE_SEAL_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.freeze({
+  classId: 'pressure_seal',
+  authoredIntervalWeeks: 3,
+  intensificationCycleBucket: 2,
+  compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
+})
+
 const CONTAINMENT_CLASS_CADENCE: Readonly<Record<ContainmentClassId, ContainmentClassCadenceSpec>> =
   Object.freeze({
     blast_door: BLAST_DOOR_CONTAINMENT_CLASS,
+    pressure_seal: PRESSURE_SEAL_CONTAINMENT_CLASS,
   })
+
+const CONTAINMENT_COMPENSATING_CONTROL_ID_SET = new Set<string>(
+  CONTAINMENT_CLASS_IDS.map((classId) => CONTAINMENT_CLASS_CADENCE[classId].compensatingControlId)
+)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -94,6 +114,12 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 
 export function isContainmentClassId(value: unknown): value is ContainmentClassId {
   return typeof value === 'string' && CONTAINMENT_CLASS_ID_SET.has(value)
+}
+
+export function isContainmentCompensatingControlId(
+  value: unknown
+): value is ContainmentCompensatingControlId {
+  return typeof value === 'string' && CONTAINMENT_COMPENSATING_CONTROL_ID_SET.has(value)
 }
 
 export function getContainmentClassCadenceSpec(
@@ -146,7 +172,10 @@ export function containmentClassIntegritiesEqual(
   )
 }
 
-export function parseContainmentDeficiency(value: unknown): ContainmentDeficiency | undefined {
+export function parseContainmentDeficiency(
+  value: unknown,
+  classId?: ContainmentClassId
+): ContainmentDeficiency | undefined {
   if (!isRecord(value) || typeof value.kind !== 'string') return undefined
   if (value.kind === 'none' || value.kind === 'hard_stop') {
     return hasOnlyKeys(value, ['kind']) ? { kind: value.kind } : undefined
@@ -154,13 +183,19 @@ export function parseContainmentDeficiency(value: unknown): ContainmentDeficienc
   if (value.kind !== 'compensating_continue') return undefined
   if (
     !hasOnlyKeys(value, ['kind', 'compensatingControlId']) ||
-    value.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID
+    !isContainmentCompensatingControlId(value.compensatingControlId)
   ) {
     return undefined
   }
+  if (classId !== undefined) {
+    const spec = getContainmentClassCadenceSpec(classId)
+    if (!spec || value.compensatingControlId !== spec.compensatingControlId) {
+      return undefined
+    }
+  }
   return {
     kind: 'compensating_continue',
-    compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+    compensatingControlId: value.compensatingControlId,
   }
 }
 
@@ -185,7 +220,7 @@ export function parseContainmentClassIntegrity(value: unknown): ContainmentInteg
   ) {
     return { ok: false, code: 'malformed_integrity' }
   }
-  const deficiency = parseContainmentDeficiency(value.deficiency)
+  const deficiency = parseContainmentDeficiency(value.deficiency, value.classId)
   if (!deficiency) {
     return { ok: false, code: 'malformed_integrity' }
   }
@@ -308,6 +343,9 @@ export function resolveTechnicianStabilization(existing: unknown): TechnicianSta
     }
   }
   if (deficiency.kind === 'compensating_continue') {
+    if (deficiency.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID) {
+      return { ok: false, code: 'malformed_deficiency' }
+    }
     return { ok: true, deficiency: { kind: 'none' }, cycleDelta: 1 }
   }
   const exhaustive: never = deficiency
@@ -347,7 +385,7 @@ export function evaluateContainmentInspection(input: {
   const existing =
     input.existingDeficiency === undefined
       ? { kind: 'none' as const }
-      : parseContainmentDeficiency(input.existingDeficiency)
+      : parseContainmentDeficiency(input.existingDeficiency, cadence.classId)
   if (!existing) {
     return { ok: false, code: 'invalid_continuation' }
   }

@@ -133,7 +133,7 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
     expect(readContainmentBarrierStatus({ status: 'zone_breach' })).toBe('intact')
     expect(
       parseContainmentClassIntegrity({
-        classId: 'pressure_seal',
+        classId: 'interlock',
         lastInspectionWeek: 1,
         cycleCount: 0,
         deficiency: { kind: 'none' },

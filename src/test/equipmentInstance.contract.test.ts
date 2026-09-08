@@ -2295,7 +2295,7 @@ function blastDoorIntegrity(
 }
 
 describe('SPE-2860 containment-class integrity on equipment instances', () => {
-  it('hydrates compact blast-door integrity and drops unknown or malformed class', () => {
+  it('hydrates compact blast-door and pressure-seal integrity and drops unknown or malformed class', () => {
     const state = createStartingState()
     const result = sanitizeEquipmentInstanceRegistry(
       {
@@ -2312,7 +2312,7 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
           condition: 'operational',
           location: { state: 'stored' },
           containmentIntegrity: {
-            classId: 'pressure_seal',
+            classId: 'interlock',
             lastInspectionWeek: 1,
             cycleCount: 0,
             deficiency: { kind: 'none' },
@@ -2325,12 +2325,30 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
           location: { state: 'stored' },
           containmentIntegrity: { classId: 'blast_door' },
         },
+        'equipment-instance-1-4': {
+          instanceId: 'equipment-instance-1-4',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        },
       },
       state.agents
     )
 
     expect(result.equipmentInstances['equipment-instance-1-1']?.containmentIntegrity).toEqual(
       blastDoorIntegrity()
+    )
+    expect(result.equipmentInstances['equipment-instance-1-4']?.containmentIntegrity).toMatchObject(
+      {
+        classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
+      }
     )
     expect(result.issues).toEqual(
       expect.arrayContaining([
@@ -2447,7 +2465,7 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
     serialized.events.push({
       ...serialized.events.at(-1),
       id: 'evt-malformed-containment',
-      payload: { ...serialized.events.at(-1).payload, classId: 'pressure_seal' },
+      payload: { ...serialized.events.at(-1).payload, classId: 'interlock' },
     })
 
     const hydrated = hydrateGame(serialized)
@@ -2744,6 +2762,25 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
       code: 'stale_transition',
     })
     expect(blast.state.equipmentInstances?.[blast.instance.instanceId]).toEqual(snapshot)
+  })
+
+  it('fails closed for pressure-seal technician stabilization without changing SPE-2862 blast-door semantics', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
+    expect(
+      stabilizeContainmentClassDeficiency(created.state, created.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'invalid_containment_class' })
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
   })
 
   it('hydrates technician stabilization as history without replaying mutations', () => {

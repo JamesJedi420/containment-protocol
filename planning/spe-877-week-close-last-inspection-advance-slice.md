@@ -31,6 +31,8 @@ Same deficiency is idempotent (no second deficiency/barrier event). `cycleCount`
 inventory, lots, and `damagedEquipmentQueue` stay unchanged. Ordinary identities and malformed
 integrity records skip independently. Same-week replay is a no-op once stamped.
 `persistContainmentBarrierCoupling` runs after a successful stamp (same helper as SPE-2860).
+Week-close stamps equipped copies even when the carrier is not idle (`allowNonIdleCarrier`);
+player relocate/repair commands keep the idle lock.
 
 Evaluate and stamp against the **closing week** (`context.sourceState.week`). `advanceQueues`
 runs after `settleWeekState` increments `GameState.week`, so the seam takes the closing week
@@ -61,6 +63,7 @@ replaying mutations. `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` unchanged.
 - `overdue` week-close stamps `lastInspectionWeek` and records hard-stop
 - sticky hard-stop is preserved and still stamped
 - `current` and same-week replay are no-ops
+- equipped copies stamp even when the carrier is not idle
 - ordinary / malformed / inverted-week records fail closed without dropping the instance
 - `cycleCount` and `condition` unchanged
 - first hard-stop still couples SPE-1387 / SPE-471 barrier integrity

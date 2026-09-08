@@ -1118,9 +1118,10 @@ export function applyEquipmentInstanceTransition(
   state: GameState,
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,
-  next: EquipmentInstance
+  next: EquipmentInstance,
+  options?: { allowHardStopRelief?: boolean; allowNonIdleCarrier?: boolean }
 ): EquipmentInstanceMutationResult {
-  return applyEquipmentInstanceTransitionInternal(state, instanceId, expected, next)
+  return applyEquipmentInstanceTransitionInternal(state, instanceId, expected, next, options)
 }
 
 function applyEquipmentInstanceTransitionInternal(
@@ -1128,7 +1129,7 @@ function applyEquipmentInstanceTransitionInternal(
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,
   next: EquipmentInstance,
-  options?: { allowHardStopRelief?: boolean }
+  options?: { allowHardStopRelief?: boolean; allowNonIdleCarrier?: boolean }
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
@@ -1189,9 +1190,18 @@ function applyEquipmentInstanceTransitionInternal(
     next.location,
     instanceId
   )
-  if (locationFailure) return { ok: false, state: normalized, code: locationFailure }
+  if (locationFailure) {
+    if (!(
+      options?.allowNonIdleCarrier &&
+      locationFailure === 'agent_not_idle' &&
+      locationsEqual(current.location, next.location)
+    )) {
+      return { ok: false, state: normalized, code: locationFailure }
+    }
+  }
   if (
     current.location.state === 'equipped' &&
+    !options?.allowNonIdleCarrier &&
     !isIdleAgent(normalized.agents[current.location.agentId])
   ) {
     return { ok: false, state: normalized, code: 'agent_not_idle' }

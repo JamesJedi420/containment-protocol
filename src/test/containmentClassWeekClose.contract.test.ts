@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import {
   instantiateEquipmentInstance,
+  relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
 } from '../domain/equipmentInstance'
 import {
@@ -84,6 +85,51 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     expect(advanced.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
       'operational'
     )
+  })
+
+  it('stamps due last-inspection on equipped blast-door when the carrier is not idle', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const equipped = relocateEquipmentInstance(created.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'secondary',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const trainingState = {
+      ...equipped.state,
+      agents: {
+        ...equipped.state.agents,
+        a_mina: {
+          ...equipped.state.agents.a_mina,
+          assignment: {
+            state: 'training' as const,
+            startedWeek: 1,
+            trainingProgramId: 'analysis-lab',
+          },
+        },
+      },
+    }
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(trainingState)
+    expect(
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+    })
+    expect(advanced.eventDrafts.map((draft) => draft.type)).toEqual([
+      'equipment.containment_class_inspected',
+      'equipment.containment_class_deficiency_recorded',
+    ])
   })
 
   it('stamps overdue last-inspection to hard-stop and couples barrier breach', () => {

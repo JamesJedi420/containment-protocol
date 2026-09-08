@@ -71,10 +71,16 @@ export function advanceContainmentClassInspectionsAtWeekClose(
       lastInspectionWeek: resolved.lastInspectionWeek,
       deficiency: resolved.deficiency,
     })
-    const transitioned = applyEquipmentInstanceTransition(nextState, instanceId, current, {
-      ...current,
-      containmentIntegrity: nextIntegrity,
-    })
+    const transitioned = applyEquipmentInstanceTransition(
+      nextState,
+      instanceId,
+      current,
+      {
+        ...current,
+        containmentIntegrity: nextIntegrity,
+      },
+      { allowNonIdleCarrier: true }
+    )
     if (!transitioned.ok) continue
 
     nextState = persistContainmentBarrierCoupling(

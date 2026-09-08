@@ -124,13 +124,14 @@ export function readContainmentBarrierStatus(value: unknown): ContainmentBarrier
  * hard_stop → zone_breach (catastrophic wall-breach).
  * compensating_continue → flow_restraint (barrier_integrity_watch), not a full breach.
  * Recorded zone_breach never downgrades. SPE-2851 damaged is not an input.
+ * SPE-2864: parse deficiency against `blast_door` so pressure-seal controls fail closed.
  */
 export function resolveContainmentBarrierIntegrityCoupling(input: {
   existing: unknown
   deficiency: unknown
   sourceInstanceId: unknown
 }): ContainmentBarrierCouplingResult {
-  const deficiency = parseContainmentDeficiency(input.deficiency)
+  const deficiency = parseContainmentDeficiency(input.deficiency, 'blast_door')
   if (!deficiency) {
     return { ok: false, code: 'malformed_deficiency' }
   }

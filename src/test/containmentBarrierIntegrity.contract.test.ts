@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
   parseContainmentClassIntegrity,
 } from '../domain/containmentClassInspection'
 import {
@@ -130,6 +131,16 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         sourceDeficiencyKind: 'hard_stop',
       })
     ).toEqual({ ok: false, code: 'malformed_barrier' })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-1',
+      })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
     expect(readContainmentBarrierStatus({ status: 'zone_breach' })).toBe('intact')
     expect(
       parseContainmentClassIntegrity({

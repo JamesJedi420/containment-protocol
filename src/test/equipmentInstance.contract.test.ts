@@ -2764,6 +2764,34 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     expect(blast.state.equipmentInstances?.[blast.instance.instanceId]).toEqual(snapshot)
   })
 
+  it('rejects containment-class relabel through generic instance transitions', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(
+      applyEquipmentInstanceTransition(
+        created.state,
+        created.instance.instanceId,
+        created.instance,
+        {
+          ...created.instance,
+          containmentIntegrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        }
+      )
+    ).toMatchObject({ ok: false, code: 'immutable_identity' })
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(
+      created.instance
+    )
+  })
+
   it('fails closed for pressure-seal technician stabilization without changing SPE-2862 blast-door semantics', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1

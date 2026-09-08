@@ -58,6 +58,7 @@ unchanged.
 | Store/UI inspect or deficiency commands | later SPE-877 child    | Week-close remains the production inspect path        |
 | Ready / stow                            | SPE-1658               | Access-state layer                                    |
 | Salvage / Auto-Scrap                    | SPE-1055 / SPE-2749    | Adjacent                                              |
+| Inspect/deficiency `intervalWeeks` vs authored cadence max | later SPE-877 child | Hydrate keeps event provenance; blast_door already accepts any positive interval |
 
 ## Acceptance
 

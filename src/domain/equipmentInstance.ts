@@ -1176,6 +1176,12 @@ function applyEquipmentInstanceTransitionInternal(
       }
     }
     if (
+      current.containmentIntegrity &&
+      parsed.integrity.classId !== current.containmentIntegrity.classId
+    ) {
+      return { ok: false, state: normalized, code: 'immutable_identity' }
+    }
+    if (
       !options?.allowHardStopRelief &&
       current.containmentIntegrity?.deficiency.kind === 'hard_stop' &&
       parsed.integrity.deficiency.kind !== 'hard_stop'

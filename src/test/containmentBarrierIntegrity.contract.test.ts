@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  INTERLOCK_COMPENSATING_CONTROL_ID,
   PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
   parseContainmentClassIntegrity,
 } from '../domain/containmentClassInspection'
@@ -141,10 +142,20 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         sourceInstanceId: 'equipment-instance-1-1',
       })
     ).toEqual({ ok: false, code: 'malformed_deficiency' })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-1',
+      })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
     expect(readContainmentBarrierStatus({ status: 'zone_breach' })).toBe('intact')
     expect(
       parseContainmentClassIntegrity({
-        classId: 'interlock',
+        classId: 'airlock',
         lastInspectionWeek: 1,
         cycleCount: 0,
         deficiency: { kind: 'none' },

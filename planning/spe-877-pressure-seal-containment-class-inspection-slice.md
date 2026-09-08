@@ -50,7 +50,7 @@ unchanged.
 
 | Item or mechanic                        | Owner or prerequisite  | Reason                                                |
 | --------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| Interlock class                         | later SPE-877 child    | One extra class in this slice                         |
+| Interlock class                         | this SPE-877 child (`planning/spe-877-interlock-containment-class-inspection-slice.md`) | Shipped as the next extra-class child; unknown-class sentinel is now `airlock` |
 | Pressure-seal barrier zone              | later SPE-877 child    | Membrane coupling stays `blast_door` only             |
 | SPE-1027 stock consume of a named part  | SPE-1027 / later child | Suitability stays blast-door-only; no inventory debit |
 | Live workshop integrity mapping         | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                           |

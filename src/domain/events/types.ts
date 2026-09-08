@@ -17,6 +17,10 @@ import type {
 import type { EquipmentGradeId, EquipmentGradeVisibility } from '../equipmentGrade'
 import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGradeFabrication'
 import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
+import type {
+  ContainmentClassId,
+  ContainmentCompensatingControlId,
+} from '../containmentClassInspection'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -515,12 +519,12 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door' | 'pressure_seal'
+    classId: ContainmentClassId
     status: 'due' | 'overdue'
     intervalWeeks: number
     weeksSinceInspection: number
     deficiencyKind: 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch' | 'backup_gasket_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
     reason: 'inspection_cadence_deficiency'
   }
@@ -529,14 +533,14 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door' | 'pressure_seal'
+    classId: ContainmentClassId
     status: 'due' | 'overdue'
     previousLastInspectionWeek: number
     lastInspectionWeek: number
     intervalWeeks: number
     weeksSinceInspection: number
     deficiencyKind: 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch' | 'backup_gasket_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
     reason: 'week_close_auto_advance'
   }

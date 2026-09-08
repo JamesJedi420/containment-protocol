@@ -10,6 +10,7 @@ import {
   type OperationEventSourceSystem,
   type OperationEventType,
 } from '../../domain/models'
+import type { ContainmentClassId } from '../../domain/containmentClassInspection'
 
 export type EventFeedFilters = {
   query: string
@@ -355,12 +356,14 @@ function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss' | 'm
   }
 }
 
-function containmentClassFeedLabel(classId: 'blast_door' | 'pressure_seal') {
+function containmentClassFeedLabel(classId: ContainmentClassId) {
   switch (classId) {
     case 'blast_door':
       return 'Blast door'
     case 'pressure_seal':
       return 'Pressure seal'
+    case 'interlock':
+      return 'Interlock'
     default: {
       const exhaustive: never = classId
       return exhaustive

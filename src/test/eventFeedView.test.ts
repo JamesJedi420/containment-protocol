@@ -763,6 +763,32 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.containment_class_deficiency_recorded — names interlock compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        status: 'due',
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('dual_circuit_watch')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.containment_class_inspected — names blast-door week-close auto-advance', () => {
     const event = makeEvent(
       'equipment.containment_class_inspected',

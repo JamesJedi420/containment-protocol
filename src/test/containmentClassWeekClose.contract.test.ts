@@ -9,6 +9,7 @@ import {
 } from '../domain/equipmentInstance'
 import {
   BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  INTERLOCK_COMPENSATING_CONTROL_ID,
   PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
   isContainmentClassInService,
   type ContainmentClassIntegrity,
@@ -36,6 +37,18 @@ function pressureSealIntegrity(
 ): ContainmentClassIntegrity {
   return {
     classId: 'pressure_seal',
+    lastInspectionWeek: 1,
+    cycleCount: 0,
+    deficiency: { kind: 'none' },
+    ...overrides,
+  }
+}
+
+function interlockIntegrity(
+  overrides: Partial<ContainmentClassIntegrity> = {}
+): ContainmentClassIntegrity {
+  return {
+    classId: 'interlock',
     lastInspectionWeek: 1,
     cycleCount: 0,
     deficiency: { kind: 'none' },
@@ -451,6 +464,115 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     expect(
       hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
     ).toEqual(pressureSealIntegrity())
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toHaveLength(1)
+  })
+
+  it('stamps due interlock last-inspection without coupling blast-door membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 3
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: interlockIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      classId: 'interlock',
+      lastInspectionWeek: 3,
+      cycleCount: 0,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+      },
+    })
+    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(advanced.eventDrafts[0]?.payload).toMatchObject({
+      classId: 'interlock',
+      status: 'due',
+      compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+      reason: 'week_close_auto_advance',
+    })
+  })
+
+  it('stamps overdue interlock to hard-stop without writing blast_door_membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 4
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: interlockIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      classId: 'interlock',
+      lastInspectionWeek: 4,
+      deficiency: { kind: 'hard_stop' },
+    })
+    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('does not let interlock week-close mutate an existing blast-door membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 6
+    const door = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!door.ok) throw new Error(door.code)
+    const breached = advanceContainmentClassInspectionsAtWeekClose(door.state)
+    expect(breached.state.containmentBarrierIntegrity?.status).toBe('zone_breach')
+    const lock = instantiateEquipmentInstance(breached.state, 'ward_seals', {
+      containmentIntegrity: interlockIntegrity({ lastInspectionWeek: 1 }),
+    })
+    if (!lock.ok) throw new Error(lock.code)
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(lock.state)
+    expect(advanced.state.containmentBarrierIntegrity).toEqual(
+      lock.state.containmentBarrierIntegrity
+    )
+    expect(
+      advanced.state.equipmentInstances?.[lock.instance.instanceId]?.containmentIntegrity?.classId
+    ).toBe('interlock')
+  })
+
+  it('hydrates interlock inspect events as history without replaying mutation', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 3
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: interlockIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const withEvents = appendOperationEventDrafts(created.state, [
+      createContainmentClassInspectedDraft({
+        week: 3,
+        instanceId: created.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 3,
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        inService: true,
+        reason: 'week_close_auto_advance',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvents))
+    const hydrated = hydrateGame(serialized)
+    expect(
+      hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toEqual(interlockIntegrity())
     expect(
       hydrated.events.filter((event) => event.type === 'equipment.containment_class_inspected')
     ).toHaveLength(1)

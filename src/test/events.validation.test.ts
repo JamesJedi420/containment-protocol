@@ -143,9 +143,17 @@ describe('event payload validation coverage', () => {
         weeksSinceInspection: 3,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', {
+        ...valid,
+        classId: 'interlock',
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
-      { ...valid, classId: 'interlock' },
+      { ...valid, classId: 'airlock' },
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, status: 'current' },
       { ...valid, inService: true },
@@ -161,8 +169,23 @@ describe('event payload validation coverage', () => {
       },
       {
         ...valid,
+        classId: 'interlock',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+      },
+      {
+        ...valid,
         deficiencyKind: 'compensating_continue',
         compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+      },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
         inService: true,
       },
       { ...valid, extra: true },
@@ -203,6 +226,17 @@ describe('event payload validation coverage', () => {
         compensatingControlId: 'backup_gasket_watch',
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        classId: 'interlock',
+        week: 3,
+        lastInspectionWeek: 3,
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
@@ -223,6 +257,11 @@ describe('event payload validation coverage', () => {
         ...valid,
         compensatingControlId: 'backup_gasket_watch',
       },
+      {
+        ...valid,
+        compensatingControlId: 'dual_circuit_watch',
+      },
+      { ...valid, classId: 'interlock' },
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_inspected', payload).success

@@ -1,12 +1,14 @@
 # SPE-877 child — Additional containment-class inspection kernel (interlock)
 
-| Field               | Value                                                                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**          | **Recently shipped**                                                                                                                                                           |
-| **Linear**          | Child of [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — ID pending Linear create (MCP `needsAuth` this session) |
-| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog**                                                |
-| **Branch**          | `cursor/spe-877-interlock-inspection-kernel-2924`                                                                                                                              |
-| **Base `main` SHA** | `5bd36129a906c252d513505ffb679d3c988f1427`                                                                                                                                     |
+| Field               | Value                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**          | **Recently shipped**                                                                                                            |
+| **Linear**          | [SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock)              |
+| **GitHub issue**    | [#3603](https://github.com/JamesJedi420/containment-protocol/issues/3603)                                                       |
+| **Pull request**    | [#3602](https://github.com/JamesJedi420/containment-protocol/pull/3602)                                                         |
+| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog** |
+| **Branch**          | `cursor/spe-877-interlock-inspection-kernel-2924`                                                                               |
+| **Base `main` SHA** | `5bd36129a906c252d513505ffb679d3c988f1427`                                                                                      |
 
 ## Boundary
 
@@ -48,17 +50,17 @@ class relabel (`immutable_identity`). `GAME_STORE_VERSION` / `GAME_SAVE_VERSION`
 
 ## Deferred
 
-| Item or mechanic                                           | Owner or prerequisite  | Reason                                                                                  |
-| ---------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------- |
-| Interlock barrier zone                                     | later SPE-877 child    | Membrane coupling stays `blast_door` only                                               |
-| Pressure-seal barrier zone                                 | later SPE-877 child    | Membrane coupling stays `blast_door` only                                               |
-| SPE-1027 stock consume of a named part                     | SPE-1027 / later child | Suitability stays blast-door-only; no inventory debit                                   |
-| Live workshop integrity mapping                            | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                                                             |
-| Mutation stations / integrity labor                        | later SPE-877 child    | SPE-113 remains design-only                                                             |
-| Store/UI inspect or deficiency commands                    | later SPE-877 child    | Week-close remains the production inspect path                                          |
-| Ready / stow                                               | SPE-1658               | Access-state layer                                                                      |
-| Salvage / Auto-Scrap                                       | SPE-1055 / SPE-2749    | Adjacent                                                                                |
-| Inspect/deficiency `intervalWeeks` vs authored cadence max | later SPE-877 child    | Hydrate keeps event provenance; authored-max tightening deferred from SPE-2864 Codex P1 |
+| Item or mechanic                                           | Owner or prerequisite                                                                     | Reason                                                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Interlock barrier zone                                     | later SPE-877 child                                                                       | Membrane coupling stays `blast_door` only                                                  |
+| Pressure-seal barrier zone                                 | later SPE-877 child                                                                       | Membrane coupling stays `blast_door` only                                                  |
+| SPE-1027 stock consume of a named part                     | SPE-1027 / later child                                                                    | Suitability stays blast-door-only; no inventory debit                                      |
+| Live workshop integrity mapping                            | [SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping) | Shipped as the next SPE-877 child; this interlock kernel does not compose workshop quality |
+| Mutation stations / integrity labor                        | later SPE-877 child                                                                       | SPE-113 remains design-only                                                                |
+| Store/UI inspect or deficiency commands                    | later SPE-877 child                                                                       | Week-close remains the production inspect path                                             |
+| Ready / stow                                               | SPE-1658                                                                                  | Access-state layer                                                                         |
+| Salvage / Auto-Scrap                                       | SPE-1055 / SPE-2749                                                                       | Adjacent                                                                                   |
+| Inspect/deficiency `intervalWeeks` vs authored cadence max | later SPE-877 child                                                                       | Hydrate keeps event provenance; authored-max tightening deferred from SPE-2864 Codex P1    |
 
 ## Acceptance
 

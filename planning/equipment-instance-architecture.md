@@ -110,7 +110,8 @@ continue with the class-authored control (`secondary_interlock_watch`, `backup_g
 pairings and unknown class records (`airlock`) fail closed. SPE-2851 repair preserves this field
 and does not treat hard-stop as `damaged`. SPE-2861 spare-part suitability gates that repair for
 `blast_door` identities without consuming stock or clearing deficiency. SPE-2864 added
-`pressure_seal`; the SPE-877 interlock child added `interlock`.
+`pressure_seal`; [SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock)
+added `interlock`.
 
 ## Technician stabilization (SPE-2862)
 
@@ -129,7 +130,7 @@ when freshness is `due` or `overdue`. Due records the class-authored compensatin
 overdue records `hard_stop`. Sticky hard-stop is preserved and still stamped. Ordinary identities
 and malformed records skip independently. Successful stamps emit
 `equipment.containment_class_inspected` with reason `week_close_auto_advance`. SPE-2864 widened
-the inspect/deficiency `classId` union to include `pressure_seal`; the SPE-877 interlock child
+the inspect/deficiency `classId` union to include `pressure_seal`; [SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock)
 added `interlock`. See
 `planning/spe-877-week-close-last-inspection-advance-slice.md`,
 `planning/spe-877-pressure-seal-containment-class-inspection-slice.md`, and
@@ -142,6 +143,16 @@ Optional `GameState.containmentBarrierIntegrity` is the SPE-1387 / SPE-471 blast
 (`barrier_integrity_watch`) from compensating continue. Week-close inspect advance reuses the
 same `persistContainmentBarrierCoupling` helper, which no-ops for non-`blast_door` classes. Recorded `zone_breach` does not downgrade
 on technician relief or SPE-2851 repair. See `architecture/containment-environment-patterns.md`.
+
+## Live workshop integrity mapping (SPE-2866)
+
+Authored `department:field-containment` maps one frozen blast-door identity
+(`equipment-instance-blast-door-workshop`) into SPE-2782 `equipmentCondition` at the existing
+week-close completion-registration wrapper. Hard-stop, missing instance, malformed integrity, and
+wrong class resolve `poor`; `none` and compensating continue resolve `good`. Unmapped departments
+keep caller-owned equipment condition. SPE-2851 `condition` is not the mapped signal. Pressure-seal
+and interlock identities do not satisfy this mapping. See
+`planning/spe-877-live-workshop-integrity-mapping-slice.md`.
 
 ## Compatibility and hydration
 
@@ -165,8 +176,11 @@ stabilization (`planning/spe-2862-stabilization-deficiency-clear-slice.md`), bar
 coupling (`planning/spe-barrier-integrity-coupling-slice.md`), and week-close last-inspection
 auto-advance (`planning/spe-877-week-close-last-inspection-advance-slice.md`), SPE-2864
 pressure-seal (`planning/spe-877-pressure-seal-containment-class-inspection-slice.md`), and the
-interlock extra-class child (`planning/spe-877-interlock-containment-class-inspection-slice.md`):
-live workshop mapping and mutation stations remain later children.
+interlock extra-class child ([SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock),
+`planning/spe-877-interlock-containment-class-inspection-slice.md`), and live workshop integrity
+mapping ([SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping),
+`planning/spe-877-live-workshop-integrity-mapping-slice.md`): mutation stations remain a later
+child.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

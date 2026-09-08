@@ -2,6 +2,8 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2866",
+    "SPE-2865",
     "SPE-2864",
     "SPE-2862",
     "SPE-2861",
@@ -11,10 +13,10 @@
     "SPE-2858",
     "SPE-2857",
     "SPE-2856",
-    "SPE-2855",
-    "SPE-2854"
+    "SPE-2855"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-live-workshop-integrity-mapping-slice.md": "Recently shipped",
     "planning/spe-877-interlock-containment-class-inspection-slice.md": "Recently shipped",
     "planning/spe-877-pressure-seal-containment-class-inspection-slice.md": "Recently shipped",
     "planning/spe-877-week-close-last-inspection-advance-slice.md": "Recently shipped",

@@ -1093,6 +1093,112 @@ const equipmentContainmentClassDeficiencyRecordedSchema = z
     }
   })
 
+const equipmentContainmentClassInspectedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: z.literal('blast_door'),
+    status: z.enum(['due', 'overdue']),
+    previousLastInspectionWeek: finitePositiveIntSchema,
+    lastInspectionWeek: finitePositiveIntSchema,
+    intervalWeeks: finitePositiveIntSchema,
+    weeksSinceInspection: finiteNonNegativeIntSchema,
+    deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    inService: z.boolean(),
+    reason: z.literal('week_close_auto_advance'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'containment inspect instance must reference a known equipment catalog definition',
+      })
+    }
+    if (payload.lastInspectionWeek !== payload.week) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['lastInspectionWeek'],
+        message: 'week-close inspect stamps lastInspectionWeek to the closing week',
+      })
+    }
+    if (payload.previousLastInspectionWeek >= payload.lastInspectionWeek) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['previousLastInspectionWeek'],
+        message: 'previousLastInspectionWeek must be earlier than the stamped week',
+      })
+    }
+    if (
+      payload.weeksSinceInspection !==
+      payload.lastInspectionWeek - payload.previousLastInspectionWeek
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message:
+          'weeksSinceInspection must equal lastInspectionWeek minus previousLastInspectionWeek',
+      })
+    }
+    if (payload.status === 'due' && payload.weeksSinceInspection !== payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'due events require weeksSinceInspection to equal intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.weeksSinceInspection <= payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.deficiencyKind !== 'hard_stop') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deficiencyKind'],
+        message: 'overdue week-close inspect records hard_stop',
+      })
+    }
+    if (payload.deficiencyKind === 'compensating_continue') {
+      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'compensating continue requires secondary_interlock_watch',
+        })
+      }
+      if (payload.inService !== true) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['inService'],
+          message: 'compensating continue remains in-service',
+        })
+      }
+      return
+    }
+    if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'hard-stop cannot carry a compensating control',
+      })
+    }
+    if (payload.inService !== false) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'hard-stop is not in-service',
+      })
+    }
+  })
+
 const equipmentContainmentClassStabilizedSchema = z
   .object({
     week: weekSchema,
@@ -1955,6 +2061,7 @@ export const operationEventPayloadSchemas = {
   'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
   'equipment.containment_class_deficiency_recorded':
     equipmentContainmentClassDeficiencyRecordedSchema,
+  'equipment.containment_class_inspected': equipmentContainmentClassInspectedSchema,
   'equipment.containment_class_stabilized': equipmentContainmentClassStabilizedSchema,
   'equipment.containment_barrier_integrity_changed':
     equipmentContainmentBarrierIntegrityChangedSchema,

@@ -30,6 +30,8 @@ export interface ContainmentClassCadenceSpec {
   readonly authoredIntervalWeeks: number
   readonly intensificationCycleBucket: number
   readonly compensatingControlId: BlastDoorCompensatingControlId
+  readonly weekCloseDueContinuation: ContainmentDeficiencyContinuation
+  readonly weekCloseOverdueContinuation: ContainmentDeficiencyContinuation
 }
 
 export type ContainmentCadenceFailureCode =
@@ -73,6 +75,8 @@ export const BLAST_DOOR_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.
   authoredIntervalWeeks: 4,
   intensificationCycleBucket: 2,
   compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
 })
 
 const CONTAINMENT_CLASS_CADENCE: Readonly<Record<ContainmentClassId, ContainmentClassCadenceSpec>> =
@@ -388,5 +392,95 @@ export function evaluateContainmentInspection(input: {
     weeksSinceInspection,
     deficiency: resolved.deficiency,
     inService: resolved.deficiency.kind !== 'hard_stop',
+  }
+}
+
+export type ContainmentWeekCloseInspectionResult =
+  | { ok: true; action: 'noop' }
+  | {
+      ok: true
+      action: 'advance'
+      classId: ContainmentClassId
+      status: Exclude<ContainmentInspectionStatus, 'current'>
+      previousLastInspectionWeek: number
+      lastInspectionWeek: number
+      intervalWeeks: number
+      weeksSinceInspection: number
+      previousDeficiency: ContainmentDeficiency
+      deficiency: Exclude<ContainmentDeficiency, { kind: 'none' }>
+      deficiencyChanged: boolean
+      inService: boolean
+    }
+  | { ok: false; code: ContainmentCadenceFailureCode }
+
+export function resolveWeekCloseInspectionContinuation(
+  spec: ContainmentClassCadenceSpec,
+  status: Exclude<ContainmentInspectionStatus, 'current'>
+): ContainmentDeficiencyContinuation {
+  switch (status) {
+    case 'due':
+      return spec.weekCloseDueContinuation
+    case 'overdue':
+      return spec.weekCloseOverdueContinuation
+    default: {
+      const exhaustive: never = status
+      return exhaustive
+    }
+  }
+}
+
+export function resolveContainmentClassWeekCloseInspection(input: {
+  classId: unknown
+  lastInspectionWeek: unknown
+  currentWeek: unknown
+  cycleCount: unknown
+  existingDeficiency?: unknown
+}): ContainmentWeekCloseInspectionResult {
+  const evaluation = evaluateContainmentInspection({
+    classId: input.classId,
+    lastInspectionWeek: input.lastInspectionWeek,
+    currentWeek: input.currentWeek,
+    cycleCount: input.cycleCount,
+    existingDeficiency: input.existingDeficiency,
+  })
+  if (!evaluation.ok) return evaluation
+  if (evaluation.status === 'current') {
+    return { ok: true, action: 'noop' }
+  }
+
+  const spec = getContainmentClassCadenceSpec(evaluation.classId)
+  if (!spec) return { ok: false, code: 'missing_cadence' }
+
+  const previousLastInspectionWeek = parsePositiveSafeInteger(input.lastInspectionWeek)
+  const currentWeek = parsePositiveSafeInteger(input.currentWeek)
+  if (previousLastInspectionWeek === undefined || currentWeek === undefined) {
+    return { ok: false, code: 'invalid_weeks' }
+  }
+
+  const existing = evaluation.deficiency
+  const continuation = resolveWeekCloseInspectionContinuation(spec, evaluation.status)
+  const proposed = deficiencyFromContinuation(continuation, spec)
+  let next: Exclude<ContainmentDeficiency, { kind: 'none' }>
+  if (existing.kind === 'hard_stop') {
+    next = { kind: 'hard_stop' }
+  } else {
+    const resolved = resolveStickyContainmentDeficiency(existing, proposed)
+    if (!resolved.ok) return resolved
+    next = resolved.deficiency
+  }
+
+  return {
+    ok: true,
+    action: 'advance',
+    classId: evaluation.classId,
+    status: evaluation.status,
+    previousLastInspectionWeek,
+    lastInspectionWeek: currentWeek,
+    intervalWeeks: evaluation.intervalWeeks,
+    weeksSinceInspection: evaluation.weeksSinceInspection,
+    previousDeficiency: existing,
+    deficiency: next,
+    deficiencyChanged: !containmentDeficienciesEqual(existing, next),
+    inService: next.kind !== 'hard_stop',
   }
 }

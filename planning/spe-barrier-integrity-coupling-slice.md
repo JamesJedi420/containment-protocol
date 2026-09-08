@@ -34,15 +34,15 @@ Malformed barrier records drop independently. Fail-closed missing/malformed clas
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite  | Reason                                          |
-| --------------------------------------------- | ---------------------- | ----------------------------------------------- |
-| Week-close last-inspection auto-advance       | later SPE-877 child    | Schema kernel already shipped in SPE-2860       |
-| Additional classes (pressure seal, interlock) | later SPE-877 child    | One class in this slice                         |
-| SPE-1027 stock consume of the named part      | SPE-1027 / later child | Suitability already shipped; no inventory debit |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                     |
-| Mutation stations / integrity labor           | later SPE-877 child    | SPE-113 remains design-only                     |
-| Ready / stow                                  | SPE-1658               | Access-state layer                              |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749    | Adjacent                                        |
+| Item or mechanic                              | Owner or prerequisite  | Reason                                                         |
+| --------------------------------------------- | ---------------------- | -------------------------------------------------------------- |
+| Week-close last-inspection auto-advance       | shipped SPE-877 child  | `planning/spe-877-week-close-last-inspection-advance-slice.md` |
+| Additional classes (pressure seal, interlock) | later SPE-877 child    | One class in this slice                                        |
+| SPE-1027 stock consume of the named part      | SPE-1027 / later child | Suitability already shipped; no inventory debit                |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                                    |
+| Mutation stations / integrity labor           | later SPE-877 child    | SPE-113 remains design-only                                    |
+| Ready / stow                                  | SPE-1658               | Access-state layer                                             |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749    | Adjacent                                                       |
 
 ## Acceptance
 
@@ -52,7 +52,7 @@ Malformed barrier records drop independently. Fail-closed missing/malformed clas
 - SPE-2851 `damaged` is not a breach; ordinary identities fail closed
 - Fail-closed missing / malformed class and malformed barrier records
 - Barrier event hydrates as history without replaying mutation
-- Parent SPE-877 remains Backlog (week-close inspect, extra classes, workshop adapter, mutation stations remain)
+- Parent SPE-877 remains Backlog (extra classes, workshop adapter, mutation stations remain)
 
 ## Linear issue body
 

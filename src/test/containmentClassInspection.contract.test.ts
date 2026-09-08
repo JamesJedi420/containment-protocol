@@ -9,6 +9,7 @@ import {
   resolveContainmentInspectionCadence,
   resolveStickyContainmentDeficiency,
   resolveTechnicianStabilization,
+  resolveContainmentClassWeekCloseInspection,
 } from '../domain/containmentClassInspection'
 
 describe('SPE-2860 containment-class inspection cadence', () => {
@@ -18,6 +19,8 @@ describe('SPE-2860 containment-class inspection cadence', () => {
     expect(BLAST_DOOR_CONTAINMENT_CLASS.compensatingControlId).toBe(
       BLAST_DOOR_COMPENSATING_CONTROL_ID
     )
+    expect(BLAST_DOOR_CONTAINMENT_CLASS.weekCloseDueContinuation).toBe('compensating_continue')
+    expect(BLAST_DOOR_CONTAINMENT_CLASS.weekCloseOverdueContinuation).toBe('hard_stop')
   })
 
   it('intensifies cadence from cycle history and stays deterministic', () => {
@@ -236,5 +239,92 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
         }
       )
     ).toEqual({ ok: false, code: 'invalid_continuation' })
+  })
+})
+
+describe('SPE-877 week-close last-inspection resolver', () => {
+  it('no-ops while inspection is current', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        currentWeek: 4,
+        cycleCount: 0,
+      })
+    ).toEqual({ ok: true, action: 'noop' })
+  })
+
+  it('stamps due inspections to compensating continue', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        currentWeek: 5,
+        cycleCount: 0,
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      status: 'due',
+      previousLastInspectionWeek: 1,
+      lastInspectionWeek: 5,
+      weeksSinceInspection: 4,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+      deficiencyChanged: true,
+      inService: true,
+    })
+  })
+
+  it('stamps overdue inspections to hard-stop', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        currentWeek: 6,
+        cycleCount: 0,
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      status: 'overdue',
+      lastInspectionWeek: 6,
+      deficiency: { kind: 'hard_stop' },
+      deficiencyChanged: true,
+      inService: false,
+    })
+  })
+
+  it('keeps sticky hard-stop and still stamps last inspection', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        currentWeek: 5,
+        cycleCount: 0,
+        existingDeficiency: { kind: 'hard_stop' },
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      status: 'due',
+      lastInspectionWeek: 5,
+      deficiency: { kind: 'hard_stop' },
+      deficiencyChanged: false,
+      inService: false,
+    })
+  })
+
+  it('fails closed for inverted weeks', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'blast_door',
+        lastInspectionWeek: 8,
+        currentWeek: 5,
+        cycleCount: 0,
+      })
+    ).toEqual({ ok: false, code: 'inverted_weeks' })
   })
 })

@@ -737,6 +737,36 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('danger')
   })
 
+  it('equipment.containment_class_inspected — names blast-door week-close auto-advance', () => {
+    const event = makeEvent(
+      'equipment.containment_class_inspected',
+      {
+        week: 5,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        reason: 'week_close_auto_advance',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class inspected')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Last inspection 1 → 5')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.containment_class_stabilized — names blast-door hard-stop relief', () => {
     const event = makeEvent(
       'equipment.containment_class_stabilized',

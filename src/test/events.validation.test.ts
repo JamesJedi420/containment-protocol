@@ -152,6 +152,46 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates containment-class week-close inspect provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_class_inspected']
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', valid).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        status: 'overdue',
+        week: 6,
+        lastInspectionWeek: 6,
+        weeksSinceInspection: 5,
+        deficiencyKind: 'hard_stop',
+        compensatingControlId: undefined,
+        inService: false,
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, status: 'current' },
+      { ...valid, lastInspectionWeek: 4 },
+      { ...valid, previousLastInspectionWeek: 5 },
+      { ...valid, inService: false },
+      { ...valid, extra: true },
+      {
+        ...valid,
+        status: 'overdue',
+        week: 6,
+        lastInspectionWeek: 6,
+        weeksSinceInspection: 5,
+      },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_class_inspected', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates containment-class technician stabilization provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.containment_class_stabilized']
     expect(

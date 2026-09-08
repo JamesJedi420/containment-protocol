@@ -515,12 +515,12 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: 'blast_door' | 'pressure_seal'
     status: 'due' | 'overdue'
     intervalWeeks: number
     weeksSinceInspection: number
     deficiencyKind: 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: 'secondary_interlock_watch' | 'backup_gasket_watch'
     inService: boolean
     reason: 'inspection_cadence_deficiency'
   }
@@ -529,14 +529,14 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: 'blast_door' | 'pressure_seal'
     status: 'due' | 'overdue'
     previousLastInspectionWeek: number
     lastInspectionWeek: number
     intervalWeeks: number
     weeksSinceInspection: number
     deficiencyKind: 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: 'secondary_interlock_watch' | 'backup_gasket_watch'
     inService: boolean
     reason: 'week_close_auto_advance'
   }

@@ -1,5 +1,5 @@
 /**
- * SPE-877 week-close last-inspection auto-advance for frozen blast-door integrity.
+ * SPE-877 week-close last-inspection auto-advance for frozen containment-class integrity.
  */
 
 import type { GameState } from './models'
@@ -26,9 +26,7 @@ export interface ContainmentClassWeekCloseResult {
   eventDrafts: AnyOperationEventDraft[]
 }
 
-function compensatingControlIdFor(
-  deficiency: Exclude<ContainmentDeficiency, { kind: 'none' }>
-): 'secondary_interlock_watch' | undefined {
+function compensatingControlIdFor(deficiency: Exclude<ContainmentDeficiency, { kind: 'none' }>) {
   return deficiency.kind === 'compensating_continue' ? deficiency.compensatingControlId : undefined
 }
 
@@ -97,7 +95,7 @@ export function advanceContainmentClassInspectionsAtWeekClose(
         instanceId,
         definitionId: current.definitionId,
         definitionName: definition.name,
-        classId: 'blast_door',
+        classId: parsed.integrity.classId,
         status: resolved.status,
         previousLastInspectionWeek: resolved.previousLastInspectionWeek,
         lastInspectionWeek: resolved.lastInspectionWeek,
@@ -116,7 +114,7 @@ export function advanceContainmentClassInspectionsAtWeekClose(
           instanceId,
           definitionId: current.definitionId,
           definitionName: definition.name,
-          classId: 'blast_door',
+          classId: parsed.integrity.classId,
           status: resolved.status,
           intervalWeeks: resolved.intervalWeeks,
           weeksSinceInspection: resolved.weeksSinceInspection,

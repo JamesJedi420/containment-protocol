@@ -48,15 +48,15 @@ an explicit hard-stop-relief allowance used only by this command. Generic transi
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite  | Reason                                                         |
-| --------------------------------------------- | ---------------------- | -------------------------------------------------------------- |
-| Breach / `barrier_integrity` propagation      | shipped SPE-877 child  | `planning/spe-barrier-integrity-coupling-slice.md`             |
-| Additional classes (pressure seal, interlock) | later SPE-877 child    | One class in this slice                                        |
-| Week-close last-inspection auto-advance       | shipped SPE-877 child  | `planning/spe-877-week-close-last-inspection-advance-slice.md` |
-| SPE-1027 stock consume of the named part      | SPE-1027 / later child | Suitability already shipped; no inventory debit                |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                                    |
-| Ready / stow                                  | SPE-1658               | Access-state layer                                             |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749    | Adjacent                                                       |
+| Item or mechanic                              | Owner or prerequisite                                                                                          | Reason                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Breach / `barrier_integrity` propagation      | shipped SPE-877 child                                                                                          | `planning/spe-barrier-integrity-coupling-slice.md`              |
+| Additional classes (pressure seal, interlock) | [SPE-2864](https://linear.app/spectranoir/issue/SPE-2864) pressure seal shipped; interlock later SPE-877 child | One extra class per child; this slice shipped `blast_door` only |
+| Week-close last-inspection auto-advance       | shipped SPE-877 child                                                                                          | `planning/spe-877-week-close-last-inspection-advance-slice.md`  |
+| SPE-1027 stock consume of the named part      | SPE-1027 / later child                                                                                         | Suitability already shipped; no inventory debit                 |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                                                                             | SPE-2782 stays caller-owned                                     |
+| Ready / stow                                  | SPE-1658                                                                                                       | Access-state layer                                              |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                                                                            | Adjacent                                                        |
 
 ## Acceptance
 

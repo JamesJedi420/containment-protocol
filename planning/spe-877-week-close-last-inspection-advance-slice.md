@@ -47,16 +47,16 @@ replaying mutations. `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` unchanged.
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite  | Reason                                                                               |
-| --------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
-| Additional classes (pressure seal, interlock) | later SPE-877 child    | One class in this slice                                                              |
-| SPE-1027 stock consume of the named part      | SPE-1027 / later child | Suitability already shipped; no inventory debit                                      |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                                                          |
-| Mutation stations / integrity labor           | later SPE-877 child    | SPE-113 remains design-only                                                          |
-| Store/UI inspect or deficiency commands       | later SPE-877 child    | Week-close is the production inspect path                                            |
-| Barrier-change event from shared writer       | later SPE-877 child    | `persistContainmentBarrierCoupling` writes state without an event (same as SPE-2860) |
-| Ready / stow                                  | SPE-1658               | Access-state layer                                                                   |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749    | Adjacent                                                                             |
+| Item or mechanic                              | Owner or prerequisite                                                                                          | Reason                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Additional classes (pressure seal, interlock) | [SPE-2864](https://linear.app/spectranoir/issue/SPE-2864) pressure seal shipped; interlock later SPE-877 child | One extra class per child; this slice shipped `blast_door` only                      |
+| SPE-1027 stock consume of the named part      | SPE-1027 / later child                                                                                         | Suitability already shipped; no inventory debit                                      |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                                                                             | SPE-2782 stays caller-owned                                                          |
+| Mutation stations / integrity labor           | later SPE-877 child                                                                                            | SPE-113 remains design-only                                                          |
+| Store/UI inspect or deficiency commands       | later SPE-877 child                                                                                            | Week-close is the production inspect path                                            |
+| Barrier-change event from shared writer       | later SPE-877 child                                                                                            | `persistContainmentBarrierCoupling` writes state without an event (same as SPE-2860) |
+| Ready / stow                                  | SPE-1658                                                                                                       | Access-state layer                                                                   |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                                                                            | Adjacent                                                                             |
 
 ## Acceptance
 

@@ -2,6 +2,7 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2864",
     "SPE-2862",
     "SPE-2861",
     "SPE-2860",
@@ -12,10 +13,10 @@
     "SPE-2856",
     "SPE-2855",
     "SPE-2854",
-    "SPE-2853",
-    "SPE-2852"
+    "SPE-2853"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-pressure-seal-containment-class-inspection-slice.md": "Recently shipped",
     "planning/spe-877-week-close-last-inspection-advance-slice.md": "Recently shipped",
     "planning/spe-barrier-integrity-coupling-slice.md": "Recently shipped",
     "planning/spe-2862-stabilization-deficiency-clear-slice.md": "Recently shipped",

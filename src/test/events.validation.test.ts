@@ -135,13 +135,36 @@ describe('event payload validation coverage', () => {
         inService: true,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', {
+        ...valid,
+        classId: 'pressure_seal',
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
-      { ...valid, classId: 'pressure_seal' },
+      { ...valid, classId: 'interlock' },
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, status: 'current' },
       { ...valid, inService: true },
       { ...valid, compensatingControlId: 'secondary_interlock_watch' },
+      {
+        ...valid,
+        classId: 'pressure_seal',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+      },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+      },
       { ...valid, extra: true },
       { ...valid, weeksSinceInspection: 0 },
     ]) {
@@ -169,6 +192,17 @@ describe('event payload validation coverage', () => {
         inService: false,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        classId: 'pressure_seal',
+        week: 4,
+        lastInspectionWeek: 4,
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+        compensatingControlId: 'backup_gasket_watch',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
@@ -184,6 +218,10 @@ describe('event payload validation coverage', () => {
         week: 6,
         lastInspectionWeek: 6,
         weeksSinceInspection: 5,
+      },
+      {
+        ...valid,
+        compensatingControlId: 'backup_gasket_watch',
       },
     ]) {
       expect(

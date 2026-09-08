@@ -355,6 +355,19 @@ function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss' | 'm
   }
 }
 
+function containmentClassFeedLabel(classId: 'blast_door' | 'pressure_seal') {
+  switch (classId) {
+    case 'blast_door':
+      return 'Blast door'
+    case 'pressure_seal':
+      return 'Pressure seal'
+    default: {
+      const exhaustive: never = classId
+      return exhaustive
+    }
+  }
+}
+
 function getSpawnTriggerLabel(
   trigger:
     | 'failure'
@@ -998,6 +1011,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
       }
 
     case 'equipment.containment_class_deficiency_recorded': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const deficiencyLabel =
         event.payload.deficiencyKind === 'hard_stop'
           ? 'Hard stop'
@@ -1006,17 +1020,18 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment deficiency recorded`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.status} / ${deficiencyLabel}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / ${deficiencyLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
       }
     }
 
     case 'equipment.containment_class_inspected': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const deficiencyLabel =
         event.payload.deficiencyKind === 'hard_stop'
           ? 'Hard stop'
@@ -1025,13 +1040,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment class inspected`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.status} / Last inspection ${event.payload.previousLastInspectionWeek} → ${event.payload.lastInspectionWeek} / ${deficiencyLabel}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / Last inspection ${event.payload.previousLastInspectionWeek} → ${event.payload.lastInspectionWeek} / ${deficiencyLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door week-close auto-advance ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} week-close auto-advance ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

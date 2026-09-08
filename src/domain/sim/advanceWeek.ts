@@ -243,6 +243,7 @@ import {
 } from './production'
 import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
 import { applyEquipmentAutoScrapAtWeekClose } from '../equipmentAutoScrap'
+import { advanceContainmentClassInspectionsAtWeekClose } from '../containmentClassWeekClose'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -4079,6 +4080,13 @@ function advanceQueues(context: WeeklyExecutionContext) {
   context.eventDrafts.push(...productionResult.eventDrafts)
 
   context.nextState = applyEquipmentAutoScrapAtWeekClose(context.nextState)
+
+  const containmentInspection = advanceContainmentClassInspectionsAtWeekClose(
+    context.nextState,
+    context.sourceState.week
+  )
+  context.nextState = containmentInspection.state
+  context.eventDrafts.push(...containmentInspection.eventDrafts)
 
   const equipmentRecoveryResult = advanceEquipmentDeconstructionQueues(context.nextState)
   context.nextState = equipmentRecoveryResult.state

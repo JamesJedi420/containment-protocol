@@ -909,7 +909,7 @@ export function applyContainmentClassDeficiency(
   }
 }
 
-function persistContainmentBarrierCoupling(
+export function persistContainmentBarrierCoupling(
   state: GameState,
   instanceId: EquipmentInstanceId,
   deficiency: ContainmentClassIntegrity['deficiency']

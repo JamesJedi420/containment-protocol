@@ -38,16 +38,16 @@ Deficiency kind does **not** select a different part. Hard-stop, compensating co
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite                                     | Reason                                              |
-| --------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
-| Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862) | Hard-stop stays sticky; repair must not clear it    |
-| Breach / `barrier_integrity` propagation      | shipped SPE-877 child                                     | `planning/spe-barrier-integrity-coupling-slice.md`  |
-| Additional classes (pressure seal, interlock) | later SPE-877 child                                       | One named part / one class in this slice            |
-| Week-close last-inspection auto-advance       | later SPE-877 child                                       | Schema kernel already shipped in SPE-2860           |
-| SPE-1027 stock consume of the named part      | SPE-1027 / later child                                    | This child is suitability only — no inventory debit |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028                                        | SPE-2782 stays caller-owned                         |
-| Ready / stow                                  | SPE-1658                                                  | Access-state layer                                  |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                       | Adjacent                                            |
+| Item or mechanic                              | Owner or prerequisite                                     | Reason                                                         |
+| --------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862) | Hard-stop stays sticky; repair must not clear it               |
+| Breach / `barrier_integrity` propagation      | shipped SPE-877 child                                     | `planning/spe-barrier-integrity-coupling-slice.md`             |
+| Additional classes (pressure seal, interlock) | later SPE-877 child                                       | One named part / one class in this slice                       |
+| Week-close last-inspection auto-advance       | shipped SPE-877 child                                     | `planning/spe-877-week-close-last-inspection-advance-slice.md` |
+| SPE-1027 stock consume of the named part      | SPE-1027 / later child                                    | This child is suitability only — no inventory debit            |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                        | SPE-2782 stays caller-owned                                    |
+| Ready / stow                                  | SPE-1658                                                  | Access-state layer                                             |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                       | Adjacent                                                       |
 
 ## Acceptance
 

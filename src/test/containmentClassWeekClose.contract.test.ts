@@ -1,0 +1,278 @@
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
+import {
+  instantiateEquipmentInstance,
+  repairStoredEquipmentInstanceCondition,
+} from '../domain/equipmentInstance'
+import {
+  BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  isContainmentClassInService,
+  type ContainmentClassIntegrity,
+} from '../domain/containmentClassInspection'
+import { advanceContainmentClassInspectionsAtWeekClose } from '../domain/containmentClassWeekClose'
+import { advanceWeek } from '../domain/sim/advanceWeek'
+import { appendOperationEventDrafts } from '../domain/events'
+import { createContainmentClassInspectedDraft } from '../domain/events/eventBus'
+import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
+
+function blastDoorIntegrity(
+  overrides: Partial<ContainmentClassIntegrity> = {}
+): ContainmentClassIntegrity {
+  return {
+    classId: 'blast_door',
+    lastInspectionWeek: 1,
+    cycleCount: 0,
+    deficiency: { kind: 'none' },
+    ...overrides,
+  }
+}
+
+describe('SPE-877 week-close last-inspection auto-advance', () => {
+  it('no-ops current blast-door integrity and ordinary identities', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.inventory.signal_jammers = 1
+    const ordinary = instantiateEquipmentInstance(state, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const created = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(advanced.state).toBe(created.state)
+    expect(advanced.eventDrafts).toEqual([])
+    expect(
+      created.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toEqual(blastDoorIntegrity())
+  })
+
+  it('stamps due last-inspection and records compensating continue', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    const integrity =
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    expect(integrity).toMatchObject({
+      lastInspectionWeek: 5,
+      cycleCount: 0,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+    })
+    expect(isContainmentClassInService(integrity)).toBe(true)
+    expect(advanced.state.containmentBarrierIntegrity?.status).toBe('flow_restraint')
+    expect(advanced.eventDrafts.map((draft) => draft.type)).toEqual([
+      'equipment.containment_class_inspected',
+      'equipment.containment_class_deficiency_recorded',
+    ])
+    expect(advanced.eventDrafts[0]?.payload).toMatchObject({
+      status: 'due',
+      previousLastInspectionWeek: 1,
+      lastInspectionWeek: 5,
+      reason: 'week_close_auto_advance',
+    })
+    expect(advanceContainmentClassInspectionsAtWeekClose(advanced.state).eventDrafts).toEqual([])
+    expect(advanced.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+  })
+
+  it('stamps overdue last-inspection to hard-stop and couples barrier breach', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 6
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 6,
+      deficiency: { kind: 'hard_stop' },
+    })
+    expect(advanced.state.containmentBarrierIntegrity).toMatchObject({
+      status: 'zone_breach',
+      sourceDeficiencyKind: 'hard_stop',
+    })
+  })
+
+  it('keeps sticky hard-stop, stamps last inspection, and skips a second deficiency event', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(
+      advanced.state.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      cycleCount: 0,
+      deficiency: { kind: 'hard_stop' },
+    })
+    expect(advanced.eventDrafts.map((draft) => draft.type)).toEqual([
+      'equipment.containment_class_inspected',
+    ])
+  })
+
+  it('skips inverted-week and malformed integrity without dropping the instance', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 3
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ lastInspectionWeek: 8 }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    expect(advanced.eventDrafts).toEqual([])
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
+
+    const malformedState = {
+      ...created.state,
+      equipmentInstances: {
+        ...created.state.equipmentInstances,
+        [created.instance.instanceId]: {
+          ...snapshot,
+          containmentIntegrity: {
+            classId: 'blast_door',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+            extra: true,
+          },
+        },
+      },
+    }
+    const skipped = advanceContainmentClassInspectionsAtWeekClose(malformedState)
+    expect(skipped.eventDrafts).toEqual([])
+    expect(skipped.state.equipmentInstances?.[created.instance.instanceId]).toEqual(
+      malformedState.equipmentInstances?.[created.instance.instanceId]
+    )
+  })
+
+  it('does not let SPE-2851 repair clear week-close hard-stop', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 6
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      advanced.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: { deficiency: { kind: 'hard_stop' }, lastInspectionWeek: 6 },
+      },
+    })
+  })
+
+  it('advances due blast-door integrity through advanceWeek and no-ops the next close', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const closed = advanceWeek(created.state)
+    const integrity = closed.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    expect(closed.week).toBe(6)
+    expect(integrity).toMatchObject({
+      lastInspectionWeek: 5,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+    })
+    expect(
+      closed.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toMatchObject([
+      {
+        payload: {
+          week: 5,
+          lastInspectionWeek: 5,
+          previousLastInspectionWeek: 1,
+          status: 'due',
+          reason: 'week_close_auto_advance',
+        },
+      },
+    ])
+
+    const second = advanceWeek(closed)
+    expect(second.week).toBe(7)
+    expect(
+      second.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+        ?.lastInspectionWeek
+    ).toBe(5)
+    expect(
+      second.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toHaveLength(1)
+  })
+
+  it('hydrates week-close inspect events as history without replaying mutation', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const withEvents = appendOperationEventDrafts(created.state, [
+      createContainmentClassInspectedDraft({
+        week: 5,
+        instanceId: created.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        inService: true,
+        reason: 'week_close_auto_advance',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvents))
+    serialized.events.push({
+      ...serialized.events.at(-1),
+      id: 'evt-malformed-inspect',
+      payload: { ...serialized.events.at(-1).payload, classId: 'pressure_seal' },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(
+      hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toEqual(blastDoorIntegrity())
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toHaveLength(1)
+  })
+})

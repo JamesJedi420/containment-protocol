@@ -219,6 +219,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
   'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
   'equipment.containment_class_deficiency_recorded': 'Containment Class Deficiency Recorded',
+  'equipment.containment_class_inspected': 'Containment Class Inspected',
   'equipment.containment_class_stabilized': 'Containment Class Stabilized',
   'equipment.containment_barrier_integrity_changed': 'Containment Barrier Integrity Changed',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
@@ -294,6 +295,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_reaggregated': 'operations_logistics',
   'equipment.instance_condition_repaired': 'operations_logistics',
   'equipment.containment_class_deficiency_recorded': 'operations_logistics',
+  'equipment.containment_class_inspected': 'operations_logistics',
   'equipment.containment_class_stabilized': 'operations_logistics',
   'equipment.containment_barrier_integrity_changed': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
@@ -1011,6 +1013,25 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
           `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_class_inspected': {
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment class inspected`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.status} / Last inspection ${event.payload.previousLastInspectionWeek} → ${event.payload.lastInspectionWeek} / ${deficiencyLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door week-close auto-advance ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

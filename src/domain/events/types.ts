@@ -524,6 +524,22 @@ export interface OperationEventPayloadMap {
     inService: boolean
     reason: 'inspection_cadence_deficiency'
   }
+  'equipment.containment_class_inspected': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: 'blast_door'
+    status: 'due' | 'overdue'
+    previousLastInspectionWeek: number
+    lastInspectionWeek: number
+    intervalWeeks: number
+    weeksSinceInspection: number
+    deficiencyKind: 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: 'secondary_interlock_watch'
+    inService: boolean
+    reason: 'week_close_auto_advance'
+  }
   'equipment.containment_class_stabilized': {
     week: number
     instanceId: Id
@@ -933,6 +949,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.instance_reaggregated': 'agent'
   'equipment.instance_condition_repaired': 'agent'
   'equipment.containment_class_deficiency_recorded': 'agent'
+  'equipment.containment_class_inspected': 'agent'
   'equipment.containment_class_stabilized': 'agent'
   'equipment.containment_barrier_integrity_changed': 'agent'
   'equipment.combat_stim_activated': 'agent'
@@ -1007,6 +1024,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.instance_reaggregated': 'agent',
   'equipment.instance_condition_repaired': 'agent',
   'equipment.containment_class_deficiency_recorded': 'agent',
+  'equipment.containment_class_inspected': 'agent',
   'equipment.containment_class_stabilized': 'agent',
   'equipment.containment_barrier_integrity_changed': 'agent',
   'equipment.combat_stim_activated': 'agent',

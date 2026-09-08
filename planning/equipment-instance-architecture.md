@@ -120,11 +120,21 @@ compensating continue to `none`. Each success increments `cycleCount` by 1 so ca
 Successful stabilization hydrates as `equipment.containment_class_stabilized` history without
 replaying the mutation.
 
+## Week-close last-inspection (SPE-877 child)
+
+`advanceContainmentClassInspectionsAtWeekClose` stamps `lastInspectionWeek` to the closing week
+when freshness is `due` or `overdue`. Due records compensating `secondary_interlock_watch`;
+overdue records `hard_stop`. Sticky hard-stop is preserved and still stamped. Ordinary identities
+and malformed records skip independently. Successful stamps emit
+`equipment.containment_class_inspected` with reason `week_close_auto_advance`. See
+`planning/spe-877-week-close-last-inspection-advance-slice.md`.
+
 ## Barrier-integrity coupling (SPE-877 child)
 
 Optional `GameState.containmentBarrierIntegrity` is the SPE-1387 / SPE-471 blast-door membrane.
 `applyContainmentClassDeficiency` writes `zone_breach` from hard-stop and `flow_restraint`
-(`barrier_integrity_watch`) from compensating continue. Recorded `zone_breach` does not downgrade
+(`barrier_integrity_watch`) from compensating continue. Week-close inspect advance reuses the
+same `persistContainmentBarrierCoupling` helper. Recorded `zone_breach` does not downgrade
 on technician relief or SPE-2851 repair. See `architecture/containment-environment-patterns.md`.
 
 ## Compatibility and hydration
@@ -145,8 +155,9 @@ SPE-1027 / SPE-867. Readiness/access remains SPE-1658. SPE-877 still owns the in
 program after SPE-2851's stored condition flip, SPE-2860's blast-door inspection kernel
 (`planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`), SPE-2861 spare-part
 suitability (`planning/spe-spare-part-suitability-repair-slice.md`), SPE-2862 technician
-stabilization (`planning/spe-2862-stabilization-deficiency-clear-slice.md`), and barrier-integrity
-coupling (`planning/spe-barrier-integrity-coupling-slice.md`): week-close inspect advance, extra
+stabilization (`planning/spe-2862-stabilization-deficiency-clear-slice.md`), barrier-integrity
+coupling (`planning/spe-barrier-integrity-coupling-slice.md`), and week-close last-inspection
+auto-advance (`planning/spe-877-week-close-last-inspection-advance-slice.md`): extra
 classes, live workshop mapping, and mutation stations remain later children.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique

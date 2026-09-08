@@ -3,6 +3,8 @@ import {
   BLAST_DOOR_COMPENSATING_CONTROL_ID,
   BLAST_DOOR_CONTAINMENT_CLASS,
   CONTAINMENT_CLASS_IDS,
+  INTERLOCK_COMPENSATING_CONTROL_ID,
+  INTERLOCK_CONTAINMENT_CLASS,
   PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
   PRESSURE_SEAL_CONTAINMENT_CLASS,
   evaluateContainmentInspection,
@@ -15,8 +17,8 @@ import {
 } from '../domain/containmentClassInspection'
 
 describe('SPE-2860 containment-class inspection cadence', () => {
-  it('exposes blast_door and pressure_seal as frozen classes', () => {
-    expect(CONTAINMENT_CLASS_IDS).toEqual(['blast_door', 'pressure_seal'])
+  it('exposes blast_door, pressure_seal, and interlock as frozen classes', () => {
+    expect(CONTAINMENT_CLASS_IDS).toEqual(['blast_door', 'pressure_seal', 'interlock'])
     expect(BLAST_DOOR_CONTAINMENT_CLASS.authoredIntervalWeeks).toBe(4)
     expect(BLAST_DOOR_CONTAINMENT_CLASS.compensatingControlId).toBe(
       BLAST_DOOR_COMPENSATING_CONTROL_ID
@@ -29,6 +31,12 @@ describe('SPE-2860 containment-class inspection cadence', () => {
     )
     expect(PRESSURE_SEAL_CONTAINMENT_CLASS.weekCloseDueContinuation).toBe('compensating_continue')
     expect(PRESSURE_SEAL_CONTAINMENT_CLASS.weekCloseOverdueContinuation).toBe('hard_stop')
+    expect(INTERLOCK_CONTAINMENT_CLASS.authoredIntervalWeeks).toBe(2)
+    expect(INTERLOCK_CONTAINMENT_CLASS.compensatingControlId).toBe(
+      INTERLOCK_COMPENSATING_CONTROL_ID
+    )
+    expect(INTERLOCK_CONTAINMENT_CLASS.weekCloseDueContinuation).toBe('compensating_continue')
+    expect(INTERLOCK_CONTAINMENT_CLASS.weekCloseOverdueContinuation).toBe('hard_stop')
   })
 
   it('intensifies cadence from cycle history and stays deterministic', () => {
@@ -149,11 +157,11 @@ describe('SPE-2860 containment-class inspection cadence', () => {
   })
 
   it('fails closed for missing, malformed, and unknown class', () => {
-    expect(resolveContainmentInspectionCadence('interlock', 0)).toEqual({
+    expect(resolveContainmentInspectionCadence('airlock', 0)).toEqual({
       ok: false,
       code: 'invalid_class',
     })
-    expect(resolveContainmentInspectionCadence('interlock', 1)).toEqual({
+    expect(resolveContainmentInspectionCadence('airlock', 1)).toEqual({
       ok: false,
       code: 'invalid_class',
     })
@@ -183,7 +191,7 @@ describe('SPE-2860 containment-class inspection cadence', () => {
     })
     expect(
       parseContainmentClassIntegrity({
-        classId: 'interlock',
+        classId: 'airlock',
         lastInspectionWeek: 1,
         cycleCount: 0,
         deficiency: { kind: 'none' },
@@ -552,6 +560,230 @@ describe('SPE-2864 pressure-seal containment-class inspection kernel', () => {
       action: 'advance',
       status: 'due',
       lastInspectionWeek: 4,
+      deficiency: { kind: 'hard_stop' },
+      deficiencyChanged: false,
+      inService: false,
+    })
+  })
+})
+
+describe('SPE-877 interlock containment-class inspection kernel', () => {
+  it('intensifies cadence from cycle history and stays deterministic', () => {
+    expect(resolveContainmentInspectionCadence('interlock', 0)).toEqual({
+      ok: true,
+      classId: 'interlock',
+      intervalWeeks: 2,
+    })
+    expect(resolveContainmentInspectionCadence('interlock', 2)).toEqual({
+      ok: true,
+      classId: 'interlock',
+      intervalWeeks: 1,
+    })
+    expect(resolveContainmentInspectionCadence('interlock', 2)).toEqual(
+      resolveContainmentInspectionCadence('interlock', 2)
+    )
+    expect(resolveContainmentInspectionCadence('interlock', 100)).toEqual({
+      ok: true,
+      classId: 'interlock',
+      intervalWeeks: 1,
+    })
+  })
+
+  it('maps current, due, and overdue from weeks since inspection', () => {
+    expect(
+      evaluateContainmentInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 2,
+        cycleCount: 0,
+      })
+    ).toMatchObject({ ok: true, status: 'current', deficiency: { kind: 'none' }, inService: true })
+    expect(
+      evaluateContainmentInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 3,
+        cycleCount: 0,
+        continuation: 'hard_stop',
+      })
+    ).toMatchObject({
+      ok: true,
+      status: 'due',
+      deficiency: { kind: 'hard_stop' },
+      inService: false,
+    })
+    expect(
+      evaluateContainmentInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 4,
+        cycleCount: 0,
+        continuation: 'compensating_continue',
+      })
+    ).toMatchObject({
+      ok: true,
+      status: 'overdue',
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+      },
+      inService: true,
+    })
+  })
+
+  it('keeps hard-stop sticky against compensating continuation', () => {
+    expect(
+      evaluateContainmentInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 4,
+        cycleCount: 0,
+        existingDeficiency: { kind: 'hard_stop' },
+        continuation: 'compensating_continue',
+      })
+    ).toEqual({ ok: false, code: 'invalid_continuation' })
+    expect(
+      isContainmentClassInService({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toBe(false)
+  })
+
+  it('hydrates valid interlock integrity and rejects mixed class/control pairings', () => {
+    expect(
+      parseContainmentClassIntegrity({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      })
+    ).toMatchObject({
+      ok: true,
+      integrity: { classId: 'interlock', deficiency: { kind: 'none' } },
+    })
+    expect(
+      parseContainmentClassIntegrity({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toMatchObject({
+      ok: true,
+      integrity: {
+        classId: 'interlock',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+      },
+    })
+    expect(
+      parseContainmentClassIntegrity({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({ ok: false, code: 'malformed_integrity' })
+    expect(
+      parseContainmentClassIntegrity({
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({ ok: false, code: 'malformed_integrity' })
+    expect(
+      parseContainmentClassIntegrity({
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({ ok: false, code: 'malformed_integrity' })
+    expect(
+      evaluateContainmentInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 3,
+        cycleCount: 0,
+        existingDeficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({ ok: false, code: 'invalid_continuation' })
+  })
+
+  it('stamps due inspections to compensating continue and overdue to hard-stop', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 3,
+        cycleCount: 0,
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      classId: 'interlock',
+      status: 'due',
+      lastInspectionWeek: 3,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+      },
+      deficiencyChanged: true,
+      inService: true,
+    })
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 4,
+        cycleCount: 0,
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      status: 'overdue',
+      lastInspectionWeek: 4,
+      deficiency: { kind: 'hard_stop' },
+      deficiencyChanged: true,
+      inService: false,
+    })
+  })
+
+  it('keeps sticky hard-stop and still stamps last inspection', () => {
+    expect(
+      resolveContainmentClassWeekCloseInspection({
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        currentWeek: 3,
+        cycleCount: 0,
+        existingDeficiency: { kind: 'hard_stop' },
+      })
+    ).toMatchObject({
+      ok: true,
+      action: 'advance',
+      status: 'due',
+      lastInspectionWeek: 3,
       deficiency: { kind: 'hard_stop' },
       deficiencyChanged: false,
       inService: false,

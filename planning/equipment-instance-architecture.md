@@ -103,13 +103,14 @@ fabricated-lot return path; repair itself does not choose that path.
 ## Containment-class inspection (SPE-2860)
 
 Optional `containmentIntegrity` on an instance is a separate axis from `condition`. Frozen
-classes are `blast_door` and `pressure_seal`: inspection freshness is derived from last-inspection
+classes are `blast_door`, `pressure_seal`, and `interlock`: inspection freshness is derived from last-inspection
 week plus history-intensified cadence; deficiency is `hard_stop` (not in-service) or compensating
-continue with the class-authored control (`secondary_interlock_watch` or `backup_gasket_watch`).
-Compensating continue cannot clear a later hard-stop. Mixed class/control pairings and unknown
-class records fail closed. SPE-2851 repair preserves this field and does not treat hard-stop as
-`damaged`. SPE-2861 spare-part suitability gates that repair for `blast_door` identities without
-consuming stock or clearing deficiency. SPE-2864 added `pressure_seal`; interlock remains later.
+continue with the class-authored control (`secondary_interlock_watch`, `backup_gasket_watch`, or
+`dual_circuit_watch`). Compensating continue cannot clear a later hard-stop. Mixed class/control
+pairings and unknown class records (`airlock`) fail closed. SPE-2851 repair preserves this field
+and does not treat hard-stop as `damaged`. SPE-2861 spare-part suitability gates that repair for
+`blast_door` identities without consuming stock or clearing deficiency. SPE-2864 added
+`pressure_seal`; the SPE-877 interlock child added `interlock`.
 
 ## Technician stabilization (SPE-2862)
 
@@ -128,9 +129,11 @@ when freshness is `due` or `overdue`. Due records the class-authored compensatin
 overdue records `hard_stop`. Sticky hard-stop is preserved and still stamped. Ordinary identities
 and malformed records skip independently. Successful stamps emit
 `equipment.containment_class_inspected` with reason `week_close_auto_advance`. SPE-2864 widened
-the inspect/deficiency `classId` union to include `pressure_seal`. See
-`planning/spe-877-week-close-last-inspection-advance-slice.md` and
-`planning/spe-877-pressure-seal-containment-class-inspection-slice.md`.
+the inspect/deficiency `classId` union to include `pressure_seal`; the SPE-877 interlock child
+added `interlock`. See
+`planning/spe-877-week-close-last-inspection-advance-slice.md`,
+`planning/spe-877-pressure-seal-containment-class-inspection-slice.md`, and
+`planning/spe-877-interlock-containment-class-inspection-slice.md`.
 
 ## Barrier-integrity coupling (SPE-877 child)
 

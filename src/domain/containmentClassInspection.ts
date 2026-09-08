@@ -1,6 +1,6 @@
-/** SPE-2860 / SPE-2864 — frozen containment-class inspection cadence and deficiency stop/continue. */
+/** SPE-2860 / SPE-2864 / SPE-877 — frozen containment-class inspection cadence and deficiency stop/continue. */
 
-export const CONTAINMENT_CLASS_IDS = ['blast_door', 'pressure_seal'] as const
+export const CONTAINMENT_CLASS_IDS = ['blast_door', 'pressure_seal', 'interlock'] as const
 export type ContainmentClassId = (typeof CONTAINMENT_CLASS_IDS)[number]
 
 export const BLAST_DOOR_COMPENSATING_CONTROL_ID = 'secondary_interlock_watch' as const
@@ -9,8 +9,13 @@ export type BlastDoorCompensatingControlId = typeof BLAST_DOOR_COMPENSATING_CONT
 export const PRESSURE_SEAL_COMPENSATING_CONTROL_ID = 'backup_gasket_watch' as const
 export type PressureSealCompensatingControlId = typeof PRESSURE_SEAL_COMPENSATING_CONTROL_ID
 
+export const INTERLOCK_COMPENSATING_CONTROL_ID = 'dual_circuit_watch' as const
+export type InterlockCompensatingControlId = typeof INTERLOCK_COMPENSATING_CONTROL_ID
+
 export type ContainmentCompensatingControlId =
-  BlastDoorCompensatingControlId | PressureSealCompensatingControlId
+  | BlastDoorCompensatingControlId
+  | PressureSealCompensatingControlId
+  | InterlockCompensatingControlId
 
 export type ContainmentInspectionStatus = 'current' | 'due' | 'overdue'
 
@@ -94,10 +99,20 @@ export const PRESSURE_SEAL_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Obje
   weekCloseOverdueContinuation: 'hard_stop',
 })
 
+export const INTERLOCK_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.freeze({
+  classId: 'interlock',
+  authoredIntervalWeeks: 2,
+  intensificationCycleBucket: 2,
+  compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
+})
+
 const CONTAINMENT_CLASS_CADENCE: Readonly<Record<ContainmentClassId, ContainmentClassCadenceSpec>> =
   Object.freeze({
     blast_door: BLAST_DOOR_CONTAINMENT_CLASS,
     pressure_seal: PRESSURE_SEAL_CONTAINMENT_CLASS,
+    interlock: INTERLOCK_CONTAINMENT_CLASS,
   })
 
 const CONTAINMENT_COMPENSATING_CONTROL_ID_SET = new Set<string>(

@@ -18,7 +18,11 @@ import { CASE_KINDS, CASE_MODES } from '../models'
 import { EQUIPMENT_GRADE_IDS } from '../equipmentGrade'
 import { EQUIPMENT_AUTO_SCRAP_REASON_CODES } from '../equipmentAutoScrapReasonCodes'
 import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGradeFabrication'
-import { getContainmentClassCadenceSpec, isContainmentClassId } from '../containmentClassInspection'
+import {
+  CONTAINMENT_CLASS_IDS,
+  getContainmentClassCadenceSpec,
+  isContainmentClassId,
+} from '../containmentClassInspection'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -34,10 +38,11 @@ const finiteNumberSchema = z.number().finite()
 const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
 const factionStandingValueSchema = z.number().finite().int().min(-20).max(20)
 const factionReputationValueSchema = z.number().finite().int().min(-100).max(100)
-const containmentClassIdSchema = z.enum(['blast_door', 'pressure_seal'])
+const containmentClassIdSchema = z.enum(CONTAINMENT_CLASS_IDS)
 const containmentCompensatingControlIdSchema = z.enum([
   'secondary_interlock_watch',
   'backup_gasket_watch',
+  'dual_circuit_watch',
 ])
 const trimmedNonblankTextSchema = z
   .string()

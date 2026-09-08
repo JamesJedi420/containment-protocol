@@ -12,10 +12,10 @@
     "SPE-2857",
     "SPE-2856",
     "SPE-2855",
-    "SPE-2854",
-    "SPE-2853"
+    "SPE-2854"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-interlock-containment-class-inspection-slice.md": "Recently shipped",
     "planning/spe-877-pressure-seal-containment-class-inspection-slice.md": "Recently shipped",
     "planning/spe-877-week-close-last-inspection-advance-slice.md": "Recently shipped",
     "planning/spe-barrier-integrity-coupling-slice.md": "Recently shipped",

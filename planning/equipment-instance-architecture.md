@@ -163,8 +163,10 @@ program after SPE-2851's stored condition flip, SPE-2860's blast-door inspection
 suitability (`planning/spe-spare-part-suitability-repair-slice.md`), SPE-2862 technician
 stabilization (`planning/spe-2862-stabilization-deficiency-clear-slice.md`), barrier-integrity
 coupling (`planning/spe-barrier-integrity-coupling-slice.md`), and week-close last-inspection
-auto-advance (`planning/spe-877-week-close-last-inspection-advance-slice.md`): extra
-classes, live workshop mapping, and mutation stations remain later children.
+auto-advance (`planning/spe-877-week-close-last-inspection-advance-slice.md`), SPE-2864
+pressure-seal (`planning/spe-877-pressure-seal-containment-class-inspection-slice.md`), and the
+interlock extra-class child (`planning/spe-877-interlock-containment-class-inspection-slice.md`):
+live workshop mapping and mutation stations remain later children.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

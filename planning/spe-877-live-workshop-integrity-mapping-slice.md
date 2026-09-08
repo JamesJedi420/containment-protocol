@@ -73,6 +73,7 @@ Targeted tests cover authored mapping; none / compensating continue / hard-stop 
 | SPE-1027 stock consume of a named part                           | SPE-1027 / later child | Suitability stays blast-door-only                         |
 | Additional live quality axes (staff, reagent, input, dependency) | SPE-1028 / SPE-2771    | This child owns only the equipment axis                   |
 | Mapping additional containment classes into workshop quality     | later SPE-877 child    | This slice is blast-door only                             |
+| Seed or materialize `equipment-instance-blast-door-workshop`     | later SPE-877 child    | Mapping fail-closes missing instance (`poor`); `instantiateEquipmentInstance` still allocates `equipment-instance-${week}-${ordinal}`; no startingState seed or save-version bump in this child |
 
 ## Parent disposition
 

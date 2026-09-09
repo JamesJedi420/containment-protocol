@@ -6,7 +6,7 @@
 
 ## Runtime first child (SPE-877)
 
-One authored station is live: `blast_door_integrity_bench`. `applyBlastDoorIntegrityLabor` mutates a stored `blast_door` identity in place (`stationMutation` + `cycleCount` +1) without replacing the instance ID. Full SPE-113 tags, operators, black-market legality, and curse catalog remain design-only. See `planning/spe-877-mutation-stations-integrity-labor-slice.md`.
+One authored station is live: `blast_door_integrity_bench`. `applyBlastDoorIntegrityLabor` mutates a stored `blast_door` identity in place (`stationMutation` + `cycleCount` +1) without replacing the instance ID. Catalog re-aggregation and fabricated ordinary return-to-lot fail closed when that stamp is present so rematerialize cannot orphan history onto a new UUID. Hydration drops stamps that are not on a parsed `blast_door` identity. Full SPE-113 tags, operators, black-market legality, and curse catalog remain design-only. See `planning/spe-877-mutation-stations-integrity-labor-slice.md`.
 
 ## Station contract
 

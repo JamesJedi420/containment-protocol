@@ -327,6 +327,14 @@ describe('event payload validation coverage', () => {
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, cycleCount: 0 },
       { ...valid, deficiencyKind: 'hard_stop', compensatingControlId: 'secondary_interlock_watch' },
+      { ...valid, deficiencyKind: 'hard_stop', inService: true },
+      { ...valid, inService: false },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: false,
+      },
       { ...valid, extra: true },
     ]) {
       expect(

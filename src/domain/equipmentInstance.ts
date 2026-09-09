@@ -95,6 +95,7 @@ export type EquipmentInstanceFailureCode =
   | 'payload_destruction_unsupported'
   | 'payload_reaggregation_unsupported'
   | 'condition_reaggregation_unsupported'
+  | 'station_mutation_reaggregation_unsupported'
   | 'condition_already_operational'
   | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
@@ -329,6 +330,15 @@ function validatePersistedLocation(
   }
 }
 
+function stationMutationClassFailure(
+  stationMutation: EquipmentInstanceStationMutation | undefined,
+  containmentIntegrity: ContainmentClassIntegrity | undefined
+): EquipmentInstanceFailureCode | undefined {
+  if (!stationMutation) return undefined
+  if (containmentIntegrity?.classId === 'blast_door') return undefined
+  return 'malformed_station_mutation'
+}
+
 function validateInstance(
   value: unknown,
   key: string,
@@ -399,6 +409,10 @@ function validateInstance(
       return { valid: false, code: 'malformed_station_mutation' }
     }
     stationMutation = parsedMutation.mutation
+  }
+  const stampClassFailure = stationMutationClassFailure(stationMutation, containmentIntegrity)
+  if (stampClassFailure) {
+    return { valid: false, code: stampClassFailure }
   }
 
   return {
@@ -690,6 +704,9 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
+  }
+  if (instance.stationMutation !== undefined) {
+    return { ok: false, state: normalized, code: 'station_mutation_reaggregation_unsupported' }
   }
   if (instance.condition !== 'operational') {
     return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
@@ -1263,6 +1280,13 @@ function applyEquipmentInstanceTransitionInternal(
   if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
   }
+  const currentStampFailure = stationMutationClassFailure(
+    current.stationMutation,
+    current.containmentIntegrity
+  )
+  if (currentStampFailure) {
+    return { ok: false, state: normalized, code: currentStampFailure }
+  }
   if (!fabricationOriginsEqual(current.fabricationOrigin, next.fabricationOrigin)) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
   }
@@ -1318,6 +1342,10 @@ function applyEquipmentInstanceTransitionInternal(
       return { ok: false, state: normalized, code: 'station_mutation_already_applied' }
     }
     stationMutation = parsedMutation.mutation
+  }
+  const stampClassFailure = stationMutationClassFailure(stationMutation, containmentIntegrity)
+  if (stampClassFailure) {
+    return { ok: false, state: normalized, code: stampClassFailure }
   }
   if (
     current.definitionId === COMBAT_STIM_DEFINITION_ID &&

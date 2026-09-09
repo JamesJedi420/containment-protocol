@@ -24,7 +24,7 @@ import type {
 } from './equipmentGradeRecovery'
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 import type { EquipmentInstanceRegistry } from './equipmentInstance'
-import type { ContainmentBarrierIntegrity } from './containmentBarrierIntegrity'
+import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2788,10 +2788,12 @@ export interface GameState {
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**
-   * SPE-877 barrier-integrity coupling: frozen blast-door membrane status (SPE-1387 / SPE-471).
-   * Omit hydrates as intact. Recorded zone_breach does not downgrade.
+   * SPE-877 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
+   * `blast_door_membrane` and `pressure_seal_membrane` are independent. Omit hydrates as intact.
+   * Legacy singular blast-door records hydrate into the keyed shape. Recorded zone_breach does not
+   * downgrade. Interlock has no zone this child.
    */
-  containmentBarrierIntegrity?: ContainmentBarrierIntegrity
+  containmentBarrierIntegrity?: ContainmentBarrierIntegrityRegistry
   /**
    * Canonical weekly maintenance backlog of damaged equipment item IDs.
    * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.

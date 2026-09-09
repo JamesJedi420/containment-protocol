@@ -8,9 +8,12 @@ import {
 import {
   BLAST_DOOR_MEMBRANE_ZONE_ID,
   BARRIER_INTEGRITY_WATCH_CONTROL_ID,
+  PRESSURE_SEAL_MEMBRANE_ZONE_ID,
   parseContainmentBarrierIntegrity,
+  parseContainmentBarrierIntegrityRegistry,
   readContainmentBarrierStatus,
   resolveContainmentBarrierIntegrityCoupling,
+  zoneIdForContainmentClass,
 } from '../domain/containmentBarrierIntegrity'
 
 describe('SPE-877 barrier-integrity coupling kernel', () => {
@@ -161,5 +164,121 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         deficiency: { kind: 'none' },
       })
     ).toEqual({ ok: false, code: 'invalid_class' })
+  })
+
+  it('couples pressure-seal into its own zone and leaves blast-door membrane untouched', () => {
+    expect(zoneIdForContainmentClass('pressure_seal')).toBe(PRESSURE_SEAL_MEMBRANE_ZONE_ID)
+    expect(zoneIdForContainmentClass('interlock')).toBeUndefined()
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        classId: 'pressure_seal',
+        deficiency: { kind: 'hard_stop' },
+        sourceInstanceId: 'equipment-instance-1-3',
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'intact',
+      changed: true,
+      barrier: {
+        zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: 'equipment-instance-1-3',
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        classId: 'pressure_seal',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-3',
+      })
+    ).toMatchObject({
+      ok: true,
+      changed: true,
+      barrier: {
+        zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+      },
+    })
+    const blastDoorBreach = {
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach' as const,
+      sourceInstanceId: 'equipment-instance-1-1',
+      sourceDeficiencyKind: 'hard_stop' as const,
+    }
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: blastDoorBreach,
+        classId: 'pressure_seal',
+        deficiency: { kind: 'hard_stop' },
+        sourceInstanceId: 'equipment-instance-1-3',
+      })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: blastDoorBreach,
+        classId: 'interlock',
+        deficiency: { kind: 'hard_stop' },
+        sourceInstanceId: 'equipment-instance-1-4',
+      })
+    ).toMatchObject({ ok: true, changed: false })
+  })
+
+  it('hydrates a keyed registry, legacy singular blast-door, and drops malformed extra-class independently', () => {
+    const blastDoor = {
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach' as const,
+      sourceInstanceId: 'equipment-instance-1-1',
+      sourceDeficiencyKind: 'hard_stop' as const,
+    }
+    const pressureSeal = {
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint' as const,
+      sourceInstanceId: 'equipment-instance-1-3',
+      sourceDeficiencyKind: 'compensating_continue' as const,
+    }
+    expect(parseContainmentBarrierIntegrityRegistry(blastDoor)).toEqual({
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
+    })
+    expect(
+      parseContainmentBarrierIntegrityRegistry({
+        [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
+        [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal,
+      })
+    ).toEqual({
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
+      [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal,
+    })
+    expect(
+      parseContainmentBarrierIntegrityRegistry({
+        [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
+        [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: {
+          zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+          status: 'zone_breach',
+          sourceInstanceId: 'equipment-instance-1-3',
+          sourceDeficiencyKind: 'hard_stop',
+        },
+      })
+    ).toEqual({ [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor })
+    expect(
+      parseContainmentBarrierIntegrityRegistry({
+        [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: { status: 'zone_breach' },
+      })
+    ).toBeUndefined()
+    expect(readContainmentBarrierStatus({ [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal })).toBe(
+      'intact'
+    )
+    expect(
+      readContainmentBarrierStatus(
+        { [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal },
+        PRESSURE_SEAL_MEMBRANE_ZONE_ID
+      )
+    ).toBe('flow_restraint')
   })
 })

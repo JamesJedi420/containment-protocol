@@ -47,7 +47,10 @@ import {
   isContainmentClassInService,
   type ContainmentClassIntegrity,
 } from '../domain/containmentClassInspection'
-import { BLAST_DOOR_MEMBRANE_ZONE_ID } from '../domain/containmentBarrierIntegrity'
+import {
+  BLAST_DOOR_MEMBRANE_ZONE_ID,
+  PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+} from '../domain/containmentBarrierIntegrity'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
 import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../domain/equipmentStationMutation'
 
@@ -3502,10 +3505,12 @@ describe('SPE-877 barrier-integrity coupling', () => {
       instance: { containmentIntegrity: { deficiency: { kind: 'hard_stop' } } },
       state: {
         containmentBarrierIntegrity: {
-          zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
-          status: 'zone_breach',
-          sourceInstanceId: created.instance.instanceId,
-          sourceDeficiencyKind: 'hard_stop',
+          [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+            zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+            status: 'zone_breach',
+            sourceInstanceId: created.instance.instanceId,
+            sourceDeficiencyKind: 'hard_stop',
+          },
         },
       },
     })
@@ -3528,13 +3533,17 @@ describe('SPE-877 barrier-integrity coupling', () => {
       ok: true,
       state: {
         containmentBarrierIntegrity: {
-          status: 'flow_restraint',
-          sourceDeficiencyKind: 'compensating_continue',
+          [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+            status: 'flow_restraint',
+            sourceDeficiencyKind: 'compensating_continue',
+          },
         },
       },
     })
     if (!continued.ok) throw new Error(continued.code)
-    expect(continued.state.containmentBarrierIntegrity?.status).not.toBe('zone_breach')
+    expect(
+      continued.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status
+    ).not.toBe('zone_breach')
   })
 
   it('does not let SPE-2862 relief silently close a recorded zone breach', () => {
@@ -3564,8 +3573,10 @@ describe('SPE-877 barrier-integrity coupling', () => {
       },
       state: {
         containmentBarrierIntegrity: {
-          status: 'zone_breach',
-          sourceDeficiencyKind: 'hard_stop',
+          [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+            status: 'zone_breach',
+            sourceDeficiencyKind: 'hard_stop',
+          },
         },
       },
     })
@@ -3613,15 +3624,19 @@ describe('SPE-877 barrier-integrity coupling', () => {
     )
     if (!stopped.ok) throw new Error(stopped.code)
     expect(stopped.state.containmentBarrierIntegrity).toEqual({
-      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
-      status: 'zone_breach',
-      sourceInstanceId: created.instance.instanceId,
-      sourceDeficiencyKind: 'hard_stop',
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: created.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
     })
 
     const hydrated = hydrateGame(JSON.parse(JSON.stringify(stopped.state)))
     expect(hydrated.containmentBarrierIntegrity).toEqual(stopped.state.containmentBarrierIntegrity)
-    expect(hydrated.containmentBarrierIntegrity?.status).toBe('zone_breach')
+    expect(hydrated.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status).toBe(
+      'zone_breach'
+    )
   })
 
   it('hydrates the barrier event as history without replaying mutation', () => {
@@ -3676,5 +3691,192 @@ describe('SPE-877 barrier-integrity coupling', () => {
     expect(
       hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
     ).toEqual(blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }))
+  })
+
+  it('propagates pressure-seal hard-stop into pressure_seal_membrane without writing blast_door_membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    expect(stopped).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'hard_stop' } } },
+    })
+    if (!stopped.ok) throw new Error(stopped.code)
+    expect(stopped.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toBeUndefined()
+    expect(stopped.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: created.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
+  })
+
+  it('writes pressure-seal compensating continue as flow-restraint on its own zone', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 4
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const continued = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!continued.ok) throw new Error(continued.code)
+    expect(
+      continued.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(
+      continued.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toMatchObject({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+  })
+
+  it('does not clobber a recorded blast-door breach when pressure-seal writes its zone', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 6
+    const door = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!door.ok) throw new Error(door.code)
+    const breached = applyContainmentClassDeficiency(
+      door.state,
+      door.instance.instanceId,
+      'hard_stop'
+    )
+    if (!breached.ok) throw new Error(breached.code)
+    const blastDoorRecord =
+      breached.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    expect(blastDoorRecord?.status).toBe('zone_breach')
+    const seal = instantiateEquipmentInstance(breached.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!seal.ok) throw new Error(seal.code)
+    const stopped = applyContainmentClassDeficiency(
+      seal.state,
+      seal.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+    expect(stopped.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual(
+      blastDoorRecord
+    )
+    expect(
+      stopped.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]?.status
+    ).toBe('zone_breach')
+  })
+
+  it('does not couple interlock deficiency into either authored membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 4
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    expect(stopped).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'hard_stop' } } },
+    })
+    if (!stopped.ok) throw new Error(stopped.code)
+    expect(stopped.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('hydrates a legacy singular blast-door record into the keyed registry', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const serialized = JSON.parse(JSON.stringify(created.state))
+    serialized.containmentBarrierIntegrity = {
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: created.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    }
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.containmentBarrierIntegrity).toEqual({
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: created.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    })
+  })
+
+  it('drops a malformed extra-class zone independently of a valid blast-door membrane', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const serialized = JSON.parse(JSON.stringify(created.state))
+    serialized.containmentBarrierIntegrity = {
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: created.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
+      [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: created.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    }
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.containmentBarrierIntegrity).toEqual({
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: created.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    })
   })
 })

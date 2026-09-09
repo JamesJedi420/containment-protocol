@@ -48,17 +48,17 @@ unchanged.
 
 ## Deferred
 
-| Item or mechanic                        | Owner or prerequisite  | Reason                                                |
-| --------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| Interlock class                         | this SPE-877 child (`planning/spe-877-interlock-containment-class-inspection-slice.md`) | Shipped as the next extra-class child; unknown-class sentinel is now `airlock` |
-| Pressure-seal barrier zone              | later SPE-877 child    | Membrane coupling stays `blast_door` only             |
-| SPE-1027 stock consume of a named part  | SPE-1027 / later child | Suitability stays blast-door-only; no inventory debit |
-| Live workshop integrity mapping         | SPE-877 / SPE-1028     | SPE-2782 stays caller-owned                           |
-| Mutation stations / integrity labor     | later SPE-877 child    | SPE-113 remains design-only                           |
-| Store/UI inspect or deficiency commands | later SPE-877 child    | Week-close remains the production inspect path        |
-| Ready / stow                            | SPE-1658               | Access-state layer                                    |
-| Salvage / Auto-Scrap                    | SPE-1055 / SPE-2749    | Adjacent                                              |
-| Inspect/deficiency `intervalWeeks` vs authored cadence max | later SPE-877 child | Hydrate keeps event provenance; blast_door already accepts any positive interval |
+| Item or mechanic                                           | Owner or prerequisite                                                                   | Reason                                                                           |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Interlock class                                            | this SPE-877 child (`planning/spe-877-interlock-containment-class-inspection-slice.md`) | Shipped as the next extra-class child; unknown-class sentinel is now `airlock`   |
+| Pressure-seal barrier zone                                 | this SPE-877 child (`planning/spe-877-pressure-seal-barrier-zone-slice.md`)             | Shipped keyed `pressure_seal_membrane`; does not write `blast_door_membrane`     |
+| SPE-1027 stock consume of a named part                     | SPE-1027 / later child                                                                  | Suitability stays blast-door-only; no inventory debit                            |
+| Live workshop integrity mapping                            | SPE-877 / SPE-1028                                                                      | SPE-2782 stays caller-owned                                                      |
+| Mutation stations / integrity labor                        | later SPE-877 child                                                                     | SPE-113 remains design-only                                                      |
+| Store/UI inspect or deficiency commands                    | later SPE-877 child                                                                     | Week-close remains the production inspect path                                   |
+| Ready / stow                                               | SPE-1658                                                                                | Access-state layer                                                               |
+| Salvage / Auto-Scrap                                       | SPE-1055 / SPE-2749                                                                     | Adjacent                                                                         |
+| Inspect/deficiency `intervalWeeks` vs authored cadence max | later SPE-877 child                                                                     | Hydrate keeps event provenance; blast_door already accepts any positive interval |
 
 ## Acceptance
 

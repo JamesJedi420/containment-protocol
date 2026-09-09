@@ -901,6 +901,31 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('danger')
   })
 
+  it('equipment.containment_barrier_integrity_changed — names pressure-seal membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 4,
+        instanceId: 'equipment-instance-4-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        zoneId: 'pressure_seal_membrane',
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Pressure seal membrane')
+    expect(view.detail).toContain('Flow restraint')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

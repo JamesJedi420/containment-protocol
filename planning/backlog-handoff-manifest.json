@@ -11,10 +11,10 @@
     "SPE-2827",
     "SPE-2859",
     "SPE-2858",
-    "SPE-2857",
-    "SPE-2856"
+    "SPE-2857"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-pressure-seal-barrier-zone-slice.md": "Recently shipped",
     "planning/spe-877-mutation-stations-integrity-labor-slice.md": "Recently shipped",
     "planning/spe-877-live-workshop-integrity-mapping-slice.md": "Recently shipped",
     "planning/spe-877-interlock-containment-class-inspection-slice.md": "Recently shipped",

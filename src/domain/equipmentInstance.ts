@@ -19,7 +19,12 @@ import {
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
-import { resolveContainmentBarrierIntegrityCoupling } from './containmentBarrierIntegrity'
+import {
+  parseContainmentBarrierIntegrityRegistry,
+  resolveContainmentBarrierIntegrityCoupling,
+  snapshotContainmentBarrierIntegrityRegistry,
+  zoneIdForContainmentClass,
+} from './containmentBarrierIntegrity'
 import {
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
@@ -959,20 +964,26 @@ export function persistContainmentBarrierCoupling(
   instanceId: EquipmentInstanceId,
   deficiency: ContainmentClassIntegrity['deficiency']
 ): GameState {
-  if (state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId !== 'blast_door') {
-    return state
-  }
+  const classId = state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId
+  if (!classId) return state
+  const zoneId = zoneIdForContainmentClass(classId)
+  if (!zoneId) return state
+  const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
   const resolved = resolveContainmentBarrierIntegrityCoupling({
-    existing: state.containmentBarrierIntegrity,
+    existing: registry?.[zoneId],
     deficiency,
     sourceInstanceId: instanceId,
+    classId,
   })
   if (!resolved.ok || !resolved.changed || !resolved.barrier) {
     return state
   }
   return normalizeGameState({
     ...state,
-    containmentBarrierIntegrity: resolved.barrier,
+    containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+      ...(registry ?? {}),
+      [zoneId]: resolved.barrier,
+    }),
   })
 }
 

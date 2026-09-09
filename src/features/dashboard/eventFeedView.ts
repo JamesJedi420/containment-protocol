@@ -11,6 +11,7 @@ import {
   type OperationEventType,
 } from '../../domain/models'
 import type { ContainmentClassId } from '../../domain/containmentClassInspection'
+import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
 
 export type EventFeedFilters = {
   query: string
@@ -1102,17 +1103,18 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event.payload.status === 'zone_breach'
           ? 'Zone breach'
           : 'Flow restraint / barrier integrity watch'
+      const zoneLabel = labelContainmentBarrierZone(event.payload.zoneId)
       return {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} barrier integrity changed`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door membrane / ${statusLabel}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${zoneLabel} / ${statusLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.status === 'zone_breach' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door membrane ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${zoneLabel} ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
       }
     }
 

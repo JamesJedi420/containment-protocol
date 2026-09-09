@@ -24,6 +24,7 @@ import {
   isContainmentClassId,
 } from '../containmentClassInspection'
 import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../equipmentStationMutation'
+import { zoneIdForContainmentClass } from '../containmentBarrierIntegrity'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -1351,8 +1352,8 @@ const equipmentContainmentBarrierIntegrityChangedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
-    zoneId: z.literal('blast_door_membrane'),
+    classId: z.enum(['blast_door', 'pressure_seal']),
+    zoneId: z.enum(['blast_door_membrane', 'pressure_seal_membrane']),
     previousStatus: z.enum(['intact', 'flow_restraint', 'zone_breach']),
     status: z.enum(['flow_restraint', 'zone_breach']),
     sourceDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
@@ -1366,6 +1367,13 @@ const equipmentContainmentBarrierIntegrityChangedSchema = z
         code: z.ZodIssueCode.custom,
         path: ['definitionId'],
         message: 'barrier integrity instance must reference a known equipment catalog definition',
+      })
+    }
+    if (zoneIdForContainmentClass(payload.classId) !== payload.zoneId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['zoneId'],
+        message: 'barrier class/zone pairing is mixed',
       })
     }
     if (payload.status === 'flow_restraint') {

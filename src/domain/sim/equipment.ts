@@ -17,6 +17,7 @@ import {
   instantiateEquipmentInstance,
   isEquipmentInstanceClaimedForRecovery,
   isSafeEquipmentInstanceId,
+  reconcileContainmentBarrierIntegritySources,
   relocateEquipmentInstance,
   resolveFabricationOriginForDefinition,
   type EquipmentInstanceId,
@@ -315,12 +316,14 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
     ...lot,
     trackedInstanceUnits: nextTracked,
   })
-  const nextState = normalizeGameState({
-    ...normalized,
-    inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
-    equipmentInstances,
-    fabricatedEquipmentLots: nextLots,
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...normalized,
+      inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
+      equipmentInstances,
+      fabricatedEquipmentLots: nextLots,
+    })
+  )
   return {
     ok: true,
     state: nextState,

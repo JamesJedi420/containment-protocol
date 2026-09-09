@@ -8,6 +8,7 @@ import {
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import {
+  applyBlastDoorIntegrityLabor,
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
 } from '../../domain/equipmentInstance'
@@ -351,6 +352,90 @@ describe('getGearRecommendationsForActiveCases', () => {
         }),
       ])
     )
+  })
+
+  it('disables catalog re-aggregation and lot return for stamped identities', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(mutated.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual([
+      expect.objectContaining({
+        instanceId: created.instance.instanceId,
+        canReaggregate: false,
+        reaggregationBlocker: 'station_mutation_unsupported',
+        canReturnToLot: false,
+      }),
+    ])
+
+    const equipped = relocateEquipmentInstance(mutated.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const mina = getAgentEquipmentLoadoutViews(equipped.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
+      ordinaryLifecycle: {
+        canReaggregate: false,
+        reaggregationBlocker: 'station_mutation_unsupported',
+        canReturnToLot: false,
+      },
+    })
+
+    const fabricatedState = {
+      ...mutated.state,
+      fabricatedEquipmentLots: {
+        batch: {
+          queueId: 'batch',
+          recipeId: 'signal-jammers',
+          itemId: 'ward_seals',
+          quantity: 1,
+          gradeId: 'grade_2' as const,
+          completedWeek: 1,
+          trackedInstanceUnits: 1,
+        },
+      },
+      equipmentInstances: {
+        ...mutated.state.equipmentInstances,
+        [created.instance.instanceId]: {
+          ...mutated.instance,
+          fabricationOrigin: {
+            queueId: 'batch',
+            recipeId: 'signal-jammers',
+            gradeId: 'grade_2' as const,
+            completedWeek: 1,
+          },
+        },
+      },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(fabricatedState).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual([
+      expect.objectContaining({
+        instanceId: created.instance.instanceId,
+        canReturnToLot: false,
+        returnToLotBlocker: 'station_mutation_unsupported',
+      }),
+    ])
   })
 
   it('exposes destroy and re-agg eligibility on idle ordinary equipped slots', () => {

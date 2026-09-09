@@ -557,13 +557,16 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.reaggregationBlocker === 'condition_unsupported'
                               ? 'Damaged copies cannot return to operational aggregate stock.'
-                              : instance.reaggregationBlocker === 'payload_unsupported'
-                                ? 'Payload-bearing copies require a specialized re-aggregation flow.'
-                                : instance.reaggregationBlocker === 'fabricated_provenance_required'
-                                  ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
-                                  : instance.reaggregationBlocker === 'recovery_claimed'
-                                    ? 'This copy is already claimed by equipment recovery.'
-                                    : 'Aggregate stock is already at its safe capacity.'}
+                              : instance.reaggregationBlocker === 'station_mutation_unsupported'
+                                ? 'Integrity-labor stamps stay on this identity and cannot return to unspecified catalog stock.'
+                                : instance.reaggregationBlocker === 'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                  : instance.reaggregationBlocker ===
+                                      'fabricated_provenance_required'
+                                    ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                    : instance.reaggregationBlocker === 'recovery_claimed'
+                                      ? 'This copy is already claimed by equipment recovery.'
+                                      : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                         {pendingReturnToLotInstanceId === instance.instanceId ? (
@@ -619,13 +622,15 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.returnToLotBlocker === 'condition_unsupported'
                               ? 'Damaged copies cannot return to fabricated-lot tracking.'
-                              : instance.returnToLotBlocker === 'payload_unsupported'
-                                ? 'Payload-bearing copies require a specialized return flow.'
-                                : instance.returnToLotBlocker === 'recovery_claimed'
-                                  ? 'This copy is already claimed by equipment recovery.'
-                                  : instance.returnToLotBlocker === 'lot_unavailable'
-                                    ? 'The source fabricated lot is missing or cannot absorb this return.'
-                                    : 'Aggregate stock is already at its safe capacity.'}
+                              : instance.returnToLotBlocker === 'station_mutation_unsupported'
+                                ? 'Integrity-labor stamps stay on this identity and cannot return to fabricated-lot tracking.'
+                                : instance.returnToLotBlocker === 'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized return flow.'
+                                  : instance.returnToLotBlocker === 'recovery_claimed'
+                                    ? 'This copy is already claimed by equipment recovery.'
+                                    : instance.returnToLotBlocker === 'lot_unavailable'
+                                      ? 'The source fabricated lot is missing or cannot absorb this return.'
+                                      : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                       </li>
@@ -1258,18 +1263,21 @@ function EquipmentPage() {
                               'condition_unsupported'
                                 ? 'Damaged copies cannot return to operational aggregate stock.'
                                 : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                    'payload_unsupported'
-                                  ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                    'station_mutation_unsupported'
+                                  ? 'Integrity-labor stamps stay on this identity and cannot return to unspecified catalog stock.'
                                   : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                      'fabricated_provenance_required'
-                                    ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                      'payload_unsupported'
+                                    ? 'Payload-bearing copies require a specialized re-aggregation flow.'
                                     : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                        'recovery_claimed'
-                                      ? 'This copy is already claimed by equipment recovery.'
+                                        'fabricated_provenance_required'
+                                      ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
                                       : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                          'agent_not_idle'
-                                        ? 'Loadout changes are locked while this operative is not idle.'
-                                        : 'Aggregate stock is already at its safe capacity.'}
+                                          'recovery_claimed'
+                                        ? 'This copy is already claimed by equipment recovery.'
+                                        : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                            'agent_not_idle'
+                                          ? 'Loadout changes are locked while this operative is not idle.'
+                                          : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
                           {slot.ordinaryLifecycle.canReturnToLot ||
@@ -1328,15 +1336,21 @@ function EquipmentPage() {
                             <p className="text-xs text-amber-200/80">
                               {slot.ordinaryLifecycle.lotReturnBlocker === 'condition_unsupported'
                                 ? 'Damaged copies cannot return to fabricated-lot tracking.'
-                                : slot.ordinaryLifecycle.lotReturnBlocker === 'payload_unsupported'
-                                  ? 'Payload-bearing copies require a specialized return flow.'
-                                  : slot.ordinaryLifecycle.lotReturnBlocker === 'recovery_claimed'
-                                    ? 'This copy is already claimed by equipment recovery.'
-                                    : slot.ordinaryLifecycle.lotReturnBlocker === 'lot_unavailable'
-                                      ? 'The source fabricated lot is missing or cannot absorb this return.'
-                                      : slot.ordinaryLifecycle.lotReturnBlocker === 'agent_not_idle'
-                                        ? 'Loadout changes are locked while this operative is not idle.'
-                                        : 'Aggregate stock is already at its safe capacity.'}
+                                : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                    'station_mutation_unsupported'
+                                  ? 'Integrity-labor stamps stay on this identity and cannot return to fabricated-lot tracking.'
+                                  : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                      'payload_unsupported'
+                                    ? 'Payload-bearing copies require a specialized return flow.'
+                                    : slot.ordinaryLifecycle.lotReturnBlocker === 'recovery_claimed'
+                                      ? 'This copy is already claimed by equipment recovery.'
+                                      : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                          'lot_unavailable'
+                                        ? 'The source fabricated lot is missing or cannot absorb this return.'
+                                        : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                            'agent_not_idle'
+                                          ? 'Loadout changes are locked while this operative is not idle.'
+                                          : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
                         </div>

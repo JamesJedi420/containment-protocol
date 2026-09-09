@@ -33,7 +33,7 @@ Pure resolver in `src/domain/equipmentStationMutation.ts`. Discriminated result;
 | existing malformed stamp                      | `{ ok: false, code: 'malformed_mutation' }`        |
 | invalid week                                  | `{ ok: false, code: 'invalid_week' }`              |
 
-Command `applyBlastDoorIntegrityLabor` applies that result through instance transition with `allowStationMutation`. Generic transitions cannot invent or rewrite the stamp. Relocate / SPE-2851 repair / SPE-2862 stabilization keep a valid blast-door stamp. Catalog re-aggregation and fabricated ordinary return-to-lot fail closed with `station_mutation_reaggregation_unsupported` while the stamp is present. Unstamped identities keep SPE-2827 / SPE-2848 re-aggregation.
+Command `applyBlastDoorIntegrityLabor` applies that result through instance transition with `allowStationMutation`. Generic transitions cannot invent or rewrite the stamp. Relocate / SPE-2851 repair / SPE-2862 stabilization keep a valid blast-door stamp. Catalog re-aggregation and fabricated ordinary return-to-lot fail closed with `station_mutation_reaggregation_unsupported` while the stamp is present. Existing ordinary lifecycle projections disable those buttons (`station_mutation_unsupported`). Unstamped identities keep SPE-2827 / SPE-2848 re-aggregation.
 
 ## Events and hydration
 

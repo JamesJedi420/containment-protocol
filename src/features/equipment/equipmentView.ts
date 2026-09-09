@@ -109,6 +109,7 @@ export interface EquipmentInstanceMaterializationView {
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
+      | 'station_mutation_unsupported'
       | 'payload_unsupported'
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
@@ -116,6 +117,7 @@ export interface EquipmentInstanceMaterializationView {
     canReturnToLot: boolean
     returnToLotBlocker?:
       | 'condition_unsupported'
+      | 'station_mutation_unsupported'
       | 'payload_unsupported'
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
@@ -143,6 +145,7 @@ export interface EquipmentLoadoutSlotView {
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
+      | 'station_mutation_unsupported'
       | 'payload_unsupported'
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
@@ -151,6 +154,7 @@ export interface EquipmentLoadoutSlotView {
     canReturnToLot: boolean
     lotReturnBlocker?:
       | 'condition_unsupported'
+      | 'station_mutation_unsupported'
       | 'payload_unsupported'
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
@@ -487,19 +491,22 @@ function resolveOrdinaryEquippedLifecycle(
   const reaggregationBlocker =
     instance.condition !== 'operational'
       ? ('condition_unsupported' as const)
-      : instance.payload
-        ? ('payload_unsupported' as const)
-        : instance.fabricationOrigin
-          ? ('fabricated_provenance_required' as const)
-          : recoveryClaimed
-            ? ('recovery_claimed' as const)
-            : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
-              ? ('inventory_capacity_exceeded' as const)
-              : agentIdle
-                ? undefined
-                : ('agent_not_idle' as const)
+      : instance.stationMutation
+        ? ('station_mutation_unsupported' as const)
+        : instance.payload
+          ? ('payload_unsupported' as const)
+          : instance.fabricationOrigin
+            ? ('fabricated_provenance_required' as const)
+            : recoveryClaimed
+              ? ('recovery_claimed' as const)
+              : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                ? ('inventory_capacity_exceeded' as const)
+                : agentIdle
+                  ? undefined
+                  : ('agent_not_idle' as const)
   let lotReturnBlocker:
     | 'condition_unsupported'
+    | 'station_mutation_unsupported'
     | 'payload_unsupported'
     | 'recovery_claimed'
     | 'inventory_capacity_exceeded'
@@ -509,6 +516,8 @@ function resolveOrdinaryEquippedLifecycle(
   if (instance.fabricationOrigin) {
     if (instance.condition !== 'operational') {
       lotReturnBlocker = 'condition_unsupported'
+    } else if (instance.stationMutation) {
+      lotReturnBlocker = 'station_mutation_unsupported'
     } else if (instance.payload) {
       lotReturnBlocker = 'payload_unsupported'
     } else if (recoveryClaimed) {
@@ -730,38 +739,45 @@ export function getEquipmentInstanceMaterializationViews(
               const reaggregationBlocker =
                 instance.condition !== 'operational'
                   ? ('condition_unsupported' as const)
-                  : instance.payload
-                    ? ('payload_unsupported' as const)
-                    : instance.fabricationOrigin
-                      ? ('fabricated_provenance_required' as const)
+                  : instance.stationMutation
+                    ? ('station_mutation_unsupported' as const)
+                    : instance.payload
+                      ? ('payload_unsupported' as const)
+                      : instance.fabricationOrigin
+                        ? ('fabricated_provenance_required' as const)
+                        : recoveryClaimed
+                          ? ('recovery_claimed' as const)
+                          : !Number.isSafeInteger(aggregateStock) ||
+                              aggregateStock >= Number.MAX_SAFE_INTEGER
+                            ? ('inventory_capacity_exceeded' as const)
+                            : undefined
+              const returnToLotBlocker = !instance.fabricationOrigin
+                ? undefined
+                : instance.condition !== 'operational'
+                  ? ('condition_unsupported' as const)
+                  : instance.stationMutation
+                    ? ('station_mutation_unsupported' as const)
+                    : instance.payload
+                      ? ('payload_unsupported' as const)
                       : recoveryClaimed
                         ? ('recovery_claimed' as const)
                         : !Number.isSafeInteger(aggregateStock) ||
                             aggregateStock >= Number.MAX_SAFE_INTEGER
                           ? ('inventory_capacity_exceeded' as const)
-                          : undefined
-              const returnToLotBlocker = !instance.fabricationOrigin
-                ? undefined
-                : instance.condition !== 'operational'
-                  ? ('condition_unsupported' as const)
-                  : instance.payload
-                    ? ('payload_unsupported' as const)
-                    : recoveryClaimed
-                      ? ('recovery_claimed' as const)
-                      : !Number.isSafeInteger(aggregateStock) ||
-                          aggregateStock >= Number.MAX_SAFE_INTEGER
-                        ? ('inventory_capacity_exceeded' as const)
-                        : (() => {
-                            const resolved = resolveFabricationOriginForDefinition(
-                              game,
-                              definition.id,
-                              instance.fabricationOrigin
-                            )
-                            if (!resolved.ok) return 'lot_unavailable' as const
-                            const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
-                            const tracked = Math.max(0, Math.trunc(lot?.trackedInstanceUnits ?? 0))
-                            return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
-                          })()
+                          : (() => {
+                              const resolved = resolveFabricationOriginForDefinition(
+                                game,
+                                definition.id,
+                                instance.fabricationOrigin
+                              )
+                              if (!resolved.ok) return 'lot_unavailable' as const
+                              const lot = game.fabricatedEquipmentLots?.[resolved.origin.queueId]
+                              const tracked = Math.max(
+                                0,
+                                Math.trunc(lot?.trackedInstanceUnits ?? 0)
+                              )
+                              return !lot || tracked < 1 ? ('lot_unavailable' as const) : undefined
+                            })()
               return {
                 instanceId: instance.instanceId,
                 instanceLabel: `${definition.name} — ${instance.instanceId}`,

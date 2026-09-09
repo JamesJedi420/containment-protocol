@@ -3123,6 +3123,181 @@ describe('SPE-877 mutation stations / integrity labor', () => {
       instanceId: 'equipment-instance-1-1',
       code: 'malformed_station_mutation',
     })
+    const stampedWrongClass = sanitizeEquipmentInstanceRegistry(
+      {
+        'equipment-instance-1-2': {
+          instanceId: 'equipment-instance-1-2',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 1,
+          },
+        },
+        'equipment-instance-1-3': {
+          instanceId: 'equipment-instance-1-3',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 1,
+          },
+        },
+      },
+      equipped.state.agents,
+      new Set(),
+      equipped.state.fabricatedEquipmentLots
+    )
+    expect(stampedWrongClass.equipmentInstances['equipment-instance-1-2']).toBeUndefined()
+    expect(stampedWrongClass.equipmentInstances['equipment-instance-1-3']).toBeUndefined()
+    expect(stampedWrongClass.issues).toContainEqual({
+      instanceId: 'equipment-instance-1-2',
+      code: 'malformed_station_mutation',
+    })
+    expect(stampedWrongClass.issues).toContainEqual({
+      instanceId: 'equipment-instance-1-3',
+      code: 'malformed_station_mutation',
+    })
+  })
+
+  it('keeps unstamped blast-door catalog re-aggregation and fail-closes stamped identities', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    const unstamped = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!unstamped.ok) throw new Error(unstamped.code)
+    const stampedSource = instantiateEquipmentInstance(unstamped.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!stampedSource.ok) throw new Error(stampedSource.code)
+    const mutated = applyBlastDoorIntegrityLabor(
+      stampedSource.state,
+      stampedSource.instance.instanceId
+    )
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    const unstampedReturn = reaggregateStoredOrdinaryEquipmentInstance(
+      mutated.state,
+      unstamped.instance.instanceId
+    )
+    expect(unstampedReturn).toMatchObject({
+      ok: true,
+      instance: { instanceId: unstamped.instance.instanceId },
+    })
+    if (!unstampedReturn.ok) throw new Error(unstampedReturn.code)
+    expect(unstampedReturn.state.inventory.ward_seals).toBe(1)
+    expect(
+      unstampedReturn.state.equipmentInstances?.[unstamped.instance.instanceId]
+    ).toBeUndefined()
+
+    const blocked = reaggregateStoredOrdinaryEquipmentInstance(
+      unstampedReturn.state,
+      stampedSource.instance.instanceId
+    )
+    expect(blocked).toMatchObject({
+      ok: false,
+      code: 'station_mutation_reaggregation_unsupported',
+    })
+    if (blocked.ok) throw new Error('stamped identity must not re-aggregate')
+    expect(blocked.state.inventory.ward_seals).toBe(1)
+    expect(blocked.state.equipmentInstances?.[stampedSource.instance.instanceId]).toEqual(
+      mutated.instance
+    )
+
+    const rematerialized = materializeStoredOrdinaryEquipmentInstance(blocked.state, 'ward_seals')
+    expect(rematerialized).toMatchObject({ ok: true })
+    if (!rematerialized.ok) throw new Error(rematerialized.code)
+    expect(rematerialized.instance.instanceId).not.toBe(stampedSource.instance.instanceId)
+    expect(rematerialized.instance.stationMutation).toBeUndefined()
+    expect(rematerialized.state.equipmentInstances?.[stampedSource.instance.instanceId]).toEqual(
+      mutated.instance
+    )
+  })
+
+  it('fail-closes fabricated ordinary return-to-lot when a station stamp is present', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+      },
+    }
+    const fabricated = materializeStoredOrdinaryEquipmentInstance(state, 'signal_jammers', {
+      kind: 'fabricated_lot',
+      fabricationQueueId: 'batch',
+    })
+    if (!fabricated.ok) throw new Error(fabricated.code)
+    const stamped = {
+      ...fabricated.state,
+      equipmentInstances: {
+        ...fabricated.state.equipmentInstances,
+        [fabricated.instance.instanceId]: {
+          ...fabricated.instance,
+          containmentIntegrity: blastDoorIntegrity(),
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 1,
+          },
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(stamped, fabricated.instance.instanceId)
+    ).toMatchObject({
+      ok: false,
+      code: 'station_mutation_reaggregation_unsupported',
+    })
+    expect(stamped.equipmentInstances?.[fabricated.instance.instanceId]?.instanceId).toBe(
+      fabricated.instance.instanceId
+    )
+    expect(stamped.inventory.signal_jammers).toBe(0)
+    expect(stamped.fabricatedEquipmentLots?.batch.trackedInstanceUnits).toBe(
+      fabricated.state.fabricatedEquipmentLots?.batch.trackedInstanceUnits
+    )
+  })
+
+  it('rejects transitions that would persist a stamp on a non-blast-door identity', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const pressure = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!pressure.ok) throw new Error(pressure.code)
+    const corrupted = {
+      ...pressure.state,
+      equipmentInstances: {
+        ...pressure.state.equipmentInstances,
+        [pressure.instance.instanceId]: {
+          ...pressure.instance,
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 1,
+          },
+        },
+      },
+    }
+    expect(
+      relocateEquipmentInstance(corrupted, pressure.instance.instanceId, { state: 'stored' })
+    ).toMatchObject({ ok: false, code: 'malformed_station_mutation' })
   })
 
   it('rejects generic transitions that invent or rewrite the station stamp', () => {

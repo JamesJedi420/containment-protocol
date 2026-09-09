@@ -1328,6 +1328,21 @@ const equipmentInstanceStationMutatedSchema = z
         message: 'none and hard-stop cannot carry a compensating control',
       })
     }
+    if (payload.deficiencyKind === 'hard_stop') {
+      if (payload.inService !== false) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['inService'],
+          message: 'hard-stop is not in-service',
+        })
+      }
+    } else if (payload.inService !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'none and compensating continue remain in-service',
+      })
+    }
   })
 
 const equipmentContainmentBarrierIntegrityChangedSchema = z

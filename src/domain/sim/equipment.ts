@@ -252,6 +252,9 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   if (instance.condition !== 'operational') {
     return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
   }
+  if (instance.stationMutation !== undefined) {
+    return { ok: false, state: normalized, code: 'station_mutation_reaggregation_unsupported' }
+  }
   if (instance.payload !== undefined) {
     return { ok: false, state: normalized, code: 'payload_reaggregation_unsupported' }
   }

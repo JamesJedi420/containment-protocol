@@ -2986,6 +2986,12 @@ describe('SPE-877 mutation stations / integrity labor', () => {
     expect(mutated.state.inventory.ward_seals).toBe(0)
     expect(mutated.state.damagedEquipmentQueue ?? []).toEqual([])
     expect(mutated.state.fabricatedEquipmentLots).toEqual(created.state.fabricatedEquipmentLots)
+    expect(
+      reaggregateStoredOrdinaryEquipmentInstance(mutated.state, created.instance.instanceId)
+    ).toMatchObject({
+      ok: false,
+      code: 'station_mutation_reaggregation_unsupported',
+    })
     expect(applyBlastDoorIntegrityLabor(mutated.state, created.instance.instanceId)).toMatchObject({
       ok: false,
       code: 'station_mutation_already_applied',
@@ -3268,6 +3274,22 @@ describe('SPE-877 mutation stations / integrity labor', () => {
     expect(stamped.fabricatedEquipmentLots?.batch.trackedInstanceUnits).toBe(
       fabricated.state.fabricatedEquipmentLots?.batch.trackedInstanceUnits
     )
+    const damagedStamped = {
+      ...stamped,
+      equipmentInstances: {
+        ...stamped.equipmentInstances,
+        [fabricated.instance.instanceId]: {
+          ...stamped.equipmentInstances![fabricated.instance.instanceId],
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      returnFabricatedOrdinaryEquipmentInstanceToLot(damagedStamped, fabricated.instance.instanceId)
+    ).toMatchObject({
+      ok: false,
+      code: 'station_mutation_reaggregation_unsupported',
+    })
   })
 
   it('rejects transitions that would persist a stamp on a non-blast-door identity', () => {
@@ -3297,6 +3319,38 @@ describe('SPE-877 mutation stations / integrity labor', () => {
     }
     expect(
       relocateEquipmentInstance(corrupted, pressure.instance.instanceId, { state: 'stored' })
+    ).toMatchObject({ ok: false, code: 'malformed_station_mutation' })
+  })
+
+  it('rejects transitions that would attach blast-door integrity onto an already-stamped identity', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!created.ok) throw new Error(created.code)
+    const stampedWithoutClass = {
+      ...created.instance,
+      stationMutation: {
+        stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+        appliedWeek: 1,
+      },
+    }
+    const corrupted = {
+      ...created.state,
+      equipmentInstances: {
+        ...created.state.equipmentInstances,
+        [created.instance.instanceId]: stampedWithoutClass,
+      },
+    }
+    expect(
+      applyEquipmentInstanceTransition(
+        corrupted,
+        created.instance.instanceId,
+        stampedWithoutClass,
+        {
+          ...stampedWithoutClass,
+          containmentIntegrity: blastDoorIntegrity(),
+        }
+      )
     ).toMatchObject({ ok: false, code: 'malformed_station_mutation' })
   })
 

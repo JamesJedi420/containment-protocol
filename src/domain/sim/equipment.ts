@@ -249,11 +249,11 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
   }
-  if (instance.condition !== 'operational') {
-    return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
-  }
   if (instance.stationMutation !== undefined) {
     return { ok: false, state: normalized, code: 'station_mutation_reaggregation_unsupported' }
+  }
+  if (instance.condition !== 'operational') {
+    return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
   }
   if (instance.payload !== undefined) {
     return { ok: false, state: normalized, code: 'payload_reaggregation_unsupported' }

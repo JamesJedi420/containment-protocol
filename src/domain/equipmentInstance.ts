@@ -705,11 +705,11 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
   }
-  if (instance.condition !== 'operational') {
-    return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
-  }
   if (instance.stationMutation !== undefined) {
     return { ok: false, state: normalized, code: 'station_mutation_reaggregation_unsupported' }
+  }
+  if (instance.condition !== 'operational') {
+    return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
   }
   if (instance.payload !== undefined) {
     return { ok: false, state: normalized, code: 'payload_reaggregation_unsupported' }
@@ -1279,6 +1279,13 @@ function applyEquipmentInstanceTransitionInternal(
   }
   if (next.instanceId !== instanceId || next.definitionId !== current.definitionId) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
+  }
+  const currentStampFailure = stationMutationClassFailure(
+    current.stationMutation,
+    current.containmentIntegrity
+  )
+  if (currentStampFailure) {
+    return { ok: false, state: normalized, code: currentStampFailure }
   }
   if (!fabricationOriginsEqual(current.fabricationOrigin, next.fabricationOrigin)) {
     return { ok: false, state: normalized, code: 'immutable_identity' }

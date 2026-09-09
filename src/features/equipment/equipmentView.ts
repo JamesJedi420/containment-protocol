@@ -488,22 +488,21 @@ function resolveOrdinaryEquippedLifecycle(
       : agentIdle
         ? undefined
         : ('agent_not_idle' as const)
-  const reaggregationBlocker =
-    instance.condition !== 'operational'
+  const reaggregationBlocker = instance.stationMutation
+    ? ('station_mutation_unsupported' as const)
+    : instance.condition !== 'operational'
       ? ('condition_unsupported' as const)
-      : instance.stationMutation
-        ? ('station_mutation_unsupported' as const)
-        : instance.payload
-          ? ('payload_unsupported' as const)
-          : instance.fabricationOrigin
-            ? ('fabricated_provenance_required' as const)
-            : recoveryClaimed
-              ? ('recovery_claimed' as const)
-              : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
-                ? ('inventory_capacity_exceeded' as const)
-                : agentIdle
-                  ? undefined
-                  : ('agent_not_idle' as const)
+      : instance.payload
+        ? ('payload_unsupported' as const)
+        : instance.fabricationOrigin
+          ? ('fabricated_provenance_required' as const)
+          : recoveryClaimed
+            ? ('recovery_claimed' as const)
+            : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+              ? ('inventory_capacity_exceeded' as const)
+              : agentIdle
+                ? undefined
+                : ('agent_not_idle' as const)
   let lotReturnBlocker:
     | 'condition_unsupported'
     | 'station_mutation_unsupported'
@@ -514,10 +513,10 @@ function resolveOrdinaryEquippedLifecycle(
     | 'agent_not_idle'
     | undefined
   if (instance.fabricationOrigin) {
-    if (instance.condition !== 'operational') {
-      lotReturnBlocker = 'condition_unsupported'
-    } else if (instance.stationMutation) {
+    if (instance.stationMutation) {
       lotReturnBlocker = 'station_mutation_unsupported'
+    } else if (instance.condition !== 'operational') {
+      lotReturnBlocker = 'condition_unsupported'
     } else if (instance.payload) {
       lotReturnBlocker = 'payload_unsupported'
     } else if (recoveryClaimed) {
@@ -736,27 +735,26 @@ export function getEquipmentInstanceMaterializationViews(
                 instance.condition === 'damaged' && recoveryClaimed
                   ? ('recovery_claimed' as const)
                   : undefined
-              const reaggregationBlocker =
-                instance.condition !== 'operational'
-                  ? ('condition_unsupported' as const)
-                  : instance.stationMutation
-                    ? ('station_mutation_unsupported' as const)
-                    : instance.payload
-                      ? ('payload_unsupported' as const)
-                      : instance.fabricationOrigin
-                        ? ('fabricated_provenance_required' as const)
-                        : recoveryClaimed
-                          ? ('recovery_claimed' as const)
-                          : !Number.isSafeInteger(aggregateStock) ||
-                              aggregateStock >= Number.MAX_SAFE_INTEGER
-                            ? ('inventory_capacity_exceeded' as const)
-                            : undefined
-              const returnToLotBlocker = !instance.fabricationOrigin
-                ? undefined
+              const reaggregationBlocker = instance.stationMutation
+                ? ('station_mutation_unsupported' as const)
                 : instance.condition !== 'operational'
                   ? ('condition_unsupported' as const)
-                  : instance.stationMutation
-                    ? ('station_mutation_unsupported' as const)
+                  : instance.payload
+                    ? ('payload_unsupported' as const)
+                    : instance.fabricationOrigin
+                      ? ('fabricated_provenance_required' as const)
+                      : recoveryClaimed
+                        ? ('recovery_claimed' as const)
+                        : !Number.isSafeInteger(aggregateStock) ||
+                            aggregateStock >= Number.MAX_SAFE_INTEGER
+                          ? ('inventory_capacity_exceeded' as const)
+                          : undefined
+              const returnToLotBlocker = !instance.fabricationOrigin
+                ? undefined
+                : instance.stationMutation
+                  ? ('station_mutation_unsupported' as const)
+                  : instance.condition !== 'operational'
+                    ? ('condition_unsupported' as const)
                     : instance.payload
                       ? ('payload_unsupported' as const)
                       : recoveryClaimed

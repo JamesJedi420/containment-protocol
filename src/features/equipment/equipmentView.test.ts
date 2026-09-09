@@ -382,6 +382,28 @@ describe('getGearRecommendationsForActiveCases', () => {
       }),
     ])
 
+    const damagedStamped = {
+      ...mutated.state,
+      equipmentInstances: {
+        ...mutated.state.equipmentInstances,
+        [created.instance.instanceId]: {
+          ...mutated.instance,
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(damagedStamped).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual([
+      expect.objectContaining({
+        instanceId: created.instance.instanceId,
+        canReaggregate: false,
+        reaggregationBlocker: 'station_mutation_unsupported',
+      }),
+    ])
+
     const equipped = relocateEquipmentInstance(mutated.state, created.instance.instanceId, {
       state: 'equipped',
       agentId: 'a_mina',

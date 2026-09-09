@@ -300,6 +300,41 @@ describe('event payload validation coverage', () => {
     }
   })
 
+  it('strictly validates integrity-labor station mutation provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.instance_station_mutated']
+    expect(validateOperationEventPayload('equipment.instance_station_mutated', valid).success).toBe(
+      true
+    )
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        condition: 'damaged',
+        deficiencyKind: 'hard_stop',
+        inService: false,
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, stationId: 'other_bench' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, cycleCount: 0 },
+      { ...valid, deficiencyKind: 'hard_stop', compensatingControlId: 'secondary_interlock_watch' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.instance_station_mutated', payload).success
+      ).toBe(false)
+    }
+  })
+
   it('strictly validates containment barrier-integrity coupling provenance', () => {
     const valid = minimalOperationEventPayloads['equipment.containment_barrier_integrity_changed']
     expect(

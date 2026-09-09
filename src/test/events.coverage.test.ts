@@ -44,6 +44,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'equipment.containment_class_deficiency_recorded': 'covered',
   'equipment.containment_class_inspected': 'covered',
   'equipment.containment_class_stabilized': 'covered',
+  'equipment.instance_station_mutated': 'covered',
   'equipment.containment_barrier_integrity_changed': 'covered',
   'equipment.combat_stim_activated': 'covered',
   'equipment.combat_stim_overdrive_expired': 'covered',

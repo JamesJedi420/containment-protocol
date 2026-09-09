@@ -1049,6 +1049,7 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.containment_class_deficiency_recorded': ['instanceId', 'definitionId'],
   'equipment.containment_class_inspected': ['instanceId', 'definitionId'],
   'equipment.containment_class_stabilized': ['instanceId', 'definitionId'],
+  'equipment.instance_station_mutated': ['instanceId', 'definitionId'],
   'equipment.containment_barrier_integrity_changed': ['instanceId', 'definitionId'],
   'equipment.combat_stim_activated': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_overdrive_expired': ['activationId', 'instanceId', 'agentId', 'caseId'],
@@ -9167,6 +9168,23 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.containment_class_stabilized'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_station_mutated': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_station_mutated'].safeParse(
+          {
+            ...payload,
+            week,
+          }
+        )
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_station_mutated'),
             payload: parsed.data,
           })
         )

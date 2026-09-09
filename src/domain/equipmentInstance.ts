@@ -26,6 +26,13 @@ import {
   type SparePartId,
   type SparePartSuitabilityFailureCode,
 } from './sparePartSuitability'
+import {
+  parseEquipmentInstanceStationMutation,
+  resolveBlastDoorIntegrityLabor,
+  snapshotEquipmentInstanceStationMutation,
+  stationMutationsEqual,
+  type EquipmentInstanceStationMutation,
+} from './equipmentStationMutation'
 
 export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
@@ -56,6 +63,8 @@ export interface EquipmentInstance {
   fabricationOrigin?: EquipmentInstanceFabricationOrigin
   /** SPE-2860: optional blast-door integrity; distinct from `condition`. */
   containmentIntegrity?: ContainmentClassIntegrity
+  /** SPE-877 mutation-stations child: optional permanent integrity-labor stamp. */
+  stationMutation?: EquipmentInstanceStationMutation
 }
 
 export type EquipmentInstanceRegistry = Record<EquipmentInstanceId, EquipmentInstance>
@@ -97,6 +106,9 @@ export type EquipmentInstanceFailureCode =
   | 'no_containment_deficiency'
   | 'missing_part'
   | 'unsuitable_part'
+  | 'station_mutation_already_applied'
+  | 'unauthorized_station_mutation'
+  | 'malformed_station_mutation'
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
@@ -110,6 +122,7 @@ const EQUIPMENT_INSTANCE_KEYS = [
   'payload',
   'fabricationOrigin',
   'containmentIntegrity',
+  'stationMutation',
 ] as const
 
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,127}$/
@@ -379,6 +392,15 @@ function validateInstance(
     containmentIntegrity = parsed.integrity
   }
 
+  let stationMutation: EquipmentInstanceStationMutation | undefined
+  if (value.stationMutation !== undefined) {
+    const parsedMutation = parseEquipmentInstanceStationMutation(value.stationMutation)
+    if (!parsedMutation.ok) {
+      return { valid: false, code: 'malformed_station_mutation' }
+    }
+    stationMutation = parsedMutation.mutation
+  }
+
   return {
     valid: true,
     instance: {
@@ -391,6 +413,7 @@ function validateInstance(
         : {}),
       ...(fabricationOrigin ? { fabricationOrigin } : {}),
       ...(containmentIntegrity ? { containmentIntegrity } : {}),
+      ...(stationMutation ? { stationMutation } : {}),
     },
   }
 }
@@ -450,7 +473,8 @@ function instancesEqual(left: EquipmentInstance, right: EquipmentInstance) {
     locationsEqual(left.location, right.location) &&
     payloadsEqual(left.payload, right.payload) &&
     fabricationOriginsEqual(left.fabricationOrigin, right.fabricationOrigin) &&
-    containmentClassIntegritiesEqual(left.containmentIntegrity, right.containmentIntegrity)
+    containmentClassIntegritiesEqual(left.containmentIntegrity, right.containmentIntegrity) &&
+    stationMutationsEqual(left.stationMutation, right.stationMutation)
   )
 }
 
@@ -463,6 +487,9 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
   const containmentIntegrity = instance.containmentIntegrity
     ? snapshotContainmentClassIntegrity(instance.containmentIntegrity)
     : undefined
+  const stationMutation = instance.stationMutation
+    ? snapshotEquipmentInstanceStationMutation(instance.stationMutation)
+    : undefined
   return Object.freeze({
     instanceId: instance.instanceId,
     definitionId: instance.definitionId,
@@ -471,6 +498,7 @@ function createEquipmentInstanceSnapshot(instance: EquipmentInstance): Equipment
     ...(payload ? { payload } : {}),
     ...(fabricationOrigin ? { fabricationOrigin } : {}),
     ...(containmentIntegrity ? { containmentIntegrity } : {}),
+    ...(stationMutation ? { stationMutation } : {}),
   })
 }
 
@@ -981,6 +1009,86 @@ export function stabilizeContainmentClassDeficiency(
   )
 }
 
+function mapIntegrityLaborFailure(
+  code: 'invalid_class' | 'already_applied' | 'invalid_week' | 'malformed_mutation'
+): EquipmentInstanceFailureCode {
+  switch (code) {
+    case 'invalid_class':
+      return 'invalid_containment_class'
+    case 'already_applied':
+      return 'station_mutation_already_applied'
+    case 'invalid_week':
+      return 'malformed_containment_integrity'
+    case 'malformed_mutation':
+      return 'malformed_station_mutation'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
+}
+
+export function applyBlastDoorIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (current.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
+  }
+  if (isEquipmentInstanceClaimedForRecovery(normalized, instanceId)) {
+    return { ok: false, state: normalized, code: 'recovery_claimed' }
+  }
+  if (!current.containmentIntegrity) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const parsedIntegrity = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsedIntegrity.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsedIntegrity.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
+  }
+  const resolved = resolveBlastDoorIntegrityLabor({
+    classId: parsedIntegrity.integrity.classId,
+    existingMutation: current.stationMutation,
+    currentWeek: normalized.week,
+  })
+  if (!resolved.ok) {
+    return { ok: false, state: normalized, code: mapIntegrityLaborFailure(resolved.code) }
+  }
+  const nextCycleCount = parsedIntegrity.integrity.cycleCount + resolved.cycleDelta
+  if (!Number.isSafeInteger(nextCycleCount) || nextCycleCount < 0) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const nextIntegrity = snapshotContainmentClassIntegrity({
+    ...parsedIntegrity.integrity,
+    cycleCount: nextCycleCount,
+  })
+  return applyEquipmentInstanceTransitionInternal(
+    normalized,
+    instanceId,
+    current,
+    {
+      ...current,
+      containmentIntegrity: nextIntegrity,
+      stationMutation: resolved.mutation,
+    },
+    { allowStationMutation: true }
+  )
+}
+
 export { isContainmentClassInService }
 
 function validateTargetLocation(
@@ -1135,7 +1243,11 @@ function applyEquipmentInstanceTransitionInternal(
   instanceId: EquipmentInstanceId,
   expected: EquipmentInstance,
   next: EquipmentInstance,
-  options?: { allowHardStopRelief?: boolean; allowNonIdleCarrier?: boolean }
+  options?: {
+    allowHardStopRelief?: boolean
+    allowNonIdleCarrier?: boolean
+    allowStationMutation?: boolean
+  }
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
@@ -1190,6 +1302,23 @@ function applyEquipmentInstanceTransitionInternal(
     }
     containmentIntegrity = parsed.integrity
   }
+  let stationMutation: EquipmentInstanceStationMutation | undefined = current.stationMutation
+    ? snapshotEquipmentInstanceStationMutation(current.stationMutation)
+    : undefined
+  if (next.stationMutation !== undefined) {
+    const parsedMutation = parseEquipmentInstanceStationMutation(next.stationMutation)
+    if (!parsedMutation.ok) {
+      return { ok: false, state: normalized, code: 'malformed_station_mutation' }
+    }
+    const same = stationMutationsEqual(current.stationMutation, parsedMutation.mutation)
+    if (!same && !options?.allowStationMutation) {
+      return { ok: false, state: normalized, code: 'unauthorized_station_mutation' }
+    }
+    if (current.stationMutation && !same) {
+      return { ok: false, state: normalized, code: 'station_mutation_already_applied' }
+    }
+    stationMutation = parsedMutation.mutation
+  }
   if (
     current.definitionId === COMBAT_STIM_DEFINITION_ID &&
     !payloadsEqual(current.payload, next.payload)
@@ -1239,6 +1368,7 @@ function applyEquipmentInstanceTransitionInternal(
     ...(next.payload ? { payload: { ...next.payload } } : {}),
     ...(current.fabricationOrigin ? { fabricationOrigin: { ...current.fabricationOrigin } } : {}),
     ...(containmentIntegrity ? { containmentIntegrity } : {}),
+    ...(stationMutation ? { stationMutation } : {}),
   }
   const nextState = normalizeGameState({
     ...normalized,

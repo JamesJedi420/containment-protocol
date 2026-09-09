@@ -4,6 +4,10 @@
 
 **Authored stations** may **permanently mutate concrete runtime items** under explicit **legality, resource, operator, and tradeoff** rules. The **same object identity** persists through storage, damage, trade, and later use — stations do not silently replace items with abstract “upgraded copies” that orphan history.
 
+## Runtime first child (SPE-877)
+
+One authored station is live: `blast_door_integrity_bench`. `applyBlastDoorIntegrityLabor` mutates a stored `blast_door` identity in place (`stationMutation` + `cycleCount` +1) without replacing the instance ID. Full SPE-113 tags, operators, black-market legality, and curse catalog remain design-only. See `planning/spe-877-mutation-stations-integrity-labor-slice.md`.
+
 ## Station contract
 
 Each station declares:

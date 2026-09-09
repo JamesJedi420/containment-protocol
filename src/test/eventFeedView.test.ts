@@ -847,6 +847,34 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('success')
   })
 
+  it('equipment.instance_station_mutated — names blast-door integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        stationId: 'blast_door_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('blast_door_integrity_bench')
+    expect(view.searchText).toContain('integrity labor')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('equipment.containment_barrier_integrity_changed — names blast-door zone breach', () => {
     const event = makeEvent(
       'equipment.containment_barrier_integrity_changed',

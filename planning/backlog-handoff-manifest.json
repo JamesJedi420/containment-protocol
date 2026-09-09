@@ -2,6 +2,8 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2868",
+    "SPE-2867",
     "SPE-2866",
     "SPE-2865",
     "SPE-2864",
@@ -14,6 +16,7 @@
     "SPE-2857"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-extra-class-barrier-zones-slice.md": "Recently shipped",
     "planning/spe-877-pressure-seal-barrier-zone-slice.md": "Recently shipped",
     "planning/spe-877-mutation-stations-integrity-labor-slice.md": "Recently shipped",
     "planning/spe-877-live-workshop-integrity-mapping-slice.md": "Recently shipped",

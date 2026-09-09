@@ -24,7 +24,10 @@ import {
   isContainmentClassId,
 } from '../containmentClassInspection'
 import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../equipmentStationMutation'
-import { zoneIdForContainmentClass } from '../containmentBarrierIntegrity'
+import {
+  CONTAINMENT_BARRIER_ZONE_IDS,
+  zoneIdForContainmentClass,
+} from '../containmentBarrierIntegrity'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -1352,8 +1355,8 @@ const equipmentContainmentBarrierIntegrityChangedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.enum(['blast_door', 'pressure_seal']),
-    zoneId: z.enum(['blast_door_membrane', 'pressure_seal_membrane']),
+    classId: containmentClassIdSchema,
+    zoneId: z.enum(CONTAINMENT_BARRIER_ZONE_IDS),
     previousStatus: z.enum(['intact', 'flow_restraint', 'zone_breach']),
     status: z.enum(['flow_restraint', 'zone_breach']),
     sourceDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),

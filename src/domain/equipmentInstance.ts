@@ -967,7 +967,6 @@ export function persistContainmentBarrierCoupling(
   const classId = state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId
   if (!classId) return state
   const zoneId = zoneIdForContainmentClass(classId)
-  if (!zoneId) return state
   const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
   const resolved = resolveContainmentBarrierIntegrityCoupling({
     existing: registry?.[zoneId],

@@ -8,6 +8,7 @@ import {
 import {
   BLAST_DOOR_MEMBRANE_ZONE_ID,
   BARRIER_INTEGRITY_WATCH_CONTROL_ID,
+  INTERLOCK_MEMBRANE_ZONE_ID,
   PRESSURE_SEAL_MEMBRANE_ZONE_ID,
   parseContainmentBarrierIntegrity,
   parseContainmentBarrierIntegrityRegistry,
@@ -166,9 +167,9 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
     ).toEqual({ ok: false, code: 'invalid_class' })
   })
 
-  it('couples pressure-seal into its own zone and leaves blast-door membrane untouched', () => {
+  it('couples extra-class deficiency into its own zone and fail-closes mixed pairings', () => {
     expect(zoneIdForContainmentClass('pressure_seal')).toBe(PRESSURE_SEAL_MEMBRANE_ZONE_ID)
-    expect(zoneIdForContainmentClass('interlock')).toBeUndefined()
+    expect(zoneIdForContainmentClass('interlock')).toBe(INTERLOCK_MEMBRANE_ZONE_ID)
     expect(
       resolveContainmentBarrierIntegrityCoupling({
         existing: undefined,
@@ -206,11 +207,54 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         sourceDeficiencyKind: 'compensating_continue',
       },
     })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        classId: 'interlock',
+        deficiency: { kind: 'hard_stop' },
+        sourceInstanceId: 'equipment-instance-1-4',
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'intact',
+      changed: true,
+      barrier: {
+        zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: 'equipment-instance-1-4',
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        classId: 'interlock',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-4',
+      })
+    ).toMatchObject({
+      ok: true,
+      changed: true,
+      barrier: {
+        zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+      },
+    })
     const blastDoorBreach = {
       zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
       status: 'zone_breach' as const,
       sourceInstanceId: 'equipment-instance-1-1',
       sourceDeficiencyKind: 'hard_stop' as const,
+    }
+    const pressureSealRestraint = {
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint' as const,
+      sourceInstanceId: 'equipment-instance-1-3',
+      sourceDeficiencyKind: 'compensating_continue' as const,
     }
     expect(
       resolveContainmentBarrierIntegrityCoupling({
@@ -227,7 +271,47 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         deficiency: { kind: 'hard_stop' },
         sourceInstanceId: 'equipment-instance-1-4',
       })
-    ).toMatchObject({ ok: true, changed: false })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: pressureSealRestraint,
+        deficiency: { kind: 'hard_stop' },
+        sourceInstanceId: 'equipment-instance-1-1',
+      })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: undefined,
+        classId: 'pressure_seal',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-3',
+      })
+    ).toEqual({ ok: false, code: 'malformed_deficiency' })
+    const interlockBreach = {
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'zone_breach' as const,
+      sourceInstanceId: 'equipment-instance-1-4',
+      sourceDeficiencyKind: 'hard_stop' as const,
+    }
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: interlockBreach,
+        classId: 'interlock',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+        sourceInstanceId: 'equipment-instance-1-5',
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'zone_breach',
+      changed: false,
+      barrier: interlockBreach,
+    })
   })
 
   it('hydrates a keyed registry, legacy singular blast-door, and drops malformed extra-class independently', () => {
@@ -243,17 +327,27 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
       sourceInstanceId: 'equipment-instance-1-3',
       sourceDeficiencyKind: 'compensating_continue' as const,
     }
+    const interlock = {
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'zone_breach' as const,
+      sourceInstanceId: 'equipment-instance-1-4',
+      sourceDeficiencyKind: 'hard_stop' as const,
+    }
     expect(parseContainmentBarrierIntegrityRegistry(blastDoor)).toEqual({
       [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
     })
+    expect(parseContainmentBarrierIntegrityRegistry(pressureSeal)).toBeUndefined()
+    expect(parseContainmentBarrierIntegrityRegistry(interlock)).toBeUndefined()
     expect(
       parseContainmentBarrierIntegrityRegistry({
         [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
         [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal,
+        [INTERLOCK_MEMBRANE_ZONE_ID]: interlock,
       })
     ).toEqual({
       [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
       [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: pressureSeal,
+      [INTERLOCK_MEMBRANE_ZONE_ID]: interlock,
     })
     expect(
       parseContainmentBarrierIntegrityRegistry({
@@ -264,6 +358,7 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
           sourceInstanceId: 'equipment-instance-1-3',
           sourceDeficiencyKind: 'hard_stop',
         },
+        [INTERLOCK_MEMBRANE_ZONE_ID]: { status: 'zone_breach' },
       })
     ).toEqual({ [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor })
     expect(
@@ -280,5 +375,11 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
         PRESSURE_SEAL_MEMBRANE_ZONE_ID
       )
     ).toBe('flow_restraint')
+    expect(
+      readContainmentBarrierStatus(
+        { [INTERLOCK_MEMBRANE_ZONE_ID]: interlock },
+        INTERLOCK_MEMBRANE_ZONE_ID
+      )
+    ).toBe('zone_breach')
   })
 })

@@ -1,6 +1,7 @@
 /** SPE-877 barrier-integrity coupling — SPE-1387 / SPE-471 zone consumer. */
 
 import {
+  isContainmentClassId,
   parseContainmentDeficiency,
   type ContainmentClassId,
   type ContainmentDeficiency,
@@ -12,9 +13,13 @@ export type BlastDoorMembraneZoneId = typeof BLAST_DOOR_MEMBRANE_ZONE_ID
 export const PRESSURE_SEAL_MEMBRANE_ZONE_ID = 'pressure_seal_membrane' as const
 export type PressureSealMembraneZoneId = typeof PRESSURE_SEAL_MEMBRANE_ZONE_ID
 
+export const INTERLOCK_MEMBRANE_ZONE_ID = 'interlock_membrane' as const
+export type InterlockMembraneZoneId = typeof INTERLOCK_MEMBRANE_ZONE_ID
+
 export const CONTAINMENT_BARRIER_ZONE_IDS = [
   BLAST_DOOR_MEMBRANE_ZONE_ID,
   PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+  INTERLOCK_MEMBRANE_ZONE_ID,
 ] as const
 export type ContainmentBarrierZoneId = (typeof CONTAINMENT_BARRIER_ZONE_IDS)[number]
 
@@ -80,7 +85,11 @@ function isSafeBarrierSourceId(value: unknown): value is string {
 }
 
 function isContainmentBarrierZoneId(value: unknown): value is ContainmentBarrierZoneId {
-  return value === BLAST_DOOR_MEMBRANE_ZONE_ID || value === PRESSURE_SEAL_MEMBRANE_ZONE_ID
+  return (
+    value === BLAST_DOOR_MEMBRANE_ZONE_ID ||
+    value === PRESSURE_SEAL_MEMBRANE_ZONE_ID ||
+    value === INTERLOCK_MEMBRANE_ZONE_ID
+  )
 }
 
 function proposedStatusForDeficiency(
@@ -91,16 +100,14 @@ function proposedStatusForDeficiency(
   return 'intact'
 }
 
-export function zoneIdForContainmentClass(
-  classId: ContainmentClassId
-): ContainmentBarrierZoneId | undefined {
+export function zoneIdForContainmentClass(classId: ContainmentClassId): ContainmentBarrierZoneId {
   switch (classId) {
     case 'blast_door':
       return BLAST_DOOR_MEMBRANE_ZONE_ID
     case 'pressure_seal':
       return PRESSURE_SEAL_MEMBRANE_ZONE_ID
     case 'interlock':
-      return undefined
+      return INTERLOCK_MEMBRANE_ZONE_ID
     default: {
       const exhaustive: never = classId
       return exhaustive
@@ -114,6 +121,8 @@ export function labelContainmentBarrierZone(zoneId: ContainmentBarrierZoneId): s
       return 'Blast door membrane'
     case PRESSURE_SEAL_MEMBRANE_ZONE_ID:
       return 'Pressure seal membrane'
+    case INTERLOCK_MEMBRANE_ZONE_ID:
+      return 'Interlock membrane'
     default: {
       const exhaustive: never = zoneId
       return exhaustive
@@ -178,7 +187,7 @@ export function parseContainmentBarrierIntegrity(value: unknown): ContainmentBar
 }
 
 function looksLikeSingularBarrierRecord(value: Record<string, unknown>) {
-  return hasOnlyKeys(value, BARRIER_RECORD_KEYS) && isContainmentBarrierZoneId(value.zoneId)
+  return hasOnlyKeys(value, BARRIER_RECORD_KEYS) && value.zoneId === BLAST_DOOR_MEMBRANE_ZONE_ID
 }
 
 export function parseContainmentBarrierIntegrityRegistry(
@@ -215,8 +224,8 @@ export function readContainmentBarrierStatus(
  * hard_stop → zone_breach (catastrophic wall-breach).
  * compensating_continue → flow_restraint (barrier_integrity_watch), not a full breach.
  * Recorded zone_breach never downgrades. SPE-2851 damaged is not an input.
- * `blast_door` writes `blast_door_membrane`; `pressure_seal` writes `pressure_seal_membrane`.
- * Interlock has no zone this child. Mixed class/control pairings fail closed.
+ * `blast_door` writes `blast_door_membrane`; `pressure_seal` writes `pressure_seal_membrane`;
+ * `interlock` writes `interlock_membrane`. Mixed class/control pairings fail closed.
  */
 export function resolveContainmentBarrierIntegrityCoupling(input: {
   existing: unknown
@@ -225,7 +234,7 @@ export function resolveContainmentBarrierIntegrityCoupling(input: {
   classId?: unknown
 }): ContainmentBarrierCouplingResult {
   const classId = input.classId === undefined ? 'blast_door' : input.classId
-  if (classId !== 'blast_door' && classId !== 'pressure_seal') {
+  if (!isContainmentClassId(classId)) {
     const existingParsed =
       input.existing === undefined ? undefined : parseContainmentBarrierIntegrity(input.existing)
     const existing = existingParsed?.ok ? existingParsed.barrier : undefined
@@ -237,9 +246,6 @@ export function resolveContainmentBarrierIntegrityCoupling(input: {
     }
   }
   const zoneId = zoneIdForContainmentClass(classId)
-  if (!zoneId) {
-    return { ok: false, code: 'malformed_deficiency' }
-  }
   const deficiency = parseContainmentDeficiency(input.deficiency, classId)
   if (!deficiency) {
     return { ok: false, code: 'malformed_deficiency' }

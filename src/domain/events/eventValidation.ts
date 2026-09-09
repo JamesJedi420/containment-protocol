@@ -23,6 +23,7 @@ import {
   getContainmentClassCadenceSpec,
   isContainmentClassId,
 } from '../containmentClassInspection'
+import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../equipmentStationMutation'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -1275,6 +1276,60 @@ const equipmentContainmentClassStabilizedSchema = z
     }
   })
 
+const equipmentInstanceStationMutatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: z.literal('blast_door'),
+    stationId: z.literal(BLAST_DOOR_INTEGRITY_LABOR_STATION_ID),
+    previousCycleCount: finiteNonNegativeIntSchema,
+    cycleCount: finiteNonNegativeIntSchema,
+    condition: z.enum(['operational', 'damaged']),
+    deficiencyKind: z.enum(['none', 'hard_stop', 'compensating_continue']),
+    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    inService: z.boolean(),
+    reason: z.literal('integrity_labor'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'integrity-labor instance must reference a known equipment catalog definition',
+      })
+    }
+    if (
+      !Number.isSafeInteger(payload.previousCycleCount) ||
+      !Number.isSafeInteger(payload.cycleCount) ||
+      payload.cycleCount !== payload.previousCycleCount + 1
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cycleCount'],
+        message: 'integrity labor must increment cycleCount by 1',
+      })
+    }
+    if (payload.deficiencyKind === 'compensating_continue') {
+      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'blast-door compensating continue requires secondary_interlock_watch',
+        })
+      }
+    } else if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'none and hard-stop cannot carry a compensating control',
+      })
+    }
+  })
+
 const equipmentContainmentBarrierIntegrityChangedSchema = z
   .object({
     week: weekSchema,
@@ -2062,6 +2117,7 @@ export const operationEventPayloadSchemas = {
     equipmentContainmentClassDeficiencyRecordedSchema,
   'equipment.containment_class_inspected': equipmentContainmentClassInspectedSchema,
   'equipment.containment_class_stabilized': equipmentContainmentClassStabilizedSchema,
+  'equipment.instance_station_mutated': equipmentInstanceStationMutatedSchema,
   'equipment.containment_barrier_integrity_changed':
     equipmentContainmentBarrierIntegrityChangedSchema,
   'equipment.combat_stim_activated': combatStimActivatedSchema,

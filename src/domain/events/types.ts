@@ -558,6 +558,21 @@ export interface OperationEventPayloadMap {
     inService: boolean
     reason: 'technician_stabilization'
   }
+  'equipment.instance_station_mutated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: 'blast_door'
+    stationId: 'blast_door_integrity_bench'
+    previousCycleCount: number
+    cycleCount: number
+    condition: 'operational' | 'damaged'
+    deficiencyKind: 'none' | 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: 'secondary_interlock_watch'
+    inService: boolean
+    reason: 'integrity_labor'
+  }
   'equipment.containment_barrier_integrity_changed': {
     week: number
     instanceId: Id
@@ -955,6 +970,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.containment_class_deficiency_recorded': 'agent'
   'equipment.containment_class_inspected': 'agent'
   'equipment.containment_class_stabilized': 'agent'
+  'equipment.instance_station_mutated': 'agent'
   'equipment.containment_barrier_integrity_changed': 'agent'
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
@@ -1030,6 +1046,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.containment_class_deficiency_recorded': 'agent',
   'equipment.containment_class_inspected': 'agent',
   'equipment.containment_class_stabilized': 'agent',
+  'equipment.instance_station_mutated': 'agent',
   'equipment.containment_barrier_integrity_changed': 'agent',
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',

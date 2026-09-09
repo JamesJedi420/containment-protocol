@@ -13,6 +13,7 @@ import {
   repairStoredEquipmentInstanceCondition,
   sanitizeEquipmentInstanceRegistry,
   stabilizeContainmentClassDeficiency,
+  applyBlastDoorIntegrityLabor,
   type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
 import {
@@ -37,6 +38,7 @@ import {
   createEquipmentInstanceConditionRepairedDraft,
   createContainmentClassDeficiencyRecordedDraft,
   createContainmentClassStabilizedDraft,
+  createEquipmentInstanceStationMutatedDraft,
   createContainmentBarrierIntegrityChangedDraft,
 } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
@@ -47,6 +49,7 @@ import {
 } from '../domain/containmentClassInspection'
 import { BLAST_DOOR_MEMBRANE_ZONE_ID } from '../domain/containmentBarrierIntegrity'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
+import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../domain/equipmentStationMutation'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -2943,6 +2946,309 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     })
     if (!repaired.ok) throw new Error(repaired.code)
     expect(isContainmentClassInService(repaired.instance.containmentIntegrity)).toBe(false)
+  })
+})
+
+describe('SPE-877 mutation stations / integrity labor', () => {
+  it('applies the authored blast-door bench in place without flipping condition or deficiency', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 3
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({
+        deficiency: { kind: 'hard_stop' },
+      }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    expect(mutated).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: created.instance.instanceId,
+        definitionId: 'ward_seals',
+        condition: 'damaged',
+        location: { state: 'stored' },
+        containmentIntegrity: {
+          classId: 'blast_door',
+          lastInspectionWeek: 1,
+          cycleCount: 1,
+          deficiency: { kind: 'hard_stop' },
+        },
+        stationMutation: {
+          stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+          appliedWeek: 3,
+        },
+      },
+    })
+    if (!mutated.ok) throw new Error(mutated.code)
+    expect(isContainmentClassInService(mutated.instance.containmentIntegrity)).toBe(false)
+    expect(mutated.state.inventory.ward_seals).toBe(0)
+    expect(mutated.state.damagedEquipmentQueue ?? []).toEqual([])
+    expect(mutated.state.fabricatedEquipmentLots).toEqual(created.state.fabricatedEquipmentLots)
+    expect(applyBlastDoorIntegrityLabor(mutated.state, created.instance.instanceId)).toMatchObject({
+      ok: false,
+      code: 'station_mutation_already_applied',
+    })
+    expect(
+      stabilizeContainmentClassDeficiency(mutated.state, created.instance.instanceId)
+    ).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: created.instance.instanceId,
+        condition: 'damaged',
+        containmentIntegrity: {
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+          },
+          cycleCount: 2,
+        },
+        stationMutation: {
+          stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+          appliedWeek: 3,
+        },
+      },
+    })
+    expect(
+      repairStoredEquipmentInstanceCondition(
+        mutated.state,
+        created.instance.instanceId,
+        BLAST_DOOR_SPARE_PART_ID
+      )
+    ).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: created.instance.instanceId,
+        condition: 'operational',
+        containmentIntegrity: { deficiency: { kind: 'hard_stop' }, cycleCount: 1 },
+        stationMutation: {
+          stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+          appliedWeek: 3,
+        },
+      },
+    })
+  })
+
+  it('fails closed for ordinary, wrong class, equipped, missing, and malformed records', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.ward_seals = 3
+    const ordinary = instantiateEquipmentInstance(state, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const blast = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!blast.ok) throw new Error(blast.code)
+    const pressure = instantiateEquipmentInstance(blast.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!pressure.ok) throw new Error(pressure.code)
+    const interlock = instantiateEquipmentInstance(pressure.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!interlock.ok) throw new Error(interlock.code)
+    const equipped = relocateEquipmentInstance(interlock.state, blast.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const snapshot = equipped.state.equipmentInstances
+
+    expect(
+      applyBlastDoorIntegrityLabor(ordinary.state, ordinary.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'malformed_containment_integrity' })
+    expect(
+      applyBlastDoorIntegrityLabor(pressure.state, pressure.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'invalid_containment_class' })
+    expect(
+      applyBlastDoorIntegrityLabor(interlock.state, interlock.instance.instanceId)
+    ).toMatchObject({ ok: false, code: 'invalid_containment_class' })
+    expect(applyBlastDoorIntegrityLabor(equipped.state, blast.instance.instanceId)).toMatchObject({
+      ok: false,
+      code: 'instance_not_stored',
+    })
+    expect(applyBlastDoorIntegrityLabor(equipped.state, 'constructor')).toMatchObject({
+      ok: false,
+      code: 'invalid_instance_id',
+    })
+    expect(applyBlastDoorIntegrityLabor(equipped.state, 'equipment-instance-9-9')).toMatchObject({
+      ok: false,
+      code: 'stale_transition',
+    })
+    expect(equipped.state.equipmentInstances).toEqual(snapshot)
+    const queued = queueEquipmentDeconstruction(blast.state, 'ward_seals', {
+      kind: 'equipment_instance',
+      instanceId: blast.instance.instanceId,
+    })
+    const claimed = {
+      ...queued,
+      equipmentInstances: {
+        ...(queued.equipmentInstances ?? {}),
+        [blast.instance.instanceId]: blast.instance,
+      },
+    }
+    expect(applyBlastDoorIntegrityLabor(claimed, blast.instance.instanceId)).toMatchObject({
+      ok: false,
+      code: 'recovery_claimed',
+    })
+    const sanitized = sanitizeEquipmentInstanceRegistry(
+      {
+        'equipment-instance-1-1': {
+          instanceId: 'equipment-instance-1-1',
+          definitionId: 'ward_seals',
+          condition: 'operational',
+          location: { state: 'stored' },
+          containmentIntegrity: blastDoorIntegrity(),
+          stationMutation: { stationId: 'other_bench', appliedWeek: 1 },
+        },
+      },
+      equipped.state.agents,
+      new Set(),
+      equipped.state.fabricatedEquipmentLots
+    )
+    expect(sanitized.equipmentInstances['equipment-instance-1-1']).toBeUndefined()
+    expect(sanitized.issues).toContainEqual({
+      instanceId: 'equipment-instance-1-1',
+      code: 'malformed_station_mutation',
+    })
+  })
+
+  it('rejects generic transitions that invent or rewrite the station stamp', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(
+      applyEquipmentInstanceTransition(
+        created.state,
+        created.instance.instanceId,
+        created.instance,
+        {
+          ...created.instance,
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 1,
+          },
+        }
+      )
+    ).toMatchObject({ ok: false, code: 'unauthorized_station_mutation' })
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+    expect(
+      applyEquipmentInstanceTransition(
+        mutated.state,
+        mutated.instance.instanceId,
+        mutated.instance,
+        {
+          ...mutated.instance,
+          stationMutation: {
+            stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+            appliedWeek: 9,
+          },
+        }
+      )
+    ).toMatchObject({ ok: false, code: 'unauthorized_station_mutation' })
+    const relocated = relocateEquipmentInstance(mutated.state, mutated.instance.instanceId, {
+      state: 'stored',
+    })
+    expect(relocated).toMatchObject({
+      ok: true,
+      instance: {
+        instanceId: mutated.instance.instanceId,
+        stationMutation: mutated.instance.stationMutation,
+        containmentIntegrity: { cycleCount: 1, deficiency: { kind: 'none' } },
+      },
+    })
+  })
+
+  it('hydrates integrity labor as history without replaying the mutation', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    const withEvent = appendOperationEventDrafts(mutated.state, [
+      createEquipmentInstanceStationMutatedDraft({
+        week: mutated.state.week,
+        instanceId: mutated.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      }),
+    ])
+    const serialized = JSON.parse(JSON.stringify(withEvent))
+    serialized.events.push({
+      ...serialized.events.at(-1),
+      id: 'evt-malformed-station-mutation',
+      payload: { ...serialized.events.at(-1).payload, classId: 'pressure_seal' },
+    })
+
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.equipmentInstances?.[created.instance.instanceId]).toEqual(mutated.instance)
+    expect(
+      hydrated.events.filter((event) => event.type === 'equipment.instance_station_mutated')
+    ).toHaveLength(1)
+  })
+
+  it('round-trips a valid station stamp across save/load without changing inventory', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+    const withEvent = appendOperationEventDrafts(mutated.state, [
+      createEquipmentInstanceStationMutatedDraft({
+        week: mutated.state.week,
+        instanceId: mutated.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        stationId: BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        inService: true,
+        reason: 'integrity_labor',
+      }),
+    ])
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(withEvent)))
+    expect(hydrated.equipmentInstances?.[created.instance.instanceId]).toEqual(mutated.instance)
+    expect(hydrated.inventory.ward_seals).toBe(0)
   })
 })
 

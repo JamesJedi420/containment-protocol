@@ -154,6 +154,16 @@ keep caller-owned equipment condition. SPE-2851 `condition` is not the mapped si
 and interlock identities do not satisfy this mapping. See
 `planning/spe-877-live-workshop-integrity-mapping-slice.md`.
 
+## Mutation stations / integrity labor (SPE-877 child)
+
+`applyBlastDoorIntegrityLabor` is the first SPE-113 runtime. Authored station
+`blast_door_integrity_bench` stamps optional `stationMutation` on one stored `blast_door` identity
+and increments `cycleCount` by 1. `condition` and deficiency stay unchanged. Generic transitions
+cannot invent or rewrite the stamp. Successful labor hydrates as `equipment.instance_station_mutated`
+with reason `integrity_labor`. This is not a universal instance mutation API. See
+`planning/spe-877-mutation-stations-integrity-labor-slice.md` and
+`architecture/permanent-gear-mutation-stations.md`.
+
 ## Compatibility and hydration
 
 Definition-only loadouts remain supported. When a valid instance claims an agent slot, its location
@@ -179,8 +189,9 @@ pressure-seal (`planning/spe-877-pressure-seal-containment-class-inspection-slic
 interlock extra-class child ([SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock),
 `planning/spe-877-interlock-containment-class-inspection-slice.md`), and live workshop integrity
 mapping ([SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping),
-`planning/spe-877-live-workshop-integrity-mapping-slice.md`): mutation stations remain a later
-child.
+`planning/spe-877-live-workshop-integrity-mapping-slice.md`), and mutation stations / integrity
+labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`, Linear ID pending create):
+extra-class barrier zones remain a later child.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

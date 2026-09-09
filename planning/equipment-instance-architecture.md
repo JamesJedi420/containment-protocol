@@ -139,11 +139,14 @@ added `interlock`. See
 
 ## Barrier-integrity coupling (SPE-877 child)
 
-Optional `GameState.containmentBarrierIntegrity` is the SPE-1387 / SPE-471 blast-door membrane.
+Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 membrane registry.
 `applyContainmentClassDeficiency` writes `zone_breach` from hard-stop and `flow_restraint`
-(`barrier_integrity_watch`) from compensating continue. Week-close inspect advance reuses the
-same `persistContainmentBarrierCoupling` helper, which no-ops for non-`blast_door` classes. Recorded `zone_breach` does not downgrade
-on technician relief or SPE-2851 repair. See `architecture/containment-environment-patterns.md`.
+(`barrier_integrity_watch`) from compensating continue onto the class zone:
+`blast_door` → `blast_door_membrane`, `pressure_seal` → `pressure_seal_membrane`. Week-close inspect
+advance reuses the same `persistContainmentBarrierCoupling` helper. Interlock still no-ops. Recorded
+`zone_breach` does not downgrade on technician relief or SPE-2851 repair. See
+`architecture/containment-environment-patterns.md` and
+`planning/spe-877-pressure-seal-barrier-zone-slice.md`.
 
 ## Live workshop integrity mapping (SPE-2866)
 
@@ -194,8 +197,9 @@ interlock extra-class child ([SPE-2865](https://linear.app/spectranoir/issue/SPE
 `planning/spe-877-interlock-containment-class-inspection-slice.md`), and live workshop integrity
 mapping ([SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping),
 `planning/spe-877-live-workshop-integrity-mapping-slice.md`), and mutation stations / integrity
-labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`, Linear ID pending create):
-extra-class barrier zones remain a later child.
+labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`, Linear ID pending create), and
+pressure-seal barrier zone (`planning/spe-877-pressure-seal-barrier-zone-slice.md`, Linear ID
+pending create): interlock membrane remains a later child.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

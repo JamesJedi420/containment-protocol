@@ -52,15 +52,16 @@ Successful labor hydrates as `equipment.instance_station_mutated` with reason `i
 
 ## Deferred
 
-| Item or mechanic                                                | Owner or prerequisite         | Reason                                                                 |
-| --------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------- |
-| Extra-class barrier zones (pressure-seal / interlock membranes) | later SPE-877 child           | Named next after this child. Membrane coupling stays `blast_door` only |
-| Store/UI inspect or deficiency commands                         | later SPE-877 child           | Week-close remains the production inspect path                         |
-| SPE-1027 stock consume of a named part                          | SPE-1027 / later child        | Suitability stays blast-door-only; this child does not consume         |
-| Seed or materialize `equipment-instance-blast-door-workshop`    | later SPE-877 child           | SPE-2866 mapping still fail-closes missing instance                    |
-| Additional SPE-113 stations, tags, operators, legality, curses  | later SPE-877 / SPE-113 child | This child freezes one bench                                           |
-| Mapping additional containment classes into workshop quality    | later SPE-877 child           | SPE-2866 is blast-door only                                            |
-| Additional live quality axes                                    | SPE-1028 / SPE-2771           | Adjacent workshop owner                                                |
+| Item or mechanic                                               | Owner or prerequisite                                                       | Reason                                                                                  |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Extra-class barrier zones (pressure-seal membrane)             | this SPE-877 child (`planning/spe-877-pressure-seal-barrier-zone-slice.md`) | Shipped keyed registry + `pressure_seal_membrane`; does not write `blast_door_membrane` |
+| Interlock barrier zone                                         | later SPE-877 child                                                         | Persist stays no-op; do not author `interlock_membrane`                                 |
+| Store/UI inspect or deficiency commands                        | later SPE-877 child                                                         | Week-close remains the production inspect path                                          |
+| SPE-1027 stock consume of a named part                         | SPE-1027 / later child                                                      | Suitability stays blast-door-only; this child does not consume                          |
+| Seed or materialize `equipment-instance-blast-door-workshop`   | later SPE-877 child                                                         | SPE-2866 mapping still fail-closes missing instance                                     |
+| Additional SPE-113 stations, tags, operators, legality, curses | later SPE-877 / SPE-113 child                                               | This child freezes one bench                                                            |
+| Mapping additional containment classes into workshop quality   | later SPE-877 child                                                         | SPE-2866 is blast-door only                                                             |
+| Additional live quality axes                                   | SPE-1028 / SPE-2771                                                         | Adjacent workshop owner                                                                 |
 
 ## Parent disposition
 

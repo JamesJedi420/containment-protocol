@@ -26,7 +26,7 @@ import {
   isSafeEquipmentInstanceId,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
-import { parseContainmentBarrierIntegrity } from '../../domain/containmentBarrierIntegrity'
+import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -10513,8 +10513,9 @@ export function hydrateGame(
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
-  const barrierParsed = parseContainmentBarrierIntegrity(game.containmentBarrierIntegrity)
-  const containmentBarrierIntegrity = barrierParsed.ok ? barrierParsed.barrier : undefined
+  const containmentBarrierIntegrity = parseContainmentBarrierIntegrityRegistry(
+    game.containmentBarrierIntegrity
+  )
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,

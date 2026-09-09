@@ -19,6 +19,10 @@ import { advanceWeek } from '../domain/sim/advanceWeek'
 import { appendOperationEventDrafts } from '../domain/events'
 import { createContainmentClassInspectedDraft } from '../domain/events/eventBus'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_MEMBRANE_ZONE_ID,
+  PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+} from '../domain/containmentBarrierIntegrity'
 
 function blastDoorIntegrity(
   overrides: Partial<ContainmentClassIntegrity> = {}
@@ -97,7 +101,9 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       },
     })
     expect(isContainmentClassInService(integrity)).toBe(true)
-    expect(advanced.state.containmentBarrierIntegrity?.status).toBe('flow_restraint')
+    expect(advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status).toBe(
+      'flow_restraint'
+    )
     expect(advanced.eventDrafts.map((draft) => draft.type)).toEqual([
       'equipment.containment_class_inspected',
       'equipment.containment_class_deficiency_recorded',
@@ -187,8 +193,10 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       deficiency: { kind: 'hard_stop' },
     })
     expect(advanced.state.containmentBarrierIntegrity).toMatchObject({
-      status: 'zone_breach',
-      sourceDeficiencyKind: 'hard_stop',
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+      },
     })
   })
 
@@ -360,7 +368,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     ).toHaveLength(1)
   })
 
-  it('stamps due pressure-seal last-inspection without coupling blast-door membrane', () => {
+  it('stamps due pressure-seal last-inspection onto pressure_seal_membrane without writing blast_door_membrane', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
     state.week = 4
@@ -381,7 +389,16 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
         compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
       },
     })
-    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toMatchObject({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceDeficiencyKind: 'compensating_continue',
+    })
     expect(advanced.eventDrafts[0]?.payload).toMatchObject({
       classId: 'pressure_seal',
       status: 'due',
@@ -390,7 +407,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     })
   })
 
-  it('stamps overdue pressure-seal to hard-stop without writing blast_door_membrane', () => {
+  it('stamps overdue pressure-seal to hard-stop on pressure_seal_membrane without writing blast_door_membrane', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
     state.week = 5
@@ -407,7 +424,12 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       lastInspectionWeek: 5,
       deficiency: { kind: 'hard_stop' },
     })
-    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]?.status
+    ).toBe('zone_breach')
   })
 
   it('does not let pressure-seal week-close mutate an existing blast-door membrane', () => {
@@ -419,15 +441,20 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     })
     if (!door.ok) throw new Error(door.code)
     const breached = advanceContainmentClassInspectionsAtWeekClose(door.state)
-    expect(breached.state.containmentBarrierIntegrity?.status).toBe('zone_breach')
+    const blastDoorRecord =
+      breached.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    expect(blastDoorRecord?.status).toBe('zone_breach')
     const seal = instantiateEquipmentInstance(breached.state, 'ward_seals', {
       containmentIntegrity: pressureSealIntegrity({ lastInspectionWeek: 1 }),
     })
     if (!seal.ok) throw new Error(seal.code)
     const advanced = advanceContainmentClassInspectionsAtWeekClose(seal.state)
-    expect(advanced.state.containmentBarrierIntegrity).toEqual(
-      seal.state.containmentBarrierIntegrity
+    expect(advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual(
+      blastDoorRecord
     )
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]?.status
+    ).toBe('zone_breach')
     expect(
       advanced.state.equipmentInstances?.[seal.instance.instanceId]?.containmentIntegrity?.classId
     ).toBe('pressure_seal')
@@ -528,7 +555,9 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     })
     if (!door.ok) throw new Error(door.code)
     const breached = advanceContainmentClassInspectionsAtWeekClose(door.state)
-    expect(breached.state.containmentBarrierIntegrity?.status).toBe('zone_breach')
+    expect(breached.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status).toBe(
+      'zone_breach'
+    )
     const lock = instantiateEquipmentInstance(breached.state, 'ward_seals', {
       containmentIntegrity: interlockIntegrity({ lastInspectionWeek: 1 }),
     })

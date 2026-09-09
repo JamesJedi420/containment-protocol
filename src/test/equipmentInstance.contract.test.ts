@@ -8,6 +8,7 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
   listStoredEquipmentInstances,
+  reconcileContainmentBarrierIntegritySources,
   reaggregateStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
@@ -3622,6 +3623,97 @@ describe('SPE-877 barrier-integrity coupling', () => {
     const hydrated = hydrateGame(JSON.parse(JSON.stringify(stopped.state)))
     expect(hydrated.containmentBarrierIntegrity).toEqual(stopped.state.containmentBarrierIntegrity)
     expect(hydrated.containmentBarrierIntegrity?.status).toBe('zone_breach')
+  })
+
+  it('drops a source-bound barrier when the blast-door instance is destroyed', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      stopped.state,
+      created.instance.instanceId
+    )
+
+    expect(destroyed).toMatchObject({ ok: true })
+    expect(destroyed.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(destroyed.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('retargets an orphaned barrier to the remaining most severe live blast-door source', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const firstStopped = applyContainmentClassDeficiency(
+      second.state,
+      first.instance.instanceId,
+      'hard_stop'
+    )
+    if (!firstStopped.ok) throw new Error(firstStopped.code)
+    const secondStopped = applyContainmentClassDeficiency(
+      firstStopped.state,
+      second.instance.instanceId,
+      'hard_stop'
+    )
+    if (!secondStopped.ok) throw new Error(secondStopped.code)
+
+    const withoutFirst = {
+      ...secondStopped.state,
+      equipmentInstances: Object.fromEntries(
+        Object.entries(secondStopped.state.equipmentInstances ?? {}).filter(
+          ([instanceId]) => instanceId !== first.instance.instanceId
+        )
+      ),
+    }
+    const reconciled = reconcileContainmentBarrierIntegritySources(withoutFirst)
+
+    expect(reconciled.containmentBarrierIntegrity).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: second.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
+  })
+
+  it('drops orphaned barrier records during hydration', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+    const serialized = JSON.parse(JSON.stringify(stopped.state))
+    delete serialized.equipmentInstances[created.instance.instanceId]
+
+    const hydrated = hydrateGame(serialized)
+
+    expect(hydrated.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(hydrated.containmentBarrierIntegrity).toBeUndefined()
   })
 
   it('hydrates the barrier event as history without replaying mutation', () => {

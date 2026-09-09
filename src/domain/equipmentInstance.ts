@@ -19,7 +19,12 @@ import {
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
-import { resolveContainmentBarrierIntegrityCoupling } from './containmentBarrierIntegrity'
+import {
+  BLAST_DOOR_MEMBRANE_ZONE_ID,
+  parseContainmentBarrierIntegrity,
+  resolveContainmentBarrierIntegrityCoupling,
+  type ContainmentBarrierIntegrity,
+} from './containmentBarrierIntegrity'
 import {
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
@@ -638,7 +643,9 @@ export function destroyStoredOrdinaryEquipmentInstance(
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
-  const nextState = normalizeGameState({ ...normalized, equipmentInstances })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({ ...normalized, equipmentInstances })
+  )
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
@@ -736,11 +743,13 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
-  const nextState = normalizeGameState({
-    ...normalized,
-    inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
-    equipmentInstances,
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...normalized,
+      inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
+      equipmentInstances,
+    })
+  )
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
@@ -973,6 +982,65 @@ export function persistContainmentBarrierCoupling(
   return normalizeGameState({
     ...state,
     containmentBarrierIntegrity: resolved.barrier,
+  })
+}
+
+function deriveContainmentBarrierIntegrityFromLiveBlastDoors(
+  instances: EquipmentInstanceRegistry | undefined
+): ContainmentBarrierIntegrity | undefined {
+  let selected: ContainmentBarrierIntegrity | undefined
+
+  for (const instanceId of Object.keys(instances ?? {}).sort()) {
+    const instance = instances?.[instanceId]
+    const parsed = parseContainmentClassIntegrity(instance?.containmentIntegrity)
+    if (!parsed.ok || parsed.integrity.classId !== 'blast_door') continue
+
+    const deficiency = parsed.integrity.deficiency
+    const candidate =
+      deficiency.kind === 'hard_stop'
+        ? ({
+            zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+            status: 'zone_breach' as const,
+            sourceInstanceId: instanceId,
+            sourceDeficiencyKind: 'hard_stop' as const,
+          } satisfies ContainmentBarrierIntegrity)
+        : deficiency.kind === 'compensating_continue'
+          ? ({
+              zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+              status: 'flow_restraint' as const,
+              sourceInstanceId: instanceId,
+              sourceDeficiencyKind: 'compensating_continue' as const,
+            } satisfies ContainmentBarrierIntegrity)
+          : undefined
+    if (!candidate) continue
+    if (!selected || candidate.status === 'zone_breach') {
+      selected = candidate
+      if (candidate.status === 'zone_breach') break
+    }
+  }
+
+  return selected
+}
+
+function canBarrierSourceStillAnchor(
+  state: Pick<GameState, 'equipmentInstances'>,
+  barrier: ContainmentBarrierIntegrity
+) {
+  const source = state.equipmentInstances?.[barrier.sourceInstanceId]
+  const parsed = parseContainmentClassIntegrity(source?.containmentIntegrity)
+  return parsed.ok && parsed.integrity.classId === 'blast_door'
+}
+
+export function reconcileContainmentBarrierIntegritySources(state: GameState): GameState {
+  const current = parseContainmentBarrierIntegrity(state.containmentBarrierIntegrity)
+  if (!current.ok) return state
+  if (canBarrierSourceStillAnchor(state, current.barrier)) return state
+
+  return normalizeGameState({
+    ...state,
+    containmentBarrierIntegrity: deriveContainmentBarrierIntegrityFromLiveBlastDoors(
+      state.equipmentInstances
+    ),
   })
 }
 

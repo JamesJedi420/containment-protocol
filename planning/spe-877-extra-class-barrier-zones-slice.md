@@ -27,7 +27,7 @@ unstamped re-aggregation reopen, no fourth class, no parallel GameState field, n
 stored). Do not add `containmentBarrierIntegrityByZone`. Hydration:
 
 1. omit / undefined → all intact (undefined)
-2. legacy single-record `{ zoneId: 'blast_door_membrane', status, sourceInstanceId, sourceDeficiencyKind }` → keyed `{ blast_door_membrane: parsed }`
+2. legacy single-record `{ zoneId: 'blast_door_membrane', status, sourceInstanceId, sourceDeficiencyKind }` → keyed `{ blast_door_membrane: parsed }`. Singular extra-class records are not a persisted shape and drop.
 3. keyed map: parse each known zone independently. Unknown keys drop. Malformed extra-class zone drops without dropping siblings. Malformed blast-door drops independently.
 
 `persistContainmentBarrierCoupling` maps instance `classId` → zone, resolves against that zone's

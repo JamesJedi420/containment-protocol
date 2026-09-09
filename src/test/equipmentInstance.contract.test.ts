@@ -3925,6 +3925,24 @@ describe('SPE-877 barrier-integrity coupling', () => {
     })
   })
 
+  it('drops a singular extra-class record instead of promoting it into the keyed registry', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const serialized = JSON.parse(JSON.stringify(created.state))
+    serialized.containmentBarrierIntegrity = {
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: created.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    }
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.containmentBarrierIntegrity).toBeUndefined()
+  })
+
   it('drops a malformed extra-class zone independently of a valid blast-door membrane', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1

@@ -336,6 +336,8 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
     expect(parseContainmentBarrierIntegrityRegistry(blastDoor)).toEqual({
       [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,
     })
+    expect(parseContainmentBarrierIntegrityRegistry(pressureSeal)).toBeUndefined()
+    expect(parseContainmentBarrierIntegrityRegistry(interlock)).toBeUndefined()
     expect(
       parseContainmentBarrierIntegrityRegistry({
         [BLAST_DOOR_MEMBRANE_ZONE_ID]: blastDoor,

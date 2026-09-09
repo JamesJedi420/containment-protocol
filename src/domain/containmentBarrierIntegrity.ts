@@ -187,7 +187,7 @@ export function parseContainmentBarrierIntegrity(value: unknown): ContainmentBar
 }
 
 function looksLikeSingularBarrierRecord(value: Record<string, unknown>) {
-  return hasOnlyKeys(value, BARRIER_RECORD_KEYS) && isContainmentBarrierZoneId(value.zoneId)
+  return hasOnlyKeys(value, BARRIER_RECORD_KEYS) && value.zoneId === BLAST_DOOR_MEMBRANE_ZONE_ID
 }
 
 export function parseContainmentBarrierIntegrityRegistry(

@@ -21,6 +21,7 @@ import { createContainmentClassInspectedDraft } from '../domain/events/eventBus'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
 import {
   BLAST_DOOR_MEMBRANE_ZONE_ID,
+  INTERLOCK_MEMBRANE_ZONE_ID,
   PRESSURE_SEAL_MEMBRANE_ZONE_ID,
 } from '../domain/containmentBarrierIntegrity'
 
@@ -496,7 +497,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     ).toHaveLength(1)
   })
 
-  it('stamps due interlock last-inspection without coupling blast-door membrane', () => {
+  it('stamps due interlock last-inspection onto interlock_membrane without writing blast_door_membrane', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
     state.week = 3
@@ -517,7 +518,14 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
         compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
       },
     })
-    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(advanced.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]).toMatchObject({
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceDeficiencyKind: 'compensating_continue',
+    })
     expect(advanced.eventDrafts[0]?.payload).toMatchObject({
       classId: 'interlock',
       status: 'due',
@@ -526,7 +534,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     })
   })
 
-  it('stamps overdue interlock to hard-stop without writing blast_door_membrane', () => {
+  it('stamps overdue interlock to hard-stop on interlock_membrane without writing blast_door_membrane', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
     state.week = 4
@@ -543,7 +551,12 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       lastInspectionWeek: 4,
       deficiency: { kind: 'hard_stop' },
     })
-    expect(advanced.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(advanced.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]?.status).toBe(
+      'zone_breach'
+    )
   })
 
   it('does not let interlock week-close mutate an existing blast-door membrane', () => {
@@ -555,16 +568,19 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     })
     if (!door.ok) throw new Error(door.code)
     const breached = advanceContainmentClassInspectionsAtWeekClose(door.state)
-    expect(breached.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status).toBe(
-      'zone_breach'
-    )
+    const blastDoorRecord =
+      breached.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    expect(blastDoorRecord?.status).toBe('zone_breach')
     const lock = instantiateEquipmentInstance(breached.state, 'ward_seals', {
       containmentIntegrity: interlockIntegrity({ lastInspectionWeek: 1 }),
     })
     if (!lock.ok) throw new Error(lock.code)
     const advanced = advanceContainmentClassInspectionsAtWeekClose(lock.state)
-    expect(advanced.state.containmentBarrierIntegrity).toEqual(
-      lock.state.containmentBarrierIntegrity
+    expect(advanced.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual(
+      blastDoorRecord
+    )
+    expect(advanced.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]?.status).toBe(
+      'zone_breach'
     )
     expect(
       advanced.state.equipmentInstances?.[lock.instance.instanceId]?.containmentIntegrity?.classId

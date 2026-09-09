@@ -22,8 +22,13 @@ One authored zone: `blast_door_membrane`. One SPE-2860 class: `blast_door`. Defi
 
 One authored zone: `pressure_seal_membrane`. One SPE-2864 class: `pressure_seal`. Same deficiency
 → status table as blast-door. `persistContainmentBarrierCoupling` writes only
-`pressure_seal_membrane` and must not clobber `blast_door_membrane`. Interlock has no zone until a
-later SPE-877 child.
+`pressure_seal_membrane` and must not clobber `blast_door_membrane`.
+
+## Frozen pairing (interlock)
+
+One authored zone: `interlock_membrane`. One SPE-2865 class: `interlock`. Same deficiency → status
+table as blast-door. `persistContainmentBarrierCoupling` writes only `interlock_membrane` and must
+not clobber `blast_door_membrane`.
 
 Optional `GameState.containmentBarrierIntegrity` is a keyed registry of those zones. Legacy
 singular blast-door records hydrate into `{ blast_door_membrane: record }`. Mixed class/zone
@@ -37,12 +42,12 @@ second model and does not clear the breach. SPE-2851 `damaged` is not a breach.
 
 ## Anti-patterns
 
-- A second integrity class, extra containment classes, or a door-opening minigame beside SPE-2860.
+- A fourth containment class, a door-opening minigame, or a parallel `barrier_integrity` vocabulary
+  beside this file.
 - Treating compensating continue as full wall-breach.
-- Inventing a second `barrier_integrity` vocabulary beside this file.
 - Writing `blast_door_membrane` from a non-`blast_door` class, or a parallel GameState sibling that
   clobbers the blast-door record.
-- Week-close inspection advance, SPE-1027 stock consume, store/UI surfaces this pairing does not own.
+- Store/UI inspect commands or SPE-1027 stock consume this pairing does not own.
 
 ## Runtime owner
 
@@ -55,5 +60,6 @@ event `equipment.containment_barrier_integrity_changed` is history only.
 
 - `planning/spe-barrier-integrity-coupling-slice.md`
 - `planning/spe-877-pressure-seal-barrier-zone-slice.md`
+- `planning/spe-877-extra-class-barrier-zones-slice.md`
 - `planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`
 - `architecture/fortified-site-breach-assault.md` — assault-layer breach, not this membrane pairing

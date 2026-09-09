@@ -2788,10 +2788,10 @@ export interface GameState {
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**
-   * SPE-877 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
-   * `blast_door_membrane` and `pressure_seal_membrane` are independent. Omit hydrates as intact.
-   * Legacy singular blast-door records hydrate into the keyed shape. Recorded zone_breach does not
-   * downgrade. Interlock has no zone this child.
+   * SPE-877 / SPE-2868 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
+   * `blast_door_membrane`, `pressure_seal_membrane`, and `interlock_membrane` are independent.
+   * Omit hydrates as intact. Legacy singular blast-door records hydrate into the keyed shape.
+   * Recorded zone_breach does not downgrade. Extra-class deficiency never writes blast_door_membrane.
    */
   containmentBarrierIntegrity?: ContainmentBarrierIntegrityRegistry
   /**

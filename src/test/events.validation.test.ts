@@ -372,11 +372,21 @@ describe('event payload validation coverage', () => {
         zoneId: 'pressure_seal_membrane',
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        classId: 'interlock',
+        zoneId: 'interlock_membrane',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
       { ...valid, zoneId: 'pressure_seal_membrane' },
       { ...valid, classId: 'interlock' },
+      { ...valid, zoneId: 'interlock_membrane' },
+      { ...valid, classId: 'pressure_seal', zoneId: 'blast_door_membrane' },
+      { ...valid, classId: 'blast_door', zoneId: 'interlock_membrane' },
       { ...valid, zoneId: 'other_membrane' },
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, status: 'intact' },

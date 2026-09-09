@@ -142,11 +142,12 @@ added `interlock`. See
 Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 membrane registry.
 `applyContainmentClassDeficiency` writes `zone_breach` from hard-stop and `flow_restraint`
 (`barrier_integrity_watch`) from compensating continue onto the class zone:
-`blast_door` → `blast_door_membrane`, `pressure_seal` → `pressure_seal_membrane`. Week-close inspect
-advance reuses the same `persistContainmentBarrierCoupling` helper. Interlock still no-ops. Recorded
-`zone_breach` does not downgrade on technician relief or SPE-2851 repair. See
-`architecture/containment-environment-patterns.md` and
-`planning/spe-877-pressure-seal-barrier-zone-slice.md`.
+`blast_door` → `blast_door_membrane`, `pressure_seal` → `pressure_seal_membrane`,
+`interlock` → `interlock_membrane`. Week-close inspect advance reuses the same
+`persistContainmentBarrierCoupling` helper. Extra-class deficiency never writes
+`blast_door_membrane`. Recorded `zone_breach` does not downgrade on technician relief, SPE-2851
+repair, or SPE-2867 integrity labor. See `architecture/containment-environment-patterns.md` and
+`planning/spe-877-extra-class-barrier-zones-slice.md`.
 
 ## Live workshop integrity mapping (SPE-2866)
 
@@ -197,9 +198,12 @@ interlock extra-class child ([SPE-2865](https://linear.app/spectranoir/issue/SPE
 `planning/spe-877-interlock-containment-class-inspection-slice.md`), and live workshop integrity
 mapping ([SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping),
 `planning/spe-877-live-workshop-integrity-mapping-slice.md`), and mutation stations / integrity
-labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`, Linear ID pending create), and
-pressure-seal barrier zone (`planning/spe-877-pressure-seal-barrier-zone-slice.md`, Linear ID
-pending create): interlock membrane remains a later child.
+labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`,
+[SPE-2867](https://linear.app/spectranoir/issue/SPE-2867/mutation-stations-integrity-labor)), and
+extra-class barrier zones
+([SPE-2868](https://linear.app/spectranoir/issue/SPE-2868/extra-class-barrier-zones-pressure-seal-interlock-membranes),
+`planning/spe-877-extra-class-barrier-zones-slice.md`): store/UI inspect commands, SPE-1027 consume,
+additional SPE-113 stations, and extra-class workshop quality remain later children.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

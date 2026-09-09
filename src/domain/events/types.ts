@@ -21,6 +21,7 @@ import type {
   ContainmentClassId,
   ContainmentCompensatingControlId,
 } from '../containmentClassInspection'
+import type { ContainmentBarrierZoneId } from '../containmentBarrierIntegrity'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -578,8 +579,8 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door' | 'pressure_seal'
-    zoneId: 'blast_door_membrane' | 'pressure_seal_membrane'
+    classId: ContainmentClassId
+    zoneId: ContainmentBarrierZoneId
     previousStatus: 'intact' | 'flow_restraint' | 'zone_breach'
     status: 'flow_restraint' | 'zone_breach'
     sourceDeficiencyKind: 'hard_stop' | 'compensating_continue'

@@ -926,6 +926,31 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('warning')
   })
 
+  it('equipment.containment_barrier_integrity_changed — names interlock membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 3,
+        instanceId: 'equipment-instance-3-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        zoneId: 'interlock_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Interlock membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
+  })
+
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
     const event = makeEvent(
       'equipment.combat_stim_disposed',

@@ -2,6 +2,7 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2869",
     "SPE-2868",
     "SPE-2867",
     "SPE-2866",
@@ -12,10 +13,10 @@
     "SPE-2860",
     "SPE-2827",
     "SPE-2859",
-    "SPE-2858",
-    "SPE-2857"
+    "SPE-2858"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-store-ui-inspect-deficiency-slice.md": "Recently shipped",
     "planning/spe-877-extra-class-barrier-zones-slice.md": "Recently shipped",
     "planning/spe-877-pressure-seal-barrier-zone-slice.md": "Recently shipped",
     "planning/spe-877-mutation-stations-integrity-labor-slice.md": "Recently shipped",

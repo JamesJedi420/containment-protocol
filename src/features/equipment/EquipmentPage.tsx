@@ -28,6 +28,7 @@ function EquipmentPage() {
     materializeStoredEquipmentInstance,
     destroyStoredEquipmentInstance,
     repairStoredEquipmentInstanceCondition,
+    stabilizeContainmentClassDeficiency,
     disposeStoredCombatStimInstance,
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
@@ -63,6 +64,7 @@ function EquipmentPage() {
   }>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingRepairInstanceId, setPendingRepairInstanceId] = useState<string>()
+  const [pendingStabilizeInstanceId, setPendingStabilizeInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
@@ -441,6 +443,7 @@ function EquipmentPage() {
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
                               setPendingDestructionInstanceId(instance.instanceId)
                             }}
                           >
@@ -495,6 +498,7 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
                               setPendingRepairInstanceId(instance.instanceId)
                             }}
                           >
@@ -505,6 +509,54 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             This copy is already claimed by equipment recovery.
                           </p>
+                        ) : null}
+                        {pendingStabilizeInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm deficiency stabilization ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Stabilize this blast-door deficiency? Technician work relieves a hard
+                              stop or clears compensating continue. Condition and stock stay
+                              unchanged. Week-close remains the inspection path.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Stabilize deficiency ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  stabilizeContainmentClassDeficiency(instance.instanceId)
+                                  setPendingStabilizeInstanceId(undefined)
+                                }}
+                              >
+                                Confirm stabilization
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingStabilizeInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.canStabilizeContainmentDeficiency ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            aria-label={`Review deficiency stabilization ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
+                              setPendingStabilizeInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Stabilize deficiency
+                          </button>
                         ) : null}
                         {pendingReaggregationInstanceId === instance.instanceId ? (
                           <div
@@ -547,6 +599,7 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
                               setPendingReaggregationInstanceId(instance.instanceId)
                             }}
                           >
@@ -612,6 +665,7 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
                               setPendingReturnToLotInstanceId(instance.instanceId)
                             }}
                           >
@@ -720,6 +774,7 @@ function EquipmentPage() {
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                         setPendingRepairInstanceId(undefined)
+                        setPendingStabilizeInstanceId(undefined)
                       }}
                     >
                       Dispose instance
@@ -1193,6 +1248,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                                 setPendingCombatStimInstanceId(undefined)
                                 setPendingDestructionInstanceId(slot.instanceId)
                               }}
@@ -1250,6 +1306,7 @@ function EquipmentPage() {
                                 setPendingDestructionInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                                 setPendingCombatStimInstanceId(undefined)
                                 setPendingReaggregationInstanceId(slot.instanceId)
                               }}
@@ -1324,6 +1381,7 @@ function EquipmentPage() {
                                   setPendingDestructionInstanceId(undefined)
                                   setPendingReaggregationInstanceId(undefined)
                                   setPendingRepairInstanceId(undefined)
+                                  setPendingStabilizeInstanceId(undefined)
                                   setPendingCombatStimInstanceId(undefined)
                                   setPendingReturnToLotInstanceId(slot.instanceId)
                                 }}
@@ -1407,6 +1465,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                               }}
                             >
                               Dispose equipped copy
@@ -1470,6 +1529,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                               }}
                             >
                               Return equipped copy to stock
@@ -1538,6 +1598,7 @@ function EquipmentPage() {
                                   setPendingReaggregationInstanceId(undefined)
                                   setPendingReturnToLotInstanceId(undefined)
                                   setPendingRepairInstanceId(undefined)
+                                  setPendingStabilizeInstanceId(undefined)
                                 }}
                               >
                                 Return equipped copy to lot

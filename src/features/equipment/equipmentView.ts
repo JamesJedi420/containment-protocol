@@ -50,6 +50,7 @@ import {
 } from '../../domain/combatStim'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  canStabilizeContainmentClassDeficiency,
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
   isEquipmentInstanceClaimedForRecovery,
@@ -106,6 +107,7 @@ export interface EquipmentInstanceMaterializationView {
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
     canRepairCondition: boolean
     repairConditionBlocker?: 'recovery_claimed'
+    canStabilizeContainmentDeficiency: boolean
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
@@ -788,6 +790,7 @@ export function getEquipmentInstanceMaterializationViews(
                 canDestroy: destructionBlocker === undefined,
                 canRepairCondition:
                   instance.condition === 'damaged' && repairConditionBlocker === undefined,
+                canStabilizeContainmentDeficiency: canStabilizeContainmentClassDeficiency(instance),
                 canReaggregate: reaggregationBlocker === undefined,
                 canReturnToLot:
                   Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,

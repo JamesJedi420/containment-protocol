@@ -60,13 +60,13 @@ an extra-class zone). Extra-class events must carry matching `zoneId` and must n
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite          | Reason                                                     |
-| --------------------------------------------- | ------------------------------ | ---------------------------------------------------------- |
-| Store/UI inspect or deficiency commands       | later SPE-877 child            | Week-close remains the production inspect path             |
-| SPE-1027 stock consume of a named part        | SPE-1027 / later child         | Suitability stays blast-door-only; no inventory debit      |
-| Seed `equipment-instance-blast-door-workshop` | later SPE-877 child / SPE-2866 | SPE-2866 mapping stays blast-door-only; no instance seed   |
-| Additional SPE-113 stations                   | later SPE-877 child            | Mutation-stations child already froze one blast-door bench |
-| Extra-class workshop quality                  | later SPE-877 child            | SPE-2866 stays blast-door only                             |
+| Item or mechanic                              | Owner or prerequisite                                                                            | Reason                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Store/UI inspect or deficiency commands       | [SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands) | Shipped: technician stabilization via store/UI; week-close remains the inspect path |
+| SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                           | Suitability stays blast-door-only; no inventory debit                               |
+| Seed `equipment-instance-blast-door-workshop` | later SPE-877 child / SPE-2866                                                                   | SPE-2866 mapping stays blast-door-only; no instance seed                            |
+| Additional SPE-113 stations                   | later SPE-877 child                                                                              | Mutation-stations child already froze one blast-door bench                          |
+| Extra-class workshop quality                  | later SPE-877 child                                                                              | SPE-2866 stays blast-door only                                                      |
 
 ## Acceptance
 

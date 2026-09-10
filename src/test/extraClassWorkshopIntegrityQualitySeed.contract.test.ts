@@ -12,8 +12,12 @@ import {
   createProcurementLogisticsInterlockWorkshopInstance,
   deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
-import { instantiateEquipmentInstance } from '../domain/equipmentInstance'
 import { advanceContainmentClassInspectionsAtWeekClose } from '../domain/containmentClassWeekClose'
+import {
+  destroyStoredOrdinaryEquipmentInstance,
+  instantiateEquipmentInstance,
+  reaggregateStoredOrdinaryEquipmentInstance,
+} from '../domain/equipmentInstance'
 
 describe('SPE-877 extra-class workshop integrity-quality seeds', () => {
   it('puts authored pressure-seal and interlock identities in starting state without debiting inventory', () => {
@@ -144,5 +148,30 @@ describe('SPE-877 extra-class workshop integrity-quality seeds', () => {
           draft.payload.instanceId === EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID
       )
     ).toBe(true)
+  })
+
+  it('fail-closes destroy and catalog re-aggregation of extra-class authored identities', () => {
+    const state = createStartingState()
+    for (const instanceId of [
+      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+    ]) {
+      const destroyed = destroyStoredOrdinaryEquipmentInstance(state, instanceId)
+      expect(destroyed).toMatchObject({
+        ok: false,
+        code: 'authored_workshop_identity_protected',
+      })
+      expect(destroyed.state.equipmentInstances?.[instanceId]).toEqual(
+        state.equipmentInstances?.[instanceId]
+      )
+      expect(destroyed.state.inventory.ward_seals ?? 0).toBe(0)
+
+      const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(state, instanceId)
+      expect(reaggregated).toMatchObject({
+        ok: false,
+        code: 'authored_workshop_identity_protected',
+      })
+      expect(reaggregated.state.inventory.ward_seals ?? 0).toBe(0)
+    }
   })
 })

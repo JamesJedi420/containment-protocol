@@ -8,8 +8,12 @@ import {
   createFieldContainmentBlastDoorWorkshopInstance,
   deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
-import { instantiateEquipmentInstance } from '../domain/equipmentInstance'
 import { advanceContainmentClassInspectionsAtWeekClose } from '../domain/containmentClassWeekClose'
+import {
+  destroyStoredOrdinaryEquipmentInstance,
+  instantiateEquipmentInstance,
+  reaggregateStoredOrdinaryEquipmentInstance,
+} from '../domain/equipmentInstance'
 
 describe('SPE-877 seed equipment-instance-blast-door-workshop', () => {
   it('puts the authored blast-door identity in starting state without debiting inventory', () => {
@@ -113,5 +117,31 @@ describe('SPE-877 seed equipment-instance-blast-door-workshop', () => {
           draft.payload.instanceId === FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
       )
     ).toBe(true)
+  })
+
+  it('fail-closes destroy and catalog re-aggregation of the authored blast-door identity', () => {
+    const state = createStartingState()
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
+    expect(destroyed).toMatchObject({
+      ok: false,
+      code: 'authored_workshop_identity_protected',
+    })
+    expect(destroyed.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]).toEqual(
+      state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    )
+    expect(destroyed.state.inventory.ward_seals ?? 0).toBe(0)
+
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
+    expect(reaggregated).toMatchObject({
+      ok: false,
+      code: 'authored_workshop_identity_protected',
+    })
+    expect(reaggregated.state.inventory.ward_seals ?? 0).toBe(0)
   })
 })

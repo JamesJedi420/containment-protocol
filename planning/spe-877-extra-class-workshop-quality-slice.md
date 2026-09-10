@@ -19,7 +19,7 @@ so a fresh game is not permanently `poor`.
 Do not remap `department:field-containment` / `equipment-instance-blast-door-workshop`. Do not steal
 `department:biohazard-response` (SPE-2792). Do not change SPE-2782 grader semantics. Do not consume
 SPE-1027 stock. Do not recouple barriers on stabilize. Do not add SPE-113 tags, operators, legality,
-or curses. Do not protect authored workshop identities from destroy/re-agg. Do not bump
+or curses. Authored workshop identity destroy/re-agg protection shipped as SPE-2877. Do not bump
 `GAME_STORE_VERSION` unless hydration evidence requires it (it does not). Do not reopen SPE-2827 /
 SPE-2848. Do not pick SPE-2847.
 
@@ -54,7 +54,7 @@ Do not call `instantiateEquipmentInstance` for these seeds. Omitted extra-class 
 | Item or mechanic                                       | Owner or prerequisite                                                                                       | Reason                                                                                              |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Barrier recouple on technician relief                  | [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief) (`planning/spe-877-barrier-recouple-technician-relief-slice.md`) | Shipped: technician-relief persist omits `flow_restraint` on `none`; `zone_breach` stays sticky |
-| Protect authored workshop identity from destroy/re-agg | later SPE-877 child                                                                                         | Player can destroy or catalog-re-agg workshop seeds; re-agg would credit never-debited `ward_seals` |
+| Protect authored workshop identity from destroy/re-agg | [SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg) (`planning/spe-877-protect-workshop-identity-slice.md`) | Shipped: authored SPE-2866 IDs fail-close ordinary destroy/re-agg without stock credit |
 | SPE-1027 stock consume of a named part                 | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port                                                                     |
 | SPE-113 tags, operators, legality, curses              | later SPE-877 / SPE-113 child                                                                               | Out of this mapping/seed boundary                                                                   |
 | Additional live quality axes                           | SPE-1028 / SPE-2771                                                                                         | This child owns only the equipment axis                                                             |

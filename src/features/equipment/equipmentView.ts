@@ -48,6 +48,7 @@ import {
   type CombatStimReaggregationReasonCode,
   type CombatStimReturnToLotReasonCode,
 } from '../../domain/combatStim'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../../domain/departmentWorkshopIntegrityQualityMapping'
 import {
   COMBAT_STIM_DEFINITION_ID,
   canStabilizeContainmentClassDeficiency,
@@ -104,7 +105,7 @@ export interface EquipmentInstanceMaterializationView {
     conditionLabel: string
     provenanceLabel?: string
     canDestroy: boolean
-    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed'
+    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed' | 'authored_workshop_identity'
     canRepairCondition: boolean
     repairConditionBlocker?: 'recovery_claimed'
     canStabilizeContainmentDeficiency: boolean
@@ -116,6 +117,7 @@ export interface EquipmentInstanceMaterializationView {
       | 'recovery_claimed'
       | 'inventory_capacity_exceeded'
       | 'fabricated_provenance_required'
+      | 'authored_workshop_identity'
     canReturnToLot: boolean
     returnToLotBlocker?:
       | 'condition_unsupported'
@@ -143,7 +145,8 @@ export interface EquipmentLoadoutSlotView {
   overdriveLabel?: string
   ordinaryLifecycle?: {
     canDestroy: boolean
-    destructionBlocker?: 'payload_unsupported' | 'recovery_claimed' | 'agent_not_idle'
+    destructionBlocker?:
+      'payload_unsupported' | 'recovery_claimed' | 'agent_not_idle' | 'authored_workshop_identity'
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
@@ -153,6 +156,7 @@ export interface EquipmentLoadoutSlotView {
       | 'inventory_capacity_exceeded'
       | 'fabricated_provenance_required'
       | 'agent_not_idle'
+      | 'authored_workshop_identity'
     canReturnToLot: boolean
     lotReturnBlocker?:
       | 'condition_unsupported'
@@ -476,6 +480,14 @@ export function getGearRecommendationsForActiveCases(game: GameState): GearRecom
   })
 }
 
+function authoredWorkshopIdentityBlocker(
+  instanceId: string
+): 'authored_workshop_identity' | undefined {
+  return isAuthoredWorkshopIntegrityInstanceId(instanceId)
+    ? 'authored_workshop_identity'
+    : undefined
+}
+
 function resolveOrdinaryEquippedLifecycle(
   game: GameState,
   instance: NonNullable<ReturnType<typeof getEquipmentInstanceAtAgentSlot>>,
@@ -483,28 +495,33 @@ function resolveOrdinaryEquippedLifecycle(
 ): NonNullable<EquipmentLoadoutSlotView['ordinaryLifecycle']> {
   const recoveryClaimed = isEquipmentInstanceClaimedForRecovery(game, instance.instanceId)
   const aggregateStock = Math.max(0, Math.trunc(game.inventory[instance.definitionId] ?? 0))
-  const destructionBlocker = instance.payload
-    ? ('payload_unsupported' as const)
-    : recoveryClaimed
-      ? ('recovery_claimed' as const)
-      : agentIdle
-        ? undefined
-        : ('agent_not_idle' as const)
-  const reaggregationBlocker = instance.stationMutation
-    ? ('station_mutation_unsupported' as const)
-    : instance.condition !== 'operational'
-      ? ('condition_unsupported' as const)
-      : instance.payload
-        ? ('payload_unsupported' as const)
-        : instance.fabricationOrigin
-          ? ('fabricated_provenance_required' as const)
-          : recoveryClaimed
-            ? ('recovery_claimed' as const)
-            : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
-              ? ('inventory_capacity_exceeded' as const)
-              : agentIdle
-                ? undefined
-                : ('agent_not_idle' as const)
+  const authoredWorkshopBlocker = authoredWorkshopIdentityBlocker(instance.instanceId)
+  const destructionBlocker =
+    authoredWorkshopBlocker ??
+    (instance.payload
+      ? ('payload_unsupported' as const)
+      : recoveryClaimed
+        ? ('recovery_claimed' as const)
+        : agentIdle
+          ? undefined
+          : ('agent_not_idle' as const))
+  const reaggregationBlocker =
+    authoredWorkshopBlocker ??
+    (instance.stationMutation
+      ? ('station_mutation_unsupported' as const)
+      : instance.condition !== 'operational'
+        ? ('condition_unsupported' as const)
+        : instance.payload
+          ? ('payload_unsupported' as const)
+          : instance.fabricationOrigin
+            ? ('fabricated_provenance_required' as const)
+            : recoveryClaimed
+              ? ('recovery_claimed' as const)
+              : !Number.isSafeInteger(aggregateStock) || aggregateStock >= Number.MAX_SAFE_INTEGER
+                ? ('inventory_capacity_exceeded' as const)
+                : agentIdle
+                  ? undefined
+                  : ('agent_not_idle' as const))
   let lotReturnBlocker:
     | 'condition_unsupported'
     | 'station_mutation_unsupported'
@@ -728,29 +745,34 @@ export function getEquipmentInstanceMaterializationViews(
                 game,
                 instance.instanceId
               )
-              const destructionBlocker = instance.payload
-                ? ('payload_unsupported' as const)
-                : recoveryClaimed
-                  ? ('recovery_claimed' as const)
-                  : undefined
+              const authoredWorkshopBlocker = authoredWorkshopIdentityBlocker(instance.instanceId)
+              const destructionBlocker =
+                authoredWorkshopBlocker ??
+                (instance.payload
+                  ? ('payload_unsupported' as const)
+                  : recoveryClaimed
+                    ? ('recovery_claimed' as const)
+                    : undefined)
               const repairConditionBlocker =
                 instance.condition === 'damaged' && recoveryClaimed
                   ? ('recovery_claimed' as const)
                   : undefined
-              const reaggregationBlocker = instance.stationMutation
-                ? ('station_mutation_unsupported' as const)
-                : instance.condition !== 'operational'
-                  ? ('condition_unsupported' as const)
-                  : instance.payload
-                    ? ('payload_unsupported' as const)
-                    : instance.fabricationOrigin
-                      ? ('fabricated_provenance_required' as const)
-                      : recoveryClaimed
-                        ? ('recovery_claimed' as const)
-                        : !Number.isSafeInteger(aggregateStock) ||
-                            aggregateStock >= Number.MAX_SAFE_INTEGER
-                          ? ('inventory_capacity_exceeded' as const)
-                          : undefined
+              const reaggregationBlocker =
+                authoredWorkshopBlocker ??
+                (instance.stationMutation
+                  ? ('station_mutation_unsupported' as const)
+                  : instance.condition !== 'operational'
+                    ? ('condition_unsupported' as const)
+                    : instance.payload
+                      ? ('payload_unsupported' as const)
+                      : instance.fabricationOrigin
+                        ? ('fabricated_provenance_required' as const)
+                        : recoveryClaimed
+                          ? ('recovery_claimed' as const)
+                          : !Number.isSafeInteger(aggregateStock) ||
+                              aggregateStock >= Number.MAX_SAFE_INTEGER
+                            ? ('inventory_capacity_exceeded' as const)
+                            : undefined)
               const returnToLotBlocker = !instance.fabricationOrigin
                 ? undefined
                 : instance.stationMutation

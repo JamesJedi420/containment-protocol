@@ -55,7 +55,7 @@ ordinary return-to-lot.
 | Extra-class workshop quality                           | this SPE-877 child (`planning/spe-877-extra-class-workshop-quality-slice.md`)                               | Shipped extra-class workshop mappings + no-debit seeds; field-containment blast-door path unchanged      |
 | Barrier recouple on technician relief                  | [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief) (`planning/spe-877-barrier-recouple-technician-relief-slice.md`) | Shipped: technician-relief persist omits `flow_restraint` on `none`; `zone_breach` stays sticky           |
 | SPE-1027 stock consume of a named part                 | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port                                                                          |
-| Protect authored workshop identity from destroy/re-agg | later SPE-877 child                                                                                         | Player can destroy or catalog-re-agg the blast-door seed; re-agg would credit never-debited `ward_seals` |
+| Protect authored workshop identity from destroy/re-agg | [SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg) (`planning/spe-877-protect-workshop-identity-slice.md`) | Shipped: authored SPE-2866 IDs fail-close ordinary destroy/re-agg without stock credit |
 
 ## Acceptance
 

@@ -19,6 +19,11 @@ import {
   type EquipmentInstanceLocation,
 } from '../domain/equipmentInstance'
 import {
+  EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+  FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+  PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+} from '../domain/departmentWorkshopIntegrityQualityMapping'
+import {
   equipAgentItem,
   equipStoredEquipmentInstance,
   materializeStoredOrdinaryEquipmentInstance,
@@ -62,7 +67,6 @@ import {
   INTERLOCK_INTEGRITY_LABOR_STATION_ID,
   PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
 } from '../domain/equipmentStationMutation'
-import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../domain/departmentWorkshopIntegrityQualityMapping'
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -1190,6 +1194,161 @@ describe('ordinary equipment instance authority', () => {
     expect(getEquipmentInstanceAtAgentSlot(created.state, 'a_ava', 'utility1')?.instanceId).toBe(
       created.instance.instanceId
     )
+  })
+
+  it('fail-closes destroy and catalog re-aggregation for authored workshop identities', () => {
+    const authoredIds = [
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+    ] as const
+    const state = createStartingState()
+    const seeded = { ...(state.equipmentInstances ?? {}) }
+    expect(state.inventory.ward_seals ?? 0).toBe(0)
+
+    for (const instanceId of authoredIds) {
+      const destroyed = destroyStoredOrdinaryEquipmentInstance(state, instanceId)
+      expect(destroyed).toMatchObject({
+        ok: false,
+        code: 'authored_workshop_identity_protected',
+      })
+      expect(destroyed.state.inventory.ward_seals ?? 0).toBe(0)
+      expect(destroyed.state.equipmentInstances).toEqual(seeded)
+      expect(
+        destroyed.state.events.filter(
+          (event) =>
+            event.type === 'equipment.instance_destroyed' ||
+            event.type === 'equipment.instance_reaggregated'
+        )
+      ).toEqual([])
+
+      const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(state, instanceId)
+      expect(reaggregated).toMatchObject({
+        ok: false,
+        code: 'authored_workshop_identity_protected',
+      })
+      expect(reaggregated.state.inventory.ward_seals ?? 0).toBe(0)
+      expect(reaggregated.state.equipmentInstances).toEqual(seeded)
+      expect(
+        reaggregated.state.events.filter(
+          (event) =>
+            event.type === 'equipment.instance_destroyed' ||
+            event.type === 'equipment.instance_reaggregated'
+        )
+      ).toEqual([])
+    }
+
+    const omitted = { ...state, equipmentInstances: {} }
+    expect(
+      destroyStoredOrdinaryEquipmentInstance(omitted, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+    ).toMatchObject({ ok: false, code: 'authored_workshop_identity_protected' })
+    expect(omitted.equipmentInstances).toEqual({})
+  })
+
+  it('does not relocate an equipped authored workshop identity on destroy or re-agg', () => {
+    const state = createStartingState()
+    const equipped = relocateEquipmentInstance(state, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(equipped).toMatchObject({ ok: true })
+    if (!equipped.ok) throw new Error(equipped.code)
+    expect(equipped.instance.location).toEqual({
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      equipped.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
+    expect(destroyed).toMatchObject({
+      ok: false,
+      code: 'authored_workshop_identity_protected',
+    })
+    expect(destroyed.state.inventory.ward_seals ?? 0).toBe(equipped.state.inventory.ward_seals ?? 0)
+    expect(getEquipmentInstanceAtAgentSlot(destroyed.state, 'a_mina', 'utility1')?.instanceId).toBe(
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
+    expect(
+      destroyed.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      equipped.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
+    expect(reaggregated).toMatchObject({
+      ok: false,
+      code: 'authored_workshop_identity_protected',
+    })
+    expect(reaggregated.state.inventory.ward_seals ?? 0).toBe(
+      equipped.state.inventory.ward_seals ?? 0
+    )
+    expect(
+      getEquipmentInstanceAtAgentSlot(reaggregated.state, 'a_mina', 'utility1')?.instanceId
+    ).toBe(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+  })
+
+  it('still destroys and catalog-reaggregates sequential ordinary ward_seals copies', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals')
+    expect(created).toMatchObject({
+      ok: true,
+      instance: { instanceId: 'equipment-instance-1-1', definitionId: 'ward_seals' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(created.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]).toEqual(
+      state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    )
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      created.state,
+      created.instance.instanceId
+    )
+    expect(destroyed).toMatchObject({
+      ok: true,
+      instance: { instanceId: 'equipment-instance-1-1' },
+    })
+    if (!destroyed.ok) throw new Error(destroyed.code)
+    expect(destroyed.state.inventory.ward_seals).toBe(0)
+    expect(destroyed.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(destroyed.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]).toEqual(
+      state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    )
+    expect(
+      destroyed.state.equipmentInstances?.[EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID]
+    ).toEqual(state.equipmentInstances?.[EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID])
+    expect(
+      destroyed.state.equipmentInstances?.[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]
+    ).toEqual(state.equipmentInstances?.[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID])
+
+    const restocked = {
+      ...destroyed.state,
+      inventory: { ...destroyed.state.inventory, ward_seals: 1 },
+    }
+    const rematerialized = instantiateEquipmentInstance(restocked, 'ward_seals')
+    expect(rematerialized).toMatchObject({
+      ok: true,
+      instance: { instanceId: 'equipment-instance-1-1', definitionId: 'ward_seals' },
+    })
+    if (!rematerialized.ok) throw new Error(rematerialized.code)
+    const reaggregated = reaggregateStoredOrdinaryEquipmentInstance(
+      rematerialized.state,
+      rematerialized.instance.instanceId
+    )
+    expect(reaggregated).toMatchObject({ ok: true })
+    if (!reaggregated.ok) throw new Error(reaggregated.code)
+    expect(reaggregated.state.inventory.ward_seals).toBe(1)
+    expect(reaggregated.state.equipmentInstances).not.toHaveProperty(
+      rematerialized.instance.instanceId
+    )
+    expect(
+      reaggregated.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    ).toEqual(state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID])
   })
 
   it('re-aggregates one exact operational copy without mutating sibling authorities', () => {

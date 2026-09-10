@@ -35,6 +35,7 @@ import {
   eligibleClassIdForIntegrityLaborStation,
   parseEquipmentInstanceStationMutation,
   resolveBlastDoorIntegrityLabor,
+  resolveInterlockIntegrityLabor,
   resolvePressureSealIntegrityLabor,
   snapshotEquipmentInstanceStationMutation,
   stationMutationsEqual,
@@ -1163,6 +1164,13 @@ export function applyPressureSealIntegrityLabor(
   instanceId: EquipmentInstanceId
 ): EquipmentInstanceMutationResult {
   return applyIntegrityLabor(state, instanceId, resolvePressureSealIntegrityLabor)
+}
+
+export function applyInterlockIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolveInterlockIntegrityLabor)
 }
 
 export { isContainmentClassInService }

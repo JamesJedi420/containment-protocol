@@ -1,4 +1,6 @@
-/** Frozen SPE-113 runtime: blast-door and pressure-seal integrity-labor stations. Not the full station catalog. */
+/** Frozen SPE-113 runtime: blast-door, pressure-seal, and interlock integrity-labor stations. Not the full station catalog. */
+
+import type { ContainmentClassId } from './containmentClassInspection'
 
 export const BLAST_DOOR_INTEGRITY_LABOR_STATION_ID = 'blast_door_integrity_bench' as const
 export type BlastDoorIntegrityLaborStationId = typeof BLAST_DOOR_INTEGRITY_LABOR_STATION_ID
@@ -6,9 +8,13 @@ export type BlastDoorIntegrityLaborStationId = typeof BLAST_DOOR_INTEGRITY_LABOR
 export const PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID = 'pressure_seal_integrity_bench' as const
 export type PressureSealIntegrityLaborStationId = typeof PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID
 
+export const INTERLOCK_INTEGRITY_LABOR_STATION_ID = 'interlock_integrity_bench' as const
+export type InterlockIntegrityLaborStationId = typeof INTERLOCK_INTEGRITY_LABOR_STATION_ID
+
 export const INTEGRITY_LABOR_STATION_IDS = [
   BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
   PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+  INTERLOCK_INTEGRITY_LABOR_STATION_ID,
 ] as const
 export type IntegrityLaborStationId = (typeof INTEGRITY_LABOR_STATION_IDS)[number]
 
@@ -48,18 +54,21 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 export function isIntegrityLaborStationId(value: unknown): value is IntegrityLaborStationId {
   return (
     value === BLAST_DOOR_INTEGRITY_LABOR_STATION_ID ||
-    value === PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID
+    value === PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID ||
+    value === INTERLOCK_INTEGRITY_LABOR_STATION_ID
   )
 }
 
 export function eligibleClassIdForIntegrityLaborStation(
   stationId: IntegrityLaborStationId
-): 'blast_door' | 'pressure_seal' {
+): ContainmentClassId {
   switch (stationId) {
     case BLAST_DOOR_INTEGRITY_LABOR_STATION_ID:
       return 'blast_door'
     case PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID:
       return 'pressure_seal'
+    case INTERLOCK_INTEGRITY_LABOR_STATION_ID:
+      return 'interlock'
     default: {
       const exhaustive: never = stationId
       return exhaustive
@@ -105,7 +114,7 @@ export function stationMutationsEqual(
 }
 
 function resolveIntegrityLabor(input: {
-  expectedClassId: 'blast_door' | 'pressure_seal'
+  expectedClassId: ContainmentClassId
   stationId: IntegrityLaborStationId
   classId: unknown
   existingMutation: unknown
@@ -165,6 +174,24 @@ export function resolvePressureSealIntegrityLabor(input: {
   return resolveIntegrityLabor({
     expectedClassId: 'pressure_seal',
     stationId: PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+    classId: input.classId,
+    existingMutation: input.existingMutation,
+    currentWeek: input.currentWeek,
+  })
+}
+
+/**
+ * Authored interlock integrity-labor eligibility. Discriminated result; no throw, no default apply.
+ * Does not read or write SPE-2851 `condition` or SPE-2862 deficiency.
+ */
+export function resolveInterlockIntegrityLabor(input: {
+  classId: unknown
+  existingMutation: unknown
+  currentWeek: unknown
+}): IntegrityLaborResolveResult {
+  return resolveIntegrityLabor({
+    expectedClassId: 'interlock',
+    stationId: INTERLOCK_INTEGRITY_LABOR_STATION_ID,
     classId: input.classId,
     existingMutation: input.existingMutation,
     currentWeek: input.currentWeek,

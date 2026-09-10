@@ -46,14 +46,14 @@ and `lastInspectionWeek` stay unchanged. Ordinary / `none` / missing / malformed
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite                                                                                       | Reason                                                                                    |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| SPE-1027 stock consume of a named part        | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port; do not invent `GameState.inventory` debit                |
-| Barrier recouple on technician relief         | later SPE-877 child                                                                                         | Blast-door stabilize does not recouple today; extra-class stabilize matches that contract |
-| Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`) | Shipped: starting-state seeds the authored SPE-2866 identity without remapping extra-class workshop quality |
-| Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-pressure-seal-integrity-bench-slice.md`)            | Shipped pressure-seal bench; interlock bench remains later                                |
-| Extra-class workshop quality                  | later SPE-877 child                                                                                         | SPE-2866 stays blast-door only                                                            |
-| Mid-week inspect command                      | later SPE-877 child                                                                                         | Week-close remains the production inspect path                                            |
+| Item or mechanic                              | Owner or prerequisite                                                                                       | Reason                                                                                                      |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| SPE-1027 stock consume of a named part        | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port; do not invent `GameState.inventory` debit                                  |
+| Barrier recouple on technician relief         | later SPE-877 child                                                                                         | Blast-door stabilize does not recouple today; extra-class stabilize matches that contract                   |
+| Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`)                                   | Shipped: starting-state seeds the authored SPE-2866 identity without remapping extra-class workshop quality |
+| Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-interlock-integrity-bench-slice.md`)                                  | Shipped pressure-seal and interlock benches; SPE-113 tags/operators/curses remain                           |
+| Extra-class workshop quality                  | later SPE-877 child                                                                                         | SPE-2866 stays blast-door only                                                                              |
+| Mid-week inspect command                      | later SPE-877 child                                                                                         | Week-close remains the production inspect path                                                              |
 
 ## Acceptance
 

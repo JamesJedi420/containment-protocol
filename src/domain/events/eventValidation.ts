@@ -25,6 +25,7 @@ import {
 } from '../containmentClassInspection'
 import {
   BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+  INTERLOCK_INTEGRITY_LABOR_STATION_ID,
   PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
   eligibleClassIdForIntegrityLaborStation,
   isIntegrityLaborStationId,
@@ -1292,10 +1293,11 @@ const equipmentInstanceStationMutatedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.enum(['blast_door', 'pressure_seal']),
+    classId: containmentClassIdSchema,
     stationId: z.enum([
       BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
       PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+      INTERLOCK_INTEGRITY_LABOR_STATION_ID,
     ]),
     previousCycleCount: finiteNonNegativeIntSchema,
     cycleCount: finiteNonNegativeIntSchema,

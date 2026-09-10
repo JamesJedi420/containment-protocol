@@ -52,7 +52,7 @@ and `lastInspectionWeek` stay unchanged. Ordinary / `none` / missing / malformed
 | Barrier recouple on technician relief         | later SPE-877 child                                                                                         | Blast-door stabilize does not recouple today; extra-class stabilize matches that contract                   |
 | Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`)                                   | Shipped: starting-state seeds the authored SPE-2866 identity without remapping extra-class workshop quality |
 | Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-interlock-integrity-bench-slice.md`)                                  | Shipped pressure-seal and interlock benches; SPE-113 tags/operators/curses remain                           |
-| Extra-class workshop quality                  | later SPE-877 child                                                                                         | SPE-2866 stays blast-door only                                                                              |
+| Extra-class workshop quality                  | this SPE-877 child (`planning/spe-877-extra-class-workshop-quality-slice.md`)                               | Shipped extra-class workshop mappings + no-debit seeds; field-containment blast-door path unchanged         |
 | Mid-week inspect command                      | later SPE-877 child                                                                                         | Week-close remains the production inspect path                                                              |
 
 ## Acceptance

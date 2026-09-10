@@ -259,7 +259,8 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     if (!created.ok) throw new Error(created.code)
     const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
     const advanced = advanceContainmentClassInspectionsAtWeekClose(created.state)
-    expect(advanced.eventDrafts).toEqual([])
+    expect(draftsForInstance(advanced.eventDrafts, created.instance.instanceId)).toEqual([])
+    expect(advanced.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
     expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
 
     const malformedState = {
@@ -279,7 +280,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       },
     }
     const skipped = advanceContainmentClassInspectionsAtWeekClose(malformedState)
-    expect(skipped.eventDrafts).toEqual([])
+    expect(draftsForInstance(skipped.eventDrafts, created.instance.instanceId)).toEqual([])
     expect(skipped.state.equipmentInstances?.[created.instance.instanceId]).toEqual(
       malformedState.equipmentInstances?.[created.instance.instanceId]
     )
@@ -422,7 +423,9 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       status: 'flow_restraint',
       sourceDeficiencyKind: 'compensating_continue',
     })
-    expect(advanced.eventDrafts[0]?.payload).toMatchObject({
+    expect(
+      draftsForInstance(advanced.eventDrafts, created.instance.instanceId)[0]?.payload
+    ).toMatchObject({
       classId: 'pressure_seal',
       status: 'due',
       compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
@@ -556,7 +559,9 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
       status: 'flow_restraint',
       sourceDeficiencyKind: 'compensating_continue',
     })
-    expect(advanced.eventDrafts[0]?.payload).toMatchObject({
+    expect(
+      draftsForInstance(advanced.eventDrafts, created.instance.instanceId)[0]?.payload
+    ).toMatchObject({
       classId: 'interlock',
       status: 'due',
       compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,

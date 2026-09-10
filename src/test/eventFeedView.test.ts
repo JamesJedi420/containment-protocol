@@ -899,8 +899,39 @@ describe('buildEventFeedView', () => {
 
     expect(view.title).toBe('Ward Seals integrity labor applied')
     expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
     expect(view.detail).toContain('blast_door_integrity_bench')
     expect(view.searchText).toContain('integrity labor')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_station_mutated — names pressure-seal integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-12')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('pressure_seal_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('pressure seal')
     expect(view.tone).toBe('neutral')
   })
 

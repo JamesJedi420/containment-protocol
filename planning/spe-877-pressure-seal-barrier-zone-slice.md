@@ -52,7 +52,7 @@ merges only that zone.
 | Interlock barrier zone                      | [SPE-2868](https://linear.app/spectranoir/issue/SPE-2868/extra-class-barrier-zones-pressure-seal-interlock-membranes) | Shipped `interlock_membrane` on the keyed registry; does not write `blast_door_membrane` |
 | Store/UI inspect or deficiency commands     | later SPE-877 child                                                                                                   | Week-close remains the production inspect path                                           |
 | SPE-1027 stock consume of a named part      | SPE-1027 / later child                                                                                                | Suitability stays blast-door-only; no inventory debit                                    |
-| Additional SPE-113 stations                 | later SPE-877 child                                                                                                   | Mutation-stations child already froze one blast-door bench                               |
+| Additional SPE-113 stations                 | this SPE-877 child (`planning/spe-877-pressure-seal-integrity-bench-slice.md`)                                         | Shipped pressure-seal bench; interlock bench remains later                               |
 | Mapping extra classes into workshop quality | later SPE-877 child                                                                                                   | SPE-2866 stays blast-door only                                                           |
 
 ## Acceptance

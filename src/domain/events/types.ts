@@ -22,6 +22,7 @@ import type {
   ContainmentCompensatingControlId,
 } from '../containmentClassInspection'
 import type { ContainmentBarrierZoneId } from '../containmentBarrierIntegrity'
+import type { IntegrityLaborStationId } from '../equipmentStationMutation'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -564,13 +565,13 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
-    stationId: 'blast_door_integrity_bench'
+    classId: 'blast_door' | 'pressure_seal'
+    stationId: IntegrityLaborStationId
     previousCycleCount: number
     cycleCount: number
     condition: 'operational' | 'damaged'
     deficiencyKind: 'none' | 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
     reason: 'integrity_labor'
   }

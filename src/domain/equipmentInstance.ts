@@ -32,11 +32,14 @@ import {
   type SparePartSuitabilityFailureCode,
 } from './sparePartSuitability'
 import {
+  eligibleClassIdForIntegrityLaborStation,
   parseEquipmentInstanceStationMutation,
   resolveBlastDoorIntegrityLabor,
+  resolvePressureSealIntegrityLabor,
   snapshotEquipmentInstanceStationMutation,
   stationMutationsEqual,
   type EquipmentInstanceStationMutation,
+  type IntegrityLaborResolveResult,
 } from './equipmentStationMutation'
 
 export type EquipmentInstanceId = string
@@ -340,7 +343,12 @@ function stationMutationClassFailure(
   containmentIntegrity: ContainmentClassIntegrity | undefined
 ): EquipmentInstanceFailureCode | undefined {
   if (!stationMutation) return undefined
-  if (containmentIntegrity?.classId === 'blast_door') return undefined
+  if (
+    eligibleClassIdForIntegrityLaborStation(stationMutation.stationId) ===
+    containmentIntegrity?.classId
+  ) {
+    return undefined
+  }
   return 'malformed_station_mutation'
 }
 
@@ -1077,9 +1085,14 @@ function mapIntegrityLaborFailure(
   }
 }
 
-export function applyBlastDoorIntegrityLabor(
+function applyIntegrityLabor(
   state: GameState,
-  instanceId: EquipmentInstanceId
+  instanceId: EquipmentInstanceId,
+  resolve: (input: {
+    classId: unknown
+    existingMutation: unknown
+    currentWeek: unknown
+  }) => IntegrityLaborResolveResult
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
@@ -1109,7 +1122,7 @@ export function applyBlastDoorIntegrityLabor(
           : 'malformed_containment_integrity',
     }
   }
-  const resolved = resolveBlastDoorIntegrityLabor({
+  const resolved = resolve({
     classId: parsedIntegrity.integrity.classId,
     existingMutation: current.stationMutation,
     currentWeek: normalized.week,
@@ -1136,6 +1149,20 @@ export function applyBlastDoorIntegrityLabor(
     },
     { allowStationMutation: true }
   )
+}
+
+export function applyBlastDoorIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolveBlastDoorIntegrityLabor)
+}
+
+export function applyPressureSealIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolvePressureSealIntegrityLabor)
 }
 
 export { isContainmentClassInService }

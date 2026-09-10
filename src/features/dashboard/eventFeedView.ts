@@ -1057,6 +1057,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
     }
 
     case 'equipment.containment_class_stabilized': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const previousLabel =
         event.payload.previousDeficiencyKind === 'hard_stop' ? 'Hard stop' : 'Compensating continue'
       const nextLabel =
@@ -1067,13 +1068,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment class stabilized`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'success',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

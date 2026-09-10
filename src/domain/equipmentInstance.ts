@@ -66,7 +66,7 @@ export interface EquipmentInstance {
   condition: EquipmentInstanceCondition
   payload?: EquipmentInstanceConsumablePayload
   fabricationOrigin?: EquipmentInstanceFabricationOrigin
-  /** SPE-2860: optional blast-door integrity; distinct from `condition`. */
+  /** SPE-2860: optional containment-class integrity; distinct from `condition`. */
   containmentIntegrity?: ContainmentClassIntegrity
   /** SPE-877 mutation-stations child: optional permanent integrity-labor stamp. */
   stationMutation?: EquipmentInstanceStationMutation
@@ -990,8 +990,11 @@ export function canStabilizeContainmentClassDeficiency(
   instance: EquipmentInstance | undefined
 ): boolean {
   const parsed = parseContainmentClassIntegrity(instance?.containmentIntegrity)
-  if (!parsed.ok || parsed.integrity.classId !== 'blast_door') return false
-  return resolveTechnicianStabilization(parsed.integrity.deficiency).ok
+  if (!parsed.ok) return false
+  return resolveTechnicianStabilization({
+    classId: parsed.integrity.classId,
+    deficiency: parsed.integrity.deficiency,
+  }).ok
 }
 
 export function stabilizeContainmentClassDeficiency(
@@ -1009,10 +1012,21 @@ export function stabilizeContainmentClassDeficiency(
   if (!current.containmentIntegrity) {
     return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
   }
-  if (current.containmentIntegrity.classId !== 'blast_door') {
-    return { ok: false, state: normalized, code: 'invalid_containment_class' }
+  const parsed = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsed.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
   }
-  const resolved = resolveTechnicianStabilization(current.containmentIntegrity.deficiency)
+  const resolved = resolveTechnicianStabilization({
+    classId: parsed.integrity.classId,
+    deficiency: parsed.integrity.deficiency,
+  })
   if (!resolved.ok) {
     return {
       ok: false,

@@ -36,9 +36,10 @@ pairings fail closed. Recorded `zone_breach` never downgrades.
 
 ## Sticky recorded breach
 
-`zone_breach` never downgrades. Technician stabilization (SPE-2862) may restore door `inService`
-without erasing a recorded breach. Compensating continue after a live `zone_breach` does not open a
-second model and does not clear the breach. SPE-2851 `damaged` is not a breach.
+`zone_breach` never downgrades. Technician stabilization (SPE-2862, including extra-class
+relieve/clear) may restore door `inService` without erasing a recorded breach and still does not
+recouple membranes. Compensating continue after a live `zone_breach` does not open a second model
+and does not clear the breach. SPE-2851 `damaged` is not a breach.
 
 ## Anti-patterns
 
@@ -63,6 +64,7 @@ event `equipment.containment_barrier_integrity_changed` is history only.
 - `planning/spe-barrier-integrity-coupling-slice.md`
 - `planning/spe-877-pressure-seal-barrier-zone-slice.md`
 - `planning/spe-877-extra-class-barrier-zones-slice.md`
+- `planning/spe-877-extra-class-technician-stabilization-slice.md`
 - `planning/spe-877-store-ui-inspect-deficiency-slice.md`
 - `planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`
 - `architecture/fortified-site-breach-assault.md` — assault-layer breach, not this membrane pairing

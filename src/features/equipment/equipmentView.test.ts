@@ -731,7 +731,7 @@ describe('getGearRecommendationsForActiveCases', () => {
     ])
   })
 
-  it('offers blast-door deficiency stabilization and fail-closes ordinary, extra-class, and none', () => {
+  it('offers blast-door and extra-class deficiency stabilization and fail-closes ordinary and none', () => {
     const game = createStartingState()
     game.inventory.ward_seals = 4
     game.inventory.signal_jammers = 1
@@ -803,7 +803,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         }),
         expect.objectContaining({
           instanceId: extraClass.instance.instanceId,
-          canStabilizeContainmentDeficiency: false,
+          canStabilizeContainmentDeficiency: true,
         }),
       ])
     )

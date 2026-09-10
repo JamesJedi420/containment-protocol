@@ -284,6 +284,20 @@ describe('event payload validation coverage', () => {
         cycleCount: 3,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', {
+        ...valid,
+        classId: 'pressure_seal',
+        compensatingControlId: 'backup_gasket_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', {
+        ...valid,
+        classId: 'interlock',
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },

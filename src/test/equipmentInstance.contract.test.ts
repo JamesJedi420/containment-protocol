@@ -44,6 +44,8 @@ import {
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
 import {
   BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  INTERLOCK_COMPENSATING_CONTROL_ID,
+  PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
   isContainmentClassInService,
   type ContainmentClassIntegrity,
 } from '../domain/containmentClassInspection'
@@ -2833,10 +2835,10 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     )
   })
 
-  it('fails closed for pressure-seal technician stabilization without changing SPE-2862 blast-door semantics', () => {
+  it('relieves and clears extra-class technician stabilization without writing barrier membranes', () => {
     const state = createStartingState()
-    state.inventory.ward_seals = 1
-    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+    state.inventory.ward_seals = 2
+    const pressureSeal = instantiateEquipmentInstance(state, 'ward_seals', {
       containmentIntegrity: {
         classId: 'pressure_seal',
         lastInspectionWeek: 1,
@@ -2844,31 +2846,80 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
         deficiency: { kind: 'hard_stop' },
       },
     })
-    if (!created.ok) throw new Error(created.code)
-    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
-    expect(
-      stabilizeContainmentClassDeficiency(created.state, created.instance.instanceId)
-    ).toMatchObject({ ok: false, code: 'invalid_containment_class' })
-    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
-  })
+    if (!pressureSeal.ok) throw new Error(pressureSeal.code)
+    expect(pressureSeal.state.containmentBarrierIntegrity).toBeUndefined()
 
-  it('fails closed for interlock technician stabilization without changing SPE-2862 blast-door semantics', () => {
-    const state = createStartingState()
-    state.inventory.ward_seals = 1
-    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+    const relievedSeal = stabilizeContainmentClassDeficiency(
+      pressureSeal.state,
+      pressureSeal.instance.instanceId
+    )
+    expect(relievedSeal).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: {
+          classId: 'pressure_seal',
+          lastInspectionWeek: 1,
+          cycleCount: 1,
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!relievedSeal.ok) throw new Error(relievedSeal.code)
+    expect(isContainmentClassInService(relievedSeal.instance.containmentIntegrity)).toBe(true)
+    expect(relievedSeal.state.containmentBarrierIntegrity).toBeUndefined()
+
+    const clearedSeal = stabilizeContainmentClassDeficiency(
+      relievedSeal.state,
+      pressureSeal.instance.instanceId
+    )
+    expect(clearedSeal).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: {
+          classId: 'pressure_seal',
+          cycleCount: 2,
+          deficiency: { kind: 'none' },
+        },
+      },
+    })
+
+    const interlock = instantiateEquipmentInstance(relievedSeal.state, 'ward_seals', {
+      condition: 'damaged',
       containmentIntegrity: {
         classId: 'interlock',
         lastInspectionWeek: 1,
-        cycleCount: 0,
+        cycleCount: 4,
         deficiency: { kind: 'hard_stop' },
       },
     })
-    if (!created.ok) throw new Error(created.code)
-    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
-    expect(
-      stabilizeContainmentClassDeficiency(created.state, created.instance.instanceId)
-    ).toMatchObject({ ok: false, code: 'invalid_containment_class' })
-    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
+    if (!interlock.ok) throw new Error(interlock.code)
+    const relievedInterlock = stabilizeContainmentClassDeficiency(
+      interlock.state,
+      interlock.instance.instanceId
+    )
+    expect(relievedInterlock).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'damaged',
+        containmentIntegrity: {
+          classId: 'interlock',
+          lastInspectionWeek: 1,
+          cycleCount: 5,
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!relievedInterlock.ok) throw new Error(relievedInterlock.code)
+    expect(isContainmentClassInService(relievedInterlock.instance.containmentIntegrity)).toBe(true)
+    expect(relievedInterlock.state.containmentBarrierIntegrity).toBeUndefined()
   })
 
   it('hydrates technician stabilization as history without replaying mutations', () => {

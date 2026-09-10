@@ -1209,10 +1209,10 @@ const equipmentContainmentClassStabilizedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
+    classId: containmentClassIdSchema,
     previousDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
     deficiencyKind: z.enum(['compensating_continue', 'none']),
-    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     previousCycleCount: finiteNonNegativeIntSchema,
     cycleCount: finiteNonNegativeIntSchema,
     inService: z.boolean(),
@@ -1255,11 +1255,12 @@ const equipmentContainmentClassStabilizedSchema = z
           message: 'hard-stop relief must become compensating continue',
         })
       }
-      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+      const expectedControl = expectedCompensatingControlIdForClass(payload.classId)
+      if (payload.compensatingControlId !== expectedControl) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['compensatingControlId'],
-          message: 'hard-stop relief requires secondary_interlock_watch',
+          message: 'hard-stop relief requires the authored control for the class',
         })
       }
       return

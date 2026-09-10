@@ -935,6 +935,36 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('neutral')
   })
 
+  it('equipment.instance_station_mutated — names interlock integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-13')
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('interlock_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('interlock')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('equipment.containment_barrier_integrity_changed — names blast-door zone breach', () => {
     const event = makeEvent(
       'equipment.containment_barrier_integrity_changed',

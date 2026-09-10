@@ -60,13 +60,13 @@ an extra-class zone). Extra-class events must carry matching `zoneId` and must n
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite                                                                            | Reason                                                                              |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Store/UI inspect or deficiency commands       | [SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands) | Shipped: technician stabilization via store/UI; week-close remains the inspect path |
-| SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                           | Suitability stays blast-door-only; no inventory debit                               |
-| Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`) | Shipped: starting-state seeds the authored SPE-2866 identity; mapping stays blast-door-only |
-| Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-pressure-seal-integrity-bench-slice.md`) | Shipped pressure-seal bench; interlock bench remains later                          |
-| Extra-class workshop quality                  | later SPE-877 child                                                                              | SPE-2866 stays blast-door only                                                      |
+| Item or mechanic                              | Owner or prerequisite                                                                            | Reason                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Store/UI inspect or deficiency commands       | [SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands) | Shipped: technician stabilization via store/UI; week-close remains the inspect path         |
+| SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                           | Suitability stays blast-door-only; no inventory debit                                       |
+| Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`)                        | Shipped: starting-state seeds the authored SPE-2866 identity; mapping stays blast-door-only |
+| Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-interlock-integrity-bench-slice.md`)                       | Shipped pressure-seal and interlock benches; SPE-113 tags/operators/curses remain           |
+| Extra-class workshop quality                  | later SPE-877 child                                                                              | SPE-2866 stays blast-door only                                                              |
 
 ## Acceptance
 

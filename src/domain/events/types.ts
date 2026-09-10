@@ -565,7 +565,7 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door' | 'pressure_seal'
+    classId: ContainmentClassId
     stationId: IntegrityLaborStationId
     previousCycleCount: number
     cycleCount: number

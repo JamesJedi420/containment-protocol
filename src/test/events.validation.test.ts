@@ -350,11 +350,28 @@ describe('event payload validation coverage', () => {
         compensatingControlId: 'backup_gasket_watch',
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
       { ...valid, stationId: 'pressure_seal_integrity_bench' },
       { ...valid, classId: 'interlock' },
+      { ...valid, stationId: 'interlock_integrity_bench' },
       { ...valid, stationId: 'other_bench' },
       {
         ...valid,
@@ -362,6 +379,13 @@ describe('event payload validation coverage', () => {
         stationId: 'pressure_seal_integrity_bench',
         deficiencyKind: 'compensating_continue',
         compensatingControlId: 'secondary_interlock_watch',
+      },
+      {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
       },
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, cycleCount: 0 },

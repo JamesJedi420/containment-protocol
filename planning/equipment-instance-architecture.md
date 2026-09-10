@@ -164,17 +164,19 @@ and interlock identities do not satisfy this mapping. See
 
 ## Mutation stations / integrity labor (SPE-877 child)
 
-`applyBlastDoorIntegrityLabor` and `applyPressureSealIntegrityLabor` are the SPE-113 runtime.
-Authored stations `blast_door_integrity_bench` and `pressure_seal_integrity_bench` stamp optional
-`stationMutation` on one stored matching-class identity and increment `cycleCount` by 1.
-`condition` and deficiency stay unchanged. Generic transitions cannot invent or rewrite the stamp.
-Hydration and transitions reject stamps whose authored class does not match the instance (`blast_door`
-↔ blast-door bench, `pressure_seal` ↔ pressure-seal bench). Catalog re-aggregation and fabricated
-ordinary return-to-lot fail closed while the stamp is present so rematerialize cannot spawn a new
-UUID. Successful labor hydrates as `equipment.instance_station_mutated` with reason
+`applyBlastDoorIntegrityLabor`, `applyPressureSealIntegrityLabor`, and `applyInterlockIntegrityLabor`
+are the SPE-113 runtime. Authored stations `blast_door_integrity_bench`,
+`pressure_seal_integrity_bench`, and `interlock_integrity_bench` stamp optional `stationMutation` on
+one stored matching-class identity and increment `cycleCount` by 1. `condition` and deficiency stay
+unchanged. Generic transitions cannot invent or rewrite the stamp. Hydration and transitions reject
+stamps whose authored class does not match the instance (`blast_door` ↔ blast-door bench,
+`pressure_seal` ↔ pressure-seal bench, `interlock` ↔ interlock bench). Catalog re-aggregation and
+fabricated ordinary return-to-lot fail closed while the stamp is present so rematerialize cannot
+spawn a new UUID. Successful labor hydrates as `equipment.instance_station_mutated` with reason
 `integrity_labor`. This is not a universal instance mutation API. See
 `planning/spe-877-mutation-stations-integrity-labor-slice.md`,
-`planning/spe-877-pressure-seal-integrity-bench-slice.md`, and
+`planning/spe-877-pressure-seal-integrity-bench-slice.md`,
+`planning/spe-877-interlock-integrity-bench-slice.md`, and
 `architecture/permanent-gear-mutation-stations.md`.
 
 ## Compatibility and hydration

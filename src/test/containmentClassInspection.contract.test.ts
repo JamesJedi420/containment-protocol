@@ -232,7 +232,12 @@ describe('SPE-2860 containment-class inspection cadence', () => {
 
 describe('SPE-2862 technician stabilization / deficiency clear', () => {
   it('relieves hard-stop into compensating continue and clears compensating continue to none', () => {
-    expect(resolveTechnicianStabilization({ kind: 'hard_stop' })).toEqual({
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'blast_door',
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toEqual({
       ok: true,
       deficiency: {
         kind: 'compensating_continue',
@@ -242,8 +247,11 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     })
     expect(
       resolveTechnicianStabilization({
-        kind: 'compensating_continue',
-        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        classId: 'blast_door',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
       })
     ).toEqual({
       ok: true,
@@ -252,23 +260,123 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     })
   })
 
-  it('fails closed for none and malformed deficiency', () => {
-    expect(resolveTechnicianStabilization({ kind: 'none' })).toEqual({
+  it('relieves extra-class hard-stop into that class authored compensating continue', () => {
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'pressure_seal',
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toEqual({
+      ok: true,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+      },
+      cycleDelta: 1,
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'interlock',
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toEqual({
+      ok: true,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+      },
+      cycleDelta: 1,
+    })
+  })
+
+  it('clears extra-class compensating continue to none', () => {
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'pressure_seal',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({
+      ok: true,
+      deficiency: { kind: 'none' },
+      cycleDelta: 1,
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'interlock',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({
+      ok: true,
+      deficiency: { kind: 'none' },
+      cycleDelta: 1,
+    })
+  })
+
+  it('fails closed for none, omitted class, unknown class, mixed pairing, and malformed deficiency', () => {
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'blast_door',
+        deficiency: { kind: 'none' },
+      })
+    ).toEqual({
       ok: false,
       code: 'no_deficiency',
     })
-    expect(resolveTechnicianStabilization(undefined)).toEqual({
-      ok: false,
-      code: 'malformed_deficiency',
-    })
-    expect(resolveTechnicianStabilization({ kind: 'compensating_continue' })).toEqual({
+    expect(resolveTechnicianStabilization({})).toEqual({
       ok: false,
       code: 'malformed_deficiency',
     })
     expect(
       resolveTechnicianStabilization({
-        kind: 'compensating_continue',
-        compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toEqual({
+      ok: false,
+      code: 'malformed_deficiency',
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'airlock',
+        deficiency: { kind: 'hard_stop' },
+      })
+    ).toEqual({
+      ok: false,
+      code: 'malformed_deficiency',
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'blast_door',
+        deficiency: { kind: 'compensating_continue' },
+      })
+    ).toEqual({
+      ok: false,
+      code: 'malformed_deficiency',
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'pressure_seal',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      })
+    ).toEqual({
+      ok: false,
+      code: 'malformed_deficiency',
+    })
+    expect(
+      resolveTechnicianStabilization({
+        classId: 'blast_door',
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+        },
       })
     ).toEqual({
       ok: false,

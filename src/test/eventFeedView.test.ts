@@ -842,8 +842,37 @@ describe('buildEventFeedView', () => {
 
     expect(view.title).toBe('Ward Seals containment class stabilized')
     expect(view.detail).toContain('equipment-instance-7-9')
+    expect(view.detail).toContain('Blast door')
     expect(view.detail).toContain('Hard stop')
     expect(view.detail).toContain('Compensating continue')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.containment_class_stabilized — names extra-class hard-stop relief', () => {
+    const event = makeEvent(
+      'equipment.containment_class_stabilized',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        previousDeficiencyKind: 'hard_stop',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        inService: true,
+        reason: 'technician_stabilization',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class stabilized')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.detail).not.toContain('Blast door')
     expect(view.tone).toBe('success')
   })
 

@@ -97,7 +97,10 @@ import {
   repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
   stabilizeContainmentClassDeficiency as stabilizeContainmentClassDeficiencyState,
 } from '../../domain/equipmentInstance'
-import { BLAST_DOOR_COMPENSATING_CONTROL_ID } from '../../domain/containmentClassInspection'
+import {
+  getContainmentClassCadenceSpec,
+  isContainmentClassId,
+} from '../../domain/containmentClassInspection'
 import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -1913,13 +1916,22 @@ export const useGameStore = create<GameStore>()(
             !nextDeficiency ||
             (nextDeficiency.kind !== 'none' && nextDeficiency.kind !== 'compensating_continue') ||
             typeof previousIntegrity?.cycleCount !== 'number' ||
-            typeof nextCycleCount !== 'number'
+            typeof nextCycleCount !== 'number' ||
+            !previousIntegrity
           ) {
+            return { game: result.state }
+          }
+          const classId = previousIntegrity.classId
+          if (!isContainmentClassId(classId)) {
+            return { game: result.state }
+          }
+          const spec = getContainmentClassCadenceSpec(classId)
+          if (!spec) {
             return { game: result.state }
           }
           if (
             nextDeficiency.kind === 'compensating_continue' &&
-            nextDeficiency.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID
+            nextDeficiency.compensatingControlId !== spec.compensatingControlId
           ) {
             return { game: result.state }
           }
@@ -1931,7 +1943,7 @@ export const useGameStore = create<GameStore>()(
                 instanceId: result.instance.instanceId,
                 definitionId: result.instance.definitionId,
                 definitionName: definition?.name ?? result.instance.definitionId,
-                classId: 'blast_door',
+                classId,
                 previousDeficiencyKind: previousKind,
                 deficiencyKind: nextDeficiency.kind,
                 ...(nextDeficiency.kind === 'compensating_continue'

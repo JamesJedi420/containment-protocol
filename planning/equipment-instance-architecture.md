@@ -204,9 +204,12 @@ extra-class barrier zones
 ([SPE-2868](https://linear.app/spectranoir/issue/SPE-2868/extra-class-barrier-zones-pressure-seal-interlock-membranes),
 `planning/spe-877-extra-class-barrier-zones-slice.md`), and store/UI deficiency disposition
 ([SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands),
-`planning/spe-877-store-ui-inspect-deficiency-slice.md`): SPE-1027 consume, additional SPE-113
-stations, and extra-class workshop quality remain later children. Week-close remains the
-production inspect path.
+`planning/spe-877-store-ui-inspect-deficiency-slice.md`), and extra-class technician stabilization
+(`planning/spe-877-extra-class-technician-stabilization-slice.md`): SPE-1027 consume remains
+blocked on [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
+until a debit port exists; additional SPE-113 stations, seed
+`equipment-instance-blast-door-workshop`, extra-class workshop quality, and barrier recouple on
+technician relief remain later children. Week-close remains the production inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

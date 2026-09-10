@@ -642,6 +642,62 @@ describe('EquipmentPage', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('confirms extra-class deficiency stabilization with the authored compensating control', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review deficiency stabilization Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: `Stabilize deficiency Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const relieved = useGameStore.getState().game
+    expect(
+      relieved.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      classId: 'pressure_seal',
+      lastInspectionWeek: 1,
+      cycleCount: 1,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+      },
+    })
+    expect(
+      relieved.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'pressure_seal',
+          previousDeficiencyKind: 'hard_stop',
+          deficiencyKind: 'compensating_continue',
+          compensatingControlId: 'backup_gasket_watch',
+          reason: 'technician_stabilization',
+        }),
+      }),
+    ])
+  })
+
   it('confirms re-aggregation of one exact operational copy and credits stock once', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

@@ -550,10 +550,10 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: ContainmentClassId
     previousDeficiencyKind: 'hard_stop' | 'compensating_continue'
     deficiencyKind: 'compensating_continue' | 'none'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     previousCycleCount: number
     cycleCount: number
     inService: boolean

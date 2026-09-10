@@ -337,10 +337,21 @@ export type TechnicianStabilizationResult =
 
 /**
  * Technician-only relief/clear. Inspection sticky hard-stop stays on
- * `resolveStickyContainmentDeficiency`.
+ * `resolveStickyContainmentDeficiency`. Requires an authored class; do not
+ * default to blast-door.
  */
-export function resolveTechnicianStabilization(existing: unknown): TechnicianStabilizationResult {
-  const deficiency = parseContainmentDeficiency(existing)
+export function resolveTechnicianStabilization(input: {
+  classId?: unknown
+  deficiency?: unknown
+}): TechnicianStabilizationResult {
+  if (!isContainmentClassId(input.classId)) {
+    return { ok: false, code: 'malformed_deficiency' }
+  }
+  const spec = getContainmentClassCadenceSpec(input.classId)
+  if (!spec) {
+    return { ok: false, code: 'malformed_deficiency' }
+  }
+  const deficiency = parseContainmentDeficiency(input.deficiency, input.classId)
   if (!deficiency) {
     return { ok: false, code: 'malformed_deficiency' }
   }
@@ -352,15 +363,12 @@ export function resolveTechnicianStabilization(existing: unknown): TechnicianSta
       ok: true,
       deficiency: {
         kind: 'compensating_continue',
-        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        compensatingControlId: spec.compensatingControlId,
       },
       cycleDelta: 1,
     }
   }
   if (deficiency.kind === 'compensating_continue') {
-    if (deficiency.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID) {
-      return { ok: false, code: 'malformed_deficiency' }
-    }
     return { ok: true, deficiency: { kind: 'none' }, cycleDelta: 1 }
   }
   const exhaustive: never = deficiency

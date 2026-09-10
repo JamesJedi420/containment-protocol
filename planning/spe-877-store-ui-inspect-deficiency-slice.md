@@ -30,19 +30,20 @@ Store action `stabilizeContainmentClassDeficiency(instanceId)`:
 3. On fail-closed, persist the domain state with no event.
 
 Projection `canStabilizeContainmentDeficiency` is true only when domain
-`canStabilizeContainmentClassDeficiency` is true (`blast_door` + technician-stabilizable
-deficiency). Ordinary identities, extra classes, `none`, missing, and malformed stay hidden /
-disabled. Do not render `lastInspectionWeek`, `cycleCount`, or raw integrity on the Equipment row.
+`canStabilizeContainmentClassDeficiency` is true (parsed containment class + technician-stabilizable
+deficiency). Ordinary identities, `none`, missing, and malformed stay hidden / disabled. Extra-class
+eligibility is owned by the extra-class technician-stabilization child. Do not render
+`lastInspectionWeek`, `cycleCount`, or raw integrity on the Equipment row.
 
 ## Fail closed
 
-| Input                                      | Result                               |
-| ------------------------------------------ | ------------------------------------ |
-| Missing / unsafe instance id               | no mutation, no event                |
-| Ordinary identity                          | no mutation, no event, no UI command |
-| Extra class (`pressure_seal`, `interlock`) | no mutation, no event, no UI command |
-| `deficiency.kind === 'none'`               | no mutation, no event, no UI command |
-| Malformed integrity                        | no mutation, no event, no UI command |
+| Input                                      | Result                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Missing / unsafe instance id               | no mutation, no event                                                                       |
+| Ordinary identity                          | no mutation, no event, no UI command                                                        |
+| Extra class (`pressure_seal`, `interlock`) | no mutation, no event, no UI command (this child; extra-class stabilize shipped separately) |
+| `deficiency.kind === 'none'`               | no mutation, no event, no UI command                                                        |
+| Malformed integrity                        | no mutation, no event, no UI command                                                        |
 
 ## Determinism and compatibility
 
@@ -54,14 +55,14 @@ disabled. Do not render `lastInspectionWeek`, `cycleCount`, or raw integrity on 
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite          | Reason                                                     |
-| --------------------------------------------- | ------------------------------ | ---------------------------------------------------------- |
-| Mid-week inspect command                      | later SPE-877 child            | Week-close remains the production inspect path             |
-| SPE-1027 stock consume of a named part        | SPE-1027 / later child         | Suitability stays blast-door-only; no inventory debit      |
-| Seed `equipment-instance-blast-door-workshop` | later SPE-877 child / SPE-2866 | SPE-2866 mapping stays blast-door-only; no instance seed   |
-| Additional SPE-113 stations                   | later SPE-877 child            | Mutation-stations child already froze one blast-door bench |
-| Extra-class workshop quality                  | later SPE-877 child            | SPE-2866 stays blast-door only                             |
-| Extra-class technician stabilization          | later SPE-877 child            | SPE-2862 / this child stay `blast_door` only               |
+| Item or mechanic                              | Owner or prerequisite                                                                    | Reason                                                                                                                  |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Mid-week inspect command                      | later SPE-877 child                                                                      | Week-close remains the production inspect path                                                                          |
+| SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                   | Suitability stays blast-door-only; no inventory debit                                                                   |
+| Seed `equipment-instance-blast-door-workshop` | later SPE-877 child / SPE-2866                                                           | SPE-2866 mapping stays blast-door-only; no instance seed                                                                |
+| Additional SPE-113 stations                   | later SPE-877 child                                                                      | Mutation-stations child already froze one blast-door bench                                                              |
+| Extra-class workshop quality                  | later SPE-877 child                                                                      | SPE-2866 stays blast-door only                                                                                          |
+| Extra-class technician stabilization          | shipped SPE-877 child (`planning/spe-877-extra-class-technician-stabilization-slice.md`) | This child shipped store/UI on the blast-door writer; extra-class relieve/clear now uses authored compensating controls |
 
 ## Acceptance
 

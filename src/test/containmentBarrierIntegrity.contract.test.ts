@@ -382,4 +382,104 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
       )
     ).toBe('zone_breach')
   })
+
+  it('omits flow-restraint on technician-relief none and never clears zone-breach', () => {
+    const blastRestraint = {
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint' as const,
+      sourceInstanceId: 'equipment-instance-1-1',
+      sourceDeficiencyKind: 'compensating_continue' as const,
+    }
+    const blastBreach = {
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach' as const,
+      sourceInstanceId: 'equipment-instance-1-1',
+      sourceDeficiencyKind: 'hard_stop' as const,
+    }
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: blastRestraint,
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-1',
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: false,
+      barrier: blastRestraint,
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: blastRestraint,
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-1',
+        technicianRelief: true,
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: true,
+      barrier: undefined,
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: blastBreach,
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-1',
+        technicianRelief: true,
+      })
+    ).toMatchObject({ ok: true, changed: false, barrier: { status: 'zone_breach' } })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+          status: 'flow_restraint',
+          sourceInstanceId: 'equipment-instance-1-3',
+          sourceDeficiencyKind: 'compensating_continue',
+        },
+        classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-3',
+        technicianRelief: true,
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: true,
+      barrier: undefined,
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+          status: 'flow_restraint',
+          sourceInstanceId: 'equipment-instance-1-4',
+          sourceDeficiencyKind: 'compensating_continue',
+        },
+        classId: 'interlock',
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-4',
+        technicianRelief: true,
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: true,
+      barrier: undefined,
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+          status: 'zone_breach',
+          sourceInstanceId: 'equipment-instance-1-3',
+          sourceDeficiencyKind: 'hard_stop',
+        },
+        classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-3',
+        technicianRelief: true,
+      })
+    ).toMatchObject({ ok: true, changed: false, barrier: { status: 'zone_breach' } })
+  })
 })

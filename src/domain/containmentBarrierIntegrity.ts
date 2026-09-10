@@ -226,12 +226,15 @@ export function readContainmentBarrierStatus(
  * Recorded zone_breach never downgrades. SPE-2851 damaged is not an input.
  * `blast_door` writes `blast_door_membrane`; `pressure_seal` writes `pressure_seal_membrane`;
  * `interlock` writes `interlock_membrane`. Mixed class/control pairings fail closed.
+ * Technician relief (`technicianRelief`) may omit a recorded `flow_restraint` when deficiency
+ * becomes `none`; it still cannot close `zone_breach`. Week-close inspect must omit the flag.
  */
 export function resolveContainmentBarrierIntegrityCoupling(input: {
   existing: unknown
   deficiency: unknown
   sourceInstanceId: unknown
   classId?: unknown
+  technicianRelief?: boolean
 }): ContainmentBarrierCouplingResult {
   const classId = input.classId === undefined ? 'blast_door' : input.classId
   if (!isContainmentClassId(classId)) {
@@ -262,6 +265,14 @@ export function resolveContainmentBarrierIntegrityCoupling(input: {
   }
   const previousStatus = existing?.status ?? 'intact'
   const proposed = proposedStatusForDeficiency(deficiency)
+
+  if (
+    input.technicianRelief === true &&
+    proposed === 'intact' &&
+    previousStatus === 'flow_restraint'
+  ) {
+    return { ok: true, barrier: undefined, previousStatus, changed: true }
+  }
 
   if (
     proposed === 'intact' ||

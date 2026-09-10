@@ -36,10 +36,12 @@ pairings fail closed. Recorded `zone_breach` never downgrades.
 
 ## Sticky recorded breach
 
-`zone_breach` never downgrades. Technician stabilization (SPE-2862, including extra-class
-relieve/clear) may restore door `inService` without erasing a recorded breach and still does not
-recouple membranes. Compensating continue after a live `zone_breach` does not open a second model
-and does not clear the breach. SPE-2851 `damaged` is not a breach.
+`zone_breach` never downgrades. Technician stabilization (SPE-2862 / SPE-2876, including extra-class
+relieve/clear) recouples the authored membrane from the new deficiency: `none` omits that zone's
+`flow_restraint`; a recorded `zone_breach` stays sticky even after hard-stop relief restores
+`inService`. Week-close inspect and `applyContainmentClassDeficiency` still never-downgrade.
+Compensating continue after a live `zone_breach` does not open a second model and does not clear
+the breach. SPE-2851 `damaged` is not a breach.
 
 ## Anti-patterns
 

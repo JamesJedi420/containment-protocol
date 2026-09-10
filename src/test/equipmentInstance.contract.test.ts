@@ -2842,7 +2842,7 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     )
   })
 
-  it('relieves and clears extra-class technician stabilization without writing barrier membranes', () => {
+  it('relieves and clears extra-class technician stabilization onto authored membranes', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 2
     const pressureSeal = instantiateEquipmentInstance(state, 'ward_seals', {
@@ -2877,7 +2877,17 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     })
     if (!relievedSeal.ok) throw new Error(relievedSeal.code)
     expect(isContainmentClassInService(relievedSeal.instance.containmentIntegrity)).toBe(true)
-    expect(relievedSeal.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      relievedSeal.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(
+      relievedSeal.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: pressureSeal.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
 
     const clearedSeal = stabilizeContainmentClassDeficiency(
       relievedSeal.state,
@@ -2894,8 +2904,10 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
         },
       },
     })
+    if (!clearedSeal.ok) throw new Error(clearedSeal.code)
+    expect(clearedSeal.state.containmentBarrierIntegrity).toBeUndefined()
 
-    const interlock = instantiateEquipmentInstance(relievedSeal.state, 'ward_seals', {
+    const interlock = instantiateEquipmentInstance(clearedSeal.state, 'ward_seals', {
       condition: 'damaged',
       containmentIntegrity: {
         classId: 'interlock',
@@ -2926,7 +2938,17 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
     })
     if (!relievedInterlock.ok) throw new Error(relievedInterlock.code)
     expect(isContainmentClassInService(relievedInterlock.instance.containmentIntegrity)).toBe(true)
-    expect(relievedInterlock.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      relievedInterlock.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(
+      relievedInterlock.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: interlock.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
   })
 
   it('hydrates technician stabilization as history without replaying mutations', () => {
@@ -4206,6 +4228,235 @@ describe('SPE-877 barrier-integrity coupling', () => {
         },
       },
     })
+    if (!relieved.ok) throw new Error(relieved.code)
+    const cleared = stabilizeContainmentClassDeficiency(relieved.state, created.instance.instanceId)
+    expect(cleared).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+      state: {
+        containmentBarrierIntegrity: {
+          [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+            status: 'zone_breach',
+            sourceDeficiencyKind: 'hard_stop',
+          },
+        },
+      },
+    })
+  })
+
+  it('omits flow-restraint on technician clear and leaves sibling zones unchanged', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const blast = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!blast.ok) throw new Error(blast.code)
+    const restrainedBlast = applyContainmentClassDeficiency(
+      blast.state,
+      blast.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!restrainedBlast.ok) throw new Error(restrainedBlast.code)
+    const seal = instantiateEquipmentInstance(restrainedBlast.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!seal.ok) throw new Error(seal.code)
+    const restrainedSeal = applyContainmentClassDeficiency(
+      seal.state,
+      seal.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!restrainedSeal.ok) throw new Error(restrainedSeal.code)
+    expect(
+      restrainedSeal.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]?.status
+    ).toBe('flow_restraint')
+    expect(
+      restrainedSeal.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]?.status
+    ).toBe('flow_restraint')
+
+    const clearedSeal = stabilizeContainmentClassDeficiency(
+      restrainedSeal.state,
+      seal.instance.instanceId
+    )
+    expect(clearedSeal).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedSeal.ok) throw new Error(clearedSeal.code)
+    expect(
+      clearedSeal.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toBeUndefined()
+    expect(clearedSeal.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: blast.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+
+    const clearedBlast = stabilizeContainmentClassDeficiency(
+      clearedSeal.state,
+      blast.instance.instanceId
+    )
+    expect(clearedBlast).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedBlast.ok) throw new Error(clearedBlast.code)
+    expect(clearedBlast.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('does not let extra-class hard-stop relief close a recorded zone breach', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const seal = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!seal.ok) throw new Error(seal.code)
+    const stoppedSeal = applyContainmentClassDeficiency(
+      seal.state,
+      seal.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stoppedSeal.ok) throw new Error(stoppedSeal.code)
+    const relievedSeal = stabilizeContainmentClassDeficiency(
+      stoppedSeal.state,
+      seal.instance.instanceId
+    )
+    expect(relievedSeal).toMatchObject({
+      ok: true,
+      instance: {
+        containmentIntegrity: {
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+      state: {
+        containmentBarrierIntegrity: {
+          [PRESSURE_SEAL_MEMBRANE_ZONE_ID]: {
+            status: 'zone_breach',
+            sourceDeficiencyKind: 'hard_stop',
+          },
+        },
+      },
+    })
+
+    const interlock = instantiateEquipmentInstance(stoppedSeal.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!interlock.ok) throw new Error(interlock.code)
+    const stoppedInterlock = applyContainmentClassDeficiency(
+      interlock.state,
+      interlock.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stoppedInterlock.ok) throw new Error(stoppedInterlock.code)
+    const relievedInterlock = stabilizeContainmentClassDeficiency(
+      stoppedInterlock.state,
+      interlock.instance.instanceId
+    )
+    expect(relievedInterlock).toMatchObject({
+      ok: true,
+      instance: {
+        containmentIntegrity: {
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!relievedInterlock.ok) throw new Error(relievedInterlock.code)
+    expect(
+      relievedInterlock.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]?.status
+    ).toBe('zone_breach')
+    expect(
+      relievedInterlock.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]?.status
+    ).toBe('zone_breach')
+  })
+
+  it('does not recouple an already-intact zone when clearing compensating continue', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        },
+      }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    expect(created.state.containmentBarrierIntegrity).toBeUndefined()
+    const cleared = stabilizeContainmentClassDeficiency(created.state, created.instance.instanceId)
+    expect(cleared).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!cleared.ok) throw new Error(cleared.code)
+    expect(cleared.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('hydrates technician-relief omit as history without replaying barrier mutation', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const restrained = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!restrained.ok) throw new Error(restrained.code)
+    const withEvent = appendOperationEventDrafts(restrained.state, [
+      createContainmentBarrierIntegrityChangedDraft({
+        week: restrained.state.week,
+        instanceId: created.instance.instanceId,
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+        reason: 'deficiency_coupling',
+      }),
+    ])
+    const cleared = stabilizeContainmentClassDeficiency(withEvent, created.instance.instanceId)
+    if (!cleared.ok) throw new Error(cleared.code)
+    expect(cleared.state.containmentBarrierIntegrity).toBeUndefined()
+    const serialized = JSON.parse(JSON.stringify(cleared.state))
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      hydrated.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity?.deficiency
+    ).toEqual({ kind: 'none' })
+    expect(
+      hydrated.events.filter(
+        (event) => event.type === 'equipment.containment_barrier_integrity_changed'
+      )
+    ).toHaveLength(1)
   })
 
   it('does not treat SPE-2851 damaged or ordinary identities as a breach', () => {

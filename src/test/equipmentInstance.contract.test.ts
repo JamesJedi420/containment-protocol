@@ -3352,6 +3352,36 @@ describe('SPE-877 mutation stations / integrity labor', () => {
     })
   })
 
+  it('does not offer station-stamped identities as recovery sources', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    const source = resolveEquipmentDeconstructionSources(mutated.state, 'ward_seals').find(
+      (choice) =>
+        choice.source.kind === 'equipment_instance' &&
+        choice.source.instanceId === created.instance.instanceId
+    )
+    expect(source).toMatchObject({
+      available: false,
+      quantity: 0,
+      issueCode: 'equipment_instance_station_mutation_unsupported',
+    })
+
+    const queued = queueEquipmentDeconstruction(mutated.state, 'ward_seals', {
+      kind: 'equipment_instance',
+      instanceId: created.instance.instanceId,
+    })
+    expect(queued.equipmentInstances?.[created.instance.instanceId]).toEqual(mutated.instance)
+    expect(queued.equipmentDeconstructionQueue ?? []).toEqual([])
+    expect(queued.events).toEqual(mutated.state.events)
+  })
+
   it('rejects transitions that would persist a stamp on a non-blast-door identity', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1

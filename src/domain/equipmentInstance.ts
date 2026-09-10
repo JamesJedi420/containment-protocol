@@ -971,26 +971,41 @@ export function applyContainmentClassDeficiency(
 export function persistContainmentBarrierCoupling(
   state: GameState,
   instanceId: EquipmentInstanceId,
-  deficiency: ContainmentClassIntegrity['deficiency']
+  deficiency: ContainmentClassIntegrity['deficiency'],
+  options?: { technicianRelief?: boolean }
 ): GameState {
   const classId = state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId
   if (!classId) return state
   const zoneId = zoneIdForContainmentClass(classId)
   const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
+  const technicianRelief = options?.technicianRelief === true
   const resolved = resolveContainmentBarrierIntegrityCoupling({
     existing: registry?.[zoneId],
     deficiency,
     sourceInstanceId: instanceId,
     classId,
+    ...(technicianRelief ? { technicianRelief: true } : {}),
   })
-  if (!resolved.ok || !resolved.changed || !resolved.barrier) {
+  if (!resolved.ok || !resolved.changed) {
+    return state
+  }
+  if (resolved.barrier) {
+    return normalizeGameState({
+      ...state,
+      containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+        ...(registry ?? {}),
+        [zoneId]: resolved.barrier,
+      }),
+    })
+  }
+  if (!technicianRelief) {
     return state
   }
   return normalizeGameState({
     ...state,
     containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
       ...(registry ?? {}),
-      [zoneId]: resolved.barrier,
+      [zoneId]: undefined,
     }),
   })
 }
@@ -1055,7 +1070,7 @@ export function stabilizeContainmentClassDeficiency(
     cycleCount: nextCycleCount,
     deficiency: resolved.deficiency,
   })
-  return applyEquipmentInstanceTransitionInternal(
+  const transitioned = applyEquipmentInstanceTransitionInternal(
     normalized,
     instanceId,
     current,
@@ -1065,6 +1080,13 @@ export function stabilizeContainmentClassDeficiency(
     },
     { allowHardStopRelief: true }
   )
+  if (!transitioned.ok) return transitioned
+  return {
+    ...transitioned,
+    state: persistContainmentBarrierCoupling(transitioned.state, instanceId, resolved.deficiency, {
+      technicianRelief: true,
+    }),
+  }
 }
 
 function mapIntegrityLaborFailure(

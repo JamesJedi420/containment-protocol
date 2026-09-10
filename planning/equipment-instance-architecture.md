@@ -144,10 +144,13 @@ Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 m
 (`barrier_integrity_watch`) from compensating continue onto the class zone:
 `blast_door` → `blast_door_membrane`, `pressure_seal` → `pressure_seal_membrane`,
 `interlock` → `interlock_membrane`. Week-close inspect advance reuses the same
-`persistContainmentBarrierCoupling` helper. Extra-class deficiency never writes
-`blast_door_membrane`. Recorded `zone_breach` does not downgrade on technician relief, SPE-2851
-repair, or SPE-2867 integrity labor. See `architecture/containment-environment-patterns.md` and
-`planning/spe-877-extra-class-barrier-zones-slice.md`.
+`persistContainmentBarrierCoupling` helper without technician-relief clear. Extra-class deficiency
+never writes `blast_door_membrane`. Successful `stabilizeContainmentClassDeficiency` recouples from
+the new deficiency with `technicianRelief`: `none` omits that zone's `flow_restraint`; recorded
+`zone_breach` does not downgrade on technician relief, SPE-2851 repair, or SPE-2867 integrity labor.
+See `architecture/containment-environment-patterns.md`,
+`planning/spe-877-extra-class-barrier-zones-slice.md`, and
+`planning/spe-877-barrier-recouple-technician-relief-slice.md`.
 
 ## Live workshop integrity mapping (SPE-2866 + extra-class child)
 
@@ -222,8 +225,10 @@ extra-class barrier zones
 (`planning/spe-877-seed-blast-door-workshop-slice.md`), and extra-class workshop quality
 (`planning/spe-877-extra-class-workshop-quality-slice.md`): SPE-1027 consume remains
 blocked on [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
-until a debit port exists; barrier recouple on technician relief and protect authored workshop
-identity from destroy/re-agg remain later children. Week-close remains the production inspect path.
+until a debit port exists; protect authored workshop identity from destroy/re-agg remains a later
+child. Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
+(`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Week-close remains the production
+inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

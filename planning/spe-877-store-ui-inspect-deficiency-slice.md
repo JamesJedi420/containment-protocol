@@ -61,7 +61,7 @@ eligibility is owned by the extra-class technician-stabilization child. Do not r
 | SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                   | Suitability stays blast-door-only; no inventory debit                                                                   |
 | Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`)                | Shipped: starting-state seeds the authored SPE-2866 identity; mapping stays blast-door-only                             |
 | Additional SPE-113 stations                   | this SPE-877 child (`planning/spe-877-interlock-integrity-bench-slice.md`)               | Shipped pressure-seal and interlock benches; SPE-113 tags/operators/curses remain                                       |
-| Extra-class workshop quality                  | later SPE-877 child                                                                      | SPE-2866 stays blast-door only                                                                                          |
+| Extra-class workshop quality                  | this SPE-877 child (`planning/spe-877-extra-class-workshop-quality-slice.md`)            | Shipped extra-class workshop mappings + no-debit seeds; field-containment blast-door path unchanged                     |
 | Extra-class technician stabilization          | shipped SPE-877 child (`planning/spe-877-extra-class-technician-stabilization-slice.md`) | This child shipped store/UI on the blast-door writer; extra-class relieve/clear now uses authored compensating controls |
 
 ## Acceptance

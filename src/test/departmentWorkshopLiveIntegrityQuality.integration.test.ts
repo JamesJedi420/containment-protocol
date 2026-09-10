@@ -10,8 +10,12 @@ import {
 import { BIOHAZARD_RESPONSE_FACILITY_ID } from '../domain/departmentWorkshopFacilityMapping'
 import {
   DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS,
+  EMERGENCY_RESPONSE_DEPARTMENT_ID,
+  EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
   FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
   FIELD_CONTAINMENT_DEPARTMENT_ID,
+  PROCUREMENT_LOGISTICS_DEPARTMENT_ID,
+  PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
   deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
 import {
@@ -29,6 +33,8 @@ const RECORDS_DEPARTMENT_ID = 'department:records-analysis'
 const BIO_WORK_ORDER_ID = 'work:biohazard-live-integrity'
 const RECORDS_WORK_ORDER_ID = 'work:records-live-integrity'
 const FIELD_WORK_ORDER_ID = 'work:field-containment-live-integrity'
+const EMERGENCY_WORK_ORDER_ID = 'work:emergency-response-live-integrity'
+const PROCUREMENT_WORK_ORDER_ID = 'work:procurement-logistics-live-integrity'
 
 function blastDoorIntegrity(
   overrides: Partial<ContainmentClassIntegrity> = {}
@@ -68,11 +74,12 @@ function makeFacility(status: FacilityStatus) {
 }
 
 function makeAuthoredInstance(
+  instanceId: string,
   integrity?: ContainmentClassIntegrity | Record<string, unknown>,
   condition: EquipmentInstance['condition'] = 'operational'
 ): EquipmentInstance {
   return {
-    instanceId: FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+    instanceId,
     definitionId: 'ward_seals',
     location: { state: 'stored' },
     condition,
@@ -100,6 +107,7 @@ function makeWorkshopState(options?: {
   if (!options?.omitInstance) {
     state.equipmentInstances = {
       [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: makeAuthoredInstance(
+        FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
         options?.integrity ?? blastDoorIntegrity(),
         options?.condition
       ),
@@ -182,6 +190,16 @@ describe('authored department workshop integrity-quality mapping', () => {
         departmentId: FIELD_CONTAINMENT_DEPARTMENT_ID,
         instanceId: FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
         classId: 'blast_door',
+      },
+      {
+        departmentId: EMERGENCY_RESPONSE_DEPARTMENT_ID,
+        instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+        classId: 'pressure_seal',
+      },
+      {
+        departmentId: PROCUREMENT_LOGISTICS_DEPARTMENT_ID,
+        instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+        classId: 'interlock',
       },
     ])
   })
@@ -325,6 +343,397 @@ describe('authored department workshop integrity-quality mapping', () => {
       specialistCondition: 'good',
       roomContamination: 'good',
       equipmentCondition: 'good',
+    })
+  })
+})
+
+describe('SPE-877 extra-class workshop integrity-quality mapping', () => {
+  function extraClassState(options: {
+    instanceId: string
+    integrity?: ContainmentClassIntegrity | Record<string, unknown>
+    omitInstance?: boolean
+    condition?: EquipmentInstance['condition']
+  }): GameState {
+    const state = makeWorkshopState()
+    if (options.omitInstance) {
+      const current = state.equipmentInstances ?? {}
+      state.equipmentInstances = Object.fromEntries(
+        Object.entries(current).filter(([instanceId]) => instanceId !== options.instanceId)
+      )
+      return state
+    }
+    state.equipmentInstances = {
+      ...state.equipmentInstances,
+      [options.instanceId]: makeAuthoredInstance(
+        options.instanceId,
+        options.integrity,
+        options.condition
+      ),
+    }
+    return state
+  }
+
+  function attachExtraClassWorkOrders(state: GameState): GameState {
+    state.departmentWorkshopWorkOrders = {
+      ...state.departmentWorkshopWorkOrders,
+      [EMERGENCY_WORK_ORDER_ID]: {
+        id: EMERGENCY_WORK_ORDER_ID,
+        departmentId: EMERGENCY_RESPONSE_DEPARTMENT_ID,
+        caseId: 'case-004',
+        taskType: 'containment_response',
+        requiredWork: 1,
+      },
+      [PROCUREMENT_WORK_ORDER_ID]: {
+        id: PROCUREMENT_WORK_ORDER_ID,
+        departmentId: PROCUREMENT_LOGISTICS_DEPARTMENT_ID,
+        caseId: 'case-005',
+        taskType: 'procurement_support',
+        requiredWork: 1,
+      },
+    }
+    state.departmentWorkshopSnapshots = {
+      ...state.departmentWorkshopSnapshots,
+      [EMERGENCY_RESPONSE_DEPARTMENT_ID]: {
+        departmentId: EMERGENCY_RESPONSE_DEPARTMENT_ID,
+        slotCapacity: 1,
+        queued: [],
+        active: [{ workOrderId: EMERGENCY_WORK_ORDER_ID, completedWork: 0 }],
+        paused: [],
+      },
+      [PROCUREMENT_LOGISTICS_DEPARTMENT_ID]: {
+        departmentId: PROCUREMENT_LOGISTICS_DEPARTMENT_ID,
+        slotCapacity: 1,
+        queued: [],
+        active: [{ workOrderId: PROCUREMENT_WORK_ORDER_ID, completedWork: 0 }],
+        paused: [],
+      },
+    }
+    return state
+  }
+
+  it('resolves extra-class workshop equipment condition from the starting-state seeds', () => {
+    const state = createStartingState()
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        state,
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        state,
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        state,
+        FIELD_CONTAINMENT_DEPARTMENT_ID
+      )
+    ).toBe('good')
+  })
+
+  it('projects pressure-seal none, compensating continue, hard-stop, absent, malformed, and wrong class', () => {
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: {
+              kind: 'compensating_continue',
+              compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+            },
+          },
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          omitInstance: true,
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: { classId: 'pressure_seal' },
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: blastDoorIntegrity(),
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+  })
+
+  it('projects interlock none, compensating continue, hard-stop, absent, malformed, and wrong class', () => {
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: {
+            classId: 'interlock',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: {
+            classId: 'interlock',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: {
+              kind: 'compensating_continue',
+              compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+            },
+          },
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('good')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: {
+            classId: 'interlock',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          omitInstance: true,
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: { classId: 'interlock' },
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        }),
+        PROCUREMENT_LOGISTICS_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+  })
+
+  it('does not treat SPE-2851 damaged condition as the extra-class mapped signal', () => {
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+          condition: 'damaged',
+        }),
+        EMERGENCY_RESPONSE_DEPARTMENT_ID
+      )
+    ).toBe('good')
+  })
+
+  it('keeps extra-class identities on the blast-door slot poor and leaves records unmapped', () => {
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        makeWorkshopState({
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'none' },
+          },
+        }),
+        FIELD_CONTAINMENT_DEPARTMENT_ID
+      )
+    ).toBe('poor')
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        }),
+        RECORDS_DEPARTMENT_ID
+      )
+    ).toBeUndefined()
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        extraClassState({
+          instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+          integrity: {
+            classId: 'pressure_seal',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        }),
+        BIO_DEPARTMENT_ID
+      )
+    ).toBeUndefined()
+  })
+
+  it('grades extra-class hard-stop as poor_equipment_condition without affecting biohazard or records', () => {
+    const state = attachExtraClassWorkOrders(
+      extraClassState({
+        instanceId: EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+        integrity: {
+          classId: 'pressure_seal',
+          lastInspectionWeek: 1,
+          cycleCount: 0,
+          deficiency: { kind: 'hard_stop' },
+        },
+      })
+    )
+    state.equipmentInstances = {
+      ...state.equipmentInstances,
+      [PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]: makeAuthoredInstance(
+        PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+        {
+          classId: 'interlock',
+          lastInspectionWeek: 1,
+          cycleCount: 0,
+          deficiency: { kind: 'none' },
+        }
+      ),
+    }
+
+    const next = advanceWeek(state)
+
+    expect(next.departmentWorkshopCompletionOutcomes?.[EMERGENCY_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[PROCUREMENT_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[BIO_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[RECORDS_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[FIELD_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+  })
+
+  it('preserves extra-class degraded receipts across save/load and replay', () => {
+    const completed = advanceWeek(
+      attachExtraClassWorkOrders(
+        extraClassState({
+          instanceId: PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+          integrity: {
+            classId: 'interlock',
+            lastInspectionWeek: 1,
+            cycleCount: 0,
+            deficiency: { kind: 'hard_stop' },
+          },
+        })
+      )
+    )
+    const loaded = loadGameSave(serializeGameSave(completed))
+    loaded.equipmentInstances = {
+      ...loaded.equipmentInstances,
+      [PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]: makeAuthoredInstance(
+        PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+        {
+          classId: 'interlock',
+          lastInspectionWeek: 1,
+          cycleCount: 0,
+          deficiency: { kind: 'none' },
+        }
+      ),
+    }
+
+    const replay = advanceWeek(loaded)
+
+    expect(replay.departmentWorkshopCompletionOutcomes?.[PROCUREMENT_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
     })
   })
 })
@@ -517,7 +926,10 @@ describe('canonical week-close live integrity quality integration', () => {
     )
     const loaded = loadGameSave(serializeGameSave(completed))
     loaded.equipmentInstances = {
-      [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: makeAuthoredInstance(blastDoorIntegrity()),
+      [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: makeAuthoredInstance(
+        FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+        blastDoorIntegrity()
+      ),
     }
 
     const replay = advanceWeek(loaded)

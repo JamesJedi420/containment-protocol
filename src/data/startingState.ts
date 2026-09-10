@@ -12,8 +12,12 @@ import { startingKnowledge } from './startingKnowledge'
 import { POST_INCIDENT_REVIEW_STUB_REGISTRY } from '../domain/postIncidentReviewRegistry'
 import { DISABLED_EQUIPMENT_AUTO_SCRAP_POLICY } from '../domain/equipmentAutoScrap'
 import {
+  EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
   FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+  PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+  createEmergencyResponsePressureSealWorkshopInstance,
   createFieldContainmentBlastDoorWorkshopInstance,
+  createProcurementLogisticsInterlockWorkshopInstance,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
 
 const startingStateTemplate: GameState = {
@@ -46,6 +50,10 @@ const startingStateTemplate: GameState = {
   inventory: createStartingInventory(),
   equipmentInstances: {
     [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: createFieldContainmentBlastDoorWorkshopInstance(),
+    [EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID]:
+      createEmergencyResponsePressureSealWorkshopInstance(),
+    [PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]:
+      createProcurementLogisticsInterlockWorkshopInstance(),
   },
   damagedEquipmentQueue: [],
   caseQueue: {

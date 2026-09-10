@@ -12,6 +12,7 @@
     "SPE-2861"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-extra-class-workshop-quality-slice.md": "Recently shipped",
     "planning/spe-877-interlock-integrity-bench-slice.md": "Recently shipped",
     "planning/spe-877-pressure-seal-integrity-bench-slice.md": "Recently shipped",
     "planning/spe-877-seed-blast-door-workshop-slice.md": "Recently shipped",

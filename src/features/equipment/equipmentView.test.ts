@@ -9,6 +9,7 @@ import {
 } from './equipmentView'
 import {
   applyBlastDoorIntegrityLabor,
+  applyPressureSealIntegrityLabor,
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
 } from '../../domain/equipmentInstance'
@@ -461,6 +462,36 @@ describe('getGearRecommendationsForActiveCases', () => {
           instanceId: created.instance.instanceId,
           canReturnToLot: false,
           returnToLotBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
+  })
+
+  it('disables catalog re-aggregation for a pressure-seal integrity-labor stamp', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyPressureSealIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(mutated.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
         }),
       ])
     )

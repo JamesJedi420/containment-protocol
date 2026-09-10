@@ -1079,6 +1079,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
     }
 
     case 'equipment.instance_station_mutated': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const deficiencyLabel =
         event.payload.deficiencyKind === 'hard_stop'
           ? 'Hard stop'
@@ -1089,13 +1090,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} integrity labor applied`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'neutral',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

@@ -23,7 +23,12 @@ import {
   getContainmentClassCadenceSpec,
   isContainmentClassId,
 } from '../containmentClassInspection'
-import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../equipmentStationMutation'
+import {
+  BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+  PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+  eligibleClassIdForIntegrityLaborStation,
+  isIntegrityLaborStationId,
+} from '../equipmentStationMutation'
 import {
   CONTAINMENT_BARRIER_ZONE_IDS,
   zoneIdForContainmentClass,
@@ -1287,13 +1292,16 @@ const equipmentInstanceStationMutatedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
-    stationId: z.literal(BLAST_DOOR_INTEGRITY_LABOR_STATION_ID),
+    classId: z.enum(['blast_door', 'pressure_seal']),
+    stationId: z.enum([
+      BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+      PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+    ]),
     previousCycleCount: finiteNonNegativeIntSchema,
     cycleCount: finiteNonNegativeIntSchema,
     condition: z.enum(['operational', 'damaged']),
     deficiencyKind: z.enum(['none', 'hard_stop', 'compensating_continue']),
-    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     inService: z.boolean(),
     reason: z.literal('integrity_labor'),
   })
@@ -1318,12 +1326,24 @@ const equipmentInstanceStationMutatedSchema = z
         message: 'integrity labor must increment cycleCount by 1',
       })
     }
+    if (
+      isIntegrityLaborStationId(payload.stationId) &&
+      eligibleClassIdForIntegrityLaborStation(payload.stationId) !== payload.classId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stationId'],
+        message: 'integrity-labor station must match the authored class',
+      })
+    }
     if (payload.deficiencyKind === 'compensating_continue') {
-      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+      if (
+        payload.compensatingControlId !== expectedCompensatingControlIdForClass(payload.classId)
+      ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['compensatingControlId'],
-          message: 'blast-door compensating continue requires secondary_interlock_watch',
+          message: 'compensating continue requires the authored control for the class',
         })
       }
     } else if (payload.compensatingControlId !== undefined) {

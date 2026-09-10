@@ -11,10 +11,10 @@
     "SPE-2862",
     "SPE-2861",
     "SPE-2860",
-    "SPE-2827",
-    "SPE-2859"
+    "SPE-2827"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-seed-blast-door-workshop-slice.md": "Recently shipped",
     "planning/spe-877-extra-class-technician-stabilization-slice.md": "Recently shipped",
     "planning/spe-877-store-ui-inspect-deficiency-slice.md": "Recently shipped",
     "planning/spe-877-extra-class-barrier-zones-slice.md": "Recently shipped",

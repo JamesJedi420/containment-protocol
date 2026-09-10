@@ -64,7 +64,7 @@ an extra-class zone). Extra-class events must carry matching `zoneId` and must n
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | Store/UI inspect or deficiency commands       | [SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands) | Shipped: technician stabilization via store/UI; week-close remains the inspect path |
 | SPE-1027 stock consume of a named part        | SPE-1027 / later child                                                                           | Suitability stays blast-door-only; no inventory debit                               |
-| Seed `equipment-instance-blast-door-workshop` | later SPE-877 child / SPE-2866                                                                   | SPE-2866 mapping stays blast-door-only; no instance seed                            |
+| Seed `equipment-instance-blast-door-workshop` | this SPE-877 child (`planning/spe-877-seed-blast-door-workshop-slice.md`) | Shipped: starting-state seeds the authored SPE-2866 identity; mapping stays blast-door-only |
 | Additional SPE-113 stations                   | later SPE-877 child                                                                              | Mutation-stations child already froze one blast-door bench                          |
 | Extra-class workshop quality                  | later SPE-877 child                                                                              | SPE-2866 stays blast-door only                                                      |
 

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../../domain/departmentWorkshopIntegrityQualityMapping'
 import { useGameStore } from '../../app/store/gameStore'
 import { equipStoredCombatStimInstance } from '../../domain/combatStim'
 import {
@@ -30,6 +31,7 @@ describe('EquipmentPage', () => {
   it('shows deconstruction and active-queue empty states', () => {
     const game = createStartingState()
     game.inventory = {}
+    game.equipmentInstances = {}
     game.equipmentDeconstructionQueue = []
     useGameStore.setState({ game })
 
@@ -148,8 +150,10 @@ describe('EquipmentPage', () => {
     await user.click(screen.getByRole('button', { name: /confirm tracking/i }))
 
     const materialized = useGameStore.getState().game
-    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
-    expect(instanceId).toBe('equipment-instance-1-1')
+    const instanceId = 'equipment-instance-1-1'
+    expect(
+      materialized.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    ).toBeDefined()
     expect(materialized.inventory.signal_jammers).toBe(0)
     expect(materialized.equipmentInstances?.[instanceId]).toMatchObject({
       definitionId: 'signal_jammers',
@@ -375,7 +379,10 @@ describe('EquipmentPage', () => {
     await user.click(screen.getByRole('button', { name: /confirm tracking/i }))
 
     const materialized = useGameStore.getState().game
-    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
+    const instanceId = Object.values(materialized.equipmentInstances ?? {}).find(
+      (instance) => instance.definitionId === 'signal_jammers'
+    )?.instanceId
+    expect(instanceId).toBe('equipment-instance-1-1')
     expect(materialized.inventory.signal_jammers).toBe(0)
     expect(materialized.fabricatedEquipmentLots?.batch).toMatchObject({
       quantity: 1,
@@ -773,7 +780,10 @@ describe('EquipmentPage', () => {
       })
     )
     const materialized = useGameStore.getState().game
-    const instanceId = Object.keys(materialized.equipmentInstances ?? {})[0]
+    const instanceId = Object.values(materialized.equipmentInstances ?? {}).find(
+      (instance) => instance.definitionId === 'combat_stims'
+    )?.instanceId
+    expect(instanceId).toBe('equipment-instance-1-1')
     expect(
       materialized.events.filter((event) => event.type === 'equipment.instance_materialized')
     ).toHaveLength(1)

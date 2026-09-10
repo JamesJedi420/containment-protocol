@@ -963,7 +963,11 @@ describe('gameStore', () => {
       },
     })
     expect(
-      closed.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+      closed.events.filter(
+        (event) =>
+          event.type === 'equipment.containment_class_inspected' &&
+          event.payload.instanceId === created.instance.instanceId
+      )
     ).toEqual([
       expect.objectContaining({
         payload: expect.objectContaining({

@@ -11,6 +11,10 @@ import { createStartingInventory, createStartingMarket } from './production'
 import { startingKnowledge } from './startingKnowledge'
 import { POST_INCIDENT_REVIEW_STUB_REGISTRY } from '../domain/postIncidentReviewRegistry'
 import { DISABLED_EQUIPMENT_AUTO_SCRAP_POLICY } from '../domain/equipmentAutoScrap'
+import {
+  FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+  createFieldContainmentBlastDoorWorkshopInstance,
+} from '../domain/departmentWorkshopIntegrityQualityMapping'
 
 const startingStateTemplate: GameState = {
   week: 1,
@@ -40,7 +44,9 @@ const startingStateTemplate: GameState = {
   caseScopedPrerequisiteProcessingReservations: {},
   caseScopedPrerequisiteProcessingTerminalSignals: {},
   inventory: createStartingInventory(),
-  equipmentInstances: {},
+  equipmentInstances: {
+    [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: createFieldContainmentBlastDoorWorkshopInstance(),
+  },
   damagedEquipmentQueue: [],
   caseQueue: {
     queuedCaseIds: [],

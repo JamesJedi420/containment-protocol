@@ -986,6 +986,14 @@ export function persistContainmentBarrierCoupling(
   })
 }
 
+export function canStabilizeContainmentClassDeficiency(
+  instance: EquipmentInstance | undefined
+): boolean {
+  const parsed = parseContainmentClassIntegrity(instance?.containmentIntegrity)
+  if (!parsed.ok || parsed.integrity.classId !== 'blast_door') return false
+  return resolveTechnicianStabilization(parsed.integrity.deficiency).ok
+}
+
 export function stabilizeContainmentClassDeficiency(
   state: GameState,
   instanceId: EquipmentInstanceId

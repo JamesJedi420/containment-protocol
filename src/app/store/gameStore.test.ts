@@ -905,6 +905,135 @@ describe('gameStore', () => {
     ])
   })
 
+  it('stabilizeContainmentClassDeficiency wires technician relief without replacing week-close inspect', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.week = 5
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+
+    const relieved = useGameStore.getState().game
+    const relievedInstance = relieved.equipmentInstances?.[created.instance.instanceId]
+    expect(relievedInstance?.containmentIntegrity).toMatchObject({
+      lastInspectionWeek: 1,
+      cycleCount: 1,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      relieved.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'blast_door',
+          previousDeficiencyKind: 'hard_stop',
+          deficiencyKind: 'compensating_continue',
+          compensatingControlId: 'secondary_interlock_watch',
+          previousCycleCount: 0,
+          cycleCount: 1,
+          inService: true,
+          reason: 'technician_stabilization',
+        }),
+      }),
+    ])
+
+    useGameStore.getState().advanceWeek()
+    const closed = useGameStore.getState().game
+    expect(closed.week).toBe(6)
+    expect(
+      closed.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      closed.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          status: 'due',
+          reason: 'week_close_auto_advance',
+          previousLastInspectionWeek: 1,
+          lastInspectionWeek: 5,
+        }),
+      }),
+    ])
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+    const cleared = useGameStore.getState().game
+    expect(
+      cleared.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity?.deficiency
+    ).toEqual({ kind: 'none' })
+    expect(
+      cleared.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(2)
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(2)
+  })
+
+  it('stabilizeContainmentClassDeficiency fail-closes missing, ordinary, none, and extra-class identities', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.inventory.ward_seals = 2
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const none = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!none.ok) throw new Error(none.code)
+    const extraClass = instantiateEquipmentInstance(none.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!extraClass.ok) throw new Error(extraClass.code)
+
+    useGameStore.setState({ game: extraClass.state })
+    const snapshot = extraClass.state.equipmentInstances
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency('missing-instance')
+    useGameStore.getState().stabilizeContainmentClassDeficiency(ordinary.instance.instanceId)
+    useGameStore.getState().stabilizeContainmentClassDeficiency(none.instance.instanceId)
+    useGameStore.getState().stabilizeContainmentClassDeficiency(extraClass.instance.instanceId)
+
+    expect(useGameStore.getState().game.equipmentInstances).toEqual(snapshot)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(0)
+  })
+
   it('reaggregateStoredEquipmentInstance credits stock and clears an idle equipped ordinary copy', () => {
     const game = createStartingState()
     game.inventory.signal_jammers = 2

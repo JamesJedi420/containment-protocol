@@ -202,8 +202,11 @@ labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`,
 [SPE-2867](https://linear.app/spectranoir/issue/SPE-2867/mutation-stations-integrity-labor)), and
 extra-class barrier zones
 ([SPE-2868](https://linear.app/spectranoir/issue/SPE-2868/extra-class-barrier-zones-pressure-seal-interlock-membranes),
-`planning/spe-877-extra-class-barrier-zones-slice.md`): store/UI inspect commands, SPE-1027 consume,
-additional SPE-113 stations, and extra-class workshop quality remain later children.
+`planning/spe-877-extra-class-barrier-zones-slice.md`), and store/UI deficiency disposition
+([SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands),
+`planning/spe-877-store-ui-inspect-deficiency-slice.md`): SPE-1027 consume, additional SPE-113
+stations, and extra-class workshop quality remain later children. Week-close remains the
+production inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

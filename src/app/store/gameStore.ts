@@ -10,6 +10,7 @@ import {
   createEquipmentInstanceMaterializedDraft,
   createEquipmentInstanceReaggregatedDraft,
   createEquipmentInstanceConditionRepairedDraft,
+  createContainmentClassStabilizedDraft,
   createCombatStimDisposedDraft,
   createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
@@ -92,8 +93,11 @@ import {
   destroyStoredOrdinaryEquipmentInstance,
   getEquipmentInstanceAtAgentSlot,
   reaggregateStoredOrdinaryEquipmentInstance,
+  isContainmentClassInService,
   repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
+  stabilizeContainmentClassDeficiency as stabilizeContainmentClassDeficiencyState,
 } from '../../domain/equipmentInstance'
+import { BLAST_DOOR_COMPENSATING_CONTROL_ID } from '../../domain/containmentClassInspection'
 import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
@@ -425,6 +429,7 @@ interface GameStore {
   ) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
   repairStoredEquipmentInstanceCondition: (instanceId: string) => void
+  stabilizeContainmentClassDeficiency: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
@@ -1890,6 +1895,52 @@ export const useGameStore = create<GameStore>()(
                 previousCondition: 'damaged',
                 condition: 'operational',
                 reason: 'manual_condition_repair',
+              }),
+            ]),
+          }
+        }),
+
+      stabilizeContainmentClassDeficiency: (instanceId) =>
+        set((s) => {
+          const previousIntegrity = s.game.equipmentInstances?.[instanceId]?.containmentIntegrity
+          const result = stabilizeContainmentClassDeficiencyState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const previousKind = previousIntegrity?.deficiency.kind
+          const nextDeficiency = result.instance.containmentIntegrity?.deficiency
+          const nextCycleCount = result.instance.containmentIntegrity?.cycleCount
+          if (
+            (previousKind !== 'hard_stop' && previousKind !== 'compensating_continue') ||
+            !nextDeficiency ||
+            (nextDeficiency.kind !== 'none' && nextDeficiency.kind !== 'compensating_continue') ||
+            typeof previousIntegrity?.cycleCount !== 'number' ||
+            typeof nextCycleCount !== 'number'
+          ) {
+            return { game: result.state }
+          }
+          if (
+            nextDeficiency.kind === 'compensating_continue' &&
+            nextDeficiency.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID
+          ) {
+            return { game: result.state }
+          }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createContainmentClassStabilizedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                classId: 'blast_door',
+                previousDeficiencyKind: previousKind,
+                deficiencyKind: nextDeficiency.kind,
+                ...(nextDeficiency.kind === 'compensating_continue'
+                  ? { compensatingControlId: nextDeficiency.compensatingControlId }
+                  : {}),
+                previousCycleCount: previousIntegrity.cycleCount,
+                cycleCount: nextCycleCount,
+                inService: isContainmentClassInService(result.instance.containmentIntegrity),
+                reason: 'technician_stabilization',
               }),
             ]),
           }

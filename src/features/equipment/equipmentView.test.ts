@@ -679,6 +679,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         canDestroy: false,
         destructionBlocker: 'payload_unsupported',
         canRepairCondition: false,
+        canStabilizeContainmentDeficiency: false,
         canReaggregate: false,
         reaggregationBlocker: 'payload_unsupported',
         canReturnToLot: false,
@@ -689,6 +690,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         conditionLabel: 'Damaged',
         canDestroy: true,
         canRepairCondition: true,
+        canStabilizeContainmentDeficiency: false,
         canReaggregate: false,
         reaggregationBlocker: 'condition_unsupported',
         canReturnToLot: false,
@@ -727,6 +729,84 @@ describe('getGearRecommendationsForActiveCases', () => {
         reaggregationBlocker: 'recovery_claimed',
       }),
     ])
+  })
+
+  it('offers blast-door deficiency stabilization and fail-closes ordinary, extra-class, and none', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 4
+    game.inventory.signal_jammers = 1
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const none = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!none.ok) throw new Error(none.code)
+    const hardStop = instantiateEquipmentInstance(none.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!hardStop.ok) throw new Error(hardStop.code)
+    const compensating = instantiateEquipmentInstance(hardStop.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 1,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: 'secondary_interlock_watch',
+        },
+      },
+    })
+    if (!compensating.ok) throw new Error(compensating.code)
+    const extraClass = instantiateEquipmentInstance(compensating.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!extraClass.ok) throw new Error(extraClass.code)
+
+    const views = getEquipmentInstanceMaterializationViews(extraClass.state)
+    const jammers = views.find((view) => view.itemId === 'signal_jammers')?.storedInstances ?? []
+    const seals = views.find((view) => view.itemId === 'ward_seals')?.storedInstances ?? []
+
+    expect(jammers).toEqual([
+      expect.objectContaining({
+        instanceId: ordinary.instance.instanceId,
+        canStabilizeContainmentDeficiency: false,
+      }),
+    ])
+    expect(seals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: none.instance.instanceId,
+          canStabilizeContainmentDeficiency: false,
+        }),
+        expect.objectContaining({
+          instanceId: hardStop.instance.instanceId,
+          canStabilizeContainmentDeficiency: true,
+        }),
+        expect.objectContaining({
+          instanceId: compensating.instance.instanceId,
+          canStabilizeContainmentDeficiency: true,
+        }),
+        expect.objectContaining({
+          instanceId: extraClass.instance.instanceId,
+          canStabilizeContainmentDeficiency: false,
+        }),
+      ])
+    )
   })
 
   it('exposes fabricated-lot tracking sources when only batch stock remains', () => {

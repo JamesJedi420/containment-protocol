@@ -153,11 +153,14 @@ repair, or SPE-2867 integrity labor. See `architecture/containment-environment-p
 
 Authored `department:field-containment` maps one frozen blast-door identity
 (`equipment-instance-blast-door-workshop`) into SPE-2782 `equipmentCondition` at the existing
-week-close completion-registration wrapper. Hard-stop, missing instance, malformed integrity, and
+week-close completion-registration wrapper. Starting-state seeds that identity as stored
+`ward_seals` with blast-door `none` integrity so a fresh game is not permanently `poor` from a
+missing instance. Hard-stop, missing instance, malformed integrity, and
 wrong class resolve `poor`; `none` and compensating continue resolve `good`. Unmapped departments
 keep caller-owned equipment condition. SPE-2851 `condition` is not the mapped signal. Pressure-seal
 and interlock identities do not satisfy this mapping. See
-`planning/spe-877-live-workshop-integrity-mapping-slice.md`.
+`planning/spe-877-live-workshop-integrity-mapping-slice.md` and
+`planning/spe-877-seed-blast-door-workshop-slice.md`.
 
 ## Mutation stations / integrity labor (SPE-877 child)
 
@@ -205,10 +208,11 @@ extra-class barrier zones
 `planning/spe-877-extra-class-barrier-zones-slice.md`), and store/UI deficiency disposition
 ([SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands),
 `planning/spe-877-store-ui-inspect-deficiency-slice.md`), and extra-class technician stabilization
-(`planning/spe-877-extra-class-technician-stabilization-slice.md`): SPE-1027 consume remains
+(`planning/spe-877-extra-class-technician-stabilization-slice.md`), and seed
+`equipment-instance-blast-door-workshop`
+(`planning/spe-877-seed-blast-door-workshop-slice.md`): SPE-1027 consume remains
 blocked on [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
-until a debit port exists; additional SPE-113 stations, seed
-`equipment-instance-blast-door-workshop`, extra-class workshop quality, and barrier recouple on
+until a debit port exists; additional SPE-113 stations, extra-class workshop quality, and barrier recouple on
 technician relief remain later children. Week-close remains the production inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique

@@ -373,14 +373,16 @@ describe('getGearRecommendationsForActiveCases', () => {
       getEquipmentInstanceMaterializationViews(mutated.state).find(
         (view) => view.itemId === 'ward_seals'
       )?.storedInstances
-    ).toEqual([
-      expect.objectContaining({
-        instanceId: created.instance.instanceId,
-        canReaggregate: false,
-        reaggregationBlocker: 'station_mutation_unsupported',
-        canReturnToLot: false,
-      }),
-    ])
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+          canReturnToLot: false,
+        }),
+      ])
+    )
 
     const damagedStamped = {
       ...mutated.state,
@@ -396,13 +398,15 @@ describe('getGearRecommendationsForActiveCases', () => {
       getEquipmentInstanceMaterializationViews(damagedStamped).find(
         (view) => view.itemId === 'ward_seals'
       )?.storedInstances
-    ).toEqual([
-      expect.objectContaining({
-        instanceId: created.instance.instanceId,
-        canReaggregate: false,
-        reaggregationBlocker: 'station_mutation_unsupported',
-      }),
-    ])
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
 
     const equipped = relocateEquipmentInstance(mutated.state, created.instance.instanceId, {
       state: 'equipped',
@@ -451,13 +455,15 @@ describe('getGearRecommendationsForActiveCases', () => {
       getEquipmentInstanceMaterializationViews(fabricatedState).find(
         (view) => view.itemId === 'ward_seals'
       )?.storedInstances
-    ).toEqual([
-      expect.objectContaining({
-        instanceId: created.instance.instanceId,
-        canReturnToLot: false,
-        returnToLotBlocker: 'station_mutation_unsupported',
-      }),
-    ])
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReturnToLot: false,
+          returnToLotBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
   })
 
   it('exposes destroy and re-agg eligibility on idle ordinary equipped slots', () => {

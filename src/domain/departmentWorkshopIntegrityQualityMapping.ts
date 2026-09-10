@@ -1,8 +1,10 @@
 import {
   isContainmentClassInService,
   parseContainmentClassIntegrity,
+  snapshotContainmentClassIntegrity,
   type ContainmentClassId,
 } from './containmentClassInspection'
+import type { EquipmentInstance } from './equipmentInstance'
 import type { DepartmentWorkshopConditionLevel } from './departmentWorkshopQueue'
 import type { GameState } from './models'
 
@@ -30,6 +32,27 @@ export const DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS: readonly De
       classId: FIELD_CONTAINMENT_BLAST_DOOR_CLASS_ID,
     }),
   ])
+
+/**
+ * Authored stored blast-door identity SPE-2866 maps at
+ * `department:field-containment`. Starting-state seeds this ID without calling
+ * `instantiateEquipmentInstance` (allocator is `equipment-instance-${week}-${ordinal}`)
+ * and without debiting aggregate inventory.
+ */
+export function createFieldContainmentBlastDoorWorkshopInstance(): EquipmentInstance {
+  return {
+    instanceId: FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+    definitionId: 'ward_seals',
+    location: { state: 'stored' },
+    condition: 'operational',
+    containmentIntegrity: snapshotContainmentClassIntegrity({
+      classId: FIELD_CONTAINMENT_BLAST_DOOR_CLASS_ID,
+      lastInspectionWeek: 1,
+      cycleCount: 0,
+      deficiency: { kind: 'none' },
+    }),
+  }
+}
 
 /**
  * Derives the authoritative equipment condition for one mapped department from

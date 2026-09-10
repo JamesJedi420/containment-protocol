@@ -167,6 +167,15 @@ const EXPLICIT_CALLER_CONDITIONS: DepartmentWorkshopQualityConditions = {
 }
 
 describe('authored department workshop integrity-quality mapping', () => {
+  it('resolves field-containment workshop equipment condition from the starting-state seed', () => {
+    expect(
+      deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        createStartingState(),
+        FIELD_CONTAINMENT_DEPARTMENT_ID
+      )
+    ).toBe('good')
+  })
+
   it('maps the production field-containment department to the authored blast-door instance', () => {
     expect(DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS).toEqual([
       {

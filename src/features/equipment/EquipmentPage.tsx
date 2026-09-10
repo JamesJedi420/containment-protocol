@@ -454,7 +454,9 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.destructionBlocker === 'payload_unsupported'
                               ? 'Payload-bearing copies require a specialized destruction flow.'
-                              : 'This copy is already claimed by equipment recovery.'}
+                              : instance.destructionBlocker === 'authored_workshop_identity'
+                                ? 'This identity is the live workshop mapping target.'
+                                : 'This copy is already claimed by equipment recovery.'}
                           </p>
                         ) : null}
                         {pendingRepairInstanceId === instance.instanceId ? (
@@ -619,7 +621,10 @@ function EquipmentPage() {
                                     ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
                                     : instance.reaggregationBlocker === 'recovery_claimed'
                                       ? 'This copy is already claimed by equipment recovery.'
-                                      : 'Aggregate stock is already at its safe capacity.'}
+                                      : instance.reaggregationBlocker ===
+                                          'authored_workshop_identity'
+                                        ? 'This identity is the live workshop mapping target.'
+                                        : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                         {pendingReturnToLotInstanceId === instance.instanceId ? (
@@ -1262,7 +1267,10 @@ function EquipmentPage() {
                                 ? 'Payload-bearing copies require a specialized destruction flow.'
                                 : slot.ordinaryLifecycle.destructionBlocker === 'recovery_claimed'
                                   ? 'This copy is already claimed by equipment recovery.'
-                                  : 'Loadout changes are locked while this operative is not idle.'}
+                                  : slot.ordinaryLifecycle.destructionBlocker ===
+                                      'authored_workshop_identity'
+                                    ? 'This identity is the live workshop mapping target.'
+                                    : 'Loadout changes are locked while this operative is not idle.'}
                             </p>
                           ) : null}
                           {pendingReaggregationInstanceId === slot.instanceId ? (
@@ -1334,7 +1342,10 @@ function EquipmentPage() {
                                         : slot.ordinaryLifecycle.reaggregationBlocker ===
                                             'agent_not_idle'
                                           ? 'Loadout changes are locked while this operative is not idle.'
-                                          : 'Aggregate stock is already at its safe capacity.'}
+                                          : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                              'authored_workshop_identity'
+                                            ? 'This identity is the live workshop mapping target.'
+                                            : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
                           {slot.ordinaryLifecycle.canReturnToLot ||

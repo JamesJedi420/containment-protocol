@@ -970,4 +970,55 @@ describe('getGearRecommendationsForActiveCases', () => {
       expect.arrayContaining([expect.objectContaining({ instanceId: created.instance.instanceId })])
     )
   })
+
+  it('disables destroy and catalog re-aggregation for authored workshop identities', () => {
+    const game = createStartingState()
+    const stored = getEquipmentInstanceMaterializationViews(game).find(
+      (view) => view.itemId === 'ward_seals'
+    )?.storedInstances
+
+    expect(stored).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: 'equipment-instance-blast-door-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+        expect.objectContaining({
+          instanceId: 'equipment-instance-pressure-seal-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+        expect.objectContaining({
+          instanceId: 'equipment-instance-interlock-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+      ])
+    )
+
+    const equipped = relocateEquipmentInstance(game, 'equipment-instance-blast-door-workshop', {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const mina = getAgentEquipmentLoadoutViews(equipped.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual(
+      expect.objectContaining({
+        canDestroy: false,
+        destructionBlocker: 'authored_workshop_identity',
+        canReaggregate: false,
+        reaggregationBlocker: 'authored_workshop_identity',
+      })
+    )
+  })
 })

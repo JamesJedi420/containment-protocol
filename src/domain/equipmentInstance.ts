@@ -42,6 +42,7 @@ import {
   type EquipmentInstanceStationMutation,
   type IntegrityLaborResolveResult,
 } from './equipmentStationMutation'
+import { isAuthoredWorkshopIntegrityInstanceId } from './departmentWorkshopIntegrityQualityMapping'
 
 export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
@@ -105,6 +106,7 @@ export type EquipmentInstanceFailureCode =
   | 'payload_reaggregation_unsupported'
   | 'condition_reaggregation_unsupported'
   | 'station_mutation_reaggregation_unsupported'
+  | 'authored_workshop_identity_protected'
   | 'condition_already_operational'
   | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
@@ -630,6 +632,9 @@ export function destroyStoredOrdinaryEquipmentInstance(
   if (!isSafeEquipmentInstanceId(instanceId)) {
     return { ok: false, state: normalized, code: 'invalid_instance_id' }
   }
+  if (isAuthoredWorkshopIntegrityInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
+  }
   const instance = normalized.equipmentInstances?.[instanceId]
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
@@ -713,6 +718,9 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
     return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  if (isAuthoredWorkshopIntegrityInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
   }
   const instance = normalized.equipmentInstances?.[instanceId]
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }

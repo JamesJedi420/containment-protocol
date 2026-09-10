@@ -53,6 +53,15 @@ export const DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS: readonly De
     }),
   ])
 
+const AUTHORED_WORKSHOP_INTEGRITY_INSTANCE_IDS: ReadonlySet<string> = new Set(
+  DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS.map((mapping) => mapping.instanceId)
+)
+
+/** SPE-2877: authored SPE-2866 mapping targets are not ordinary destroy/re-agg eligible. */
+export function isAuthoredWorkshopIntegrityInstanceId(instanceId: string): boolean {
+  return AUTHORED_WORKSHOP_INTEGRITY_INSTANCE_IDS.has(instanceId)
+}
+
 function createWorkshopIntegrityInstance(
   instanceId: string,
   classId: ContainmentClassId

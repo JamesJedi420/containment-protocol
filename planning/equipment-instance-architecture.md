@@ -163,7 +163,9 @@ at the existing week-close completion-registration wrapper:
 
 Starting-state seeds those identities as stored `ward_seals` with matching-class `none` integrity
 so a fresh game is not permanently `poor` from a missing instance, without debiting aggregate
-inventory. Hard-stop, missing instance, malformed integrity, and wrong class resolve `poor`; `none`
+inventory. Ordinary destroy and catalog re-aggregation fail closed for those authored IDs so
+re-agg cannot credit never-debited `ward_seals` (`planning/spe-877-protect-workshop-identity-slice.md`).
+Hard-stop, missing instance, malformed integrity, and wrong class resolve `poor`; `none`
 and compensating continue resolve `good`. Unmapped departments keep caller-owned equipment
 condition. SPE-2851 `condition` is not the mapped signal. Extra-class identities do not satisfy the
 blast-door mapping. See `planning/spe-877-live-workshop-integrity-mapping-slice.md`,
@@ -225,8 +227,9 @@ extra-class barrier zones
 (`planning/spe-877-seed-blast-door-workshop-slice.md`), and extra-class workshop quality
 (`planning/spe-877-extra-class-workshop-quality-slice.md`): SPE-1027 consume remains
 blocked on [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
-until a debit port exists; protect authored workshop identity from destroy/re-agg remains a later
-child. Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
+until a debit port exists. Protect authored workshop identity from destroy/re-agg shipped as
+[SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg)
+(`planning/spe-877-protect-workshop-identity-slice.md`). Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
 (`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Week-close remains the production
 inspect path.
 Healing,

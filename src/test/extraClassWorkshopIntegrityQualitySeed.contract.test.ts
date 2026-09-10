@@ -13,6 +13,7 @@ import {
   deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
 import { instantiateEquipmentInstance } from '../domain/equipmentInstance'
+import { advanceContainmentClassInspectionsAtWeekClose } from '../domain/containmentClassWeekClose'
 
 describe('SPE-877 extra-class workshop integrity-quality seeds', () => {
   it('puts authored pressure-seal and interlock identities in starting state without debiting inventory', () => {
@@ -97,5 +98,51 @@ describe('SPE-877 extra-class workshop integrity-quality seeds', () => {
     expect(created.state.equipmentInstances?.[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]).toEqual(
       state.equipmentInstances?.[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]
     )
+  })
+
+  it('lets week-close inspect seeded extra-class identities when cadence is due', () => {
+    const interlockState = createStartingState()
+    interlockState.week = 3
+    const interlockAdvanced = advanceContainmentClassInspectionsAtWeekClose(interlockState)
+    expect(
+      interlockAdvanced.state.equipmentInstances?.[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]
+        ?.containmentIntegrity
+    ).toMatchObject({
+      classId: 'interlock',
+      lastInspectionWeek: 3,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+      },
+    })
+    expect(
+      interlockAdvanced.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.containment_class_inspected' &&
+          draft.payload.instanceId === PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID
+      )
+    ).toBe(true)
+
+    const pressureState = createStartingState()
+    pressureState.week = 4
+    const pressureAdvanced = advanceContainmentClassInspectionsAtWeekClose(pressureState)
+    expect(
+      pressureAdvanced.state.equipmentInstances?.[EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID]
+        ?.containmentIntegrity
+    ).toMatchObject({
+      classId: 'pressure_seal',
+      lastInspectionWeek: 4,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+      },
+    })
+    expect(
+      pressureAdvanced.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.containment_class_inspected' &&
+          draft.payload.instanceId === EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID
+      )
+    ).toBe(true)
   })
 })

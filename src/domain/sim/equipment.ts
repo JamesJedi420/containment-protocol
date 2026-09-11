@@ -22,6 +22,7 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import { getProductionRecipe } from '../../data/production'
 import {
   resolveEquipmentDeconstructionSources,
@@ -574,7 +575,12 @@ export function canEquipStoredEquipmentInstance(
 ): boolean {
   const instance = getEquipmentInstance(state, instanceId)
   const agent = state.agents[agentId]
-  if (!instance || instance.location.state !== 'stored' || !canEditAgentEquipment(agent)) {
+  if (
+    !instance ||
+    instance.location.state !== 'stored' ||
+    !canEditAgentEquipment(agent) ||
+    isAuthoredWorkshopIntegrityInstanceId(instanceId)
+  ) {
     return false
   }
 

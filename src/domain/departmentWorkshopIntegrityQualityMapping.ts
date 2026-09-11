@@ -57,7 +57,7 @@ const AUTHORED_WORKSHOP_INTEGRITY_INSTANCE_IDS: ReadonlySet<string> = new Set(
   DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS.map((mapping) => mapping.instanceId)
 )
 
-/** SPE-2877 / SPE-2879: authored SPE-2866 mapping targets are not ordinary destroy/re-agg or mission-casualty eligible. */
+/** SPE-2877 / SPE-2879 / SPE-2881: authored SPE-2866 mapping targets are not ordinary destroy/re-agg, mission-casualty, or new-equip eligible. */
 export function isAuthoredWorkshopIntegrityInstanceId(instanceId: string): boolean {
   return AUTHORED_WORKSHOP_INTEGRITY_INSTANCE_IDS.has(instanceId)
 }

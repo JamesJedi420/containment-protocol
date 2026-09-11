@@ -1453,6 +1453,13 @@ function applyEquipmentInstanceTransitionInternal(
   ) {
     return { ok: false, state: normalized, code: 'unauthorized_payload_transition' }
   }
+  if (
+    isAuthoredWorkshopIntegrityInstanceId(instanceId) &&
+    next.location.state === 'equipped' &&
+    !locationsEqual(current.location, next.location)
+  ) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
+  }
   const locationFailure = validateTargetLocation(
     normalized,
     current.definitionId,

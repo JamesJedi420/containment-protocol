@@ -4470,6 +4470,108 @@ describe('SPE-877 barrier-integrity coupling', () => {
     expect(clearedBlast.state.containmentBarrierIntegrity).toBeUndefined()
   })
 
+  it('keeps last-writer flow-restraint when a same-class sibling clears to none', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const secondRestrained = applyContainmentClassDeficiency(
+      second.state,
+      second.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondRestrained.ok) throw new Error(secondRestrained.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      secondRestrained.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+    expect(
+      firstRestrained.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: second.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+
+    const clearedFirst = stabilizeContainmentClassDeficiency(
+      firstRestrained.state,
+      first.instance.instanceId
+    )
+    expect(clearedFirst).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedFirst.ok) throw new Error(clearedFirst.code)
+    expect(clearedFirst.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: second.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+
+    const clearedSecond = stabilizeContainmentClassDeficiency(
+      clearedFirst.state,
+      second.instance.instanceId
+    )
+    expect(clearedSecond).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedSecond.ok) throw new Error(clearedSecond.code)
+    expect(clearedSecond.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('still omits last-writer flow-restraint while a same-class sibling stays compensating', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const secondRestrained = applyContainmentClassDeficiency(
+      second.state,
+      second.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondRestrained.ok) throw new Error(secondRestrained.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      secondRestrained.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+
+    const clearedSecond = stabilizeContainmentClassDeficiency(
+      firstRestrained.state,
+      second.instance.instanceId
+    )
+    expect(clearedSecond).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedSecond.ok) throw new Error(clearedSecond.code)
+    expect(clearedSecond.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(
+      clearedSecond.state.equipmentInstances?.[first.instance.instanceId]?.containmentIntegrity
+        ?.deficiency
+    ).toMatchObject({ kind: 'compensating_continue' })
+  })
+
   it('does not let extra-class hard-stop relief close a recorded zone breach', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 2

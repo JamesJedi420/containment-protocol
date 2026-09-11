@@ -227,7 +227,8 @@ export function readContainmentBarrierStatus(
  * `blast_door` writes `blast_door_membrane`; `pressure_seal` writes `pressure_seal_membrane`;
  * `interlock` writes `interlock_membrane`. Mixed class/control pairings fail closed.
  * Technician relief (`technicianRelief`) may omit a recorded `flow_restraint` when deficiency
- * becomes `none`; it still cannot close `zone_breach`. Week-close inspect must omit the flag.
+ * becomes `none` and `existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced
+ * restraint stays. It still cannot close `zone_breach`. Week-close inspect must omit the flag.
  */
 export function resolveContainmentBarrierIntegrityCoupling(input: {
   existing: unknown
@@ -269,7 +270,8 @@ export function resolveContainmentBarrierIntegrityCoupling(input: {
   if (
     input.technicianRelief === true &&
     proposed === 'intact' &&
-    previousStatus === 'flow_restraint'
+    previousStatus === 'flow_restraint' &&
+    existing?.sourceInstanceId === input.sourceInstanceId
   ) {
     return { ok: true, barrier: undefined, previousStatus, changed: true }
   }

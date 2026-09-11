@@ -482,4 +482,67 @@ describe('SPE-877 barrier-integrity coupling kernel', () => {
       })
     ).toMatchObject({ ok: true, changed: false, barrier: { status: 'zone_breach' } })
   })
+
+  it('keeps sibling-sourced flow-restraint on technician-relief none', () => {
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+          status: 'flow_restraint',
+          sourceInstanceId: 'equipment-instance-1-1',
+          sourceDeficiencyKind: 'compensating_continue',
+        },
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-2',
+        technicianRelief: true,
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: false,
+      barrier: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'flow_restraint',
+        sourceInstanceId: 'equipment-instance-1-1',
+        sourceDeficiencyKind: 'compensating_continue',
+      },
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+          status: 'flow_restraint',
+          sourceInstanceId: 'equipment-instance-1-3',
+          sourceDeficiencyKind: 'compensating_continue',
+        },
+        classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-5',
+        technicianRelief: true,
+      })
+    ).toEqual({
+      ok: true,
+      previousStatus: 'flow_restraint',
+      changed: false,
+      barrier: {
+        zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+        status: 'flow_restraint',
+        sourceInstanceId: 'equipment-instance-1-3',
+        sourceDeficiencyKind: 'compensating_continue',
+      },
+    })
+    expect(
+      resolveContainmentBarrierIntegrityCoupling({
+        existing: {
+          zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+          status: 'zone_breach',
+          sourceInstanceId: 'equipment-instance-1-1',
+          sourceDeficiencyKind: 'hard_stop',
+        },
+        deficiency: { kind: 'none' },
+        sourceInstanceId: 'equipment-instance-1-2',
+        technicianRelief: true,
+      })
+    ).toMatchObject({ ok: true, changed: false, barrier: { status: 'zone_breach' } })
+  })
 })

@@ -392,13 +392,17 @@ function findTransferCandidate(
   targetSlot: EquipmentSlotKind
 ) {
   return listEquippedItemAssignments(state.agents, itemId)
-    .filter(
-      (assignment) =>
+    .filter((assignment) => {
+      const instance = getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
+      if (instance && isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+        return false
+      }
+      return (
         !(assignment.agentId === targetAgentId && assignment.slot === targetSlot) &&
         canEditAgentEquipment(state.agents[assignment.agentId]) &&
-        (getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
-          ?.definitionId ?? itemId) === itemId
-    )
+        (instance?.definitionId ?? itemId) === itemId
+      )
+    })
     .sort((left, right) => {
       const leftSameAgent = left.agentId === targetAgentId ? 0 : 1
       const rightSameAgent = right.agentId === targetAgentId ? 0 : 1

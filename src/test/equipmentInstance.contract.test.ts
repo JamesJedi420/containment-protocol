@@ -1429,6 +1429,47 @@ describe('ordinary equipment instance authority', () => {
     ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
   })
 
+  it('does not transfer an equipped authored leftover through catalog loadout', () => {
+    const leftoverOnly = plantEquippedInstance(
+      createStartingState(),
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    expect(leftoverOnly.inventory.ward_seals ?? 0).toBe(0)
+    const attempted = equipAgentItem(leftoverOnly, 'a_kellan', 'utility1', 'ward_seals')
+    expect(
+      attempted.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+    expect(getEquipmentInstanceAtAgentSlot(attempted, 'a_kellan', 'utility1')).toBeUndefined()
+    expect(attempted.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(attempted.agents.a_kellan.equipmentSlots?.utility1).toBeUndefined()
+
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const planted = plantEquippedInstance(
+      sequential.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    const ordinary = relocateEquipmentInstance(planted, sequential.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility2',
+    })
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const transferred = equipAgentItem(ordinary.state, 'a_kellan', 'utility1', 'ward_seals')
+    expect(
+      transferred.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+    expect(getEquipmentInstanceAtAgentSlot(transferred, 'a_kellan', 'utility1')?.instanceId).toBe(
+      sequential.instance.instanceId
+    )
+    expect(transferred.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(transferred.agents.a_mina.equipmentSlots?.utility2).toBeUndefined()
+  })
+
   it('still destroys and catalog-reaggregates sequential ordinary ward_seals copies', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1

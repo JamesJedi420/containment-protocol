@@ -16,6 +16,7 @@ relocate / loadout equip cannot take the live mapping targets out of storage. Re
 `relocateEquipmentInstance`) with `authored_workshop_identity_protected`. Allow return to stored.
 Allow a no-op that keeps the same equipped location so SPE-2879 leftovers can stay on a casualty.
 `canEquipStoredEquipmentInstance` returns false for those IDs so loadout `stockOptions` omit them.
+`findTransferCandidate` skips those IDs so catalog `equipAgentItem` cannot move a leftover.
 `unequipAgentItem` still writes `stored` directly.
 
 Do not consume SPE-1027 stock. Do not remap SPE-2866 workshops. Do not add SPE-113 tags, operators,
@@ -48,6 +49,7 @@ identities still relocate. Equipped leftovers used in contracts are planted with
 - authored stored IDs cannot relocate to an eligible carrier (`a_mina` / `a_kellan`)
 - sequential ordinary identities still relocate
 - `canEquipStoredEquipmentInstance` is false for authored IDs; loadout options omit them
+- catalog `equipAgentItem` transfer skips authored leftovers; sequential equipped copies still transfer
 - equipped leftover (planted, not relocated) still fail-closes destroy/re-agg without relocate-then-destroy; unequip / relocate-to-stored still succeeds
 - starting-state / omitted-registry hydrate and SPE-2782 `poor` stay unchanged
 - no SPE-1027 consume; no workshop remap; no SPE-113 catalog; no store-version bump

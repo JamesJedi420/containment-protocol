@@ -168,6 +168,8 @@ Starting-state seeds those identities as stored `ward_seals` with matching-class
 so a fresh game is not permanently `poor` from a missing instance, without debiting aggregate
 inventory. Ordinary destroy and catalog re-aggregation fail closed for those authored IDs so
 re-agg cannot credit never-debited `ward_seals` (`planning/spe-877-protect-workshop-identity-slice.md`).
+Mission-fatality and mission-injury equipped loss skip those IDs in place
+(`planning/spe-877-mission-casualty-workshop-identity-slice.md`); relocate of the seeds stays legal.
 Hard-stop, missing instance, malformed integrity, and wrong class resolve `poor`; `none`
 and compensating continue resolve `good`. Unmapped departments keep caller-owned equipment
 condition. SPE-2851 `condition` is not the mapped signal. Extra-class identities do not satisfy the
@@ -236,7 +238,10 @@ until a debit port exists. Protect authored workshop identity from destroy/re-ag
 (`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Preserve sibling-sourced
 `flow_restraint` on technician relief shipped as
 [SPE-2878](https://linear.app/spectranoir/issue/SPE-2878/preserve-sibling-sourced-flow-restraint-on-technician-relief)
-(`planning/spe-877-sibling-sourced-restraint-slice.md`). Week-close remains the production
+(`planning/spe-877-sibling-sourced-restraint-slice.md`). Skip authored workshop identity on
+mission-casualty equipped loss shipped as
+[SPE-2879](https://linear.app/spectranoir/issue/SPE-2879/skip-authored-workshop-identity-on-mission-casualty-equipped-loss)
+(`planning/spe-877-mission-casualty-workshop-identity-slice.md`). Week-close remains the production
 inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique

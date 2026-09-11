@@ -2,16 +2,17 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2881",
     "SPE-2879",
     "SPE-2878",
     "SPE-2877",
     "SPE-2876",
     "SPE-2869",
     "SPE-2868",
-    "SPE-2867",
-    "SPE-2862"
+    "SPE-2867"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-lock-workshop-relocate-slice.md": "Recently shipped",
     "planning/spe-877-mission-casualty-workshop-identity-slice.md": "Recently shipped",
     "planning/spe-877-sibling-sourced-restraint-slice.md": "Recently shipped",
     "planning/spe-877-protect-workshop-identity-slice.md": "Recently shipped",

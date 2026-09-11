@@ -1003,15 +1003,36 @@ describe('getGearRecommendationsForActiveCases', () => {
       ])
     )
 
-    const equipped = relocateEquipmentInstance(game, 'equipment-instance-blast-door-workshop', {
-      state: 'equipped',
-      agentId: 'a_mina',
-      slot: 'utility1',
-    })
-    if (!equipped.ok) throw new Error(equipped.code)
-    const mina = getAgentEquipmentLoadoutViews(equipped.state).find(
-      (view) => view.agentId === 'a_mina'
+    const minaStored = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_mina')
+    expect(minaStored?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: 'equipment-instance-blast-door-workshop' }),
+        expect.objectContaining({ instanceId: 'equipment-instance-pressure-seal-workshop' }),
+        expect.objectContaining({ instanceId: 'equipment-instance-interlock-workshop' }),
+      ])
     )
+
+    const equipped = {
+      ...game,
+      equipmentInstances: {
+        ...(game.equipmentInstances ?? {}),
+        'equipment-instance-blast-door-workshop': {
+          ...game.equipmentInstances!['equipment-instance-blast-door-workshop']!,
+          location: { state: 'equipped' as const, agentId: 'a_mina', slot: 'utility1' as const },
+        },
+      },
+      agents: {
+        ...game.agents,
+        a_mina: {
+          ...game.agents.a_mina,
+          equipmentSlots: {
+            ...game.agents.a_mina.equipmentSlots,
+            utility1: 'ward_seals',
+          },
+        },
+      },
+    }
+    const mina = getAgentEquipmentLoadoutViews(equipped).find((view) => view.agentId === 'a_mina')
     expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual(
       expect.objectContaining({
         canDestroy: false,

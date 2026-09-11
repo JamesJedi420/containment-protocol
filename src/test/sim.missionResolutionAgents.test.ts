@@ -13,6 +13,36 @@ import {
   relocateEquipmentInstance,
   takeEquippedInstancesLostOnMissionResolution,
 } from '../domain/equipmentInstance'
+import type { GameState } from '../domain/models'
+
+function plantEquippedInstance(
+  state: GameState,
+  instanceId: string,
+  location: { state: 'equipped'; agentId: string; slot: 'utility1' | 'utility2' }
+): GameState {
+  const instance = state.equipmentInstances?.[instanceId]
+  const agent = state.agents[location.agentId]
+  if (!instance || !agent) {
+    throw new Error(`cannot plant ${instanceId} on ${location.agentId}`)
+  }
+  return {
+    ...state,
+    equipmentInstances: {
+      ...(state.equipmentInstances ?? {}),
+      [instanceId]: { ...instance, location },
+    },
+    agents: {
+      ...state.agents,
+      [location.agentId]: {
+        ...agent,
+        equipmentSlots: {
+          ...agent.equipmentSlots,
+          [location.slot]: instance.definitionId,
+        },
+      },
+    },
+  }
+}
 
 function makeOutcome(overrides: Partial<ResolutionOutcome> = {}): ResolutionOutcome {
   return {
@@ -1004,25 +1034,22 @@ describe('applyMissionResolutionAgentMutations', () => {
     state.inventory.ward_seals = 1
     const sequential = instantiateEquipmentInstance(state, 'ward_seals')
     if (!sequential.ok) throw new Error(sequential.code)
-    const blast = relocateEquipmentInstance(
+    const blast = plantEquippedInstance(
       sequential.state,
       FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
       { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
     )
-    if (!blast.ok) throw new Error(blast.code)
-    const seal = relocateEquipmentInstance(
-      blast.state,
-      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
-      { state: 'equipped', agentId: 'a_kellan', slot: 'utility1' }
-    )
-    if (!seal.ok) throw new Error(seal.code)
-    const lock = relocateEquipmentInstance(
-      seal.state,
-      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
-      { state: 'equipped', agentId: 'a_kellan', slot: 'utility2' }
-    )
-    if (!lock.ok) throw new Error(lock.code)
-    const ordinary = relocateEquipmentInstance(lock.state, sequential.instance.instanceId, {
+    const seal = plantEquippedInstance(blast, EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_kellan',
+      slot: 'utility1',
+    })
+    const lock = plantEquippedInstance(seal, PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_kellan',
+      slot: 'utility2',
+    })
+    const ordinary = relocateEquipmentInstance(lock, sequential.instance.instanceId, {
       state: 'equipped',
       agentId: 'a_mina',
       slot: 'utility2',
@@ -1062,13 +1089,12 @@ describe('applyMissionResolutionAgentMutations', () => {
     const created = instantiateEquipmentInstance(state, 'trauma_kit')
     if (!created.ok) throw new Error(created.code)
     // Hunter (a_ava) and medic (a_casey) cannot take ward_seals; Mina is on Night Watch.
-    const workshop = relocateEquipmentInstance(
+    const workshop = plantEquippedInstance(
       created.state,
       FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
       { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
     )
-    if (!workshop.ok) throw new Error(workshop.code)
-    const kit = relocateEquipmentInstance(workshop.state, created.instance.instanceId, {
+    const kit = relocateEquipmentInstance(workshop, created.instance.instanceId, {
       state: 'equipped',
       agentId: 'a_mina',
       slot: 'utility2',

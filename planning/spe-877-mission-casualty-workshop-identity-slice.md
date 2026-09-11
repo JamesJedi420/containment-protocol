@@ -13,11 +13,12 @@
 Skip the three authored SPE-2866 workshop identities in
 `takeEquippedInstancesLostOnMissionResolution` so mission-loss and mission-injury cannot delete the
 live mapping targets. Reuse `isAuthoredWorkshopIntegrityInstanceId`. Other equipped ordinary
-identities still drop. Relocate of the seeds stays legal. Do not relocate-then-destroy.
+identities still drop. Do not relocate-then-destroy. New equipped relocate is locked by
+[SPE-2881](https://linear.app/spectranoir/issue/SPE-2881/lock-authored-workshop-seeds-from-equipping).
 
 Do not consume SPE-1027 stock. Do not remap SPE-2866 workshops. Do not add SPE-113 tags, operators,
 legality, or curses. Do not bump `GAME_STORE_VERSION`. Do not reopen SPE-2827 / SPE-2848. Do not pick
-SPE-2847. Do not recompute remaining same-class deficiencies. Do not lock relocate.
+SPE-2847. Do not recompute remaining same-class deficiencies.
 
 ## Protected identities
 
@@ -33,13 +34,13 @@ casualty carrier. No destroy / dispose event for those IDs.
 
 ## Deferred
 
-| Item or mechanic                             | Owner or prerequisite                                                                                       | Reason                                                                                       |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| SPE-1027 stock consume of a named part       | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port                                                              |
-| Remaining same-class deficiency recompute    | later SPE-877 child                                                                                         | Last-writer A cleared to `none` while sibling B is still `compensating_continue` still omits |
-| Lock relocate so workshop seeds cannot equip | later SPE-877 child                                                                                         | Relocate of authored IDs stays legal; seeds can still leave storage                          |
-| SPE-113 tags, operators, legality, curses    | later SPE-877 / SPE-113 child                                                                               | Out of this casualty-skip boundary                                                           |
-| Mid-week inspect command                     | later SPE-877 child                                                                                         | Week-close remains the production inspect path                                               |
+| Item or mechanic                             | Owner or prerequisite                                                                                                                                      | Reason                                                                                       |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| SPE-1027 stock consume of a named part       | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027                                                | Blocked: no SPE-1027 debit port                                                              |
+| Remaining same-class deficiency recompute    | later SPE-877 child                                                                                                                                        | Last-writer A cleared to `none` while sibling B is still `compensating_continue` still omits |
+| Lock relocate so workshop seeds cannot equip | [SPE-2881](https://linear.app/spectranoir/issue/SPE-2881/lock-authored-workshop-seeds-from-equipping) (`planning/spe-877-lock-workshop-relocate-slice.md`) | Shipped: new equipped locations fail-close; return to stored and same-slot no-op stay legal  |
+| SPE-113 tags, operators, legality, curses    | later SPE-877 / SPE-113 child                                                                                                                              | Out of this casualty-skip boundary                                                           |
+| Mid-week inspect command                     | later SPE-877 child                                                                                                                                        | Week-close remains the production inspect path                                               |
 
 ## Acceptance
 
@@ -47,7 +48,7 @@ casualty carrier. No destroy / dispose event for those IDs.
 - sequential equipped ordinary identities still drop
 - no destroy/dispose event for authored IDs; slots stay instance-backed
 - starting-state / omitted-registry hydrate and SPE-2782 `poor` stay unchanged
-- no SPE-1027 consume; no workshop remap; no relocate lock; no store-version bump
+- no SPE-1027 consume; no workshop remap; no store-version bump; relocate lock is SPE-2881
 - parent SPE-877 remains Backlog; SPE-2870 stays blocked
 
 ## Linear issue body
@@ -58,8 +59,8 @@ casualty carrier. No destroy / dispose event for those IDs.
 
 Mechanic: skip the three authored SPE-2866 workshop instance IDs in
 `takeEquippedInstancesLostOnMissionResolution` so mission-loss / mission-injury cannot delete the
-live mapping targets. Ordinary sequential equipped identities still drop. Relocate of the seeds
-stays legal.
+live mapping targets. Ordinary sequential equipped identities still drop. New equipped relocate is
+SPE-2881.
 
 ## Validation
 

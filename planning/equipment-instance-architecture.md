@@ -146,11 +146,14 @@ Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 m
 `interlock` → `interlock_membrane`. Week-close inspect advance reuses the same
 `persistContainmentBarrierCoupling` helper without technician-relief clear. Extra-class deficiency
 never writes `blast_door_membrane`. Successful `stabilizeContainmentClassDeficiency` recouples from
-the new deficiency with `technicianRelief`: `none` omits that zone's `flow_restraint`; recorded
+the new deficiency with `technicianRelief`: `none` omits that zone's `flow_restraint` only when
+`existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced restraint stays;
+recorded
 `zone_breach` does not downgrade on technician relief, SPE-2851 repair, or SPE-2867 integrity labor.
 See `architecture/containment-environment-patterns.md`,
-`planning/spe-877-extra-class-barrier-zones-slice.md`, and
-`planning/spe-877-barrier-recouple-technician-relief-slice.md`.
+`planning/spe-877-extra-class-barrier-zones-slice.md`,
+`planning/spe-877-barrier-recouple-technician-relief-slice.md`, and
+`planning/spe-877-sibling-sourced-restraint-slice.md`.
 
 ## Live workshop integrity mapping (SPE-2866 + extra-class child)
 
@@ -230,7 +233,10 @@ blocked on [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-sto
 until a debit port exists. Protect authored workshop identity from destroy/re-agg shipped as
 [SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg)
 (`planning/spe-877-protect-workshop-identity-slice.md`). Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
-(`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Week-close remains the production
+(`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Preserve sibling-sourced
+`flow_restraint` on technician relief shipped as
+[SPE-2878](https://linear.app/spectranoir/issue/SPE-2878/preserve-sibling-sourced-flow-restraint-on-technician-relief)
+(`planning/spe-877-sibling-sourced-restraint-slice.md`). Week-close remains the production
 inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique

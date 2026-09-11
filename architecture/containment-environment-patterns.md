@@ -36,9 +36,10 @@ pairings fail closed. Recorded `zone_breach` never downgrades.
 
 ## Sticky recorded breach
 
-`zone_breach` never downgrades. Technician stabilization (SPE-2862 / SPE-2876, including extra-class
+`zone_breach` never downgrades. Technician stabilization (SPE-2862 / SPE-2876 / SPE-2878, including extra-class
 relieve/clear) recouples the authored membrane from the new deficiency: `none` omits that zone's
-`flow_restraint`; a recorded `zone_breach` stays sticky even after hard-stop relief restores
+`flow_restraint` only when `existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced
+restraint stays. A recorded `zone_breach` stays sticky even after hard-stop relief restores
 `inService`. Week-close inspect and `applyContainmentClassDeficiency` still never-downgrade.
 Compensating continue after a live `zone_breach` does not open a second model and does not clear
 the breach. SPE-2851 `damaged` is not a breach.
@@ -68,5 +69,7 @@ event `equipment.containment_barrier_integrity_changed` is history only.
 - `planning/spe-877-extra-class-barrier-zones-slice.md`
 - `planning/spe-877-extra-class-technician-stabilization-slice.md`
 - `planning/spe-877-store-ui-inspect-deficiency-slice.md`
+- `planning/spe-877-barrier-recouple-technician-relief-slice.md`
+- `planning/spe-877-sibling-sourced-restraint-slice.md`
 - `planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`
 - `architecture/fortified-site-breach-assault.md` — assault-layer breach, not this membrane pairing

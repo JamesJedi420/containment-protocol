@@ -690,6 +690,20 @@ export function takeEquippedInstancesLostOnMissionResolution(
         left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
       )
     for (const instance of equipped) {
+      if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+        nextRegistry[instance.instanceId] = {
+          ...instance,
+          location: { state: 'stored' },
+        }
+        const agent = nextAgents[agentId]
+        if (agent && instance.location.state === 'equipped') {
+          nextAgents = {
+            ...nextAgents,
+            [agentId]: withProjectedSlot(agent, instance.location.slot),
+          }
+        }
+        continue
+      }
       if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
         continue
       }
@@ -1386,6 +1400,13 @@ function applyEquipmentInstanceTransitionInternal(
   }
   if (!fabricationOriginsEqual(current.fabricationOrigin, next.fabricationOrigin)) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
+  }
+  if (
+    isAuthoredWorkshopIntegrityInstanceId(instanceId) &&
+    next.location.state === 'equipped' &&
+    !locationsEqual(current.location, next.location)
+  ) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
   }
   if (next.condition !== 'operational' && next.condition !== 'damaged') {
     return { ok: false, state: normalized, code: 'invalid_condition' }

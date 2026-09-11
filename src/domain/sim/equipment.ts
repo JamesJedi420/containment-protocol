@@ -28,6 +28,7 @@ import {
   type EquipmentDeconstructionSourceRef,
 } from './equipmentDeconstruction'
 import { isSafeProductionQueueId } from './production'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -390,13 +391,23 @@ function findTransferCandidate(
   targetAgentId: Id,
   targetSlot: EquipmentSlotKind
 ) {
+  const assignmentCanTransfer = (
+    assignment: ReturnType<typeof listEquippedItemAssignments>[number]
+  ) => {
+    const instance = getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
+    return (
+      !instance?.instanceId ||
+      (!isAuthoredWorkshopIntegrityInstanceId(instance.instanceId) &&
+        instance.definitionId === itemId)
+    )
+  }
+
   return listEquippedItemAssignments(state.agents, itemId)
     .filter(
       (assignment) =>
         !(assignment.agentId === targetAgentId && assignment.slot === targetSlot) &&
         canEditAgentEquipment(state.agents[assignment.agentId]) &&
-        (getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
-          ?.definitionId ?? itemId) === itemId
+        assignmentCanTransfer(assignment)
     )
     .sort((left, right) => {
       const leftSameAgent = left.agentId === targetAgentId ? 0 : 1
@@ -574,7 +585,12 @@ export function canEquipStoredEquipmentInstance(
 ): boolean {
   const instance = getEquipmentInstance(state, instanceId)
   const agent = state.agents[agentId]
-  if (!instance || instance.location.state !== 'stored' || !canEditAgentEquipment(agent)) {
+  if (
+    !instance ||
+    isAuthoredWorkshopIntegrityInstanceId(instance.instanceId) ||
+    instance.location.state !== 'stored' ||
+    !canEditAgentEquipment(agent)
+  ) {
     return false
   }
 

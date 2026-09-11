@@ -661,7 +661,7 @@ export function destroyStoredOrdinaryEquipmentInstance(
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
-/** SPE-2856 / SPE-2857: destroy equipped instance-backed slots on mission casualty. No inventory credit. */
+/** SPE-2856 / SPE-2857 / SPE-2879: destroy equipped instance-backed slots on mission casualty. No inventory credit. Authored SPE-2866 workshop identities are skipped in place. */
 export function takeEquippedInstancesLostOnMissionResolution(
   agents: GameState['agents'],
   equipmentInstances: EquipmentInstanceRegistry | undefined,
@@ -691,6 +691,9 @@ export function takeEquippedInstancesLostOnMissionResolution(
       )
     for (const instance of equipped) {
       if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
+        continue
+      }
+      if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
         continue
       }
       if (options?.skipInstance?.(instance)) {

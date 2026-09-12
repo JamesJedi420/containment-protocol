@@ -5017,7 +5017,7 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
-    inputWeeklyState,
+    outputWeeklyState,
     workshopProcessingTick.completedWorkOrderIds,
     sourceState.week
   )

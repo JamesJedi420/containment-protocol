@@ -24,9 +24,9 @@ import {
   PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
 import {
+  canEquipStoredEquipmentInstance,
   equipAgentItem,
   equipStoredEquipmentInstance,
-  canEquipStoredEquipmentInstance,
   materializeStoredOrdinaryEquipmentInstance,
   returnFabricatedOrdinaryEquipmentInstanceToLot,
   unequipAgentItem,
@@ -244,6 +244,54 @@ describe('ordinary equipment instance authority', () => {
         quantity: 1,
       },
     ])
+  })
+
+  it('rejects authored workshop identities as equipment recovery sources', () => {
+    const state = createStartingState()
+    const authoredIds = [
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+    ] as const
+
+    for (const instanceId of authoredIds) {
+      const source = {
+        kind: 'equipment_instance' as const,
+        instanceId,
+      }
+      const choice = resolveEquipmentDeconstructionSources(state, 'ward_seals').find((candidate) =>
+        candidate.source.kind === 'equipment_instance'
+          ? candidate.source.instanceId === instanceId
+          : false
+      )
+
+      expect(choice).toMatchObject({
+        available: false,
+        quantity: 0,
+        issueCode: 'equipment_instance_authored_workshop_protected',
+      })
+      expect(resolveEquipmentDeconstructionPreview(state, 'ward_seals', source)).toMatchObject({
+        sourceIssueCode: 'equipment_instance_authored_workshop_protected',
+        resolution: { available: false },
+      })
+
+      const queued = queueEquipmentDeconstruction(state, 'ward_seals', source)
+      expect(queued.equipmentDeconstructionQueue).toHaveLength(0)
+      expect(queued.equipmentInstances).toHaveProperty(instanceId)
+    }
+
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const sequentialQueued = queueEquipmentDeconstruction(sequential.state, 'ward_seals', {
+      kind: 'equipment_instance',
+      instanceId: sequential.instance.instanceId,
+    })
+    expect(sequentialQueued.equipmentDeconstructionQueue).toHaveLength(1)
+    expect(sequentialQueued.equipmentInstances).not.toHaveProperty(sequential.instance.instanceId)
+    expect(sequentialQueued.equipmentInstances).toHaveProperty(
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
   })
 
   it('materializes one fabricated-lot identity with retained grade provenance', () => {

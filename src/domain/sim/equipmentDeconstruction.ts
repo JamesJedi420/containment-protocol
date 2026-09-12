@@ -17,6 +17,7 @@ import {
 } from '../equipmentGradeCatalog'
 import { resolveEquipmentGradeProjection } from '../equipmentGrade'
 import type { EquipmentGradeProjection } from '../equipmentGrade'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import {
   COMBAT_STIM_DEFINITION_ID,
   isCanonicalCombatStimPayload,
@@ -132,6 +133,7 @@ export type EquipmentDeconstructionSourceIssueCode =
   | 'equipment_instance_active_overdrive'
   | 'equipment_instance_payload_unsupported'
   | 'equipment_instance_already_claimed'
+  | 'equipment_instance_authored_workshop_protected'
   | 'stock_unavailable'
   | 'recovery_unavailable'
 
@@ -246,6 +248,9 @@ function resolveInstanceIssue(
     return 'recovery_unavailable'
   }
   if (!isSafeEquipmentInstanceId(instance.instanceId)) return 'equipment_instance_not_found'
+  if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+    return 'equipment_instance_authored_workshop_protected'
+  }
   if (instance.definitionId !== profile?.itemId) return 'recovery_unavailable'
   if (!isRecoverableInstanceLocation(state, instance)) return 'equipment_instance_not_stored'
   if (instanceHasRecoveryClaim(state, instance.instanceId)) {
@@ -789,6 +794,8 @@ export function getEquipmentDeconstructionSourceIssueLabel(
     equipment_instance_payload_unsupported:
       'Payload-bearing ordinary equipment cannot enter recovery',
     equipment_instance_already_claimed: 'Equipment instance has already been claimed for recovery',
+    equipment_instance_authored_workshop_protected:
+      'Authored workshop identity cannot enter recovery',
     stock_unavailable: 'Aggregate stock is unavailable',
     recovery_unavailable: 'Recovery is unavailable for this source',
   }

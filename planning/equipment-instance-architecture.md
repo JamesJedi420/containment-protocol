@@ -246,7 +246,10 @@ mission-casualty equipped loss shipped as
 (`planning/spe-877-mission-casualty-workshop-identity-slice.md`). Lock authored workshop seeds from
 equipping shipped as
 [SPE-2881](https://linear.app/spectranoir/issue/SPE-2881/lock-authored-workshop-seeds-from-equipping)
-(`planning/spe-877-lock-workshop-relocate-slice.md`). Week-close remains the production
+(`planning/spe-877-lock-workshop-relocate-slice.md`). Protect authored workshop identities from
+equipment recovery shipped as
+[SPE-2880](https://linear.app/spectranoir/issue/SPE-2880/protect-authored-workshop-identities-from-equipment-lifecycle)
+(`planning/spe-877-protect-workshop-lifecycle-slice.md`). Week-close remains the production
 inspect path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique

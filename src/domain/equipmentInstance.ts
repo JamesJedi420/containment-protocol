@@ -16,6 +16,7 @@ import {
   parseContainmentClassIntegrity,
   resolveTechnicianStabilization,
   snapshotContainmentClassIntegrity,
+  type ContainmentClassId,
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
@@ -1012,6 +1013,24 @@ export function persistContainmentBarrierCoupling(
   if (!technicianRelief) {
     return state
   }
+  const remaining = findRemainingSameClassLiveSource(state, classId, instanceId)
+  if (remaining) {
+    const recoupled = resolveContainmentBarrierIntegrityCoupling({
+      existing: undefined,
+      deficiency: remaining.deficiency,
+      sourceInstanceId: remaining.instanceId,
+      classId,
+    })
+    if (recoupled.ok && recoupled.barrier) {
+      return normalizeGameState({
+        ...state,
+        containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+          ...(registry ?? {}),
+          [zoneId]: recoupled.barrier,
+        }),
+      })
+    }
+  }
   return normalizeGameState({
     ...state,
     containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
@@ -1019,6 +1038,49 @@ export function persistContainmentBarrierCoupling(
       [zoneId]: undefined,
     }),
   })
+}
+
+type RemainingSameClassLiveSource = {
+  instanceId: EquipmentInstanceId
+  deficiency: Exclude<ContainmentClassIntegrity['deficiency'], { kind: 'none' }>
+}
+
+function liveSourceRank(kind: RemainingSameClassLiveSource['deficiency']['kind']): number {
+  switch (kind) {
+    case 'hard_stop':
+      return 1
+    case 'compensating_continue':
+      return 0
+    default: {
+      const exhaustive: never = kind
+      return exhaustive
+    }
+  }
+}
+
+function findRemainingSameClassLiveSource(
+  state: GameState,
+  classId: ContainmentClassId,
+  excludeInstanceId: EquipmentInstanceId
+): RemainingSameClassLiveSource | undefined {
+  const remaining: RemainingSameClassLiveSource[] = []
+  for (const instance of Object.values(state.equipmentInstances ?? {})) {
+    if (instance.instanceId === excludeInstanceId) continue
+    if (instance.location.state !== 'stored' && instance.location.state !== 'equipped') continue
+    const parsed = parseContainmentClassIntegrity(instance.containmentIntegrity)
+    if (!parsed.ok || parsed.integrity.classId !== classId) continue
+    const deficiency = parsed.integrity.deficiency
+    if (deficiency.kind !== 'hard_stop' && deficiency.kind !== 'compensating_continue') continue
+    remaining.push({ instanceId: instance.instanceId, deficiency })
+  }
+  remaining.sort((left, right) => {
+    const rankDelta = liveSourceRank(right.deficiency.kind) - liveSourceRank(left.deficiency.kind)
+    if (rankDelta !== 0) return rankDelta
+    if (left.instanceId < right.instanceId) return -1
+    if (left.instanceId > right.instanceId) return 1
+    return 0
+  })
+  return remaining.at(0)
 }
 
 export function canStabilizeContainmentClassDeficiency(

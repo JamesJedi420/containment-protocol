@@ -41,7 +41,7 @@ Missing registry key hydrates as intact. Malformed records without `sourceInstan
 
 | Item or mechanic                                     | Owner or prerequisite                                                                                                                                                                        | Reason                                                                                              |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Remaining same-class deficiency recompute            | later SPE-877 child                                                                                                                                                                          | Last-writer A cleared to `none` while sibling B is still `compensating_continue` still omits        |
+| Remaining same-class deficiency recompute            | [SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief) (`planning/spe-877-remaining-deficiency-recompute-slice.md`)         | Shipped: last-writer omit recouples from a remaining same-class live source                         |
 | SPE-1027 stock consume of a named part               | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027                                                                                  | Blocked: no SPE-1027 debit port                                                                     |
 | Mission-loss / mission-injury equipped workshop drop | [SPE-2879](https://linear.app/spectranoir/issue/SPE-2879/skip-authored-workshop-identity-on-mission-casualty-equipped-loss) (`planning/spe-877-mission-casualty-workshop-identity-slice.md`) | Shipped: casualty writer skips authored SPE-2866 IDs in place; SPE-2881 locks new equipped relocate |
 | Lock relocate so workshop seeds cannot equip         | [SPE-2881](https://linear.app/spectranoir/issue/SPE-2881/lock-authored-workshop-seeds-from-equipping) (`planning/spe-877-lock-workshop-relocate-slice.md`)                                   | Shipped: new equipped locations fail-close; return to stored and same-slot no-op stay legal         |
@@ -52,10 +52,10 @@ Missing registry key hydrates as intact. Malformed records without `sourceInstan
 
 - technician-relief `none` omits `flow_restraint` only when `existing.sourceInstanceId` matches the stabilizer (`blast_door` / `pressure_seal` / `interlock`)
 - sibling-sourced `flow_restraint` survives omit when the source ID differs
-- matching-source omit still drops even if a sibling remains `compensating_continue`
+- matching-source omit in this slice dropped even if a sibling remained `compensating_continue`; remaining-deficiency recouple is SPE-2885
 - recorded `zone_breach` stays after hard-stop relief and after two-step clear to `none`
 - week-close inspect and `applyContainmentClassDeficiency` still never-downgrade
-- no SPE-1027 consume; no workshop remap; no remaining-deficiency scan; no event-schema expansion
+- no SPE-1027 consume; no workshop remap; no remaining-deficiency scan in this slice; no event-schema expansion
 - parent SPE-877 remains Backlog; SPE-2870 stays blocked
 
 ## Linear issue body

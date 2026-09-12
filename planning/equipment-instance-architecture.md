@@ -147,13 +147,16 @@ Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 m
 `persistContainmentBarrierCoupling` helper without technician-relief clear. Extra-class deficiency
 never writes `blast_door_membrane`. Successful `stabilizeContainmentClassDeficiency` recouples from
 the new deficiency with `technicianRelief`: `none` omits that zone's `flow_restraint` only when
-`existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced restraint stays;
+`existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced restraint stays.
+When that omit would drop the zone, persist recouples from a remaining same-class
+`compensating_continue` or `hard_stop` identity ([SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief));
 recorded
 `zone_breach` does not downgrade on technician relief, SPE-2851 repair, or SPE-2867 integrity labor.
 See `architecture/containment-environment-patterns.md`,
 `planning/spe-877-extra-class-barrier-zones-slice.md`,
-`planning/spe-877-barrier-recouple-technician-relief-slice.md`, and
-`planning/spe-877-sibling-sourced-restraint-slice.md`.
+`planning/spe-877-barrier-recouple-technician-relief-slice.md`,
+`planning/spe-877-sibling-sourced-restraint-slice.md`, and
+`planning/spe-877-remaining-deficiency-recompute-slice.md`.
 
 ## Live workshop integrity mapping (SPE-2866 + extra-class child)
 

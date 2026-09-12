@@ -36,7 +36,7 @@ Do not reopen SPE-2827 / SPE-2848. Do not pick SPE-2847.
 | Item or mechanic                          | Owner or prerequisite                                                                                       | Why deferred                                                                                 |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | SPE-1027 stock consume of a named part    | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port                                                              |
-| Remaining same-class deficiency recompute | later SPE-877 child                                                                                         | Last-writer A cleared to `none` while sibling B is still `compensating_continue` still omits |
+| Remaining same-class deficiency recompute | [SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief) | Shipped: last-writer omit recouples from a remaining same-class live source |
 | Station-stamped recovery source guard     | later child / open draft PR #3619                                                                           | Out of this authored-identity recovery boundary                                              |
 
 ## Acceptance

@@ -70,6 +70,30 @@ import {
 } from '../domain/equipmentStationMutation'
 import type { GameState } from '../domain/models'
 
+function plantContainmentDeficiency(
+  state: GameState,
+  instanceId: string,
+  deficiency: ContainmentClassIntegrity['deficiency']
+): GameState {
+  const instance = state.equipmentInstances?.[instanceId]
+  if (!instance?.containmentIntegrity) {
+    throw new Error(`missing containment integrity for ${instanceId}`)
+  }
+  return {
+    ...state,
+    equipmentInstances: {
+      ...(state.equipmentInstances ?? {}),
+      [instanceId]: {
+        ...instance,
+        containmentIntegrity: {
+          ...instance.containmentIntegrity,
+          deficiency,
+        },
+      },
+    },
+  }
+}
+
 function plantEquippedInstance(
   state: GameState,
   instanceId: string,
@@ -4757,7 +4781,7 @@ describe('SPE-877 barrier-integrity coupling', () => {
     expect(clearedSecond.state.containmentBarrierIntegrity).toBeUndefined()
   })
 
-  it('still omits last-writer flow-restraint while a same-class sibling stays compensating', () => {
+  it('recouples last-writer flow-restraint from a same-class sibling that stays compensating', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 2
     state.week = 5
@@ -4791,11 +4815,267 @@ describe('SPE-877 barrier-integrity coupling', () => {
       instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
     })
     if (!clearedSecond.ok) throw new Error(clearedSecond.code)
-    expect(clearedSecond.state.containmentBarrierIntegrity).toBeUndefined()
+    expect(clearedSecond.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: first.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
     expect(
       clearedSecond.state.equipmentInstances?.[first.instance.instanceId]?.containmentIntegrity
         ?.deficiency
     ).toMatchObject({ kind: 'compensating_continue' })
+  })
+
+  it('recouples extra-class last-writer flow-restraint from a remaining compensating sibling', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 4
+    state.week = 5
+    const firstSeal = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ classId: 'pressure_seal' }),
+    })
+    if (!firstSeal.ok) throw new Error(firstSeal.code)
+    const secondSeal = instantiateEquipmentInstance(firstSeal.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ classId: 'pressure_seal' }),
+    })
+    if (!secondSeal.ok) throw new Error(secondSeal.code)
+    const secondSealRestrained = applyContainmentClassDeficiency(
+      secondSeal.state,
+      secondSeal.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondSealRestrained.ok) throw new Error(secondSealRestrained.code)
+    const firstSealRestrained = applyContainmentClassDeficiency(
+      secondSealRestrained.state,
+      firstSeal.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstSealRestrained.ok) throw new Error(firstSealRestrained.code)
+    const clearedSecondSeal = stabilizeContainmentClassDeficiency(
+      firstSealRestrained.state,
+      secondSeal.instance.instanceId
+    )
+    expect(clearedSecondSeal).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedSecondSeal.ok) throw new Error(clearedSecondSeal.code)
+    expect(
+      clearedSecondSeal.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: firstSeal.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+
+    const firstInterlock = instantiateEquipmentInstance(clearedSecondSeal.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ classId: 'interlock' }),
+    })
+    if (!firstInterlock.ok) throw new Error(firstInterlock.code)
+    const secondInterlock = instantiateEquipmentInstance(firstInterlock.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity({ classId: 'interlock' }),
+    })
+    if (!secondInterlock.ok) throw new Error(secondInterlock.code)
+    const secondInterlockRestrained = applyContainmentClassDeficiency(
+      secondInterlock.state,
+      secondInterlock.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondInterlockRestrained.ok) throw new Error(secondInterlockRestrained.code)
+    const firstInterlockRestrained = applyContainmentClassDeficiency(
+      secondInterlockRestrained.state,
+      firstInterlock.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstInterlockRestrained.ok) throw new Error(firstInterlockRestrained.code)
+    const clearedSecondInterlock = stabilizeContainmentClassDeficiency(
+      firstInterlockRestrained.state,
+      secondInterlock.instance.instanceId
+    )
+    expect(clearedSecondInterlock).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedSecondInterlock.ok) throw new Error(clearedSecondInterlock.code)
+    expect(
+      clearedSecondInterlock.state.containmentBarrierIntegrity?.[INTERLOCK_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: INTERLOCK_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: firstInterlock.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+    expect(
+      clearedSecondInterlock.state.containmentBarrierIntegrity?.[PRESSURE_SEAL_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: PRESSURE_SEAL_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: firstSeal.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+  })
+
+  it('picks the lexicographically first remaining compensating sibling after last-writer omit', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 3
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const third = instantiateEquipmentInstance(second.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!third.ok) throw new Error(third.code)
+    const thirdRestrained = applyContainmentClassDeficiency(
+      third.state,
+      third.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!thirdRestrained.ok) throw new Error(thirdRestrained.code)
+    const secondRestrained = applyContainmentClassDeficiency(
+      thirdRestrained.state,
+      second.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondRestrained.ok) throw new Error(secondRestrained.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      secondRestrained.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+    expect(first.instance.instanceId < second.instance.instanceId).toBe(true)
+    expect(
+      firstRestrained.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: third.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+
+    const clearedThird = stabilizeContainmentClassDeficiency(
+      firstRestrained.state,
+      third.instance.instanceId
+    )
+    expect(clearedThird).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedThird.ok) throw new Error(clearedThird.code)
+    expect(clearedThird.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: first.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+  })
+
+  it('upgrades omitted last-writer flow-restraint to zone-breach from a remaining hard-stop sibling', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      second.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+    expect(
+      firstRestrained.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]
+    ).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'flow_restraint',
+      sourceInstanceId: first.instance.instanceId,
+      sourceDeficiencyKind: 'compensating_continue',
+    })
+    const plantedHardStop = plantContainmentDeficiency(
+      firstRestrained.state,
+      second.instance.instanceId,
+      { kind: 'hard_stop' }
+    )
+
+    const clearedFirst = stabilizeContainmentClassDeficiency(
+      plantedHardStop,
+      first.instance.instanceId
+    )
+    expect(clearedFirst).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedFirst.ok) throw new Error(clearedFirst.code)
+    expect(clearedFirst.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: second.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
+  })
+
+  it('prefers a remaining hard-stop sibling over an earlier compensating sibling after last-writer omit', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 3
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const third = instantiateEquipmentInstance(second.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!third.ok) throw new Error(third.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      third.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+    const secondRestrained = applyContainmentClassDeficiency(
+      firstRestrained.state,
+      second.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondRestrained.ok) throw new Error(secondRestrained.code)
+    expect(second.instance.instanceId < third.instance.instanceId).toBe(true)
+    const plantedHardStop = plantContainmentDeficiency(
+      secondRestrained.state,
+      third.instance.instanceId,
+      { kind: 'hard_stop' }
+    )
+
+    const clearedFirst = stabilizeContainmentClassDeficiency(
+      plantedHardStop,
+      first.instance.instanceId
+    )
+    expect(clearedFirst).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedFirst.ok) throw new Error(clearedFirst.code)
+    expect(clearedFirst.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: third.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
   })
 
   it('does not let extra-class hard-stop relief close a recorded zone breach', () => {

@@ -17,6 +17,7 @@ import {
 } from '../equipmentGradeCatalog'
 import { resolveEquipmentGradeProjection } from '../equipmentGrade'
 import type { EquipmentGradeProjection } from '../equipmentGrade'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import {
   COMBAT_STIM_DEFINITION_ID,
   isCanonicalCombatStimPayload,
@@ -36,7 +37,6 @@ import {
   createEquipmentRecoveryStartedDraft,
   type AnyOperationEventDraft,
 } from '../events'
-import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import type {
   EquipmentDeconstructionQueueEntry,
   EquipmentRecoveryOutcome,

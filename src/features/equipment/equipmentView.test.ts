@@ -1003,10 +1003,8 @@ describe('getGearRecommendationsForActiveCases', () => {
       ])
     )
 
-    const minaLoadout = getAgentEquipmentLoadoutViews(game).find(
-      (view) => view.agentId === 'a_mina'
-    )
-    expect(minaLoadout?.slots.flatMap((slot) => slot.stockOptions)).not.toEqual(
+    const minaStored = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_mina')
+    expect(minaStored?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ instanceId: 'equipment-instance-blast-door-workshop' }),
         expect.objectContaining({ instanceId: 'equipment-instance-pressure-seal-workshop' }),
@@ -1017,9 +1015,9 @@ describe('getGearRecommendationsForActiveCases', () => {
     const equipped = {
       ...game,
       equipmentInstances: {
-        ...game.equipmentInstances,
+        ...(game.equipmentInstances ?? {}),
         'equipment-instance-blast-door-workshop': {
-          ...game.equipmentInstances['equipment-instance-blast-door-workshop'],
+          ...game.equipmentInstances!['equipment-instance-blast-door-workshop']!,
           location: { state: 'equipped' as const, agentId: 'a_mina', slot: 'utility1' as const },
         },
       },
@@ -1028,7 +1026,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         a_mina: {
           ...game.agents.a_mina,
           equipmentSlots: {
-            ...(game.agents.a_mina.equipmentSlots ?? {}),
+            ...game.agents.a_mina.equipmentSlots,
             utility1: 'ward_seals',
           },
         },

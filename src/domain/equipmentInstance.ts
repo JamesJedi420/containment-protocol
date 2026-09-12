@@ -661,7 +661,7 @@ export function destroyStoredOrdinaryEquipmentInstance(
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
-/** SPE-2856 / SPE-2857: destroy equipped instance-backed slots on mission casualty. No inventory credit. */
+/** SPE-2856 / SPE-2857 / SPE-2879: destroy equipped instance-backed slots on mission casualty. No inventory credit. Authored SPE-2866 workshop identities are skipped in place. */
 export function takeEquippedInstancesLostOnMissionResolution(
   agents: GameState['agents'],
   equipmentInstances: EquipmentInstanceRegistry | undefined,
@@ -690,21 +690,10 @@ export function takeEquippedInstancesLostOnMissionResolution(
         left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0
       )
     for (const instance of equipped) {
-      if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
-        nextRegistry[instance.instanceId] = {
-          ...instance,
-          location: { state: 'stored' },
-        }
-        const agent = nextAgents[agentId]
-        if (agent && instance.location.state === 'equipped') {
-          nextAgents = {
-            ...nextAgents,
-            [agentId]: withProjectedSlot(agent, instance.location.slot),
-          }
-        }
+      if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
         continue
       }
-      if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
+      if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
         continue
       }
       if (options?.skipInstance?.(instance)) {
@@ -1401,13 +1390,6 @@ function applyEquipmentInstanceTransitionInternal(
   if (!fabricationOriginsEqual(current.fabricationOrigin, next.fabricationOrigin)) {
     return { ok: false, state: normalized, code: 'immutable_identity' }
   }
-  if (
-    isAuthoredWorkshopIntegrityInstanceId(instanceId) &&
-    next.location.state === 'equipped' &&
-    !locationsEqual(current.location, next.location)
-  ) {
-    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
-  }
   if (next.condition !== 'operational' && next.condition !== 'damaged') {
     return { ok: false, state: normalized, code: 'invalid_condition' }
   }
@@ -1470,6 +1452,13 @@ function applyEquipmentInstanceTransitionInternal(
     !payloadsEqual(current.payload, next.payload)
   ) {
     return { ok: false, state: normalized, code: 'unauthorized_payload_transition' }
+  }
+  if (
+    isAuthoredWorkshopIntegrityInstanceId(instanceId) &&
+    next.location.state === 'equipped' &&
+    !locationsEqual(current.location, next.location)
+  ) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
   }
   const locationFailure = validateTargetLocation(
     normalized,

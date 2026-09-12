@@ -13,7 +13,6 @@ import {
   repairStoredEquipmentInstanceCondition,
   sanitizeEquipmentInstanceRegistry,
   stabilizeContainmentClassDeficiency,
-  takeEquippedInstancesLostOnMissionResolution,
   applyBlastDoorIntegrityLabor,
   applyInterlockIntegrityLabor,
   applyPressureSealIntegrityLabor,
@@ -69,6 +68,36 @@ import {
   INTERLOCK_INTEGRITY_LABOR_STATION_ID,
   PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
 } from '../domain/equipmentStationMutation'
+import type { GameState } from '../domain/models'
+
+function plantEquippedInstance(
+  state: GameState,
+  instanceId: string,
+  location: Extract<EquipmentInstanceLocation, { state: 'equipped' }>
+): GameState {
+  const instance = state.equipmentInstances?.[instanceId]
+  const agent = state.agents[location.agentId]
+  if (!instance || !agent) {
+    throw new Error(`cannot plant ${instanceId} on ${location.agentId}`)
+  }
+  return {
+    ...state,
+    equipmentInstances: {
+      ...(state.equipmentInstances ?? {}),
+      [instanceId]: { ...instance, location },
+    },
+    agents: {
+      ...state.agents,
+      [location.agentId]: {
+        ...agent,
+        equipmentSlots: {
+          ...agent.equipmentSlots,
+          [location.slot]: instance.definitionId,
+        },
+      },
+    },
+  }
+}
 
 describe('ordinary equipment instance authority', () => {
   it('materializes only ordinary stock through the guarded stored-instance command', () => {
@@ -219,29 +248,50 @@ describe('ordinary equipment instance authority', () => {
 
   it('rejects authored workshop identities as equipment recovery sources', () => {
     const state = createStartingState()
-    const source = {
-      kind: 'equipment_instance' as const,
-      instanceId: FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+    const authoredIds = [
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+    ] as const
+
+    for (const instanceId of authoredIds) {
+      const source = {
+        kind: 'equipment_instance' as const,
+        instanceId,
+      }
+      const choice = resolveEquipmentDeconstructionSources(state, 'ward_seals').find((candidate) =>
+        candidate.source.kind === 'equipment_instance'
+          ? candidate.source.instanceId === instanceId
+          : false
+      )
+
+      expect(choice).toMatchObject({
+        available: false,
+        quantity: 0,
+        issueCode: 'equipment_instance_authored_workshop_protected',
+      })
+      expect(resolveEquipmentDeconstructionPreview(state, 'ward_seals', source)).toMatchObject({
+        sourceIssueCode: 'equipment_instance_authored_workshop_protected',
+        resolution: { available: false },
+      })
+
+      const queued = queueEquipmentDeconstruction(state, 'ward_seals', source)
+      expect(queued.equipmentDeconstructionQueue).toHaveLength(0)
+      expect(queued.equipmentInstances).toHaveProperty(instanceId)
     }
-    const choice = resolveEquipmentDeconstructionSources(state, 'ward_seals').find((candidate) =>
-      candidate.source.kind === 'equipment_instance'
-        ? candidate.source.instanceId === FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
-        : false
+
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const sequentialQueued = queueEquipmentDeconstruction(sequential.state, 'ward_seals', {
+      kind: 'equipment_instance',
+      instanceId: sequential.instance.instanceId,
+    })
+    expect(sequentialQueued.equipmentDeconstructionQueue).toHaveLength(1)
+    expect(sequentialQueued.equipmentInstances).not.toHaveProperty(sequential.instance.instanceId)
+    expect(sequentialQueued.equipmentInstances).toHaveProperty(
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
     )
-
-    expect(choice).toMatchObject({
-      available: false,
-      quantity: 0,
-      issueCode: 'equipment_instance_authored_workshop_protected',
-    })
-    expect(resolveEquipmentDeconstructionPreview(state, 'ward_seals', source)).toMatchObject({
-      sourceIssueCode: 'equipment_instance_authored_workshop_protected',
-      resolution: { available: false },
-    })
-
-    const queued = queueEquipmentDeconstruction(state, 'ward_seals', source)
-    expect(queued.equipmentDeconstructionQueue).toHaveLength(0)
-    expect(queued.equipmentInstances).toHaveProperty(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
   })
 
   it('materializes one fabricated-lot identity with retained grade provenance', () => {
@@ -1276,26 +1326,14 @@ describe('ordinary equipment instance authority', () => {
 
   it('does not relocate an equipped authored workshop identity on destroy or re-agg', () => {
     const state = createStartingState()
-    const equipped = {
-      ...state,
-      equipmentInstances: {
-        ...state.equipmentInstances,
-        [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: {
-          ...state.equipmentInstances![FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]!,
-          location: { state: 'equipped' as const, agentId: 'a_mina', slot: 'utility1' as const },
-        },
-      },
-      agents: {
-        ...state.agents,
-        a_mina: {
-          ...state.agents.a_mina,
-          equipmentSlots: {
-            ...(state.agents.a_mina.equipmentSlots ?? {}),
-            utility1: 'ward_seals',
-          },
-        },
-      },
-    }
+    const equipped = plantEquippedInstance(state, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(getEquipmentInstanceAtAgentSlot(equipped, 'a_mina', 'utility1')?.instanceId).toBe(
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+    )
 
     const destroyed = destroyStoredOrdinaryEquipmentInstance(
       equipped,
@@ -1325,6 +1363,159 @@ describe('ordinary equipment instance authority', () => {
     expect(
       getEquipmentInstanceAtAgentSlot(reaggregated.state, 'a_mina', 'utility1')?.instanceId
     ).toBe(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+  })
+
+  it('fail-closes new equipped locations for authored workshop identities', () => {
+    const authoredIds = [
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+      PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+    ] as const
+    const state = createStartingState()
+    const seeded = { ...(state.equipmentInstances ?? {}) }
+
+    for (const instanceId of authoredIds) {
+      for (const agentId of ['a_mina', 'a_kellan'] as const) {
+        const relocated = relocateEquipmentInstance(state, instanceId, {
+          state: 'equipped',
+          agentId,
+          slot: 'utility1',
+        })
+        expect(relocated).toMatchObject({
+          ok: false,
+          code: 'authored_workshop_identity_protected',
+        })
+        expect(relocated.state.equipmentInstances).toEqual(seeded)
+        expect(canEquipStoredEquipmentInstance(state, instanceId, agentId, 'utility1')).toBe(false)
+        expect(equipStoredEquipmentInstance(state, instanceId, agentId, 'utility1')).toEqual(
+          expect.objectContaining({
+            equipmentInstances: seeded,
+            agents: expect.objectContaining({
+              [agentId]: expect.objectContaining({
+                equipmentSlots: state.agents[agentId].equipmentSlots,
+              }),
+            }),
+          })
+        )
+      }
+      const stillStored = relocateEquipmentInstance(state, instanceId, { state: 'stored' })
+      expect(stillStored).toMatchObject({ ok: true })
+      if (!stillStored.ok) throw new Error(stillStored.code)
+      expect(stillStored.instance.location).toEqual({ state: 'stored' })
+      expect(stillStored.state.equipmentInstances).toEqual(seeded)
+    }
+
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const ordinary = relocateEquipmentInstance(sequential.state, sequential.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(ordinary).toMatchObject({ ok: true })
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    expect(ordinary.instance.location).toEqual({
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(
+      canEquipStoredEquipmentInstance(
+        sequential.state,
+        sequential.instance.instanceId,
+        'a_mina',
+        'utility1'
+      )
+    ).toBe(true)
+  })
+
+  it('returns a planted authored leftover to storage and keeps the same equipped slot', () => {
+    const planted = plantEquippedInstance(
+      createStartingState(),
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    const stored = relocateEquipmentInstance(planted, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID, {
+      state: 'stored',
+    })
+    expect(stored).toMatchObject({ ok: true })
+    if (!stored.ok) throw new Error(stored.code)
+    expect(stored.instance.location).toEqual({ state: 'stored' })
+    expect(getEquipmentInstanceAtAgentSlot(stored.state, 'a_mina', 'utility1')).toBeUndefined()
+
+    const unequipped = unequipAgentItem(planted, 'a_mina', 'utility1')
+    expect(
+      unequipped.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'stored' })
+    expect(getEquipmentInstanceAtAgentSlot(unequipped, 'a_mina', 'utility1')).toBeUndefined()
+
+    const sameSlot = relocateEquipmentInstance(planted, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(sameSlot).toMatchObject({ ok: true })
+    if (!sameSlot.ok) throw new Error(sameSlot.code)
+    expect(sameSlot.instance.location).toEqual({
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+
+    const transferred = relocateEquipmentInstance(
+      planted,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_kellan', slot: 'utility1' }
+    )
+    expect(transferred).toMatchObject({
+      ok: false,
+      code: 'authored_workshop_identity_protected',
+    })
+    expect(
+      transferred.state.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+  })
+
+  it('does not transfer an equipped authored leftover through catalog loadout', () => {
+    const leftoverOnly = plantEquippedInstance(
+      createStartingState(),
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    expect(leftoverOnly.inventory.ward_seals ?? 0).toBe(0)
+    const attempted = equipAgentItem(leftoverOnly, 'a_kellan', 'utility1', 'ward_seals')
+    expect(
+      attempted.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+    expect(getEquipmentInstanceAtAgentSlot(attempted, 'a_kellan', 'utility1')).toBeUndefined()
+    expect(attempted.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(attempted.agents.a_kellan.equipmentSlots?.utility1).toBeUndefined()
+
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const planted = plantEquippedInstance(
+      sequential.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    const ordinary = relocateEquipmentInstance(planted, sequential.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility2',
+    })
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const transferred = equipAgentItem(ordinary.state, 'a_kellan', 'utility1', 'ward_seals')
+    expect(
+      transferred.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
+    ).toEqual({ state: 'equipped', agentId: 'a_mina', slot: 'utility1' })
+    expect(getEquipmentInstanceAtAgentSlot(transferred, 'a_kellan', 'utility1')?.instanceId).toBe(
+      sequential.instance.instanceId
+    )
+    expect(transferred.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(transferred.agents.a_mina.equipmentSlots?.utility2).toBeUndefined()
   })
 
   it('still destroys and catalog-reaggregates sequential ordinary ward_seals copies', () => {
@@ -1781,77 +1972,6 @@ describe('ordinary equipment instance authority', () => {
     expect(getEquipmentInstance(unequipped, materialized.instance.instanceId)?.location).toEqual({
       state: 'stored',
     })
-  })
-
-  it('rejects authored workshop identities as stored loadout stock', () => {
-    const state = createStartingState()
-
-    expect(
-      canEquipStoredEquipmentInstance(
-        state,
-        FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
-        'a_mina',
-        'utility1'
-      )
-    ).toBe(false)
-    expect(
-      relocateEquipmentInstance(state, FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID, {
-        state: 'equipped',
-        agentId: 'a_mina',
-        slot: 'utility1',
-      })
-    ).toMatchObject({ ok: false, code: 'authored_workshop_identity_protected' })
-
-    const equipped = equipStoredEquipmentInstance(
-      state,
-      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
-      'a_mina',
-      'utility1'
-    )
-    expect(
-      equipped.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location
-    ).toEqual({ state: 'stored' })
-    expect(equipped.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
-  })
-
-  it('stores already-equipped authored workshop identities instead of losing them on mission casualty', () => {
-    const state = createStartingState()
-    const equippedState = {
-      ...state,
-      equipmentInstances: {
-        ...state.equipmentInstances,
-        [FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]: {
-          ...state.equipmentInstances![FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]!,
-          location: { state: 'equipped' as const, agentId: 'a_mina', slot: 'utility1' as const },
-        },
-      },
-      agents: {
-        ...state.agents,
-        a_mina: {
-          ...state.agents.a_mina,
-          equipmentSlots: {
-            ...(state.agents.a_mina.equipmentSlots ?? {}),
-            utility1: 'ward_seals',
-          },
-        },
-      },
-    }
-
-    const result = takeEquippedInstancesLostOnMissionResolution(
-      equippedState.agents,
-      equippedState.equipmentInstances,
-      {
-        equipmentDeconstructionQueue: equippedState.equipmentDeconstructionQueue,
-        equipmentRecoveryOutcomes: equippedState.equipmentRecoveryOutcomes,
-      },
-      ['a_mina']
-    )
-
-    expect(result.lost).toEqual([])
-    expect(result.equipmentInstances[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location).toEqual({
-      state: 'stored',
-    })
-    expect(result.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
   })
 
   it('rejects stale, incompatible, and non-idle generic instance assignment without mutation', () => {

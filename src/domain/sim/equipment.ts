@@ -22,13 +22,13 @@ import {
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import { getProductionRecipe } from '../../data/production'
 import {
   resolveEquipmentDeconstructionSources,
   type EquipmentDeconstructionSourceRef,
 } from './equipmentDeconstruction'
 import { isSafeProductionQueueId } from './production'
-import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 
 function canEditAgentEquipment(agent: Agent | undefined) {
   return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
@@ -391,24 +391,18 @@ function findTransferCandidate(
   targetAgentId: Id,
   targetSlot: EquipmentSlotKind
 ) {
-  const assignmentCanTransfer = (
-    assignment: ReturnType<typeof listEquippedItemAssignments>[number]
-  ) => {
-    const instance = getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
-    return (
-      !instance?.instanceId ||
-      (!isAuthoredWorkshopIntegrityInstanceId(instance.instanceId) &&
-        instance.definitionId === itemId)
-    )
-  }
-
   return listEquippedItemAssignments(state.agents, itemId)
-    .filter(
-      (assignment) =>
+    .filter((assignment) => {
+      const instance = getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
+      if (instance && isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+        return false
+      }
+      return (
         !(assignment.agentId === targetAgentId && assignment.slot === targetSlot) &&
         canEditAgentEquipment(state.agents[assignment.agentId]) &&
-        assignmentCanTransfer(assignment)
-    )
+        (instance?.definitionId ?? itemId) === itemId
+      )
+    })
     .sort((left, right) => {
       const leftSameAgent = left.agentId === targetAgentId ? 0 : 1
       const rightSameAgent = right.agentId === targetAgentId ? 0 : 1
@@ -587,9 +581,9 @@ export function canEquipStoredEquipmentInstance(
   const agent = state.agents[agentId]
   if (
     !instance ||
-    isAuthoredWorkshopIntegrityInstanceId(instance.instanceId) ||
     instance.location.state !== 'stored' ||
-    !canEditAgentEquipment(agent)
+    !canEditAgentEquipment(agent) ||
+    isAuthoredWorkshopIntegrityInstanceId(instanceId)
   ) {
     return false
   }

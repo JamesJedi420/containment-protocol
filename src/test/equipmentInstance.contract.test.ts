@@ -5026,6 +5026,58 @@ describe('SPE-877 barrier-integrity coupling', () => {
     })
   })
 
+  it('prefers a remaining hard-stop sibling over an earlier compensating sibling after last-writer omit', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 3
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const third = instantiateEquipmentInstance(second.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!third.ok) throw new Error(third.code)
+    const firstRestrained = applyContainmentClassDeficiency(
+      third.state,
+      first.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!firstRestrained.ok) throw new Error(firstRestrained.code)
+    const secondRestrained = applyContainmentClassDeficiency(
+      firstRestrained.state,
+      second.instance.instanceId,
+      'compensating_continue'
+    )
+    if (!secondRestrained.ok) throw new Error(secondRestrained.code)
+    expect(second.instance.instanceId < third.instance.instanceId).toBe(true)
+    const plantedHardStop = plantContainmentDeficiency(
+      secondRestrained.state,
+      third.instance.instanceId,
+      { kind: 'hard_stop' }
+    )
+
+    const clearedFirst = stabilizeContainmentClassDeficiency(
+      plantedHardStop,
+      first.instance.instanceId
+    )
+    expect(clearedFirst).toMatchObject({
+      ok: true,
+      instance: { containmentIntegrity: { deficiency: { kind: 'none' } } },
+    })
+    if (!clearedFirst.ok) throw new Error(clearedFirst.code)
+    expect(clearedFirst.state.containmentBarrierIntegrity?.[BLAST_DOOR_MEMBRANE_ZONE_ID]).toEqual({
+      zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+      status: 'zone_breach',
+      sourceInstanceId: third.instance.instanceId,
+      sourceDeficiencyKind: 'hard_stop',
+    })
+  })
+
   it('does not let extra-class hard-stop relief close a recorded zone breach', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 2

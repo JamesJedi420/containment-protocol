@@ -55,6 +55,7 @@ membranes follow the same persist path.
 - last-writer omit recouples `flow_restraint` from a remaining compensating sibling (`blast_door` / `pressure_seal` / `interlock`)
 - two remaining compensating siblings pick lexicographically first `instanceId`
 - remaining sibling `hard_stop` upgrades the omitted `flow_restraint` to `zone_breach`
+- mixed remaining `hard_stop` and `compensating_continue` pick `hard_stop` even when its `instanceId` is later
 - omit still drops when no remaining live source exists
 - SPE-2878 sibling-sourced keep and sticky `zone_breach` stay
 - week-close inspect and `applyContainmentClassDeficiency` still never-downgrade

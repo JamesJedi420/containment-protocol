@@ -868,6 +868,26 @@ describe('live integrity quality completion registration', () => {
 })
 
 describe('canonical week-close live integrity quality integration', () => {
+  it('grades same-close workshop completions from post-inspection integrity', () => {
+    const state = makeWorkshopState({
+      integrity: blastDoorIntegrity({ lastInspectionWeek: 1 }),
+      facilityStatus: 'active',
+    })
+    state.week = 6
+
+    const next = advanceWeek(state, 1_725_000_000_000)
+
+    expect(
+      next.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.containmentIntegrity
+        ?.deficiency
+    ).toEqual({ kind: 'hard_stop' })
+    expect(next.departmentWorkshopCompletionOutcomes?.[FIELD_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'degraded',
+      qualityReason: 'poor_equipment_condition',
+    })
+  })
+
   it('registers nominal quality for compensating continue and keeps the SPE-2792 biohazard room path green', () => {
     const next = advanceWeek(
       makeWorkshopState({

@@ -131,6 +131,7 @@ export type EquipmentDeconstructionSourceIssueCode =
   | 'equipment_instance_payload_malformed'
   | 'equipment_instance_active_overdrive'
   | 'equipment_instance_payload_unsupported'
+  | 'equipment_instance_station_mutation_unsupported'
   | 'equipment_instance_already_claimed'
   | 'stock_unavailable'
   | 'recovery_unavailable'
@@ -251,6 +252,8 @@ function resolveInstanceIssue(
   if (instanceHasRecoveryClaim(state, instance.instanceId)) {
     return 'equipment_instance_already_claimed'
   }
+  if (instance.stationMutation !== undefined)
+    return 'equipment_instance_station_mutation_unsupported'
   if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
     return instance.payload === undefined ? undefined : 'equipment_instance_payload_unsupported'
   }
@@ -788,6 +791,8 @@ export function getEquipmentDeconstructionSourceIssueLabel(
     equipment_instance_active_overdrive: 'Combat Stim instance still owns active recovery debt',
     equipment_instance_payload_unsupported:
       'Payload-bearing ordinary equipment cannot enter recovery',
+    equipment_instance_station_mutation_unsupported:
+      'Station-mutated equipment cannot enter recovery',
     equipment_instance_already_claimed: 'Equipment instance has already been claimed for recovery',
     stock_unavailable: 'Aggregate stock is unavailable',
     recovery_unavailable: 'Recovery is unavailable for this source',

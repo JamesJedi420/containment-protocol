@@ -186,9 +186,13 @@ Mission-fatality and mission-injury equipped loss skip those IDs in place
 (`planning/spe-877-lock-workshop-relocate-slice.md`); return to stored and same-slot no-op stay
 legal.
 Hard-stop, missing instance, malformed integrity, and wrong class resolve `poor`; `none`
-and compensating continue resolve `good`. Unmapped departments keep caller-owned equipment
-condition. SPE-2851 `condition` is not the mapped signal. Extra-class identities do not satisfy the
-blast-door mapping. See `planning/spe-877-live-workshop-integrity-mapping-slice.md`,
+and compensating continue resolve `good`. Week-close registration grades from post-close
+`outputWeeklyState` so a same-close inspect that writes `hard_stop` degrades that receipt
+([SPE-2882](https://linear.app/spectranoir/issue/SPE-2882/same-week-workshop-completion-grades-pre-close-integrity-after-mapped);
+`planning/spe-877-workshop-completion-post-close-integrity-slice.md`). Unmapped departments keep
+caller-owned equipment condition. SPE-2851 `condition` is not the mapped signal. Extra-class
+identities do not satisfy the blast-door mapping. See
+`planning/spe-877-live-workshop-integrity-mapping-slice.md`,
 `planning/spe-877-seed-blast-door-workshop-slice.md`, and
 `planning/spe-877-extra-class-workshop-quality-slice.md`.
 

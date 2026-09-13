@@ -4,6 +4,7 @@ import { hydrateGame } from '../app/store/runTransfer'
 import {
   applyEquipmentInstanceTransition,
   instantiateEquipmentInstance,
+  inspectContainmentClassIntegrity,
   relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
 } from '../domain/equipmentInstance'
@@ -656,5 +657,47 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     expect(
       hydrated.events.filter((event) => event.type === 'equipment.containment_class_inspected')
     ).toHaveLength(1)
+  })
+
+  it('still auto-advances a remaining due identity after mid-week inspect of another stored copy', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const inspected = inspectContainmentClassIntegrity(second.state, first.instance.instanceId)
+    if (!inspected.ok) throw new Error(inspected.code)
+    expect(
+      inspected.state.equipmentInstances?.[first.instance.instanceId]?.containmentIntegrity
+        ?.lastInspectionWeek
+    ).toBe(5)
+
+    const advanced = advanceContainmentClassInspectionsAtWeekClose(inspected.state)
+    expect(
+      advanced.state.equipmentInstances?.[first.instance.instanceId]?.containmentIntegrity
+        ?.lastInspectionWeek
+    ).toBe(5)
+    expect(
+      advanced.state.equipmentInstances?.[second.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+      },
+    })
+    expect(draftsForInstance(advanced.eventDrafts, first.instance.instanceId)).toEqual([])
+    expect(
+      draftsForInstance(advanced.eventDrafts, second.instance.instanceId)[0]?.payload
+    ).toMatchObject({
+      reason: 'week_close_auto_advance',
+      status: 'due',
+    })
   })
 })

@@ -11,6 +11,8 @@ import {
   createEquipmentInstanceReaggregatedDraft,
   createEquipmentInstanceConditionRepairedDraft,
   createContainmentClassStabilizedDraft,
+  createContainmentClassInspectedDraft,
+  createContainmentClassDeficiencyRecordedDraft,
   createCombatStimDisposedDraft,
   createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
@@ -96,6 +98,7 @@ import {
   isContainmentClassInService,
   repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
   stabilizeContainmentClassDeficiency as stabilizeContainmentClassDeficiencyState,
+  inspectContainmentClassIntegrity as inspectContainmentClassIntegrityState,
 } from '../../domain/equipmentInstance'
 import {
   getContainmentClassCadenceSpec,
@@ -433,6 +436,7 @@ interface GameStore {
   destroyStoredEquipmentInstance: (instanceId: string) => void
   repairStoredEquipmentInstanceCondition: (instanceId: string) => void
   stabilizeContainmentClassDeficiency: (instanceId: string) => void
+  inspectContainmentClassIntegrity: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredCombatStimInstance: (instanceId: string) => void
   reaggregateStoredEquipmentInstance: (instanceId: string) => void
@@ -1956,6 +1960,54 @@ export const useGameStore = create<GameStore>()(
               }),
             ]),
           }
+        }),
+
+      inspectContainmentClassIntegrity: (instanceId) =>
+        set((s) => {
+          const result = inspectContainmentClassIntegrityState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          const compensatingControlId =
+            result.inspection.deficiency.kind === 'compensating_continue'
+              ? result.inspection.deficiency.compensatingControlId
+              : undefined
+          const drafts = [
+            createContainmentClassInspectedDraft({
+              week: s.game.week,
+              instanceId: result.instance.instanceId,
+              definitionId: result.instance.definitionId,
+              definitionName: definition?.name ?? result.instance.definitionId,
+              classId: result.inspection.classId,
+              status: result.inspection.status,
+              previousLastInspectionWeek: result.inspection.previousLastInspectionWeek,
+              lastInspectionWeek: result.inspection.lastInspectionWeek,
+              intervalWeeks: result.inspection.intervalWeeks,
+              weeksSinceInspection: result.inspection.weeksSinceInspection,
+              deficiencyKind: result.inspection.deficiency.kind,
+              ...(compensatingControlId ? { compensatingControlId } : {}),
+              inService: result.inspection.inService,
+              reason: 'mid_week_player_inspect',
+            }),
+          ]
+          if (result.inspection.deficiencyChanged) {
+            drafts.push(
+              createContainmentClassDeficiencyRecordedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                classId: result.inspection.classId,
+                status: result.inspection.status,
+                intervalWeeks: result.inspection.intervalWeeks,
+                weeksSinceInspection: result.inspection.weeksSinceInspection,
+                deficiencyKind: result.inspection.deficiency.kind,
+                ...(compensatingControlId ? { compensatingControlId } : {}),
+                inService: result.inspection.inService,
+                reason: 'inspection_cadence_deficiency',
+              })
+            )
+          }
+          return { game: appendOperationEventDrafts(result.state, drafts) }
         }),
 
       disposeStoredCombatStimInstance: (instanceId) =>

@@ -51,6 +51,7 @@ import {
 import { isAuthoredWorkshopIntegrityInstanceId } from '../../domain/departmentWorkshopIntegrityQualityMapping'
 import {
   COMBAT_STIM_DEFINITION_ID,
+  canInspectContainmentClassIntegrity,
   canStabilizeContainmentClassDeficiency,
   getEquipmentInstanceAtAgentSlot,
   isCanonicalCombatStimPayload,
@@ -109,6 +110,7 @@ export interface EquipmentInstanceMaterializationView {
     canRepairCondition: boolean
     repairConditionBlocker?: 'recovery_claimed'
     canStabilizeContainmentDeficiency: boolean
+    canInspectContainmentClassIntegrity: boolean
     canReaggregate: boolean
     reaggregationBlocker?:
       | 'condition_unsupported'
@@ -813,6 +815,10 @@ export function getEquipmentInstanceMaterializationViews(
                 canRepairCondition:
                   instance.condition === 'damaged' && repairConditionBlocker === undefined,
                 canStabilizeContainmentDeficiency: canStabilizeContainmentClassDeficiency(instance),
+                canInspectContainmentClassIntegrity: canInspectContainmentClassIntegrity(
+                  instance,
+                  game.week
+                ),
                 canReaggregate: reaggregationBlocker === undefined,
                 canReturnToLot:
                   Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,

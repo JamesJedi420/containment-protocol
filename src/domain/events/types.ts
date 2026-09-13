@@ -544,7 +544,7 @@ export interface OperationEventPayloadMap {
     deficiencyKind: 'hard_stop' | 'compensating_continue'
     compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
-    reason: 'week_close_auto_advance'
+    reason: 'week_close_auto_advance' | 'mid_week_player_inspect'
   }
   'equipment.containment_class_stabilized': {
     week: number

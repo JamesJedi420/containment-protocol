@@ -29,6 +29,7 @@ function EquipmentPage() {
     destroyStoredEquipmentInstance,
     repairStoredEquipmentInstanceCondition,
     stabilizeContainmentClassDeficiency,
+    inspectContainmentClassIntegrity,
     disposeStoredCombatStimInstance,
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
@@ -65,6 +66,7 @@ function EquipmentPage() {
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingRepairInstanceId, setPendingRepairInstanceId] = useState<string>()
   const [pendingStabilizeInstanceId, setPendingStabilizeInstanceId] = useState<string>()
+  const [pendingInspectInstanceId, setPendingInspectInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
@@ -444,6 +446,7 @@ function EquipmentPage() {
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
                               setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingDestructionInstanceId(instance.instanceId)
                             }}
                           >
@@ -501,6 +504,7 @@ function EquipmentPage() {
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingRepairInstanceId(instance.instanceId)
                             }}
                           >
@@ -519,9 +523,9 @@ function EquipmentPage() {
                             aria-label={`Confirm deficiency stabilization ${view.itemName} instance ${instance.instanceId}`}
                           >
                             <p className="text-xs text-amber-100">
-                              Stabilize this blast-door deficiency? Technician work relieves a hard
-                              stop or clears compensating continue. Condition and stock stay
-                              unchanged. Week-close remains the inspection path.
+                              Stabilize this containment-class deficiency? Technician work relieves
+                              a hard stop or clears compensating continue. Condition and stock stay
+                              unchanged.
                             </p>
                             <div className="flex gap-2">
                               <button
@@ -554,10 +558,61 @@ function EquipmentPage() {
                               setPendingRepairInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingStabilizeInstanceId(instance.instanceId)
                             }}
                           >
                             Stabilize deficiency
+                          </button>
+                        ) : null}
+                        {pendingInspectInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm containment inspection ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Inspect this stored containment-class identity? Due records
+                              compensating continue; overdue records a hard stop. Last inspection
+                              stamps to this week. Week-close auto-advance remains the production
+                              batch path.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Inspect containment class ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  inspectContainmentClassIntegrity(instance.instanceId)
+                                  setPendingInspectInstanceId(undefined)
+                                }}
+                              >
+                                Confirm inspection
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingInspectInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.canInspectContainmentClassIntegrity ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            aria-label={`Review containment inspection ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Inspect containment class
                           </button>
                         ) : null}
                         {pendingReaggregationInstanceId === instance.instanceId ? (
@@ -602,6 +657,7 @@ function EquipmentPage() {
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
                               setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingReaggregationInstanceId(instance.instanceId)
                             }}
                           >
@@ -671,6 +727,7 @@ function EquipmentPage() {
                               setPendingReaggregationInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
                               setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingReturnToLotInstanceId(instance.instanceId)
                             }}
                           >

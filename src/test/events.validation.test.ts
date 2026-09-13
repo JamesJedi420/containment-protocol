@@ -237,6 +237,12 @@ describe('event payload validation coverage', () => {
         compensatingControlId: 'dual_circuit_watch',
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        reason: 'mid_week_player_inspect',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
@@ -262,6 +268,7 @@ describe('event payload validation coverage', () => {
         compensatingControlId: 'dual_circuit_watch',
       },
       { ...valid, classId: 'interlock' },
+      { ...valid, reason: 'technician_stabilization' },
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_inspected', payload).success

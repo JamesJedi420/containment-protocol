@@ -1,12 +1,12 @@
 # SPE-877 — Remaining same-class deficiency recompute on technician relief
 
-| Field               | Value                                                                                                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **Recently shipped**                                                                                                                                             |
-| **Linear**          | [SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief) — child of SPE-877                      |
-| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog**                                  |
-| **Branch**          | `cursor/spe-877-remaining-deficiency-recompute-3400`                                                                                                             |
-| **Base `main` SHA** | `3545b106`                                                                                                                                                       |
+| Field               | Value                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**          | **Recently shipped**                                                                                                                        |
+| **Linear**          | [SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief) — child of SPE-877 |
+| **Parent**          | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — stays **Backlog**             |
+| **Branch**          | `cursor/spe-877-remaining-deficiency-recompute-3400`                                                                                        |
+| **Base `main` SHA** | `3545b106`                                                                                                                                  |
 
 ## Boundary
 
@@ -28,13 +28,13 @@ Do not reopen SPE-2827 / SPE-2848. Do not pick SPE-2847.
 
 `technicianRelief: true` after stabilize. Resolver matching-source omit is unchanged. Persist then:
 
-| Remaining same-class live source                         | Result                                                                 |
-| -------------------------------------------------------- | ---------------------------------------------------------------------- |
-| none                                                     | omit that zone (`barrier: undefined`)                                  |
-| `compensating_continue`                                  | write `flow_restraint` sourced from the remaining identity             |
-| `hard_stop`                                              | write `zone_breach` sourced from the remaining identity                |
-| several `compensating_continue`                          | pick lexicographically first `instanceId`                              |
-| mix of `hard_stop` and `compensating_continue`           | pick `hard_stop` first, then `instanceId`                              |
+| Remaining same-class live source               | Result                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| none                                           | omit that zone (`barrier: undefined`)                      |
+| `compensating_continue`                        | write `flow_restraint` sourced from the remaining identity |
+| `hard_stop`                                    | write `zone_breach` sourced from the remaining identity    |
+| several `compensating_continue`                | pick lexicographically first `instanceId`                  |
+| mix of `hard_stop` and `compensating_continue` | pick `hard_stop` first, then `instanceId`                  |
 
 SPE-2878 sibling-sourced keep (source ID differs from the stabilizer) still short-circuits before
 the scan. Recouple does not emit `equipment.containment_barrier_integrity_changed`. Extra-class
@@ -42,13 +42,13 @@ membranes follow the same persist path.
 
 ## Deferred
 
-| Item or mechanic                       | Owner or prerequisite                                                                                       | Why deferred                                      |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| SPE-1027 stock consume of a named part | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027 | Blocked: no SPE-1027 debit port                   |
-| Same-week workshop completion grading  | [SPE-2882](https://linear.app/spectranoir/issue/SPE-2882/same-week-workshop-completion-grades-pre-close-integrity-after-mapped) | Already In Review; out of this persist-scan boundary |
-| SPE-113 tags, operators, legality, curses | later SPE-877 / SPE-113 child                                                                            | Out of this remaining-deficiency boundary         |
-| Mid-week inspect command               | later SPE-877 child                                                                                         | Week-close remains the production inspect path    |
-| Station-stamped recovery source guard  | later child / open draft PR #3619                                                                           | Out of this remaining-deficiency boundary         |
+| Item or mechanic                          | Owner or prerequisite                                                                                                                                                                        | Why deferred                                                                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| SPE-1027 stock consume of a named part    | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027                                                                                  | Blocked: no SPE-1027 debit port                                                                                             |
+| Same-week workshop completion grading     | [SPE-2882](https://linear.app/spectranoir/issue/SPE-2882/same-week-workshop-completion-grades-pre-close-integrity-after-mapped)                                                              | Already In Review; out of this persist-scan boundary                                                                        |
+| SPE-113 tags, operators, legality, curses | later SPE-877 / SPE-113 child                                                                                                                                                                | Out of this remaining-deficiency boundary                                                                                   |
+| Mid-week inspect command                  | this SPE-877 child (`planning/spe-877-mid-week-inspect-slice.md`) / [SPE-2886](https://linear.app/spectranoir/issue/SPE-2886/mid-week-inspect-command-for-stored-containment-class-identity) | Shipped: one stored-identity inspect command reuses the week-close resolver; week-close batch stays production auto-advance |
+| Station-stamped recovery source guard     | later child / open draft PR #3619                                                                                                                                                            | Out of this remaining-deficiency boundary                                                                                   |
 
 ## Acceptance
 

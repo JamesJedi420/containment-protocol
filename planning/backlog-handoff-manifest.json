@@ -2,6 +2,7 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2886",
     "SPE-2885",
     "SPE-2880",
     "SPE-2881",
@@ -12,6 +13,7 @@
     "SPE-2867"
   ],
   "sliceDocStatus": {
+    "planning/spe-877-mid-week-inspect-slice.md": "Recently shipped",
     "planning/spe-877-remaining-deficiency-recompute-slice.md": "Recently shipped",
     "planning/spe-877-protect-workshop-lifecycle-slice.md": "Recently shipped",
     "planning/spe-877-lock-workshop-relocate-slice.md": "Recently shipped",

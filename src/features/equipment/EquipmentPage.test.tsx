@@ -600,7 +600,7 @@ describe('EquipmentPage', () => {
         name: `Confirm deficiency stabilization Ward Seals instance ${created.instance.instanceId}`,
       })
     ).toBeVisible()
-    expect(screen.getByText(/week-close remains the inspection path/i)).toBeVisible()
+    expect(screen.getByText(/technician work relieves a hard stop/i)).toBeVisible()
     await user.click(
       screen.getByRole('button', {
         name: `Stabilize deficiency Ward Seals instance ${created.instance.instanceId}`,
@@ -703,6 +703,82 @@ describe('EquipmentPage', () => {
         }),
       }),
     ])
+  })
+
+  it('confirms mid-week containment inspection and hides the command on ordinary and current copies', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.inventory.signal_jammers = 1
+    game.week = 5
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const created = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.queryByRole('button', {
+        name: `Review containment inspection Signal Jammers instance ${ordinary.instance.instanceId}`,
+      })
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review containment inspection Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm containment inspection Ward Seals instance ${created.instance.instanceId}`,
+      })
+    ).toBeVisible()
+    expect(screen.getByText(/due records compensating continue/i)).toBeVisible()
+    expect(
+      screen.getByText(/week-close auto-advance remains the production batch path/i)
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Inspect containment class Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const inspected = useGameStore.getState().game
+    expect(
+      inspected.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      cycleCount: 0,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      inspected.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          status: 'due',
+          reason: 'mid_week_player_inspect',
+        }),
+      }),
+    ])
+    expect(
+      screen.queryByRole('button', {
+        name: `Review containment inspection Ward Seals instance ${created.instance.instanceId}`,
+      })
+    ).not.toBeInTheDocument()
   })
 
   it('confirms re-aggregation of one exact operational copy and credits stock once', async () => {

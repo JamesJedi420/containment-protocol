@@ -748,6 +748,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         destructionBlocker: 'payload_unsupported',
         canRepairCondition: false,
         canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
         canReaggregate: false,
         reaggregationBlocker: 'payload_unsupported',
         canReturnToLot: false,
@@ -759,6 +760,7 @@ describe('getGearRecommendationsForActiveCases', () => {
         canDestroy: true,
         canRepairCondition: true,
         canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
         canReaggregate: false,
         reaggregationBlocker: 'condition_unsupported',
         canReturnToLot: false,
@@ -853,6 +855,7 @@ describe('getGearRecommendationsForActiveCases', () => {
       expect.objectContaining({
         instanceId: ordinary.instance.instanceId,
         canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
       }),
     ])
     expect(seals).toEqual(
@@ -860,18 +863,85 @@ describe('getGearRecommendationsForActiveCases', () => {
         expect.objectContaining({
           instanceId: none.instance.instanceId,
           canStabilizeContainmentDeficiency: false,
+          canInspectContainmentClassIntegrity: false,
         }),
         expect.objectContaining({
           instanceId: hardStop.instance.instanceId,
           canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
         }),
         expect.objectContaining({
           instanceId: compensating.instance.instanceId,
           canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
         }),
         expect.objectContaining({
           instanceId: extraClass.instance.instanceId,
           canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
+        }),
+      ])
+    )
+  })
+
+  it('offers due and overdue inspect eligibility and hides current, ordinary, and none-at-week-one copies', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 3
+    game.inventory.signal_jammers = 1
+    game.week = 5
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const due = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!due.ok) throw new Error(due.code)
+    const overdueSeal = instantiateEquipmentInstance(due.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!overdueSeal.ok) throw new Error(overdueSeal.code)
+    const current = instantiateEquipmentInstance(overdueSeal.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 5,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!current.ok) throw new Error(current.code)
+
+    const views = getEquipmentInstanceMaterializationViews(current.state)
+    const jammers = views.find((view) => view.itemId === 'signal_jammers')?.storedInstances ?? []
+    const seals = views.find((view) => view.itemId === 'ward_seals')?.storedInstances ?? []
+
+    expect(jammers).toEqual([
+      expect.objectContaining({
+        instanceId: ordinary.instance.instanceId,
+        canInspectContainmentClassIntegrity: false,
+      }),
+    ])
+    expect(seals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: due.instance.instanceId,
+          canInspectContainmentClassIntegrity: true,
+        }),
+        expect.objectContaining({
+          instanceId: overdueSeal.instance.instanceId,
+          canInspectContainmentClassIntegrity: true,
+        }),
+        expect.objectContaining({
+          instanceId: current.instance.instanceId,
+          canInspectContainmentClassIntegrity: false,
         }),
       ])
     )

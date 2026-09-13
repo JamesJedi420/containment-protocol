@@ -14,6 +14,7 @@ import {
   evaluateContainmentInspection,
   isContainmentClassInService,
   parseContainmentClassIntegrity,
+  resolveContainmentClassWeekCloseInspection,
   resolveTechnicianStabilization,
   snapshotContainmentClassIntegrity,
   type ContainmentClassId,
@@ -125,6 +126,25 @@ export type EquipmentInstanceFailureCode =
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
+  | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
+
+export type ContainmentClassInspectResult =
+  | {
+      ok: true
+      state: GameState
+      instance: EquipmentInstance
+      inspection: {
+        classId: ContainmentClassId
+        status: 'due' | 'overdue'
+        previousLastInspectionWeek: number
+        lastInspectionWeek: number
+        intervalWeeks: number
+        weeksSinceInspection: number
+        deficiency: Exclude<ContainmentClassIntegrity['deficiency'], { kind: 'none' }>
+        deficiencyChanged: boolean
+        inService: boolean
+      }
+    }
   | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
 
 const EQUIPMENT_INSTANCE_KEYS = [
@@ -977,6 +997,103 @@ export function applyContainmentClassDeficiency(
   return {
     ...transitioned,
     state: persistContainmentBarrierCoupling(transitioned.state, instanceId, evaluation.deficiency),
+  }
+}
+
+export function canInspectContainmentClassIntegrity(
+  instance: EquipmentInstance | undefined,
+  currentWeek: number
+): boolean {
+  if (!instance || instance.location.state !== 'stored') return false
+  const parsed = parseContainmentClassIntegrity(instance.containmentIntegrity)
+  if (!parsed.ok) return false
+  const resolved = resolveContainmentClassWeekCloseInspection({
+    classId: parsed.integrity.classId,
+    lastInspectionWeek: parsed.integrity.lastInspectionWeek,
+    currentWeek,
+    cycleCount: parsed.integrity.cycleCount,
+    existingDeficiency: parsed.integrity.deficiency,
+  })
+  return resolved.ok && resolved.action === 'advance'
+}
+
+export function inspectContainmentClassIntegrity(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): ContainmentClassInspectResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (current.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
+  }
+  if (!current.containmentIntegrity) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const parsed = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsed.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
+  }
+  const resolved = resolveContainmentClassWeekCloseInspection({
+    classId: parsed.integrity.classId,
+    lastInspectionWeek: parsed.integrity.lastInspectionWeek,
+    currentWeek: normalized.week,
+    cycleCount: parsed.integrity.cycleCount,
+    existingDeficiency: parsed.integrity.deficiency,
+  })
+  if (!resolved.ok) {
+    return { ok: false, state: normalized, code: mapContainmentEvaluationFailure(resolved.code) }
+  }
+  if (resolved.action === 'noop') {
+    return { ok: false, state: normalized, code: 'inspection_not_due' }
+  }
+
+  const nextIntegrity = snapshotContainmentClassIntegrity({
+    ...parsed.integrity,
+    lastInspectionWeek: resolved.lastInspectionWeek,
+    deficiency: resolved.deficiency,
+  })
+  const transitioned = applyEquipmentInstanceTransition(normalized, instanceId, current, {
+    ...current,
+    containmentIntegrity: nextIntegrity,
+  })
+  if (!transitioned.ok) return transitioned
+  const nextState = persistContainmentBarrierCoupling(
+    transitioned.state,
+    instanceId,
+    resolved.deficiency
+  )
+  const instance = nextState.equipmentInstances?.[instanceId]
+  if (!instance) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  return {
+    ok: true,
+    state: nextState,
+    instance,
+    inspection: {
+      classId: resolved.classId,
+      status: resolved.status,
+      previousLastInspectionWeek: resolved.previousLastInspectionWeek,
+      lastInspectionWeek: resolved.lastInspectionWeek,
+      intervalWeeks: resolved.intervalWeeks,
+      weeksSinceInspection: resolved.weeksSinceInspection,
+      deficiency: resolved.deficiency,
+      deficiencyChanged: resolved.deficiencyChanged,
+      inService: resolved.inService,
+    },
   }
 }
 

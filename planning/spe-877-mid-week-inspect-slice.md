@@ -67,11 +67,11 @@ integrity on the Equipment row.
 
 ## Deferred
 
-| Item or mechanic                          | Owner or prerequisite                                                                                                           | Why deferred                                            |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| SPE-1027 stock consume of a named part    | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027                     | Blocked: no SPE-1027 debit port                         |
+| Item or mechanic                          | Owner or prerequisite                                                                                                                                                                                  | Why deferred                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| SPE-1027 stock consume of a named part    | [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part) / SPE-1027                                                                                            | Blocked: no SPE-1027 debit port                                                    |
 | Same-week workshop completion grading     | [SPE-2882](https://linear.app/spectranoir/issue/SPE-2882/same-week-workshop-completion-grades-pre-close-integrity-after-mapped) / `planning/spe-877-workshop-completion-post-close-integrity-slice.md` | Shipped: same-week receipts grade post-close integrity; queue tick stays pre-close |
-| SPE-113 tags, operators, legality, curses | later SPE-877 / SPE-113 child                                                                                                   | Out of this inspect-command boundary                    |
+| SPE-113 tags, operators, legality, curses | later SPE-877 / SPE-113 child                                                                                                                                                                          | Out of this inspect-command boundary                                               |
 
 ## Acceptance
 

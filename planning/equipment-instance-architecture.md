@@ -137,6 +137,16 @@ added `interlock`. See
 `planning/spe-877-pressure-seal-containment-class-inspection-slice.md`, and
 `planning/spe-877-interlock-containment-class-inspection-slice.md`.
 
+## Mid-week inspect command (SPE-2886)
+
+`inspectContainmentClassIntegrity` runs the existing week-close resolver for one stored
+containment-class identity mid-week. Due records compensating continue; overdue records hard-stop;
+current fail-closes `inspection_not_due`. Persist uses `persistContainmentBarrierCoupling` without
+technician-relief (never-downgrade). Store/UI follow the SPE-2869 confirmation pattern. Successful
+stamps emit `equipment.containment_class_inspected` with reason `mid_week_player_inspect`. Do not
+call `advanceContainmentClassInspectionsAtWeekClose` from UI; that batch remains the production
+auto-advance path. See `planning/spe-877-mid-week-inspect-slice.md`.
+
 ## Barrier-integrity coupling (SPE-877 child)
 
 Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 membrane registry.
@@ -252,8 +262,11 @@ equipping shipped as
 (`planning/spe-877-lock-workshop-relocate-slice.md`). Protect authored workshop identities from
 equipment recovery shipped as
 [SPE-2880](https://linear.app/spectranoir/issue/SPE-2880/protect-authored-workshop-identities-from-equipment-lifecycle)
-(`planning/spe-877-protect-workshop-lifecycle-slice.md`). Week-close remains the production
-inspect path.
+(`planning/spe-877-protect-workshop-lifecycle-slice.md`). Mid-week inspect of one stored
+identity shipped as
+[SPE-2886](https://linear.app/spectranoir/issue/SPE-2886/mid-week-inspect-command-for-stored-containment-class-identity)
+(`planning/spe-877-mid-week-inspect-slice.md`); week-close auto-advance remains the production
+batch path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

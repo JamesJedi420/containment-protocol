@@ -51,15 +51,16 @@ the breach. SPE-2851 `damaged` is not a breach.
 - Treating compensating continue as full wall-breach.
 - Writing `blast_door_membrane` from a non-`blast_door` class, or a parallel GameState sibling that
   clobbers the blast-door record.
-- A second inspect cadence from store/UI. SPE-2869 is technician stabilization on the existing
-  SPE-2862 writer; week-close remains the production inspect path. SPE-1027 stock consume this
-  pairing does not own.
+- A second inspect cadence kernel from store/UI. SPE-2886 mid-week inspect reuses
+  `resolveContainmentClassWeekCloseInspection`; week-close auto-advance remains the production
+  batch path. SPE-2869 is technician stabilization on the existing SPE-2862 writer. SPE-1027 stock
+  consume this pairing does not own.
 
 ## Runtime owner
 
 `src/domain/containmentBarrierIntegrity.ts` plus `persistContainmentBarrierCoupling` in
-`src/domain/equipmentInstance.ts` (shared by `applyContainmentClassDeficiency` and week-close
-inspect advance). Optional `GameState.containmentBarrierIntegrity` hydrates fail-closed; operation
+`src/domain/equipmentInstance.ts` (shared by `applyContainmentClassDeficiency`, week-close
+inspect advance, and mid-week `inspectContainmentClassIntegrity`). Optional `GameState.containmentBarrierIntegrity` hydrates fail-closed; operation
 event `equipment.containment_barrier_integrity_changed` is history only.
 
 ## See also
@@ -71,5 +72,6 @@ event `equipment.containment_barrier_integrity_changed` is history only.
 - `planning/spe-877-store-ui-inspect-deficiency-slice.md`
 - `planning/spe-877-barrier-recouple-technician-relief-slice.md`
 - `planning/spe-877-sibling-sourced-restraint-slice.md`
+- `planning/spe-877-mid-week-inspect-slice.md`
 - `planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`
 - `architecture/fortified-site-breach-assault.md` — assault-layer breach, not this membrane pairing

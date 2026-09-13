@@ -1148,7 +1148,7 @@ const equipmentContainmentClassInspectedSchema = z
     deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
     compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     inService: z.boolean(),
-    reason: z.literal('week_close_auto_advance'),
+    reason: z.enum(['week_close_auto_advance', 'mid_week_player_inspect']),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -1164,7 +1164,7 @@ const equipmentContainmentClassInspectedSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['lastInspectionWeek'],
-        message: 'week-close inspect stamps lastInspectionWeek to the closing week',
+        message: 'inspect stamps lastInspectionWeek to the event week',
       })
     }
     if (payload.previousLastInspectionWeek >= payload.lastInspectionWeek) {
@@ -1203,7 +1203,7 @@ const equipmentContainmentClassInspectedSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['deficiencyKind'],
-        message: 'overdue week-close inspect records hard_stop',
+        message: 'overdue inspect records hard_stop',
       })
     }
     refineContainmentClassControlPairing(payload, context)

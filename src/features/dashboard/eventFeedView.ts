@@ -1052,7 +1052,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         timestampLabel,
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} week-close auto-advance ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.reason} ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 

@@ -25,6 +25,7 @@ import type {
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 import type { EquipmentInstanceRegistry } from './equipmentInstance'
 import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
+import type { FacilityStockpile } from './facilityStockpile'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2785,6 +2786,11 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /**
+   * SPE-2887 / SPE-1027: named spare-part facility stockpile keyed by SPE-2861 SparePartId.
+   * Distinct from catalog `inventory`. Omit hydrates empty. Consume drops a key at 0.
+   */
+  facilityStockpile?: FacilityStockpile
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

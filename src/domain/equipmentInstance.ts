@@ -28,6 +28,11 @@ import {
   zoneIdForContainmentClass,
 } from './containmentBarrierIntegrity'
 import {
+  consumeFacilityStock,
+  parseFacilityStockpile,
+  type FacilityStockConsumeFailureCode,
+} from './facilityStockpile'
+import {
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
   type SparePartId,
@@ -120,6 +125,7 @@ export type EquipmentInstanceFailureCode =
   | 'no_containment_deficiency'
   | 'missing_part'
   | 'unsuitable_part'
+  | 'stock_unavailable'
   | 'station_mutation_already_applied'
   | 'unauthorized_station_mutation'
   | 'malformed_station_mutation'
@@ -798,6 +804,7 @@ export type EquipmentInstanceConditionRepairReasonCode =
   | 'recovery_claimed'
   | 'missing_part'
   | 'unsuitable_part'
+  | 'stock_unavailable'
   | 'invalid_containment_class'
   | 'malformed_containment_integrity'
 
@@ -881,6 +888,12 @@ export function resolveStoredEquipmentInstanceConditionRepair(
       reasonCode: mapSparePartSuitabilityFailure(suitability.code),
     }
   }
+  if (suitability.required) {
+    const available = parseFacilityStockpile(state.facilityStockpile)?.[suitability.sparePartId]
+    if (available === undefined || available < 1) {
+      return { ...base, canRepairCondition: false, reasonCode: 'stock_unavailable' }
+    }
+  }
   return { ...base, canRepairCondition: true }
 }
 
@@ -895,6 +908,7 @@ export function getStoredEquipmentInstanceConditionRepairReasonLabel(
     recovery_claimed: 'This copy is already claimed by equipment recovery.',
     missing_part: 'A suitable spare part is required.',
     unsuitable_part: 'That spare part is not suitable for this repair.',
+    stock_unavailable: 'Named spare-part stock is unavailable.',
     invalid_containment_class: 'Unknown containment class.',
     malformed_containment_integrity: 'Containment integrity is malformed.',
   }
@@ -915,10 +929,35 @@ export function repairStoredEquipmentInstanceCondition(
   if (!current) {
     return { ok: false, state: normalized, code: 'stale_transition' }
   }
-  return applyEquipmentInstanceTransition(normalized, instanceId, current, {
+  const repaired = applyEquipmentInstanceTransition(normalized, instanceId, current, {
     ...current,
     condition: 'operational',
   })
+  if (!repaired.ok) {
+    return repaired
+  }
+  if (!preview.requiredSparePartId) {
+    return repaired
+  }
+  const consumed = consumeFacilityStock(repaired.state, preview.requiredSparePartId)
+  if (!consumed.ok) {
+    return { ok: false, state, code: mapFacilityStockConsumeFailure(consumed.code) }
+  }
+  return { ok: true, state: consumed.state, instance: repaired.instance }
+}
+
+function mapFacilityStockConsumeFailure(
+  code: FacilityStockConsumeFailureCode
+): EquipmentInstanceFailureCode {
+  switch (code) {
+    case 'stock_unavailable':
+    case 'invalid_stock_id':
+      return 'stock_unavailable'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
 }
 
 function mapContainmentEvaluationFailure(

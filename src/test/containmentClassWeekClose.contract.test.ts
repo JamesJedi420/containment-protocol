@@ -290,6 +290,7 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
   it('does not let SPE-2851 repair clear week-close hard-stop', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 1 }
     state.week = 6
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',

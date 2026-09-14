@@ -2722,6 +2722,10 @@ function blastDoorIntegrity(
   }
 }
 
+function seedFacilitySparePart(state: GameState, quantity = 1) {
+  state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: quantity }
+}
+
 describe('SPE-2860 containment-class integrity on equipment instances', () => {
   it('hydrates compact blast-door, pressure-seal, and interlock integrity and drops unknown or malformed class', () => {
     const state = createStartingState()
@@ -2864,6 +2868,7 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
   it('preserves containment integrity across SPE-2851 repair and hydrates the deficiency event', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    seedFacilitySparePart(state)
     state.week = 5
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',
@@ -3032,6 +3037,7 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
   it('repairs damaged blast-door with a suitable part without clearing compensating continue', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    seedFacilitySparePart(state)
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',
       containmentIntegrity: blastDoorIntegrity({
@@ -3066,6 +3072,199 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
     expect(
       reaggregateStoredOrdinaryEquipmentInstance(repaired.state, created.instance.instanceId)
     ).toMatchObject({ ok: true })
+  })
+})
+
+describe('SPE-2870 named-part repair consume', () => {
+  it('debits one blast_door_hinge_seal on successful stored blast-door repair', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    seedFacilitySparePart(state, 2)
+    const catalogInventory = structuredClone(state.inventory)
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'operational',
+        containmentIntegrity: { deficiency: { kind: 'hard_stop' } },
+      },
+    })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 1 })
+    expect(repaired.state.inventory).toEqual({ ...catalogInventory, ward_seals: 0 })
+    expect(created.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+  })
+
+  it('omits facilityStockpile when the last named unit is consumed', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    seedFacilitySparePart(state, 1)
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'none' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(repaired).toMatchObject({ ok: true, instance: { condition: 'operational' } })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.state.facilityStockpile).toBeUndefined()
+  })
+
+  it('fail-closes missing or zero stock without flipping condition', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const snapshot = created.state.equipmentInstances?.[created.instance.instanceId]
+    const missing = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(missing).toMatchObject({ ok: false, code: 'stock_unavailable' })
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'damaged'
+    )
+    expect(created.state.facilityStockpile).toBeUndefined()
+
+    const zeroed = created.state
+    zeroed.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 0 }
+    const zeroBefore = structuredClone(zeroed)
+    const zero = repairStoredEquipmentInstanceCondition(
+      zeroed,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(zero).toMatchObject({ ok: false, code: 'stock_unavailable' })
+    expect(zeroed).toEqual(zeroBefore)
+  })
+
+  it('repairs ordinary identities without debiting facility stockpile', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    seedFacilitySparePart(state, 2)
+    const created = instantiateEquipmentInstance(state, 'signal_jammers', { condition: 'damaged' })
+    if (!created.ok) throw new Error(created.code)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId
+    )
+    expect(repaired).toMatchObject({
+      ok: true,
+      instance: { condition: 'operational', definitionId: 'signal_jammers' },
+    })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+  })
+
+  it('still fails extra-class suitability without debiting stock', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    seedFacilitySparePart(state, 2)
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const failed = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(failed).toMatchObject({ ok: false, code: 'invalid_containment_class' })
+    expect(created.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+    expect(created.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'damaged'
+    )
+  })
+
+  it('does not re-debit named stock on hydration replay or a second operational repair', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    seedFacilitySparePart(state, 2)
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    if (!repaired.ok) throw new Error(repaired.code)
+    const withEvent = appendOperationEventDrafts(repaired.state, [
+      createEquipmentInstanceConditionRepairedDraft({
+        week: repaired.state.week,
+        instanceId: repaired.instance.instanceId,
+        definitionId: repaired.instance.definitionId,
+        definitionName: 'Ward Seals',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      }),
+    ])
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(withEvent)))
+    expect(hydrated.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 1 })
+    expect(hydrated.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+    const second = repairStoredEquipmentInstanceCondition(
+      hydrated,
+      created.instance.instanceId,
+      BLAST_DOOR_SPARE_PART_ID
+    )
+    expect(second).toMatchObject({ ok: false, code: 'condition_already_operational' })
+    expect(hydrated.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 1 })
+    expect(second.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 1 })
+  })
+
+  it('does not consume named stock on technician stabilization', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    seedFacilitySparePart(state, 2)
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const relieved = stabilizeContainmentClassDeficiency(created.state, created.instance.instanceId)
+    expect(relieved).toMatchObject({
+      ok: true,
+      instance: {
+        condition: 'damaged',
+        containmentIntegrity: {
+          deficiency: {
+            kind: 'compensating_continue',
+            compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+          },
+        },
+      },
+    })
+    if (!relieved.ok) throw new Error(relieved.code)
+    expect(relieved.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
   })
 })
 
@@ -3138,6 +3337,7 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
   it('clears compensating continue to none without flipping condition', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    seedFacilitySparePart(state)
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',
       containmentIntegrity: blastDoorIntegrity({
@@ -3423,6 +3623,7 @@ describe('SPE-2862 technician stabilization / deficiency clear', () => {
   it('does not let SPE-2861 repair clear sticky hard-stop', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    seedFacilitySparePart(state)
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',
       containmentIntegrity: blastDoorIntegrity({ deficiency: { kind: 'hard_stop' } }),
@@ -3449,6 +3650,7 @@ describe('SPE-877 mutation stations / integrity labor', () => {
   it('applies the authored blast-door bench in place without flipping condition or deficiency', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
+    seedFacilitySparePart(state)
     state.week = 3
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       condition: 'damaged',
@@ -5233,6 +5435,7 @@ describe('SPE-877 barrier-integrity coupling', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
     state.inventory.signal_jammers = 1
+    seedFacilitySparePart(state)
     const ordinary = instantiateEquipmentInstance(state, 'signal_jammers', {
       condition: 'damaged',
     })

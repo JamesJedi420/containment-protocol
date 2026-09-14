@@ -252,7 +252,7 @@ extra-class barrier zones
 (`planning/spe-877-extra-class-workshop-quality-slice.md`): SPE-1027 consume helper
 shipped as [SPE-2887](https://linear.app/spectranoir/issue/SPE-2887/named-part-facility-stockpile-consume-helper)
 (`planning/spe-1027-named-part-stockpile-consume-helper-slice.md`); [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
-still owns SPE-2851 repair debit and remains Backlog. Protect authored workshop identity from destroy/re-agg shipped as
+wires that helper into SPE-2851 stored blast-door repair (`planning/spe-2870-named-part-repair-consume-slice.md`). Protect authored workshop identity from destroy/re-agg shipped as
 [SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg)
 (`planning/spe-877-protect-workshop-identity-slice.md`). Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
 (`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Preserve sibling-sourced

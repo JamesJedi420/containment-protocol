@@ -27,7 +27,6 @@ import {
   getCatalogEquipmentStock,
 } from '../../domain/sim/equipment'
 import { resolveEquipmentGradeProjection } from '../../domain/equipmentGrade'
-import { resolveFabricationOriginForDefinition } from '../../domain/equipmentInstance'
 import {
   EQUIPMENT_GRADE_DEFINITIONS,
   getEquipmentGradeDefinition,
@@ -49,14 +48,18 @@ import {
   type CombatStimReturnToLotReasonCode,
 } from '../../domain/combatStim'
 import { isAuthoredWorkshopIntegrityInstanceId } from '../../domain/departmentWorkshopIntegrityQualityMapping'
+import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import {
   COMBAT_STIM_DEFINITION_ID,
   canInspectContainmentClassIntegrity,
   canStabilizeContainmentClassDeficiency,
   getEquipmentInstanceAtAgentSlot,
+  getStoredEquipmentInstanceConditionRepairReasonLabel,
   isCanonicalCombatStimPayload,
   isEquipmentInstanceClaimedForRecovery,
   listStoredEquipmentInstances,
+  resolveFabricationOriginForDefinition,
+  resolveStoredEquipmentInstanceConditionRepair,
 } from '../../domain/equipmentInstance'
 import {
   createDefaultResponderEnergyBudget,
@@ -109,6 +112,7 @@ export interface EquipmentInstanceMaterializationView {
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed' | 'authored_workshop_identity'
     canRepairCondition: boolean
     repairConditionBlocker?: 'recovery_claimed'
+    repairConditionReasonLabel?: string
     canStabilizeContainmentDeficiency: boolean
     canInspectContainmentClassIntegrity: boolean
     canReaggregate: boolean
@@ -755,9 +759,20 @@ export function getEquipmentInstanceMaterializationViews(
                   : recoveryClaimed
                     ? ('recovery_claimed' as const)
                     : undefined)
+              const repairPreview = resolveStoredEquipmentInstanceConditionRepair(
+                game,
+                instance.instanceId,
+                getRequiredRepairSparePartId(instance.containmentIntegrity?.classId)
+              )
               const repairConditionBlocker =
-                instance.condition === 'damaged' && recoveryClaimed
+                !repairPreview.canRepairCondition && repairPreview.reasonCode === 'recovery_claimed'
                   ? ('recovery_claimed' as const)
+                  : undefined
+              const repairConditionReasonLabel =
+                instance.condition === 'damaged' &&
+                !repairPreview.canRepairCondition &&
+                repairPreview.reasonCode
+                  ? getStoredEquipmentInstanceConditionRepairReasonLabel(repairPreview.reasonCode)
                   : undefined
               const reaggregationBlocker =
                 authoredWorkshopBlocker ??
@@ -812,8 +827,7 @@ export function getEquipmentInstanceMaterializationViews(
                     }
                   : {}),
                 canDestroy: destructionBlocker === undefined,
-                canRepairCondition:
-                  instance.condition === 'damaged' && repairConditionBlocker === undefined,
+                canRepairCondition: repairPreview.canRepairCondition,
                 canStabilizeContainmentDeficiency: canStabilizeContainmentClassDeficiency(instance),
                 canInspectContainmentClassIntegrity: canInspectContainmentClassIntegrity(
                   instance,
@@ -824,6 +838,7 @@ export function getEquipmentInstanceMaterializationViews(
                   Boolean(instance.fabricationOrigin) && returnToLotBlocker === undefined,
                 ...(destructionBlocker ? { destructionBlocker } : {}),
                 ...(repairConditionBlocker ? { repairConditionBlocker } : {}),
+                ...(repairConditionReasonLabel ? { repairConditionReasonLabel } : {}),
                 ...(reaggregationBlocker ? { reaggregationBlocker } : {}),
                 ...(returnToLotBlocker ? { returnToLotBlocker } : {}),
               }

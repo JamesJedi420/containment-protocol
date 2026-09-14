@@ -12,6 +12,7 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
 } from '../../domain/equipmentInstance'
+import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
 import EquipmentPage from './EquipmentPage'
 
 function renderEquipmentPage() {
@@ -562,6 +563,69 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.equipmentInstances).not.toHaveProperty(
       created.instance.instanceId
     )
+  })
+
+  it('disables blast-door condition repair when named spare-part stock is missing', async () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    expect(
+      screen.getByRole('button', {
+        name: `Review condition repair Ward Seals instance ${created.instance.instanceId}`,
+      })
+    ).toBeDisabled()
+    expect(screen.getByText('Named spare-part stock is unavailable.')).toBeVisible()
+  })
+
+  it('confirms blast-door condition repair after named spare-part stock is available', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 1 }
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review condition repair Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: `Repair condition Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const repaired = useGameStore.getState().game
+    expect(repaired.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
+      'operational'
+    )
+    expect(repaired.facilityStockpile).toBeUndefined()
+    expect(repaired.inventory.ward_seals).toBe(created.state.inventory.ward_seals)
   })
 
   it('confirms blast-door deficiency stabilization and hides the command on ordinary copies', async () => {

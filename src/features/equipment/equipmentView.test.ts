@@ -14,6 +14,7 @@ import {
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
 } from '../../domain/equipmentInstance'
+import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
 import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 
 describe('getEquipmentDeconstructionViews', () => {
@@ -799,6 +800,57 @@ describe('getGearRecommendationsForActiveCases', () => {
         reaggregationBlocker: 'recovery_claimed',
       }),
     ])
+  })
+
+  it('disables stored blast-door condition repair when named spare-part stock is missing', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(created.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          conditionLabel: 'Damaged',
+          canRepairCondition: false,
+          repairConditionReasonLabel: 'Named spare-part stock is unavailable.',
+        }),
+      ])
+    )
+
+    const stocked = {
+      ...created.state,
+      facilityStockpile: { [BLAST_DOOR_SPARE_PART_ID]: 1 },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(stocked).find((view) => view.itemId === 'ward_seals')
+        ?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canRepairCondition: true,
+        }),
+      ])
+    )
+    expect(
+      getEquipmentInstanceMaterializationViews(stocked)
+        .find((view) => view.itemId === 'ward_seals')
+        ?.storedInstances.find((instance) => instance.instanceId === created.instance.instanceId)
+    ).not.toHaveProperty('repairConditionReasonLabel')
   })
 
   it('offers blast-door and extra-class deficiency stabilization and fail-closes ordinary and none', () => {

@@ -511,7 +511,12 @@ function EquipmentPage() {
                             Repair condition
                           </button>
                         ) : null}
-                        {instance.repairConditionBlocker ? (
+                        {instance.conditionLabel === 'Damaged' &&
+                        instance.repairConditionReasonLabel ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            {instance.repairConditionReasonLabel}
+                          </p>
+                        ) : instance.repairConditionBlocker ? (
                           <p className="mt-1 text-xs text-amber-200/80">
                             This copy is already claimed by equipment recovery.
                           </p>

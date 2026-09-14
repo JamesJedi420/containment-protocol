@@ -33,7 +33,8 @@ the transitioned state. Consume failure discards the transition and returns the 
 `state`. Ordinary / Combat Stim paths skip consume. Store still appends
 `equipment.instance_condition_repaired` only when `result.ok`. Hydration through
 `parseFacilityStockpile` does not re-debit; a second repair of an operational copy fail-closes
-`condition_already_operational`.
+`condition_already_operational`. Ordinary Equipment projections reuse this preview for
+`canRepairCondition` and surface `stock_unavailable` so the command is disabled and explained.
 
 ## Deferred
 
@@ -59,6 +60,6 @@ See Linear [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-sto
 
 ## Validation
 
-- Targeted Vitest: `src/test/equipmentInstance.contract.test.ts` SPE-2870 cases; `src/app/store/gameStore.test.ts` repair consume; `src/test/containmentClassWeekClose.contract.test.ts` repair after week-close
+- Targeted Vitest: `src/test/equipmentInstance.contract.test.ts` SPE-2870 cases; `src/app/store/gameStore.test.ts` repair consume; `src/test/containmentClassWeekClose.contract.test.ts` repair after week-close; `src/features/equipment/equipmentView.test.ts` stock-gated `canRepairCondition`; `src/features/equipment/EquipmentPage.test.tsx` disabled blast-door repair without stock
 - `npm run lint`
 - `npm run verify:backlog-handoff`

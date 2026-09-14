@@ -28,6 +28,7 @@ import {
 } from '../../domain/equipmentInstance'
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
 import { parseFacilityStockpile } from '../../domain/facilityStockpile'
+import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -10518,6 +10519,7 @@ export function hydrateGame(
     game.containmentBarrierIntegrity
   )
   const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
+  const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10619,6 +10621,7 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
     facilityStockpile,
+    departmentLocalStaging,
     equipmentInstances,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,

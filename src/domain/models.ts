@@ -26,6 +26,7 @@ import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 import type { EquipmentInstanceRegistry } from './equipmentInstance'
 import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
 import type { FacilityStockpile } from './facilityStockpile'
+import type { DepartmentLocalStaging } from './departmentLocalStaging'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2791,6 +2792,12 @@ export interface GameState {
    * Distinct from catalog `inventory`. Omit hydrates empty. Consume drops a key at 0.
    */
   facilityStockpile?: FacilityStockpile
+  /**
+   * SPE-2889 / SPE-1027: department-local input/output staging keyed by SPE-2083 department id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.
+   * Adjacent both axes feeds SPE-2775 week-close throughput (2 work units).
+   */
+  departmentLocalStaging?: DepartmentLocalStaging
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

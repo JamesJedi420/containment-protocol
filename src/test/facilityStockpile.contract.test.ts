@@ -64,6 +64,20 @@ describe('facility stockpile consume helper', () => {
     expect(state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
   })
 
+  it('returns the original state on fail-closed consume when market week is drifted', () => {
+    const state = createStartingState()
+    state.market = { ...state.market, week: state.week + 1 }
+    const unavailable = consumeFacilityStock(state, BLAST_DOOR_SPARE_PART_ID)
+    expect(unavailable).toMatchObject({ ok: false, code: 'stock_unavailable' })
+    expect(unavailable.state).toBe(state)
+    expect(unavailable.state.market.week).toBe(state.week + 1)
+
+    const invalid = consumeFacilityStock(state, 'ward_seals')
+    expect(invalid).toMatchObject({ ok: false, code: 'invalid_stock_id' })
+    expect(invalid.state).toBe(state)
+    expect(invalid.state.market.week).toBe(state.week + 1)
+  })
+
   it('fail-closes unknown, empty, and catalog item ids without debiting inventory', () => {
     const state = createStartingState()
     state.inventory.ward_seals = (state.inventory.ward_seals ?? 0) + 3

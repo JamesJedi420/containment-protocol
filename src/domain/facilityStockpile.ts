@@ -62,15 +62,14 @@ export function consumeFacilityStock(
   state: GameState,
   stockId: unknown
 ): FacilityStockConsumeResult {
-  const normalized = ensureNormalizedGameState(state)
   if (!isSparePartId(stockId)) {
-    return { ok: false, state: normalized, code: 'invalid_stock_id' }
+    return { ok: false, state, code: 'invalid_stock_id' }
   }
 
-  const current = parseFacilityStockpile(normalized.facilityStockpile)
+  const current = parseFacilityStockpile(state.facilityStockpile)
   const available = current?.[stockId]
   if (!isPositiveStockQuantity(available)) {
-    return { ok: false, state: normalized, code: 'stock_unavailable' }
+    return { ok: false, state, code: 'stock_unavailable' }
   }
 
   const remaining = available - 1
@@ -81,7 +80,7 @@ export function consumeFacilityStock(
     next[stockId] = remaining
   }
   const facilityStockpile = snapshotFacilityStockpile(next)
-  const nextState: GameState = { ...normalized }
+  const nextState: GameState = { ...ensureNormalizedGameState(state) }
   if (facilityStockpile === undefined) {
     delete nextState.facilityStockpile
   } else {

@@ -29,6 +29,7 @@ import type { FacilityStockpile } from './facilityStockpile'
 import type { DepartmentLocalStaging } from './departmentLocalStaging'
 import type { FacilityStockPlacement } from './facilityStockAccess'
 import type { FacilityStockCondition } from './facilityStockSpoilage'
+import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2812,6 +2813,12 @@ export interface GameState {
    * Incorrect storage stamps reagent `degraded` and neighbor `contaminated`.
    */
   facilityStockCondition?: FacilityStockCondition
+  /**
+   * SPE-2892 / SPE-1027: emergency caches keyed by authored cache id to a cache zone.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, or condition.
+   * Omit hydrates empty. Salt cache at the matching danger zone improves live-incident timing.
+   */
+  facilityEmergencyCaches?: FacilityEmergencyCaches
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

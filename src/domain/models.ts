@@ -28,6 +28,7 @@ import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIn
 import type { FacilityStockpile } from './facilityStockpile'
 import type { DepartmentLocalStaging } from './departmentLocalStaging'
 import type { FacilityStockPlacement } from './facilityStockAccess'
+import type { FacilityStockCondition } from './facilityStockSpoilage'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2805,6 +2806,12 @@ export interface GameState {
    * Handle fail-closes uncleared staff or wrong-zone routing; success stamps the allowed zone.
    */
   facilityStockPlacement?: FacilityStockPlacement
+  /**
+   * SPE-2891 / SPE-1027: perishable stock condition keyed by authored spoilage stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty or placement. Omit hydrates empty.
+   * Incorrect storage stamps reagent `degraded` and neighbor `contaminated`.
+   */
+  facilityStockCondition?: FacilityStockCondition
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

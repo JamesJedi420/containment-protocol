@@ -30,6 +30,7 @@ import type { DepartmentLocalStaging } from './departmentLocalStaging'
 import type { FacilityStockPlacement } from './facilityStockAccess'
 import type { FacilityStockCondition } from './facilityStockSpoilage'
 import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
+import type { FacilityStockOverflow } from './facilityStockOverflow'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2819,6 +2820,12 @@ export interface GameState {
    * Omit hydrates empty. Salt cache at the matching danger zone improves live-incident timing.
    */
   facilityEmergencyCaches?: FacilityEmergencyCaches
+  /**
+   * SPE-2895 / SPE-1027: authored overflow keyed by overflow node id to `overflowing`.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, or caches.
+   * Omit hydrates empty. Evidence-cage overflow resolves to a blocked access penalty.
+   */
+  facilityStockOverflow?: FacilityStockOverflow
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

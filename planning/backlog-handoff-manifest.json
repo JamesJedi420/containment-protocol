@@ -2,6 +2,7 @@
   "primary": "SPE-877",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2896",
     "SPE-2895",
     "SPE-2892",
     "SPE-2891",
@@ -12,10 +13,10 @@
     "SPE-2882",
     "SPE-2886",
     "SPE-2885",
-    "SPE-2880",
-    "SPE-2881"
+    "SPE-2880"
   ],
   "sliceDocStatus": {
+    "planning/spe-1027-stockout-pressure-slice.md": "Recently shipped",
     "planning/spe-1027-overflow-misfiled-penalty-slice.md": "Recently shipped",
     "planning/spe-1027-emergency-cache-response-timing-slice.md": "Recently shipped",
     "planning/spe-1027-incorrect-storage-spoilage-slice.md": "Recently shipped",

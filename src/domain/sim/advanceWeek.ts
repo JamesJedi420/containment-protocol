@@ -245,6 +245,7 @@ import {
 import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
 import { applyEquipmentAutoScrapAtWeekClose } from '../equipmentAutoScrap'
 import { advanceContainmentClassInspectionsAtWeekClose } from '../containmentClassWeekClose'
+import { reconcileContainmentBarrierIntegritySources } from '../equipmentInstance'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -2741,6 +2742,7 @@ function resolveAssignments(
       agents: missionAgentMutations.nextAgents,
       equipmentInstances: missionAgentMutations.nextEquipmentInstances,
     }
+    context.nextState = reconcileContainmentBarrierIntegritySources(context.nextState)
     if (missionAgentMutations.fundingDelta !== 0) {
       context.nextState = {
         ...context.nextState,

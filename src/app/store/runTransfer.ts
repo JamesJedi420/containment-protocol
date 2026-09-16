@@ -24,6 +24,7 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   COMBAT_STIM_RESOURCE_ID,
   isSafeEquipmentInstanceId,
+  reconcileContainmentBarrierIntegritySources,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
@@ -10836,7 +10837,7 @@ export function hydrateGame(
     spe956IncidentBaselineRecords,
   }
 
-  return hydrated
+  return reconcileContainmentBarrierIntegritySources(hydrated)
 }
 
 /**

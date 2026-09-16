@@ -21,6 +21,7 @@ import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopInte
 import {
   COMBAT_STIM_DEFINITION_ID,
   isCanonicalCombatStimPayload,
+  reconcileContainmentBarrierIntegritySources,
   isSafeEquipmentInstanceId,
   type EquipmentInstance,
   type EquipmentInstanceId,
@@ -573,20 +574,22 @@ export function queueEquipmentDeconstruction(
     source.kind === 'equipment_instance' && sourceInstance
       ? clearRecoveredInstanceProjection(state.agents, sourceInstance)
       : state.agents
-  const nextState = normalizeGameState({
-    ...state,
-    inventory:
-      source.kind === 'equipment_instance'
-        ? state.inventory
-        : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
-    agents: nextAgents,
-    equipmentInstances: nextEquipmentInstances,
-    damagedEquipmentQueue:
-      source.kind !== 'catalog'
-        ? state.damagedEquipmentQueue
-        : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
-    equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...state,
+      inventory:
+        source.kind === 'equipment_instance'
+          ? state.inventory
+          : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
+      agents: nextAgents,
+      equipmentInstances: nextEquipmentInstances,
+      damagedEquipmentQueue:
+        source.kind !== 'catalog'
+          ? state.damagedEquipmentQueue
+          : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
+      equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],
+    })
+  )
 
   return appendOperationEventDrafts(nextState, [
     createEquipmentRecoveryStartedDraft({

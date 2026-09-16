@@ -25,6 +25,8 @@ import {
   parseContainmentBarrierIntegrityRegistry,
   resolveContainmentBarrierIntegrityCoupling,
   snapshotContainmentBarrierIntegrityRegistry,
+  type ContainmentBarrierIntegrity,
+  type ContainmentBarrierZoneId,
   zoneIdForContainmentClass,
 } from './containmentBarrierIntegrity'
 import {
@@ -684,7 +686,9 @@ export function destroyStoredOrdinaryEquipmentInstance(
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
-  const nextState = normalizeGameState({ ...normalized, equipmentInstances })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({ ...normalized, equipmentInstances })
+  )
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
@@ -788,11 +792,13 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
 
   const equipmentInstances = { ...(normalized.equipmentInstances ?? {}) }
   delete equipmentInstances[instanceId]
-  const nextState = normalizeGameState({
-    ...normalized,
-    inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
-    equipmentInstances,
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...normalized,
+      inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
+      equipmentInstances,
+    })
+  )
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
@@ -1201,6 +1207,30 @@ type RemainingSameClassLiveSource = {
   deficiency: Exclude<ContainmentClassIntegrity['deficiency'], { kind: 'none' }>
 }
 
+function containmentClassForBarrierZone(zoneId: ContainmentBarrierZoneId): ContainmentClassId {
+  switch (zoneId) {
+    case 'blast_door_membrane':
+      return 'blast_door'
+    case 'pressure_seal_membrane':
+      return 'pressure_seal'
+    case 'interlock_membrane':
+      return 'interlock'
+    default: {
+      const exhaustive: never = zoneId
+      return exhaustive
+    }
+  }
+}
+
+function canBarrierSourceStillAnchor(
+  state: Pick<GameState, 'equipmentInstances'>,
+  barrier: ContainmentBarrierIntegrity
+) {
+  const source = state.equipmentInstances?.[barrier.sourceInstanceId]
+  const parsed = parseContainmentClassIntegrity(source?.containmentIntegrity)
+  return parsed.ok && zoneIdForContainmentClass(parsed.integrity.classId) === barrier.zoneId
+}
+
 function liveSourceRank(kind: RemainingSameClassLiveSource['deficiency']['kind']): number {
   switch (kind) {
     case 'hard_stop':
@@ -1237,6 +1267,46 @@ function findRemainingSameClassLiveSource(
     return 0
   })
   return remaining.at(0)
+}
+
+export function reconcileContainmentBarrierIntegritySources(state: GameState): GameState {
+  const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
+  if (!registry) return state
+
+  let changed = false
+  const nextRegistry = { ...registry }
+  for (const [zoneId, barrier] of Object.entries(registry) as [
+    ContainmentBarrierZoneId,
+    ContainmentBarrierIntegrity,
+  ][]) {
+    if (canBarrierSourceStillAnchor(state, barrier)) continue
+
+    changed = true
+    const classId = containmentClassForBarrierZone(zoneId)
+    const remaining = findRemainingSameClassLiveSource(state, classId, barrier.sourceInstanceId)
+    if (!remaining) {
+      delete nextRegistry[zoneId]
+      continue
+    }
+
+    const recoupled = resolveContainmentBarrierIntegrityCoupling({
+      existing: undefined,
+      deficiency: remaining.deficiency,
+      sourceInstanceId: remaining.instanceId,
+      classId,
+    })
+    if (recoupled.ok && recoupled.barrier) {
+      nextRegistry[zoneId] = recoupled.barrier
+    } else {
+      delete nextRegistry[zoneId]
+    }
+  }
+
+  if (!changed) return state
+  return normalizeGameState({
+    ...state,
+    containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry(nextRegistry),
+  })
 }
 
 export function canStabilizeContainmentClassDeficiency(

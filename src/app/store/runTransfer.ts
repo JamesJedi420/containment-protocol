@@ -24,8 +24,17 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   COMBAT_STIM_RESOURCE_ID,
   isSafeEquipmentInstanceId,
+  reconcileContainmentBarrierIntegritySources,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
+import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
+import { parseFacilityStockpile } from '../../domain/facilityStockpile'
+import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
+import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
+import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
+import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
+import { parseFacilityStockOverflow } from '../../domain/facilityStockOverflow'
+import { parseFacilityStockPreparedness } from '../../domain/facilityStockPreparedness'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -1046,7 +1055,10 @@ const REQUIRED_OPERATION_EVENT_IDENTITY: Partial<
   'equipment.instance_reaggregated': ['instanceId', 'definitionId'],
   'equipment.instance_condition_repaired': ['instanceId', 'definitionId'],
   'equipment.containment_class_deficiency_recorded': ['instanceId', 'definitionId'],
+  'equipment.containment_class_inspected': ['instanceId', 'definitionId'],
   'equipment.containment_class_stabilized': ['instanceId', 'definitionId'],
+  'equipment.instance_station_mutated': ['instanceId', 'definitionId'],
+  'equipment.containment_barrier_integrity_changed': ['instanceId', 'definitionId'],
   'equipment.combat_stim_activated': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_overdrive_expired': ['activationId', 'instanceId', 'agentId', 'caseId'],
   'equipment.combat_stim_disposed': ['instanceId', 'definitionId'],
@@ -9136,6 +9148,23 @@ function sanitizeOperationEvents(
         break
       }
 
+      case 'equipment.containment_class_inspected': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.containment_class_inspected'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.containment_class_inspected'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
       case 'equipment.containment_class_stabilized': {
         const parsed = operationEventPayloadSchemas[
           'equipment.containment_class_stabilized'
@@ -9147,6 +9176,40 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('equipment.containment_class_stabilized'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.instance_station_mutated': {
+        const parsed = operationEventPayloadSchemas['equipment.instance_station_mutated'].safeParse(
+          {
+            ...payload,
+            week,
+          }
+        )
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.instance_station_mutated'),
+            payload: parsed.data,
+          })
+        )
+        break
+      }
+
+      case 'equipment.containment_barrier_integrity_changed': {
+        const parsed = operationEventPayloadSchemas[
+          'equipment.containment_barrier_integrity_changed'
+        ].safeParse({
+          ...payload,
+          week,
+        })
+        if (!parsed.success) break
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('equipment.containment_barrier_integrity_changed'),
             payload: parsed.data,
           })
         )
@@ -10458,6 +10521,16 @@ export function hydrateGame(
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
+  const containmentBarrierIntegrity = parseContainmentBarrierIntegrityRegistry(
+    game.containmentBarrierIntegrity
+  )
+  const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
+  const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
+  const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
+  const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
+  const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
+  const facilityStockOverflow = parseFacilityStockOverflow(game.facilityStockOverflow)
+  const facilityStockPreparedness = parseFacilityStockPreparedness(game.facilityStockPreparedness)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10558,7 +10631,15 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingReservations,
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
+    facilityStockpile,
+    departmentLocalStaging,
+    facilityStockPlacement,
+    facilityStockCondition,
+    facilityEmergencyCaches,
+    facilityStockOverflow,
+    facilityStockPreparedness,
     equipmentInstances,
+    containmentBarrierIntegrity,
     damagedEquipmentQueue,
     authorityGraphState,
     runtimeState,
@@ -10756,7 +10837,7 @@ export function hydrateGame(
     spe956IncidentBaselineRecords,
   }
 
-  return hydrated
+  return reconcileContainmentBarrierIntegritySources(hydrated)
 }
 
 /**

@@ -135,19 +135,143 @@ describe('event payload validation coverage', () => {
         inService: true,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', {
+        ...valid,
+        classId: 'pressure_seal',
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_deficiency_recorded', {
+        ...valid,
+        classId: 'interlock',
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
-      { ...valid, classId: 'pressure_seal' },
+      { ...valid, classId: 'airlock' },
       { ...valid, definitionName: 'Wrong name' },
       { ...valid, status: 'current' },
       { ...valid, inService: true },
       { ...valid, compensatingControlId: 'secondary_interlock_watch' },
+      {
+        ...valid,
+        classId: 'pressure_seal',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+      },
+      {
+        ...valid,
+        classId: 'interlock',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+      },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+      },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+        inService: true,
+      },
       { ...valid, extra: true },
       { ...valid, weeksSinceInspection: 0 },
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_deficiency_recorded', payload)
           .success
+      ).toBe(false)
+    }
+  })
+
+  it('strictly validates containment-class week-close inspect provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_class_inspected']
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', valid).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        status: 'overdue',
+        week: 6,
+        lastInspectionWeek: 6,
+        weeksSinceInspection: 5,
+        deficiencyKind: 'hard_stop',
+        compensatingControlId: undefined,
+        inService: false,
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        classId: 'pressure_seal',
+        week: 4,
+        lastInspectionWeek: 4,
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+        compensatingControlId: 'backup_gasket_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        classId: 'interlock',
+        week: 3,
+        lastInspectionWeek: 3,
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_inspected', {
+        ...valid,
+        reason: 'mid_week_player_inspect',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, status: 'current' },
+      { ...valid, lastInspectionWeek: 4 },
+      { ...valid, previousLastInspectionWeek: 5 },
+      { ...valid, inService: false },
+      { ...valid, extra: true },
+      {
+        ...valid,
+        status: 'overdue',
+        week: 6,
+        lastInspectionWeek: 6,
+        weeksSinceInspection: 5,
+      },
+      {
+        ...valid,
+        compensatingControlId: 'backup_gasket_watch',
+      },
+      {
+        ...valid,
+        compensatingControlId: 'dual_circuit_watch',
+      },
+      { ...valid, classId: 'interlock' },
+      { ...valid, reason: 'technician_stabilization' },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_class_inspected', payload).success
       ).toBe(false)
     }
   })
@@ -167,6 +291,20 @@ describe('event payload validation coverage', () => {
         cycleCount: 3,
       }).success
     ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', {
+        ...valid,
+        classId: 'pressure_seal',
+        compensatingControlId: 'backup_gasket_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_class_stabilized', {
+        ...valid,
+        classId: 'interlock',
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
     for (const payload of [
       { ...valid, instanceId: 'constructor' },
       { ...valid, classId: 'pressure_seal' },
@@ -179,6 +317,156 @@ describe('event payload validation coverage', () => {
     ]) {
       expect(
         validateOperationEventPayload('equipment.containment_class_stabilized', payload).success
+      ).toBe(false)
+    }
+  })
+
+  it('strictly validates integrity-labor station mutation provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.instance_station_mutated']
+    expect(validateOperationEventPayload('equipment.instance_station_mutated', valid).success).toBe(
+      true
+    )
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        condition: 'damaged',
+        deficiencyKind: 'hard_stop',
+        inService: false,
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.instance_station_mutated', {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, stationId: 'pressure_seal_integrity_bench' },
+      { ...valid, classId: 'interlock' },
+      { ...valid, stationId: 'interlock_integrity_bench' },
+      { ...valid, stationId: 'other_bench' },
+      {
+        ...valid,
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+      {
+        ...valid,
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+      },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, cycleCount: 0 },
+      { ...valid, deficiencyKind: 'hard_stop', compensatingControlId: 'secondary_interlock_watch' },
+      { ...valid, deficiencyKind: 'hard_stop', inService: true },
+      { ...valid, inService: false },
+      {
+        ...valid,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: false,
+      },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.instance_station_mutated', payload).success
+      ).toBe(false)
+    }
+  })
+
+  it('strictly validates containment barrier-integrity coupling provenance', () => {
+    const valid = minimalOperationEventPayloads['equipment.containment_barrier_integrity_changed']
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', valid)
+        .success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        previousStatus: 'flow_restraint',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        classId: 'pressure_seal',
+        zoneId: 'pressure_seal_membrane',
+      }).success
+    ).toBe(true)
+    expect(
+      validateOperationEventPayload('equipment.containment_barrier_integrity_changed', {
+        ...valid,
+        classId: 'interlock',
+        zoneId: 'interlock_membrane',
+      }).success
+    ).toBe(true)
+    for (const payload of [
+      { ...valid, instanceId: 'constructor' },
+      { ...valid, classId: 'pressure_seal' },
+      { ...valid, zoneId: 'pressure_seal_membrane' },
+      { ...valid, classId: 'interlock' },
+      { ...valid, zoneId: 'interlock_membrane' },
+      { ...valid, classId: 'pressure_seal', zoneId: 'blast_door_membrane' },
+      { ...valid, classId: 'blast_door', zoneId: 'interlock_membrane' },
+      { ...valid, zoneId: 'other_membrane' },
+      { ...valid, definitionName: 'Wrong name' },
+      { ...valid, status: 'intact' },
+      { ...valid, previousStatus: 'zone_breach' },
+      { ...valid, sourceDeficiencyKind: 'compensating_continue' },
+      { ...valid, extra: true },
+    ]) {
+      expect(
+        validateOperationEventPayload('equipment.containment_barrier_integrity_changed', payload)
+          .success
       ).toBe(false)
     }
   })

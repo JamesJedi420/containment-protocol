@@ -8,9 +8,13 @@ import {
   getGearRecommendationsForActiveCases,
 } from './equipmentView'
 import {
+  applyBlastDoorIntegrityLabor,
+  applyInterlockIntegrityLabor,
+  applyPressureSealIntegrityLabor,
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
 } from '../../domain/equipmentInstance'
+import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
 import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 
 describe('getEquipmentDeconstructionViews', () => {
@@ -353,6 +357,178 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
   })
 
+  it('disables catalog re-aggregation and lot return for stamped identities', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(mutated.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+          canReturnToLot: false,
+        }),
+      ])
+    )
+
+    const damagedStamped = {
+      ...mutated.state,
+      equipmentInstances: {
+        ...mutated.state.equipmentInstances,
+        [created.instance.instanceId]: {
+          ...mutated.instance,
+          condition: 'damaged' as const,
+        },
+      },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(damagedStamped).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
+
+    const equipped = relocateEquipmentInstance(mutated.state, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    if (!equipped.ok) throw new Error(equipped.code)
+    const mina = getAgentEquipmentLoadoutViews(equipped.state).find(
+      (view) => view.agentId === 'a_mina'
+    )
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')).toMatchObject({
+      ordinaryLifecycle: {
+        canReaggregate: false,
+        reaggregationBlocker: 'station_mutation_unsupported',
+        canReturnToLot: false,
+      },
+    })
+
+    const fabricatedState = {
+      ...mutated.state,
+      fabricatedEquipmentLots: {
+        batch: {
+          queueId: 'batch',
+          recipeId: 'signal-jammers',
+          itemId: 'ward_seals',
+          quantity: 1,
+          gradeId: 'grade_2' as const,
+          completedWeek: 1,
+          trackedInstanceUnits: 1,
+        },
+      },
+      equipmentInstances: {
+        ...mutated.state.equipmentInstances,
+        [created.instance.instanceId]: {
+          ...mutated.instance,
+          fabricationOrigin: {
+            queueId: 'batch',
+            recipeId: 'signal-jammers',
+            gradeId: 'grade_2' as const,
+            completedWeek: 1,
+          },
+        },
+      },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(fabricatedState).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReturnToLot: false,
+          returnToLotBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
+  })
+
+  it('disables catalog re-aggregation for a pressure-seal integrity-labor stamp', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyPressureSealIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(mutated.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
+  })
+
+  it('disables catalog re-aggregation for an interlock integrity-labor stamp', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyInterlockIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(mutated.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canReaggregate: false,
+          reaggregationBlocker: 'station_mutation_unsupported',
+        }),
+      ])
+    )
+  })
+
   it('exposes destroy and re-agg eligibility on idle ordinary equipped slots', () => {
     const game = createStartingState()
     game.inventory.signal_jammers = 1
@@ -572,6 +748,8 @@ describe('getGearRecommendationsForActiveCases', () => {
         canDestroy: false,
         destructionBlocker: 'payload_unsupported',
         canRepairCondition: false,
+        canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
         canReaggregate: false,
         reaggregationBlocker: 'payload_unsupported',
         canReturnToLot: false,
@@ -582,6 +760,8 @@ describe('getGearRecommendationsForActiveCases', () => {
         conditionLabel: 'Damaged',
         canDestroy: true,
         canRepairCondition: true,
+        canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
         canReaggregate: false,
         reaggregationBlocker: 'condition_unsupported',
         canReturnToLot: false,
@@ -620,6 +800,203 @@ describe('getGearRecommendationsForActiveCases', () => {
         reaggregationBlocker: 'recovery_claimed',
       }),
     ])
+  })
+
+  it('disables stored blast-door condition repair when named spare-part stock is missing', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    expect(
+      getEquipmentInstanceMaterializationViews(created.state).find(
+        (view) => view.itemId === 'ward_seals'
+      )?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          conditionLabel: 'Damaged',
+          canRepairCondition: false,
+          repairConditionReasonLabel: 'Named spare-part stock is unavailable.',
+        }),
+      ])
+    )
+
+    const stocked = {
+      ...created.state,
+      facilityStockpile: { [BLAST_DOOR_SPARE_PART_ID]: 1 },
+    }
+    expect(
+      getEquipmentInstanceMaterializationViews(stocked).find((view) => view.itemId === 'ward_seals')
+        ?.storedInstances
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canRepairCondition: true,
+        }),
+      ])
+    )
+    expect(
+      getEquipmentInstanceMaterializationViews(stocked)
+        .find((view) => view.itemId === 'ward_seals')
+        ?.storedInstances.find((instance) => instance.instanceId === created.instance.instanceId)
+    ).not.toHaveProperty('repairConditionReasonLabel')
+  })
+
+  it('offers blast-door and extra-class deficiency stabilization and fail-closes ordinary and none', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 4
+    game.inventory.signal_jammers = 1
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const none = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!none.ok) throw new Error(none.code)
+    const hardStop = instantiateEquipmentInstance(none.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!hardStop.ok) throw new Error(hardStop.code)
+    const compensating = instantiateEquipmentInstance(hardStop.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 1,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: 'secondary_interlock_watch',
+        },
+      },
+    })
+    if (!compensating.ok) throw new Error(compensating.code)
+    const extraClass = instantiateEquipmentInstance(compensating.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!extraClass.ok) throw new Error(extraClass.code)
+
+    const views = getEquipmentInstanceMaterializationViews(extraClass.state)
+    const jammers = views.find((view) => view.itemId === 'signal_jammers')?.storedInstances ?? []
+    const seals = views.find((view) => view.itemId === 'ward_seals')?.storedInstances ?? []
+
+    expect(jammers).toEqual([
+      expect.objectContaining({
+        instanceId: ordinary.instance.instanceId,
+        canStabilizeContainmentDeficiency: false,
+        canInspectContainmentClassIntegrity: false,
+      }),
+    ])
+    expect(seals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: none.instance.instanceId,
+          canStabilizeContainmentDeficiency: false,
+          canInspectContainmentClassIntegrity: false,
+        }),
+        expect.objectContaining({
+          instanceId: hardStop.instance.instanceId,
+          canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
+        }),
+        expect.objectContaining({
+          instanceId: compensating.instance.instanceId,
+          canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
+        }),
+        expect.objectContaining({
+          instanceId: extraClass.instance.instanceId,
+          canStabilizeContainmentDeficiency: true,
+          canInspectContainmentClassIntegrity: false,
+        }),
+      ])
+    )
+  })
+
+  it('offers due and overdue inspect eligibility and hides current, ordinary, and none-at-week-one copies', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 3
+    game.inventory.signal_jammers = 1
+    game.week = 5
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const due = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!due.ok) throw new Error(due.code)
+    const overdueSeal = instantiateEquipmentInstance(due.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!overdueSeal.ok) throw new Error(overdueSeal.code)
+    const current = instantiateEquipmentInstance(overdueSeal.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 5,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!current.ok) throw new Error(current.code)
+
+    const views = getEquipmentInstanceMaterializationViews(current.state)
+    const jammers = views.find((view) => view.itemId === 'signal_jammers')?.storedInstances ?? []
+    const seals = views.find((view) => view.itemId === 'ward_seals')?.storedInstances ?? []
+
+    expect(jammers).toEqual([
+      expect.objectContaining({
+        instanceId: ordinary.instance.instanceId,
+        canInspectContainmentClassIntegrity: false,
+      }),
+    ])
+    expect(seals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: due.instance.instanceId,
+          canInspectContainmentClassIntegrity: true,
+        }),
+        expect.objectContaining({
+          instanceId: overdueSeal.instance.instanceId,
+          canInspectContainmentClassIntegrity: true,
+        }),
+        expect.objectContaining({
+          instanceId: current.instance.instanceId,
+          canInspectContainmentClassIntegrity: false,
+        }),
+      ])
+    )
   })
 
   it('exposes fabricated-lot tracking sources when only batch stock remains', () => {
@@ -713,6 +1090,78 @@ describe('getGearRecommendationsForActiveCases', () => {
     )
     expect(rook?.slots.find((slot) => slot.slot === 'headgear')?.stockOptions).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ instanceId: created.instance.instanceId })])
+    )
+  })
+
+  it('disables destroy and catalog re-aggregation for authored workshop identities', () => {
+    const game = createStartingState()
+    const stored = getEquipmentInstanceMaterializationViews(game).find(
+      (view) => view.itemId === 'ward_seals'
+    )?.storedInstances
+
+    expect(stored).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: 'equipment-instance-blast-door-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+        expect.objectContaining({
+          instanceId: 'equipment-instance-pressure-seal-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+        expect.objectContaining({
+          instanceId: 'equipment-instance-interlock-workshop',
+          canDestroy: false,
+          destructionBlocker: 'authored_workshop_identity',
+          canReaggregate: false,
+          reaggregationBlocker: 'authored_workshop_identity',
+        }),
+      ])
+    )
+
+    const minaStored = getAgentEquipmentLoadoutViews(game).find((view) => view.agentId === 'a_mina')
+    expect(minaStored?.slots.find((slot) => slot.slot === 'utility1')?.stockOptions).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: 'equipment-instance-blast-door-workshop' }),
+        expect.objectContaining({ instanceId: 'equipment-instance-pressure-seal-workshop' }),
+        expect.objectContaining({ instanceId: 'equipment-instance-interlock-workshop' }),
+      ])
+    )
+
+    const equipped = {
+      ...game,
+      equipmentInstances: {
+        ...(game.equipmentInstances ?? {}),
+        'equipment-instance-blast-door-workshop': {
+          ...game.equipmentInstances!['equipment-instance-blast-door-workshop']!,
+          location: { state: 'equipped' as const, agentId: 'a_mina', slot: 'utility1' as const },
+        },
+      },
+      agents: {
+        ...game.agents,
+        a_mina: {
+          ...game.agents.a_mina,
+          equipmentSlots: {
+            ...game.agents.a_mina.equipmentSlots,
+            utility1: 'ward_seals',
+          },
+        },
+      },
+    }
+    const mina = getAgentEquipmentLoadoutViews(equipped).find((view) => view.agentId === 'a_mina')
+    expect(mina?.slots.find((slot) => slot.slot === 'utility1')?.ordinaryLifecycle).toEqual(
+      expect.objectContaining({
+        canDestroy: false,
+        destructionBlocker: 'authored_workshop_identity',
+        canReaggregate: false,
+        reaggregationBlocker: 'authored_workshop_identity',
+      })
     )
   })
 })

@@ -17,9 +17,11 @@ import {
 } from '../equipmentGradeCatalog'
 import { resolveEquipmentGradeProjection } from '../equipmentGrade'
 import type { EquipmentGradeProjection } from '../equipmentGrade'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import {
   COMBAT_STIM_DEFINITION_ID,
   isCanonicalCombatStimPayload,
+  reconcileContainmentBarrierIntegritySources,
   isSafeEquipmentInstanceId,
   type EquipmentInstance,
   type EquipmentInstanceId,
@@ -131,7 +133,9 @@ export type EquipmentDeconstructionSourceIssueCode =
   | 'equipment_instance_payload_malformed'
   | 'equipment_instance_active_overdrive'
   | 'equipment_instance_payload_unsupported'
+  | 'equipment_instance_station_mutation_unsupported'
   | 'equipment_instance_already_claimed'
+  | 'equipment_instance_authored_workshop_protected'
   | 'stock_unavailable'
   | 'recovery_unavailable'
 
@@ -246,11 +250,16 @@ function resolveInstanceIssue(
     return 'recovery_unavailable'
   }
   if (!isSafeEquipmentInstanceId(instance.instanceId)) return 'equipment_instance_not_found'
+  if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+    return 'equipment_instance_authored_workshop_protected'
+  }
   if (instance.definitionId !== profile?.itemId) return 'recovery_unavailable'
   if (!isRecoverableInstanceLocation(state, instance)) return 'equipment_instance_not_stored'
   if (instanceHasRecoveryClaim(state, instance.instanceId)) {
     return 'equipment_instance_already_claimed'
   }
+  if (instance.stationMutation !== undefined)
+    return 'equipment_instance_station_mutation_unsupported'
   if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) {
     return instance.payload === undefined ? undefined : 'equipment_instance_payload_unsupported'
   }
@@ -565,20 +574,22 @@ export function queueEquipmentDeconstruction(
     source.kind === 'equipment_instance' && sourceInstance
       ? clearRecoveredInstanceProjection(state.agents, sourceInstance)
       : state.agents
-  const nextState = normalizeGameState({
-    ...state,
-    inventory:
-      source.kind === 'equipment_instance'
-        ? state.inventory
-        : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
-    agents: nextAgents,
-    equipmentInstances: nextEquipmentInstances,
-    damagedEquipmentQueue:
-      source.kind !== 'catalog'
-        ? state.damagedEquipmentQueue
-        : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
-    equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...state,
+      inventory:
+        source.kind === 'equipment_instance'
+          ? state.inventory
+          : { ...state.inventory, [itemId]: Math.max(0, (state.inventory[itemId] ?? 0) - 1) },
+      agents: nextAgents,
+      equipmentInstances: nextEquipmentInstances,
+      damagedEquipmentQueue:
+        source.kind !== 'catalog'
+          ? state.damagedEquipmentQueue
+          : (state.damagedEquipmentQueue ?? []).filter((id) => id !== itemId),
+      equipmentDeconstructionQueue: [...(state.equipmentDeconstructionQueue ?? []), entry],
+    })
+  )
 
   return appendOperationEventDrafts(nextState, [
     createEquipmentRecoveryStartedDraft({
@@ -788,7 +799,11 @@ export function getEquipmentDeconstructionSourceIssueLabel(
     equipment_instance_active_overdrive: 'Combat Stim instance still owns active recovery debt',
     equipment_instance_payload_unsupported:
       'Payload-bearing ordinary equipment cannot enter recovery',
+    equipment_instance_station_mutation_unsupported:
+      'Station-mutated equipment cannot enter recovery',
     equipment_instance_already_claimed: 'Equipment instance has already been claimed for recovery',
+    equipment_instance_authored_workshop_protected:
+      'Authored workshop identity cannot enter recovery',
     stock_unavailable: 'Aggregate stock is unavailable',
     recovery_unavailable: 'Recovery is unavailable for this source',
   }

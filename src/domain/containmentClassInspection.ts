@@ -1,10 +1,21 @@
-/** SPE-2860 — frozen blast-door inspection cadence and deficiency stop/continue. */
+/** SPE-2860 / SPE-2864 / SPE-877 — frozen containment-class inspection cadence and deficiency stop/continue. */
 
-export const CONTAINMENT_CLASS_IDS = ['blast_door'] as const
+export const CONTAINMENT_CLASS_IDS = ['blast_door', 'pressure_seal', 'interlock'] as const
 export type ContainmentClassId = (typeof CONTAINMENT_CLASS_IDS)[number]
 
 export const BLAST_DOOR_COMPENSATING_CONTROL_ID = 'secondary_interlock_watch' as const
 export type BlastDoorCompensatingControlId = typeof BLAST_DOOR_COMPENSATING_CONTROL_ID
+
+export const PRESSURE_SEAL_COMPENSATING_CONTROL_ID = 'backup_gasket_watch' as const
+export type PressureSealCompensatingControlId = typeof PRESSURE_SEAL_COMPENSATING_CONTROL_ID
+
+export const INTERLOCK_COMPENSATING_CONTROL_ID = 'dual_circuit_watch' as const
+export type InterlockCompensatingControlId = typeof INTERLOCK_COMPENSATING_CONTROL_ID
+
+export type ContainmentCompensatingControlId =
+  | BlastDoorCompensatingControlId
+  | PressureSealCompensatingControlId
+  | InterlockCompensatingControlId
 
 export type ContainmentInspectionStatus = 'current' | 'due' | 'overdue'
 
@@ -13,7 +24,7 @@ export type ContainmentDeficiency =
   | { kind: 'hard_stop' }
   | {
       kind: 'compensating_continue'
-      compensatingControlId: BlastDoorCompensatingControlId
+      compensatingControlId: ContainmentCompensatingControlId
     }
 
 export type ContainmentDeficiencyContinuation = 'hard_stop' | 'compensating_continue'
@@ -29,7 +40,9 @@ export interface ContainmentClassCadenceSpec {
   readonly classId: ContainmentClassId
   readonly authoredIntervalWeeks: number
   readonly intensificationCycleBucket: number
-  readonly compensatingControlId: BlastDoorCompensatingControlId
+  readonly compensatingControlId: ContainmentCompensatingControlId
+  readonly weekCloseDueContinuation: ContainmentDeficiencyContinuation
+  readonly weekCloseOverdueContinuation: ContainmentDeficiencyContinuation
 }
 
 export type ContainmentCadenceFailureCode =
@@ -73,12 +86,38 @@ export const BLAST_DOOR_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.
   authoredIntervalWeeks: 4,
   intensificationCycleBucket: 2,
   compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
+})
+
+export const PRESSURE_SEAL_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.freeze({
+  classId: 'pressure_seal',
+  authoredIntervalWeeks: 3,
+  intensificationCycleBucket: 2,
+  compensatingControlId: PRESSURE_SEAL_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
+})
+
+export const INTERLOCK_CONTAINMENT_CLASS: ContainmentClassCadenceSpec = Object.freeze({
+  classId: 'interlock',
+  authoredIntervalWeeks: 2,
+  intensificationCycleBucket: 2,
+  compensatingControlId: INTERLOCK_COMPENSATING_CONTROL_ID,
+  weekCloseDueContinuation: 'compensating_continue',
+  weekCloseOverdueContinuation: 'hard_stop',
 })
 
 const CONTAINMENT_CLASS_CADENCE: Readonly<Record<ContainmentClassId, ContainmentClassCadenceSpec>> =
   Object.freeze({
     blast_door: BLAST_DOOR_CONTAINMENT_CLASS,
+    pressure_seal: PRESSURE_SEAL_CONTAINMENT_CLASS,
+    interlock: INTERLOCK_CONTAINMENT_CLASS,
   })
+
+const CONTAINMENT_COMPENSATING_CONTROL_ID_SET = new Set<string>(
+  CONTAINMENT_CLASS_IDS.map((classId) => CONTAINMENT_CLASS_CADENCE[classId].compensatingControlId)
+)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -90,6 +129,12 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 
 export function isContainmentClassId(value: unknown): value is ContainmentClassId {
   return typeof value === 'string' && CONTAINMENT_CLASS_ID_SET.has(value)
+}
+
+export function isContainmentCompensatingControlId(
+  value: unknown
+): value is ContainmentCompensatingControlId {
+  return typeof value === 'string' && CONTAINMENT_COMPENSATING_CONTROL_ID_SET.has(value)
 }
 
 export function getContainmentClassCadenceSpec(
@@ -142,7 +187,10 @@ export function containmentClassIntegritiesEqual(
   )
 }
 
-export function parseContainmentDeficiency(value: unknown): ContainmentDeficiency | undefined {
+export function parseContainmentDeficiency(
+  value: unknown,
+  classId?: ContainmentClassId
+): ContainmentDeficiency | undefined {
   if (!isRecord(value) || typeof value.kind !== 'string') return undefined
   if (value.kind === 'none' || value.kind === 'hard_stop') {
     return hasOnlyKeys(value, ['kind']) ? { kind: value.kind } : undefined
@@ -150,13 +198,19 @@ export function parseContainmentDeficiency(value: unknown): ContainmentDeficienc
   if (value.kind !== 'compensating_continue') return undefined
   if (
     !hasOnlyKeys(value, ['kind', 'compensatingControlId']) ||
-    value.compensatingControlId !== BLAST_DOOR_COMPENSATING_CONTROL_ID
+    !isContainmentCompensatingControlId(value.compensatingControlId)
   ) {
     return undefined
   }
+  if (classId !== undefined) {
+    const spec = getContainmentClassCadenceSpec(classId)
+    if (!spec || value.compensatingControlId !== spec.compensatingControlId) {
+      return undefined
+    }
+  }
   return {
     kind: 'compensating_continue',
-    compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+    compensatingControlId: value.compensatingControlId,
   }
 }
 
@@ -181,7 +235,7 @@ export function parseContainmentClassIntegrity(value: unknown): ContainmentInteg
   ) {
     return { ok: false, code: 'malformed_integrity' }
   }
-  const deficiency = parseContainmentDeficiency(value.deficiency)
+  const deficiency = parseContainmentDeficiency(value.deficiency, value.classId)
   if (!deficiency) {
     return { ok: false, code: 'malformed_integrity' }
   }
@@ -283,10 +337,21 @@ export type TechnicianStabilizationResult =
 
 /**
  * Technician-only relief/clear. Inspection sticky hard-stop stays on
- * `resolveStickyContainmentDeficiency`.
+ * `resolveStickyContainmentDeficiency`. Requires an authored class; do not
+ * default to blast-door.
  */
-export function resolveTechnicianStabilization(existing: unknown): TechnicianStabilizationResult {
-  const deficiency = parseContainmentDeficiency(existing)
+export function resolveTechnicianStabilization(input: {
+  classId?: unknown
+  deficiency?: unknown
+}): TechnicianStabilizationResult {
+  if (!isContainmentClassId(input.classId)) {
+    return { ok: false, code: 'malformed_deficiency' }
+  }
+  const spec = getContainmentClassCadenceSpec(input.classId)
+  if (!spec) {
+    return { ok: false, code: 'malformed_deficiency' }
+  }
+  const deficiency = parseContainmentDeficiency(input.deficiency, input.classId)
   if (!deficiency) {
     return { ok: false, code: 'malformed_deficiency' }
   }
@@ -298,7 +363,7 @@ export function resolveTechnicianStabilization(existing: unknown): TechnicianSta
       ok: true,
       deficiency: {
         kind: 'compensating_continue',
-        compensatingControlId: BLAST_DOOR_COMPENSATING_CONTROL_ID,
+        compensatingControlId: spec.compensatingControlId,
       },
       cycleDelta: 1,
     }
@@ -343,7 +408,7 @@ export function evaluateContainmentInspection(input: {
   const existing =
     input.existingDeficiency === undefined
       ? { kind: 'none' as const }
-      : parseContainmentDeficiency(input.existingDeficiency)
+      : parseContainmentDeficiency(input.existingDeficiency, cadence.classId)
   if (!existing) {
     return { ok: false, code: 'invalid_continuation' }
   }
@@ -388,5 +453,95 @@ export function evaluateContainmentInspection(input: {
     weeksSinceInspection,
     deficiency: resolved.deficiency,
     inService: resolved.deficiency.kind !== 'hard_stop',
+  }
+}
+
+export type ContainmentWeekCloseInspectionResult =
+  | { ok: true; action: 'noop' }
+  | {
+      ok: true
+      action: 'advance'
+      classId: ContainmentClassId
+      status: Exclude<ContainmentInspectionStatus, 'current'>
+      previousLastInspectionWeek: number
+      lastInspectionWeek: number
+      intervalWeeks: number
+      weeksSinceInspection: number
+      previousDeficiency: ContainmentDeficiency
+      deficiency: Exclude<ContainmentDeficiency, { kind: 'none' }>
+      deficiencyChanged: boolean
+      inService: boolean
+    }
+  | { ok: false; code: ContainmentCadenceFailureCode }
+
+export function resolveWeekCloseInspectionContinuation(
+  spec: ContainmentClassCadenceSpec,
+  status: Exclude<ContainmentInspectionStatus, 'current'>
+): ContainmentDeficiencyContinuation {
+  switch (status) {
+    case 'due':
+      return spec.weekCloseDueContinuation
+    case 'overdue':
+      return spec.weekCloseOverdueContinuation
+    default: {
+      const exhaustive: never = status
+      return exhaustive
+    }
+  }
+}
+
+export function resolveContainmentClassWeekCloseInspection(input: {
+  classId: unknown
+  lastInspectionWeek: unknown
+  currentWeek: unknown
+  cycleCount: unknown
+  existingDeficiency?: unknown
+}): ContainmentWeekCloseInspectionResult {
+  const evaluation = evaluateContainmentInspection({
+    classId: input.classId,
+    lastInspectionWeek: input.lastInspectionWeek,
+    currentWeek: input.currentWeek,
+    cycleCount: input.cycleCount,
+    existingDeficiency: input.existingDeficiency,
+  })
+  if (!evaluation.ok) return evaluation
+  if (evaluation.status === 'current') {
+    return { ok: true, action: 'noop' }
+  }
+
+  const spec = getContainmentClassCadenceSpec(evaluation.classId)
+  if (!spec) return { ok: false, code: 'missing_cadence' }
+
+  const previousLastInspectionWeek = parsePositiveSafeInteger(input.lastInspectionWeek)
+  const currentWeek = parsePositiveSafeInteger(input.currentWeek)
+  if (previousLastInspectionWeek === undefined || currentWeek === undefined) {
+    return { ok: false, code: 'invalid_weeks' }
+  }
+
+  const existing = evaluation.deficiency
+  const continuation = resolveWeekCloseInspectionContinuation(spec, evaluation.status)
+  const proposed = deficiencyFromContinuation(continuation, spec)
+  let next: Exclude<ContainmentDeficiency, { kind: 'none' }>
+  if (existing.kind === 'hard_stop') {
+    next = { kind: 'hard_stop' }
+  } else {
+    const resolved = resolveStickyContainmentDeficiency(existing, proposed)
+    if (!resolved.ok) return resolved
+    next = resolved.deficiency
+  }
+
+  return {
+    ok: true,
+    action: 'advance',
+    classId: evaluation.classId,
+    status: evaluation.status,
+    previousLastInspectionWeek,
+    lastInspectionWeek: currentWeek,
+    intervalWeeks: evaluation.intervalWeeks,
+    weeksSinceInspection: evaluation.weeksSinceInspection,
+    previousDeficiency: existing,
+    deficiency: next,
+    deficiencyChanged: !containmentDeficienciesEqual(existing, next),
+    inService: next.kind !== 'hard_stop',
   }
 }

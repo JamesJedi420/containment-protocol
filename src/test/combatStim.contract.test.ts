@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../domain/departmentWorkshopIntegrityQualityMapping'
 import {
   activateCombatStim,
   applyCombatStimRecoveryDebtAtWeekClose,
@@ -127,7 +128,13 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
     const unavailable = createStartingState()
     unavailable.inventory.combat_stims = 0
     expect(equipAgentItem(unavailable, 'a_ava', 'utility1', 'combat_stims')).toEqual(unavailable)
-    expect(unavailable.equipmentInstances).toEqual({})
+    expect(getEquipmentInstanceAtAgentSlot(unavailable, 'a_ava', 'utility1')).toBeUndefined()
+    expect(
+      Object.values(unavailable.equipmentInstances ?? {}).filter(
+        (instance) => instance.definitionId === 'combat_stims'
+      )
+    ).toEqual([])
+    expect(unavailable.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]).toBeDefined()
   })
 
   it('blocks direct loadout assignment from consuming fabricated Combat Stim stock anonymously', () => {
@@ -528,7 +535,15 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
 
     const legacy = createStartingState()
     legacy.agents.a_mina.equipmentSlots = { utility1: 'combat_stims' }
-    expect(hydrateGame(legacy).equipmentInstances).toEqual({})
+    const hydratedLegacy = hydrateGame(legacy)
+    expect(
+      Object.values(hydratedLegacy.equipmentInstances ?? {}).some(
+        (instance) => instance.definitionId === 'combat_stims'
+      )
+    ).toBe(false)
+    expect(hydratedLegacy.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]).toEqual(
+      legacy.equipmentInstances?.[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]
+    )
 
     const malformedSemantic = hydrateGame({
       ...legacy,

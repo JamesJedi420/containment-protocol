@@ -13,6 +13,7 @@ describe('spare-part suitability for SPE-2851 repair', () => {
     expect(getRequiredRepairSparePartId('blast_door')).toBe(BLAST_DOOR_SPARE_PART_ID)
     expect(getRequiredRepairSparePartId(undefined)).toBeUndefined()
     expect(getRequiredRepairSparePartId('pressure_seal')).toBeUndefined()
+    expect(getRequiredRepairSparePartId('interlock')).toBeUndefined()
   })
 
   it('does not require a part for ordinary identities without a containment class', () => {
@@ -81,6 +82,13 @@ describe('spare-part suitability for SPE-2851 repair', () => {
     expect(
       resolveRepairSparePartSuitability({
         classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
+        sparePartId: BLAST_DOOR_SPARE_PART_ID,
+      })
+    ).toEqual({ ok: false, code: 'invalid_class' })
+    expect(
+      resolveRepairSparePartSuitability({
+        classId: 'interlock',
         deficiency: { kind: 'none' },
         sparePartId: BLAST_DOOR_SPARE_PART_ID,
       })

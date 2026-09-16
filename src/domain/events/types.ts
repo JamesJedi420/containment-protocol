@@ -17,6 +17,12 @@ import type {
 import type { EquipmentGradeId, EquipmentGradeVisibility } from '../equipmentGrade'
 import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGradeFabrication'
 import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
+import type {
+  ContainmentClassId,
+  ContainmentCompensatingControlId,
+} from '../containmentClassInspection'
+import type { ContainmentBarrierZoneId } from '../containmentBarrierIntegrity'
+import type { IntegrityLaborStationId } from '../equipmentStationMutation'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -515,28 +521,71 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: ContainmentClassId
     status: 'due' | 'overdue'
     intervalWeeks: number
     weeksSinceInspection: number
     deficiencyKind: 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
     reason: 'inspection_cadence_deficiency'
+  }
+  'equipment.containment_class_inspected': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    status: 'due' | 'overdue'
+    previousLastInspectionWeek: number
+    lastInspectionWeek: number
+    intervalWeeks: number
+    weeksSinceInspection: number
+    deficiencyKind: 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: ContainmentCompensatingControlId
+    inService: boolean
+    reason: 'week_close_auto_advance' | 'mid_week_player_inspect'
   }
   'equipment.containment_class_stabilized': {
     week: number
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: ContainmentClassId
     previousDeficiencyKind: 'hard_stop' | 'compensating_continue'
     deficiencyKind: 'compensating_continue' | 'none'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     previousCycleCount: number
     cycleCount: number
     inService: boolean
     reason: 'technician_stabilization'
+  }
+  'equipment.instance_station_mutated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    stationId: IntegrityLaborStationId
+    previousCycleCount: number
+    cycleCount: number
+    condition: 'operational' | 'damaged'
+    deficiencyKind: 'none' | 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: ContainmentCompensatingControlId
+    inService: boolean
+    reason: 'integrity_labor'
+  }
+  'equipment.containment_barrier_integrity_changed': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    zoneId: ContainmentBarrierZoneId
+    previousStatus: 'intact' | 'flow_restraint' | 'zone_breach'
+    status: 'flow_restraint' | 'zone_breach'
+    sourceDeficiencyKind: 'hard_stop' | 'compensating_continue'
+    reason: 'deficiency_coupling'
   }
   'equipment.combat_stim_activated': {
     week: number
@@ -921,7 +970,10 @@ export interface OperationEventTypeToSourceSystemMap {
   'equipment.instance_reaggregated': 'agent'
   'equipment.instance_condition_repaired': 'agent'
   'equipment.containment_class_deficiency_recorded': 'agent'
+  'equipment.containment_class_inspected': 'agent'
   'equipment.containment_class_stabilized': 'agent'
+  'equipment.instance_station_mutated': 'agent'
+  'equipment.containment_barrier_integrity_changed': 'agent'
   'equipment.combat_stim_activated': 'agent'
   'equipment.combat_stim_overdrive_expired': 'agent'
   'equipment.combat_stim_disposed': 'agent'
@@ -994,7 +1046,10 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'equipment.instance_reaggregated': 'agent',
   'equipment.instance_condition_repaired': 'agent',
   'equipment.containment_class_deficiency_recorded': 'agent',
+  'equipment.containment_class_inspected': 'agent',
   'equipment.containment_class_stabilized': 'agent',
+  'equipment.instance_station_mutated': 'agent',
+  'equipment.containment_barrier_integrity_changed': 'agent',
   'equipment.combat_stim_activated': 'agent',
   'equipment.combat_stim_overdrive_expired': 'agent',
   'equipment.combat_stim_disposed': 'agent',

@@ -10,6 +10,8 @@ import {
   type OperationEventSourceSystem,
   type OperationEventType,
 } from '../../domain/models'
+import type { ContainmentClassId } from '../../domain/containmentClassInspection'
+import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
 
 export type EventFeedFilters = {
   query: string
@@ -219,7 +221,10 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'equipment.instance_reaggregated': 'Equipment Instance Re-aggregated',
   'equipment.instance_condition_repaired': 'Equipment Instance Condition Repaired',
   'equipment.containment_class_deficiency_recorded': 'Containment Class Deficiency Recorded',
+  'equipment.containment_class_inspected': 'Containment Class Inspected',
   'equipment.containment_class_stabilized': 'Containment Class Stabilized',
+  'equipment.instance_station_mutated': 'Equipment Instance Station Mutated',
+  'equipment.containment_barrier_integrity_changed': 'Containment Barrier Integrity Changed',
   'equipment.combat_stim_activated': 'Combat Stim Activated',
   'equipment.combat_stim_overdrive_expired': 'Combat Stim Overdrive Expired',
   'equipment.combat_stim_disposed': 'Combat Stim Disposed',
@@ -293,7 +298,10 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'equipment.instance_reaggregated': 'operations_logistics',
   'equipment.instance_condition_repaired': 'operations_logistics',
   'equipment.containment_class_deficiency_recorded': 'operations_logistics',
+  'equipment.containment_class_inspected': 'operations_logistics',
   'equipment.containment_class_stabilized': 'operations_logistics',
+  'equipment.instance_station_mutated': 'operations_logistics',
+  'equipment.containment_barrier_integrity_changed': 'operations_logistics',
   'equipment.combat_stim_activated': 'personnel',
   'equipment.combat_stim_overdrive_expired': 'personnel',
   'equipment.combat_stim_disposed': 'operations_logistics',
@@ -346,6 +354,21 @@ function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss' | 'm
       return 'Mission injury'
     default: {
       const exhaustive: never = reason
+      return exhaustive
+    }
+  }
+}
+
+function containmentClassFeedLabel(classId: ContainmentClassId) {
+  switch (classId) {
+    case 'blast_door':
+      return 'Blast door'
+    case 'pressure_seal':
+      return 'Pressure seal'
+    case 'interlock':
+      return 'Interlock'
+    default: {
+      const exhaustive: never = classId
       return exhaustive
     }
   }
@@ -994,6 +1017,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
       }
 
     case 'equipment.containment_class_deficiency_recorded': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const deficiencyLabel =
         event.payload.deficiencyKind === 'hard_stop'
           ? 'Hard stop'
@@ -1002,17 +1026,38 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment deficiency recorded`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.status} / ${deficiencyLabel}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / ${deficiencyLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_class_inspected': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment class inspected`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / Last inspection ${event.payload.previousLastInspectionWeek} → ${event.payload.lastInspectionWeek} / ${deficiencyLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.reason} ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 
     case 'equipment.containment_class_stabilized': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const previousLabel =
         event.payload.previousDeficiencyKind === 'hard_stop' ? 'Hard stop' : 'Compensating continue'
       const nextLabel =
@@ -1023,13 +1068,55 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment class stabilized`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'success',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_station_mutated': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : event.payload.deficiencyKind === 'compensating_continue'
+            ? `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+            : 'None'
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} integrity labor applied`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_barrier_integrity_changed': {
+      const statusLabel =
+        event.payload.status === 'zone_breach'
+          ? 'Zone breach'
+          : 'Flow restraint / barrier integrity watch'
+      const zoneLabel = labelContainmentBarrierZone(event.payload.zoneId)
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} barrier integrity changed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${zoneLabel} / ${statusLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.status === 'zone_breach' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${zoneLabel} ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
       }
     }
 

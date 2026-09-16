@@ -17,11 +17,13 @@ import {
   instantiateEquipmentInstance,
   isEquipmentInstanceClaimedForRecovery,
   isSafeEquipmentInstanceId,
+  reconcileContainmentBarrierIntegritySources,
   relocateEquipmentInstance,
   resolveFabricationOriginForDefinition,
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'
+import { isAuthoredWorkshopIntegrityInstanceId } from '../departmentWorkshopIntegrityQualityMapping'
 import { getProductionRecipe } from '../../data/production'
 import {
   resolveEquipmentDeconstructionSources,
@@ -249,6 +251,9 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
     return { ok: false, state: normalized, code: 'specialized_reaggregation_required' }
   }
+  if (instance.stationMutation !== undefined) {
+    return { ok: false, state: normalized, code: 'station_mutation_reaggregation_unsupported' }
+  }
   if (instance.condition !== 'operational') {
     return { ok: false, state: normalized, code: 'condition_reaggregation_unsupported' }
   }
@@ -312,12 +317,14 @@ export function returnFabricatedOrdinaryEquipmentInstanceToLot(
     ...lot,
     trackedInstanceUnits: nextTracked,
   })
-  const nextState = normalizeGameState({
-    ...normalized,
-    inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
-    equipmentInstances,
-    fabricatedEquipmentLots: nextLots,
-  })
+  const nextState = reconcileContainmentBarrierIntegritySources(
+    normalizeGameState({
+      ...normalized,
+      inventory: { ...normalized.inventory, [instance.definitionId]: stock + 1 },
+      equipmentInstances,
+      fabricatedEquipmentLots: nextLots,
+    })
+  )
   return {
     ok: true,
     state: nextState,
@@ -388,13 +395,17 @@ function findTransferCandidate(
   targetSlot: EquipmentSlotKind
 ) {
   return listEquippedItemAssignments(state.agents, itemId)
-    .filter(
-      (assignment) =>
+    .filter((assignment) => {
+      const instance = getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
+      if (instance && isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+        return false
+      }
+      return (
         !(assignment.agentId === targetAgentId && assignment.slot === targetSlot) &&
         canEditAgentEquipment(state.agents[assignment.agentId]) &&
-        (getEquipmentInstanceAtAgentSlot(state, assignment.agentId, assignment.slot)
-          ?.definitionId ?? itemId) === itemId
-    )
+        (instance?.definitionId ?? itemId) === itemId
+      )
+    })
     .sort((left, right) => {
       const leftSameAgent = left.agentId === targetAgentId ? 0 : 1
       const rightSameAgent = right.agentId === targetAgentId ? 0 : 1
@@ -571,7 +582,12 @@ export function canEquipStoredEquipmentInstance(
 ): boolean {
   const instance = getEquipmentInstance(state, instanceId)
   const agent = state.agents[agentId]
-  if (!instance || instance.location.state !== 'stored' || !canEditAgentEquipment(agent)) {
+  if (
+    !instance ||
+    instance.location.state !== 'stored' ||
+    !canEditAgentEquipment(agent) ||
+    isAuthoredWorkshopIntegrityInstanceId(instanceId)
+  ) {
     return false
   }
 

@@ -45,13 +45,13 @@ equipment grade, or carrying transient context through the processing tick.
 
 ## Deferred
 
-| Item                               | Owner                   | Why deferred                                              |
-| ---------------------------------- | ----------------------- | --------------------------------------------------------- |
-| Live equipment integrity mapping   | SPE-877 / adapter child | This slice accepts explicit caller-owned condition only   |
-| Canonical equipment grade          | SPE-2746 / SPE-2750     | Grade is distinct from current equipment condition        |
-| Durability and repair consumption  | SPE-877 follow-up       | Quality grading does not mutate equipment lifecycle state |
-| Automatic week-close mapping       | Create SPE-1028 child   | Requires an explicit department/equipment/work-order seam |
-| Equipment-driven task failure      | Create SPE-1028 child   | Degraded completion quality is not terminal failure proof |
-| Live facility/staff safety mapping | SPE-2772                | Explicit safety mapping seam remains blocked              |
+| Item                               | Owner                                                                                     | Why deferred                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live equipment integrity mapping   | [SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping) | Shipped: authored `department:field-containment` blast-door integrity composes SPE-2782 `equipmentCondition` at week-close; this grader stays unchanged |
+| Canonical equipment grade          | SPE-2746 / SPE-2750                                                                       | Grade is distinct from current equipment condition                                                                                                      |
+| Durability and repair consumption  | SPE-877 follow-up                                                                         | Quality grading does not mutate equipment lifecycle state                                                                                               |
+| Automatic week-close mapping       | [SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping) | Shipped for the authored blast-door equipment axis; remaining live axes stay with SPE-1028 / SPE-2771                                                   |
+| Equipment-driven task failure      | Create SPE-1028 child                                                                     | Degraded completion quality is not terminal failure proof                                                                                               |
+| Live facility/staff safety mapping | SPE-2772                                                                                  | Explicit safety mapping seam remains blocked                                                                                                            |
 
 Parent SPE-1028 remains open after this bounded child ships.

@@ -17,6 +17,11 @@ import {
   deriveDepartmentWorkshopRoomContaminationFromFacilities,
   type DepartmentWorkshopRoomQualityFacilityMapping,
 } from './departmentWorkshopFacilityQualityMapping'
+import {
+  DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS,
+  deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
+  type DepartmentWorkshopIntegrityQualityMapping,
+} from './departmentWorkshopIntegrityQualityMapping'
 import type { GameState } from './models'
 
 export type DepartmentWorkshopLiveFacilitySafetySource = DepartmentWorkshopStateSource &
@@ -70,6 +75,30 @@ export function composeDepartmentWorkshopQualityConditionsWithRoomContamination(
 }
 
 /**
+ * Composes one authoritative equipment-condition into the existing
+ * completion-quality contract. The live integrity projection owns only the
+ * equipment axis; caller-owned input, specialist, room, dependency, and reagent
+ * axes are preserved. Missing caller conditions use neutral-good required axes.
+ */
+export function composeDepartmentWorkshopQualityConditionsWithEquipmentCondition(
+  equipmentCondition: DepartmentWorkshopConditionLevel,
+  callerConditions?: DepartmentWorkshopQualityConditions
+): DepartmentWorkshopQualityConditions {
+  return freezeQualityConditions({
+    inputQuality: callerConditions?.inputQuality ?? 'good',
+    specialistCondition: callerConditions?.specialistCondition ?? 'good',
+    roomContamination: callerConditions?.roomContamination ?? 'good',
+    ...(callerConditions?.dependencyCondition !== undefined
+      ? { dependencyCondition: callerConditions.dependencyCondition }
+      : {}),
+    equipmentCondition,
+    ...(callerConditions?.reagentGrade !== undefined
+      ? { reagentGrade: callerConditions.reagentGrade }
+      : {}),
+  })
+}
+
+/**
  * Projects current authoritative facility state to exact completed work-order
  * IDs. Missing work orders are ignored; missing department mappings keep the
  * existing all-good fallback owned by the facility projector.
@@ -77,8 +106,7 @@ export function composeDepartmentWorkshopQualityConditionsWithRoomContamination(
 export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
   source: DepartmentWorkshopLiveFacilitySafetySource,
   workOrderIds: readonly string[],
-  mappings: readonly DepartmentWorkshopFacilityMapping[] =
-    DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS
+  mappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS
 ): Readonly<Record<string, DepartmentWorkshopSafetyConditions | undefined>> {
   if (!Array.isArray(workOrderIds) || workOrderIds.length === 0) {
     return Object.freeze({})
@@ -109,10 +137,10 @@ export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
 }
 
 /**
- * Projects the authored live room condition to exact completed work-order IDs
- * and composes it with caller-owned quality conditions. Unmapped work orders
- * retain caller-owned conditions when supplied and otherwise retain the
- * registrar's neutral nominal baseline.
+ * Projects authored live room and blast-door integrity conditions to exact
+ * completed work-order IDs and composes them with caller-owned quality
+ * conditions. Unmapped work orders retain caller-owned conditions when supplied
+ * and otherwise retain the registrar's neutral nominal baseline.
  */
 export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
   source: DepartmentWorkshopLiveFacilitySafetySource,
@@ -120,8 +148,8 @@ export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
   qualityConditionsByWorkOrderId?: Readonly<
     Record<string, DepartmentWorkshopQualityConditions | undefined>
   >,
-  mappings: readonly DepartmentWorkshopRoomQualityFacilityMapping[] =
-    DEFAULT_DEPARTMENT_WORKSHOP_ROOM_QUALITY_MAPPINGS
+  mappings: readonly DepartmentWorkshopRoomQualityFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_ROOM_QUALITY_MAPPINGS,
+  integrityMappings: readonly DepartmentWorkshopIntegrityQualityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_INTEGRITY_QUALITY_MAPPINGS
 ): Readonly<Record<string, DepartmentWorkshopQualityConditions | undefined>> {
   if (!Array.isArray(workOrderIds) || workOrderIds.length === 0) {
     return Object.freeze({})
@@ -143,32 +171,44 @@ export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
         workOrder.departmentId,
         mappings
       )
+      const equipmentCondition = deriveDepartmentWorkshopEquipmentConditionFromIntegrity(
+        source as GameState,
+        workOrder.departmentId,
+        integrityMappings
+      )
 
-      if (roomContamination === undefined) {
+      if (roomContamination === undefined && equipmentCondition === undefined) {
         return callerConditions
           ? ([[workOrderId, freezeQualityConditions(callerConditions)]] as const)
           : []
       }
 
-      return [
-        [
-          workOrderId,
-          composeDepartmentWorkshopQualityConditionsWithRoomContamination(
-            roomContamination,
-            callerConditions
-          ),
-        ] as const,
-      ]
+      let composed: DepartmentWorkshopQualityConditions | undefined = callerConditions
+      if (roomContamination !== undefined) {
+        composed = composeDepartmentWorkshopQualityConditionsWithRoomContamination(
+          roomContamination,
+          composed
+        )
+      }
+      if (equipmentCondition !== undefined) {
+        composed = composeDepartmentWorkshopQualityConditionsWithEquipmentCondition(
+          equipmentCondition,
+          composed
+        )
+      }
+
+      return composed ? ([[workOrderId, composed]] as const) : []
     })
 
   return Object.freeze(Object.fromEntries(entries))
 }
 
 /**
- * Canonical week-close registration seam for live facility quality and safety.
- * The existing receipt registrar remains the sole quality/safety grader and
- * idempotency boundary; this wrapper contributes only transient authoritative
- * facility inputs.
+ * Canonical week-close registration seam for live facility quality, live
+ * blast-door integrity quality, and safety. The existing receipt registrar
+ * remains the sole quality/safety grader and idempotency boundary; this
+ * wrapper contributes only transient authoritative facility and integrity
+ * inputs.
  */
 export function registerDepartmentWorkshopCompletionOutcomes(
   source: DepartmentWorkshopLiveFacilitySafetySource,
@@ -184,8 +224,10 @@ export function registerDepartmentWorkshopCompletionOutcomes(
       completedWorkOrderIds,
       qualityConditionsByWorkOrderId
     )
-  const safetyConditionsByWorkOrderId =
-    deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(source, completedWorkOrderIds)
+  const safetyConditionsByWorkOrderId = deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
+    source,
+    completedWorkOrderIds
+  )
 
   return registerCompletionOutcomes(
     source,

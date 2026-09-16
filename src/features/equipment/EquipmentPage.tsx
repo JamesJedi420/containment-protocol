@@ -28,6 +28,8 @@ function EquipmentPage() {
     materializeStoredEquipmentInstance,
     destroyStoredEquipmentInstance,
     repairStoredEquipmentInstanceCondition,
+    stabilizeContainmentClassDeficiency,
+    inspectContainmentClassIntegrity,
     disposeStoredCombatStimInstance,
     reaggregateStoredCombatStimInstance,
     reaggregateStoredEquipmentInstance,
@@ -63,6 +65,8 @@ function EquipmentPage() {
   }>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingRepairInstanceId, setPendingRepairInstanceId] = useState<string>()
+  const [pendingStabilizeInstanceId, setPendingStabilizeInstanceId] = useState<string>()
+  const [pendingInspectInstanceId, setPendingInspectInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
     useState<string>()
   const [pendingCombatStimReaggregationInstanceId, setPendingCombatStimReaggregationInstanceId] =
@@ -441,6 +445,8 @@ function EquipmentPage() {
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingDestructionInstanceId(instance.instanceId)
                             }}
                           >
@@ -451,7 +457,9 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.destructionBlocker === 'payload_unsupported'
                               ? 'Payload-bearing copies require a specialized destruction flow.'
-                              : 'This copy is already claimed by equipment recovery.'}
+                              : instance.destructionBlocker === 'authored_workshop_identity'
+                                ? 'This identity is the live workshop mapping target.'
+                                : 'This copy is already claimed by equipment recovery.'}
                           </p>
                         ) : null}
                         {pendingRepairInstanceId === instance.instanceId ? (
@@ -495,16 +503,122 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingRepairInstanceId(instance.instanceId)
                             }}
                           >
                             Repair condition
                           </button>
                         ) : null}
-                        {instance.repairConditionBlocker ? (
+                        {instance.conditionLabel === 'Damaged' &&
+                        instance.repairConditionReasonLabel ? (
+                          <p className="mt-1 text-xs text-amber-200/80">
+                            {instance.repairConditionReasonLabel}
+                          </p>
+                        ) : instance.repairConditionBlocker ? (
                           <p className="mt-1 text-xs text-amber-200/80">
                             This copy is already claimed by equipment recovery.
                           </p>
+                        ) : null}
+                        {pendingStabilizeInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm deficiency stabilization ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Stabilize this containment-class deficiency? Technician work relieves
+                              a hard stop or clears compensating continue. Condition and stock stay
+                              unchanged.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Stabilize deficiency ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  stabilizeContainmentClassDeficiency(instance.instanceId)
+                                  setPendingStabilizeInstanceId(undefined)
+                                }}
+                              >
+                                Confirm stabilization
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingStabilizeInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.canStabilizeContainmentDeficiency ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            aria-label={`Review deficiency stabilization ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
+                              setPendingStabilizeInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Stabilize deficiency
+                          </button>
+                        ) : null}
+                        {pendingInspectInstanceId === instance.instanceId ? (
+                          <div
+                            className="mt-2 space-y-2"
+                            role="group"
+                            aria-label={`Confirm containment inspection ${view.itemName} instance ${instance.instanceId}`}
+                          >
+                            <p className="text-xs text-amber-100">
+                              Inspect this stored containment-class identity? Due records
+                              compensating continue; overdue records a hard stop. Last inspection
+                              stamps to this week. Week-close auto-advance remains the production
+                              batch path.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                aria-label={`Inspect containment class ${view.itemName} instance ${instance.instanceId}`}
+                                onClick={() => {
+                                  inspectContainmentClassIntegrity(instance.instanceId)
+                                  setPendingInspectInstanceId(undefined)
+                                }}
+                              >
+                                Confirm inspection
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => setPendingInspectInstanceId(undefined)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : instance.canInspectContainmentClassIntegrity ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2"
+                            aria-label={`Review containment inspection ${view.itemName} instance ${instance.instanceId}`}
+                            onClick={() => {
+                              setPendingDestructionInstanceId(undefined)
+                              setPendingRepairInstanceId(undefined)
+                              setPendingReaggregationInstanceId(undefined)
+                              setPendingReturnToLotInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(instance.instanceId)
+                            }}
+                          >
+                            Inspect containment class
+                          </button>
                         ) : null}
                         {pendingReaggregationInstanceId === instance.instanceId ? (
                           <div
@@ -547,6 +661,8 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReturnToLotInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingReaggregationInstanceId(instance.instanceId)
                             }}
                           >
@@ -557,13 +673,19 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.reaggregationBlocker === 'condition_unsupported'
                               ? 'Damaged copies cannot return to operational aggregate stock.'
-                              : instance.reaggregationBlocker === 'payload_unsupported'
-                                ? 'Payload-bearing copies require a specialized re-aggregation flow.'
-                                : instance.reaggregationBlocker === 'fabricated_provenance_required'
-                                  ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
-                                  : instance.reaggregationBlocker === 'recovery_claimed'
-                                    ? 'This copy is already claimed by equipment recovery.'
-                                    : 'Aggregate stock is already at its safe capacity.'}
+                              : instance.reaggregationBlocker === 'station_mutation_unsupported'
+                                ? 'Integrity-labor stamps stay on this identity and cannot return to unspecified catalog stock.'
+                                : instance.reaggregationBlocker === 'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                  : instance.reaggregationBlocker ===
+                                      'fabricated_provenance_required'
+                                    ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                    : instance.reaggregationBlocker === 'recovery_claimed'
+                                      ? 'This copy is already claimed by equipment recovery.'
+                                      : instance.reaggregationBlocker ===
+                                          'authored_workshop_identity'
+                                        ? 'This identity is the live workshop mapping target.'
+                                        : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                         {pendingReturnToLotInstanceId === instance.instanceId ? (
@@ -609,6 +731,8 @@ function EquipmentPage() {
                               setPendingDestructionInstanceId(undefined)
                               setPendingReaggregationInstanceId(undefined)
                               setPendingRepairInstanceId(undefined)
+                              setPendingStabilizeInstanceId(undefined)
+                              setPendingInspectInstanceId(undefined)
                               setPendingReturnToLotInstanceId(instance.instanceId)
                             }}
                           >
@@ -619,13 +743,15 @@ function EquipmentPage() {
                           <p className="mt-1 text-xs text-amber-200/80">
                             {instance.returnToLotBlocker === 'condition_unsupported'
                               ? 'Damaged copies cannot return to fabricated-lot tracking.'
-                              : instance.returnToLotBlocker === 'payload_unsupported'
-                                ? 'Payload-bearing copies require a specialized return flow.'
-                                : instance.returnToLotBlocker === 'recovery_claimed'
-                                  ? 'This copy is already claimed by equipment recovery.'
-                                  : instance.returnToLotBlocker === 'lot_unavailable'
-                                    ? 'The source fabricated lot is missing or cannot absorb this return.'
-                                    : 'Aggregate stock is already at its safe capacity.'}
+                              : instance.returnToLotBlocker === 'station_mutation_unsupported'
+                                ? 'Integrity-labor stamps stay on this identity and cannot return to fabricated-lot tracking.'
+                                : instance.returnToLotBlocker === 'payload_unsupported'
+                                  ? 'Payload-bearing copies require a specialized return flow.'
+                                  : instance.returnToLotBlocker === 'recovery_claimed'
+                                    ? 'This copy is already claimed by equipment recovery.'
+                                    : instance.returnToLotBlocker === 'lot_unavailable'
+                                      ? 'The source fabricated lot is missing or cannot absorb this return.'
+                                      : 'Aggregate stock is already at its safe capacity.'}
                           </p>
                         ) : null}
                       </li>
@@ -715,6 +841,7 @@ function EquipmentPage() {
                         setPendingDestructionInstanceId(undefined)
                         setPendingReaggregationInstanceId(undefined)
                         setPendingRepairInstanceId(undefined)
+                        setPendingStabilizeInstanceId(undefined)
                       }}
                     >
                       Dispose instance
@@ -1188,6 +1315,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                                 setPendingCombatStimInstanceId(undefined)
                                 setPendingDestructionInstanceId(slot.instanceId)
                               }}
@@ -1201,7 +1329,10 @@ function EquipmentPage() {
                                 ? 'Payload-bearing copies require a specialized destruction flow.'
                                 : slot.ordinaryLifecycle.destructionBlocker === 'recovery_claimed'
                                   ? 'This copy is already claimed by equipment recovery.'
-                                  : 'Loadout changes are locked while this operative is not idle.'}
+                                  : slot.ordinaryLifecycle.destructionBlocker ===
+                                      'authored_workshop_identity'
+                                    ? 'This identity is the live workshop mapping target.'
+                                    : 'Loadout changes are locked while this operative is not idle.'}
                             </p>
                           ) : null}
                           {pendingReaggregationInstanceId === slot.instanceId ? (
@@ -1245,6 +1376,7 @@ function EquipmentPage() {
                                 setPendingDestructionInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                                 setPendingCombatStimInstanceId(undefined)
                                 setPendingReaggregationInstanceId(slot.instanceId)
                               }}
@@ -1258,18 +1390,24 @@ function EquipmentPage() {
                               'condition_unsupported'
                                 ? 'Damaged copies cannot return to operational aggregate stock.'
                                 : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                    'payload_unsupported'
-                                  ? 'Payload-bearing copies require a specialized re-aggregation flow.'
+                                    'station_mutation_unsupported'
+                                  ? 'Integrity-labor stamps stay on this identity and cannot return to unspecified catalog stock.'
                                   : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                      'fabricated_provenance_required'
-                                    ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
+                                      'payload_unsupported'
+                                    ? 'Payload-bearing copies require a specialized re-aggregation flow.'
                                     : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                        'recovery_claimed'
-                                      ? 'This copy is already claimed by equipment recovery.'
+                                        'fabricated_provenance_required'
+                                      ? 'Fabricated-batch copies retain grade provenance and cannot return as unspecified catalog stock.'
                                       : slot.ordinaryLifecycle.reaggregationBlocker ===
-                                          'agent_not_idle'
-                                        ? 'Loadout changes are locked while this operative is not idle.'
-                                        : 'Aggregate stock is already at its safe capacity.'}
+                                          'recovery_claimed'
+                                        ? 'This copy is already claimed by equipment recovery.'
+                                        : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                            'agent_not_idle'
+                                          ? 'Loadout changes are locked while this operative is not idle.'
+                                          : slot.ordinaryLifecycle.reaggregationBlocker ===
+                                              'authored_workshop_identity'
+                                            ? 'This identity is the live workshop mapping target.'
+                                            : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
                           {slot.ordinaryLifecycle.canReturnToLot ||
@@ -1316,6 +1454,7 @@ function EquipmentPage() {
                                   setPendingDestructionInstanceId(undefined)
                                   setPendingReaggregationInstanceId(undefined)
                                   setPendingRepairInstanceId(undefined)
+                                  setPendingStabilizeInstanceId(undefined)
                                   setPendingCombatStimInstanceId(undefined)
                                   setPendingReturnToLotInstanceId(slot.instanceId)
                                 }}
@@ -1328,15 +1467,21 @@ function EquipmentPage() {
                             <p className="text-xs text-amber-200/80">
                               {slot.ordinaryLifecycle.lotReturnBlocker === 'condition_unsupported'
                                 ? 'Damaged copies cannot return to fabricated-lot tracking.'
-                                : slot.ordinaryLifecycle.lotReturnBlocker === 'payload_unsupported'
-                                  ? 'Payload-bearing copies require a specialized return flow.'
-                                  : slot.ordinaryLifecycle.lotReturnBlocker === 'recovery_claimed'
-                                    ? 'This copy is already claimed by equipment recovery.'
-                                    : slot.ordinaryLifecycle.lotReturnBlocker === 'lot_unavailable'
-                                      ? 'The source fabricated lot is missing or cannot absorb this return.'
-                                      : slot.ordinaryLifecycle.lotReturnBlocker === 'agent_not_idle'
-                                        ? 'Loadout changes are locked while this operative is not idle.'
-                                        : 'Aggregate stock is already at its safe capacity.'}
+                                : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                    'station_mutation_unsupported'
+                                  ? 'Integrity-labor stamps stay on this identity and cannot return to fabricated-lot tracking.'
+                                  : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                      'payload_unsupported'
+                                    ? 'Payload-bearing copies require a specialized return flow.'
+                                    : slot.ordinaryLifecycle.lotReturnBlocker === 'recovery_claimed'
+                                      ? 'This copy is already claimed by equipment recovery.'
+                                      : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                          'lot_unavailable'
+                                        ? 'The source fabricated lot is missing or cannot absorb this return.'
+                                        : slot.ordinaryLifecycle.lotReturnBlocker ===
+                                            'agent_not_idle'
+                                          ? 'Loadout changes are locked while this operative is not idle.'
+                                          : 'Aggregate stock is already at its safe capacity.'}
                             </p>
                           ) : null}
                         </div>
@@ -1393,6 +1538,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                               }}
                             >
                               Dispose equipped copy
@@ -1456,6 +1602,7 @@ function EquipmentPage() {
                                 setPendingReaggregationInstanceId(undefined)
                                 setPendingReturnToLotInstanceId(undefined)
                                 setPendingRepairInstanceId(undefined)
+                                setPendingStabilizeInstanceId(undefined)
                               }}
                             >
                               Return equipped copy to stock
@@ -1524,6 +1671,7 @@ function EquipmentPage() {
                                   setPendingReaggregationInstanceId(undefined)
                                   setPendingReturnToLotInstanceId(undefined)
                                   setPendingRepairInstanceId(undefined)
+                                  setPendingStabilizeInstanceId(undefined)
                                 }}
                               >
                                 Return equipped copy to lot

@@ -737,6 +737,117 @@ describe('buildEventFeedView', () => {
     expect(view.tone).toBe('danger')
   })
 
+  it('equipment.containment_class_deficiency_recorded — names pressure-seal compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        status: 'due',
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_deficiency_recorded — names interlock compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        status: 'due',
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('dual_circuit_watch')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_inspected — names blast-door week-close auto-advance', () => {
+    const event = makeEvent(
+      'equipment.containment_class_inspected',
+      {
+        week: 5,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        reason: 'week_close_auto_advance',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class inspected')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Last inspection 1 → 5')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_inspected — names mid-week player inspect', () => {
+    const event = makeEvent(
+      'equipment.containment_class_inspected',
+      {
+        week: 5,
+        instanceId: 'equipment-instance-7-14',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        reason: 'mid_week_player_inspect',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class inspected')
+    expect(view.searchText).toContain('mid_week_player_inspect')
+    expect(view.detail).toContain('Last inspection 1 → 5')
+    expect(view.tone).toBe('warning')
+  })
+
   it('equipment.containment_class_stabilized — names blast-door hard-stop relief', () => {
     const event = makeEvent(
       'equipment.containment_class_stabilized',
@@ -760,9 +871,203 @@ describe('buildEventFeedView', () => {
 
     expect(view.title).toBe('Ward Seals containment class stabilized')
     expect(view.detail).toContain('equipment-instance-7-9')
+    expect(view.detail).toContain('Blast door')
     expect(view.detail).toContain('Hard stop')
     expect(view.detail).toContain('Compensating continue')
     expect(view.tone).toBe('success')
+  })
+
+  it('equipment.containment_class_stabilized — names extra-class hard-stop relief', () => {
+    const event = makeEvent(
+      'equipment.containment_class_stabilized',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        previousDeficiencyKind: 'hard_stop',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        inService: true,
+        reason: 'technician_stabilization',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class stabilized')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.instance_station_mutated — names blast-door integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        stationId: 'blast_door_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('blast_door_integrity_bench')
+    expect(view.searchText).toContain('integrity labor')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_station_mutated — names pressure-seal integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-12')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('pressure_seal_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('pressure seal')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_station_mutated — names interlock integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-13')
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('interlock_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('interlock')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names blast-door zone breach', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        zoneId: 'blast_door_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('equipment-instance-7-10')
+    expect(view.detail).toContain('Blast door membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names pressure-seal membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 4,
+        instanceId: 'equipment-instance-4-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        zoneId: 'pressure_seal_membrane',
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Pressure seal membrane')
+    expect(view.detail).toContain('Flow restraint')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names interlock membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 3,
+        instanceId: 'equipment-instance-3-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        zoneId: 'interlock_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Interlock membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
   })
 
   it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {

@@ -22,7 +22,7 @@ and re-agg damaged gates stay unchanged.
 **Mismatch vs SPE-877 grooming kernel:** grooming named a persistence-free catalog
 `functionalClass: 'containment'` evaluator. SPE-2860 binds `blast_door`, compact persistence,
 history intensification, and events. Follow SPE-2860. Week-close auto-advance of last-inspection
-remains deferred (grooming child 4).
+ships in `planning/spe-877-week-close-last-inspection-advance-slice.md`.
 
 ## Compact state
 
@@ -61,16 +61,16 @@ mutations. `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` unchanged.
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite                                     | Reason                                                                          |
-| --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Spare-part suitability / repair economics     | [SPE-2861](https://linear.app/spectranoir/issue/SPE-2861) | Typed `blast_door` / `blast_door_hinge_seal` gate on SPE-2851; no stock consume |
-| Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862) | Technician relief/clear; inspection sticky hard-stop stays                      |
-| Breach / `barrier_integrity` propagation      | later SPE-877 child                                       | SPE-1387 pairing; architecture file still missing                               |
-| Additional classes (pressure seal, interlock) | later SPE-877 child                                       | One class in this slice                                                         |
-| Week-close last-inspection auto-advance       | later SPE-877 child                                       | Schema kernel ships; `advanceWeek` stays out                                    |
-| Live workshop integrity mapping               | SPE-877 / SPE-1028                                        | SPE-2782 stays caller-owned                                                     |
-| Ready / stow                                  | SPE-1658                                                  | Access-state layer                                                              |
-| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                       | Adjacent                                                                        |
+| Item or mechanic                              | Owner or prerequisite                                                                                          | Reason                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Spare-part suitability / repair economics     | [SPE-2861](https://linear.app/spectranoir/issue/SPE-2861)                                                      | Typed `blast_door` / `blast_door_hinge_seal` gate on SPE-2851; no stock consume |
+| Stabilization / deficiency clear              | [SPE-2862](https://linear.app/spectranoir/issue/SPE-2862)                                                      | Technician relief/clear; inspection sticky hard-stop stays                      |
+| Breach / `barrier_integrity` propagation      | shipped SPE-877 child                                                                                          | `planning/spe-barrier-integrity-coupling-slice.md`                              |
+| Additional classes (pressure seal, interlock) | [SPE-2864](https://linear.app/spectranoir/issue/SPE-2864) pressure seal shipped; interlock SPE-877 child shipped (`planning/spe-877-interlock-containment-class-inspection-slice.md`) | One extra class per child; this slice shipped `blast_door` only                 |
+| Week-close last-inspection auto-advance       | shipped SPE-877 child                                                                                          | `planning/spe-877-week-close-last-inspection-advance-slice.md`                  |
+| Live workshop integrity mapping               | SPE-877 / SPE-1028                                                                                             | SPE-2782 stays caller-owned                                                     |
+| Ready / stow                                  | SPE-1658                                                                                                       | Access-state layer                                                              |
+| Salvage / Auto-Scrap                          | SPE-1055 / SPE-2749                                                                                            | Adjacent                                                                        |
 
 ## Acceptance
 

@@ -13,9 +13,14 @@ export type BlastDoorSparePartId = typeof BLAST_DOOR_SPARE_PART_ID
 export const SPARE_PART_IDS = [BLAST_DOOR_SPARE_PART_ID] as const
 export type SparePartId = (typeof SPARE_PART_IDS)[number]
 
-const SPARE_PART_BY_CLASS: Readonly<Record<ContainmentClassId, SparePartId>> = Object.freeze({
-  blast_door: BLAST_DOOR_SPARE_PART_ID,
-})
+export function isSparePartId(value: unknown): value is SparePartId {
+  return typeof value === 'string' && (SPARE_PART_IDS as readonly string[]).includes(value)
+}
+
+const SPARE_PART_BY_CLASS: Readonly<Partial<Record<ContainmentClassId, SparePartId>>> =
+  Object.freeze({
+    blast_door: BLAST_DOOR_SPARE_PART_ID,
+  })
 
 export type SparePartSuitabilityFailureCode =
   'missing_part' | 'unsuitable_part' | 'invalid_class' | 'malformed_deficiency'

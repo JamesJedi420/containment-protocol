@@ -24,6 +24,14 @@ import type {
 } from './equipmentGradeRecovery'
 import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
 import type { EquipmentInstanceRegistry } from './equipmentInstance'
+import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
+import type { FacilityStockpile } from './facilityStockpile'
+import type { DepartmentLocalStaging } from './departmentLocalStaging'
+import type { FacilityStockPlacement } from './facilityStockAccess'
+import type { FacilityStockCondition } from './facilityStockSpoilage'
+import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
+import type { FacilityStockOverflow } from './facilityStockOverflow'
+import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2784,8 +2792,56 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /**
+   * SPE-2887 / SPE-1027: named spare-part facility stockpile keyed by SPE-2861 SparePartId.
+   * Distinct from catalog `inventory`. Omit hydrates empty. Consume drops a key at 0.
+   */
+  facilityStockpile?: FacilityStockpile
+  /**
+   * SPE-2889 / SPE-1027: department-local input/output staging keyed by SPE-2083 department id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.
+   * Adjacent both axes feeds SPE-2775 week-close throughput (2 work units).
+   */
+  departmentLocalStaging?: DepartmentLocalStaging
+  /**
+   * SPE-2890 / SPE-1027: access-controlled storage-class placement keyed by authored class id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.
+   * Handle fail-closes uncleared staff or wrong-zone routing; success stamps the allowed zone.
+   */
+  facilityStockPlacement?: FacilityStockPlacement
+  /**
+   * SPE-2891 / SPE-1027: perishable stock condition keyed by authored spoilage stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty or placement. Omit hydrates empty.
+   * Incorrect storage stamps reagent `degraded` and neighbor `contaminated`.
+   */
+  facilityStockCondition?: FacilityStockCondition
+  /**
+   * SPE-2892 / SPE-1027: emergency caches keyed by authored cache id to a cache zone.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, or condition.
+   * Omit hydrates empty. Salt cache at the matching danger zone improves live-incident timing.
+   */
+  facilityEmergencyCaches?: FacilityEmergencyCaches
+  /**
+   * SPE-2895 / SPE-1027: authored overflow keyed by overflow node id to `overflowing`.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, or caches.
+   * Omit hydrates empty. Evidence-cage overflow resolves to a blocked access penalty.
+   */
+  facilityStockOverflow?: FacilityStockOverflow
+  /**
+   * SPE-2896 / SPE-1027: authored quantity/reserve/outflow preparedness snapshots by stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, caches,
+   * or overflow. Omit hydrates omitted; resolve derives prepared/stockout pressure read-only.
+   */
+  facilityStockPreparedness?: FacilityStockPreparedness
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
+  /**
+   * SPE-877 / SPE-2868 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
+   * `blast_door_membrane`, `pressure_seal_membrane`, and `interlock_membrane` are independent.
+   * Omit hydrates as intact. Legacy singular blast-door records hydrate into the keyed shape.
+   * Recorded zone_breach does not downgrade. Extra-class deficiency never writes blast_door_membrane.
+   */
+  containmentBarrierIntegrity?: ContainmentBarrierIntegrityRegistry
   /**
    * Canonical weekly maintenance backlog of damaged equipment item IDs.
    * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.

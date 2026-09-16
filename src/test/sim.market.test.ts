@@ -232,6 +232,65 @@ describe('market procurement simulation', () => {
     )
   })
 
+  it('does not sell fabricated-lot-reserved equipment as anonymous catalog stock', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 0,
+      },
+    }
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'signal_jammers'
+    )
+
+    expect(listing).toBeDefined()
+
+    const result = sellMarketInventory(state, listing!.id, 1)
+
+    expect(result.funding).toBe(state.funding)
+    expect(result.inventory.signal_jammers).toBe(1)
+    expect(result.events.filter((event) => event.type === 'market.transaction_recorded')).toEqual(
+      []
+    )
+  })
+
+  it('sells equipment when unreserved catalog stock remains alongside fabricated lots', () => {
+    const state = createStartingState()
+    state.inventory.signal_jammers = 2
+    state.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 0,
+      },
+    }
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'signal_jammers'
+    )
+
+    expect(listing).toBeDefined()
+
+    const result = sellMarketInventory(state, listing!.id, 1)
+
+    expect(result.funding).toBe(state.funding + listing!.sellPrice)
+    expect(result.inventory.signal_jammers).toBe(1)
+    expect(result.fabricatedEquipmentLots?.batch).toMatchObject({
+      quantity: 1,
+      trackedInstanceUnits: 0,
+    })
+  })
+
   it('cannot buy beyond remaining availability', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state).find(

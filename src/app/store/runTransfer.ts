@@ -24,10 +24,17 @@ import {
   COMBAT_STIM_DEFINITION_ID,
   COMBAT_STIM_RESOURCE_ID,
   isSafeEquipmentInstanceId,
+  reconcileContainmentBarrierIntegritySources,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
 import { parseFacilityStockpile } from '../../domain/facilityStockpile'
+import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
+import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
+import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
+import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
+import { parseFacilityStockOverflow } from '../../domain/facilityStockOverflow'
+import { parseFacilityStockPreparedness } from '../../domain/facilityStockPreparedness'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -10518,6 +10525,12 @@ export function hydrateGame(
     game.containmentBarrierIntegrity
   )
   const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
+  const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
+  const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
+  const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
+  const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
+  const facilityStockOverflow = parseFacilityStockOverflow(game.facilityStockOverflow)
+  const facilityStockPreparedness = parseFacilityStockPreparedness(game.facilityStockPreparedness)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10619,6 +10632,12 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
     facilityStockpile,
+    departmentLocalStaging,
+    facilityStockPlacement,
+    facilityStockCondition,
+    facilityEmergencyCaches,
+    facilityStockOverflow,
+    facilityStockPreparedness,
     equipmentInstances,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,
@@ -10818,7 +10837,7 @@ export function hydrateGame(
     spe956IncidentBaselineRecords,
   }
 
-  return hydrated
+  return reconcileContainmentBarrierIntegritySources(hydrated)
 }
 
 /**

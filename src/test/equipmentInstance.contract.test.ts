@@ -8,6 +8,7 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
   listStoredEquipmentInstances,
+  reconcileContainmentBarrierIntegritySources,
   reaggregateStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
@@ -3990,6 +3991,36 @@ describe('SPE-877 mutation stations / integrity labor', () => {
     })
   })
 
+  it('does not offer station-stamped identities as recovery sources', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const mutated = applyBlastDoorIntegrityLabor(created.state, created.instance.instanceId)
+    if (!mutated.ok) throw new Error(mutated.code)
+
+    const source = resolveEquipmentDeconstructionSources(mutated.state, 'ward_seals').find(
+      (choice) =>
+        choice.source.kind === 'equipment_instance' &&
+        choice.source.instanceId === created.instance.instanceId
+    )
+    expect(source).toMatchObject({
+      available: false,
+      quantity: 0,
+      issueCode: 'equipment_instance_station_mutation_unsupported',
+    })
+
+    const queued = queueEquipmentDeconstruction(mutated.state, 'ward_seals', {
+      kind: 'equipment_instance',
+      instanceId: created.instance.instanceId,
+    })
+    expect(queued.equipmentInstances?.[created.instance.instanceId]).toEqual(mutated.instance)
+    expect(queued.equipmentDeconstructionQueue ?? []).toEqual([])
+    expect(queued.events).toEqual(mutated.state.events)
+  })
+
   it('rejects transitions that would persist a stamp on a non-blast-door identity', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
@@ -5489,6 +5520,99 @@ describe('SPE-877 barrier-integrity coupling', () => {
     )
   })
 
+  it('drops a source-bound barrier when the blast-door instance is destroyed', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+
+    const destroyed = destroyStoredOrdinaryEquipmentInstance(
+      stopped.state,
+      created.instance.instanceId
+    )
+
+    expect(destroyed).toMatchObject({ ok: true })
+    expect(destroyed.state.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(destroyed.state.containmentBarrierIntegrity).toBeUndefined()
+  })
+
+  it('retargets an orphaned barrier to the remaining most severe live blast-door source', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.week = 5
+    const first = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!second.ok) throw new Error(second.code)
+    const firstStopped = applyContainmentClassDeficiency(
+      second.state,
+      first.instance.instanceId,
+      'hard_stop'
+    )
+    if (!firstStopped.ok) throw new Error(firstStopped.code)
+    const secondStopped = applyContainmentClassDeficiency(
+      firstStopped.state,
+      second.instance.instanceId,
+      'hard_stop'
+    )
+    if (!secondStopped.ok) throw new Error(secondStopped.code)
+
+    const withoutFirst = {
+      ...secondStopped.state,
+      equipmentInstances: Object.fromEntries(
+        Object.entries(secondStopped.state.equipmentInstances ?? {}).filter(
+          ([instanceId]) => instanceId !== first.instance.instanceId
+        )
+      ),
+    }
+    const reconciled = reconcileContainmentBarrierIntegritySources(withoutFirst)
+
+    expect(reconciled.containmentBarrierIntegrity).toEqual({
+      [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
+        zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
+        status: 'zone_breach',
+        sourceInstanceId: second.instance.instanceId,
+        sourceDeficiencyKind: 'hard_stop',
+      },
+    })
+  })
+
+  it('drops orphaned barrier records during hydration', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.week = 5
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const stopped = applyContainmentClassDeficiency(
+      created.state,
+      created.instance.instanceId,
+      'hard_stop'
+    )
+    if (!stopped.ok) throw new Error(stopped.code)
+    const serialized = JSON.parse(JSON.stringify(stopped.state))
+    delete serialized.equipmentInstances[created.instance.instanceId]
+
+    const hydrated = hydrateGame(serialized)
+
+    expect(hydrated.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(hydrated.containmentBarrierIntegrity).toBeUndefined()
+  })
+
   it('hydrates the barrier event as history without replaying mutation', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
@@ -5828,7 +5952,7 @@ describe('SPE-877 barrier-integrity coupling', () => {
 
   it('hydrates extra-class barrier events as history without replaying mutation', () => {
     const state = createStartingState()
-    state.inventory.ward_seals = 1
+    state.inventory.ward_seals = 2
     state.week = 4
     const created = instantiateEquipmentInstance(state, 'ward_seals', {
       containmentIntegrity: {
@@ -5839,9 +5963,13 @@ describe('SPE-877 barrier-integrity coupling', () => {
       },
     })
     if (!created.ok) throw new Error(created.code)
-    const withEvent = appendOperationEventDrafts(created.state, [
+    const blastDoor = instantiateEquipmentInstance(created.state, 'ward_seals', {
+      containmentIntegrity: blastDoorIntegrity(),
+    })
+    if (!blastDoor.ok) throw new Error(blastDoor.code)
+    const withEvent = appendOperationEventDrafts(blastDoor.state, [
       createContainmentBarrierIntegrityChangedDraft({
-        week: created.state.week,
+        week: blastDoor.state.week,
         instanceId: created.instance.instanceId,
         definitionId: 'ward_seals',
         definitionName: 'Ward Seals',
@@ -5858,7 +5986,7 @@ describe('SPE-877 barrier-integrity coupling', () => {
       [BLAST_DOOR_MEMBRANE_ZONE_ID]: {
         zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
         status: 'zone_breach',
-        sourceInstanceId: created.instance.instanceId,
+        sourceInstanceId: blastDoor.instance.instanceId,
         sourceDeficiencyKind: 'hard_stop',
       },
     }

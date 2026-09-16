@@ -92,6 +92,7 @@ import {
   reconcileDepartmentWorkshopTerminalLanes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
+import { parseDepartmentLocalStaging } from '../departmentLocalStaging'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -244,6 +245,7 @@ import {
 import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
 import { applyEquipmentAutoScrapAtWeekClose } from '../equipmentAutoScrap'
 import { advanceContainmentClassInspectionsAtWeekClose } from '../containmentClassWeekClose'
+import { reconcileContainmentBarrierIntegritySources } from '../equipmentInstance'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -2740,6 +2742,7 @@ function resolveAssignments(
       agents: missionAgentMutations.nextAgents,
       equipmentInstances: missionAgentMutations.nextEquipmentInstances,
     }
+    context.nextState = reconcileContainmentBarrierIntegritySources(context.nextState)
     if (missionAgentMutations.fundingDelta !== 0) {
       context.nextState = {
         ...context.nextState,
@@ -5011,7 +5014,12 @@ export function advanceWeek(
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
   // It runs before downstream persisted-record hooks and changes no queue but
   // the two canonical workshop registries.
-  const workshopProcessingTick = processDepartmentWorkshopTick(inputWeeklyState)
+  const workshopProcessingTick = processDepartmentWorkshopTick(
+    inputWeeklyState,
+    undefined,
+    undefined,
+    parseDepartmentLocalStaging(inputWeeklyState.departmentLocalStaging)
+  )
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots

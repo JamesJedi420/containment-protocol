@@ -44,12 +44,12 @@ adjacency context.
 
 ## Deferred
 
-| Item                                        | Owner                          | Why deferred                                              |
-| ------------------------------------------- | ------------------------------ | --------------------------------------------------------- |
-| Live facility/staff safety mapping          | SPE-2772                       | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                     |
-| Persisted topology-to-staging projection    | Create SPE-1028 child          | This slice accepts caller-owned classifications only      |
-| Duration-aware SPE-2084 coordination policy | Create SPE-1028/SPE-2084 child | Coordination delay remains current-occupancy based        |
-| Centralized/distributed workroom tradeoffs  | Create SPE-1028 child          | Requires layout, staffing, and breach-isolation policy    |
-| Player-facing staging explanation           | Future topology/UI integration | No authoritative live staging source exists in this slice |
+| Item                                        | Owner                           | Why deferred                                                                                                                                                                                                                        |
+| ------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live facility/staff safety mapping          | SPE-2772                        | Shipped through SPE-2772 / PR #3462; broader operational projection remains separate                                                                                                                                                |
+| Persisted topology-to-staging projection    | SPE-1026 / later topology child | [SPE-2889](https://linear.app/spectranoir/issue/SPE-2889/persist-department-local-staging-and-feed-week-close-workshop-tick) persists caller-owned adjacent/remote and feeds week-close; CAD room-graph derivation remains SPE-1026 |
+| Duration-aware SPE-2084 coordination policy | Create SPE-1028/SPE-2084 child  | Coordination delay remains current-occupancy based                                                                                                                                                                                  |
+| Centralized/distributed workroom tradeoffs  | Create SPE-1028 child           | Requires layout, staffing, and breach-isolation policy                                                                                                                                                                              |
+| Player-facing staging explanation           | Future topology/UI integration  | No authoritative live staging source exists in this slice                                                                                                                                                                           |
 
 Parent SPE-1028 remains open after this bounded child ships.

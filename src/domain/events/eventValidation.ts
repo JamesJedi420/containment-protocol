@@ -23,7 +23,17 @@ import {
   getContainmentClassCadenceSpec,
   isContainmentClassId,
 } from '../containmentClassInspection'
-import { BLAST_DOOR_INTEGRITY_LABOR_STATION_ID } from '../equipmentStationMutation'
+import {
+  BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+  INTERLOCK_INTEGRITY_LABOR_STATION_ID,
+  PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+  eligibleClassIdForIntegrityLaborStation,
+  isIntegrityLaborStationId,
+} from '../equipmentStationMutation'
+import {
+  CONTAINMENT_BARRIER_ZONE_IDS,
+  zoneIdForContainmentClass,
+} from '../containmentBarrierIntegrity'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
@@ -1138,7 +1148,7 @@ const equipmentContainmentClassInspectedSchema = z
     deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
     compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     inService: z.boolean(),
-    reason: z.literal('week_close_auto_advance'),
+    reason: z.enum(['week_close_auto_advance', 'mid_week_player_inspect']),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -1154,7 +1164,7 @@ const equipmentContainmentClassInspectedSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['lastInspectionWeek'],
-        message: 'week-close inspect stamps lastInspectionWeek to the closing week',
+        message: 'inspect stamps lastInspectionWeek to the event week',
       })
     }
     if (payload.previousLastInspectionWeek >= payload.lastInspectionWeek) {
@@ -1193,7 +1203,7 @@ const equipmentContainmentClassInspectedSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['deficiencyKind'],
-        message: 'overdue week-close inspect records hard_stop',
+        message: 'overdue inspect records hard_stop',
       })
     }
     refineContainmentClassControlPairing(payload, context)
@@ -1205,10 +1215,10 @@ const equipmentContainmentClassStabilizedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
+    classId: containmentClassIdSchema,
     previousDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
     deficiencyKind: z.enum(['compensating_continue', 'none']),
-    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     previousCycleCount: finiteNonNegativeIntSchema,
     cycleCount: finiteNonNegativeIntSchema,
     inService: z.boolean(),
@@ -1251,11 +1261,12 @@ const equipmentContainmentClassStabilizedSchema = z
           message: 'hard-stop relief must become compensating continue',
         })
       }
-      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+      const expectedControl = expectedCompensatingControlIdForClass(payload.classId)
+      if (payload.compensatingControlId !== expectedControl) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['compensatingControlId'],
-          message: 'hard-stop relief requires secondary_interlock_watch',
+          message: 'hard-stop relief requires the authored control for the class',
         })
       }
       return
@@ -1282,13 +1293,17 @@ const equipmentInstanceStationMutatedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
-    stationId: z.literal(BLAST_DOOR_INTEGRITY_LABOR_STATION_ID),
+    classId: containmentClassIdSchema,
+    stationId: z.enum([
+      BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+      PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+      INTERLOCK_INTEGRITY_LABOR_STATION_ID,
+    ]),
     previousCycleCount: finiteNonNegativeIntSchema,
     cycleCount: finiteNonNegativeIntSchema,
     condition: z.enum(['operational', 'damaged']),
     deficiencyKind: z.enum(['none', 'hard_stop', 'compensating_continue']),
-    compensatingControlId: z.literal('secondary_interlock_watch').optional(),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
     inService: z.boolean(),
     reason: z.literal('integrity_labor'),
   })
@@ -1313,12 +1328,24 @@ const equipmentInstanceStationMutatedSchema = z
         message: 'integrity labor must increment cycleCount by 1',
       })
     }
+    if (
+      isIntegrityLaborStationId(payload.stationId) &&
+      eligibleClassIdForIntegrityLaborStation(payload.stationId) !== payload.classId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stationId'],
+        message: 'integrity-labor station must match the authored class',
+      })
+    }
     if (payload.deficiencyKind === 'compensating_continue') {
-      if (payload.compensatingControlId !== 'secondary_interlock_watch') {
+      if (
+        payload.compensatingControlId !== expectedCompensatingControlIdForClass(payload.classId)
+      ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['compensatingControlId'],
-          message: 'blast-door compensating continue requires secondary_interlock_watch',
+          message: 'compensating continue requires the authored control for the class',
         })
       }
     } else if (payload.compensatingControlId !== undefined) {
@@ -1351,8 +1378,8 @@ const equipmentContainmentBarrierIntegrityChangedSchema = z
     instanceId: equipmentInstanceIdSchema,
     definitionId: idSchema,
     definitionName: z.string().min(1),
-    classId: z.literal('blast_door'),
-    zoneId: z.literal('blast_door_membrane'),
+    classId: containmentClassIdSchema,
+    zoneId: z.enum(CONTAINMENT_BARRIER_ZONE_IDS),
     previousStatus: z.enum(['intact', 'flow_restraint', 'zone_breach']),
     status: z.enum(['flow_restraint', 'zone_breach']),
     sourceDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
@@ -1366,6 +1393,13 @@ const equipmentContainmentBarrierIntegrityChangedSchema = z
         code: z.ZodIssueCode.custom,
         path: ['definitionId'],
         message: 'barrier integrity instance must reference a known equipment catalog definition',
+      })
+    }
+    if (zoneIdForContainmentClass(payload.classId) !== payload.zoneId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['zoneId'],
+        message: 'barrier class/zone pairing is mixed',
       })
     }
     if (payload.status === 'flow_restraint') {

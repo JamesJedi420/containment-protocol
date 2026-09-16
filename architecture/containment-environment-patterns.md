@@ -18,27 +18,60 @@ One authored zone: `blast_door_membrane`. One SPE-2860 class: `blast_door`. Defi
 | `compensating_continue`       | `flow_restraint`           | `barrier_integrity_watch` — flow-restraint under `secondary_interlock_watch`. **Not** a breach. |
 | `hard_stop`                   | `zone_breach`              | SPE-471 catastrophic wall-breach. The door is out of service; the zone has failed.              |
 
+## Frozen pairing (pressure_seal)
+
+One authored zone: `pressure_seal_membrane`. One SPE-2864 class: `pressure_seal`. Same deficiency
+→ status table as blast-door. `persistContainmentBarrierCoupling` writes only
+`pressure_seal_membrane` and must not clobber `blast_door_membrane`.
+
+## Frozen pairing (interlock)
+
+One authored zone: `interlock_membrane`. One SPE-2865 class: `interlock`. Same deficiency → status
+table as blast-door. `persistContainmentBarrierCoupling` writes only `interlock_membrane` and must
+not clobber `blast_door_membrane`.
+
+Optional `GameState.containmentBarrierIntegrity` is a keyed registry of those zones. Legacy
+singular blast-door records hydrate into `{ blast_door_membrane: record }`. Mixed class/zone
+pairings fail closed. Recorded `zone_breach` never downgrades.
+
 ## Sticky recorded breach
 
-`zone_breach` never downgrades. Technician stabilization (SPE-2862) may restore door `inService`
-without erasing a recorded breach. Compensating continue after a live `zone_breach` does not open a
-second model and does not clear the breach. SPE-2851 `damaged` is not a breach.
+`zone_breach` never downgrades. Technician stabilization (SPE-2862 / SPE-2876 / SPE-2878, including extra-class
+relieve/clear) recouples the authored membrane from the new deficiency: `none` omits that zone's
+`flow_restraint` only when `existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced
+restraint stays. A recorded `zone_breach` stays sticky even after hard-stop relief restores
+`inService`. Week-close inspect and `applyContainmentClassDeficiency` still never-downgrade.
+Compensating continue after a live `zone_breach` does not open a second model and does not clear
+the breach. SPE-2851 `damaged` is not a breach.
 
 ## Anti-patterns
 
-- A second integrity class, extra containment classes, or a door-opening minigame beside SPE-2860.
+- A fourth containment class, a door-opening minigame, or a parallel `barrier_integrity` vocabulary
+  beside this file.
 - Treating compensating continue as full wall-breach.
-- Inventing a second `barrier_integrity` vocabulary beside this file.
-- Week-close inspection advance, SPE-1027 stock consume, store/UI surfaces this pairing does not own.
+- Writing `blast_door_membrane` from a non-`blast_door` class, or a parallel GameState sibling that
+  clobbers the blast-door record.
+- A second inspect cadence kernel from store/UI. SPE-2886 mid-week inspect reuses
+  `resolveContainmentClassWeekCloseInspection`; week-close auto-advance remains the production
+  batch path. SPE-2869 is technician stabilization on the existing SPE-2862 writer. SPE-1027 stock
+  consume this pairing does not own.
 
 ## Runtime owner
 
-`src/domain/containmentBarrierIntegrity.ts` plus `applyContainmentClassDeficiency` in
-`src/domain/equipmentInstance.ts`. Optional `GameState.containmentBarrierIntegrity` hydrates
-fail-closed; operation event `equipment.containment_barrier_integrity_changed` is history only.
+`src/domain/containmentBarrierIntegrity.ts` plus `persistContainmentBarrierCoupling` in
+`src/domain/equipmentInstance.ts` (shared by `applyContainmentClassDeficiency`, week-close
+inspect advance, and mid-week `inspectContainmentClassIntegrity`). Optional `GameState.containmentBarrierIntegrity` hydrates fail-closed; operation
+event `equipment.containment_barrier_integrity_changed` is history only.
 
 ## See also
 
 - `planning/spe-barrier-integrity-coupling-slice.md`
+- `planning/spe-877-pressure-seal-barrier-zone-slice.md`
+- `planning/spe-877-extra-class-barrier-zones-slice.md`
+- `planning/spe-877-extra-class-technician-stabilization-slice.md`
+- `planning/spe-877-store-ui-inspect-deficiency-slice.md`
+- `planning/spe-877-barrier-recouple-technician-relief-slice.md`
+- `planning/spe-877-sibling-sourced-restraint-slice.md`
+- `planning/spe-877-mid-week-inspect-slice.md`
 - `planning/spe-2860-containment-class-inspection-cadence-deficiency-slice.md`
 - `architecture/fortified-site-breach-assault.md` — assault-layer breach, not this membrane pairing

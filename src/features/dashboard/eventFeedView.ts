@@ -11,6 +11,7 @@ import {
   type OperationEventType,
 } from '../../domain/models'
 import type { ContainmentClassId } from '../../domain/containmentClassInspection'
+import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
 
 export type EventFeedFilters = {
   query: string
@@ -1051,11 +1052,12 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         timestampLabel,
         tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} week-close auto-advance ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.reason} ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 
     case 'equipment.containment_class_stabilized': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const previousLabel =
         event.payload.previousDeficiencyKind === 'hard_stop' ? 'Hard stop' : 'Compensating continue'
       const nextLabel =
@@ -1066,17 +1068,18 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} containment class stabilized`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'success',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 
     case 'equipment.instance_station_mutated': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
       const deficiencyLabel =
         event.payload.deficiencyKind === 'hard_stop'
           ? 'Hard stop'
@@ -1087,13 +1090,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} integrity labor applied`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'neutral',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
       }
     }
 
@@ -1102,17 +1105,18 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event.payload.status === 'zone_breach'
           ? 'Zone breach'
           : 'Flow restraint / barrier integrity watch'
+      const zoneLabel = labelContainmentBarrierZone(event.payload.zoneId)
       return {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} barrier integrity changed`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Blast door membrane / ${statusLabel}`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${zoneLabel} / ${statusLabel}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.status === 'zone_breach' ? 'danger' : 'warning',
         searchText:
-          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} blast door membrane ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${zoneLabel} ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
       }
     }
 

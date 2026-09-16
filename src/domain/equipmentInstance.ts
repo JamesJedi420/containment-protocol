@@ -14,17 +14,26 @@ import {
   evaluateContainmentInspection,
   isContainmentClassInService,
   parseContainmentClassIntegrity,
+  resolveContainmentClassWeekCloseInspection,
   resolveTechnicianStabilization,
   snapshotContainmentClassIntegrity,
+  type ContainmentClassId,
   type ContainmentClassIntegrity,
   type ContainmentDeficiencyContinuation,
 } from './containmentClassInspection'
 import {
-  BLAST_DOOR_MEMBRANE_ZONE_ID,
-  parseContainmentBarrierIntegrity,
+  parseContainmentBarrierIntegrityRegistry,
   resolveContainmentBarrierIntegrityCoupling,
+  snapshotContainmentBarrierIntegrityRegistry,
   type ContainmentBarrierIntegrity,
+  type ContainmentBarrierZoneId,
+  zoneIdForContainmentClass,
 } from './containmentBarrierIntegrity'
+import {
+  consumeFacilityStock,
+  parseFacilityStockpile,
+  type FacilityStockConsumeFailureCode,
+} from './facilityStockpile'
 import {
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
@@ -32,12 +41,17 @@ import {
   type SparePartSuitabilityFailureCode,
 } from './sparePartSuitability'
 import {
+  eligibleClassIdForIntegrityLaborStation,
   parseEquipmentInstanceStationMutation,
   resolveBlastDoorIntegrityLabor,
+  resolveInterlockIntegrityLabor,
+  resolvePressureSealIntegrityLabor,
   snapshotEquipmentInstanceStationMutation,
   stationMutationsEqual,
   type EquipmentInstanceStationMutation,
+  type IntegrityLaborResolveResult,
 } from './equipmentStationMutation'
+import { isAuthoredWorkshopIntegrityInstanceId } from './departmentWorkshopIntegrityQualityMapping'
 
 export type EquipmentInstanceId = string
 export type EquipmentInstanceCondition = 'operational' | 'damaged'
@@ -66,7 +80,7 @@ export interface EquipmentInstance {
   condition: EquipmentInstanceCondition
   payload?: EquipmentInstanceConsumablePayload
   fabricationOrigin?: EquipmentInstanceFabricationOrigin
-  /** SPE-2860: optional blast-door integrity; distinct from `condition`. */
+  /** SPE-2860: optional containment-class integrity; distinct from `condition`. */
   containmentIntegrity?: ContainmentClassIntegrity
   /** SPE-877 mutation-stations child: optional permanent integrity-labor stamp. */
   stationMutation?: EquipmentInstanceStationMutation
@@ -101,6 +115,7 @@ export type EquipmentInstanceFailureCode =
   | 'payload_reaggregation_unsupported'
   | 'condition_reaggregation_unsupported'
   | 'station_mutation_reaggregation_unsupported'
+  | 'authored_workshop_identity_protected'
   | 'condition_already_operational'
   | 'inventory_capacity_exceeded'
   | 'recovery_claimed'
@@ -112,12 +127,32 @@ export type EquipmentInstanceFailureCode =
   | 'no_containment_deficiency'
   | 'missing_part'
   | 'unsuitable_part'
+  | 'stock_unavailable'
   | 'station_mutation_already_applied'
   | 'unauthorized_station_mutation'
   | 'malformed_station_mutation'
 
 export type EquipmentInstanceMutationResult =
   | { ok: true; state: GameState; instance: EquipmentInstance }
+  | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
+
+export type ContainmentClassInspectResult =
+  | {
+      ok: true
+      state: GameState
+      instance: EquipmentInstance
+      inspection: {
+        classId: ContainmentClassId
+        status: 'due' | 'overdue'
+        previousLastInspectionWeek: number
+        lastInspectionWeek: number
+        intervalWeeks: number
+        weeksSinceInspection: number
+        deficiency: Exclude<ContainmentClassIntegrity['deficiency'], { kind: 'none' }>
+        deficiencyChanged: boolean
+        inService: boolean
+      }
+    }
   | { ok: false; state: GameState; code: EquipmentInstanceFailureCode }
 
 const EQUIPMENT_INSTANCE_KEYS = [
@@ -340,7 +375,12 @@ function stationMutationClassFailure(
   containmentIntegrity: ContainmentClassIntegrity | undefined
 ): EquipmentInstanceFailureCode | undefined {
   if (!stationMutation) return undefined
-  if (containmentIntegrity?.classId === 'blast_door') return undefined
+  if (
+    eligibleClassIdForIntegrityLaborStation(stationMutation.stationId) ===
+    containmentIntegrity?.classId
+  ) {
+    return undefined
+  }
   return 'malformed_station_mutation'
 }
 
@@ -621,6 +661,9 @@ export function destroyStoredOrdinaryEquipmentInstance(
   if (!isSafeEquipmentInstanceId(instanceId)) {
     return { ok: false, state: normalized, code: 'invalid_instance_id' }
   }
+  if (isAuthoredWorkshopIntegrityInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
+  }
   const instance = normalized.equipmentInstances?.[instanceId]
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
   if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
@@ -649,7 +692,7 @@ export function destroyStoredOrdinaryEquipmentInstance(
   return { ok: true, state: nextState, instance: createEquipmentInstanceSnapshot(instance) }
 }
 
-/** SPE-2856 / SPE-2857: destroy equipped instance-backed slots on mission casualty. No inventory credit. */
+/** SPE-2856 / SPE-2857 / SPE-2879: destroy equipped instance-backed slots on mission casualty. No inventory credit. Authored SPE-2866 workshop identities are skipped in place. */
 export function takeEquippedInstancesLostOnMissionResolution(
   agents: GameState['agents'],
   equipmentInstances: EquipmentInstanceRegistry | undefined,
@@ -681,6 +724,9 @@ export function takeEquippedInstancesLostOnMissionResolution(
       if (isEquipmentInstanceClaimedForRecovery(recoveryState, instance.instanceId)) {
         continue
       }
+      if (isAuthoredWorkshopIntegrityInstanceId(instance.instanceId)) {
+        continue
+      }
       if (options?.skipInstance?.(instance)) {
         continue
       }
@@ -706,6 +752,9 @@ export function reaggregateStoredOrdinaryEquipmentInstance(
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
     return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  if (isAuthoredWorkshopIntegrityInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
   }
   const instance = normalized.equipmentInstances?.[instanceId]
   if (!instance) return { ok: false, state: normalized, code: 'stale_transition' }
@@ -761,6 +810,7 @@ export type EquipmentInstanceConditionRepairReasonCode =
   | 'recovery_claimed'
   | 'missing_part'
   | 'unsuitable_part'
+  | 'stock_unavailable'
   | 'invalid_containment_class'
   | 'malformed_containment_integrity'
 
@@ -844,6 +894,12 @@ export function resolveStoredEquipmentInstanceConditionRepair(
       reasonCode: mapSparePartSuitabilityFailure(suitability.code),
     }
   }
+  if (suitability.required) {
+    const available = parseFacilityStockpile(state.facilityStockpile)?.[suitability.sparePartId]
+    if (available === undefined || available < 1) {
+      return { ...base, canRepairCondition: false, reasonCode: 'stock_unavailable' }
+    }
+  }
   return { ...base, canRepairCondition: true }
 }
 
@@ -858,6 +914,7 @@ export function getStoredEquipmentInstanceConditionRepairReasonLabel(
     recovery_claimed: 'This copy is already claimed by equipment recovery.',
     missing_part: 'A suitable spare part is required.',
     unsuitable_part: 'That spare part is not suitable for this repair.',
+    stock_unavailable: 'Named spare-part stock is unavailable.',
     invalid_containment_class: 'Unknown containment class.',
     malformed_containment_integrity: 'Containment integrity is malformed.',
   }
@@ -878,10 +935,35 @@ export function repairStoredEquipmentInstanceCondition(
   if (!current) {
     return { ok: false, state: normalized, code: 'stale_transition' }
   }
-  return applyEquipmentInstanceTransition(normalized, instanceId, current, {
+  const repaired = applyEquipmentInstanceTransition(normalized, instanceId, current, {
     ...current,
     condition: 'operational',
   })
+  if (!repaired.ok) {
+    return repaired
+  }
+  if (!preview.requiredSparePartId) {
+    return repaired
+  }
+  const consumed = consumeFacilityStock(repaired.state, preview.requiredSparePartId)
+  if (!consumed.ok) {
+    return { ok: false, state, code: mapFacilityStockConsumeFailure(consumed.code) }
+  }
+  return { ok: true, state: consumed.state, instance: repaired.instance }
+}
+
+function mapFacilityStockConsumeFailure(
+  code: FacilityStockConsumeFailureCode
+): EquipmentInstanceFailureCode {
+  switch (code) {
+    case 'stock_unavailable':
+    case 'invalid_stock_id':
+      return 'stock_unavailable'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
 }
 
 function mapContainmentEvaluationFailure(
@@ -963,63 +1045,181 @@ export function applyContainmentClassDeficiency(
   }
 }
 
+export function canInspectContainmentClassIntegrity(
+  instance: EquipmentInstance | undefined,
+  currentWeek: number
+): boolean {
+  if (!instance || instance.location.state !== 'stored') return false
+  const parsed = parseContainmentClassIntegrity(instance.containmentIntegrity)
+  if (!parsed.ok) return false
+  const resolved = resolveContainmentClassWeekCloseInspection({
+    classId: parsed.integrity.classId,
+    lastInspectionWeek: parsed.integrity.lastInspectionWeek,
+    currentWeek,
+    cycleCount: parsed.integrity.cycleCount,
+    existingDeficiency: parsed.integrity.deficiency,
+  })
+  return resolved.ok && resolved.action === 'advance'
+}
+
+export function inspectContainmentClassIntegrity(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): ContainmentClassInspectResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  if (current.location.state !== 'stored') {
+    return { ok: false, state: normalized, code: 'instance_not_stored' }
+  }
+  if (!current.containmentIntegrity) {
+    return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
+  }
+  const parsed = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsed.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
+  }
+  const resolved = resolveContainmentClassWeekCloseInspection({
+    classId: parsed.integrity.classId,
+    lastInspectionWeek: parsed.integrity.lastInspectionWeek,
+    currentWeek: normalized.week,
+    cycleCount: parsed.integrity.cycleCount,
+    existingDeficiency: parsed.integrity.deficiency,
+  })
+  if (!resolved.ok) {
+    return { ok: false, state: normalized, code: mapContainmentEvaluationFailure(resolved.code) }
+  }
+  if (resolved.action === 'noop') {
+    return { ok: false, state: normalized, code: 'inspection_not_due' }
+  }
+
+  const nextIntegrity = snapshotContainmentClassIntegrity({
+    ...parsed.integrity,
+    lastInspectionWeek: resolved.lastInspectionWeek,
+    deficiency: resolved.deficiency,
+  })
+  const transitioned = applyEquipmentInstanceTransition(normalized, instanceId, current, {
+    ...current,
+    containmentIntegrity: nextIntegrity,
+  })
+  if (!transitioned.ok) return transitioned
+  const nextState = persistContainmentBarrierCoupling(
+    transitioned.state,
+    instanceId,
+    resolved.deficiency
+  )
+  const instance = nextState.equipmentInstances?.[instanceId]
+  if (!instance) {
+    return { ok: false, state: normalized, code: 'stale_transition' }
+  }
+  return {
+    ok: true,
+    state: nextState,
+    instance,
+    inspection: {
+      classId: resolved.classId,
+      status: resolved.status,
+      previousLastInspectionWeek: resolved.previousLastInspectionWeek,
+      lastInspectionWeek: resolved.lastInspectionWeek,
+      intervalWeeks: resolved.intervalWeeks,
+      weeksSinceInspection: resolved.weeksSinceInspection,
+      deficiency: resolved.deficiency,
+      deficiencyChanged: resolved.deficiencyChanged,
+      inService: resolved.inService,
+    },
+  }
+}
+
 export function persistContainmentBarrierCoupling(
   state: GameState,
   instanceId: EquipmentInstanceId,
-  deficiency: ContainmentClassIntegrity['deficiency']
+  deficiency: ContainmentClassIntegrity['deficiency'],
+  options?: { technicianRelief?: boolean }
 ): GameState {
-  if (state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId !== 'blast_door') {
-    return state
-  }
+  const classId = state.equipmentInstances?.[instanceId]?.containmentIntegrity?.classId
+  if (!classId) return state
+  const zoneId = zoneIdForContainmentClass(classId)
+  const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
+  const technicianRelief = options?.technicianRelief === true
   const resolved = resolveContainmentBarrierIntegrityCoupling({
-    existing: state.containmentBarrierIntegrity,
+    existing: registry?.[zoneId],
     deficiency,
     sourceInstanceId: instanceId,
+    classId,
+    ...(technicianRelief ? { technicianRelief: true } : {}),
   })
-  if (!resolved.ok || !resolved.changed || !resolved.barrier) {
+  if (!resolved.ok || !resolved.changed) {
     return state
+  }
+  if (resolved.barrier) {
+    return normalizeGameState({
+      ...state,
+      containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+        ...(registry ?? {}),
+        [zoneId]: resolved.barrier,
+      }),
+    })
+  }
+  if (!technicianRelief) {
+    return state
+  }
+  const remaining = findRemainingSameClassLiveSource(state, classId, instanceId)
+  if (remaining) {
+    const recoupled = resolveContainmentBarrierIntegrityCoupling({
+      existing: undefined,
+      deficiency: remaining.deficiency,
+      sourceInstanceId: remaining.instanceId,
+      classId,
+    })
+    if (recoupled.ok && recoupled.barrier) {
+      return normalizeGameState({
+        ...state,
+        containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+          ...(registry ?? {}),
+          [zoneId]: recoupled.barrier,
+        }),
+      })
+    }
   }
   return normalizeGameState({
     ...state,
-    containmentBarrierIntegrity: resolved.barrier,
+    containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry({
+      ...(registry ?? {}),
+      [zoneId]: undefined,
+    }),
   })
 }
 
-function deriveContainmentBarrierIntegrityFromLiveBlastDoors(
-  instances: EquipmentInstanceRegistry | undefined
-): ContainmentBarrierIntegrity | undefined {
-  let selected: ContainmentBarrierIntegrity | undefined
+type RemainingSameClassLiveSource = {
+  instanceId: EquipmentInstanceId
+  deficiency: Exclude<ContainmentClassIntegrity['deficiency'], { kind: 'none' }>
+}
 
-  for (const instanceId of Object.keys(instances ?? {}).sort()) {
-    const instance = instances?.[instanceId]
-    const parsed = parseContainmentClassIntegrity(instance?.containmentIntegrity)
-    if (!parsed.ok || parsed.integrity.classId !== 'blast_door') continue
-
-    const deficiency = parsed.integrity.deficiency
-    const candidate =
-      deficiency.kind === 'hard_stop'
-        ? ({
-            zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
-            status: 'zone_breach' as const,
-            sourceInstanceId: instanceId,
-            sourceDeficiencyKind: 'hard_stop' as const,
-          } satisfies ContainmentBarrierIntegrity)
-        : deficiency.kind === 'compensating_continue'
-          ? ({
-              zoneId: BLAST_DOOR_MEMBRANE_ZONE_ID,
-              status: 'flow_restraint' as const,
-              sourceInstanceId: instanceId,
-              sourceDeficiencyKind: 'compensating_continue' as const,
-            } satisfies ContainmentBarrierIntegrity)
-          : undefined
-    if (!candidate) continue
-    if (!selected || candidate.status === 'zone_breach') {
-      selected = candidate
-      if (candidate.status === 'zone_breach') break
+function containmentClassForBarrierZone(zoneId: ContainmentBarrierZoneId): ContainmentClassId {
+  switch (zoneId) {
+    case 'blast_door_membrane':
+      return 'blast_door'
+    case 'pressure_seal_membrane':
+      return 'pressure_seal'
+    case 'interlock_membrane':
+      return 'interlock'
+    default: {
+      const exhaustive: never = zoneId
+      return exhaustive
     }
   }
-
-  return selected
 }
 
 function canBarrierSourceStillAnchor(
@@ -1028,20 +1228,96 @@ function canBarrierSourceStillAnchor(
 ) {
   const source = state.equipmentInstances?.[barrier.sourceInstanceId]
   const parsed = parseContainmentClassIntegrity(source?.containmentIntegrity)
-  return parsed.ok && parsed.integrity.classId === 'blast_door'
+  return parsed.ok && zoneIdForContainmentClass(parsed.integrity.classId) === barrier.zoneId
+}
+
+function liveSourceRank(kind: RemainingSameClassLiveSource['deficiency']['kind']): number {
+  switch (kind) {
+    case 'hard_stop':
+      return 1
+    case 'compensating_continue':
+      return 0
+    default: {
+      const exhaustive: never = kind
+      return exhaustive
+    }
+  }
+}
+
+function findRemainingSameClassLiveSource(
+  state: GameState,
+  classId: ContainmentClassId,
+  excludeInstanceId: EquipmentInstanceId
+): RemainingSameClassLiveSource | undefined {
+  const remaining: RemainingSameClassLiveSource[] = []
+  for (const instance of Object.values(state.equipmentInstances ?? {})) {
+    if (instance.instanceId === excludeInstanceId) continue
+    if (instance.location.state !== 'stored' && instance.location.state !== 'equipped') continue
+    const parsed = parseContainmentClassIntegrity(instance.containmentIntegrity)
+    if (!parsed.ok || parsed.integrity.classId !== classId) continue
+    const deficiency = parsed.integrity.deficiency
+    if (deficiency.kind !== 'hard_stop' && deficiency.kind !== 'compensating_continue') continue
+    remaining.push({ instanceId: instance.instanceId, deficiency })
+  }
+  remaining.sort((left, right) => {
+    const rankDelta = liveSourceRank(right.deficiency.kind) - liveSourceRank(left.deficiency.kind)
+    if (rankDelta !== 0) return rankDelta
+    if (left.instanceId < right.instanceId) return -1
+    if (left.instanceId > right.instanceId) return 1
+    return 0
+  })
+  return remaining.at(0)
 }
 
 export function reconcileContainmentBarrierIntegritySources(state: GameState): GameState {
-  const current = parseContainmentBarrierIntegrity(state.containmentBarrierIntegrity)
-  if (!current.ok) return state
-  if (canBarrierSourceStillAnchor(state, current.barrier)) return state
+  const registry = parseContainmentBarrierIntegrityRegistry(state.containmentBarrierIntegrity)
+  if (!registry) return state
 
+  let changed = false
+  const nextRegistry = { ...registry }
+  for (const [zoneId, barrier] of Object.entries(registry) as [
+    ContainmentBarrierZoneId,
+    ContainmentBarrierIntegrity,
+  ][]) {
+    if (canBarrierSourceStillAnchor(state, barrier)) continue
+
+    changed = true
+    const classId = containmentClassForBarrierZone(zoneId)
+    const remaining = findRemainingSameClassLiveSource(state, classId, barrier.sourceInstanceId)
+    if (!remaining) {
+      delete nextRegistry[zoneId]
+      continue
+    }
+
+    const recoupled = resolveContainmentBarrierIntegrityCoupling({
+      existing: undefined,
+      deficiency: remaining.deficiency,
+      sourceInstanceId: remaining.instanceId,
+      classId,
+    })
+    if (recoupled.ok && recoupled.barrier) {
+      nextRegistry[zoneId] = recoupled.barrier
+    } else {
+      delete nextRegistry[zoneId]
+    }
+  }
+
+  if (!changed) return state
   return normalizeGameState({
     ...state,
-    containmentBarrierIntegrity: deriveContainmentBarrierIntegrityFromLiveBlastDoors(
-      state.equipmentInstances
-    ),
+    containmentBarrierIntegrity: snapshotContainmentBarrierIntegrityRegistry(nextRegistry),
   })
+}
+
+export function canStabilizeContainmentClassDeficiency(
+  instance: EquipmentInstance | undefined
+): boolean {
+  const parsed = parseContainmentClassIntegrity(instance?.containmentIntegrity)
+  if (!parsed.ok) return false
+  return resolveTechnicianStabilization({
+    classId: parsed.integrity.classId,
+    deficiency: parsed.integrity.deficiency,
+  }).ok
 }
 
 export function stabilizeContainmentClassDeficiency(
@@ -1059,10 +1335,21 @@ export function stabilizeContainmentClassDeficiency(
   if (!current.containmentIntegrity) {
     return { ok: false, state: normalized, code: 'malformed_containment_integrity' }
   }
-  if (current.containmentIntegrity.classId !== 'blast_door') {
-    return { ok: false, state: normalized, code: 'invalid_containment_class' }
+  const parsed = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsed.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
   }
-  const resolved = resolveTechnicianStabilization(current.containmentIntegrity.deficiency)
+  const resolved = resolveTechnicianStabilization({
+    classId: parsed.integrity.classId,
+    deficiency: parsed.integrity.deficiency,
+  })
   if (!resolved.ok) {
     return {
       ok: false,
@@ -1082,7 +1369,7 @@ export function stabilizeContainmentClassDeficiency(
     cycleCount: nextCycleCount,
     deficiency: resolved.deficiency,
   })
-  return applyEquipmentInstanceTransitionInternal(
+  const transitioned = applyEquipmentInstanceTransitionInternal(
     normalized,
     instanceId,
     current,
@@ -1092,6 +1379,13 @@ export function stabilizeContainmentClassDeficiency(
     },
     { allowHardStopRelief: true }
   )
+  if (!transitioned.ok) return transitioned
+  return {
+    ...transitioned,
+    state: persistContainmentBarrierCoupling(transitioned.state, instanceId, resolved.deficiency, {
+      technicianRelief: true,
+    }),
+  }
 }
 
 function mapIntegrityLaborFailure(
@@ -1113,9 +1407,14 @@ function mapIntegrityLaborFailure(
   }
 }
 
-export function applyBlastDoorIntegrityLabor(
+function applyIntegrityLabor(
   state: GameState,
-  instanceId: EquipmentInstanceId
+  instanceId: EquipmentInstanceId,
+  resolve: (input: {
+    classId: unknown
+    existingMutation: unknown
+    currentWeek: unknown
+  }) => IntegrityLaborResolveResult
 ): EquipmentInstanceMutationResult {
   const normalized = ensureNormalizedGameState(state)
   if (!isSafeEquipmentInstanceId(instanceId)) {
@@ -1145,7 +1444,7 @@ export function applyBlastDoorIntegrityLabor(
           : 'malformed_containment_integrity',
     }
   }
-  const resolved = resolveBlastDoorIntegrityLabor({
+  const resolved = resolve({
     classId: parsedIntegrity.integrity.classId,
     existingMutation: current.stationMutation,
     currentWeek: normalized.week,
@@ -1172,6 +1471,27 @@ export function applyBlastDoorIntegrityLabor(
     },
     { allowStationMutation: true }
   )
+}
+
+export function applyBlastDoorIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolveBlastDoorIntegrityLabor)
+}
+
+export function applyPressureSealIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolvePressureSealIntegrityLabor)
+}
+
+export function applyInterlockIntegrityLabor(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  return applyIntegrityLabor(state, instanceId, resolveInterlockIntegrityLabor)
 }
 
 export { isContainmentClassInService }
@@ -1420,6 +1740,13 @@ function applyEquipmentInstanceTransitionInternal(
     !payloadsEqual(current.payload, next.payload)
   ) {
     return { ok: false, state: normalized, code: 'unauthorized_payload_transition' }
+  }
+  if (
+    isAuthoredWorkshopIntegrityInstanceId(instanceId) &&
+    next.location.state === 'equipped' &&
+    !locationsEqual(current.location, next.location)
+  ) {
+    return { ok: false, state: normalized, code: 'authored_workshop_identity_protected' }
   }
   const locationFailure = validateTargetLocation(
     normalized,

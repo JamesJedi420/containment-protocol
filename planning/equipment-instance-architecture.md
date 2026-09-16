@@ -137,35 +137,80 @@ added `interlock`. See
 `planning/spe-877-pressure-seal-containment-class-inspection-slice.md`, and
 `planning/spe-877-interlock-containment-class-inspection-slice.md`.
 
+## Mid-week inspect command (SPE-2886)
+
+`inspectContainmentClassIntegrity` runs the existing week-close resolver for one stored
+containment-class identity mid-week. Due records compensating continue; overdue records hard-stop;
+current fail-closes `inspection_not_due`. Persist uses `persistContainmentBarrierCoupling` without
+technician-relief (never-downgrade). Store/UI follow the SPE-2869 confirmation pattern. Successful
+stamps emit `equipment.containment_class_inspected` with reason `mid_week_player_inspect`. Do not
+call `advanceContainmentClassInspectionsAtWeekClose` from UI; that batch remains the production
+auto-advance path. See `planning/spe-877-mid-week-inspect-slice.md`.
+
 ## Barrier-integrity coupling (SPE-877 child)
 
-Optional `GameState.containmentBarrierIntegrity` is the SPE-1387 / SPE-471 blast-door membrane.
+Optional `GameState.containmentBarrierIntegrity` is a keyed SPE-1387 / SPE-471 membrane registry.
 `applyContainmentClassDeficiency` writes `zone_breach` from hard-stop and `flow_restraint`
-(`barrier_integrity_watch`) from compensating continue. Week-close inspect advance reuses the
-same `persistContainmentBarrierCoupling` helper, which no-ops for non-`blast_door` classes. Recorded `zone_breach` does not downgrade
-on technician relief or SPE-2851 repair. See `architecture/containment-environment-patterns.md`.
+(`barrier_integrity_watch`) from compensating continue onto the class zone:
+`blast_door` → `blast_door_membrane`, `pressure_seal` → `pressure_seal_membrane`,
+`interlock` → `interlock_membrane`. Week-close inspect advance reuses the same
+`persistContainmentBarrierCoupling` helper without technician-relief clear. Extra-class deficiency
+never writes `blast_door_membrane`. Successful `stabilizeContainmentClassDeficiency` recouples from
+the new deficiency with `technicianRelief`: `none` omits that zone's `flow_restraint` only when
+`existing.sourceInstanceId` matches the stabilizing instance; a sibling-sourced restraint stays.
+When that omit would drop the zone, persist recouples from a remaining same-class
+`compensating_continue` or `hard_stop` identity ([SPE-2885](https://linear.app/spectranoir/issue/SPE-2885/remaining-same-class-deficiency-recompute-on-technician-relief));
+recorded
+`zone_breach` does not downgrade on technician relief, SPE-2851 repair, or SPE-2867 integrity labor.
+See `architecture/containment-environment-patterns.md`,
+`planning/spe-877-extra-class-barrier-zones-slice.md`,
+`planning/spe-877-barrier-recouple-technician-relief-slice.md`,
+`planning/spe-877-sibling-sourced-restraint-slice.md`, and
+`planning/spe-877-remaining-deficiency-recompute-slice.md`.
 
-## Live workshop integrity mapping (SPE-2866)
+## Live workshop integrity mapping (SPE-2866 + extra-class child)
 
-Authored `department:field-containment` maps one frozen blast-door identity
-(`equipment-instance-blast-door-workshop`) into SPE-2782 `equipmentCondition` at the existing
-week-close completion-registration wrapper. Hard-stop, missing instance, malformed integrity, and
-wrong class resolve `poor`; `none` and compensating continue resolve `good`. Unmapped departments
-keep caller-owned equipment condition. SPE-2851 `condition` is not the mapped signal. Pressure-seal
-and interlock identities do not satisfy this mapping. See
-`planning/spe-877-live-workshop-integrity-mapping-slice.md`.
+Authored departments map frozen containment-class identities into SPE-2782 `equipmentCondition`
+at the existing week-close completion-registration wrapper:
+
+- `department:field-containment` → `equipment-instance-blast-door-workshop` (`blast_door`)
+- `department:emergency-response` → `equipment-instance-pressure-seal-workshop` (`pressure_seal`)
+- `department:procurement-logistics` → `equipment-instance-interlock-workshop` (`interlock`)
+
+Starting-state seeds those identities as stored `ward_seals` with matching-class `none` integrity
+so a fresh game is not permanently `poor` from a missing instance, without debiting aggregate
+inventory. Ordinary destroy and catalog re-aggregation fail closed for those authored IDs so
+re-agg cannot credit never-debited `ward_seals` (`planning/spe-877-protect-workshop-identity-slice.md`).
+Mission-fatality and mission-injury equipped loss skip those IDs in place
+(`planning/spe-877-mission-casualty-workshop-identity-slice.md`). New equipped relocate fail-closes
+(`planning/spe-877-lock-workshop-relocate-slice.md`); return to stored and same-slot no-op stay
+legal.
+Hard-stop, missing instance, malformed integrity, and wrong class resolve `poor`; `none`
+and compensating continue resolve `good`. Week-close registration grades from post-close
+`outputWeeklyState` so a same-close inspect that writes `hard_stop` degrades that receipt
+([SPE-2882](https://linear.app/spectranoir/issue/SPE-2882/same-week-workshop-completion-grades-pre-close-integrity-after-mapped);
+`planning/spe-877-workshop-completion-post-close-integrity-slice.md`). Unmapped departments keep
+caller-owned equipment condition. SPE-2851 `condition` is not the mapped signal. Extra-class
+identities do not satisfy the blast-door mapping. See
+`planning/spe-877-live-workshop-integrity-mapping-slice.md`,
+`planning/spe-877-seed-blast-door-workshop-slice.md`, and
+`planning/spe-877-extra-class-workshop-quality-slice.md`.
 
 ## Mutation stations / integrity labor (SPE-877 child)
 
-`applyBlastDoorIntegrityLabor` is the first SPE-113 runtime. Authored station
-`blast_door_integrity_bench` stamps optional `stationMutation` on one stored `blast_door` identity
-and increments `cycleCount` by 1. `condition` and deficiency stay unchanged. Generic transitions
-cannot invent or rewrite the stamp. Hydration and transitions reject stamps that are not on a
-parsed `blast_door` identity. Catalog re-aggregation and fabricated ordinary return-to-lot fail
-closed while the stamp is present so rematerialize cannot spawn a new UUID. Successful labor
-hydrates as `equipment.instance_station_mutated` with reason `integrity_labor`. This is not a
-universal instance mutation API. See
-`planning/spe-877-mutation-stations-integrity-labor-slice.md` and
+`applyBlastDoorIntegrityLabor`, `applyPressureSealIntegrityLabor`, and `applyInterlockIntegrityLabor`
+are the SPE-113 runtime. Authored stations `blast_door_integrity_bench`,
+`pressure_seal_integrity_bench`, and `interlock_integrity_bench` stamp optional `stationMutation` on
+one stored matching-class identity and increment `cycleCount` by 1. `condition` and deficiency stay
+unchanged. Generic transitions cannot invent or rewrite the stamp. Hydration and transitions reject
+stamps whose authored class does not match the instance (`blast_door` ↔ blast-door bench,
+`pressure_seal` ↔ pressure-seal bench, `interlock` ↔ interlock bench). Catalog re-aggregation and
+fabricated ordinary return-to-lot fail closed while the stamp is present so rematerialize cannot
+spawn a new UUID. Successful labor hydrates as `equipment.instance_station_mutated` with reason
+`integrity_labor`. This is not a universal instance mutation API. See
+`planning/spe-877-mutation-stations-integrity-labor-slice.md`,
+`planning/spe-877-pressure-seal-integrity-bench-slice.md`,
+`planning/spe-877-interlock-integrity-bench-slice.md`, and
 `architecture/permanent-gear-mutation-stations.md`.
 
 ## Compatibility and hydration
@@ -194,8 +239,39 @@ interlock extra-class child ([SPE-2865](https://linear.app/spectranoir/issue/SPE
 `planning/spe-877-interlock-containment-class-inspection-slice.md`), and live workshop integrity
 mapping ([SPE-2866](https://linear.app/spectranoir/issue/SPE-2866/live-workshop-integrity-mapping),
 `planning/spe-877-live-workshop-integrity-mapping-slice.md`), and mutation stations / integrity
-labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`, Linear ID pending create):
-extra-class barrier zones remain a later child.
+labor (`planning/spe-877-mutation-stations-integrity-labor-slice.md`,
+[SPE-2867](https://linear.app/spectranoir/issue/SPE-2867/mutation-stations-integrity-labor)), and
+extra-class barrier zones
+([SPE-2868](https://linear.app/spectranoir/issue/SPE-2868/extra-class-barrier-zones-pressure-seal-interlock-membranes),
+`planning/spe-877-extra-class-barrier-zones-slice.md`), and store/UI deficiency disposition
+([SPE-2869](https://linear.app/spectranoir/issue/SPE-2869/storeui-inspect-or-deficiency-commands),
+`planning/spe-877-store-ui-inspect-deficiency-slice.md`), and extra-class technician stabilization
+(`planning/spe-877-extra-class-technician-stabilization-slice.md`), and seed
+`equipment-instance-blast-door-workshop`
+(`planning/spe-877-seed-blast-door-workshop-slice.md`), and extra-class workshop quality
+(`planning/spe-877-extra-class-workshop-quality-slice.md`): SPE-1027 consume helper
+shipped as [SPE-2887](https://linear.app/spectranoir/issue/SPE-2887/named-part-facility-stockpile-consume-helper)
+(`planning/spe-1027-named-part-stockpile-consume-helper-slice.md`); [SPE-2870](https://linear.app/spectranoir/issue/SPE-2870/spe-1027-stock-consume-of-a-named-part)
+wires that helper into SPE-2851 stored blast-door repair (`planning/spe-2870-named-part-repair-consume-slice.md`). Protect authored workshop identity from destroy/re-agg shipped as
+[SPE-2877](https://linear.app/spectranoir/issue/SPE-2877/protect-authored-workshop-identity-from-destroyre-agg)
+(`planning/spe-877-protect-workshop-identity-slice.md`). Barrier recouple on technician relief shipped as [SPE-2876](https://linear.app/spectranoir/issue/SPE-2876/barrier-recouple-on-technician-relief)
+(`planning/spe-877-barrier-recouple-technician-relief-slice.md`). Preserve sibling-sourced
+`flow_restraint` on technician relief shipped as
+[SPE-2878](https://linear.app/spectranoir/issue/SPE-2878/preserve-sibling-sourced-flow-restraint-on-technician-relief)
+(`planning/spe-877-sibling-sourced-restraint-slice.md`). Skip authored workshop identity on
+mission-casualty equipped loss shipped as
+[SPE-2879](https://linear.app/spectranoir/issue/SPE-2879/skip-authored-workshop-identity-on-mission-casualty-equipped-loss)
+(`planning/spe-877-mission-casualty-workshop-identity-slice.md`). Lock authored workshop seeds from
+equipping shipped as
+[SPE-2881](https://linear.app/spectranoir/issue/SPE-2881/lock-authored-workshop-seeds-from-equipping)
+(`planning/spe-877-lock-workshop-relocate-slice.md`). Protect authored workshop identities from
+equipment recovery shipped as
+[SPE-2880](https://linear.app/spectranoir/issue/SPE-2880/protect-authored-workshop-identities-from-equipment-lifecycle)
+(`planning/spe-877-protect-workshop-lifecycle-slice.md`). Mid-week inspect of one stored
+identity shipped as
+[SPE-2886](https://linear.app/spectranoir/issue/SPE-2886/mid-week-inspect-command-for-stored-containment-class-identity)
+(`planning/spe-877-mid-week-inspect-slice.md`); week-close auto-advance remains the production
+batch path.
 Healing,
 overdose, and broader salvage semantics remain SPE-1055 / SPE-2749. Quest/unique
 artifact locks remain SPE-1766. Do not author destroy-on-resignation or

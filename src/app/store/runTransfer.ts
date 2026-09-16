@@ -27,7 +27,14 @@ import {
   reconcileContainmentBarrierIntegritySources,
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
-import { parseContainmentBarrierIntegrity } from '../../domain/containmentBarrierIntegrity'
+import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
+import { parseFacilityStockpile } from '../../domain/facilityStockpile'
+import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
+import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
+import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
+import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
+import { parseFacilityStockOverflow } from '../../domain/facilityStockOverflow'
+import { parseFacilityStockPreparedness } from '../../domain/facilityStockPreparedness'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -10514,8 +10521,16 @@ export function hydrateGame(
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
-  const barrierParsed = parseContainmentBarrierIntegrity(game.containmentBarrierIntegrity)
-  const containmentBarrierIntegrity = barrierParsed.ok ? barrierParsed.barrier : undefined
+  const containmentBarrierIntegrity = parseContainmentBarrierIntegrityRegistry(
+    game.containmentBarrierIntegrity
+  )
+  const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
+  const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
+  const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
+  const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
+  const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
+  const facilityStockOverflow = parseFacilityStockOverflow(game.facilityStockOverflow)
+  const facilityStockPreparedness = parseFacilityStockPreparedness(game.facilityStockPreparedness)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10616,6 +10631,13 @@ export function hydrateGame(
     caseScopedPrerequisiteProcessingReservations,
     caseScopedPrerequisiteProcessingTerminalSignals,
     inventory,
+    facilityStockpile,
+    departmentLocalStaging,
+    facilityStockPlacement,
+    facilityStockCondition,
+    facilityEmergencyCaches,
+    facilityStockOverflow,
+    facilityStockPreparedness,
     equipmentInstances,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,

@@ -21,6 +21,8 @@ import type {
   ContainmentClassId,
   ContainmentCompensatingControlId,
 } from '../containmentClassInspection'
+import type { ContainmentBarrierZoneId } from '../containmentBarrierIntegrity'
+import type { IntegrityLaborStationId } from '../equipmentStationMutation'
 
 export type OperationEventSourceSystem =
   'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
@@ -542,17 +544,17 @@ export interface OperationEventPayloadMap {
     deficiencyKind: 'hard_stop' | 'compensating_continue'
     compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
-    reason: 'week_close_auto_advance'
+    reason: 'week_close_auto_advance' | 'mid_week_player_inspect'
   }
   'equipment.containment_class_stabilized': {
     week: number
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
+    classId: ContainmentClassId
     previousDeficiencyKind: 'hard_stop' | 'compensating_continue'
     deficiencyKind: 'compensating_continue' | 'none'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     previousCycleCount: number
     cycleCount: number
     inService: boolean
@@ -563,13 +565,13 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
-    stationId: 'blast_door_integrity_bench'
+    classId: ContainmentClassId
+    stationId: IntegrityLaborStationId
     previousCycleCount: number
     cycleCount: number
     condition: 'operational' | 'damaged'
     deficiencyKind: 'none' | 'hard_stop' | 'compensating_continue'
-    compensatingControlId?: 'secondary_interlock_watch'
+    compensatingControlId?: ContainmentCompensatingControlId
     inService: boolean
     reason: 'integrity_labor'
   }
@@ -578,8 +580,8 @@ export interface OperationEventPayloadMap {
     instanceId: Id
     definitionId: string
     definitionName: string
-    classId: 'blast_door'
-    zoneId: 'blast_door_membrane'
+    classId: ContainmentClassId
+    zoneId: ContainmentBarrierZoneId
     previousStatus: 'intact' | 'flow_restraint' | 'zone_breach'
     status: 'flow_restraint' | 'zone_breach'
     sourceDeficiencyKind: 'hard_stop' | 'compensating_continue'

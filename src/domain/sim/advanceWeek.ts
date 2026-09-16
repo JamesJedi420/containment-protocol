@@ -92,6 +92,7 @@ import {
   reconcileDepartmentWorkshopTerminalLanes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
+import { parseDepartmentLocalStaging } from '../departmentLocalStaging'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -5013,13 +5014,18 @@ export function advanceWeek(
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
   // It runs before downstream persisted-record hooks and changes no queue but
   // the two canonical workshop registries.
-  const workshopProcessingTick = processDepartmentWorkshopTick(inputWeeklyState)
+  const workshopProcessingTick = processDepartmentWorkshopTick(
+    inputWeeklyState,
+    undefined,
+    undefined,
+    parseDepartmentLocalStaging(inputWeeklyState.departmentLocalStaging)
+  )
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
-    inputWeeklyState,
+    outputWeeklyState,
     workshopProcessingTick.completedWorkOrderIds,
     sourceState.week
   )

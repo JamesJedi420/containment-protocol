@@ -101,6 +101,22 @@ recovery-claimed identities remain locked to their recovery provenance. Once rep
 may satisfy the existing operational-condition gates for its normal catalog re-aggregation or
 fabricated-lot return path; repair itself does not choose that path.
 
+Blast-door containment-class repair now also spends one named facility spare part. SPE-2861 still
+owns suitability: `blast_door` identities require the command argument
+`blast_door_hinge_seal`, while ordinary identities without `containmentIntegrity.classId` remain
+ungated. SPE-2870 then calls SPE-2887 `consumeFacilityStock` after the stored condition flip has
+been prepared. Missing or zero named stock fail-closes before mutation, so there is no condition
+change and no `equipment.instance_condition_repaired` event. A successful debit subtracts exactly
+one unit from optional `GameState.facilityStockpile`, omits the key at zero, and never touches
+catalog `inventory`, lots, recovery records, or workshop receipts.
+
+`facilityStockpile` is the current narrow SPE-1027 stock-provider port, not a warehouse simulator.
+Hydration accepts only positive integer quantities for frozen spare-part IDs such as
+`blast_door_hinge_seal`; omitted, malformed, unknown, zero, negative, and fractional entries hydrate
+empty or drop independently. Starting state does not seed production stock. Save/load preserves a
+valid count without replaying a debit; the only runtime debit is the explicit consume helper used by
+successful stored blast-door repair.
+
 ## Containment-class inspection (SPE-2860)
 
 Optional `containmentIntegrity` on an instance is a separate axis from `condition`. Frozen
@@ -110,9 +126,11 @@ continue with the class-authored control (`secondary_interlock_watch`, `backup_g
 `dual_circuit_watch`). Compensating continue cannot clear a later hard-stop. Mixed class/control
 pairings and unknown class records (`airlock`) fail closed. SPE-2851 repair preserves this field
 and does not treat hard-stop as `damaged`. SPE-2861 spare-part suitability gates that repair for
-`blast_door` identities without consuming stock or clearing deficiency. SPE-2864 added
-`pressure_seal`; [SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock)
-added `interlock`.
+`blast_door` identities; SPE-2870 adds the named `facilityStockpile` debit for the same
+`blast_door_hinge_seal` requirement without clearing deficiency. SPE-2864 added `pressure_seal`;
+[SPE-2865](https://linear.app/spectranoir/issue/SPE-2865/additional-containment-class-inspection-kernel-interlock)
+added `interlock`. Pressure-seal and interlock identities still fail the blast-door-specific
+spare-part suitability path rather than borrowing the blast-door stock contract.
 
 ## Technician stabilization (SPE-2862)
 

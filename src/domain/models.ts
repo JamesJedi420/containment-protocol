@@ -31,6 +31,7 @@ import type { FacilityStockPlacement } from './facilityStockAccess'
 import type { FacilityStockCondition } from './facilityStockSpoilage'
 import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
 import type { FacilityStockOverflow } from './facilityStockOverflow'
+import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2826,6 +2827,12 @@ export interface GameState {
    * Omit hydrates empty. Evidence-cage overflow resolves to a blocked access penalty.
    */
   facilityStockOverflow?: FacilityStockOverflow
+  /**
+   * SPE-2896 / SPE-1027: authored quantity/reserve/outflow preparedness snapshots by stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, caches,
+   * or overflow. Omit hydrates omitted; resolve derives prepared/stockout pressure read-only.
+   */
+  facilityStockPreparedness?: FacilityStockPreparedness
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

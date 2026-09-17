@@ -42,6 +42,56 @@ describe('hiddenCombatResolver', () => {
     expect(failure.encounterPatch.status).toBe('active')
   })
 
+  it('uses computed SPE-54 priority in a volatile hidden-combat context without changing outcome math', () => {
+    const state = createStartingState()
+    const resolution = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority: {
+        mode: { kind: 'per_actor' },
+        actors: [
+          {
+            actorId: 'actor:slow',
+            sideId: 'responders',
+            readiness: 'strained',
+            posture: 'compromised',
+            exposure: 'exposed',
+            injury: 'minor',
+            toolState: 'damaged',
+            precision: 30,
+            aimCommitment: 'none',
+            targetingMode: 'explicit_designation',
+          },
+          {
+            actorId: 'actor:fast',
+            sideId: 'hostiles',
+            readiness: 'steady',
+            posture: 'braced',
+            exposure: 'concealed',
+            injury: 'none',
+            toolState: 'operational',
+            precision: 90,
+            aimCommitment: 'tracking',
+            targetingMode: 'rapid_nearest_valid',
+          },
+        ],
+      },
+    })
+
+    expect(resolution.outcome).toBe('partial')
+    expect(resolution.score).toBe(-5)
+    expect(resolution.actionPriority?.sequence).toEqual({
+      kind: 'per_actor',
+      actorIds: ['actor:fast', 'actor:slow'],
+    })
+    expect(resolution.actionPriority?.actorPriorities[0]).toMatchObject({
+      actorId: 'actor:fast',
+      priorityScore: 94,
+      dominantDriverCodes: ['readiness', 'targeting_mode', 'posture'],
+    })
+  })
+
   it('applies flag/clock modifier conditions to change threshold outcomes', () => {
     let state = createStartingState()
     state = setPersistentFlag(state, 'encounter.modifier.boost', true)
@@ -363,7 +413,9 @@ describe('hiddenCombatResolver', () => {
       ],
     })
     expect(readPersistentFlag(execution.apply.state, 'encounter.alpha.escalated')).toBe(true)
-    expect(getProgressClock(execution.apply.state, PROGRESS_CLOCK_IDS.breachFollowUpPosture)).toMatchObject({
+    expect(
+      getProgressClock(execution.apply.state, PROGRESS_CLOCK_IDS.breachFollowUpPosture)
+    ).toMatchObject({
       value: 1,
       max: 3,
     })

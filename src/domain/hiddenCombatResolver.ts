@@ -28,12 +28,15 @@ import {
   type OutcomeBranchProgressEffect,
 } from './outcomeBranching'
 import type { AuthoredBranchContext } from './contentBranching'
+import {
+  resolveVolatileActionPriority,
+  type VolatileActionPriorityRequest,
+  type VolatileActionPriorityResult,
+} from './volatileActionPriority'
 
 export type HiddenCombatOutcome = OutcomeBranchOutcome
 
-export interface HiddenCombatModifier<
-  Context extends ScreenRouteContext = ScreenRouteContext,
-> {
+export interface HiddenCombatModifier<Context extends ScreenRouteContext = ScreenRouteContext> {
   id: string
   when?: ScreenRouteCondition<Context>
   powerDelta?: number
@@ -61,13 +64,17 @@ export interface HiddenCombatResolutionInput<
   encounterPatchByOutcome?: Partial<Record<HiddenCombatOutcome, EncounterRuntimePatch>>
   followUpByOutcome?: Partial<Record<HiddenCombatOutcome, string | readonly string[]>>
   flagEffectsByOutcome?: Partial<Record<HiddenCombatOutcome, HiddenCombatFlagEffects>>
-  progressEffectsByOutcome?: Partial<Record<HiddenCombatOutcome, readonly HiddenCombatProgressEffect[]>>
+  progressEffectsByOutcome?: Partial<
+    Record<HiddenCombatOutcome, readonly HiddenCombatProgressEffect[]>
+  >
   allyBehaviorProfiles?: readonly AllyBehaviorProfile[]
   allyBehaviorContext?: AuthoredBranchContext
   outcomeBranches?: readonly OutcomeBranchDefinition[]
   outcomeBranchContext?: AuthoredBranchContext
   includeDebug?: boolean
   context?: Context
+  /** Optional SPE-54 sequencing snapshot for this volatile hidden-combat context. */
+  actionPriority?: VolatileActionPriorityRequest
 }
 
 export interface HiddenCombatResolutionDebugDetails {
@@ -109,6 +116,8 @@ export interface HiddenCombatResolutionResult {
   progressEffects: HiddenCombatProgressEffect[]
   authoredContextPatch?: OutcomeBranchAuthoredContextPatch
   allyBehaviors: AllyBehaviorSelection[]
+  /** Recomputable sequencing evidence only; never persisted or applied as an outcome. */
+  actionPriority?: VolatileActionPriorityResult
   debug?: HiddenCombatResolutionDebugDetails
 }
 
@@ -171,7 +180,10 @@ function applyThresholdModifier(
     partialAt?: number
   }
 ) {
-  const successAt = sanitizeNumber(thresholds.successAt + sanitizeNumber(modifier.successAt, 0), thresholds.successAt)
+  const successAt = sanitizeNumber(
+    thresholds.successAt + sanitizeNumber(modifier.successAt, 0),
+    thresholds.successAt
+  )
   const partialAtRaw = sanitizeNumber(
     thresholds.partialAt + sanitizeNumber(modifier.partialAt, 0),
     thresholds.partialAt
@@ -214,9 +226,10 @@ function buildDefaultEncounterPatch(
   }
 }
 
-export function resolveHiddenCombat<
-  Context extends ScreenRouteContext = ScreenRouteContext,
->(state: GameState, input: HiddenCombatResolutionInput<Context>): HiddenCombatResolutionResult {
+export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenRouteContext>(
+  state: GameState,
+  input: HiddenCombatResolutionInput<Context>
+): HiddenCombatResolutionResult {
   const encounterId = normalizeString(input.encounterId)
 
   if (encounterId.length === 0) {
@@ -246,7 +259,10 @@ export function resolveHiddenCombat<
     }
 
     appliedModifierIds.push(modifierId)
-    effectivePower = sanitizeNumber(effectivePower + sanitizeNumber(modifier.powerDelta, 0), effectivePower)
+    effectivePower = sanitizeNumber(
+      effectivePower + sanitizeNumber(modifier.powerDelta, 0),
+      effectivePower
+    )
     effectiveDifficulty = sanitizeNumber(
       effectiveDifficulty + sanitizeNumber(modifier.difficultyDelta, 0),
       effectiveDifficulty
@@ -290,6 +306,12 @@ export function resolveHiddenCombat<
     ...(input.progressEffectsByOutcome?.[outcome] ?? []),
     ...allyAggregate.progressEffects,
   ]
+  const actionPriority = input.actionPriority
+    ? resolveVolatileActionPriority({
+        ...input.actionPriority,
+        encounterId,
+      })
+    : undefined
 
   const defaultPatch = buildDefaultEncounterPatch(state, outcome)
   const encounterPatch: EncounterRuntimePatch = {
@@ -331,6 +353,7 @@ export function resolveHiddenCombat<
       ? { authoredContextPatch: selectedAftermath.effects.authoredContext }
       : {}),
     allyBehaviors: [...allyAggregate.selections],
+    ...(actionPriority ? { actionPriority } : {}),
     ...(input.includeDebug
       ? {
           debug: {
@@ -381,18 +404,20 @@ export function applyHiddenCombatResolution(
     followUpIds: resolution.followUpIds,
   })
 
-  const followUpQueueEvents: RuntimeQueueEventInput[] = resolution.followUpIds.map((followUpId) => ({
-    type: 'encounter.follow_up',
-    targetId: followUpId,
-    contextId: options.contextId,
-    source: options.queueSource ?? `hidden-combat:${resolution.encounterId}`,
-    week: resolution.week,
-    payload: {
-      encounterId: resolution.encounterId,
-      outcome: resolution.outcome,
-      resolutionId: resolution.resolutionId,
-    },
-  }))
+  const followUpQueueEvents: RuntimeQueueEventInput[] = resolution.followUpIds.map(
+    (followUpId) => ({
+      type: 'encounter.follow_up',
+      targetId: followUpId,
+      contextId: options.contextId,
+      source: options.queueSource ?? `hidden-combat:${resolution.encounterId}`,
+      week: resolution.week,
+      payload: {
+        encounterId: resolution.encounterId,
+        outcome: resolution.outcome,
+        resolutionId: resolution.resolutionId,
+      },
+    })
+  )
   const branchApply = applyOutcomeBranching(nextState, {
     outcome: resolution.outcome,
     encounterId: resolution.encounterId,
@@ -427,12 +452,19 @@ export function applyHiddenCombatResolution(
         encounterId: resolution.encounterId,
         resolutionId: resolution.resolutionId,
         outcome: resolution.outcome,
-        allyBehaviorIds: resolution.allyBehaviors.map((entry) => `${entry.allyId}:${entry.behaviorId}`),
+        allyBehaviorIds: resolution.allyBehaviors.map(
+          (entry) => `${entry.allyId}:${entry.behaviorId}`
+        ),
       },
     })
   }
 
-  nextState = recordEncounterFollowUps(nextState, resolution.encounterId, resolution.followUpIds, resolution.week)
+  nextState = recordEncounterFollowUps(
+    nextState,
+    resolution.encounterId,
+    resolution.followUpIds,
+    resolution.week
+  )
 
   return {
     state: nextState,

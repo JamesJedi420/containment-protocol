@@ -8,6 +8,29 @@
 
 Action order in volatile encounters is **state-driven**, not a fixed initiative list. Priority inputs include readiness, posture, exposure, injury, tool condition, aim commitment, precision depletion, and (where authored) **bounded side-phase** handling. Prefer explicit tradeoffs: **rapid nearest-valid** targeting versus slower, controlled shots that reduce collateral or self-risk.
 
+### Implemented sequencing contract
+
+`src/domain/volatileActionPriority.ts` owns the pure SPE-54 calculation. A caller supplies one complete action-window snapshot; the resolver returns an eligible actor order plus the signed contribution and player-readable label for every factor. The snapshot/result is recomputable evidence, not persisted initiative state.
+
+The calibration starts eligible actions at 55 and keeps the supported state space within 3–97:
+
+| Factor         | Signed priority contribution                                                  |
+| -------------- | ----------------------------------------------------------------------------- |
+| Readiness      | steady +8; strained +2; critical -8; unavailable blocks the action            |
+| Posture        | braced +6; mobile +3; guarded 0; compromised -8                               |
+| Exposure       | concealed +4; covered +2; exposed -4; pinned -8                               |
+| Injury         | none 0; minor -4; moderate -10                                                |
+| Tool state     | operational +4; no tool required 0; damaged -6; unavailable blocks the action |
+| Precision      | 0–19 -6; 20–39 -3; 40–59 0; 60–79 +3; 80–100 +6                               |
+| Aim commitment | none 0; tracking +3; committed +6                                             |
+| Targeting mode | rapid nearest-valid +8; explicit designation -6                               |
+
+State score compares first. Equal scores use optional authored fallback order, then code-unit actor ID; caller array order and host locale never decide a tie. `recalculateVolatileActionPriority` always evaluates the replacement snapshot from scratch and reports changed factors plus score/rank movement.
+
+`per_actor` produces one global order. `side_phase` produces one non-empty block per eligible side, preserving computed actor order inside the block. Side precedence may be explicitly declared by the scene/deck controller; otherwise the highest-priority current actor on each side establishes block order. These are sequencing groups only, not the SPE-62 operational phase pipeline.
+
+`resolveHiddenCombat` accepts this snapshot optionally and returns the priority result without feeding it into power/difficulty outcome math or applying/persisting it. That provides the first volatile-context consumer while leaving action choice and encounter execution to SPE-2847 and confrontation outcomes to SPE-73.
+
 ## 1) Resolver categories
 
 ### A. Pure evaluation resolver
@@ -47,10 +70,10 @@ Use a compact input object with explicit values and optional condition-driven mo
 ### Conditional modifiers (optional)
 
 - `modifiers?: Array<{
-  id: string
-  when?: ScreenRouteCondition
-  powerDelta?: number
-  difficultyDelta?: number
+id: string
+when?: ScreenRouteCondition
+powerDelta?: number
+difficultyDelta?: number
 }>`
 
 Notes:
@@ -191,7 +214,7 @@ Volatile actions resolve through a **compact ordered phase pipeline** that is th
 
 ### Pipeline requirements
 
-- **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase *kinds* include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
+- **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase _kinds_ include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
 - **Interruption and reaction windows** — deterministic hooks where opposing readiness, tools, clocks, or external events may prepend, truncate, or redirect later phases.
 - **Held, aborted, or delayed actions** — hold-aim, abort-with-reason, and delayed-emission effects must remain keyed to the same encounter/procedure instance for save/load and replay.
 - **Multi-stage procedures** — long rituals or engineering tasks iterate **phase slices** on the shared spine rather than spawning unrelated parallel timers.

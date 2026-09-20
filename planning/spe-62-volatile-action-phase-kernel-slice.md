@@ -2,12 +2,13 @@
 
 | Field               | Value                                                                                                                      |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                            |
+| **Status**          | **Recently shipped**                                                                                                       |
 | **Linear**          | [SPE-2900](https://linear.app/spectranoir/issue/SPE-2900/volatile-action-phase-spine-and-no-stakes-bypass)                 |
 | **Parent**          | [SPE-62](https://linear.app/spectranoir/issue/SPE-62/operational-phase-resolution-pipeline) — stays **Backlog**            |
 | **Prerequisite**    | [SPE-54](https://linear.app/spectranoir/issue/SPE-54/state-driven-action-priority-in-volatile-encounters) — do not rescore |
 | **Branch**          | `cursor/spe-62-phase-kernel-5a45-c187`                                                                                     |
 | **Base `main` SHA** | `b304db3c`                                                                                                                 |
+| **Implementation**  | [PR #3674](https://github.com/JamesJedi420/containment-protocol/pull/3674)                                                 |
 
 ## Goal
 

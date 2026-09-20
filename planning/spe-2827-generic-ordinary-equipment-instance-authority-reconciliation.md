@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------------------- |
-| **Status** | **Done** (docs disposition; Linear apply pending — MCP `needsAuth`)                                     |
+| **Status** | **Done** on Linear                                                                                      |
 | **Linear** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) |
 | **Scope**  | Durable identity and lifecycle authority for ordinary equipment copies                                  |
 

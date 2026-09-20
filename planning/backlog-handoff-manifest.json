@@ -1,6 +1,6 @@
 {
-  "primary": "SPE-62",
-  "inProgress": [],
+  "primary": "SPE-2900",
+  "inProgress": ["SPE-2900"],
   "recentlyShipped": [
     "SPE-2897",
     "SPE-54",
@@ -16,6 +16,7 @@
     "SPE-2886"
   ],
   "sliceDocStatus": {
+    "planning/spe-62-volatile-action-phase-kernel-slice.md": "In Progress",
     "planning/spe-54-state-driven-action-priority-slice.md": "Recently shipped",
     "planning/spe-1027-counterfeit-protection-goods-slice.md": "Recently shipped",
     "planning/spe-1027-stockout-pressure-slice.md": "Recently shipped",

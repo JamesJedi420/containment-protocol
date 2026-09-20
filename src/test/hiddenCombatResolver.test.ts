@@ -90,6 +90,60 @@ describe('hiddenCombatResolver', () => {
       priorityScore: 94,
       dominantDriverCodes: ['readiness', 'targeting_mode', 'posture'],
     })
+    expect(resolution.actionPhasePipeline?.bypassed).toBe(false)
+    expect(resolution.actionPhasePipeline?.phases.map((phase) => phase.id)).toEqual([
+      'posture_commit',
+      'environmental_read',
+      'clash_window',
+      'effect_emission',
+      'cleanup',
+    ])
+    expect(resolution.actionPhasePipeline?.actorIds).toEqual(['actor:fast', 'actor:slow'])
+  })
+
+  it('attaches a no-stakes SPE-62 phase bypass without changing hidden-combat outcome math', () => {
+    const state = createStartingState()
+    const actionPriority = {
+      mode: { kind: 'per_actor' as const },
+      actors: [
+        {
+          actorId: 'actor:fast',
+          sideId: 'hostiles',
+          readiness: 'steady' as const,
+          posture: 'braced' as const,
+          exposure: 'concealed' as const,
+          injury: 'none' as const,
+          toolState: 'operational' as const,
+          precision: 90,
+          aimCommitment: 'tracking' as const,
+          targetingMode: 'rapid_nearest_valid' as const,
+        },
+      ],
+    }
+    const withStakes = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+    })
+    const noStakes = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+      actionStakes: 'none',
+    })
+
+    expect(noStakes.outcome).toBe(withStakes.outcome)
+    expect(noStakes.score).toBe(withStakes.score)
+    expect(noStakes.actionPhasePipeline?.bypassed).toBe(true)
+    expect(noStakes.actionPhasePipeline?.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
   })
 
   it('applies flag/clock modifier conditions to change threshold outcomes', () => {

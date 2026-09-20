@@ -29,9 +29,13 @@ import {
 } from './outcomeBranching'
 import type { AuthoredBranchContext } from './contentBranching'
 import {
-  resolveVolatileActionPriority,
-  type VolatileActionPriorityRequest,
-  type VolatileActionPriorityResult,
+  resolveVolatileActionPhasePipeline,
+  type VolatileActionPhasePipelineResult,
+  type VolatileActionStakes,
+} from './volatileActionPhasePipeline'
+import type {
+  VolatileActionPriorityRequest,
+  VolatileActionPriorityResult,
 } from './volatileActionPriority'
 
 export type HiddenCombatOutcome = OutcomeBranchOutcome
@@ -75,6 +79,8 @@ export interface HiddenCombatResolutionInput<
   context?: Context
   /** Optional SPE-54 sequencing snapshot for this volatile hidden-combat context. */
   actionPriority?: VolatileActionPriorityRequest
+  /** Optional SPE-62 stakes for the attached phase spine; defaults to present when priority is supplied. */
+  actionStakes?: VolatileActionStakes
 }
 
 export interface HiddenCombatResolutionDebugDetails {
@@ -118,6 +124,8 @@ export interface HiddenCombatResolutionResult {
   allyBehaviors: AllyBehaviorSelection[]
   /** Recomputable sequencing evidence only; never persisted or applied as an outcome. */
   actionPriority?: VolatileActionPriorityResult
+  /** Recomputable SPE-62 phase-spine evidence only; never persisted or applied as an outcome. */
+  actionPhasePipeline?: VolatileActionPhasePipelineResult
   debug?: HiddenCombatResolutionDebugDetails
 }
 
@@ -306,12 +314,18 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
     ...(input.progressEffectsByOutcome?.[outcome] ?? []),
     ...allyAggregate.progressEffects,
   ]
-  const actionPriority = input.actionPriority
-    ? resolveVolatileActionPriority({
-        ...input.actionPriority,
+  if (input.actionStakes !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
+  const actionPhasePipeline = input.actionPriority
+    ? resolveVolatileActionPhasePipeline({
         encounterId,
+        variantId: 'volatile_action_v1',
+        stakes: input.actionStakes ?? 'present',
+        actionPriority: input.actionPriority,
       })
     : undefined
+  const actionPriority = actionPhasePipeline?.actionPriority
 
   const defaultPatch = buildDefaultEncounterPatch(state, outcome)
   const encounterPatch: EncounterRuntimePatch = {
@@ -354,6 +368,7 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
       : {}),
     allyBehaviors: [...allyAggregate.selections],
     ...(actionPriority ? { actionPriority } : {}),
+    ...(actionPhasePipeline ? { actionPhasePipeline } : {}),
     ...(input.includeDebug
       ? {
           debug: {

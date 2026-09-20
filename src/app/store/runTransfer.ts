@@ -35,6 +35,7 @@ import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
 import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
 import { parseFacilityStockOverflow } from '../../domain/facilityStockOverflow'
 import { parseFacilityStockPreparedness } from '../../domain/facilityStockPreparedness'
+import { parseFacilityProtectionGoods } from '../../domain/facilityProtectionGoods'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
 import { isEquipmentGradeRecoveryExplanationCode } from '../../domain/equipmentGradeRecovery'
@@ -10531,6 +10532,7 @@ export function hydrateGame(
   const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
   const facilityStockOverflow = parseFacilityStockOverflow(game.facilityStockOverflow)
   const facilityStockPreparedness = parseFacilityStockPreparedness(game.facilityStockPreparedness)
+  const facilityProtectionGoods = parseFacilityProtectionGoods(game.facilityProtectionGoods)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10638,6 +10640,7 @@ export function hydrateGame(
     facilityEmergencyCaches,
     facilityStockOverflow,
     facilityStockPreparedness,
+    facilityProtectionGoods,
     equipmentInstances,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,

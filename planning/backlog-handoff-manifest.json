@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-2897",
-  "inProgress": ["SPE-2897"],
+  "primary": "SPE-62",
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-2897",
     "SPE-54",
     "SPE-2896",
     "SPE-2895",
@@ -17,6 +18,7 @@
   ],
   "sliceDocStatus": {
     "planning/spe-54-state-driven-action-priority-slice.md": "Recently shipped",
+    "planning/spe-1027-counterfeit-protection-goods-slice.md": "Recently shipped",
     "planning/spe-1027-stockout-pressure-slice.md": "Recently shipped",
     "planning/spe-1027-overflow-misfiled-penalty-slice.md": "Recently shipped",
     "planning/spe-1027-emergency-cache-response-timing-slice.md": "Recently shipped",

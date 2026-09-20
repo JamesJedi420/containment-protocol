@@ -32,6 +32,7 @@ import type { FacilityStockCondition } from './facilityStockSpoilage'
 import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
 import type { FacilityStockOverflow } from './facilityStockOverflow'
 import type { FacilityStockPreparedness } from './facilityStockPreparedness'
+import type { FacilityProtectionGoods } from './facilityProtectionGoods'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2833,6 +2834,12 @@ export interface GameState {
    * or overflow. Omit hydrates omitted; resolve derives prepared/stockout pressure read-only.
    */
   facilityStockPreparedness?: FacilityStockPreparedness
+  /**
+   * SPE-2897 / SPE-1027: authored counterfeit protection goods keyed by protection item id.
+   * Sibling of `facilityStockpile`, not mixed into stock qty or preparedness snapshots.
+   * Omit hydrates omitted; counterfeit filters resolve failed protection and false reassurance.
+   */
+  facilityProtectionGoods?: FacilityProtectionGoods
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

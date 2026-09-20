@@ -1,11 +1,11 @@
 # SPE-2827 — Parent acceptance reconciliation (grooming)
 
-One-page grooming record. Parent [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) **Done** (docs disposition) — children SPE-2828–SPE-2859 shipped; SPE-2827-owned AC rows **Yes**; residual **none this program still owns**. Linear MCP `needsAuth` this session — local agent applies parent **Done** + merge comment. Do not invent a child SPE ID.
+One-page grooming record. Parent [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) **Done** on Linear — children SPE-2828–SPE-2859 shipped; SPE-2827-owned AC rows **Yes**; residual **none this program still owns**. Do not invent a child SPE ID.
 
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-2827 parent reconciliation (hygiene on the parent; no guessed child ID)                             |
-| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) — Generic Ordinary-Equipment Instance Authority; **Done** (docs disposition; Linear apply pending) |
+| **Parent** | [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827/generic-ordinary-equipment-instance-authority) — Generic Ordinary-Equipment Instance Authority; **Done** on Linear |
 | **Branch** | `cursor/spe-2827-parent-reconciliation-b65a`                                                               |
 | **Status** | **Shipped** — hygiene session (docs-only)                                                                  |
 | **Base `main` SHA** | `6312acdf`                                                                                          |
@@ -36,9 +36,9 @@ Re-evaluate parent [SPE-2827](https://linear.app/spectranoir/issue/SPE-2827) acc
 
 **Delta:** Linear remaining already lists SPE-2858 / SPE-2859 **Done** and residual **none this program still owns**. Completion-shape prose still named SPE-1027 stock-provider, mutation, and instance-aware salvage. Those are adjacent owners, not unmet SPE-2827 AC.
 
-## Linear source (MCP `needsAuth`)
+## Linear source
 
-Linear MCP could not load Goal / Scope / Constraints / AC live. Binding copy used for scoring:
+Linear Goal / Scope / Constraints / AC were loaded from the live issue for scoring (parent already **Done** on Linear). Binding copy also used:
 
 - Repo parent record: `planning/spe-2827-generic-ordinary-equipment-instance-authority-reconciliation.md`
 - Architecture: `planning/equipment-instance-architecture.md`
@@ -90,14 +90,14 @@ Parent **does not own:** taxonomy (SPE-462), ready/stow (SPE-1658), maintenance/
 | `planning/backlog.md` primary + manifest | SPE-2856 / SPE-2857 destroy paths |
 | Slice doc (this file) + planning index row | SPE-2858 / SPE-2859 recovery-remains policy |
 | Architecture deferred-consumers alignment | SPE-2847; SPE-877 / SPE-1658 / SPE-1484 implementations |
-| Linear hygiene comments (handoff if MCP `needsAuth`) | Authoring destroy-on-resignation or destroy-on-non-mission-death |
+| Linear hygiene comments | Authoring destroy-on-resignation or destroy-on-non-mission-death |
 
 ## Acceptance
 
 - [x] Parent AC re-evaluated — SPE-2827-owned rows **Yes**
 - [x] SPE-1027 / mutation / broader salvage classified as adjacent, not unmet SPE-2827 children
 - [x] Further payloads and cross-lot migration resolved as post-Done siblings / rejected — not remaining SPE-2827 children
-- [ ] SPE-2827 **Done** on Linear — docs disposition Done; Linear apply via local-agent handoff (MCP `needsAuth`)
+- [x] SPE-2827 **Done** on Linear
 - [x] Recommended next step retargeted to this hygiene row on SPE-2827 (no guessed child ID)
 - [x] Docs-only diff
 

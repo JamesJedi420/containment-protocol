@@ -4,10 +4,11 @@
 | ------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-54](https://linear.app/spectranoir/issue/SPE-54/state-driven-action-priority-in-volatile-encounters) |
 | **GitHub issue**    | [#55](https://github.com/JamesJedi420/containment-protocol/issues/55)                                     |
-| **Status**          | **In progress**                                                                                           |
+| **Status**          | **Recently shipped**                                                                                      |
 | **Parent**          | none — prerequisite for SPE-2847                                                                          |
 | **Branch**          | `jamesdyedbq/spe-54-state-driven-action-priority-in-volatile-encounters`                                  |
 | **Base `main` SHA** | `8d1f8f75`                                                                                                |
+| **Implementation**  | [PR #3670](https://github.com/JamesJedi420/containment-protocol/pull/3670) @ `b38f6356`                   |
 
 ## Goal
 
@@ -34,13 +35,13 @@ Add the pure deterministic sequencing prerequisite for volatile encounters. Curr
 
 ## Acceptance
 
-- [ ] Identical state resolves byte-stably regardless of input order.
-- [ ] Every named state factor contributes through one inspectable ledger.
-- [ ] Relevant state changes can shift actor priority on fresh recalculation.
-- [ ] Rapid nearest-valid execution outranks otherwise identical explicit designation.
-- [ ] Per-actor and bounded side-phase modes both preserve deterministic actor ordering.
-- [ ] Invalid IDs, duplicates, out-of-range precision, and invalid side declarations fail closed.
-- [ ] Targeted tests prove deterministic calculation and state-driven shifts.
+- [x] Identical state resolves byte-stably regardless of input order.
+- [x] Every named state factor contributes through one inspectable ledger.
+- [x] Relevant state changes can shift actor priority on fresh recalculation.
+- [x] Rapid nearest-valid execution outranks otherwise identical explicit designation.
+- [x] Per-actor and bounded side-phase modes both preserve deterministic actor ordering.
+- [x] Invalid IDs, duplicates, out-of-range precision, and invalid side declarations fail closed.
+- [x] Targeted tests prove deterministic calculation and state-driven shifts.
 
 ## Boundary
 
@@ -50,7 +51,9 @@ Add the pure deterministic sequencing prerequisite for volatile encounters. Curr
 - No `GameState`, persistence, hydration, schema, store, route, projection, or UI change.
 - No precision recovery scheduler; callers supply the current precision snapshot and may recalculate after depletion or recovery.
 
-## Validation plan
+## Validation
+
+The implementation branch passed the following gates before PR #3670 merged:
 
 - `npm run test:run -- src/test/volatileActionPriority.test.ts`
 - `npm run lint -- --quiet`

@@ -80,7 +80,7 @@ function normalize(value: string | undefined): string {
 }
 
 function normalizeComparable(value: string): string {
-  return normalize(value).toLocaleLowerCase()
+  return normalize(value).toLowerCase()
 }
 
 function fingerprintSignal(signal: DiscussionSignal): string {

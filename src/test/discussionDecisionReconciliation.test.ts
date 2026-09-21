@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   discussionDecisionFingerprint,
   reconcileDiscussionDecisions,
-  type DiscussionSignal,
 } from '../domain/discussionDecisionReconciliation'
+import type { DiscussionSignal } from '../domain/discussionDecisionReconciliation'
 
 const signals: readonly DiscussionSignal[] = [
   {

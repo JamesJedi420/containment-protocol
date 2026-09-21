@@ -214,7 +214,9 @@ Volatile actions resolve through a **compact ordered phase pipeline** that is th
 
 SPE-2900 slice 1 owns `volatile_action_v1` in `src/domain/volatileActionPhasePipeline.ts`: frozen phase ids `posture_commit` → `environmental_read` → `clash_window` → `effect_emission` → `cleanup`, one inspectable `after_posture_commit` reaction-window record, and explicit `stakes: 'none'` skip of clash + emission.
 
-SPE-2901 extends that spine: one **explicit** interrupt at `after_posture_commit` may rewrite later-phase statuses to `prepended`, `truncated`, or `redirected`. `posture_commit` stays `ran`. Frozen phase ids stay the same length and order. No-stakes `skipped` on clash + emission still wins over interrupt rewrite. Omit / `{ kind: 'none' }` keeps the SPE-2900 default. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
+SPE-2901 extends that spine: one **explicit** interrupt at `after_posture_commit` may rewrite later-phase statuses to `prepended`, `truncated`, or `redirected`. `posture_commit` stays `ran`. Frozen phase ids stay the same length and order. No-stakes `skipped` on clash + emission still wins over interrupt rewrite. Omit / `{ kind: 'none' }` keeps the SPE-2900 default.
+
+SPE-2902 extends that spine: one **explicit** hold-aim / abort-with-reason / delayed-emission record keyed to the encounter/procedure instance. Remaining later `'ran'` clash/emission statuses may become `held`, `aborted`, or `delayed`. No-stakes `skipped` and SPE-2901 interrupt rewrite still win. Optional `GameState.volatileActionHoldRecords` hydrates fail-closed and appends corrections instead of silent overwrite. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
 
 ### Pipeline requirements
 

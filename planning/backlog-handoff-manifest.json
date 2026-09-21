@@ -2,6 +2,7 @@
   "primary": "SPE-62",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2902",
     "SPE-2901",
     "SPE-2900",
     "SPE-2897",
@@ -12,10 +13,10 @@
     "SPE-2891",
     "SPE-2890",
     "SPE-2889",
-    "SPE-2870",
-    "SPE-2887"
+    "SPE-2870"
   ],
   "sliceDocStatus": {
+    "planning/spe-62-held-aborted-delayed-keyed-slice.md": "Recently shipped",
     "planning/spe-62-interruption-mutation-slice.md": "Recently shipped",
     "planning/spe-62-volatile-action-phase-kernel-slice.md": "Recently shipped",
     "planning/spe-54-state-driven-action-priority-slice.md": "Recently shipped",

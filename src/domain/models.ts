@@ -33,6 +33,7 @@ import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
 import type { FacilityStockOverflow } from './facilityStockOverflow'
 import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 import type { FacilityProtectionGoods } from './facilityProtectionGoods'
+import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
@@ -2840,6 +2841,12 @@ export interface GameState {
    * Omit hydrates omitted; counterfeit filters resolve failed protection and false reassurance.
    */
   facilityProtectionGoods?: FacilityProtectionGoods
+  /**
+   * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
+   * instance id. Append-only entries preserve mistaken records and later corrections.
+   * Omit hydrates omitted. Hydration drops malformed siblings independently.
+   */
+  volatileActionHoldRecords?: VolatileActionHoldRecords
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
   /**

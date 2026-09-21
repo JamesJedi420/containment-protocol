@@ -1,3 +1,4 @@
+import type { AgentReadinessBand } from './agent/models'
 import {
   resolveVolatileActionPriority,
   type VolatileActionPriorityRequest,
@@ -111,6 +112,62 @@ export type VolatileActionHazardImpending = {
 
 export type VolatileActionHazardInput = VolatileActionHazardNone | VolatileActionHazardImpending
 
+export const VOLATILE_ACTION_READINESS_BANDS = [
+  'steady',
+  'strained',
+  'critical',
+  'unavailable',
+] as const satisfies readonly AgentReadinessBand[]
+
+export const VOLATILE_ACTION_SPATIAL_VISIBILITY_STATES = ['clear', 'obstructed', 'exposed'] as const
+
+export type VolatileActionSpatialVisibilityState =
+  (typeof VOLATILE_ACTION_SPATIAL_VISIBILITY_STATES)[number]
+
+export const VOLATILE_ACTION_WIRING_CONDITION_KINDS = [
+  'flag',
+  'progress_clock',
+  'predicate',
+] as const
+
+export type VolatileActionWiringConditionKind =
+  (typeof VOLATILE_ACTION_WIRING_CONDITION_KINDS)[number]
+
+export type VolatileActionWiringNone = {
+  readonly kind: 'none'
+}
+
+export interface VolatileActionReadinessWiringRecord {
+  readonly actorId: string
+  readonly band: AgentReadinessBand
+}
+
+export interface VolatileActionBudgetWiringRecord {
+  readonly remaining: number
+  readonly freeTrigger: boolean
+}
+
+export interface VolatileActionSpatialWiringRecord {
+  readonly flags: readonly string[]
+  readonly visibilityState?: VolatileActionSpatialVisibilityState
+}
+
+export interface VolatileActionConditionWiringRecord {
+  readonly kind: VolatileActionWiringConditionKind
+  readonly id: string
+  readonly passes: boolean
+}
+
+export type VolatileActionWiringPresent = {
+  readonly kind: 'present'
+  readonly readiness: VolatileActionReadinessWiringRecord
+  readonly actionBudget: VolatileActionBudgetWiringRecord
+  readonly spatial: VolatileActionSpatialWiringRecord
+  readonly condition: VolatileActionConditionWiringRecord
+}
+
+export type VolatileActionWiringInput = VolatileActionWiringNone | VolatileActionWiringPresent
+
 export type VolatileActionHazardDeclarationStatus = 'none' | 'declared' | 'bypassed'
 
 export interface VolatileActionHazardDeclaration {
@@ -128,6 +185,10 @@ export type VolatileActionPhaseExplanationReason =
   | 'ran'
   | 'ran_posture_commit'
   | 'skipped_stakes_none'
+  | 'skipped_readiness_unavailable'
+  | 'skipped_action_budget_exhausted'
+  | 'skipped_spatial_obstructed'
+  | 'skipped_condition_unmet'
   | 'interrupt_prepend'
   | 'interrupt_truncate'
   | 'interrupt_redirect'
@@ -148,6 +209,58 @@ export type VolatileActionHazardDeclarationExplanationReason =
 
 export type VolatileActionHazardReductionExplanationReason =
   VolatileActionPhaseExplanationReason | 'ladder_skipped_stakes_none'
+
+export type VolatileActionWiringExplanationReason = 'wiring_none' | 'wiring_present'
+
+export type VolatileActionReadinessWiringExplanationReason =
+  'readiness_steady' | 'readiness_strained' | 'readiness_critical' | 'readiness_unavailable'
+
+export type VolatileActionBudgetWiringExplanationReason =
+  'budget_available' | 'budget_free_trigger' | 'budget_exhausted'
+
+export type VolatileActionSpatialWiringExplanationReason = 'spatial_clear' | 'spatial_obstructed'
+
+export type VolatileActionConditionWiringExplanationReason = 'condition_passed' | 'condition_unmet'
+
+export interface VolatileActionReadinessWiringExplanation {
+  readonly actorId: string
+  readonly band: AgentReadinessBand
+  readonly reason: VolatileActionReadinessWiringExplanationReason
+}
+
+export interface VolatileActionBudgetWiringExplanation {
+  readonly remaining: number
+  readonly freeTrigger: boolean
+  readonly constrained: boolean
+  readonly reason: VolatileActionBudgetWiringExplanationReason
+}
+
+export interface VolatileActionSpatialWiringExplanation {
+  readonly flags: readonly string[]
+  readonly visibilityState?: VolatileActionSpatialVisibilityState
+  readonly reason: VolatileActionSpatialWiringExplanationReason
+}
+
+export interface VolatileActionConditionWiringExplanation {
+  readonly kind: VolatileActionWiringConditionKind
+  readonly id: string
+  readonly passes: boolean
+  readonly reason: VolatileActionConditionWiringExplanationReason
+}
+
+export type VolatileActionWiringExplanation =
+  | {
+      readonly kind: 'none'
+      readonly reason: 'wiring_none'
+    }
+  | {
+      readonly kind: 'present'
+      readonly reason: 'wiring_present'
+      readonly readiness: VolatileActionReadinessWiringExplanation
+      readonly actionBudget: VolatileActionBudgetWiringExplanation
+      readonly spatial: VolatileActionSpatialWiringExplanation
+      readonly condition: VolatileActionConditionWiringExplanation
+    }
 
 export interface VolatileActionPhaseExplanation {
   readonly id: VolatileActionV1PhaseId
@@ -193,6 +306,7 @@ export interface VolatileActionPhasePipelineExplanation {
   readonly hold: VolatileActionHoldExplanation
   readonly hazardDeclaration: VolatileActionHazardDeclarationExplanation
   readonly consequenceReduction: readonly VolatileActionHazardReductionExplanation[]
+  readonly wiring: VolatileActionWiringExplanation
 }
 
 export interface VolatileActionPhaseRecord {
@@ -217,6 +331,7 @@ export interface VolatileActionPhasePipelineInput {
   readonly interrupt?: VolatileActionInterruptInput
   readonly hold?: VolatileActionHoldInput
   readonly hazard?: VolatileActionHazardInput
+  readonly wiring?: VolatileActionWiringInput
 }
 
 export interface VolatileActionPhasePipelineResult {
@@ -231,6 +346,7 @@ export interface VolatileActionPhasePipelineResult {
   readonly hazard: VolatileActionHazardInput
   readonly hazardDeclaration: VolatileActionHazardDeclaration
   readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
+  readonly wiring: VolatileActionWiringInput
   readonly bypassed: boolean
   readonly explanation: VolatileActionPhasePipelineExplanation
   readonly actionPriority: VolatileActionPriorityResult
@@ -433,6 +549,228 @@ function parseHazard(value: unknown): VolatileActionHazardInput {
   }
 }
 
+function assertWiringId(value: unknown, field: string): string {
+  if (value === undefined || value === null) {
+    throw new Error(`${field} is required.`)
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`${field} must be a non-empty trimmed string.`)
+  }
+  assertId(value, field)
+  if (isUnsafeVolatileActionHoldId(value)) {
+    throw new Error(`${field} is unsafe.`)
+  }
+  return value
+}
+
+function assertReadinessBand(value: unknown): AgentReadinessBand {
+  if (value === undefined || value === null) {
+    throw new Error('wiring readiness band is required.')
+  }
+  if (typeof value !== 'string') {
+    throw new Error('wiring readiness band must be a non-empty trimmed string.')
+  }
+  assertId(value, 'wiring readiness band')
+  switch (value) {
+    case 'steady':
+    case 'strained':
+    case 'critical':
+    case 'unavailable':
+      return value
+    default:
+      throw new Error('wiring readiness band must be steady, strained, critical, or unavailable.')
+  }
+}
+
+function parseReadinessWiring(value: unknown): VolatileActionReadinessWiringRecord {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('wiring readiness is required.')
+  }
+  const candidate = value as { readonly actorId?: unknown; readonly band?: unknown }
+  return {
+    actorId: assertWiringId(candidate.actorId, 'wiring readiness actorId'),
+    band: assertReadinessBand(candidate.band),
+  }
+}
+
+function parseBudgetWiring(value: unknown): VolatileActionBudgetWiringRecord {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('wiring actionBudget is required.')
+  }
+  const candidate = value as { readonly remaining?: unknown; readonly freeTrigger?: unknown }
+  if (candidate.remaining === undefined || candidate.remaining === null) {
+    throw new Error('wiring actionBudget remaining is required.')
+  }
+  if (
+    typeof candidate.remaining !== 'number' ||
+    !Number.isSafeInteger(candidate.remaining) ||
+    candidate.remaining < 0
+  ) {
+    throw new Error('wiring actionBudget remaining must be a non-negative safe integer.')
+  }
+  if (candidate.freeTrigger === undefined || candidate.freeTrigger === null) {
+    throw new Error('wiring actionBudget freeTrigger is required.')
+  }
+  if (typeof candidate.freeTrigger !== 'boolean') {
+    throw new Error('wiring actionBudget freeTrigger must be a boolean.')
+  }
+  return {
+    remaining: candidate.remaining,
+    freeTrigger: candidate.freeTrigger,
+  }
+}
+
+function parseSpatialVisibility(value: unknown): VolatileActionSpatialVisibilityState | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+  if (value === null) {
+    throw new Error('wiring spatial visibilityState is required.')
+  }
+  if (typeof value !== 'string') {
+    throw new Error('wiring spatial visibilityState must be a non-empty trimmed string.')
+  }
+  assertId(value, 'wiring spatial visibilityState')
+  switch (value) {
+    case 'clear':
+    case 'obstructed':
+    case 'exposed':
+      return value
+    default:
+      throw new Error('wiring spatial visibilityState must be clear, obstructed, or exposed.')
+  }
+}
+
+function parseSpatialWiring(value: unknown): VolatileActionSpatialWiringRecord {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('wiring spatial is required.')
+  }
+  const candidate = value as { readonly flags?: unknown; readonly visibilityState?: unknown }
+  if (candidate.flags === undefined || candidate.flags === null) {
+    throw new Error('wiring spatial flags is required.')
+  }
+  if (!Array.isArray(candidate.flags)) {
+    throw new Error('wiring spatial flags must be an array.')
+  }
+  const flags = candidate.flags.map((flag, index) =>
+    assertWiringId(flag, `wiring spatial flags[${index}]`)
+  )
+  const visibilityState = parseSpatialVisibility(candidate.visibilityState)
+  return visibilityState === undefined ? { flags } : { flags, visibilityState }
+}
+
+function parseConditionKind(value: unknown): VolatileActionWiringConditionKind {
+  if (value === undefined || value === null) {
+    throw new Error('wiring condition kind is required.')
+  }
+  if (typeof value !== 'string') {
+    throw new Error('wiring condition kind must be a non-empty trimmed string.')
+  }
+  assertId(value, 'wiring condition kind')
+  switch (value) {
+    case 'flag':
+    case 'progress_clock':
+    case 'predicate':
+      return value
+    default:
+      throw new Error('wiring condition kind must be flag, progress_clock, or predicate.')
+  }
+}
+
+function parseConditionWiring(value: unknown): VolatileActionConditionWiringRecord {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('wiring condition is required.')
+  }
+  const candidate = value as {
+    readonly kind?: unknown
+    readonly id?: unknown
+    readonly passes?: unknown
+  }
+  if (candidate.passes === undefined || candidate.passes === null) {
+    throw new Error('wiring condition passes is required.')
+  }
+  if (typeof candidate.passes !== 'boolean') {
+    throw new Error('wiring condition passes must be a boolean.')
+  }
+  return {
+    kind: parseConditionKind(candidate.kind),
+    id: assertWiringId(candidate.id, 'wiring condition id'),
+    passes: candidate.passes,
+  }
+}
+
+function parseWiring(value: unknown): VolatileActionWiringInput {
+  if (value === undefined) {
+    return { kind: 'none' }
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('wiring is required.')
+  }
+
+  const candidate = value as {
+    readonly kind?: unknown
+    readonly readiness?: unknown
+    readonly actionBudget?: unknown
+    readonly spatial?: unknown
+    readonly condition?: unknown
+  }
+  switch (candidate.kind) {
+    case 'none':
+      return { kind: 'none' }
+    case 'present':
+      return {
+        kind: 'present',
+        readiness: parseReadinessWiring(candidate.readiness),
+        actionBudget: parseBudgetWiring(candidate.actionBudget),
+        spatial: parseSpatialWiring(candidate.spatial),
+        condition: parseConditionWiring(candidate.condition),
+      }
+    default:
+      throw new Error('wiring kind must be none or present.')
+  }
+}
+
+function isBudgetExhausted(budget: VolatileActionBudgetWiringRecord): boolean {
+  return budget.remaining === 0 && !budget.freeTrigger
+}
+
+function isSpatialObstructed(spatial: VolatileActionSpatialWiringRecord): boolean {
+  return spatial.visibilityState === 'obstructed'
+}
+
+function wiringSkipReason(
+  id: VolatileActionV1PhaseId,
+  wiring: VolatileActionWiringInput
+): Extract<
+  VolatileActionPhaseExplanationReason,
+  | 'skipped_readiness_unavailable'
+  | 'skipped_action_budget_exhausted'
+  | 'skipped_spatial_obstructed'
+  | 'skipped_condition_unmet'
+> | null {
+  if (wiring.kind === 'none') {
+    return null
+  }
+  switch (id) {
+    case 'posture_commit':
+    case 'cleanup':
+      return null
+    case 'environmental_read':
+      return isSpatialObstructed(wiring.spatial) ? 'skipped_spatial_obstructed' : null
+    case 'clash_window':
+      if (wiring.readiness.band === 'unavailable') {
+        return 'skipped_readiness_unavailable'
+      }
+      return isBudgetExhausted(wiring.actionBudget) ? 'skipped_action_budget_exhausted' : null
+    case 'effect_emission':
+      return wiring.condition.passes ? null : 'skipped_condition_unmet'
+    default: {
+      const exhaustive: never = id
+      throw new Error(`unsupported phase id: ${String(exhaustive)}`)
+    }
+  }
+}
+
 function interruptStatus(
   interrupt: VolatileActionInterruptInput
 ): Exclude<VolatileActionPhaseStatus, 'skipped' | 'held' | 'aborted' | 'delayed'> {
@@ -476,7 +814,8 @@ function resolvePhaseStatus(
   id: VolatileActionV1PhaseId,
   bypassed: boolean,
   interrupt: VolatileActionInterruptInput,
-  hold: VolatileActionHoldInput
+  hold: VolatileActionHoldInput,
+  wiring: VolatileActionWiringInput
 ): VolatileActionPhaseStatus {
   if (bypassed && NO_STAKES_SKIPPED_PHASE_IDS.has(id)) {
     return 'skipped'
@@ -488,7 +827,11 @@ function resolvePhaseStatus(
   if (rewritten !== 'ran') {
     return rewritten
   }
-  return holdStatus(id, hold)
+  const held = holdStatus(id, hold)
+  if (held !== 'ran') {
+    return held
+  }
+  return wiringSkipReason(id, wiring) ? 'skipped' : 'ran'
 }
 
 function resolveHazardDeclaration(
@@ -543,13 +886,23 @@ function resolveConsequenceReduction(
 
 function explainPhaseStatus(
   id: VolatileActionV1PhaseId,
-  status: VolatileActionPhaseStatus
+  status: VolatileActionPhaseStatus,
+  bypassed: boolean,
+  wiring: VolatileActionWiringInput
 ): VolatileActionPhaseExplanationReason {
   switch (status) {
     case 'ran':
       return id === 'posture_commit' ? 'ran_posture_commit' : 'ran'
-    case 'skipped':
-      return 'skipped_stakes_none'
+    case 'skipped': {
+      if (bypassed && NO_STAKES_SKIPPED_PHASE_IDS.has(id)) {
+        return 'skipped_stakes_none'
+      }
+      const wiringReason = wiringSkipReason(id, wiring)
+      if (wiringReason) {
+        return wiringReason
+      }
+      throw new Error(`unsupported skipped phase: ${id}`)
+    }
     case 'prepended':
       return 'interrupt_prepend'
     case 'truncated':
@@ -624,7 +977,9 @@ function explainHazardDeclaration(
 
 function explainConsequenceReduction(
   hazardDeclaration: VolatileActionHazardDeclaration,
-  consequenceReduction: readonly VolatileActionHazardReductionStep[]
+  consequenceReduction: readonly VolatileActionHazardReductionStep[],
+  bypassed: boolean,
+  wiring: VolatileActionWiringInput
 ): readonly VolatileActionHazardReductionExplanation[] {
   return consequenceReduction.map((step) => ({
     id: step.id,
@@ -633,8 +988,83 @@ function explainConsequenceReduction(
     reason:
       hazardDeclaration.status === 'bypassed'
         ? 'ladder_skipped_stakes_none'
-        : explainPhaseStatus(step.phaseId, step.status),
+        : explainPhaseStatus(step.phaseId, step.status, bypassed, wiring),
   }))
+}
+
+function explainReadinessBand(
+  band: AgentReadinessBand
+): VolatileActionReadinessWiringExplanationReason {
+  switch (band) {
+    case 'steady':
+      return 'readiness_steady'
+    case 'strained':
+      return 'readiness_strained'
+    case 'critical':
+      return 'readiness_critical'
+    case 'unavailable':
+      return 'readiness_unavailable'
+    default: {
+      const exhaustive: never = band
+      throw new Error(`unsupported readiness band: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function explainBudget(
+  budget: VolatileActionBudgetWiringRecord
+): VolatileActionBudgetWiringExplanation {
+  const constrained = isBudgetExhausted(budget)
+  const reason: VolatileActionBudgetWiringExplanationReason = budget.freeTrigger
+    ? 'budget_free_trigger'
+    : constrained
+      ? 'budget_exhausted'
+      : 'budget_available'
+  return {
+    remaining: budget.remaining,
+    freeTrigger: budget.freeTrigger,
+    constrained,
+    reason,
+  }
+}
+
+function explainSpatial(
+  spatial: VolatileActionSpatialWiringRecord
+): VolatileActionSpatialWiringExplanation {
+  return {
+    flags: spatial.flags,
+    ...(spatial.visibilityState !== undefined ? { visibilityState: spatial.visibilityState } : {}),
+    reason: isSpatialObstructed(spatial) ? 'spatial_obstructed' : 'spatial_clear',
+  }
+}
+
+function explainWiring(wiring: VolatileActionWiringInput): VolatileActionWiringExplanation {
+  switch (wiring.kind) {
+    case 'none':
+      return { kind: 'none', reason: 'wiring_none' }
+    case 'present':
+      return {
+        kind: 'present',
+        reason: 'wiring_present',
+        readiness: {
+          actorId: wiring.readiness.actorId,
+          band: wiring.readiness.band,
+          reason: explainReadinessBand(wiring.readiness.band),
+        },
+        actionBudget: explainBudget(wiring.actionBudget),
+        spatial: explainSpatial(wiring.spatial),
+        condition: {
+          kind: wiring.condition.kind,
+          id: wiring.condition.id,
+          passes: wiring.condition.passes,
+          reason: wiring.condition.passes ? 'condition_passed' : 'condition_unmet',
+        },
+      }
+    default: {
+      const exhaustive: never = wiring
+      throw new Error(`unsupported wiring kind: ${String(exhaustive)}`)
+    }
+  }
 }
 
 function explainVolatileActionPhasePipeline(input: {
@@ -644,12 +1074,13 @@ function explainVolatileActionPhasePipeline(input: {
   readonly hold: VolatileActionHoldInput
   readonly hazardDeclaration: VolatileActionHazardDeclaration
   readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
+  readonly wiring: VolatileActionWiringInput
 }): VolatileActionPhasePipelineExplanation {
   return {
     phases: input.phases.map((phase) => ({
       id: phase.id,
       status: phase.status,
-      reason: explainPhaseStatus(phase.id, phase.status),
+      reason: explainPhaseStatus(phase.id, phase.status, input.bypassed, input.wiring),
     })),
     bypass: {
       bypassed: input.bypassed,
@@ -660,8 +1091,11 @@ function explainVolatileActionPhasePipeline(input: {
     hazardDeclaration: explainHazardDeclaration(input.hazardDeclaration),
     consequenceReduction: explainConsequenceReduction(
       input.hazardDeclaration,
-      input.consequenceReduction
+      input.consequenceReduction,
+      input.bypassed,
+      input.wiring
     ),
+    wiring: explainWiring(input.wiring),
   }
 }
 
@@ -692,6 +1126,7 @@ export function resolveVolatileActionPhasePipeline(
   const interrupt = parseInterrupt(input.interrupt)
   const hold = parseVolatileActionHoldInput(input.hold)
   const hazard = parseHazard(input.hazard)
+  const wiring = parseWiring(input.wiring)
   const actionPriority = resolveVolatileActionPriority({
     ...input.actionPriority,
     encounterId: input.encounterId,
@@ -700,7 +1135,7 @@ export function resolveVolatileActionPhasePipeline(
   const bypassed = input.stakes === 'none'
   const phases = VOLATILE_ACTION_V1_PHASE_IDS.map((id) => ({
     id,
-    status: resolvePhaseStatus(id, bypassed, interrupt, hold),
+    status: resolvePhaseStatus(id, bypassed, interrupt, hold, wiring),
   }))
   const hazardDeclaration = resolveHazardDeclaration(hazard, bypassed)
   const consequenceReduction = resolveConsequenceReduction(hazard, phases, bypassed)
@@ -711,7 +1146,10 @@ export function resolveVolatileActionPhasePipeline(
     hold,
     hazardDeclaration,
     consequenceReduction,
+    wiring,
   })
+  const reactionWindowConstrained =
+    wiring.kind === 'present' && isBudgetExhausted(wiring.actionBudget)
 
   return {
     encounterId: input.encounterId,
@@ -722,13 +1160,14 @@ export function resolveVolatileActionPhasePipeline(
     reactionWindow: {
       id: VOLATILE_ACTION_REACTION_WINDOW_ID,
       attachAfterPhaseId: 'posture_commit',
-      actorIds,
+      actorIds: reactionWindowConstrained ? [] : actorIds,
     },
     interrupt,
     hold,
     hazard,
     hazardDeclaration,
     consequenceReduction,
+    wiring,
     bypassed,
     explanation,
     actionPriority,

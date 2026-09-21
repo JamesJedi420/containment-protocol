@@ -222,7 +222,9 @@ SPE-2912 extends that spine: declared variants are `volatile_action_v1` and `vol
 
 SPE-2915 extends that spine: one **explicit** authored impending-hazard declaration at `posture_commit` plus a consequence-reduction ladder that walks existing later phases only (`expose` @ `environmental_read`, `mitigate` @ `clash_window`, `apply` @ `effect_emission`). Hazard is never inferred from SPE-54 scores, array order, variant, or mode. Omit / `{ kind: 'none' }` keeps the SPE-2912 default. No-stakes does not enter volatile hazard resolution. Ladder step status uses already-resolved phase statuses; interrupt/hold do not revive skipped clash/emission.
 
-SPE-2916 extends that spine: pipeline output always includes an inspectable `explanation` derived from already-resolved phase statuses, no-stakes bypass, interrupt, hold, hazard declaration, and consequence-reduction steps. Reason codes are stable strings; callers do not infer skip/interrupt/hold/hazard from SPE-54 scores. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
+SPE-2916 extends that spine: pipeline output always includes an inspectable `explanation` derived from already-resolved phase statuses, no-stakes bypass, interrupt, hold, hazard declaration, and consequence-reduction steps. Reason codes are stable strings; callers do not infer skip/interrupt/hold/hazard from SPE-54 scores.
+
+SPE-2930 extends that spine: one **explicit** authored `wiring` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present' }`) consumes existing readiness, action-budget, spatial, and condition records as inspectable phase constraints. Wiring is never inferred from SPE-54 scores, array order, variant, or mode. No-stakes skip, interrupt rewrite, and hold still win over wiring. Explanation stays always emitted and adds stable wiring reason codes. Remaining bullets in this section stay parent SPE-62 — especially multi-stage procedures; this does not close the SPE-62 umbrella.
 
 ### Pipeline requirements
 

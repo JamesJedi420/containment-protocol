@@ -43,15 +43,15 @@ SPE-2897. Do not close SPE-62 or GitHub #62.
 
 ## Deferred
 
-| Item or mechanic                                      | Owner or prerequisite                                                                                        | Why deferred                                                      |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Held, aborted, or delayed actions keyed for save/load | [SPE-2902](https://linear.app/spectranoir/issue/SPE-2902/held-aborted-or-delayed-actions-keyed-for-saveload) | Persistence is out of this spine; SPE-2902 owns the keyed ledger  |
-| Interruption mutation (prepend/truncate/redirect)     | [SPE-2901](https://linear.app/spectranoir/issue/SPE-2901/interruption-mutation-at-after-posture-commit)      | Slice 1 records the window only; SPE-2901 owns the status rewrite |
-| Multi-stage procedure iteration                       | later SPE-62 child                                                                                           | One volatile action context only                                  |
-| Unified outcome bands / single-roll math              | SPE-73                                                                                                       | Confrontation outcomes stay out                                   |
-| Encounter round loop / action choice / apply          | SPE-2847                                                                                                     | Orchestration stays out                                           |
-| Risk-first impending-hazard declaration               | later SPE-62 child                                                                                           | Parent AC not claimed by this child                               |
-| Additional pipeline variants                          | later SPE-62 child                                                                                           | `volatile_action_v1` only                                         |
+| Item or mechanic                                      | Owner or prerequisite                                                                                                     | Why deferred                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Held, aborted, or delayed actions keyed for save/load | [SPE-2902](https://linear.app/spectranoir/issue/SPE-2902/held-aborted-or-delayed-actions-keyed-for-saveload)              | Persistence is out of this spine; SPE-2902 owns the keyed ledger  |
+| Interruption mutation (prepend/truncate/redirect)     | [SPE-2901](https://linear.app/spectranoir/issue/SPE-2901/interruption-mutation-at-after-posture-commit)                   | Slice 1 records the window only; SPE-2901 owns the status rewrite |
+| Multi-stage procedure iteration                       | later SPE-62 child                                                                                                        | One volatile action context only                                  |
+| Unified outcome bands / single-roll math              | SPE-73                                                                                                                    | Confrontation outcomes stay out                                   |
+| Encounter round loop / action choice / apply          | SPE-2847                                                                                                                  | Orchestration stays out                                           |
+| Risk-first impending-hazard declaration               | later SPE-62 child                                                                                                        | Parent AC not claimed by this child                               |
+| Additional pipeline variants                          | [SPE-2912](https://linear.app/spectranoir/issue/SPE-2912/additional-pipeline-variants-plus-tasktestadvanced-action-modes) | Extra named family + explicit task/test/advanced_action mode tags |
 
 ## Acceptance
 

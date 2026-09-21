@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  VOLATILE_ACTION_PHASE_MODES,
   VOLATILE_ACTION_PHASE_VARIANT_ID,
+  VOLATILE_ACTION_PHASE_VARIANT_IDS,
+  VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
   VOLATILE_ACTION_REACTION_WINDOW_ID,
   VOLATILE_ACTION_V1_PHASE_IDS,
   resolveVolatileActionPhasePipeline,
@@ -53,12 +56,14 @@ describe('volatile action phase pipeline', () => {
     const first = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:loading-bay',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot(actors),
     })
     const replay = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:loading-bay',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot([...actors].reverse()),
     })
@@ -70,6 +75,8 @@ describe('volatile action phase pipeline', () => {
     expect(first.phases.every((phase) => phase.status === 'ran')).toBe(true)
     expect(first.bypassed).toBe(false)
     expect(first.actorIds).toEqual(['actor:bravo', 'actor:alpha'])
+    expect(first.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(first.mode).toBe('advanced_action')
     expect(first.interrupt).toEqual({ kind: 'none' })
     expect(first.hold).toEqual({ kind: 'none' })
     expect(first.reactionWindow).toEqual({
@@ -90,6 +97,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:routine',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'none',
       actionPriority: snapshot([actor('actor:alpha')]),
     })
@@ -134,6 +142,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:side-blocks',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot(actors, { kind: 'side_phase' }),
     })
@@ -160,6 +169,7 @@ describe('volatile action phase pipeline', () => {
       input: {
         encounterId: '  ',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present' as const,
         actionPriority: snapshot([actor('actor:alpha')]),
       },
@@ -170,16 +180,39 @@ describe('volatile action phase pipeline', () => {
       input: {
         encounterId: 'encounter:alpha',
         variantId: 'other_variant',
+        mode: 'advanced_action',
         stakes: 'present' as const,
         actionPriority: snapshot([actor('actor:alpha')]),
       },
-      message: 'variantId must be volatile_action_v1.',
+      message: 'variantId must be volatile_action_v1 or volatile_action_procedure_v1.',
+    },
+    {
+      name: 'missing mode',
+      input: {
+        encounterId: 'encounter:alpha',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        stakes: 'present' as const,
+        actionPriority: snapshot([actor('actor:alpha')]),
+      },
+      message: 'mode must be task, test, or advanced_action.',
+    },
+    {
+      name: 'unknown mode',
+      input: {
+        encounterId: 'encounter:alpha',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'montage',
+        stakes: 'present' as const,
+        actionPriority: snapshot([actor('actor:alpha')]),
+      },
+      message: 'mode must be task, test, or advanced_action.',
     },
     {
       name: 'unknown stakes',
       input: {
         encounterId: 'encounter:alpha',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'maybe',
         actionPriority: snapshot([actor('actor:alpha')]),
       },
@@ -190,6 +223,7 @@ describe('volatile action phase pipeline', () => {
       input: {
         encounterId: 'encounter:alpha',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present' as const,
       },
       message: 'actionPriority is required.',
@@ -199,6 +233,7 @@ describe('volatile action phase pipeline', () => {
       input: {
         encounterId: 'encounter:alpha',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present' as const,
         actionPriority: { ...snapshot([actor('actor:alpha')]), encounterId: 'encounter:other' },
       },
@@ -217,12 +252,14 @@ describe('volatile action phase pipeline', () => {
     const omitted = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:default-interrupt',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority,
     })
     const none = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:default-interrupt',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority,
       interrupt: { kind: 'none' },
@@ -264,6 +301,7 @@ describe('volatile action phase pipeline', () => {
       const result = resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:interrupt',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present',
         actionPriority: snapshot(actors),
         interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
@@ -304,6 +342,7 @@ describe('volatile action phase pipeline', () => {
       const result = resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:no-stakes-interrupt',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'none',
         actionPriority: snapshot([actor('actor:alpha')]),
         interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
@@ -350,6 +389,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:side-blocks-interrupt',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot(actors, { kind: 'side_phase' }),
       interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
@@ -418,6 +458,7 @@ describe('volatile action phase pipeline', () => {
       resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:interrupt-authority',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present',
         actionPriority: snapshot([actor('actor:alpha')]),
         interrupt: interrupt as Parameters<
@@ -432,12 +473,14 @@ describe('volatile action phase pipeline', () => {
     const omitted = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:default-hold',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority,
     })
     const none = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:default-hold',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority,
       hold: { kind: 'none' },
@@ -459,6 +502,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:hold-aim',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot([actor('actor:alpha')]),
       hold: { kind: 'hold_aim', instanceId: 'encounter:hold-aim' },
@@ -479,6 +523,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:abort',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot([actor('actor:alpha')]),
       hold: {
@@ -506,6 +551,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:delay',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot([actor('actor:alpha')]),
       hold: { kind: 'delayed_emission', instanceId: 'encounter:delay' },
@@ -538,6 +584,7 @@ describe('volatile action phase pipeline', () => {
       const result = resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:no-stakes-hold',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'none',
         actionPriority: snapshot([actor('actor:alpha')]),
         hold,
@@ -563,6 +610,7 @@ describe('volatile action phase pipeline', () => {
       const result = resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:interrupt-delay',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present',
         actionPriority: snapshot([actor('actor:alpha')]),
         interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
@@ -595,6 +643,7 @@ describe('volatile action phase pipeline', () => {
     const result = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:order-hold',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: snapshot([...actors].reverse()),
     })
@@ -659,10 +708,175 @@ describe('volatile action phase pipeline', () => {
       resolveVolatileActionPhasePipeline({
         encounterId: 'encounter:hold-authority',
         variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
         stakes: 'present',
         actionPriority: snapshot([actor('actor:alpha')]),
         hold: hold as Parameters<typeof resolveVolatileActionPhasePipeline>[0]['hold'],
       })
     ).toThrow(message)
+  })
+
+  it('keeps the procedure variant on the same inspectable phase ids', () => {
+    const actors = [
+      actor('actor:alpha', { posture: 'braced', precision: 85, aimCommitment: 'committed' }),
+      actor('actor:bravo', {
+        posture: 'mobile',
+        precision: 65,
+        aimCommitment: 'tracking',
+        targetingMode: 'rapid_nearest_valid',
+      }),
+    ]
+    const actionPriority = snapshot(actors)
+    const baseline = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:procedure-variant',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority,
+    })
+    const procedure = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:procedure-variant',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority,
+    })
+
+    expect([...VOLATILE_ACTION_PHASE_VARIANT_IDS]).toEqual([
+      VOLATILE_ACTION_PHASE_VARIANT_ID,
+      VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+    ])
+    expect(procedure.variantId).toBe(VOLATILE_ACTION_PROCEDURE_VARIANT_ID)
+    expect(procedure.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    expect(procedure.phases).toEqual(baseline.phases)
+    expect(procedure.bypassed).toBe(baseline.bypassed)
+    expect(procedure.actorIds).toEqual(baseline.actorIds)
+    expect(procedure.actionPriority).toEqual(baseline.actionPriority)
+    expect(procedure.mode).toBe('task')
+  })
+
+  it.each([...VOLATILE_ACTION_PHASE_MODES])(
+    'does not change SPE-54 scores when mode is %s',
+    (mode) => {
+      const actors = [
+        actor('actor:alpha', { precision: 80 }),
+        actor('actor:bravo', { precision: 40 }),
+      ]
+      const actionPriority = snapshot(actors)
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:mode-scores',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode,
+        stakes: 'present',
+        actionPriority,
+      })
+      const priority = resolveVolatileActionPriority({
+        encounterId: 'encounter:mode-scores',
+        mode: { kind: 'per_actor' },
+        actors,
+      })
+
+      expect(result.mode).toBe(mode)
+      expect(result.actionPriority).toEqual(priority)
+      expect(JSON.stringify(result.actionPriority)).toBe(JSON.stringify(priority))
+    }
+  )
+
+  it('does not infer variant or mode from actor array order', () => {
+    const actors = [
+      actor('actor:alpha', { precision: 80 }),
+      actor('actor:bravo', { precision: 40 }),
+    ]
+    const reversed = [...actors].reverse()
+    const procedureTask = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-tags',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority: snapshot(reversed),
+    })
+    const v1Test = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-tags',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'test',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+    })
+
+    expect(procedureTask.variantId).toBe(VOLATILE_ACTION_PROCEDURE_VARIANT_ID)
+    expect(procedureTask.mode).toBe('task')
+    expect(v1Test.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(v1Test.mode).toBe('test')
+    expect(procedureTask.actorIds).toEqual(v1Test.actorIds)
+    expect(procedureTask.actionPriority).toEqual(v1Test.actionPriority)
+    expect(procedureTask.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+  })
+
+  it.each([
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'test' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'advanced_action' as const,
+    },
+  ])('applies no-stakes skip identically on $variantId in $mode', ({ variantId, mode }) => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:procedure-no-stakes',
+      variantId,
+      mode,
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+    })
+
+    expect(result.variantId).toBe(variantId)
+    expect(result.mode).toBe(mode)
+    expect(result.bypassed).toBe(true)
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+  })
+
+  it('composes interrupt and hold identically on the procedure variant', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:procedure-compose',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'test',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      hold: { kind: 'delayed_emission', instanceId: 'encounter:procedure-compose' },
+    })
+    const baseline = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:procedure-compose',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      hold: { kind: 'delayed_emission', instanceId: 'encounter:procedure-compose' },
+    })
+
+    expect(result.phases).toEqual(baseline.phases)
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'truncated' },
+      { id: 'clash_window', status: 'truncated' },
+      { id: 'effect_emission', status: 'truncated' },
+      { id: 'cleanup', status: 'truncated' },
+    ])
+    expect(result.variantId).toBe(VOLATILE_ACTION_PROCEDURE_VARIANT_ID)
+    expect(result.mode).toBe('test')
+    expect(baseline.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(baseline.mode).toBe('advanced_action')
   })
 })

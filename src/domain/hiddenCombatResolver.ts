@@ -317,10 +317,12 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
   if (input.actionStakes !== undefined && !input.actionPriority) {
     throw new Error('actionPriority is required.')
   }
+  /** Optional SPE-62 attach uses explicit `advanced_action`; do not infer mode from actor order. */
   const actionPhasePipeline = input.actionPriority
     ? resolveVolatileActionPhasePipeline({
         encounterId,
         variantId: 'volatile_action_v1',
+        mode: 'advanced_action',
         stakes: input.actionStakes ?? 'present',
         actionPriority: input.actionPriority,
       })

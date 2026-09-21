@@ -98,6 +98,8 @@ describe('hiddenCombatResolver', () => {
       'effect_emission',
       'cleanup',
     ])
+    expect(resolution.actionPhasePipeline?.mode).toBe('advanced_action')
+    expect(resolution.actionPhasePipeline?.variantId).toBe('volatile_action_v1')
     expect(resolution.actionPhasePipeline?.actorIds).toEqual(['actor:fast', 'actor:slow'])
   })
 

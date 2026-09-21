@@ -134,6 +134,7 @@ describe('volatile action hold records', () => {
     const pipeline = resolveVolatileActionPhasePipeline({
       encounterId: 'encounter:replay',
       variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
       stakes: 'present',
       actionPriority: { mode: { kind: 'per_actor' }, actors: [actor('actor:alpha')] },
       hold,

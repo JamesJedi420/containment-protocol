@@ -2,12 +2,13 @@
 
 | Field               | Value                                                                                                                                                                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                                                                                                                                                          |
+| **Status**          | **Recently shipped**                                                                                                                                                                                                                                     |
 | **Linear**          | [SPE-2901](https://linear.app/spectranoir/issue/SPE-2901/interruption-mutation-at-after-posture-commit)                                                                                                                                                  |
 | **Parent**          | [SPE-62](https://linear.app/spectranoir/issue/SPE-62/operational-phase-resolution-pipeline) — stays **Backlog**                                                                                                                                          |
 | **Prerequisite**    | [SPE-2900](https://linear.app/spectranoir/issue/SPE-2900/volatile-action-phase-spine-and-no-stakes-bypass) spine; [SPE-54](https://linear.app/spectranoir/issue/SPE-54/state-driven-action-priority-in-volatile-encounters) order consumed, not rescored |
 | **Branch**          | `cursor/interrupt-after-posture-commit-ce72`                                                                                                                                                                                                             |
 | **Base `main` SHA** | `a427246b`                                                                                                                                                                                                                                               |
+| **Implementation**  | [PR #3676](https://github.com/JamesJedi420/containment-protocol/pull/3676)                                                                                                                                                                               |
 
 ## Goal
 

@@ -218,7 +218,9 @@ SPE-2901 extends that spine: one **explicit** interrupt at `after_posture_commit
 
 SPE-2902 extends that spine: one **explicit** hold-aim / abort-with-reason / delayed-emission record keyed to the encounter/procedure instance. Remaining later `'ran'` clash/emission statuses may become `held`, `aborted`, or `delayed`. No-stakes `skipped` and SPE-2901 interrupt rewrite still win. Optional `GameState.volatileActionHoldRecords` hydrates fail-closed and appends corrections instead of silent overwrite.
 
-SPE-2912 extends that spine: declared variants are `volatile_action_v1` and `volatile_action_procedure_v1`. Both reuse the same frozen five phase ids. Pipeline input requires an explicit `mode: 'task' | 'test' | 'advanced_action'`. Mode does not change SPE-54 scores. Unknown variant or mode fails closed. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
+SPE-2912 extends that spine: declared variants are `volatile_action_v1` and `volatile_action_procedure_v1`. Both reuse the same frozen five phase ids. Pipeline input requires an explicit `mode: 'task' | 'test' | 'advanced_action'`. Mode does not change SPE-54 scores. Unknown variant or mode fails closed.
+
+SPE-2915 extends that spine: one **explicit** authored impending-hazard declaration at `posture_commit` plus a consequence-reduction ladder that walks existing later phases only (`expose` @ `environmental_read`, `mitigate` @ `clash_window`, `apply` @ `effect_emission`). Hazard is never inferred from SPE-54 scores, array order, variant, or mode. Omit / `{ kind: 'none' }` keeps the SPE-2912 default. No-stakes does not enter volatile hazard resolution. Ladder step status uses already-resolved phase statuses; interrupt/hold do not revive skipped clash/emission. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
 
 ### Pipeline requirements
 

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+  VOLATILE_ACTION_HAZARD_REDUCTION_PHASE_BY_STEP,
+  VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS,
   VOLATILE_ACTION_PHASE_MODES,
   VOLATILE_ACTION_PHASE_VARIANT_ID,
   VOLATILE_ACTION_PHASE_VARIANT_IDS,
@@ -878,5 +881,444 @@ describe('volatile action phase pipeline', () => {
     expect(result.mode).toBe('test')
     expect(baseline.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
     expect(baseline.mode).toBe('advanced_action')
+  })
+
+  it('treats omitted hazard and kind none as the SPE-2912 default', () => {
+    const actionPriority = snapshot([actor('actor:alpha')])
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+    })
+    const none = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+      hazard: { kind: 'none' },
+    })
+
+    expect(omitted).toEqual(none)
+    expect(JSON.stringify(omitted)).toBe(JSON.stringify(none))
+    expect(omitted.hazard).toEqual({ kind: 'none' })
+    expect(omitted.hazardDeclaration).toEqual({
+      declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      status: 'none',
+    })
+    expect(omitted.consequenceReduction).toEqual([])
+    expect(omitted.phases.every((phase) => phase.status === 'ran')).toBe(true)
+  })
+
+  it('declares an authored impending hazard before commitment and ladders through ordered phases', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.hazard).toEqual({
+      kind: 'impending',
+      hazardId: 'hazard:rupture',
+      declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+    })
+    expect(result.hazardDeclaration).toEqual({
+      declaredAtPhaseId: 'posture_commit',
+      status: 'declared',
+    })
+    expect([...VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS]).toEqual(['expose', 'mitigate', 'apply'])
+    expect(result.consequenceReduction).toEqual([
+      { id: 'expose', phaseId: 'environmental_read', status: 'ran' },
+      { id: 'mitigate', phaseId: 'clash_window', status: 'ran' },
+      { id: 'apply', phaseId: 'effect_emission', status: 'ran' },
+    ])
+    expect(VOLATILE_ACTION_HAZARD_REDUCTION_PHASE_BY_STEP).toEqual({
+      expose: 'environmental_read',
+      mitigate: 'clash_window',
+      apply: 'effect_emission',
+    })
+    expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    expect(result.phases.every((phase) => phase.status === 'ran')).toBe(true)
+    expect(result.hazardDeclaration.declaredAtPhaseId).toBe(result.phases[0]?.id)
+    expect(result.consequenceReduction[0]?.phaseId).toBe('environmental_read')
+    expect(result.consequenceReduction[2]?.phaseId).not.toBe('cleanup')
+  })
+
+  it('does not enter volatile hazard resolution on no-stakes and still skips clash plus emission', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:no-stakes-hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.bypassed).toBe(true)
+    expect(result.hazard.kind).toBe('impending')
+    expect(result.hazardDeclaration).toEqual({
+      declaredAtPhaseId: 'posture_commit',
+      status: 'bypassed',
+    })
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.consequenceReduction).toEqual([
+      { id: 'expose', phaseId: 'environmental_read', status: 'skipped' },
+      { id: 'mitigate', phaseId: 'clash_window', status: 'skipped' },
+      { id: 'apply', phaseId: 'effect_emission', status: 'skipped' },
+    ])
+  })
+
+  it.each(['prepend', 'truncate', 'redirect'] as const)(
+    'does not revive skipped clash or emission under no-stakes interrupt %s with a hazard',
+    (kind) => {
+      const laterStatus =
+        kind === 'prepend' ? 'prepended' : kind === 'truncate' ? 'truncated' : 'redirected'
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:no-stakes-hazard-interrupt',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'none',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+        hazard: {
+          kind: 'impending',
+          hazardId: 'hazard:rupture',
+          declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+        },
+      })
+
+      expect(result.bypassed).toBe(true)
+      expect(result.phases).toEqual([
+        { id: 'posture_commit', status: 'ran' },
+        { id: 'environmental_read', status: laterStatus },
+        { id: 'clash_window', status: 'skipped' },
+        { id: 'effect_emission', status: 'skipped' },
+        { id: 'cleanup', status: laterStatus },
+      ])
+      expect(result.hazardDeclaration.status).toBe('bypassed')
+      expect(result.consequenceReduction.every((step) => step.status === 'skipped')).toBe(true)
+    }
+  )
+
+  it.each(['hold_aim', 'abort', 'delayed_emission'] as const)(
+    'does not revive skipped clash or emission under no-stakes %s with a hazard',
+    (kind) => {
+      const hold =
+        kind === 'abort'
+          ? {
+              kind,
+              instanceId: 'encounter:no-stakes-hazard-hold',
+              reason: 'no_stakes_abort',
+            }
+          : { kind, instanceId: 'encounter:no-stakes-hazard-hold' }
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:no-stakes-hazard-hold',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'none',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        hold,
+        hazard: {
+          kind: 'impending',
+          hazardId: 'hazard:rupture',
+          declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+        },
+      })
+
+      expect(result.phases).toEqual([
+        { id: 'posture_commit', status: 'ran' },
+        { id: 'environmental_read', status: 'ran' },
+        { id: 'clash_window', status: 'skipped' },
+        { id: 'effect_emission', status: 'skipped' },
+        { id: 'cleanup', status: 'ran' },
+      ])
+      expect(result.hazardDeclaration.status).toBe('bypassed')
+      expect(result.consequenceReduction).toEqual([
+        { id: 'expose', phaseId: 'environmental_read', status: 'skipped' },
+        { id: 'mitigate', phaseId: 'clash_window', status: 'skipped' },
+        { id: 'apply', phaseId: 'effect_emission', status: 'skipped' },
+      ])
+    }
+  )
+
+  it('uses existing interrupt phase statuses for the reduction ladder', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:hazard-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'truncated' },
+      { id: 'clash_window', status: 'truncated' },
+      { id: 'effect_emission', status: 'truncated' },
+      { id: 'cleanup', status: 'truncated' },
+    ])
+    expect(result.hazardDeclaration.status).toBe('declared')
+    expect(result.consequenceReduction).toEqual([
+      { id: 'expose', phaseId: 'environmental_read', status: 'truncated' },
+      { id: 'mitigate', phaseId: 'clash_window', status: 'truncated' },
+      { id: 'apply', phaseId: 'effect_emission', status: 'truncated' },
+    ])
+  })
+
+  it('uses existing hold phase statuses for the reduction ladder', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:hazard-hold',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hold: { kind: 'hold_aim', instanceId: 'encounter:hazard-hold' },
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'held' },
+      { id: 'effect_emission', status: 'held' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.consequenceReduction).toEqual([
+      { id: 'expose', phaseId: 'environmental_read', status: 'ran' },
+      { id: 'mitigate', phaseId: 'clash_window', status: 'held' },
+      { id: 'apply', phaseId: 'effect_emission', status: 'held' },
+    ])
+  })
+
+  it('does not infer hazard from SPE-54 scores, array order, variant, or mode', () => {
+    const actors = [
+      actor('actor:alpha', { precision: 80 }),
+      actor('actor:bravo', { precision: 40 }),
+    ]
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-hazard',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority: snapshot([...actors].reverse()),
+    })
+    const declared = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'test',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:authored',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(omitted.hazard).toEqual({ kind: 'none' })
+    expect(omitted.hazardDeclaration.status).toBe('none')
+    expect(omitted.consequenceReduction).toEqual([])
+    expect(declared.hazard).toEqual({
+      kind: 'impending',
+      hazardId: 'hazard:authored',
+      declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+    })
+    expect(declared.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(declared.mode).toBe('test')
+    expect(omitted.variantId).toBe(VOLATILE_ACTION_PROCEDURE_VARIANT_ID)
+    expect(omitted.mode).toBe('task')
+    expect(omitted.actorIds).toEqual(declared.actorIds)
+    expect(omitted.actionPriority).toEqual(declared.actionPriority)
+    expect(declared.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+  })
+
+  it('keeps SPE-54 fallback then actor id ties when a hazard is declared', () => {
+    const actors = [
+      actor('actor:alpha', { fallbackOrder: 2 }),
+      actor('actor:bravo', { fallbackOrder: 1 }),
+    ]
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:hazard-tie',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:tie',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+    const priority = resolveVolatileActionPriority({
+      encounterId: 'encounter:hazard-tie',
+      mode: { kind: 'per_actor' },
+      actors,
+    })
+
+    expect(result.actorIds).toEqual(['actor:bravo', 'actor:alpha'])
+    expect(result.actionPriority).toEqual(priority)
+    expect(result.mode).toBe('advanced_action')
+    expect(result.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+  })
+
+  it.each([
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'test' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action' as const,
+    },
+  ])(
+    'keeps variant $variantId and mode $mode unchanged with an impending hazard',
+    ({ variantId, mode }) => {
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:hazard-tags',
+        variantId,
+        mode,
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        hazard: {
+          kind: 'impending',
+          hazardId: 'hazard:rupture',
+          declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+        },
+      })
+
+      expect(result.variantId).toBe(variantId)
+      expect(result.mode).toBe(mode)
+      expect(result.hazardDeclaration.status).toBe('declared')
+      expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    }
+  )
+
+  it.each([
+    {
+      name: 'non-object hazard',
+      hazard: 'impending',
+      message: 'hazard is required.',
+    },
+    {
+      name: 'null hazard',
+      hazard: null,
+      message: 'hazard is required.',
+    },
+    {
+      name: 'array hazard',
+      hazard: [{ kind: 'none' }],
+      message: 'hazard is required.',
+    },
+    {
+      name: 'unknown hazard kind',
+      hazard: {
+        kind: 'inferred',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+      message: 'hazard kind must be none or impending.',
+    },
+    {
+      name: 'missing hazardId',
+      hazard: {
+        kind: 'impending',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+      message: 'hazard hazardId is required.',
+    },
+    {
+      name: 'empty hazardId',
+      hazard: {
+        kind: 'impending',
+        hazardId: '  ',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+      message: 'hazard hazardId must be a non-empty trimmed string.',
+    },
+    {
+      name: 'unsafe hazardId',
+      hazard: {
+        kind: 'impending',
+        hazardId: '__proto__',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+      message: 'hazard hazardId is unsafe.',
+    },
+    {
+      name: 'integer-index hazardId',
+      hazard: {
+        kind: 'impending',
+        hazardId: '0',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+      message: 'hazard hazardId is unsafe.',
+    },
+    {
+      name: 'missing declaredAtPhaseId',
+      hazard: { kind: 'impending', hazardId: 'hazard:rupture' },
+      message: 'hazard declaredAtPhaseId is required.',
+    },
+    {
+      name: 'declaration after emission',
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: 'effect_emission',
+      },
+      message: 'hazard declaredAtPhaseId must be posture_commit.',
+    },
+    {
+      name: 'empty declaredAtPhaseId',
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: '  ',
+      },
+      message: 'hazard declaredAtPhaseId must be a non-empty trimmed string.',
+    },
+  ])('fails closed for $name', ({ hazard, message }) => {
+    expect(() =>
+      resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:hazard-authority',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        hazard: hazard as Parameters<typeof resolveVolatileActionPhasePipeline>[0]['hazard'],
+      })
+    ).toThrow(message)
   })
 })

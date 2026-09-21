@@ -10,11 +10,16 @@ import {
 
 export type VolatileActionHoldKind = 'hold_aim' | 'abort' | 'delayed_emission'
 
-export interface VolatileActionHoldLedgerEntry {
-  readonly sequence: number
-  readonly kind: VolatileActionHoldKind
-  readonly reason?: string
-}
+export type VolatileActionHoldLedgerEntry =
+  | {
+      readonly sequence: number
+      readonly kind: 'hold_aim' | 'delayed_emission'
+    }
+  | {
+      readonly sequence: number
+      readonly kind: 'abort'
+      readonly reason: string
+    }
 
 export interface VolatileActionHoldLedger {
   readonly instanceId: string
@@ -154,7 +159,7 @@ function latestEntryInput(
 ): Exclude<VolatileActionHoldInput, { kind: 'none' }> {
   const latest = ledger.entries[ledger.entries.length - 1]
   if (latest.kind === 'abort') {
-    return { kind: 'abort', instanceId: ledger.instanceId, reason: latest.reason ?? '' }
+    return { kind: 'abort', instanceId: ledger.instanceId, reason: latest.reason }
   }
   return { kind: latest.kind, instanceId: ledger.instanceId }
 }

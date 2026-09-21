@@ -3,6 +3,8 @@ import {
   VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
   VOLATILE_ACTION_HAZARD_REDUCTION_PHASE_BY_STEP,
   VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS,
+  VOLATILE_ACTION_ITERATION_AUTHORITY,
+  VOLATILE_ACTION_ITERATION_EXTRA_SLICE_PASS,
   VOLATILE_ACTION_PHASE_MODES,
   VOLATILE_ACTION_PHASE_VARIANT_ID,
   VOLATILE_ACTION_PHASE_VARIANT_IDS,
@@ -10,6 +12,7 @@ import {
   VOLATILE_ACTION_REACTION_WINDOW_ID,
   VOLATILE_ACTION_V1_PHASE_IDS,
   resolveVolatileActionPhasePipeline,
+  type VolatileActionIterationPresentInput,
   type VolatileActionWiringPresent,
 } from '../domain/volatileActionPhasePipeline'
 import {
@@ -53,6 +56,17 @@ function wiringPresent(
     actionBudget: { remaining: 1, freeTrigger: false },
     spatial: { flags: ['ingress:service_door'], visibilityState: 'clear' },
     condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+    ...overrides,
+  }
+}
+
+function iterationPresent(
+  overrides: Partial<Omit<VolatileActionIterationPresentInput, 'kind'>> = {}
+): VolatileActionIterationPresentInput {
+  return {
+    kind: 'present',
+    authority: VOLATILE_ACTION_ITERATION_AUTHORITY,
+    procedureId: 'procedure:long-ritual',
     ...overrides,
   }
 }
@@ -1355,6 +1369,7 @@ describe('volatile action phase pipeline', () => {
       hold: { kind: 'none' },
       hazard: { kind: 'none' },
       wiring: { kind: 'none' },
+      iteration: { kind: 'none' },
     })
 
     expect(omitted.explanation).toEqual(none.explanation)
@@ -1373,6 +1388,7 @@ describe('volatile action phase pipeline', () => {
       hazardDeclaration: { status: 'none', reason: 'hazard_none' },
       consequenceReduction: [],
       wiring: { kind: 'none', reason: 'wiring_none' },
+      iteration: { kind: 'none', reason: 'iteration_none' },
     })
     expect(JSON.stringify(omitted.explanation)).not.toMatch(/priorityScore|dominantDriver/)
   })
@@ -2172,6 +2188,302 @@ describe('volatile action phase pipeline', () => {
         stakes: 'present',
         actionPriority: snapshot([actor('actor:alpha')]),
         wiring: wiring as Parameters<typeof resolveVolatileActionPhasePipeline>[0]['wiring'],
+      })
+    ).toThrow(message)
+  })
+
+  it('treats omitted iteration and kind none as byte-stable equals', () => {
+    const actionPriority = snapshot([actor('actor:alpha')])
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-iteration',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+    })
+    const none = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-iteration',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+      iteration: { kind: 'none' },
+    })
+
+    expect(omitted).toEqual(none)
+    expect(JSON.stringify(omitted)).toBe(JSON.stringify(none))
+    expect(omitted.iteration).toEqual({ kind: 'none' })
+    expect(omitted.explanation.iteration).toEqual({ kind: 'none', reason: 'iteration_none' })
+    expect(omitted.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    expect(omitted.phases).toHaveLength(5)
+  })
+
+  it('iterates one extra slice pass on the same five ids without forking phases', () => {
+    const present = iterationPresent()
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:iteration-present',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      iteration: present,
+    })
+
+    expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    expect(result.phases).toHaveLength(5)
+    expect(result.phases.every((phase) => phase.status === 'ran')).toBe(true)
+    expect(result.iteration).toEqual({
+      kind: 'present',
+      authority: VOLATILE_ACTION_ITERATION_AUTHORITY,
+      procedureId: 'procedure:long-ritual',
+      extraSlicePass: {
+        pass: VOLATILE_ACTION_ITERATION_EXTRA_SLICE_PASS,
+        phases: result.phases,
+      },
+    })
+    expect(result.iteration.kind === 'present' && result.iteration.extraSlicePass.phases).toEqual(
+      result.phases
+    )
+    expect(
+      result.iteration.kind === 'present' &&
+        result.iteration.extraSlicePass.phases.map((phase) => phase.id)
+    ).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    expect(result.explanation.iteration).toEqual({
+      kind: 'present',
+      reason: 'iteration_extra_slice_pass',
+      authority: VOLATILE_ACTION_ITERATION_AUTHORITY,
+      procedureId: 'procedure:long-ritual',
+    })
+  })
+
+  it('does not infer iteration from variant, mode, SPE-54 scores, or array order', () => {
+    const actors = [
+      actor('actor:alpha', { posture: 'braced', precision: 85 }),
+      actor('actor:bravo', {
+        posture: 'mobile',
+        precision: 65,
+        targetingMode: 'rapid_nearest_valid',
+      }),
+    ]
+    const omittedProcedure = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-iteration',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+    })
+    const omittedV1 = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-iteration',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([...actors].reverse()),
+    })
+    const authored = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-iteration',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'test',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+      iteration: iterationPresent({ procedureId: 'procedure:authored-only' }),
+    })
+
+    expect(omittedProcedure.iteration).toEqual({ kind: 'none' })
+    expect(omittedV1.iteration).toEqual({ kind: 'none' })
+    expect(omittedProcedure.explanation.iteration.reason).toBe('iteration_none')
+    expect(authored.iteration.kind).toBe('present')
+    expect(authored.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(authored.mode).toBe('test')
+    expect(authored.explanation.iteration).toEqual({
+      kind: 'present',
+      reason: 'iteration_extra_slice_pass',
+      authority: VOLATILE_ACTION_ITERATION_AUTHORITY,
+      procedureId: 'procedure:authored-only',
+    })
+  })
+
+  it('does not revive no-stakes skipped clash or emission when iteration is present', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:iteration-no-stakes',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      iteration: iterationPresent(),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.iteration.kind === 'present' && result.iteration.extraSlicePass.phases).toEqual(
+      result.phases
+    )
+    expect(result.explanation.phases[2]?.reason).toBe('skipped_stakes_none')
+    expect(result.explanation.phases[3]?.reason).toBe('skipped_stakes_none')
+    expect(result.explanation.iteration.reason).toBe('iteration_extra_slice_pass')
+  })
+
+  it('keeps interrupt rewrite over iteration extra-pass statuses', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:iteration-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      iteration: iterationPresent(),
+    })
+
+    expect(result.phases[0]?.status).toBe('ran')
+    expect(result.phases.slice(1).every((phase) => phase.status === 'truncated')).toBe(true)
+    expect(result.iteration.kind === 'present' && result.iteration.extraSlicePass.phases).toEqual(
+      result.phases
+    )
+    expect(result.explanation.interrupt.reason).toBe('interrupt_truncate')
+    expect(result.explanation.iteration.reason).toBe('iteration_extra_slice_pass')
+  })
+
+  it('keeps hold over iteration extra-pass statuses on clash and emission', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:iteration-hold',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hold: { kind: 'hold_aim', instanceId: 'encounter:iteration-hold' },
+      iteration: iterationPresent(),
+    })
+
+    expect(result.phases[2]?.status).toBe('held')
+    expect(result.phases[3]?.status).toBe('held')
+    expect(result.iteration.kind === 'present' && result.iteration.extraSlicePass.phases).toEqual(
+      result.phases
+    )
+    expect(result.explanation.phases[2]?.reason).toBe('hold_aim')
+    expect(result.explanation.iteration.reason).toBe('iteration_extra_slice_pass')
+  })
+
+  it('keeps wiring skips over iteration extra-pass statuses', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:iteration-wiring',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+        actionBudget: { remaining: 0, freeTrigger: false },
+        spatial: { flags: ['ingress:service_door'], visibilityState: 'obstructed' },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: false },
+      }),
+      iteration: iterationPresent(),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'skipped' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.iteration.kind === 'present' && result.iteration.extraSlicePass.phases).toEqual(
+      result.phases
+    )
+    expect(result.explanation.phases[1]?.reason).toBe('skipped_spatial_obstructed')
+    expect(result.explanation.phases[2]?.reason).toBe('skipped_readiness_unavailable')
+    expect(result.explanation.phases[3]?.reason).toBe('skipped_condition_unmet')
+    expect(result.explanation.wiring.reason).toBe('wiring_present')
+    expect(result.explanation.iteration.reason).toBe('iteration_extra_slice_pass')
+  })
+
+  it.each(
+    VOLATILE_ACTION_PHASE_VARIANT_IDS.flatMap((variantId) =>
+      VOLATILE_ACTION_PHASE_MODES.map((mode) => ({ variantId, mode }))
+    )
+  )(
+    'keeps variant $variantId and mode $mode unchanged with present iteration',
+    ({ variantId, mode }) => {
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:iteration-tags',
+        variantId,
+        mode,
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        iteration: iterationPresent(),
+      })
+
+      expect(result.variantId).toBe(variantId)
+      expect(result.mode).toBe(mode)
+      expect(result.iteration.kind).toBe('present')
+      expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    }
+  )
+
+  it.each([
+    {
+      name: 'non-object iteration',
+      iteration: 'present',
+      message: 'iteration is required.',
+    },
+    {
+      name: 'null iteration',
+      iteration: null,
+      message: 'iteration is required.',
+    },
+    {
+      name: 'array iteration',
+      iteration: [{ kind: 'none' }],
+      message: 'iteration is required.',
+    },
+    {
+      name: 'unknown iteration kind',
+      iteration: { kind: 'inferred' },
+      message: 'iteration kind must be none or present.',
+    },
+    {
+      name: 'missing iteration authority',
+      iteration: { kind: 'present', procedureId: 'procedure:long-ritual' },
+      message: 'iteration authority is required.',
+    },
+    {
+      name: 'unknown iteration authority',
+      iteration: {
+        kind: 'present',
+        authority: 'inferred',
+        procedureId: 'procedure:long-ritual',
+      },
+      message: 'iteration authority must be authored_procedure.',
+    },
+    {
+      name: 'missing procedureId',
+      iteration: { kind: 'present', authority: VOLATILE_ACTION_ITERATION_AUTHORITY },
+      message: 'iteration procedureId is required.',
+    },
+    {
+      name: 'unsafe procedureId',
+      iteration: iterationPresent({ procedureId: '__proto__' }),
+      message: 'iteration procedureId is unsafe.',
+    },
+    {
+      name: 'empty procedureId',
+      iteration: iterationPresent({ procedureId: '  ' }),
+      message: 'iteration procedureId must be a non-empty trimmed string.',
+    },
+  ])('fails closed for $name', ({ iteration, message }) => {
+    expect(() =>
+      resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:iteration-fail',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        iteration: iteration as Parameters<
+          typeof resolveVolatileActionPhasePipeline
+        >[0]['iteration'],
       })
     ).toThrow(message)
   })

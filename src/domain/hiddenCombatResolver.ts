@@ -30,6 +30,7 @@ import {
 import type { AuthoredBranchContext } from './contentBranching'
 import {
   resolveVolatileActionPhasePipeline,
+  type VolatileActionIterationInput,
   type VolatileActionPhasePipelineResult,
   type VolatileActionStakes,
   type VolatileActionWiringInput,
@@ -84,6 +85,8 @@ export interface HiddenCombatResolutionInput<
   actionStakes?: VolatileActionStakes
   /** Optional SPE-2930 wiring snapshot; omit keeps pipeline `{ kind: 'none' }`. Does not change outcome math. */
   actionWiring?: VolatileActionWiringInput
+  /** Optional SPE-2931 iteration snapshot; omit keeps pipeline `{ kind: 'none' }`. Does not change outcome math. */
+  actionIteration?: VolatileActionIterationInput
 }
 
 export interface HiddenCombatResolutionDebugDetails {
@@ -323,6 +326,9 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
   if (input.actionWiring !== undefined && !input.actionPriority) {
     throw new Error('actionPriority is required.')
   }
+  if (input.actionIteration !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
   /** Optional SPE-62 attach uses explicit `advanced_action`; do not infer mode from actor order. */
   const actionPhasePipeline = input.actionPriority
     ? resolveVolatileActionPhasePipeline({
@@ -332,6 +338,7 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
         stakes: input.actionStakes ?? 'present',
         actionPriority: input.actionPriority,
         ...(input.actionWiring !== undefined ? { wiring: input.actionWiring } : {}),
+        ...(input.actionIteration !== undefined ? { iteration: input.actionIteration } : {}),
       })
     : undefined
   const actionPriority = actionPhasePipeline?.actionPriority

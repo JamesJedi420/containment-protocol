@@ -168,6 +168,40 @@ export type VolatileActionWiringPresent = {
 
 export type VolatileActionWiringInput = VolatileActionWiringNone | VolatileActionWiringPresent
 
+export const VOLATILE_ACTION_ITERATION_AUTHORITY = 'authored_procedure' as const
+
+export const VOLATILE_ACTION_ITERATION_EXTRA_SLICE_PASS = 2 as const
+
+export type VolatileActionIterationAuthority = typeof VOLATILE_ACTION_ITERATION_AUTHORITY
+
+export type VolatileActionIterationNone = {
+  readonly kind: 'none'
+}
+
+export type VolatileActionIterationPresentInput = {
+  readonly kind: 'present'
+  readonly authority: VolatileActionIterationAuthority
+  readonly procedureId: string
+}
+
+export type VolatileActionIterationInput =
+  VolatileActionIterationNone | VolatileActionIterationPresentInput
+
+export interface VolatileActionIterationExtraSlicePass {
+  readonly pass: typeof VOLATILE_ACTION_ITERATION_EXTRA_SLICE_PASS
+  readonly phases: readonly VolatileActionPhaseRecord[]
+}
+
+export type VolatileActionIterationPresent = {
+  readonly kind: 'present'
+  readonly authority: VolatileActionIterationAuthority
+  readonly procedureId: string
+  readonly extraSlicePass: VolatileActionIterationExtraSlicePass
+}
+
+export type VolatileActionIterationResult =
+  VolatileActionIterationNone | VolatileActionIterationPresent
+
 export type VolatileActionHazardDeclarationStatus = 'none' | 'declared' | 'bypassed'
 
 export interface VolatileActionHazardDeclaration {
@@ -222,6 +256,9 @@ export type VolatileActionSpatialWiringExplanationReason = 'spatial_clear' | 'sp
 
 export type VolatileActionConditionWiringExplanationReason = 'condition_passed' | 'condition_unmet'
 
+export type VolatileActionIterationExplanationReason =
+  'iteration_none' | 'iteration_extra_slice_pass'
+
 export interface VolatileActionReadinessWiringExplanation {
   readonly actorId: string
   readonly band: AgentReadinessBand
@@ -260,6 +297,18 @@ export type VolatileActionWiringExplanation =
       readonly actionBudget: VolatileActionBudgetWiringExplanation
       readonly spatial: VolatileActionSpatialWiringExplanation
       readonly condition: VolatileActionConditionWiringExplanation
+    }
+
+export type VolatileActionIterationExplanation =
+  | {
+      readonly kind: 'none'
+      readonly reason: 'iteration_none'
+    }
+  | {
+      readonly kind: 'present'
+      readonly reason: 'iteration_extra_slice_pass'
+      readonly authority: VolatileActionIterationAuthority
+      readonly procedureId: string
     }
 
 export interface VolatileActionPhaseExplanation {
@@ -307,6 +356,7 @@ export interface VolatileActionPhasePipelineExplanation {
   readonly hazardDeclaration: VolatileActionHazardDeclarationExplanation
   readonly consequenceReduction: readonly VolatileActionHazardReductionExplanation[]
   readonly wiring: VolatileActionWiringExplanation
+  readonly iteration: VolatileActionIterationExplanation
 }
 
 export interface VolatileActionPhaseRecord {
@@ -332,6 +382,7 @@ export interface VolatileActionPhasePipelineInput {
   readonly hold?: VolatileActionHoldInput
   readonly hazard?: VolatileActionHazardInput
   readonly wiring?: VolatileActionWiringInput
+  readonly iteration?: VolatileActionIterationInput
 }
 
 export interface VolatileActionPhasePipelineResult {
@@ -347,6 +398,7 @@ export interface VolatileActionPhasePipelineResult {
   readonly hazardDeclaration: VolatileActionHazardDeclaration
   readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
   readonly wiring: VolatileActionWiringInput
+  readonly iteration: VolatileActionIterationResult
   readonly bypassed: boolean
   readonly explanation: VolatileActionPhasePipelineExplanation
   readonly actionPriority: VolatileActionPriorityResult
@@ -730,6 +782,44 @@ function parseWiring(value: unknown): VolatileActionWiringInput {
   }
 }
 
+function parseIteration(value: unknown): VolatileActionIterationInput {
+  if (value === undefined) {
+    return { kind: 'none' }
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('iteration is required.')
+  }
+
+  const candidate = value as {
+    readonly kind?: unknown
+    readonly authority?: unknown
+    readonly procedureId?: unknown
+  }
+  switch (candidate.kind) {
+    case 'none':
+      return { kind: 'none' }
+    case 'present': {
+      if (candidate.authority === undefined || candidate.authority === null) {
+        throw new Error('iteration authority is required.')
+      }
+      if (typeof candidate.authority !== 'string') {
+        throw new Error('iteration authority must be a non-empty trimmed string.')
+      }
+      assertId(candidate.authority, 'iteration authority')
+      if (candidate.authority !== VOLATILE_ACTION_ITERATION_AUTHORITY) {
+        throw new Error('iteration authority must be authored_procedure.')
+      }
+      return {
+        kind: 'present',
+        authority: VOLATILE_ACTION_ITERATION_AUTHORITY,
+        procedureId: assertWiringId(candidate.procedureId, 'iteration procedureId'),
+      }
+    }
+    default:
+      throw new Error('iteration kind must be none or present.')
+  }
+}
+
 function isBudgetExhausted(budget: VolatileActionBudgetWiringRecord): boolean {
   return budget.remaining === 0 && !budget.freeTrigger
 }
@@ -1067,6 +1157,56 @@ function explainWiring(wiring: VolatileActionWiringInput): VolatileActionWiringE
   }
 }
 
+function explainIteration(
+  iteration: VolatileActionIterationInput
+): VolatileActionIterationExplanation {
+  switch (iteration.kind) {
+    case 'none':
+      return { kind: 'none', reason: 'iteration_none' }
+    case 'present':
+      return {
+        kind: 'present',
+        reason: 'iteration_extra_slice_pass',
+        authority: iteration.authority,
+        procedureId: iteration.procedureId,
+      }
+    default: {
+      const exhaustive: never = iteration
+      throw new Error(`unsupported iteration kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function resolveIteration(
+  iteration: VolatileActionIterationInput,
+  bypassed: boolean,
+  interrupt: VolatileActionInterruptInput,
+  hold: VolatileActionHoldInput,
+  wiring: VolatileActionWiringInput
+): VolatileActionIterationResult {
+  switch (iteration.kind) {
+    case 'none':
+      return { kind: 'none' }
+    case 'present':
+      return {
+        kind: 'present',
+        authority: iteration.authority,
+        procedureId: iteration.procedureId,
+        extraSlicePass: {
+          pass: VOLATILE_ACTION_ITERATION_EXTRA_SLICE_PASS,
+          phases: VOLATILE_ACTION_V1_PHASE_IDS.map((id) => ({
+            id,
+            status: resolvePhaseStatus(id, bypassed, interrupt, hold, wiring),
+          })),
+        },
+      }
+    default: {
+      const exhaustive: never = iteration
+      throw new Error(`unsupported iteration kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
 function explainVolatileActionPhasePipeline(input: {
   readonly phases: readonly VolatileActionPhaseRecord[]
   readonly bypassed: boolean
@@ -1075,6 +1215,7 @@ function explainVolatileActionPhasePipeline(input: {
   readonly hazardDeclaration: VolatileActionHazardDeclaration
   readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
   readonly wiring: VolatileActionWiringInput
+  readonly iteration: VolatileActionIterationInput
 }): VolatileActionPhasePipelineExplanation {
   return {
     phases: input.phases.map((phase) => ({
@@ -1096,6 +1237,7 @@ function explainVolatileActionPhasePipeline(input: {
       input.wiring
     ),
     wiring: explainWiring(input.wiring),
+    iteration: explainIteration(input.iteration),
   }
 }
 
@@ -1127,6 +1269,7 @@ export function resolveVolatileActionPhasePipeline(
   const hold = parseVolatileActionHoldInput(input.hold)
   const hazard = parseHazard(input.hazard)
   const wiring = parseWiring(input.wiring)
+  const iteration = parseIteration(input.iteration)
   const actionPriority = resolveVolatileActionPriority({
     ...input.actionPriority,
     encounterId: input.encounterId,
@@ -1139,6 +1282,7 @@ export function resolveVolatileActionPhasePipeline(
   }))
   const hazardDeclaration = resolveHazardDeclaration(hazard, bypassed)
   const consequenceReduction = resolveConsequenceReduction(hazard, phases, bypassed)
+  const resolvedIteration = resolveIteration(iteration, bypassed, interrupt, hold, wiring)
   const explanation = explainVolatileActionPhasePipeline({
     phases,
     bypassed,
@@ -1147,6 +1291,7 @@ export function resolveVolatileActionPhasePipeline(
     hazardDeclaration,
     consequenceReduction,
     wiring,
+    iteration,
   })
   const reactionWindowConstrained =
     wiring.kind === 'present' && isBudgetExhausted(wiring.actionBudget)
@@ -1168,6 +1313,7 @@ export function resolveVolatileActionPhasePipeline(
     hazardDeclaration,
     consequenceReduction,
     wiring,
+    iteration: resolvedIteration,
     bypassed,
     explanation,
     actionPriority,

@@ -1,7 +1,8 @@
 {
-  "primary": "SPE-62",
+  "primary": "SPE-1027",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2217",
     "SPE-2933",
     "SPE-2911",
     "SPE-2931",
@@ -13,10 +14,10 @@
     "SPE-2901",
     "SPE-2900",
     "SPE-2897",
-    "SPE-54",
-    "SPE-2896"
+    "SPE-54"
   ],
   "sliceDocStatus": {
+    "planning/spe-2217-field-action-economy-registry-slice.md": "Recently shipped",
     "planning/spe-1027-secured-node-threat-slice.md": "Recently shipped",
     "planning/spe-1027-restricted-object-release-slice.md": "Recently shipped",
     "planning/spe-62-multi-stage-procedure-iteration-slice.md": "Recently shipped",

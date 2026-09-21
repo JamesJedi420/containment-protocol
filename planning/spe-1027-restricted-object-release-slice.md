@@ -99,7 +99,7 @@ fallback.
 
 | Item or mechanic                        | Owner or prerequisite                                     | Why deferred                                              |
 | --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| SPE-1027 AC9 secured-node threat        | later SPE-1027 child (create after this ships)            | Stored-content threat/theft/access is a separate contract |
+| SPE-1027 AC9 secured-node threat        | [SPE-2933](https://linear.app/spectranoir/issue/SPE-2933) | Stored-content threat/theft/access is a separate contract |
 | Transport / active_use extra modes      | later SPE-1027 / SPE-1456 child                           | Three modes satisfy AC8; no logistics simulator           |
 | Appraisal / authenticity verification   | [SPE-565](https://linear.app/spectranoir/issue/SPE-565)   | No detection or reveal loop in this slice                 |
 | Personnel clearance                     | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) | Do not create a parallel clearance system                 |

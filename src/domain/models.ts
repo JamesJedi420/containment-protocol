@@ -34,6 +34,7 @@ import type { FacilityStockOverflow } from './facilityStockOverflow'
 import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 import type { FacilityProtectionGoods } from './facilityProtectionGoods'
 import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
+import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2849,6 +2850,14 @@ export interface GameState {
    * Omit hydrates omitted; `stored` does not authorize `testing`.
    */
   facilityRestrictedObjectRelease?: FacilityRestrictedObjectRelease
+  /**
+   * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
+   * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and
+   * `facilityRestrictedObjectRelease`, not mixed into stock qty, placement,
+   * condition, caches, overflow, preparedness, protection goods, or restricted-object
+   * release. Omit hydrates omitted; stored content changes threat/theft/access bands.
+   */
+  facilitySecuredNodes?: FacilitySecuredNodes
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

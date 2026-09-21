@@ -36,14 +36,14 @@ Do not change the SPE-54 kernel. Do not implement SPE-73 odds/outcomes, SPE-2847
 
 ## Deferred
 
-| Item or mechanic                             | Owner or prerequisite                                                                                | Why deferred                               |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Risk-first impending-hazard declaration      | later SPE-62 child                                                                                   | Parent AC not claimed by this child        |
-| Unified outcome bands / single-roll math     | [SPE-73](https://linear.app/spectranoir/issue/SPE-73/local-confrontation-resolution-with-odds-bands) | Confrontation outcomes stay out            |
-| Encounter round loop / action choice / apply | [SPE-2847](https://linear.app/spectranoir/issue/SPE-2847/deterministic-tactical-encounter-runner)    | Orchestration stays out                    |
-| Field action economy registry                | [SPE-2217](https://linear.app/spectranoir/issue/SPE-2217/field-action-economy-registry-slice-1)      | Sibling child; keep out of this slice      |
-| Explanation / budget / spatial wiring        | later SPE-62 child                                                                                   | Pipeline remains a pure inspectable record |
-| Multi-stage procedure iteration              | later SPE-62 child                                                                                   | One volatile action context only           |
+| Item or mechanic                             | Owner or prerequisite                                                                                                       | Why deferred                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Risk-first impending-hazard declaration      | [SPE-2915](https://linear.app/spectranoir/issue/SPE-2915/risk-first-impending-hazard-declaration-and-consequence-reduction) | Parent AC not claimed by this child        |
+| Unified outcome bands / single-roll math     | [SPE-73](https://linear.app/spectranoir/issue/SPE-73/local-confrontation-resolution-with-odds-bands)                        | Confrontation outcomes stay out            |
+| Encounter round loop / action choice / apply | [SPE-2847](https://linear.app/spectranoir/issue/SPE-2847/deterministic-tactical-encounter-runner)                           | Orchestration stays out                    |
+| Field action economy registry                | [SPE-2217](https://linear.app/spectranoir/issue/SPE-2217/field-action-economy-registry-slice-1)                             | Sibling child; keep out of this slice      |
+| Explanation / budget / spatial wiring        | later SPE-62 child                                                                                                          | Pipeline remains a pure inspectable record |
+| Multi-stage procedure iteration              | later SPE-62 child                                                                                                          | One volatile action context only           |
 
 ## Acceptance
 

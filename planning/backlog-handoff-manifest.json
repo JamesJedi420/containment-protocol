@@ -2,6 +2,7 @@
   "primary": "SPE-62",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2915",
     "SPE-2912",
     "SPE-2902",
     "SPE-2901",
@@ -12,10 +13,10 @@
     "SPE-2895",
     "SPE-2892",
     "SPE-2891",
-    "SPE-2890",
-    "SPE-2889"
+    "SPE-2890"
   ],
   "sliceDocStatus": {
+    "planning/spe-62-risk-first-hazard-slice.md": "Recently shipped",
     "planning/spe-62-pipeline-variants-modes-slice.md": "Recently shipped",
     "planning/spe-62-held-aborted-delayed-keyed-slice.md": "Recently shipped",
     "planning/spe-62-interruption-mutation-slice.md": "Recently shipped",

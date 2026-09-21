@@ -36,6 +36,19 @@ export type VolatileActionStakes = 'none' | 'present'
 
 export const VOLATILE_ACTION_REACTION_WINDOW_ID = 'after_posture_commit' as const
 
+export const VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID = 'posture_commit' as const
+
+export const VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS = ['expose', 'mitigate', 'apply'] as const
+
+export type VolatileActionHazardReductionStepId =
+  (typeof VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS)[number]
+
+export const VOLATILE_ACTION_HAZARD_REDUCTION_PHASE_BY_STEP = {
+  expose: 'environmental_read',
+  mitigate: 'clash_window',
+  apply: 'effect_emission',
+} as const satisfies Record<VolatileActionHazardReductionStepId, VolatileActionV1PhaseId>
+
 const NO_STAKES_SKIPPED_PHASE_IDS = new Set<VolatileActionV1PhaseId>([
   'clash_window',
   'effect_emission',
@@ -86,6 +99,31 @@ export type VolatileActionHoldInput =
   | VolatileActionHoldAbort
   | VolatileActionHoldDelayed
 
+export type VolatileActionHazardNone = {
+  readonly kind: 'none'
+}
+
+export type VolatileActionHazardImpending = {
+  readonly kind: 'impending'
+  readonly hazardId: string
+  readonly declaredAtPhaseId: typeof VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID
+}
+
+export type VolatileActionHazardInput = VolatileActionHazardNone | VolatileActionHazardImpending
+
+export type VolatileActionHazardDeclarationStatus = 'none' | 'declared' | 'bypassed'
+
+export interface VolatileActionHazardDeclaration {
+  readonly declaredAtPhaseId: typeof VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID
+  readonly status: VolatileActionHazardDeclarationStatus
+}
+
+export interface VolatileActionHazardReductionStep {
+  readonly id: VolatileActionHazardReductionStepId
+  readonly phaseId: VolatileActionV1PhaseId
+  readonly status: VolatileActionPhaseStatus
+}
+
 export interface VolatileActionPhaseRecord {
   readonly id: VolatileActionV1PhaseId
   readonly status: VolatileActionPhaseStatus
@@ -107,6 +145,7 @@ export interface VolatileActionPhasePipelineInput {
   }
   readonly interrupt?: VolatileActionInterruptInput
   readonly hold?: VolatileActionHoldInput
+  readonly hazard?: VolatileActionHazardInput
 }
 
 export interface VolatileActionPhasePipelineResult {
@@ -118,6 +157,9 @@ export interface VolatileActionPhasePipelineResult {
   readonly reactionWindow: VolatileActionReactionWindow
   readonly interrupt: VolatileActionInterruptInput
   readonly hold: VolatileActionHoldInput
+  readonly hazard: VolatileActionHazardInput
+  readonly hazardDeclaration: VolatileActionHazardDeclaration
+  readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
   readonly bypassed: boolean
   readonly actionPriority: VolatileActionPriorityResult
 }
@@ -266,6 +308,59 @@ export function parseVolatileActionHoldInput(value: unknown): VolatileActionHold
   }
 }
 
+function assertHazardId(value: unknown): string {
+  if (value === undefined || value === null) {
+    throw new Error('hazard hazardId is required.')
+  }
+  if (typeof value !== 'string') {
+    throw new Error('hazard hazardId must be a non-empty trimmed string.')
+  }
+  assertId(value, 'hazard hazardId')
+  if (isUnsafeVolatileActionHoldId(value)) {
+    throw new Error('hazard hazardId is unsafe.')
+  }
+  return value
+}
+
+function parseHazard(value: unknown): VolatileActionHazardInput {
+  if (value === undefined) {
+    return { kind: 'none' }
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('hazard is required.')
+  }
+
+  const candidate = value as {
+    readonly kind?: unknown
+    readonly hazardId?: unknown
+    readonly declaredAtPhaseId?: unknown
+  }
+  switch (candidate.kind) {
+    case 'none':
+      return { kind: 'none' }
+    case 'impending': {
+      const hazardId = assertHazardId(candidate.hazardId)
+      if (candidate.declaredAtPhaseId === undefined || candidate.declaredAtPhaseId === null) {
+        throw new Error('hazard declaredAtPhaseId is required.')
+      }
+      if (typeof candidate.declaredAtPhaseId !== 'string') {
+        throw new Error('hazard declaredAtPhaseId must be a non-empty trimmed string.')
+      }
+      assertId(candidate.declaredAtPhaseId, 'hazard declaredAtPhaseId')
+      if (candidate.declaredAtPhaseId !== VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID) {
+        throw new Error('hazard declaredAtPhaseId must be posture_commit.')
+      }
+      return {
+        kind: 'impending',
+        hazardId,
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      }
+    }
+    default:
+      throw new Error('hazard kind must be none or impending.')
+  }
+}
+
 function interruptStatus(
   interrupt: VolatileActionInterruptInput
 ): Exclude<VolatileActionPhaseStatus, 'skipped' | 'held' | 'aborted' | 'delayed'> {
@@ -324,6 +419,56 @@ function resolvePhaseStatus(
   return holdStatus(id, hold)
 }
 
+function resolveHazardDeclaration(
+  hazard: VolatileActionHazardInput,
+  bypassed: boolean
+): VolatileActionHazardDeclaration {
+  switch (hazard.kind) {
+    case 'none':
+      return {
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+        status: 'none',
+      }
+    case 'impending':
+      return {
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+        status: bypassed ? 'bypassed' : 'declared',
+      }
+    default: {
+      const exhaustive: never = hazard.kind
+      throw new Error(`unsupported hazard kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function resolveConsequenceReduction(
+  hazard: VolatileActionHazardInput,
+  phases: readonly VolatileActionPhaseRecord[],
+  bypassed: boolean
+): readonly VolatileActionHazardReductionStep[] {
+  switch (hazard.kind) {
+    case 'none':
+      return []
+    case 'impending':
+      return VOLATILE_ACTION_HAZARD_REDUCTION_STEP_IDS.map((id) => {
+        const phaseId = VOLATILE_ACTION_HAZARD_REDUCTION_PHASE_BY_STEP[id]
+        const phase = phases.find((record) => record.id === phaseId)
+        if (!phase) {
+          throw new Error(`missing phase ${phaseId}.`)
+        }
+        return {
+          id,
+          phaseId,
+          status: bypassed ? 'skipped' : phase.status,
+        }
+      })
+    default: {
+      const exhaustive: never = hazard.kind
+      throw new Error(`unsupported hazard kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
 /** Pure SPE-62 phase spine. It chooses no action and applies no encounter state. */
 export function resolveVolatileActionPhasePipeline(
   input: VolatileActionPhasePipelineInput
@@ -350,6 +495,7 @@ export function resolveVolatileActionPhasePipeline(
 
   const interrupt = parseInterrupt(input.interrupt)
   const hold = parseVolatileActionHoldInput(input.hold)
+  const hazard = parseHazard(input.hazard)
   const actionPriority = resolveVolatileActionPriority({
     ...input.actionPriority,
     encounterId: input.encounterId,
@@ -360,6 +506,8 @@ export function resolveVolatileActionPhasePipeline(
     id,
     status: resolvePhaseStatus(id, bypassed, interrupt, hold),
   }))
+  const hazardDeclaration = resolveHazardDeclaration(hazard, bypassed)
+  const consequenceReduction = resolveConsequenceReduction(hazard, phases, bypassed)
 
   return {
     encounterId: input.encounterId,
@@ -374,6 +522,9 @@ export function resolveVolatileActionPhasePipeline(
     },
     interrupt,
     hold,
+    hazard,
+    hazardDeclaration,
+    consequenceReduction,
     bypassed,
     actionPriority,
   }

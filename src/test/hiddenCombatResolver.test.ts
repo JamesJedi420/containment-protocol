@@ -101,6 +101,16 @@ describe('hiddenCombatResolver', () => {
     expect(resolution.actionPhasePipeline?.mode).toBe('advanced_action')
     expect(resolution.actionPhasePipeline?.variantId).toBe('volatile_action_v1')
     expect(resolution.actionPhasePipeline?.actorIds).toEqual(['actor:fast', 'actor:slow'])
+    expect(resolution.actionPhasePipeline?.explanation.bypass).toEqual({
+      bypassed: false,
+      reason: 'stakes_present',
+    })
+    expect(
+      resolution.actionPhasePipeline?.explanation.phases.every((phase) => phase.status === 'ran')
+    ).toBe(true)
+    expect(JSON.stringify(resolution.actionPhasePipeline?.explanation)).not.toMatch(
+      /priorityScore|dominantDriver/
+    )
   })
 
   it('attaches a no-stakes SPE-62 phase bypass without changing hidden-combat outcome math', () => {
@@ -146,6 +156,15 @@ describe('hiddenCombatResolver', () => {
       { id: 'effect_emission', status: 'skipped' },
       { id: 'cleanup', status: 'ran' },
     ])
+    expect(noStakes.actionPhasePipeline?.explanation.bypass).toEqual({
+      bypassed: true,
+      reason: 'stakes_none',
+    })
+    expect(noStakes.actionPhasePipeline?.explanation.phases[2]).toEqual({
+      id: 'clash_window',
+      status: 'skipped',
+      reason: 'skipped_stakes_none',
+    })
   })
 
   it('applies flag/clock modifier conditions to change threshold outcomes', () => {

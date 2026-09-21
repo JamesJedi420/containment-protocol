@@ -124,6 +124,77 @@ export interface VolatileActionHazardReductionStep {
   readonly status: VolatileActionPhaseStatus
 }
 
+export type VolatileActionPhaseExplanationReason =
+  | 'ran'
+  | 'ran_posture_commit'
+  | 'skipped_stakes_none'
+  | 'interrupt_prepend'
+  | 'interrupt_truncate'
+  | 'interrupt_redirect'
+  | 'hold_aim'
+  | 'hold_abort'
+  | 'hold_delayed_emission'
+
+export type VolatileActionBypassExplanationReason = 'stakes_none' | 'stakes_present'
+
+export type VolatileActionInterruptExplanationReason =
+  'interrupt_none' | 'interrupt_prepend' | 'interrupt_truncate' | 'interrupt_redirect'
+
+export type VolatileActionHoldExplanationReason =
+  'hold_none' | 'hold_aim' | 'hold_abort' | 'hold_delayed_emission'
+
+export type VolatileActionHazardDeclarationExplanationReason =
+  'hazard_none' | 'hazard_declared_at_posture_commit' | 'hazard_bypassed_stakes_none'
+
+export type VolatileActionHazardReductionExplanationReason =
+  VolatileActionPhaseExplanationReason | 'ladder_skipped_stakes_none'
+
+export interface VolatileActionPhaseExplanation {
+  readonly id: VolatileActionV1PhaseId
+  readonly status: VolatileActionPhaseStatus
+  readonly reason: VolatileActionPhaseExplanationReason
+}
+
+export interface VolatileActionBypassExplanation {
+  readonly bypassed: boolean
+  readonly reason: VolatileActionBypassExplanationReason
+}
+
+export interface VolatileActionInterruptExplanation {
+  readonly kind: VolatileActionInterruptInput['kind']
+  readonly reason: VolatileActionInterruptExplanationReason
+}
+
+export interface VolatileActionHoldExplanation {
+  readonly kind: VolatileActionHoldInput['kind']
+  readonly reason: VolatileActionHoldExplanationReason
+}
+
+export interface VolatileActionHazardDeclarationExplanation {
+  readonly status: VolatileActionHazardDeclarationStatus
+  readonly reason: VolatileActionHazardDeclarationExplanationReason
+}
+
+export interface VolatileActionHazardReductionExplanation {
+  readonly id: VolatileActionHazardReductionStepId
+  readonly phaseId: VolatileActionV1PhaseId
+  readonly status: VolatileActionPhaseStatus
+  readonly reason: VolatileActionHazardReductionExplanationReason
+}
+
+/**
+ * Always-emitted inspectable record derived from already-resolved pipeline fields.
+ * No authored explanation input; callers read this instead of inferring from scores.
+ */
+export interface VolatileActionPhasePipelineExplanation {
+  readonly phases: readonly VolatileActionPhaseExplanation[]
+  readonly bypass: VolatileActionBypassExplanation
+  readonly interrupt: VolatileActionInterruptExplanation
+  readonly hold: VolatileActionHoldExplanation
+  readonly hazardDeclaration: VolatileActionHazardDeclarationExplanation
+  readonly consequenceReduction: readonly VolatileActionHazardReductionExplanation[]
+}
+
 export interface VolatileActionPhaseRecord {
   readonly id: VolatileActionV1PhaseId
   readonly status: VolatileActionPhaseStatus
@@ -161,6 +232,7 @@ export interface VolatileActionPhasePipelineResult {
   readonly hazardDeclaration: VolatileActionHazardDeclaration
   readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
   readonly bypassed: boolean
+  readonly explanation: VolatileActionPhasePipelineExplanation
   readonly actionPriority: VolatileActionPriorityResult
 }
 
@@ -469,6 +541,130 @@ function resolveConsequenceReduction(
   }
 }
 
+function explainPhaseStatus(
+  id: VolatileActionV1PhaseId,
+  status: VolatileActionPhaseStatus
+): VolatileActionPhaseExplanationReason {
+  switch (status) {
+    case 'ran':
+      return id === 'posture_commit' ? 'ran_posture_commit' : 'ran'
+    case 'skipped':
+      return 'skipped_stakes_none'
+    case 'prepended':
+      return 'interrupt_prepend'
+    case 'truncated':
+      return 'interrupt_truncate'
+    case 'redirected':
+      return 'interrupt_redirect'
+    case 'held':
+      return 'hold_aim'
+    case 'aborted':
+      return 'hold_abort'
+    case 'delayed':
+      return 'hold_delayed_emission'
+    default: {
+      const exhaustive: never = status
+      throw new Error(`unsupported phase status: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function explainInterrupt(
+  interrupt: VolatileActionInterruptInput
+): VolatileActionInterruptExplanation {
+  switch (interrupt.kind) {
+    case 'none':
+      return { kind: 'none', reason: 'interrupt_none' }
+    case 'prepend':
+      return { kind: 'prepend', reason: 'interrupt_prepend' }
+    case 'truncate':
+      return { kind: 'truncate', reason: 'interrupt_truncate' }
+    case 'redirect':
+      return { kind: 'redirect', reason: 'interrupt_redirect' }
+    default: {
+      const exhaustive: never = interrupt.kind
+      throw new Error(`unsupported interrupt kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function explainHold(hold: VolatileActionHoldInput): VolatileActionHoldExplanation {
+  switch (hold.kind) {
+    case 'none':
+      return { kind: 'none', reason: 'hold_none' }
+    case 'hold_aim':
+      return { kind: 'hold_aim', reason: 'hold_aim' }
+    case 'abort':
+      return { kind: 'abort', reason: 'hold_abort' }
+    case 'delayed_emission':
+      return { kind: 'delayed_emission', reason: 'hold_delayed_emission' }
+    default: {
+      const exhaustive: never = hold.kind
+      throw new Error(`unsupported hold kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function explainHazardDeclaration(
+  hazardDeclaration: VolatileActionHazardDeclaration
+): VolatileActionHazardDeclarationExplanation {
+  switch (hazardDeclaration.status) {
+    case 'none':
+      return { status: 'none', reason: 'hazard_none' }
+    case 'declared':
+      return { status: 'declared', reason: 'hazard_declared_at_posture_commit' }
+    case 'bypassed':
+      return { status: 'bypassed', reason: 'hazard_bypassed_stakes_none' }
+    default: {
+      const exhaustive: never = hazardDeclaration.status
+      throw new Error(`unsupported hazard declaration status: ${String(exhaustive)}`)
+    }
+  }
+}
+
+function explainConsequenceReduction(
+  hazardDeclaration: VolatileActionHazardDeclaration,
+  consequenceReduction: readonly VolatileActionHazardReductionStep[]
+): readonly VolatileActionHazardReductionExplanation[] {
+  return consequenceReduction.map((step) => ({
+    id: step.id,
+    phaseId: step.phaseId,
+    status: step.status,
+    reason:
+      hazardDeclaration.status === 'bypassed'
+        ? 'ladder_skipped_stakes_none'
+        : explainPhaseStatus(step.phaseId, step.status),
+  }))
+}
+
+function explainVolatileActionPhasePipeline(input: {
+  readonly phases: readonly VolatileActionPhaseRecord[]
+  readonly bypassed: boolean
+  readonly interrupt: VolatileActionInterruptInput
+  readonly hold: VolatileActionHoldInput
+  readonly hazardDeclaration: VolatileActionHazardDeclaration
+  readonly consequenceReduction: readonly VolatileActionHazardReductionStep[]
+}): VolatileActionPhasePipelineExplanation {
+  return {
+    phases: input.phases.map((phase) => ({
+      id: phase.id,
+      status: phase.status,
+      reason: explainPhaseStatus(phase.id, phase.status),
+    })),
+    bypass: {
+      bypassed: input.bypassed,
+      reason: input.bypassed ? 'stakes_none' : 'stakes_present',
+    },
+    interrupt: explainInterrupt(input.interrupt),
+    hold: explainHold(input.hold),
+    hazardDeclaration: explainHazardDeclaration(input.hazardDeclaration),
+    consequenceReduction: explainConsequenceReduction(
+      input.hazardDeclaration,
+      input.consequenceReduction
+    ),
+  }
+}
+
 /** Pure SPE-62 phase spine. It chooses no action and applies no encounter state. */
 export function resolveVolatileActionPhasePipeline(
   input: VolatileActionPhasePipelineInput
@@ -508,6 +704,14 @@ export function resolveVolatileActionPhasePipeline(
   }))
   const hazardDeclaration = resolveHazardDeclaration(hazard, bypassed)
   const consequenceReduction = resolveConsequenceReduction(hazard, phases, bypassed)
+  const explanation = explainVolatileActionPhasePipeline({
+    phases,
+    bypassed,
+    interrupt,
+    hold,
+    hazardDeclaration,
+    consequenceReduction,
+  })
 
   return {
     encounterId: input.encounterId,
@@ -526,6 +730,7 @@ export function resolveVolatileActionPhasePipeline(
     hazardDeclaration,
     consequenceReduction,
     bypassed,
+    explanation,
     actionPriority,
   }
 }

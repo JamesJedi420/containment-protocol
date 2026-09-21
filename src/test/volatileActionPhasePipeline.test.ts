@@ -1321,4 +1321,323 @@ describe('volatile action phase pipeline', () => {
       })
     ).toThrow(message)
   })
+
+  it('always emits an inspectable explanation from resolved statuses without an authored ledger', () => {
+    const actionPriority = snapshot([actor('actor:alpha')])
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-default',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+    })
+    const none = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-default',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+      interrupt: { kind: 'none' },
+      hold: { kind: 'none' },
+      hazard: { kind: 'none' },
+    })
+
+    expect(omitted.explanation).toEqual(none.explanation)
+    expect(JSON.stringify(omitted.explanation)).toBe(JSON.stringify(none.explanation))
+    expect(omitted.explanation).toEqual({
+      phases: [
+        { id: 'posture_commit', status: 'ran', reason: 'ran_posture_commit' },
+        { id: 'environmental_read', status: 'ran', reason: 'ran' },
+        { id: 'clash_window', status: 'ran', reason: 'ran' },
+        { id: 'effect_emission', status: 'ran', reason: 'ran' },
+        { id: 'cleanup', status: 'ran', reason: 'ran' },
+      ],
+      bypass: { bypassed: false, reason: 'stakes_present' },
+      interrupt: { kind: 'none', reason: 'interrupt_none' },
+      hold: { kind: 'none', reason: 'hold_none' },
+      hazardDeclaration: { status: 'none', reason: 'hazard_none' },
+      consequenceReduction: [],
+    })
+    expect(JSON.stringify(omitted.explanation)).not.toMatch(/priorityScore|dominantDriver/)
+  })
+
+  it('explains no-stakes skip without entering clash or emission, including bypassed expose', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-no-stakes',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.explanation.bypass).toEqual({ bypassed: true, reason: 'stakes_none' })
+    expect(result.explanation.phases).toEqual([
+      { id: 'posture_commit', status: 'ran', reason: 'ran_posture_commit' },
+      { id: 'environmental_read', status: 'ran', reason: 'ran' },
+      { id: 'clash_window', status: 'skipped', reason: 'skipped_stakes_none' },
+      { id: 'effect_emission', status: 'skipped', reason: 'skipped_stakes_none' },
+      { id: 'cleanup', status: 'ran', reason: 'ran' },
+    ])
+    expect(result.explanation.hazardDeclaration).toEqual({
+      status: 'bypassed',
+      reason: 'hazard_bypassed_stakes_none',
+    })
+    expect(result.explanation.consequenceReduction).toEqual([
+      {
+        id: 'expose',
+        phaseId: 'environmental_read',
+        status: 'skipped',
+        reason: 'ladder_skipped_stakes_none',
+      },
+      {
+        id: 'mitigate',
+        phaseId: 'clash_window',
+        status: 'skipped',
+        reason: 'ladder_skipped_stakes_none',
+      },
+      {
+        id: 'apply',
+        phaseId: 'effect_emission',
+        status: 'skipped',
+        reason: 'ladder_skipped_stakes_none',
+      },
+    ])
+    expect(result.explanation.phases[1]?.status).toBe('ran')
+    expect(result.explanation.consequenceReduction[0]?.status).toBe('skipped')
+  })
+
+  it.each([
+    { kind: 'prepend' as const, laterReason: 'interrupt_prepend' as const },
+    { kind: 'truncate' as const, laterReason: 'interrupt_truncate' as const },
+    { kind: 'redirect' as const, laterReason: 'interrupt_redirect' as const },
+  ])(
+    'explains $kind interrupt from already-resolved later-phase statuses',
+    ({ kind, laterReason }) => {
+      const laterStatus =
+        kind === 'prepend' ? 'prepended' : kind === 'truncate' ? 'truncated' : 'redirected'
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:explanation-interrupt',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      })
+
+      expect(result.explanation.interrupt).toEqual({ kind, reason: laterReason })
+      expect(result.explanation.phases).toEqual([
+        { id: 'posture_commit', status: 'ran', reason: 'ran_posture_commit' },
+        { id: 'environmental_read', status: laterStatus, reason: laterReason },
+        { id: 'clash_window', status: laterStatus, reason: laterReason },
+        { id: 'effect_emission', status: laterStatus, reason: laterReason },
+        { id: 'cleanup', status: laterStatus, reason: laterReason },
+      ])
+    }
+  )
+
+  it.each(['prepend', 'truncate', 'redirect'] as const)(
+    'keeps no-stakes skip explanation over interrupt rewrite under %s',
+    (kind) => {
+      const laterStatus =
+        kind === 'prepend' ? 'prepended' : kind === 'truncate' ? 'truncated' : 'redirected'
+      const laterReason =
+        kind === 'prepend'
+          ? 'interrupt_prepend'
+          : kind === 'truncate'
+            ? 'interrupt_truncate'
+            : 'interrupt_redirect'
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:explanation-no-stakes-interrupt',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'none',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      })
+
+      expect(result.explanation.bypass.reason).toBe('stakes_none')
+      expect(result.explanation.phases).toEqual([
+        { id: 'posture_commit', status: 'ran', reason: 'ran_posture_commit' },
+        { id: 'environmental_read', status: laterStatus, reason: laterReason },
+        { id: 'clash_window', status: 'skipped', reason: 'skipped_stakes_none' },
+        { id: 'effect_emission', status: 'skipped', reason: 'skipped_stakes_none' },
+        { id: 'cleanup', status: laterStatus, reason: laterReason },
+      ])
+    }
+  )
+
+  it.each([
+    {
+      hold: { kind: 'hold_aim' as const, instanceId: 'encounter:explanation-hold' },
+      holdReason: 'hold_aim' as const,
+      clash: { status: 'held' as const, reason: 'hold_aim' as const },
+      emission: { status: 'held' as const, reason: 'hold_aim' as const },
+    },
+    {
+      hold: {
+        kind: 'abort' as const,
+        instanceId: 'encounter:explanation-hold',
+        reason: 'lost_line_of_sight',
+      },
+      holdReason: 'hold_abort' as const,
+      clash: { status: 'aborted' as const, reason: 'hold_abort' as const },
+      emission: { status: 'aborted' as const, reason: 'hold_abort' as const },
+    },
+    {
+      hold: { kind: 'delayed_emission' as const, instanceId: 'encounter:explanation-hold' },
+      holdReason: 'hold_delayed_emission' as const,
+      clash: { status: 'ran' as const, reason: 'ran' as const },
+      emission: { status: 'delayed' as const, reason: 'hold_delayed_emission' as const },
+    },
+  ])(
+    'explains $hold.kind from already-resolved hold statuses',
+    ({ hold, holdReason, clash, emission }) => {
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:explanation-hold',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        hold,
+      })
+
+      expect(result.explanation.hold).toEqual({ kind: hold.kind, reason: holdReason })
+      expect(result.explanation.phases).toEqual([
+        { id: 'posture_commit', status: 'ran', reason: 'ran_posture_commit' },
+        { id: 'environmental_read', status: 'ran', reason: 'ran' },
+        { id: 'clash_window', status: clash.status, reason: clash.reason },
+        { id: 'effect_emission', status: emission.status, reason: emission.reason },
+        { id: 'cleanup', status: 'ran', reason: 'ran' },
+      ])
+    }
+  )
+
+  it('keeps no-stakes skip and interrupt rewrite explanations over hold', () => {
+    const skipped = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-hold-precedence',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hold: { kind: 'hold_aim', instanceId: 'encounter:explanation-hold-precedence' },
+    })
+    const rewritten = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-hold-precedence',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      hold: { kind: 'delayed_emission', instanceId: 'encounter:explanation-hold-precedence' },
+    })
+
+    expect(skipped.explanation.hold.reason).toBe('hold_aim')
+    expect(skipped.explanation.phases[2]).toEqual({
+      id: 'clash_window',
+      status: 'skipped',
+      reason: 'skipped_stakes_none',
+    })
+    expect(rewritten.explanation.hold.reason).toBe('hold_delayed_emission')
+    expect(rewritten.explanation.interrupt.reason).toBe('interrupt_truncate')
+    expect(rewritten.explanation.phases[3]).toEqual({
+      id: 'effect_emission',
+      status: 'truncated',
+      reason: 'interrupt_truncate',
+    })
+  })
+
+  it('explains hazard declaration and ladder steps without changing phase statuses', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-hazard',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hold: { kind: 'hold_aim', instanceId: 'encounter:explanation-hazard' },
+      hazard: {
+        kind: 'impending',
+        hazardId: 'hazard:rupture',
+        declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
+      },
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'held' },
+      { id: 'effect_emission', status: 'held' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.explanation.hazardDeclaration).toEqual({
+      status: 'declared',
+      reason: 'hazard_declared_at_posture_commit',
+    })
+    expect(result.explanation.consequenceReduction).toEqual([
+      { id: 'expose', phaseId: 'environmental_read', status: 'ran', reason: 'ran' },
+      { id: 'mitigate', phaseId: 'clash_window', status: 'held', reason: 'hold_aim' },
+      { id: 'apply', phaseId: 'effect_emission', status: 'held', reason: 'hold_aim' },
+    ])
+  })
+
+  it.each([
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'test' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action' as const,
+    },
+  ])(
+    'keeps variant $variantId and mode $mode unchanged when explanation is present',
+    ({ variantId, mode }) => {
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:explanation-tags',
+        variantId,
+        mode,
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+      })
+
+      expect(result.variantId).toBe(variantId)
+      expect(result.mode).toBe(mode)
+      expect(result.explanation.bypass.reason).toBe('stakes_present')
+      expect(result.explanation.phases.map((phase) => phase.id)).toEqual([
+        ...VOLATILE_ACTION_V1_PHASE_IDS,
+      ])
+    }
+  )
+
+  it('does not infer explanation from SPE-54 scores or actor array order', () => {
+    const actors = [
+      actor('actor:alpha', { precision: 80 }),
+      actor('actor:bravo', { precision: 40 }),
+    ]
+    const first = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-order',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+    })
+    const reversed = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:explanation-order',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([...actors].reverse()),
+    })
+
+    expect(first.explanation).toEqual(reversed.explanation)
+    expect(JSON.stringify(first.explanation)).not.toMatch(/actor:alpha|actor:bravo|priorityScore/)
+  })
 })

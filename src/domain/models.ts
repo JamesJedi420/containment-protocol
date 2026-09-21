@@ -38,6 +38,7 @@ import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
 import type { FacilityWarehouseLots } from './facilityWarehouseLots'
+import type { FacilityTypedOverflowLoss } from './facilityTypedOverflowLoss'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2882,6 +2883,13 @@ export interface GameState {
    * omitted; omit lot is unknown identity, not a default lot and not derived from qty.
    */
   facilityWarehouseLots?: FacilityWarehouseLots
+  /**
+   * SPE-2980 / SPE-1027: authored typed overflow forced triage or real loss.
+   * Sibling of `facilityStockpile` and `facilityStockOverflow`, not mixed into stock qty,
+   * SPE-2895 access-blocked overflow, lots, hauling, or quarantine. Omit hydrates omitted;
+   * omit is `none`, not blocked, not triage, and not loss.
+   */
+  facilityTypedOverflowLoss?: FacilityTypedOverflowLoss
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

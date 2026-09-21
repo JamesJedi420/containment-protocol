@@ -100,7 +100,7 @@ persisted input does not inherit lots from the hydration fallback.
 
 | Item or mechanic                   | Owner or prerequisite                                                                                                 | Why deferred                                                                  |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Typed overflow / real loss         | later SPE-1027 child                                                                                                  | Forced triage and loss are a later warehouse slice                            |
+| Typed overflow / real loss         | [SPE-2980](https://linear.app/spectranoir/issue/SPE-2980/authored-typed-overflow-forced-triage-or-real-loss)          | Forced triage and loss are a later warehouse slice                            |
 | Misfile events                     | later SPE-1027 child                                                                                                  | SPE-2890 already covers wrong-zone; remaining mismatch AC is not this lot map |
 | Qty-vs-capacity warehouse          | later SPE-1027 child                                                                                                  | Live capacity is not this authored lot identity                               |
 | Parent targeted tests for mismatch | later SPE-1027 children                                                                                               | Parent AC language remains open                                               |

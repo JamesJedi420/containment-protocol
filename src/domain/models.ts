@@ -33,6 +33,7 @@ import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
 import type { FacilityStockOverflow } from './facilityStockOverflow'
 import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 import type { FacilityProtectionGoods } from './facilityProtectionGoods'
+import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2841,6 +2842,13 @@ export interface GameState {
    * Omit hydrates omitted; counterfeit filters resolve failed protection and false reassurance.
    */
   facilityProtectionGoods?: FacilityProtectionGoods
+  /**
+   * SPE-2911 / SPE-1027: authored restricted-object component-set custody/release.
+   * Sibling of `facilityStockpile` and `facilityProtectionGoods`, not mixed into stock qty,
+   * placement, condition, caches, overflow, preparedness, or protection goods.
+   * Omit hydrates omitted; `stored` does not authorize `testing`.
+   */
+  facilityRestrictedObjectRelease?: FacilityRestrictedObjectRelease
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

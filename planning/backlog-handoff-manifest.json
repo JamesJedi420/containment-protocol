@@ -2,6 +2,7 @@
   "primary": "SPE-1027",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2979",
     "SPE-2935",
     "SPE-2934",
     "SPE-2217",
@@ -17,6 +18,7 @@
     "SPE-2900"
   ],
   "sliceDocStatus": {
+    "planning/spe-1027-warehouse-lots-slice.md": "Recently shipped",
     "planning/spe-1027-hauling-bottleneck-slice.md": "Recently shipped",
     "planning/spe-1027-quarantine-separation-slice.md": "Recently shipped",
     "planning/spe-2217-field-action-economy-registry-slice.md": "Recently shipped",

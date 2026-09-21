@@ -43,14 +43,14 @@ Do not change the SPE-54 kernel, SPE-2915 hazard grammar, SPE-2902 hold persiste
 
 ## Deferred
 
-| Item or mechanic                              | Owner or prerequisite                                                                                   | Why deferred                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Multi-stage procedure iteration               | later SPE-62 child                                                                                      | One volatile action context only                                |
-| Unified outcome bands / single-roll math      | [SPE-73](https://linear.app/spectranoir/issue/SPE-73/local-confrontation-resolution-with-odds-bands)    | Confrontation outcomes stay out                                 |
-| Encounter round loop / action choice / apply  | [SPE-2847](https://linear.app/spectranoir/issue/SPE-2847/deterministic-tactical-encounter-runner)       | Orchestration stays out                                         |
-| Field action economy registry                 | [SPE-2217](https://linear.app/spectranoir/issue/SPE-2217/field-action-economy-registry-slice-1)         | Sibling child; keep out of this slice                           |
-| SPE-40 remaining mission-tradeoff AC          | [SPE-40](https://linear.app/spectranoir/issue/SPE-40/operational-action-budget-and-mission-tradeoffs)   | Retries / abandonment / mission tradeoffs stay on SPE-40        |
-| Simultaneous-hazard prioritization / bargains | rest of [SPE-1736](https://linear.app/spectranoir/issue/SPE-1736/threat-first-action-resolution-engine) | Hazard grammar already owned by SPE-2915; keep Duplicate closed |
+| Item or mechanic                              | Owner or prerequisite                                                                                                     | Why deferred                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Multi-stage procedure iteration               | [SPE-2931](https://linear.app/spectranoir/issue/SPE-2931/multi-stage-procedure-iteration-of-the-volatile-action-pipeline) | Later child; one extra slice pass on the frozen five ids        |
+| Unified outcome bands / single-roll math      | [SPE-73](https://linear.app/spectranoir/issue/SPE-73/local-confrontation-resolution-with-odds-bands)                      | Confrontation outcomes stay out                                 |
+| Encounter round loop / action choice / apply  | [SPE-2847](https://linear.app/spectranoir/issue/SPE-2847/deterministic-tactical-encounter-runner)                         | Orchestration stays out                                         |
+| Field action economy registry                 | [SPE-2217](https://linear.app/spectranoir/issue/SPE-2217/field-action-economy-registry-slice-1)                           | Sibling child; keep out of this slice                           |
+| SPE-40 remaining mission-tradeoff AC          | [SPE-40](https://linear.app/spectranoir/issue/SPE-40/operational-action-budget-and-mission-tradeoffs)                     | Retries / abandonment / mission tradeoffs stay on SPE-40        |
+| Simultaneous-hazard prioritization / bargains | rest of [SPE-1736](https://linear.app/spectranoir/issue/SPE-1736/threat-first-action-resolution-engine)                   | Hazard grammar already owned by SPE-2915; keep Duplicate closed |
 
 ## Acceptance
 

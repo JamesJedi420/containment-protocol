@@ -224,14 +224,16 @@ SPE-2915 extends that spine: one **explicit** authored impending-hazard declarat
 
 SPE-2916 extends that spine: pipeline output always includes an inspectable `explanation` derived from already-resolved phase statuses, no-stakes bypass, interrupt, hold, hazard declaration, and consequence-reduction steps. Reason codes are stable strings; callers do not infer skip/interrupt/hold/hazard from SPE-54 scores.
 
-SPE-2930 extends that spine: one **explicit** authored `wiring` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present' }`) consumes existing readiness, action-budget, spatial, and condition records as inspectable phase constraints. Wiring is never inferred from SPE-54 scores, array order, variant, or mode. No-stakes skip, interrupt rewrite, and hold still win over wiring. Explanation stays always emitted and adds stable wiring reason codes. Remaining bullets in this section stay parent SPE-62 — especially multi-stage procedures; this does not close the SPE-62 umbrella.
+SPE-2930 extends that spine: one **explicit** authored `wiring` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present' }`) consumes existing readiness, action-budget, spatial, and condition records as inspectable phase constraints. Wiring is never inferred from SPE-54 scores, array order, variant, or mode. No-stakes skip, interrupt rewrite, and hold still win over wiring. Explanation stays always emitted and adds stable wiring reason codes.
+
+SPE-2931 extends that spine: one **explicit** authored `iteration` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present', authority: 'authored_procedure', procedureId }`) walks **one extra slice pass** on the same frozen five ids. Iteration is never inferred from variant, mode, SPE-54 scores, or array order. Inspectable `phases` stay length 5. No-stakes skip, interrupt rewrite, hold, and wiring still win; iteration does not revive skipped clash/emission. Explanation stays always emitted and adds stable iteration reason codes. Remaining bullets in this section stay parent SPE-62 — especially unified outcome bands / single-roll math; this does not close the SPE-62 umbrella.
 
 ### Pipeline requirements
 
 - **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase _kinds_ include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
 - **Interruption and reaction windows** — deterministic hooks where opposing readiness, tools, clocks, or external events may prepend, truncate, or redirect later phases.
 - **Held, aborted, or delayed actions** — hold-aim, abort-with-reason, and delayed-emission effects must remain keyed to the same encounter/procedure instance for save/load and replay.
-- **Multi-stage procedures** — long rituals or engineering tasks iterate **phase slices** on the shared spine rather than spawning unrelated parallel timers.
+- **Multi-stage procedures** — SPE-2931: long rituals or engineering tasks iterate **one extra phase-slice pass** on the shared frozen five ids rather than spawning unrelated parallel timers. `volatile_action_procedure_v1` remains a tag; iteration is authored.
 - **Unified cross-domain grammar** — task/test and advanced-action modes share outcome bands and effect maps where possible; differences are **variant declarations**, not duplicate resolver cores.
 - **Single-roll success plus effect** — when used, one evaluation selects outcome band **and** structured follow-on deltas so inspectors see a single causal chain.
 

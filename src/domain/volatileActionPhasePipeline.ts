@@ -6,8 +6,18 @@ import {
 } from './volatileActionPriority'
 
 export const VOLATILE_ACTION_PHASE_VARIANT_ID = 'volatile_action_v1' as const
+export const VOLATILE_ACTION_PROCEDURE_VARIANT_ID = 'volatile_action_procedure_v1' as const
 
-export type VolatileActionPhaseVariantId = typeof VOLATILE_ACTION_PHASE_VARIANT_ID
+export const VOLATILE_ACTION_PHASE_VARIANT_IDS = [
+  VOLATILE_ACTION_PHASE_VARIANT_ID,
+  VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+] as const
+
+export type VolatileActionPhaseVariantId = (typeof VOLATILE_ACTION_PHASE_VARIANT_IDS)[number]
+
+export const VOLATILE_ACTION_PHASE_MODES = ['task', 'test', 'advanced_action'] as const
+
+export type VolatileActionPhaseMode = (typeof VOLATILE_ACTION_PHASE_MODES)[number]
 
 export const VOLATILE_ACTION_V1_PHASE_IDS = [
   'posture_commit',
@@ -90,6 +100,7 @@ export interface VolatileActionReactionWindow {
 export interface VolatileActionPhasePipelineInput {
   readonly encounterId: string
   readonly variantId: VolatileActionPhaseVariantId
+  readonly mode: VolatileActionPhaseMode
   readonly stakes: VolatileActionStakes
   readonly actionPriority: VolatileActionPriorityRequest & {
     readonly encounterId?: string
@@ -101,6 +112,7 @@ export interface VolatileActionPhasePipelineInput {
 export interface VolatileActionPhasePipelineResult {
   readonly encounterId: string
   readonly variantId: VolatileActionPhaseVariantId
+  readonly mode: VolatileActionPhaseMode
   readonly actorIds: readonly string[]
   readonly phases: readonly VolatileActionPhaseRecord[]
   readonly reactionWindow: VolatileActionReactionWindow
@@ -147,6 +159,27 @@ function assertHoldInstanceId(value: unknown): string {
 function assertStakes(value: string): asserts value is VolatileActionStakes {
   if (value === 'none' || value === 'present') return
   throw new Error('stakes must be none or present.')
+}
+
+function assertVariantId(value: unknown): asserts value is VolatileActionPhaseVariantId {
+  switch (value) {
+    case VOLATILE_ACTION_PHASE_VARIANT_ID:
+    case VOLATILE_ACTION_PROCEDURE_VARIANT_ID:
+      return
+    default:
+      throw new Error('variantId must be volatile_action_v1 or volatile_action_procedure_v1.')
+  }
+}
+
+function assertMode(value: unknown): asserts value is VolatileActionPhaseMode {
+  switch (value) {
+    case 'task':
+    case 'test':
+    case 'advanced_action':
+      return
+    default:
+      throw new Error('mode must be task, test, or advanced_action.')
+  }
 }
 
 function eligibleActorIds(sequence: VolatileActionPrioritySequence): readonly string[] {
@@ -291,7 +324,7 @@ function resolvePhaseStatus(
   return holdStatus(id, hold)
 }
 
-/** Pure SPE-62 volatile_action_v1 phase spine. It chooses no action and applies no encounter state. */
+/** Pure SPE-62 phase spine. It chooses no action and applies no encounter state. */
 export function resolveVolatileActionPhasePipeline(
   input: VolatileActionPhasePipelineInput
 ): VolatileActionPhasePipelineResult {
@@ -300,11 +333,8 @@ export function resolveVolatileActionPhasePipeline(
   }
 
   assertId(input.encounterId, 'encounterId')
-
-  if (input.variantId !== VOLATILE_ACTION_PHASE_VARIANT_ID) {
-    throw new Error('variantId must be volatile_action_v1.')
-  }
-
+  assertVariantId(input.variantId)
+  assertMode(input.mode)
   assertStakes(input.stakes)
 
   if (!input.actionPriority || typeof input.actionPriority !== 'object') {
@@ -333,7 +363,8 @@ export function resolveVolatileActionPhasePipeline(
 
   return {
     encounterId: input.encounterId,
-    variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+    variantId: input.variantId,
+    mode: input.mode,
     actorIds,
     phases,
     reactionWindow: {

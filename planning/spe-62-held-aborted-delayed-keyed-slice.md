@@ -33,14 +33,14 @@ Do not change the SPE-54 kernel. Do not implement SPE-73 odds/outcomes, SPE-2847
 
 ## Deferred
 
-| Item or mechanic                                       | Owner or prerequisite | Why deferred                               |
-| ------------------------------------------------------ | --------------------- | ------------------------------------------ |
-| Additional pipeline variants; task/test/advanced modes | later SPE-62 child    | `volatile_action_v1` only                  |
-| Unified outcome bands / single-roll math               | SPE-73                | Confrontation outcomes stay out            |
-| Encounter round loop / action choice / apply           | SPE-2847              | Orchestration stays out                    |
-| Risk-first impending-hazard declaration                | later SPE-62 child    | Parent AC not claimed by this child        |
-| Explanation / budget / spatial wiring                  | later SPE-62 child    | Pipeline remains a pure inspectable record |
-| Multi-stage procedure iteration                        | later SPE-62 child    | One volatile action context only           |
+| Item or mechanic                                       | Owner or prerequisite                                                                                                     | Why deferred                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Additional pipeline variants; task/test/advanced modes | [SPE-2912](https://linear.app/spectranoir/issue/SPE-2912/additional-pipeline-variants-plus-tasktestadvanced-action-modes) | Extra named family + explicit mode tags on the shared grammar |
+| Unified outcome bands / single-roll math               | SPE-73                                                                                                                    | Confrontation outcomes stay out                               |
+| Encounter round loop / action choice / apply           | SPE-2847                                                                                                                  | Orchestration stays out                                       |
+| Risk-first impending-hazard declaration                | later SPE-62 child                                                                                                        | Parent AC not claimed by this child                           |
+| Explanation / budget / spatial wiring                  | later SPE-62 child                                                                                                        | Pipeline remains a pure inspectable record                    |
+| Multi-stage procedure iteration                        | later SPE-62 child                                                                                                        | One volatile action context only                              |
 
 ## Acceptance
 

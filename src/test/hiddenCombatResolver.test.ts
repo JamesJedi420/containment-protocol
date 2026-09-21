@@ -167,6 +167,70 @@ describe('hiddenCombatResolver', () => {
     })
   })
 
+  it('attaches authored wiring without changing hidden-combat outcome math or passing hazard', () => {
+    const state = createStartingState()
+    const actionPriority = {
+      mode: { kind: 'per_actor' as const },
+      actors: [
+        {
+          actorId: 'actor:fast',
+          sideId: 'hostiles',
+          readiness: 'steady' as const,
+          posture: 'braced' as const,
+          exposure: 'concealed' as const,
+          injury: 'none' as const,
+          toolState: 'operational' as const,
+          precision: 90,
+          aimCommitment: 'tracking' as const,
+          targetingMode: 'rapid_nearest_valid' as const,
+        },
+      ],
+    }
+    const baseline = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+    })
+    const wired = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+      actionWiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:fast', band: 'steady' },
+        actionBudget: { remaining: 0, freeTrigger: false },
+        spatial: { flags: ['ingress:service_door'], visibilityState: 'clear' },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+    })
+
+    expect(wired.outcome).toBe(baseline.outcome)
+    expect(wired.score).toBe(baseline.score)
+    expect(wired.actionPhasePipeline?.hazard).toEqual({ kind: 'none' })
+    expect(wired.actionPhasePipeline?.wiring.kind).toBe('present')
+    expect(wired.actionPhasePipeline?.reactionWindow.actorIds).toEqual([])
+    expect(
+      wired.actionPhasePipeline?.phases.find((phase) => phase.id === 'clash_window')?.status
+    ).toBe('skipped')
+    expect(JSON.stringify(wired.actionPhasePipeline?.explanation)).not.toMatch(
+      /priorityScore|dominantDriver/
+    )
+  })
+
+  it('fails closed when wiring is attached without actionPriority', () => {
+    const state = createStartingState()
+    expect(() =>
+      resolveHiddenCombat(state, {
+        encounterId: 'encounter.priority',
+        basePower: 50,
+        baseDifficulty: 55,
+        actionWiring: { kind: 'none' },
+      })
+    ).toThrow('actionPriority is required.')
+  })
+
   it('applies flag/clock modifier conditions to change threshold outcomes', () => {
     let state = createStartingState()
     state = setPersistentFlag(state, 'encounter.modifier.boost', true)

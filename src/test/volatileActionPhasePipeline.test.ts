@@ -10,6 +10,7 @@ import {
   VOLATILE_ACTION_REACTION_WINDOW_ID,
   VOLATILE_ACTION_V1_PHASE_IDS,
   resolveVolatileActionPhasePipeline,
+  type VolatileActionWiringPresent,
 } from '../domain/volatileActionPhasePipeline'
 import {
   resolveVolatileActionPriority,
@@ -41,6 +42,19 @@ function snapshot(
   mode: VolatileActionPriorityRequest['mode'] = { kind: 'per_actor' }
 ): VolatileActionPriorityRequest {
   return { mode, actors }
+}
+
+function wiringPresent(
+  overrides: Partial<Omit<VolatileActionWiringPresent, 'kind'>> = {}
+): VolatileActionWiringPresent {
+  return {
+    kind: 'present',
+    readiness: { actorId: 'actor:alpha', band: 'steady' },
+    actionBudget: { remaining: 1, freeTrigger: false },
+    spatial: { flags: ['ingress:service_door'], visibilityState: 'clear' },
+    condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+    ...overrides,
+  }
 }
 
 describe('volatile action phase pipeline', () => {
@@ -1340,6 +1354,7 @@ describe('volatile action phase pipeline', () => {
       interrupt: { kind: 'none' },
       hold: { kind: 'none' },
       hazard: { kind: 'none' },
+      wiring: { kind: 'none' },
     })
 
     expect(omitted.explanation).toEqual(none.explanation)
@@ -1357,6 +1372,7 @@ describe('volatile action phase pipeline', () => {
       hold: { kind: 'none', reason: 'hold_none' },
       hazardDeclaration: { status: 'none', reason: 'hazard_none' },
       consequenceReduction: [],
+      wiring: { kind: 'none', reason: 'wiring_none' },
     })
     expect(JSON.stringify(omitted.explanation)).not.toMatch(/priorityScore|dominantDriver/)
   })
@@ -1639,5 +1655,524 @@ describe('volatile action phase pipeline', () => {
 
     expect(first.explanation).toEqual(reversed.explanation)
     expect(JSON.stringify(first.explanation)).not.toMatch(/actor:alpha|actor:bravo|priorityScore/)
+  })
+
+  it('treats omitted wiring and kind none as byte-stable equals', () => {
+    const actionPriority = snapshot([actor('actor:alpha')])
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-wiring',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+    })
+    const none = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-wiring',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority,
+      wiring: { kind: 'none' },
+    })
+
+    expect(omitted).toEqual(none)
+    expect(JSON.stringify(omitted)).toBe(JSON.stringify(none))
+    expect(omitted.wiring).toEqual({ kind: 'none' })
+    expect(omitted.explanation.wiring).toEqual({ kind: 'none', reason: 'wiring_none' })
+    expect(omitted.phases.every((phase) => phase.status === 'ran')).toBe(true)
+  })
+
+  it('records authored readiness, budget, spatial, and condition snapshots without a second sequencer', () => {
+    const present = wiringPresent({
+      readiness: { actorId: 'actor:wired', band: 'strained' },
+      actionBudget: { remaining: 2, freeTrigger: false },
+      spatial: { flags: ['construction.incomplete'], visibilityState: 'exposed' },
+      condition: {
+        kind: 'progress_clock',
+        id: 'containment.breach.followup.posture',
+        passes: true,
+      },
+    })
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-present',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: present,
+    })
+
+    expect(result.wiring).toEqual(present)
+    expect(result.phases.every((phase) => phase.status === 'ran')).toBe(true)
+    expect(result.reactionWindow.actorIds).toEqual(['actor:alpha'])
+    expect(result.explanation.wiring).toEqual({
+      kind: 'present',
+      reason: 'wiring_present',
+      readiness: {
+        actorId: 'actor:wired',
+        band: 'strained',
+        reason: 'readiness_strained',
+      },
+      actionBudget: {
+        remaining: 2,
+        freeTrigger: false,
+        constrained: false,
+        reason: 'budget_available',
+      },
+      spatial: {
+        flags: ['construction.incomplete'],
+        visibilityState: 'exposed',
+        reason: 'spatial_clear',
+      },
+      condition: {
+        kind: 'progress_clock',
+        id: 'containment.breach.followup.posture',
+        passes: true,
+        reason: 'condition_passed',
+      },
+    })
+    expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+  })
+
+  it('skips clash_window when authored readiness is unavailable', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-readiness',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+      }),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'ran' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.explanation.phases[2]).toEqual({
+      id: 'clash_window',
+      status: 'skipped',
+      reason: 'skipped_readiness_unavailable',
+    })
+    expect(result.explanation.wiring.kind).toBe('present')
+    expect(
+      result.explanation.wiring.kind === 'present' && result.explanation.wiring.readiness.reason
+    ).toBe('readiness_unavailable')
+  })
+
+  it('empties the reaction window and skips clash when response budget is exhausted without a free trigger', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-budget',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha'), actor('actor:bravo', { precision: 20 })]),
+      wiring: wiringPresent({
+        actionBudget: { remaining: 0, freeTrigger: false },
+      }),
+    })
+
+    expect(result.actorIds).toEqual(['actor:alpha', 'actor:bravo'])
+    expect(result.reactionWindow).toEqual({
+      id: VOLATILE_ACTION_REACTION_WINDOW_ID,
+      attachAfterPhaseId: 'posture_commit',
+      actorIds: [],
+    })
+    expect(result.phases.find((phase) => phase.id === 'clash_window')?.status).toBe('skipped')
+    expect(result.explanation.phases[2]?.reason).toBe('skipped_action_budget_exhausted')
+    expect(
+      result.explanation.wiring.kind === 'present' && result.explanation.wiring.actionBudget
+    ).toEqual({
+      remaining: 0,
+      freeTrigger: false,
+      constrained: true,
+      reason: 'budget_exhausted',
+    })
+  })
+
+  it('keeps the after_posture_commit window when remaining budget is zero with a free-trigger exemption', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-free-trigger',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha'), actor('actor:bravo', { precision: 20 })]),
+      wiring: wiringPresent({
+        actionBudget: { remaining: 0, freeTrigger: true },
+      }),
+    })
+
+    expect(result.reactionWindow.actorIds).toEqual(['actor:alpha', 'actor:bravo'])
+    expect(result.phases.every((phase) => phase.status === 'ran')).toBe(true)
+    expect(
+      result.explanation.wiring.kind === 'present' && result.explanation.wiring.actionBudget.reason
+    ).toBe('budget_free_trigger')
+  })
+
+  it('skips environmental_read when authored spatial visibility is obstructed', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-spatial',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        spatial: { flags: ['broken-cover', 'fall-risk'], visibilityState: 'obstructed' },
+      }),
+    })
+
+    expect(result.phases.find((phase) => phase.id === 'environmental_read')?.status).toBe('skipped')
+    expect(result.explanation.phases[1]).toEqual({
+      id: 'environmental_read',
+      status: 'skipped',
+      reason: 'skipped_spatial_obstructed',
+    })
+    expect(
+      result.explanation.wiring.kind === 'present' && result.explanation.wiring.spatial
+    ).toEqual({
+      flags: ['broken-cover', 'fall-risk'],
+      visibilityState: 'obstructed',
+      reason: 'spatial_obstructed',
+    })
+  })
+
+  it('skips effect_emission when the authored condition predicate does not pass', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-condition',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        condition: { kind: 'predicate', id: 'line_of_sight', passes: false },
+      }),
+    })
+
+    expect(result.phases.find((phase) => phase.id === 'effect_emission')?.status).toBe('skipped')
+    expect(result.explanation.phases[3]).toEqual({
+      id: 'effect_emission',
+      status: 'skipped',
+      reason: 'skipped_condition_unmet',
+    })
+    expect(
+      result.explanation.wiring.kind === 'present' && result.explanation.wiring.condition.reason
+    ).toBe('condition_unmet')
+  })
+
+  it('does not revive no-stakes skipped clash or emission when wiring is present', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-no-stakes',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'none',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+        actionBudget: { remaining: 0, freeTrigger: false },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: false },
+      }),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.explanation.phases[2]?.reason).toBe('skipped_stakes_none')
+    expect(result.explanation.phases[3]?.reason).toBe('skipped_stakes_none')
+    expect(result.reactionWindow.actorIds).toEqual([])
+    expect(result.explanation.wiring.reason).toBe('wiring_present')
+  })
+
+  it('keeps interrupt rewrite over wiring skips on later phases', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+        spatial: { flags: ['broken-cover'], visibilityState: 'obstructed' },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: false },
+        actionBudget: { remaining: 0, freeTrigger: false },
+      }),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'truncated' },
+      { id: 'clash_window', status: 'truncated' },
+      { id: 'effect_emission', status: 'truncated' },
+      { id: 'cleanup', status: 'truncated' },
+    ])
+    expect(
+      result.explanation.phases.every((phase, index) =>
+        index === 0 ? phase.reason === 'ran_posture_commit' : phase.reason === 'interrupt_truncate'
+      )
+    ).toBe(true)
+    expect(result.reactionWindow.actorIds).toEqual([])
+  })
+
+  it('keeps hold over wiring skips on clash and emission', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-hold',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      hold: { kind: 'hold_aim', instanceId: 'encounter:wiring-hold' },
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+        condition: { kind: 'predicate', id: 'line_of_sight', passes: false },
+      }),
+    })
+
+    expect(result.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'held' },
+      { id: 'effect_emission', status: 'held' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(result.explanation.phases[2]?.reason).toBe('hold_aim')
+    expect(result.explanation.phases[3]?.reason).toBe('hold_aim')
+  })
+
+  it('does not infer wiring from SPE-54 scores, array order, variant, or mode', () => {
+    const actors = [
+      actor('actor:alpha', { precision: 80 }),
+      actor('actor:bravo', { precision: 40 }),
+    ]
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-wiring',
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task',
+      stakes: 'present',
+      actionPriority: snapshot([...actors].reverse()),
+    })
+    const authored = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:order-wiring',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'test',
+      stakes: 'present',
+      actionPriority: snapshot(actors),
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:authored', band: 'critical' },
+      }),
+    })
+
+    expect(omitted.wiring).toEqual({ kind: 'none' })
+    expect(authored.wiring.kind).toBe('present')
+    expect(authored.variantId).toBe(VOLATILE_ACTION_PHASE_VARIANT_ID)
+    expect(authored.mode).toBe('test')
+    expect(omitted.variantId).toBe(VOLATILE_ACTION_PROCEDURE_VARIANT_ID)
+    expect(omitted.mode).toBe('task')
+    expect(omitted.actorIds).toEqual(authored.actorIds)
+    expect(omitted.actionPriority).toEqual(authored.actionPriority)
+    expect(
+      authored.explanation.wiring.kind === 'present' && authored.explanation.wiring.readiness
+    ).toEqual({
+      actorId: 'actor:authored',
+      band: 'critical',
+      reason: 'readiness_critical',
+    })
+  })
+
+  it.each([
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'task' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PROCEDURE_VARIANT_ID,
+      mode: 'test' as const,
+    },
+    {
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action' as const,
+    },
+  ])(
+    'keeps variant $variantId and mode $mode unchanged with present wiring',
+    ({ variantId, mode }) => {
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:wiring-tags',
+        variantId,
+        mode,
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        wiring: wiringPresent(),
+      })
+
+      expect(result.variantId).toBe(variantId)
+      expect(result.mode).toBe(mode)
+      expect(result.wiring.kind).toBe('present')
+      expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+    }
+  )
+
+  it('prefers readiness skip over exhausted budget on clash_window', () => {
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:wiring-readiness-budget',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      mode: 'advanced_action',
+      stakes: 'present',
+      actionPriority: snapshot([actor('actor:alpha')]),
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'unavailable' },
+        actionBudget: { remaining: 0, freeTrigger: false },
+      }),
+    })
+
+    expect(result.explanation.phases[2]?.reason).toBe('skipped_readiness_unavailable')
+    expect(result.reactionWindow.actorIds).toEqual([])
+    expect(
+      result.explanation.wiring.kind === 'present' &&
+        result.explanation.wiring.actionBudget.constrained
+    ).toBe(true)
+  })
+
+  it.each([
+    {
+      name: 'non-object wiring',
+      wiring: 'present',
+      message: 'wiring is required.',
+    },
+    {
+      name: 'null wiring',
+      wiring: null,
+      message: 'wiring is required.',
+    },
+    {
+      name: 'array wiring',
+      wiring: [{ kind: 'none' }],
+      message: 'wiring is required.',
+    },
+    {
+      name: 'unknown wiring kind',
+      wiring: { kind: 'inferred' },
+      message: 'wiring kind must be none or present.',
+    },
+    {
+      name: 'missing readiness',
+      wiring: {
+        kind: 'present',
+        actionBudget: { remaining: 1, freeTrigger: false },
+        spatial: { flags: [] },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+      message: 'wiring readiness is required.',
+    },
+    {
+      name: 'unknown readiness band',
+      wiring: wiringPresent({
+        readiness: { actorId: 'actor:alpha', band: 'rested' as never },
+      }),
+      message: 'wiring readiness band must be steady, strained, critical, or unavailable.',
+    },
+    {
+      name: 'unsafe readiness actorId',
+      wiring: wiringPresent({
+        readiness: { actorId: '__proto__', band: 'steady' },
+      }),
+      message: 'wiring readiness actorId is unsafe.',
+    },
+    {
+      name: 'missing actionBudget remaining',
+      wiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:alpha', band: 'steady' },
+        actionBudget: { freeTrigger: false },
+        spatial: { flags: [] },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+      message: 'wiring actionBudget remaining is required.',
+    },
+    {
+      name: 'negative actionBudget remaining',
+      wiring: wiringPresent({
+        actionBudget: { remaining: -1, freeTrigger: false },
+      }),
+      message: 'wiring actionBudget remaining must be a non-negative safe integer.',
+    },
+    {
+      name: 'missing freeTrigger',
+      wiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:alpha', band: 'steady' },
+        actionBudget: { remaining: 0 },
+        spatial: { flags: [] },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+      message: 'wiring actionBudget freeTrigger is required.',
+    },
+    {
+      name: 'non-array spatial flags',
+      wiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:alpha', band: 'steady' },
+        actionBudget: { remaining: 1, freeTrigger: false },
+        spatial: { flags: 'broken-cover' },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+      message: 'wiring spatial flags must be an array.',
+    },
+    {
+      name: 'unsafe spatial flag',
+      wiring: wiringPresent({
+        spatial: { flags: ['constructor'] },
+      }),
+      message: 'wiring spatial flags[0] is unsafe.',
+    },
+    {
+      name: 'unknown visibilityState',
+      wiring: wiringPresent({
+        spatial: { flags: [], visibilityState: 'fog' as never },
+      }),
+      message: 'wiring spatial visibilityState must be clear, obstructed, or exposed.',
+    },
+    {
+      name: 'unknown condition kind',
+      wiring: wiringPresent({
+        condition: { kind: 'script' as never, id: 'encounter.clear', passes: true },
+      }),
+      message: 'wiring condition kind must be flag, progress_clock, or predicate.',
+    },
+    {
+      name: 'missing condition passes',
+      wiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:alpha', band: 'steady' },
+        actionBudget: { remaining: 1, freeTrigger: false },
+        spatial: { flags: [] },
+        condition: { kind: 'flag', id: 'encounter.clear' },
+      },
+      message: 'wiring condition passes is required.',
+    },
+    {
+      name: 'empty condition id',
+      wiring: wiringPresent({
+        condition: { kind: 'flag', id: '  ', passes: true },
+      }),
+      message: 'wiring condition id must be a non-empty trimmed string.',
+    },
+  ])('fails closed for $name', ({ wiring, message }) => {
+    expect(() =>
+      resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:wiring-fail',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        mode: 'advanced_action',
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        wiring: wiring as Parameters<typeof resolveVolatileActionPhasePipeline>[0]['wiring'],
+      })
+    ).toThrow(message)
   })
 })

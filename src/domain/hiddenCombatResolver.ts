@@ -32,6 +32,7 @@ import {
   resolveVolatileActionPhasePipeline,
   type VolatileActionPhasePipelineResult,
   type VolatileActionStakes,
+  type VolatileActionWiringInput,
 } from './volatileActionPhasePipeline'
 import type {
   VolatileActionPriorityRequest,
@@ -81,6 +82,8 @@ export interface HiddenCombatResolutionInput<
   actionPriority?: VolatileActionPriorityRequest
   /** Optional SPE-62 stakes for the attached phase spine; defaults to present when priority is supplied. */
   actionStakes?: VolatileActionStakes
+  /** Optional SPE-2930 wiring snapshot; omit keeps pipeline `{ kind: 'none' }`. Does not change outcome math. */
+  actionWiring?: VolatileActionWiringInput
 }
 
 export interface HiddenCombatResolutionDebugDetails {
@@ -317,6 +320,9 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
   if (input.actionStakes !== undefined && !input.actionPriority) {
     throw new Error('actionPriority is required.')
   }
+  if (input.actionWiring !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
   /** Optional SPE-62 attach uses explicit `advanced_action`; do not infer mode from actor order. */
   const actionPhasePipeline = input.actionPriority
     ? resolveVolatileActionPhasePipeline({
@@ -325,6 +331,7 @@ export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenR
         mode: 'advanced_action',
         stakes: input.actionStakes ?? 'present',
         actionPriority: input.actionPriority,
+        ...(input.actionWiring !== undefined ? { wiring: input.actionWiring } : {}),
       })
     : undefined
   const actionPriority = actionPhasePipeline?.actionPriority

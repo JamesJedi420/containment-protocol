@@ -2,6 +2,7 @@
   "primary": "SPE-62",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2930",
     "SPE-2916",
     "SPE-2915",
     "SPE-2912",
@@ -16,6 +17,7 @@
     "SPE-2891"
   ],
   "sliceDocStatus": {
+    "planning/spe-62-budget-spatial-wiring-slice.md": "Recently shipped",
     "planning/spe-62-inspectable-pipeline-explanation-slice.md": "Recently shipped",
     "planning/spe-62-risk-first-hazard-slice.md": "Recently shipped",
     "planning/spe-62-pipeline-variants-modes-slice.md": "Recently shipped",

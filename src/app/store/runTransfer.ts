@@ -39,6 +39,7 @@ import { parseFacilityProtectionGoods } from '../../domain/facilityProtectionGoo
 import { parseFacilityRestrictedObjectRelease } from '../../domain/facilityRestrictedObjectRelease'
 import { parseFacilitySecuredNodes } from '../../domain/facilitySecuredNodes'
 import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuarantine'
+import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
 import { parseVolatileActionHoldRecords } from '../../domain/volatileActionHoldRecords'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
@@ -10542,6 +10543,7 @@ export function hydrateGame(
   )
   const facilitySecuredNodes = parseFacilitySecuredNodes(game.facilitySecuredNodes)
   const facilityStockQuarantine = parseFacilityStockQuarantine(game.facilityStockQuarantine)
+  const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
   const volatileActionHoldRecords = parseVolatileActionHoldRecords(game.volatileActionHoldRecords)
 
   const hydratedBase = stripUndefinedFields({
@@ -10654,6 +10656,7 @@ export function hydrateGame(
     facilityRestrictedObjectRelease,
     facilitySecuredNodes,
     facilityStockQuarantine,
+    facilityHaulingLabor,
     volatileActionHoldRecords,
     equipmentInstances,
     containmentBarrierIntegrity,

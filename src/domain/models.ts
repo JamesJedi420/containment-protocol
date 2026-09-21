@@ -36,6 +36,7 @@ import type { FacilityProtectionGoods } from './facilityProtectionGoods'
 import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
+import type { FacilityHaulingLabor } from './facilityHaulingLabor'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2866,6 +2867,13 @@ export interface GameState {
    * quarantined with clean fail-closes.
    */
   facilityStockQuarantine?: FacilityStockQuarantine
+  /**
+   * SPE-2935 / SPE-1027: authored hauling labor keyed by haul cargo id.
+   * Sibling of `facilityStockpile` and `facilityStockQuarantine`, not mixed into stock qty,
+   * placement, caches, overflow, or quarantine isolation. Omit hydrates omitted; omit labor
+   * is a bottleneck, not an instant haul.
+   */
+  facilityHaulingLabor?: FacilityHaulingLabor
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

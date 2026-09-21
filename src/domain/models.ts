@@ -35,6 +35,7 @@ import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 import type { FacilityProtectionGoods } from './facilityProtectionGoods'
 import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
+import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2858,6 +2859,13 @@ export interface GameState {
    * release. Omit hydrates omitted; stored content changes threat/theft/access bands.
    */
   facilitySecuredNodes?: FacilitySecuredNodes
+  /**
+   * SPE-2934 / SPE-1027: authored cursed-object quarantine isolation.
+   * Sibling of `facilityStockpile` and `facilityStockCondition`, not mixed into stock qty,
+   * placement, spoilage, overflow, or secured-node maps. Omit hydrates omitted; mixing
+   * quarantined with clean fail-closes.
+   */
+  facilityStockQuarantine?: FacilityStockQuarantine
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

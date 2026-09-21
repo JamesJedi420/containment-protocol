@@ -1,6 +1,6 @@
 {
-  "primary": "SPE-62",
-  "inProgress": [],
+  "primary": "SPE-2901",
+  "inProgress": ["SPE-2901"],
   "recentlyShipped": [
     "SPE-2900",
     "SPE-2897",
@@ -16,6 +16,7 @@
     "SPE-2882"
   ],
   "sliceDocStatus": {
+    "planning/spe-62-interruption-mutation-slice.md": "In Progress",
     "planning/spe-62-volatile-action-phase-kernel-slice.md": "Recently shipped",
     "planning/spe-54-state-driven-action-priority-slice.md": "Recently shipped",
     "planning/spe-1027-counterfeit-protection-goods-slice.md": "Recently shipped",

@@ -70,6 +70,7 @@ describe('volatile action phase pipeline', () => {
     expect(first.phases.every((phase) => phase.status === 'ran')).toBe(true)
     expect(first.bypassed).toBe(false)
     expect(first.actorIds).toEqual(['actor:bravo', 'actor:alpha'])
+    expect(first.interrupt).toEqual({ kind: 'none' })
     expect(first.reactionWindow).toEqual({
       id: VOLATILE_ACTION_REACTION_WINDOW_ID,
       attachAfterPhaseId: 'posture_commit',
@@ -100,6 +101,7 @@ describe('volatile action phase pipeline', () => {
       { id: 'effect_emission', status: 'skipped' },
       { id: 'cleanup', status: 'ran' },
     ])
+    expect(result.interrupt).toEqual({ kind: 'none' })
     expect(result.reactionWindow.attachAfterPhaseId).toBe('posture_commit')
     expect(result.reactionWindow.actorIds).toEqual(['actor:alpha'])
   })
@@ -205,6 +207,220 @@ describe('volatile action phase pipeline', () => {
       resolveVolatileActionPhasePipeline(
         input as Parameters<typeof resolveVolatileActionPhasePipeline>[0]
       )
+    ).toThrow(message)
+  })
+
+  it('treats omitted interrupt and kind none as the SPE-2900 default', () => {
+    const actionPriority = snapshot([actor('actor:alpha')])
+    const omitted = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      stakes: 'present',
+      actionPriority,
+    })
+    const none = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:default-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      stakes: 'present',
+      actionPriority,
+      interrupt: { kind: 'none' },
+    })
+
+    expect(omitted).toEqual(none)
+    expect(JSON.stringify(omitted)).toBe(JSON.stringify(none))
+    expect(omitted.interrupt).toEqual({ kind: 'none' })
+    expect(omitted.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'ran' },
+      { id: 'effect_emission', status: 'ran' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+  })
+
+  it.each([
+    {
+      kind: 'prepend' as const,
+      laterStatus: 'prepended' as const,
+    },
+    {
+      kind: 'truncate' as const,
+      laterStatus: 'truncated' as const,
+    },
+    {
+      kind: 'redirect' as const,
+      laterStatus: 'redirected' as const,
+    },
+  ])(
+    'rewrites later-phase statuses to $laterStatus when stakes are present',
+    ({ kind, laterStatus }) => {
+      const actors = [
+        actor('actor:alpha', { precision: 80 }),
+        actor('actor:bravo', { precision: 40 }),
+      ]
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:interrupt',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        stakes: 'present',
+        actionPriority: snapshot(actors),
+        interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      })
+      const priority = resolveVolatileActionPriority({
+        encounterId: 'encounter:interrupt',
+        mode: { kind: 'per_actor' },
+        actors,
+      })
+
+      expect(result.phases.map((phase) => phase.id)).toEqual([...VOLATILE_ACTION_V1_PHASE_IDS])
+      expect(result.phases).toEqual([
+        { id: 'posture_commit', status: 'ran' },
+        { id: 'environmental_read', status: laterStatus },
+        { id: 'clash_window', status: laterStatus },
+        { id: 'effect_emission', status: laterStatus },
+        { id: 'cleanup', status: laterStatus },
+      ])
+      expect(result.interrupt).toEqual({
+        kind,
+        windowId: VOLATILE_ACTION_REACTION_WINDOW_ID,
+      })
+      expect(result.bypassed).toBe(false)
+      expect(result.reactionWindow).toEqual({
+        id: VOLATILE_ACTION_REACTION_WINDOW_ID,
+        attachAfterPhaseId: 'posture_commit',
+        actorIds: result.actorIds,
+      })
+      expect(result.actionPriority).toEqual(priority)
+    }
+  )
+
+  it.each(['prepend', 'truncate', 'redirect'] as const)(
+    'keeps no-stakes clash and emission skipped under %s',
+    (kind) => {
+      const laterStatus =
+        kind === 'prepend' ? 'prepended' : kind === 'truncate' ? 'truncated' : 'redirected'
+      const result = resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:no-stakes-interrupt',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        stakes: 'none',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        interrupt: { kind, windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      })
+
+      expect(result.bypassed).toBe(true)
+      expect(result.phases).toEqual([
+        { id: 'posture_commit', status: 'ran' },
+        { id: 'environmental_read', status: laterStatus },
+        { id: 'clash_window', status: 'skipped' },
+        { id: 'effect_emission', status: 'skipped' },
+        { id: 'cleanup', status: laterStatus },
+      ])
+      expect(result.interrupt).toEqual({
+        kind,
+        windowId: VOLATILE_ACTION_REACTION_WINDOW_ID,
+      })
+    }
+  )
+
+  it('does not reorder side_phase actors when an interrupt rewrites later statuses', () => {
+    const actors = [
+      actor('hostile:slow', {
+        sideId: 'hostiles',
+        readiness: 'critical',
+        exposure: 'exposed',
+        injury: 'moderate',
+        precision: 20,
+      }),
+      actor('responder:fast', {
+        posture: 'braced',
+        exposure: 'concealed',
+        precision: 90,
+        targetingMode: 'rapid_nearest_valid',
+      }),
+      actor('hostile:fast', {
+        sideId: 'hostiles',
+        posture: 'mobile',
+        targetingMode: 'rapid_nearest_valid',
+      }),
+      actor('responder:slow', { readiness: 'strained', precision: 30 }),
+    ]
+
+    const result = resolveVolatileActionPhasePipeline({
+      encounterId: 'encounter:side-blocks-interrupt',
+      variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+      stakes: 'present',
+      actionPriority: snapshot(actors, { kind: 'side_phase' }),
+      interrupt: { kind: 'truncate', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+    })
+    const priority = resolveVolatileActionPriority({
+      encounterId: 'encounter:side-blocks-interrupt',
+      mode: { kind: 'side_phase' },
+      actors,
+    })
+
+    expect(result.actorIds).toEqual([
+      'responder:fast',
+      'responder:slow',
+      'hostile:fast',
+      'hostile:slow',
+    ])
+    expect(result.actorIds).toEqual(
+      priority.sequence.kind === 'side_phase'
+        ? priority.sequence.sideGroups.flatMap((group) => group.actorIds)
+        : priority.sequence.actorIds
+    )
+    expect(result.reactionWindow.actorIds).toEqual(result.actorIds)
+    expect(result.actionPriority).toEqual(priority)
+    expect(result.phases[0]).toEqual({ id: 'posture_commit', status: 'ran' })
+    expect(result.phases.slice(1).every((phase) => phase.status === 'truncated')).toBe(true)
+  })
+
+  it.each([
+    {
+      name: 'non-object interrupt',
+      interrupt: 'prepend',
+      message: 'interrupt is required.',
+    },
+    {
+      name: 'null interrupt',
+      interrupt: null,
+      message: 'interrupt is required.',
+    },
+    {
+      name: 'array interrupt',
+      interrupt: [{ kind: 'none' }],
+      message: 'interrupt is required.',
+    },
+    {
+      name: 'unknown interrupt kind',
+      interrupt: { kind: 'cancel', windowId: VOLATILE_ACTION_REACTION_WINDOW_ID },
+      message: 'interrupt kind must be none, prepend, truncate, or redirect.',
+    },
+    {
+      name: 'missing interrupt windowId',
+      interrupt: { kind: 'prepend' },
+      message: 'interrupt windowId is required.',
+    },
+    {
+      name: 'wrong interrupt windowId',
+      interrupt: { kind: 'truncate', windowId: 'after_clash' },
+      message: 'interrupt windowId must be after_posture_commit.',
+    },
+    {
+      name: 'empty interrupt windowId',
+      interrupt: { kind: 'redirect', windowId: '  ' },
+      message: 'interrupt windowId must be a non-empty trimmed string.',
+    },
+  ])('fails closed for $name', ({ interrupt, message }) => {
+    expect(() =>
+      resolveVolatileActionPhasePipeline({
+        encounterId: 'encounter:interrupt-authority',
+        variantId: VOLATILE_ACTION_PHASE_VARIANT_ID,
+        stakes: 'present',
+        actionPriority: snapshot([actor('actor:alpha')]),
+        interrupt: interrupt as Parameters<
+          typeof resolveVolatileActionPhasePipeline
+        >[0]['interrupt'],
+      })
     ).toThrow(message)
   })
 })

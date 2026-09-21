@@ -212,7 +212,9 @@ The aggregate-battle resolver currently applies ingress and anchor logic with ex
 
 Volatile actions resolve through a **compact ordered phase pipeline** that is the **common timing spine** across encounter types, procedures, and tactical substates. **Variants are declared** (per operation type, encounter family, or procedure taxonomy) instead of scattering one-off exception code paths.
 
-SPE-2900 slice 1 owns `volatile_action_v1` in `src/domain/volatileActionPhasePipeline.ts`: frozen phase ids `posture_commit` → `environmental_read` → `clash_window` → `effect_emission` → `cleanup`, one inspectable `after_posture_commit` reaction-window record, and explicit `stakes: 'none'` skip of clash + emission. Remaining bullets in this section stay parent SPE-62.
+SPE-2900 slice 1 owns `volatile_action_v1` in `src/domain/volatileActionPhasePipeline.ts`: frozen phase ids `posture_commit` → `environmental_read` → `clash_window` → `effect_emission` → `cleanup`, one inspectable `after_posture_commit` reaction-window record, and explicit `stakes: 'none'` skip of clash + emission.
+
+SPE-2901 extends that spine: one **explicit** interrupt at `after_posture_commit` may rewrite later-phase statuses to `prepended`, `truncated`, or `redirected`. `posture_commit` stays `ran`. Frozen phase ids stay the same length and order. No-stakes `skipped` on clash + emission still wins over interrupt rewrite. Omit / `{ kind: 'none' }` keeps the SPE-2900 default. Remaining bullets in this section stay parent SPE-62; this does not close the SPE-62 umbrella.
 
 ### Pipeline requirements
 

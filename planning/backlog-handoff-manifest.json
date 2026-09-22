@@ -2,6 +2,7 @@
   "primary": "SPE-1027",
   "inProgress": ["SPE-2984"],
   "recentlyShipped": [
+    "SPE-1026",
     "SPE-2982",
     "SPE-2981",
     "SPE-2980",
@@ -12,12 +13,10 @@
     "SPE-2933",
     "SPE-2911",
     "SPE-2931",
-    "SPE-2930",
-    "SPE-2916",
-    "SPE-2915",
-    "SPE-2900"
+    "SPE-2930"
   ],
   "sliceDocStatus": {
+    "planning/spe-1026-layout-adjacency-kernel-slice.md": "Recently shipped",
     "planning/spe-1027-parent-targeted-test-language-slice.md": "In Progress",
     "planning/spe-1027-capacity-as-warehouse-slice.md": "Done",
     "planning/spe-1027-misfile-inventory-mismatch-slice.md": "Recently shipped",

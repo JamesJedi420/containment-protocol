@@ -1,14 +1,14 @@
 # SPE-2981 — Authored misfile / inventory-mismatch event beyond wrong-zone
 
-| Field               | Value                                                                                                                                                                                                     |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **Ready for implementation** (setup packaged this session)                                                                                                                                                |
-| **Linear**          | [SPE-2981](https://linear.app/spectranoir/issue/SPE-2981/authored-misfile-inventory-mismatch-event-beyond-wrong-zone)                                                                                    |
-| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — stays **Backlog**                                                                     |
-| **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                         |
+| Field               | Value                                                                                                                                                                                                                                                                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**          | **Recently shipped**                                                                                                                                                                                                                                                                                                                   |
+| **Linear**          | [SPE-2981](https://linear.app/spectranoir/issue/SPE-2981/authored-misfile-inventory-mismatch-event-beyond-wrong-zone)                                                                                                                                                                                                                  |
+| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — stays **Backlog**                                                                                                                                                                                                  |
+| **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                                                                                                                                                      |
 | **Related**         | [SPE-2890](https://linear.app/spectranoir/issue/SPE-2890) wrong-zone (inspect-only); [SPE-2980](https://linear.app/spectranoir/issue/SPE-2980) typed overflow pattern; [SPE-2979](https://linear.app/spectranoir/issue/SPE-2979) lots optional-map; [SPE-2887](https://linear.app/spectranoir/issue/SPE-2887) qty consume inspect-only |
-| **Branch**          | `cursor/spe-1027-misfile-inventory-mismatch-82a0`                                                                                                                                                         |
-| **Base `main` SHA** | `fc3bcfc0bc70be5ce61104e521c7ba2c1bd58d6a` (`fc3bcfc0` — SPE-2980 typed overflow merge)                                                                                                                   |
+| **Branch**          | `cursor/spe-1027-misfile-inventory-mismatch-82a0`                                                                                                                                                                                                                                                                                      |
+| **Base `main` SHA** | `fc3bcfc0bc70be5ce61104e521c7ba2c1bd58d6a` (`fc3bcfc0` — SPE-2980 typed overflow merge)                                                                                                                                                                                                                                                |
 
 ## Pre-coding summary
 
@@ -102,19 +102,19 @@ resolve, and omitted persisted input does not inherit mismatch from the hydratio
 
 ## Deferred
 
-| Item or mechanic                   | Owner or prerequisite                                     | Why deferred                                                              |
-| ---------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Capacity-as-warehouse              | later SPE-1027 child                                      | Live qty-vs-capacity is not this authored mismatch                        |
-| Parent targeted tests for mismatch | later SPE-1027 children                                   | Parent AC language remains open beyond this one type                      |
-| Personnel clearance                | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) | Do not create a parallel clearance system                                 |
-| Evidence chain-of-custody          | [SPE-867](https://linear.app/spectranoir/issue/SPE-867)   | Misfile stamp only                                                        |
-| Vault security                     | [SPE-1042](https://linear.app/spectranoir/issue/SPE-1042) | Not a vault-architecture implementation                                   |
-| Seal-opening hazard release        | [SPE-1621](https://linear.app/spectranoir/issue/SPE-1621) | Misfile stamp, not seal breach                                            |
-| Logistics-flow layer               | [SPE-1456](https://linear.app/spectranoir/issue/SPE-1456) | No carrier/route simulator                                                |
-| Low-grade anomaly storage policy   | [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | One concrete mismatch type, not the policy umbrella                       |
-| Player command / UI                | later SPE-1027 / topology UI child                        | Domain helper only this slice                                             |
-| Production starting-state seed     | later SPE-1027 child                                      | Match the unseeded optional facility-map pattern                          |
-| Week-close automation and events   | later integration child                                   | Caller-owned helper and persisted map only                                |
+| Item or mechanic                   | Owner or prerequisite                                     | Why deferred                                         |
+| ---------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| Capacity-as-warehouse              | later SPE-1027 child                                      | Live qty-vs-capacity is not this authored mismatch   |
+| Parent targeted tests for mismatch | later SPE-1027 children                                   | Parent AC language remains open beyond this one type |
+| Personnel clearance                | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) | Do not create a parallel clearance system            |
+| Evidence chain-of-custody          | [SPE-867](https://linear.app/spectranoir/issue/SPE-867)   | Misfile stamp only                                   |
+| Vault security                     | [SPE-1042](https://linear.app/spectranoir/issue/SPE-1042) | Not a vault-architecture implementation              |
+| Seal-opening hazard release        | [SPE-1621](https://linear.app/spectranoir/issue/SPE-1621) | Misfile stamp, not seal breach                       |
+| Logistics-flow layer               | [SPE-1456](https://linear.app/spectranoir/issue/SPE-1456) | No carrier/route simulator                           |
+| Low-grade anomaly storage policy   | [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | One concrete mismatch type, not the policy umbrella  |
+| Player command / UI                | later SPE-1027 / topology UI child                        | Domain helper only this slice                        |
+| Production starting-state seed     | later SPE-1027 child                                      | Match the unseeded optional facility-map pattern     |
+| Week-close automation and events   | later integration child                                   | Caller-owned helper and persisted map only           |
 
 ## Acceptance
 

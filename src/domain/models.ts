@@ -39,6 +39,7 @@ import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
 import type { FacilityWarehouseLots } from './facilityWarehouseLots'
 import type { FacilityTypedOverflowLoss } from './facilityTypedOverflowLoss'
+import type { FacilityInventoryMismatch } from './facilityInventoryMismatch'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2890,6 +2891,14 @@ export interface GameState {
    * omit is `none`, not blocked, not triage, and not loss.
    */
   facilityTypedOverflowLoss?: FacilityTypedOverflowLoss
+  /**
+   * SPE-2981 / SPE-1027: authored misfile / inventory-mismatch beyond wrong-zone.
+   * Sibling of `facilityStockpile` and `facilityStockPlacement`, not mixed into stock qty,
+   * SPE-2890 wrong_zone / clearance, lots, typed overflow, hauling, or quarantine.
+   * Omit hydrates omitted; omit is `none`, not wrong_zone, not clearance_denied, and not
+   * a default mismatch.
+   */
+  facilityInventoryMismatch?: FacilityInventoryMismatch
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

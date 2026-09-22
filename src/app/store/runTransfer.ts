@@ -42,6 +42,7 @@ import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuaranti
 import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
 import { parseFacilityWarehouseLots } from '../../domain/facilityWarehouseLots'
 import { parseFacilityTypedOverflowLoss } from '../../domain/facilityTypedOverflowLoss'
+import { parseFacilityInventoryMismatch } from '../../domain/facilityInventoryMismatch'
 import { parseVolatileActionHoldRecords } from '../../domain/volatileActionHoldRecords'
 import { isEquipmentGradeId } from '../../domain/equipmentGrade'
 import { getEquipmentGradeCatalogParticipation } from '../../domain/equipmentGradeCatalog'
@@ -10548,6 +10549,7 @@ export function hydrateGame(
   const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
   const facilityWarehouseLots = parseFacilityWarehouseLots(game.facilityWarehouseLots)
   const facilityTypedOverflowLoss = parseFacilityTypedOverflowLoss(game.facilityTypedOverflowLoss)
+  const facilityInventoryMismatch = parseFacilityInventoryMismatch(game.facilityInventoryMismatch)
   const volatileActionHoldRecords = parseVolatileActionHoldRecords(game.volatileActionHoldRecords)
 
   const hydratedBase = stripUndefinedFields({
@@ -10663,6 +10665,7 @@ export function hydrateGame(
     facilityHaulingLabor,
     facilityWarehouseLots,
     facilityTypedOverflowLoss,
+    facilityInventoryMismatch,
     volatileActionHoldRecords,
     equipmentInstances,
     containmentBarrierIntegrity,

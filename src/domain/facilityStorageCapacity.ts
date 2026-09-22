@@ -19,7 +19,15 @@ export type FacilityStorageCapacity = Partial<
   Record<StorageCapacityNodeId, FacilityStorageCapacitySnapshot>
 >
 
-export type FacilityStorageCapacityOutcome = 'unknown' | 'over_capacity' | 'within_capacity'
+/**
+ * Resolve outcomes for authored qty-vs-capacity.
+ * - `unknown` — omit/absent (not SPE-2895 blocked/clear; not a default capacity)
+ * - `within_capacity` — present and comfortably below near-capacity pressure
+ * - `near_capacity` — present, pre-overflow pressure (fill ≥ 75% of capacity)
+ * - `over_capacity` — quantity > capacity
+ */
+export type FacilityStorageCapacityOutcome =
+  'unknown' | 'within_capacity' | 'near_capacity' | 'over_capacity'
 
 export type FacilityStorageCapacityFailureCode = 'invalid_node' | 'invalid_snapshot'
 
@@ -120,10 +128,23 @@ export function parseFacilityStorageCapacity(value: unknown): FacilityStorageCap
   return snapshotFacilityStorageCapacity(next)
 }
 
+/**
+ * Derive qty-vs-capacity outcome from a valid snapshot.
+ * Over capacity when quantity exceeds capacity. Otherwise near-capacity pressure
+ * when remaining slots are at most ⌊capacity / 4⌋ (fill ≥ 75%), including full
+ * (quantity === capacity). Comfortable fill resolves `within_capacity`.
+ * Integer-safe: uses remaining vs floor division (no 3×/4× products that overflow
+ * `Number.MAX_SAFE_INTEGER`). Read-only projection — no second mutable authority.
+ */
 function outcomeForSnapshot(
   snapshot: FacilityStorageCapacitySnapshot
 ): Exclude<FacilityStorageCapacityOutcome, 'unknown'> {
-  return snapshot.quantity > snapshot.capacity ? 'over_capacity' : 'within_capacity'
+  const { quantity, capacity } = snapshot
+  if (quantity > capacity) return 'over_capacity'
+  if (capacity === 0) return 'within_capacity'
+  const remaining = capacity - quantity
+  if (remaining <= Math.floor(capacity / 4)) return 'near_capacity'
+  return 'within_capacity'
 }
 
 function readNodeId(input: unknown): StorageCapacityNodeId | undefined {
@@ -169,11 +190,12 @@ export function stampFacilityStorageCapacity(
 }
 
 /**
- * Resolve authored qty-vs-capacity outcome vs omit.
+ * Resolve authored qty-vs-capacity outcome vs omit (Phase 4 pre-overflow pressure).
  * Unknown or malformed node input fail-closes `invalid_node`.
  * Omit or absent resolves `outcome: 'unknown'` (not SPE-2895 `blocked`/`clear`, and not a
- * default capacity). Present snapshot with `quantity > capacity` resolves `over_capacity`;
- * otherwise `within_capacity`. Read-only: returns the same state reference and does not stamp.
+ * default capacity). Present `quantity > capacity` → `over_capacity`; present fill ≥ 75%
+ * of capacity (remaining ≤ ⌊capacity/4⌋) → `near_capacity`; otherwise present →
+ * `within_capacity`. Read-only: returns the same state reference and does not stamp.
  */
 export function resolveFacilityStorageCapacity(
   state: GameState,

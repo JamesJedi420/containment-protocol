@@ -40,7 +40,20 @@ type SnapshotField = keyof SnapshotInput
 const EVIDENCE_CAGE = { nodeId: EVIDENCE_CAGE_CAPACITY_NODE_ID } as const
 const SNAPSHOT_FIELDS = ['quantity', 'capacity'] as const
 
+/** Comfortable fill (< 75%): remaining > ⌊capacity/4⌋ */
 const WITHIN_SNAPSHOT = {
+  quantity: 2,
+  capacity: 4,
+} as const
+
+/** Pre-overflow near-capacity pressure (fill ≥ 75%, not over) */
+const NEAR_SNAPSHOT = {
+  quantity: 3,
+  capacity: 4,
+} as const
+
+/** Full but not over — still near-capacity pressure */
+const FULL_NEAR_SNAPSHOT = {
   quantity: 4,
   capacity: 4,
 } as const
@@ -55,8 +68,13 @@ const ZERO_WITHIN_SNAPSHOT = {
   capacity: 0,
 } as const
 
-const MAX_SAFE_WITHIN_SNAPSHOT = {
+const MAX_SAFE_NEAR_SNAPSHOT = {
   quantity: Number.MAX_SAFE_INTEGER,
+  capacity: Number.MAX_SAFE_INTEGER,
+} as const
+
+const MAX_SAFE_WITHIN_SNAPSHOT = {
+  quantity: Math.floor(Number.MAX_SAFE_INTEGER / 2),
   capacity: Number.MAX_SAFE_INTEGER,
 } as const
 
@@ -216,7 +234,7 @@ describe('facility storage capacity qty-vs-capacity', () => {
     expect(resolved).not.toMatchObject({ outcome: 'clear' })
   })
 
-  it('resolves over_capacity when quantity exceeds capacity, including equality and zero', () => {
+  it('resolves over_capacity, near_capacity, and within_capacity including equality and zero', () => {
     const resolveSnapshot = (snapshot: SnapshotInput) => {
       const state = createStartingState()
       const stamped = stampFacilityStorageCapacity(state, inputFor(snapshot))
@@ -231,13 +249,17 @@ describe('facility storage capacity qty-vs-capacity', () => {
       ok: true,
       outcome: 'within_capacity',
     })
+    expect(resolveSnapshot(NEAR_SNAPSHOT)).toMatchObject({
+      ok: true,
+      outcome: 'near_capacity',
+    })
+    expect(resolveSnapshot(FULL_NEAR_SNAPSHOT)).toMatchObject({
+      ok: true,
+      outcome: 'near_capacity',
+    })
     expect(resolveSnapshot(OVER_SNAPSHOT)).toMatchObject({
       ok: true,
       outcome: 'over_capacity',
-    })
-    expect(resolveSnapshot({ quantity: 3, capacity: 4 })).toMatchObject({
-      ok: true,
-      outcome: 'within_capacity',
     })
     expect(resolveSnapshot(ZERO_WITHIN_SNAPSHOT)).toMatchObject({
       ok: true,
@@ -248,11 +270,85 @@ describe('facility storage capacity qty-vs-capacity', () => {
       ok: true,
       outcome: 'over_capacity',
     })
+    expect(resolveSnapshot({ quantity: 0, capacity: 4 })).toMatchObject({
+      ok: true,
+      outcome: 'within_capacity',
+    })
     expect(resolveSnapshot(MAX_SAFE_WITHIN_SNAPSHOT)).toMatchObject({
       ok: true,
       outcome: 'within_capacity',
       snapshot: MAX_SAFE_WITHIN_SNAPSHOT,
     })
+    expect(resolveSnapshot(MAX_SAFE_NEAR_SNAPSHOT)).toMatchObject({
+      ok: true,
+      outcome: 'near_capacity',
+      snapshot: MAX_SAFE_NEAR_SNAPSHOT,
+    })
+  })
+
+  it('distinguishes comfortable vs near-capacity pressure before over_capacity (Phase 4)', () => {
+    const resolveSnapshot = (snapshot: SnapshotInput) => {
+      const state = createStartingState()
+      state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 2 }
+      state.facilityStockOverflow = { [EVIDENCE_CAGE_NODE_ID]: OVERFLOWING_STATUS }
+      state.facilityInventoryMismatch = { [CURSED_EVIDENCE_MISFILE_ID]: MISMATCHED_OUTCOME }
+      const unrelated = snapshotUnrelated(state)
+      const stamped = stampFacilityStorageCapacity(state, inputFor(snapshot))
+      if (!stamped.ok) throw new Error(stamped.code)
+      expectUnrelatedPreserved(stamped.state, unrelated)
+      const result = resolveFacilityStorageCapacity(stamped.state, EVIDENCE_CAGE)
+      expect(result.state).toBe(stamped.state)
+      expectUnrelatedPreserved(stamped.state, unrelated)
+      return result
+    }
+
+    // Same quantity, different capacities → different pressure
+    expect(resolveSnapshot({ quantity: 3, capacity: 4 })).toMatchObject({
+      ok: true,
+      outcome: 'near_capacity',
+    })
+    expect(resolveSnapshot({ quantity: 3, capacity: 5 })).toMatchObject({
+      ok: true,
+      outcome: 'within_capacity',
+    })
+    expect(resolveSnapshot({ quantity: 3, capacity: 10 })).toMatchObject({
+      ok: true,
+      outcome: 'within_capacity',
+    })
+
+    // Raising capacity across the threshold clears near-capacity pressure
+    const nearState = createStartingState()
+    const nearStamped = stampFacilityStorageCapacity(nearState, inputFor(NEAR_SNAPSHOT))
+    if (!nearStamped.ok) throw new Error(nearStamped.code)
+    expect(resolveFacilityStorageCapacity(nearStamped.state, EVIDENCE_CAGE)).toMatchObject({
+      outcome: 'near_capacity',
+    })
+    const raised = stampFacilityStorageCapacity(
+      nearStamped.state,
+      inputFor({ quantity: 3, capacity: 5 })
+    )
+    if (!raised.ok) throw new Error(raised.code)
+    expect(resolveFacilityStorageCapacity(raised.state, EVIDENCE_CAGE)).toMatchObject({
+      outcome: 'within_capacity',
+      snapshot: { quantity: 3, capacity: 5 },
+    })
+    expect(raised.state.facilityStockpile).toEqual(nearStamped.state.facilityStockpile)
+    expect(raised.state.facilityStockOverflow).toEqual(nearStamped.state.facilityStockOverflow)
+
+    // Lowering quantity across the threshold clears near-capacity pressure
+    const lowered = stampFacilityStorageCapacity(nearStamped.state, inputFor(WITHIN_SNAPSHOT))
+    if (!lowered.ok) throw new Error(lowered.code)
+    expect(resolveFacilityStorageCapacity(lowered.state, EVIDENCE_CAGE)).toMatchObject({
+      outcome: 'within_capacity',
+      snapshot: WITHIN_SNAPSHOT,
+    })
+
+    // Over capacity remains distinct from near-capacity; not SPE-2895 blocked/clear
+    const over = resolveSnapshot(OVER_SNAPSHOT)
+    expect(over).toMatchObject({ ok: true, outcome: 'over_capacity' })
+    expect(over).not.toMatchObject({ outcome: 'near_capacity' })
+    expect(over).not.toMatchObject({ outcome: 'blocked' })
+    expect(over).not.toMatchObject({ penalty: 'blocked' })
   })
 
   it('resolves unknown from omitted or absent capacity, not SPE-2895 blocked or clear', () => {

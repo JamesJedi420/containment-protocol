@@ -20,6 +20,7 @@
     "SPE-2900"
   ],
   "sliceDocStatus": {
+    "planning/spe-1027-capacity-as-warehouse-slice.md": "Ready",
     "planning/spe-1027-misfile-inventory-mismatch-slice.md": "Recently shipped",
     "planning/spe-1027-typed-overflow-loss-slice.md": "Recently shipped",
     "planning/spe-1027-warehouse-lots-slice.md": "Recently shipped",

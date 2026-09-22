@@ -7,8 +7,8 @@
 | **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — stays **Backlog**                                                                                                                                                                                                                      |
 | **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                                                                                                                                                                          |
 | **Related**         | [SPE-2895](https://linear.app/spectranoir/issue/SPE-2895) overflow boolean (inspect-only); [SPE-2887](https://linear.app/spectranoir/issue/SPE-2887) qty consume inspect-only; [SPE-2981](https://linear.app/spectranoir/issue/SPE-2981) misfile optional-map pattern; [SPE-2896](https://linear.app/spectranoir/issue/SPE-2896) preparedness inspect-only |
-| **Branch**          | `cursor/spe-1027-capacity-as-warehouse-9e7c-3774`                                                                                                                                                                                                                                                                                                          |
-| **Base `main` SHA** | `f2be403c302fa74f468689813a0196ca89792311` (`f2be403c` — SPE-2982 planning slice merge)                                                                                                                                                                                                                                                                    |
+| **Branch**          | `cursor/spe-2982-near-capacity-pressure-91c4`                                                                                                                                                                                                                                                                                                              |
+| **Base `main` SHA** | `63302c18de497731ad56463f1777d07996317acb` (`63302c18` — SPE-2982 three-outcome qty-vs-capacity merge #3779; includes planning `f2be403c`)                                                                                                                                                                                                                 |
 
 ## Pre-coding summary
 
@@ -38,10 +38,15 @@ mistaken for capacity-as-warehouse.
 **Expected behavior:** one authored `evidence_cage` persists compact
 `{ quantity, capacity }` (safe non-negative integers). Omit/absent resolve is
 `unknown`, not SPE-2895 `blocked` / `clear`, and not a default capacity. Present
-snapshot with `quantity > capacity` resolves `over_capacity`; otherwise
-`within_capacity`. Invalid/inherited/hidden node or snapshot fail-closes with the
-original state reference. Save/load preserves valid snapshots; malformed siblings
-drop independently. SPE-2895 overflow remains distinct and ungated.
+snapshot with `quantity > capacity` resolves `over_capacity`; present fill ≥ 75%
+of capacity (remaining ≤ ⌊capacity/4⌋) resolves `near_capacity` (Phase 4
+pre-overflow pressure); otherwise present resolves `within_capacity`. Same
+quantity with different capacities can differ; raising capacity or lowering
+quantity across the threshold clears `near_capacity` deterministically. Pressure
+is a read-only derived resolve outcome — not a second mutable warehouse map.
+Invalid/inherited/hidden node or snapshot fail-closes with the original state
+reference. Save/load preserves valid snapshots; malformed siblings drop
+independently. SPE-2895 overflow remains distinct and ungated.
 `consumeFacilityStock` stays ungated.
 
 **Boundary:** leftover SPE-1027 capacity-as-warehouse / qty-vs-capacity only. New
@@ -117,10 +122,12 @@ idempotent in meaning.
 same fail-closed node-id validation. Unknown or malformed node id →
 `invalid_node`. Omitted or absent node resolves `unknown` (not SPE-2895
 `blocked`/`clear`, and not a default capacity). Present snapshot with
-`quantity > capacity` resolves `over_capacity`; otherwise `within_capacity`.
-Resolve returns the same state reference and does not stamp. Hydration does not
-replay stamp or resolve, and omitted persisted input does not inherit capacity
-from the hydration fallback.
+`quantity > capacity` resolves `over_capacity`; present fill ≥ 75% of capacity
+(remaining ≤ ⌊capacity/4⌋, integer-safe) resolves `near_capacity` (Phase 4
+pre-overflow pressure, distinct from comfortable `within_capacity`); otherwise
+present resolves `within_capacity`. Resolve returns the same state reference and
+does not stamp. Hydration does not replay stamp or resolve, and omitted persisted
+input does not inherit capacity from the hydration fallback.
 
 ## Deferred
 
@@ -140,9 +147,12 @@ from the hydration fallback.
 
 ## Acceptance
 
-- Stamp complete `evidence_cage` + `{ quantity, capacity }` and resolve → `ok`; matching qty-vs-capacity outcome (`within_capacity` or `over_capacity`)
+- Stamp complete `evidence_cage` + `{ quantity, capacity }` and resolve → `ok`; matching qty-vs-capacity outcome (`within_capacity`, `near_capacity`, or `over_capacity`)
 - Omitted or absent node resolve → `ok`; `unknown`, not SPE-2895 `blocked`/`clear`
-- Present `quantity > capacity` resolve → `over_capacity`; otherwise present resolve → `within_capacity`
+- Present `quantity > capacity` resolve → `over_capacity`
+- Present fill ≥ 75% of capacity (remaining ≤ ⌊capacity/4⌋) and not over → `near_capacity`; otherwise present resolve → `within_capacity`
+- Same quantity with different capacities can produce different `within_capacity` vs `near_capacity` results; raising capacity or lowering quantity across the threshold clears `near_capacity` deterministically without rewriting unrelated facility maps
+- Near-capacity pressure is a read-only derived resolve outcome (not a second mutable warehouse authority; does not recode SPE-2895 overflow or SPE-2980 typed overflow/loss)
 - SPE-2895 overflow does not stamp or resolve this map; this stamp does not produce `blocked`/`clear`
 - Unknown, raw, missing, inherited, or non-enumerable node id → `invalid_node`; original state reference returned
 - Unknown, raw, missing, negative, non-integer, inherited, or non-enumerable quantity/capacity → `invalid_snapshot`; original state reference returned

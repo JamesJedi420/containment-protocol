@@ -1,14 +1,14 @@
 # SPE-2982 — Authored storage capacity qty-vs-capacity (capacity-as-warehouse)
 
-| Field               | Value                                                                                                                                                                                                                                                                                                                                  |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **Ready**                                                                                                                                                                                                                                                                                                                              |
-| **Linear**          | [SPE-2982](https://linear.app/spectranoir/issue/SPE-2982/authored-storage-capacity-qty-vs-capacity-capacity-as-warehouse)                                                                                                                                                                                                               |
-| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — stays **Backlog**                                                                                                                                                                                                  |
-| **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                                                                                                                                                      |
+| Field               | Value                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**          | **Done**                                                                                                                                                                                                                                                                                                                                                   |
+| **Linear**          | [SPE-2982](https://linear.app/spectranoir/issue/SPE-2982/authored-storage-capacity-qty-vs-capacity-capacity-as-warehouse)                                                                                                                                                                                                                                  |
+| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — stays **Backlog**                                                                                                                                                                                                                      |
+| **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                                                                                                                                                                          |
 | **Related**         | [SPE-2895](https://linear.app/spectranoir/issue/SPE-2895) overflow boolean (inspect-only); [SPE-2887](https://linear.app/spectranoir/issue/SPE-2887) qty consume inspect-only; [SPE-2981](https://linear.app/spectranoir/issue/SPE-2981) misfile optional-map pattern; [SPE-2896](https://linear.app/spectranoir/issue/SPE-2896) preparedness inspect-only |
-| **Branch**          | `cursor/spe-1027-capacity-as-warehouse-9e7c-3774`                                                                                                                                                                                                                                                                                      |
-| **Base `main` SHA** | `502e8dda4c806b91c58c79cb383b816521a31e84` (`502e8dda` — SPE-2981 misfile merge)                                                                                                                                                                                                                                                       |
+| **Branch**          | `cursor/spe-1027-capacity-as-warehouse-9e7c-3774`                                                                                                                                                                                                                                                                                                          |
+| **Base `main` SHA** | `f2be403c302fa74f468689813a0196ca89792311` (`f2be403c` — SPE-2982 planning slice merge)                                                                                                                                                                                                                                                                    |
 
 ## Pre-coding summary
 
@@ -124,19 +124,19 @@ from the hydration fallback.
 
 ## Deferred
 
-| Item or mechanic                   | Owner or prerequisite                                     | Why deferred                                              |
-| ---------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| Parent targeted-test language      | later SPE-1027 child                                      | Parent AC language remains open beyond this one node      |
-| Multi-node warehouse network       | later SPE-1027 child                                      | One authored node only this slice                         |
-| Personnel clearance                | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) | Do not create a parallel clearance system                 |
-| Evidence chain-of-custody          | [SPE-867](https://linear.app/spectranoir/issue/SPE-867)   | Capacity stamp only                                       |
-| Vault security                     | [SPE-1042](https://linear.app/spectranoir/issue/SPE-1042) | Not a vault-architecture implementation                   |
-| Seal-opening hazard release        | [SPE-1621](https://linear.app/spectranoir/issue/SPE-1621) | Capacity stamp, not seal breach                           |
-| Logistics-flow layer               | [SPE-1456](https://linear.app/spectranoir/issue/SPE-1456) | No carrier/route simulator                                |
-| Low-grade anomaly storage policy   | [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | One concrete capacity node, not the policy umbrella       |
-| Player command / UI                | later SPE-1027 / topology UI child                        | Domain helper only this slice                             |
-| Production starting-state seed     | later SPE-1027 child                                      | Match the unseeded optional facility-map pattern          |
-| Week-close automation and events   | later integration child                                   | Caller-owned helper and persisted map only                |
+| Item or mechanic                 | Owner or prerequisite                                     | Why deferred                                         |
+| -------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| Parent targeted-test language    | later SPE-1027 child                                      | Parent AC language remains open beyond this one node |
+| Multi-node warehouse network     | later SPE-1027 child                                      | One authored node only this slice                    |
+| Personnel clearance              | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) | Do not create a parallel clearance system            |
+| Evidence chain-of-custody        | [SPE-867](https://linear.app/spectranoir/issue/SPE-867)   | Capacity stamp only                                  |
+| Vault security                   | [SPE-1042](https://linear.app/spectranoir/issue/SPE-1042) | Not a vault-architecture implementation              |
+| Seal-opening hazard release      | [SPE-1621](https://linear.app/spectranoir/issue/SPE-1621) | Capacity stamp, not seal breach                      |
+| Logistics-flow layer             | [SPE-1456](https://linear.app/spectranoir/issue/SPE-1456) | No carrier/route simulator                           |
+| Low-grade anomaly storage policy | [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | One concrete capacity node, not the policy umbrella  |
+| Player command / UI              | later SPE-1027 / topology UI child                        | Domain helper only this slice                        |
+| Production starting-state seed   | later SPE-1027 child                                      | Match the unseeded optional facility-map pattern     |
+| Week-close automation and events | later integration child                                   | Caller-owned helper and persisted map only           |
 
 ## Acceptance
 

@@ -40,6 +40,7 @@ import type { FacilityHaulingLabor } from './facilityHaulingLabor'
 import type { FacilityWarehouseLots } from './facilityWarehouseLots'
 import type { FacilityTypedOverflowLoss } from './facilityTypedOverflowLoss'
 import type { FacilityInventoryMismatch } from './facilityInventoryMismatch'
+import type { FacilityStorageCapacity } from './facilityStorageCapacity'
 import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
 
 // --- Legacy enums/types for stabilityLayer compat ---
@@ -2899,6 +2900,14 @@ export interface GameState {
    * a default mismatch.
    */
   facilityInventoryMismatch?: FacilityInventoryMismatch
+  /**
+   * SPE-2982 / SPE-1027: authored storage capacity qty-vs-capacity (capacity-as-warehouse).
+   * Sibling of `facilityStockpile` and `facilityStockOverflow`, not mixed into stock qty,
+   * SPE-2895 overflowing→blocked/clear, preparedness, lots, typed overflow, misfile,
+   * hauling, or quarantine. Omit hydrates omitted; omit is `unknown`, not blocked, not
+   * clear, and not a default capacity.
+   */
+  facilityStorageCapacity?: FacilityStorageCapacity
   /**
    * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
    * instance id. Append-only entries preserve mistaken records and later corrections.

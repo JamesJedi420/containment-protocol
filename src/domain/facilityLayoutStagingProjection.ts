@@ -1,5 +1,5 @@
 /**
- * SPE-2987 / SPE-2988 / SPE-2989: authored room → department staging pairs.
+ * SPE-2987 / SPE-2988 / SPE-2989 / SPE-2990: authored room → department staging pairs.
  * Caller-owned. Hydration and week-close do not call this.
  */
 
@@ -26,6 +26,12 @@ export const LAYOUT_STAGING_ARMORY_ROOM_ID = 'armory' as const
 export const LAYOUT_STAGING_FIELD_CONTAINMENT_DEPARTMENT_ID =
   'department:field-containment' as const
 
+/** SPE-2990 room. Not derived from the room id. */
+export const LAYOUT_STAGING_CLOSET_ROOM_ID = 'staging_closet' as const
+
+/** Known department written when `staging_closet` is adjacent to critical. */
+export const LAYOUT_STAGING_PROCUREMENT_DEPARTMENT_ID = 'department:procurement-logistics' as const
+
 const ADJACENT_STAGING = {
   inputStaging: 'adjacent',
   outputStaging: 'adjacent',
@@ -37,6 +43,7 @@ const ADJACENT_STAGING = {
  * `archive` with `adjacentToCritical: true` sets records-analysis to adjacent on both axes.
  * `med_bay` with `adjacentToCritical: true` sets emergency-response to adjacent on both axes.
  * `armory` with `adjacentToCritical: true` sets field-containment to adjacent on both axes.
+ * `staging_closet` with `adjacentToCritical: true` sets procurement-logistics to adjacent on both axes.
  * A false flag, a missing room, or any other room does not insert a key and does not write `remote`.
  * Unrelated saved staging entries are kept. The result is sanitized with `parseDepartmentLocalStaging`.
  */
@@ -58,6 +65,12 @@ export function projectFacilityLayoutRoomsOntoDepartmentLocalStaging(
   const authoredArmory = layout.rooms.find((room) => room.roomId === LAYOUT_STAGING_ARMORY_ROOM_ID)
   if (authoredArmory?.adjacentToCritical === true) {
     draft[LAYOUT_STAGING_FIELD_CONTAINMENT_DEPARTMENT_ID] = ADJACENT_STAGING
+  }
+  const authoredStagingCloset = layout.rooms.find(
+    (room) => room.roomId === LAYOUT_STAGING_CLOSET_ROOM_ID
+  )
+  if (authoredStagingCloset?.adjacentToCritical === true) {
+    draft[LAYOUT_STAGING_PROCUREMENT_DEPARTMENT_ID] = ADJACENT_STAGING
   }
   return parseDepartmentLocalStaging(draft)
 }

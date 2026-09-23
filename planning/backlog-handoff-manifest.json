@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2989",
     "SPE-2988",
     "SPE-2987",
     "SPE-2986",
@@ -12,10 +13,10 @@
     "SPE-2979",
     "SPE-2935",
     "SPE-2934",
-    "SPE-2217",
-    "SPE-2933"
+    "SPE-2217"
   ],
   "sliceDocStatus": {
+    "planning/spe-2989-layout-staging-catalog-slice.md": "Recently shipped",
     "planning/spe-2988-layout-staging-catalog-slice.md": "Recently shipped",
     "planning/spe-2987-layout-staging-projection-slice.md": "Recently shipped",
     "planning/spe-2986-layout-persist-slice.md": "Recently shipped",

@@ -317,6 +317,56 @@ describe('facility restricted-object component-set release', () => {
     expect(stored.state).toEqual(before)
   })
 
+  it('fail-closes record attempts that would rewind inspection or testing back to stored', () => {
+    const state = createStartingState()
+    const stored = recordRestrictedObjectStored(state, COMPLETE)
+    if (!stored.ok) throw new Error(stored.code)
+
+    const inspected = transitionRestrictedObjectRelease(stored.state, {
+      ...COMPLETE,
+      mode: 'inspection',
+    })
+    if (!inspected.ok) throw new Error(inspected.code)
+
+    const inspectedBefore = structuredClone(inspected.state)
+    const rewindFromInspection = recordRestrictedObjectStored(inspected.state, COMPLETE)
+    expect(rewindFromInspection).toEqual({
+      ok: false,
+      state: inspected.state,
+      code: 'illegal_transition',
+    })
+    expect(rewindFromInspection.state).toBe(inspected.state)
+    expect(inspected.state).toEqual(inspectedBefore)
+    expect(
+      resolveRestrictedObjectRelease(inspected.state, { setId: RELIQUARY_KEY_SET_ID })
+    ).toMatchObject({
+      ok: true,
+      mode: 'inspection',
+    })
+
+    const tested = transitionRestrictedObjectRelease(inspected.state, {
+      ...COMPLETE,
+      mode: 'testing',
+    })
+    if (!tested.ok) throw new Error(tested.code)
+
+    const testedBefore = structuredClone(tested.state)
+    const rewindFromTesting = recordRestrictedObjectStored(tested.state, COMPLETE)
+    expect(rewindFromTesting).toEqual({
+      ok: false,
+      state: tested.state,
+      code: 'illegal_transition',
+    })
+    expect(rewindFromTesting.state).toBe(tested.state)
+    expect(tested.state).toEqual(testedBefore)
+    expect(
+      resolveRestrictedObjectRelease(tested.state, { setId: RELIQUARY_KEY_SET_ID })
+    ).toMatchObject({
+      ok: true,
+      mode: 'testing',
+    })
+  })
+
   it('writes immutably and idempotently and freezes parser and writer snapshots', () => {
     const state = createStartingState()
     const first = recordRestrictedObjectStored(state, COMPLETE)

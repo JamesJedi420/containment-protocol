@@ -65,14 +65,14 @@ fail-closed so the SPE-1026 kernel can be resolved from saved inputs.
 
 ## Deferred
 
-| Item or mechanic                                      | Owner or prerequisite                                                                                            | Why deferred                                                                  |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Project room graph → SPE-2889 staging adjacent/remote | later SPE-1052 child                                                                                             | SPE-2889 already persists caller-owned staging; this slice does not derive it |
-| Facility planner UI / specialist gates                | later UI / SPE-1058 adjacency                                                                                    | Domain persist only                                                           |
-| Focal-object room centers                             | later SPE-1052 / layout child                                                                                    | Not required to store authored ids                                            |
-| Persisted route-kind list                             | later layout child                                                                                               | Kernel route metrics stay caller-owned; snapshot has no route field           |
-| Zone-crossing breach event meaning                    | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                        | No event propagation this slice                                               |
-| Staff housing campaign morale system                  | [SPE-1029](https://linear.app/spectranoir/issue/SPE-1029/staff-housing-recovery-and-morale-stabilization-system) | Layout-presence bump stays in the kernel                                      |
+| Item or mechanic                                      | Owner or prerequisite                                                                                            | Why deferred                                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Project room graph → SPE-2889 staging adjacent/remote | [SPE-2987](https://linear.app/spectranoir/issue/SPE-2987/project-room-graph-spe-2889-staging-adjacentremote)     | Caller-owned projection shipped there; this persist slice does not derive it |
+| Facility planner UI / specialist gates                | later UI / SPE-1058 adjacency                                                                                    | Domain persist only                                                          |
+| Focal-object room centers                             | later SPE-1052 / layout child                                                                                    | Not required to store authored ids                                           |
+| Persisted route-kind list                             | later layout child                                                                                               | Kernel route metrics stay caller-owned; snapshot has no route field          |
+| Zone-crossing breach event meaning                    | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                        | No event propagation this slice                                              |
+| Staff housing campaign morale system                  | [SPE-1029](https://linear.app/spectranoir/issue/SPE-1029/staff-housing-recovery-and-morale-stabilization-system) | Layout-presence bump stays in the kernel                                     |
 
 Parent SPE-1052 remains **Backlog**.
 

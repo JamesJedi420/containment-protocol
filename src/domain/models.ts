@@ -27,6 +27,7 @@ import type { EquipmentInstanceRegistry } from './equipmentInstance'
 import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
 import type { FacilityStockpile } from './facilityStockpile'
 import type { DepartmentLocalStaging } from './departmentLocalStaging'
+import type { FacilityLayoutSnapshot } from './facilityLayoutStrategy'
 import type { FacilityStockPlacement } from './facilityStockAccess'
 import type { FacilityStockCondition } from './facilityStockSpoilage'
 import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
@@ -2813,6 +2814,12 @@ export interface GameState {
    * Adjacent both axes feeds SPE-2775 week-close throughput (2 work units).
    */
   departmentLocalStaging?: DepartmentLocalStaging
+  /**
+   * SPE-2986 / SPE-1052: optional authored facility layout snapshot (archetype, zone
+   * adjacencies, morale/oversight/room space sets, containment mode). Not SPE-2889
+   * staging and not a CAD graph. Omit hydrates absent. Week-close does not consume it.
+   */
+  facilityLayoutSnapshot?: FacilityLayoutSnapshot
   /**
    * SPE-2890 / SPE-1027: access-controlled storage-class placement keyed by authored class id.
    * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.

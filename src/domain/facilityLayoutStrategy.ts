@@ -1,9 +1,10 @@
 /**
  * SPE-1026 — pure facility layout strategy and zone adjacency kernel.
+ * SPE-2986 — optional authored snapshot parse/resolve on top of that kernel.
  *
- * Callers own archetype choice, room graphs, route kinds, and space sets.
- * This module does not persist layout on GameState, project SPE-2889 staging,
- * or register week-close / UI surfaces.
+ * Callers own archetype choice, room records, route kinds, and space sets.
+ * Parse/hydrate stores authored ids only. This module does not project SPE-2889
+ * staging, retune kernel metrics, or register week-close / UI surfaces.
  */
 
 export const LAYOUT_ARCHETYPES = [
@@ -472,5 +473,158 @@ export function summarizeLayoutForDebug(input: unknown): LayoutDebugSummary | un
     zoneCount: zones.length,
     keyAdjacencies,
     routeBurdens,
+  })
+}
+
+export interface FacilityLayoutRoomRecord {
+  readonly roomId: FacilityRoomId
+  readonly adjacentToCritical: boolean
+}
+
+/**
+ * Authored layout snapshot. Metrics are not stored; resolve them with the kernel.
+ * Absent archetype or containment mode means that field was omitted or rejected.
+ */
+export interface FacilityLayoutSnapshot {
+  readonly archetype?: LayoutArchetype
+  readonly zoneAdjacencies: readonly ZoneAdjacencyEdge[]
+  readonly moraleSpaces: readonly MoraleSpaceId[]
+  readonly oversightSpaces: readonly OversightSpaceId[]
+  readonly rooms: readonly FacilityLayoutRoomRecord[]
+  readonly containmentMode?: ContainmentLayoutMode
+}
+
+export interface ResolvedFacilityLayoutSnapshot {
+  readonly archetypeMetrics: LayoutArchetypeMetrics | undefined
+  readonly zoneAdjacencies: readonly ZoneAdjacencyEdge[]
+  readonly morale: MoraleSpaceEffect
+  readonly oversight: OversightSpaceEffect
+  readonly containment: SecureContainmentTradeoff | undefined
+  readonly rooms: readonly RoomAdjacencyOutput[]
+}
+
+function hasOwn(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key)
+}
+
+function parseCatalogIds<T extends string>(
+  value: unknown,
+  catalog: readonly T[],
+  isId: (candidate: unknown) => candidate is T
+): readonly T[] {
+  if (!Array.isArray(value)) return Object.freeze([])
+  const present = new Set<T>()
+  for (const entry of value) {
+    if (!isId(entry)) continue
+    present.add(entry)
+  }
+  return Object.freeze(catalog.filter((id) => present.has(id)))
+}
+
+function parseZoneAdjacencies(value: unknown): readonly ZoneAdjacencyEdge[] {
+  if (!Array.isArray(value)) return Object.freeze([])
+  const ownEdges: Array<{ fromZoneId: unknown; toZoneId: unknown }> = []
+  for (const edge of value) {
+    if (!isRecord(edge)) continue
+    if (!hasOwn(edge, 'fromZoneId') || !hasOwn(edge, 'toZoneId')) continue
+    ownEdges.push({ fromZoneId: edge.fromZoneId, toZoneId: edge.toZoneId })
+  }
+  return normalizeZoneAdjacencies(ownEdges)
+}
+
+function parseRoomRecords(value: unknown): readonly FacilityLayoutRoomRecord[] {
+  if (!Array.isArray(value)) return Object.freeze([])
+  const chosen = new Map<FacilityRoomId, boolean>()
+  for (const entry of value) {
+    if (!isRecord(entry)) continue
+    if (!hasOwn(entry, 'roomId') || !hasOwn(entry, 'adjacentToCritical')) continue
+    if (!isFacilityRoomId(entry.roomId)) continue
+    if (typeof entry.adjacentToCritical !== 'boolean') continue
+    if (chosen.has(entry.roomId)) continue
+    chosen.set(entry.roomId, entry.adjacentToCritical)
+  }
+  const next: FacilityLayoutRoomRecord[] = []
+  for (const roomId of FACILITY_ROOM_IDS) {
+    if (!chosen.has(roomId)) continue
+    const adjacentToCritical = chosen.get(roomId)
+    if (adjacentToCritical === undefined) continue
+    next.push(Object.freeze({ roomId, adjacentToCritical }))
+  }
+  return Object.freeze(next)
+}
+
+/**
+ * Hydrate optional `GameState.facilityLayoutSnapshot`.
+ * Omit / non-record / empty after rejection → undefined (baseline).
+ * Unknown ids drop. Valid authored archetype, edges, and space sets are kept.
+ * Does not coerce a malformed boolean or substitute a guessed id.
+ */
+export function parseFacilityLayoutSnapshot(value: unknown): FacilityLayoutSnapshot | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) return undefined
+
+  const archetype =
+    hasOwn(value, 'archetype') && isLayoutArchetype(value.archetype) ? value.archetype : undefined
+  const containmentMode =
+    hasOwn(value, 'containmentMode') && isContainmentLayoutMode(value.containmentMode)
+      ? value.containmentMode
+      : undefined
+  const zoneAdjacencies = hasOwn(value, 'zoneAdjacencies')
+    ? parseZoneAdjacencies(value.zoneAdjacencies)
+    : Object.freeze([])
+  const moraleSpaces = hasOwn(value, 'moraleSpaces')
+    ? parseCatalogIds(value.moraleSpaces, MORALE_SPACE_IDS, isMoraleSpaceId)
+    : Object.freeze([])
+  const oversightSpaces = hasOwn(value, 'oversightSpaces')
+    ? parseCatalogIds(value.oversightSpaces, OVERSIGHT_SPACE_IDS, isOversightSpaceId)
+    : Object.freeze([])
+  const rooms = hasOwn(value, 'rooms') ? parseRoomRecords(value.rooms) : Object.freeze([])
+
+  if (
+    archetype === undefined &&
+    containmentMode === undefined &&
+    zoneAdjacencies.length === 0 &&
+    moraleSpaces.length === 0 &&
+    oversightSpaces.length === 0 &&
+    rooms.length === 0
+  ) {
+    return undefined
+  }
+
+  return Object.freeze({
+    ...(archetype !== undefined ? { archetype } : {}),
+    zoneAdjacencies,
+    moraleSpaces,
+    oversightSpaces,
+    rooms,
+    ...(containmentMode !== undefined ? { containmentMode } : {}),
+  })
+}
+
+/**
+ * Resolve a persisted snapshot with the SPE-1026 helpers.
+ * Undefined snapshot uses the same empty inputs as a direct kernel call.
+ */
+export function resolveFacilityLayoutSnapshot(
+  snapshot: FacilityLayoutSnapshot | undefined,
+  roster: unknown = undefined
+): ResolvedFacilityLayoutSnapshot {
+  const zoneAdjacencies = snapshot?.zoneAdjacencies ?? []
+  const moraleSpaces = snapshot?.moraleSpaces ?? []
+  const oversightSpaces = snapshot?.oversightSpaces ?? []
+  const rooms = snapshot?.rooms ?? []
+  const resolvedRooms: RoomAdjacencyOutput[] = []
+  for (const room of rooms) {
+    const output = resolveRoomAdjacencyOutput(room.roomId, room.adjacentToCritical)
+    if (output === undefined) continue
+    resolvedRooms.push(output)
+  }
+  return Object.freeze({
+    archetypeMetrics: resolveLayoutArchetypeMetrics(snapshot?.archetype),
+    zoneAdjacencies: normalizeZoneAdjacencies(zoneAdjacencies),
+    morale: resolveMoraleSpaceEffect(moraleSpaces, roster),
+    oversight: resolveOversightSpaceEffect(oversightSpaces),
+    containment: resolveSecureContainmentTradeoff(snapshot?.containmentMode),
+    rooms: Object.freeze(resolvedRooms),
   })
 }

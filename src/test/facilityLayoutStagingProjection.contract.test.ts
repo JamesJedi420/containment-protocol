@@ -6,11 +6,13 @@ import { parseDepartmentLocalStaging } from '../domain/departmentLocalStaging'
 import { parseFacilityLayoutSnapshot } from '../domain/facilityLayoutStrategy'
 import {
   LAYOUT_STAGING_DEPARTMENT_ID,
+  LAYOUT_STAGING_EMERGENCY_DEPARTMENT_ID,
   projectFacilityLayoutRoomsOntoDepartmentLocalStaging,
 } from '../domain/facilityLayoutStagingProjection'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 const RECORDS = LAYOUT_STAGING_DEPARTMENT_ID
+const EMERGENCY = LAYOUT_STAGING_EMERGENCY_DEPARTMENT_ID
 const BIOHAZARD = 'department:biohazard-response'
 const ADJACENT = { inputStaging: 'adjacent', outputStaging: 'adjacent' } as const
 const REMOTE = { inputStaging: 'remote', outputStaging: 'remote' } as const
@@ -54,12 +56,37 @@ function attachTwoDepartmentWork(state: ReturnType<typeof createStartingState>, 
   }
 }
 
+function attachEmergencyWork(state: ReturnType<typeof createStartingState>, requiredWork = 2) {
+  state.departmentWorkshopWorkOrders = {
+    ...state.departmentWorkshopWorkOrders,
+    'work:emergency': {
+      id: 'work:emergency',
+      departmentId: EMERGENCY,
+      caseId: 'case-emergency',
+      taskType: 'emergency_response',
+      requiredWork,
+    },
+  }
+  state.departmentWorkshopSnapshots = {
+    ...state.departmentWorkshopSnapshots,
+    [EMERGENCY]: {
+      departmentId: EMERGENCY,
+      slotCapacity: 1,
+      queued: [],
+      active: [{ workOrderId: 'work:emergency', completedWork: 0 }],
+      paused: [],
+    },
+  }
+}
+
 function closeWith(
   staging: ReturnType<typeof createStartingState>['departmentLocalStaging'],
-  snapshot: ReturnType<typeof createStartingState>['facilityLayoutSnapshot'] = undefined
+  snapshot: ReturnType<typeof createStartingState>['facilityLayoutSnapshot'] = undefined,
+  options?: { readonly emergency?: boolean }
 ) {
   const state = createStartingState()
   attachTwoDepartmentWork(state)
+  if (options?.emergency) attachEmergencyWork(state)
   if (staging !== undefined) state.departmentLocalStaging = staging
   if (snapshot !== undefined) state.facilityLayoutSnapshot = snapshot
   const stagingBefore = structuredClone(state.departmentLocalStaging)
@@ -118,6 +145,92 @@ describe('facility layout staging projection', () => {
     ])
   })
 
+  it('projects adjacent archive and med_bay together and leaves an unmapped sibling at 1 work unit', () => {
+    const layout = layoutFrom([
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'med_bay', adjacentToCritical: true },
+    ])
+    expect(layout?.rooms).toEqual([
+      { roomId: 'med_bay', adjacentToCritical: true },
+      { roomId: 'archive', adjacentToCritical: true },
+    ])
+    const stagingBefore = parseDepartmentLocalStaging({
+      [BIOHAZARD]: REMOTE,
+      [EMERGENCY]: REMOTE,
+    })
+    const stagingClone = structuredClone(stagingBefore)
+    const layoutClone = structuredClone(layout)
+    const projected = projectFacilityLayoutRoomsOntoDepartmentLocalStaging(layout, stagingBefore)
+
+    expect(stagingBefore).toEqual(stagingClone)
+    expect(layout).toEqual(layoutClone)
+    expect(projected).toEqual({
+      [BIOHAZARD]: REMOTE,
+      [EMERGENCY]: ADJACENT,
+      [RECORDS]: ADJACENT,
+    })
+    expect(Object.keys(projected ?? {})).toEqual([BIOHAZARD, EMERGENCY, RECORDS])
+
+    const medBayOnly = projectFacilityLayoutRoomsOntoDepartmentLocalStaging(
+      layoutFrom([{ roomId: 'med_bay', adjacentToCritical: true }]),
+      undefined
+    )
+    expect(medBayOnly).toEqual({ [EMERGENCY]: ADJACENT })
+
+    const next = closeWith(projected, layout, { emergency: true })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
+      { workOrderId: 'work:biohazard', completedWork: 1 },
+    ])
+  })
+
+  it('leaves a false med_bay flag unprojected without clearing archive or a saved emergency entry', () => {
+    const falseMedBay = layoutFrom([{ roomId: 'med_bay', adjacentToCritical: false }])
+    expect(falseMedBay?.rooms).toEqual([{ roomId: 'med_bay', adjacentToCritical: false }])
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(falseMedBay, undefined)
+    ).toBeUndefined()
+
+    const savedEmergency = parseDepartmentLocalStaging({ [EMERGENCY]: REMOTE })
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(falseMedBay, savedEmergency)
+    ).toEqual({ [EMERGENCY]: REMOTE })
+
+    const archiveStillAdjacent = layoutFrom([
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'med_bay', adjacentToCritical: false },
+    ])
+    const saved = parseDepartmentLocalStaging({
+      [BIOHAZARD]: REMOTE,
+      [EMERGENCY]: REMOTE,
+    })
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(archiveStillAdjacent, saved)
+    ).toEqual({
+      [BIOHAZARD]: REMOTE,
+      [EMERGENCY]: REMOTE,
+      [RECORDS]: ADJACENT,
+    })
+
+    const falseClose = closeWith(undefined, falseMedBay, { emergency: true })
+    expect(falseClose.departmentLocalStaging).toBeUndefined()
+    expect(falseClose.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(falseClose.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+  })
+
   it('leaves false, unknown, and malformed room flags at the one-unit baseline', () => {
     const falseLayout = layoutFrom([{ roomId: 'archive', adjacentToCritical: false }])
     expect(falseLayout?.rooms).toEqual([{ roomId: 'archive', adjacentToCritical: false }])
@@ -138,9 +251,9 @@ describe('facility layout staging projection', () => {
 
     const unknownRooms = layoutFrom([
       { roomId: 'planetarium', adjacentToCritical: true },
-      { roomId: 'med_bay', adjacentToCritical: true },
+      { roomId: 'armory', adjacentToCritical: true },
     ])
-    expect(unknownRooms?.rooms.map((room) => room.roomId)).toEqual(['med_bay'])
+    expect(unknownRooms?.rooms.map((room) => room.roomId)).toEqual(['armory'])
     expect(
       projectFacilityLayoutRoomsOntoDepartmentLocalStaging(unknownRooms, undefined)
     ).toBeUndefined()
@@ -181,7 +294,10 @@ describe('facility layout staging projection', () => {
 
   it('does not apply the projection during hydration or week-close', () => {
     const starting = createStartingState()
-    const snapshot = layoutFrom([{ roomId: 'archive', adjacentToCritical: true }])
+    const snapshot = layoutFrom([
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'med_bay', adjacentToCritical: true },
+    ])
     const hydrated = hydrateGame(
       JSON.parse(
         JSON.stringify({
@@ -192,6 +308,7 @@ describe('facility layout staging projection', () => {
     )
     expect(hydrated.departmentLocalStaging).toBeUndefined()
     expect(hydrated.facilityLayoutSnapshot?.rooms).toEqual([
+      { roomId: 'med_bay', adjacentToCritical: true },
       { roomId: 'archive', adjacentToCritical: true },
     ])
 
@@ -199,10 +316,13 @@ describe('facility layout staging projection', () => {
     expect(again.departmentLocalStaging).toBeUndefined()
     expect(again.facilityLayoutSnapshot).toEqual(hydrated.facilityLayoutSnapshot)
 
-    const next = closeWith(undefined, snapshot)
+    const next = closeWith(undefined, snapshot, { emergency: true })
     expect(next.departmentLocalStaging).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
       { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
     ])
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },

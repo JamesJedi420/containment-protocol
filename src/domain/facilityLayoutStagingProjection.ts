@@ -1,5 +1,6 @@
 /**
- * SPE-2987 / SPE-2988 / SPE-2989 / SPE-2990 / SPE-2992 / SPE-2996: authored room → department staging pairs.
+ * SPE-2987 / SPE-2988 / SPE-2989 / SPE-2990 / SPE-2992 / SPE-2996 / SPE-2997:
+ * authored room → department staging pairs.
  * Caller-owned. Hydration and week-close do not call this.
  */
 
@@ -45,6 +46,12 @@ export const LAYOUT_STAGING_FINANCE_ROOM_ID = 'finance' as const
 export const LAYOUT_STAGING_CONCEPT_DEPARTMENT_ID =
   'department:concept-embodiment-research' as const
 
+/** SPE-2997 room. Not derived from the room id. */
+export const LAYOUT_STAGING_CONTAINMENT_CELL_ROOM_ID = 'containment_cell' as const
+
+/** Known department written when `containment_cell` is adjacent to critical. */
+export const LAYOUT_STAGING_GENERAL_INTAKE_DEPARTMENT_ID = 'department:general-intake' as const
+
 const ADJACENT_STAGING = {
   inputStaging: 'adjacent',
   outputStaging: 'adjacent',
@@ -59,6 +66,7 @@ const ADJACENT_STAGING = {
  * `staging_closet` with `adjacentToCritical: true` sets procurement-logistics to adjacent on both axes.
  * `legal` with `adjacentToCritical: true` sets ethics-review to adjacent on both axes.
  * `finance` with `adjacentToCritical: true` sets concept-embodiment-research to adjacent on both axes.
+ * `containment_cell` with `adjacentToCritical: true` sets general-intake to adjacent on both axes.
  * A false flag, a missing room, or any other room does not insert a key and does not write `remote`.
  * Unrelated saved staging entries are kept. The result is sanitized with `parseDepartmentLocalStaging`.
  */
@@ -96,6 +104,12 @@ export function projectFacilityLayoutRoomsOntoDepartmentLocalStaging(
   )
   if (authoredFinance?.adjacentToCritical === true) {
     draft[LAYOUT_STAGING_CONCEPT_DEPARTMENT_ID] = ADJACENT_STAGING
+  }
+  const authoredContainmentCell = layout.rooms.find(
+    (room) => room.roomId === LAYOUT_STAGING_CONTAINMENT_CELL_ROOM_ID
+  )
+  if (authoredContainmentCell?.adjacentToCritical === true) {
+    draft[LAYOUT_STAGING_GENERAL_INTAKE_DEPARTMENT_ID] = ADJACENT_STAGING
   }
   return parseDepartmentLocalStaging(draft)
 }

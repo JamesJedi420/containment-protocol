@@ -10,6 +10,7 @@ import {
   LAYOUT_STAGING_EMERGENCY_DEPARTMENT_ID,
   LAYOUT_STAGING_ETHICS_DEPARTMENT_ID,
   LAYOUT_STAGING_FIELD_CONTAINMENT_DEPARTMENT_ID,
+  LAYOUT_STAGING_GENERAL_INTAKE_DEPARTMENT_ID,
   LAYOUT_STAGING_PROCUREMENT_DEPARTMENT_ID,
   projectFacilityLayoutRoomsOntoDepartmentLocalStaging,
 } from '../domain/facilityLayoutStagingProjection'
@@ -21,8 +22,8 @@ const FIELD = LAYOUT_STAGING_FIELD_CONTAINMENT_DEPARTMENT_ID
 const PROCUREMENT = LAYOUT_STAGING_PROCUREMENT_DEPARTMENT_ID
 const ETHICS = LAYOUT_STAGING_ETHICS_DEPARTMENT_ID
 const CONCEPT = LAYOUT_STAGING_CONCEPT_DEPARTMENT_ID
+const GENERAL_INTAKE = LAYOUT_STAGING_GENERAL_INTAKE_DEPARTMENT_ID
 const BIOHAZARD = 'department:biohazard-response'
-const GENERAL_INTAKE = 'department:general-intake'
 const ADJACENT = { inputStaging: 'adjacent', outputStaging: 'adjacent' } as const
 const REMOTE = { inputStaging: 'remote', outputStaging: 'remote' } as const
 
@@ -621,6 +622,185 @@ describe('facility layout staging projection', () => {
     ])
   })
 
+  it('projects adjacent archive, med_bay, armory, staging_closet, legal, finance, and containment_cell together and leaves an unmapped sibling at 1 work unit', () => {
+    const layout = layoutFrom([
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'armory', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: true },
+      { roomId: 'finance', adjacentToCritical: true },
+      { roomId: 'legal', adjacentToCritical: true },
+      { roomId: 'med_bay', adjacentToCritical: true },
+      { roomId: 'staging_closet', adjacentToCritical: true },
+    ])
+    expect(layout?.rooms).toEqual([
+      { roomId: 'med_bay', adjacentToCritical: true },
+      { roomId: 'armory', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: true },
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'staging_closet', adjacentToCritical: true },
+      { roomId: 'legal', adjacentToCritical: true },
+      { roomId: 'finance', adjacentToCritical: true },
+    ])
+    const stagingBefore = parseDepartmentLocalStaging({
+      [BIOHAZARD]: REMOTE,
+      [CONCEPT]: REMOTE,
+      [EMERGENCY]: REMOTE,
+      [ETHICS]: REMOTE,
+      [FIELD]: REMOTE,
+      [GENERAL_INTAKE]: REMOTE,
+      [PROCUREMENT]: REMOTE,
+    })
+    const stagingClone = structuredClone(stagingBefore)
+    const layoutClone = structuredClone(layout)
+    const projected = projectFacilityLayoutRoomsOntoDepartmentLocalStaging(layout, stagingBefore)
+
+    expect(stagingBefore).toEqual(stagingClone)
+    expect(layout).toEqual(layoutClone)
+    expect(projected).toEqual({
+      [BIOHAZARD]: REMOTE,
+      [CONCEPT]: ADJACENT,
+      [EMERGENCY]: ADJACENT,
+      [ETHICS]: ADJACENT,
+      [FIELD]: ADJACENT,
+      [GENERAL_INTAKE]: ADJACENT,
+      [PROCUREMENT]: ADJACENT,
+      [RECORDS]: ADJACENT,
+    })
+    expect(Object.keys(projected ?? {})).toEqual([
+      BIOHAZARD,
+      CONCEPT,
+      EMERGENCY,
+      ETHICS,
+      FIELD,
+      GENERAL_INTAKE,
+      PROCUREMENT,
+      RECORDS,
+    ])
+
+    const cellOnly = projectFacilityLayoutRoomsOntoDepartmentLocalStaging(
+      layoutFrom([{ roomId: 'containment_cell', adjacentToCritical: true }]),
+      undefined
+    )
+    expect(cellOnly).toEqual({ [GENERAL_INTAKE]: ADJACENT })
+
+    const next = closeWith(projected, layout, {
+      concept: true,
+      emergency: true,
+      ethics: true,
+      field: true,
+      procurement: true,
+    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[CONCEPT]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:concept']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
+    expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
+      { workOrderId: 'work:biohazard', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopSnapshots?.[GENERAL_INTAKE]).toBeUndefined()
+    expect(
+      Object.values(next.departmentWorkshopWorkOrders ?? {}).some(
+        (order) => order.departmentId === GENERAL_INTAKE
+      )
+    ).toBe(false)
+    expect(
+      Object.values(next.departmentWorkshopCompletionOutcomes ?? {}).some(
+        (outcome) => outcome.departmentId === GENERAL_INTAKE
+      )
+    ).toBe(false)
+  })
+
+  it('leaves a false containment_cell flag unprojected without clearing the six authored rooms or a saved general-intake entry', () => {
+    const falseCell = layoutFrom([{ roomId: 'containment_cell', adjacentToCritical: false }])
+    expect(falseCell?.rooms).toEqual([{ roomId: 'containment_cell', adjacentToCritical: false }])
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(falseCell, undefined)
+    ).toBeUndefined()
+
+    const savedIntake = parseDepartmentLocalStaging({ [GENERAL_INTAKE]: REMOTE })
+    expect(projectFacilityLayoutRoomsOntoDepartmentLocalStaging(falseCell, savedIntake)).toEqual({
+      [GENERAL_INTAKE]: REMOTE,
+    })
+
+    const othersStillAdjacent = layoutFrom([
+      { roomId: 'archive', adjacentToCritical: true },
+      { roomId: 'med_bay', adjacentToCritical: true },
+      { roomId: 'armory', adjacentToCritical: true },
+      { roomId: 'staging_closet', adjacentToCritical: true },
+      { roomId: 'legal', adjacentToCritical: true },
+      { roomId: 'finance', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: false },
+    ])
+    const saved = parseDepartmentLocalStaging({
+      [BIOHAZARD]: REMOTE,
+      [CONCEPT]: REMOTE,
+      [EMERGENCY]: REMOTE,
+      [ETHICS]: REMOTE,
+      [FIELD]: REMOTE,
+      [GENERAL_INTAKE]: REMOTE,
+      [PROCUREMENT]: REMOTE,
+    })
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(othersStillAdjacent, saved)
+    ).toEqual({
+      [BIOHAZARD]: REMOTE,
+      [CONCEPT]: ADJACENT,
+      [EMERGENCY]: ADJACENT,
+      [ETHICS]: ADJACENT,
+      [FIELD]: ADJACENT,
+      [GENERAL_INTAKE]: REMOTE,
+      [PROCUREMENT]: ADJACENT,
+      [RECORDS]: ADJACENT,
+    })
+
+    const falseClose = closeWith(undefined, falseCell, {
+      concept: true,
+      emergency: true,
+      ethics: true,
+      field: true,
+      procurement: true,
+    })
+    expect(falseClose.departmentLocalStaging).toBeUndefined()
+    expect(falseClose.departmentWorkshopSnapshots?.[GENERAL_INTAKE]).toBeUndefined()
+    expect(
+      Object.values(falseClose.departmentWorkshopWorkOrders ?? {}).some(
+        (order) => order.departmentId === GENERAL_INTAKE
+      )
+    ).toBe(false)
+    expect(falseClose.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(falseClose.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
+      { workOrderId: 'work:biohazard', completedWork: 1 },
+    ])
+  })
+
   it('leaves a false finance flag unprojected without clearing archive, med_bay, armory, staging_closet, legal, or a saved concept entry', () => {
     const falseFinance = layoutFrom([{ roomId: 'finance', adjacentToCritical: false }])
     expect(falseFinance?.rooms).toEqual([{ roomId: 'finance', adjacentToCritical: false }])
@@ -747,6 +927,19 @@ describe('facility layout staging projection', () => {
     const savedIntake = parseDepartmentLocalStaging({ [GENERAL_INTAKE]: REMOTE })
     expect(
       projectFacilityLayoutRoomsOntoDepartmentLocalStaging(evidenceIntake, savedIntake)
+    ).toEqual({
+      [GENERAL_INTAKE]: REMOTE,
+    })
+
+    const evidenceWithFalseCell = layoutFrom([
+      { roomId: 'evidence_intake', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: false },
+    ])
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(evidenceWithFalseCell, undefined)
+    ).toBeUndefined()
+    expect(
+      projectFacilityLayoutRoomsOntoDepartmentLocalStaging(evidenceWithFalseCell, savedIntake)
     ).toEqual({
       [GENERAL_INTAKE]: REMOTE,
     })
@@ -949,6 +1142,7 @@ describe('facility layout staging projection', () => {
     const snapshot = layoutFrom([
       { roomId: 'archive', adjacentToCritical: true },
       { roomId: 'armory', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: true },
       { roomId: 'finance', adjacentToCritical: true },
       { roomId: 'legal', adjacentToCritical: true },
       { roomId: 'med_bay', adjacentToCritical: true },
@@ -966,6 +1160,7 @@ describe('facility layout staging projection', () => {
     expect(hydrated.facilityLayoutSnapshot?.rooms).toEqual([
       { roomId: 'med_bay', adjacentToCritical: true },
       { roomId: 'armory', adjacentToCritical: true },
+      { roomId: 'containment_cell', adjacentToCritical: true },
       { roomId: 'archive', adjacentToCritical: true },
       { roomId: 'staging_closet', adjacentToCritical: true },
       { roomId: 'legal', adjacentToCritical: true },

@@ -30,6 +30,7 @@ import {
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
 import { parseFacilityStockpile } from '../../domain/facilityStockpile'
 import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
+import { parseFacilityLayoutSnapshot } from '../../domain/facilityLayoutStrategy'
 import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
 import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
 import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
@@ -367,7 +368,8 @@ import type {
   StaffCandidateSpecialty,
 } from '../../domain/recruitment/types'
 
-export const GAME_STORE_VERSION = 6
+/** SPE-2986 bumps the envelope discriminant for optional `facilityLayoutSnapshot`. */
+export const GAME_STORE_VERSION = 7
 export const RUN_EXPORT_KIND = 'containment-protocol-run'
 
 /** Hydration 592: weekly report roster fatigue summary uses the same 0..100 scale as agents. */
@@ -10536,6 +10538,7 @@ export function hydrateGame(
   )
   const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
   const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
+  const facilityLayoutSnapshot = parseFacilityLayoutSnapshot(game.facilityLayoutSnapshot)
   const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
   const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
   const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
@@ -10655,6 +10658,7 @@ export function hydrateGame(
     inventory,
     facilityStockpile,
     departmentLocalStaging,
+    facilityLayoutSnapshot,
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,

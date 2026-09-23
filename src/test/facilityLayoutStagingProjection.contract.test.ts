@@ -120,6 +120,7 @@ describe('facility layout staging projection', () => {
 
   it('leaves false, unknown, and malformed room flags at the one-unit baseline', () => {
     const falseLayout = layoutFrom([{ roomId: 'archive', adjacentToCritical: false }])
+    expect(falseLayout?.rooms).toEqual([{ roomId: 'archive', adjacentToCritical: false }])
     expect(
       projectFacilityLayoutRoomsOntoDepartmentLocalStaging(falseLayout, undefined)
     ).toBeUndefined()

@@ -72,13 +72,13 @@ Week-close still reads the saved staging map as the 4th argument to SPE-2775
 
 ## Deferred
 
-| Item or mechanic                         | Owner or prerequisite                                                                                            | Why deferred                                                                                         |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Remaining room-to-department catalog     | later SPE-1052 child                                                                                             | This slice authors only `med_bay` → `department:emergency-response` beside the SPE-2987 archive pair |
-| Facility planner UI / specialist gates   | later UI / SPE-1058 adjacency                                                                                    | Domain projection only                                                                               |
-| Week-close auto-apply of this projection | later SPE-1052 child                                                                                             | A second writer inside week-close would fight a saved staging map                                    |
-| Zone-crossing breach event meaning       | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                        | No event propagation this slice                                                                      |
-| Staff housing campaign morale system     | [SPE-1029](https://linear.app/spectranoir/issue/SPE-1029/staff-housing-recovery-and-morale-stabilization-system) | Layout-presence bump stays in the kernel                                                             |
+| Item or mechanic                         | Owner or prerequisite                                                                                            | Why deferred                                                                                            |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Remaining room-to-department catalog     | [SPE-2989](https://linear.app/spectranoir/issue/SPE-2989/project-armory-onto-field-containment-staging)          | SPE-2989 authors `armory` → `department:field-containment`; remaining rooms stay deferred on that child |
+| Facility planner UI / specialist gates   | later UI / SPE-1058 adjacency                                                                                    | Domain projection only                                                                                  |
+| Week-close auto-apply of this projection | later SPE-1052 child                                                                                             | A second writer inside week-close would fight a saved staging map                                       |
+| Zone-crossing breach event meaning       | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                        | No event propagation this slice                                                                         |
+| Staff housing campaign morale system     | [SPE-1029](https://linear.app/spectranoir/issue/SPE-1029/staff-housing-recovery-and-morale-stabilization-system) | Layout-presence bump stays in the kernel                                                                |
 
 Parent SPE-1052 remains **Backlog**.
 

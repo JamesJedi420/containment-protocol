@@ -1,53 +1,68 @@
 /**
- * SPE-2913 — project the SPE-2932 facility section graph into department-local
- * workshop staging.
+ * SPE-2913 / SPE-2998 — project the SPE-2932 facility section graph into
+ * department-local workshop staging.
  *
- * One staging location (`clinical_hold`) classifies both input and output.
- * Direct spatial adjacency projects `adjacent` on both axes. A placed
- * department that is not directly adjacent projects `remote` on both axes.
- * Missing, rejected, or unresolved topology omits the department so week-close
- * stays on the one-unit baseline. This module does not persist a second
- * topology store or add a week-close hook.
+ * `clinical_input_hold` classifies input. `clinical_output_hold` classifies
+ * output. Direct spatial adjacency projects `adjacent` on that axis. A placed
+ * department that is not directly adjacent projects `remote` on that axis.
+ * A missing axis placement omits that axis. An incomplete pair is dropped so
+ * week-close stays on the one-unit baseline. `clinical_hold` does not classify
+ * either axis. This module does not persist a second topology store or add a
+ * week-close hook.
  */
 
 import { parseDepartmentLocalStaging } from './departmentLocalStaging'
 import type { DepartmentLocalStaging } from './departmentLocalStaging'
 import {
+  FACILITY_INPUT_STAGING_LOCATION_ID,
+  FACILITY_OUTPUT_STAGING_LOCATION_ID,
   FACILITY_PLACEMENT_DEPARTMENT_IDS,
-  FACILITY_STAGING_LOCATION_IDS,
   lookupDepartmentPlacement,
   lookupStagingLocationPlacement,
   queryDirectSpatialAdjacency,
   readProductionFacilitySectionGraph,
   type FacilitySectionGraph,
+  type FacilityStagingLocationId,
 } from './facilitySectionGraph'
 import type { DepartmentWorkshopStaging } from './departmentWorkshopQueue'
 
-const STAGING_LOCATION_ID = FACILITY_STAGING_LOCATION_IDS[0]
-
-function axisForAdjacency(adjacent: boolean): DepartmentWorkshopStaging {
-  return adjacent ? 'adjacent' : 'remote'
+function axisForPlacement(
+  graph: FacilitySectionGraph | undefined,
+  departmentNodeId: string,
+  stagingLocationId: FacilityStagingLocationId
+): DepartmentWorkshopStaging | undefined {
+  const staging = lookupStagingLocationPlacement(graph, stagingLocationId)
+  if (!staging) return undefined
+  return queryDirectSpatialAdjacency(graph, departmentNodeId, staging.node.id)
+    ? 'adjacent'
+    : 'remote'
 }
 
 /**
  * Derive `DepartmentWorkshopStagingConditions` from a validated section graph.
- * Unvalidated graphs, a missing staging location, and unplaced departments
- * contribute nothing. Sibling departments without a placement stay omitted.
+ * Each axis comes from its own staging-location placement. A missing axis
+ * placement omits that axis, and the incomplete department is dropped.
+ * Unvalidated graphs and unplaced departments contribute nothing.
  */
 export function projectFacilitySectionGraphOntoDepartmentLocalStaging(
   graph: FacilitySectionGraph | undefined
 ): DepartmentLocalStaging | undefined {
-  const staging = lookupStagingLocationPlacement(graph, STAGING_LOCATION_ID)
-  if (!staging) return undefined
-
   const draft: Record<string, unknown> = {}
   for (const departmentId of FACILITY_PLACEMENT_DEPARTMENT_IDS) {
     const department = lookupDepartmentPlacement(graph, departmentId)
     if (!department) continue
-    const axis = axisForAdjacency(
-      queryDirectSpatialAdjacency(graph, department.node.id, staging.node.id)
+    const inputStaging = axisForPlacement(
+      graph,
+      department.node.id,
+      FACILITY_INPUT_STAGING_LOCATION_ID
     )
-    draft[departmentId] = { inputStaging: axis, outputStaging: axis }
+    const outputStaging = axisForPlacement(
+      graph,
+      department.node.id,
+      FACILITY_OUTPUT_STAGING_LOCATION_ID
+    )
+    if (!inputStaging || !outputStaging) continue
+    draft[departmentId] = { inputStaging, outputStaging }
   }
   return parseDepartmentLocalStaging(draft)
 }

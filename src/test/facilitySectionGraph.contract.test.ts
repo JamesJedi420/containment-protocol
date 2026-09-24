@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY } from '../domain/departmentCapabilities'
 import {
+  FACILITY_INPUT_STAGING_LOCATION_ID,
+  FACILITY_OUTPUT_STAGING_LOCATION_ID,
   FACILITY_PLACEMENT_DEPARTMENT_IDS,
   FACILITY_SECTION_IDS,
   FACILITY_STAGING_LOCATION_IDS,
@@ -38,7 +40,11 @@ describe('SPE-2932 facility section graph', () => {
     expect(FACILITY_ROOM_IDS).toHaveLength(17)
     expect(FACILITY_ROOM_IDS).toContain('command')
     expect(FACILITY_SECTION_IDS).toEqual(['clinical'])
-    expect(FACILITY_STAGING_LOCATION_IDS).toEqual(['clinical_hold'])
+    expect(FACILITY_STAGING_LOCATION_IDS).toEqual([
+      'clinical_hold',
+      FACILITY_INPUT_STAGING_LOCATION_ID,
+      FACILITY_OUTPUT_STAGING_LOCATION_ID,
+    ])
     expect(FACILITY_STAGING_LOCATION_IDS).not.toContain('adjacent')
     expect(FACILITY_STAGING_LOCATION_IDS).not.toContain('remote')
   })
@@ -60,6 +66,16 @@ describe('SPE-2932 facility section graph', () => {
       placementKind: 'staging_location',
       placementId: 'clinical_hold',
       node: lookupSpatialNode(graph, CLINICAL),
+    })
+    expect(lookupStagingLocationPlacement(graph, FACILITY_INPUT_STAGING_LOCATION_ID)).toEqual({
+      placementKind: 'staging_location',
+      placementId: FACILITY_INPUT_STAGING_LOCATION_ID,
+      node: lookupSpatialNode(graph, CLINICAL),
+    })
+    expect(lookupStagingLocationPlacement(graph, FACILITY_OUTPUT_STAGING_LOCATION_ID)).toEqual({
+      placementKind: 'staging_location',
+      placementId: FACILITY_OUTPUT_STAGING_LOCATION_ID,
+      node: lookupSpatialNode(graph, CONTAINMENT),
     })
     expect(lookupDepartmentPlacement(graph, 'department:biohazard-response')).toBeUndefined()
     expect(lookupSpatialNode(graph, 'room:command')).toBeUndefined()

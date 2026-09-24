@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3007",
     "SPE-3006",
     "SPE-3005",
     "SPE-3004",
@@ -12,10 +13,10 @@
     "SPE-2998",
     "SPE-2913",
     "SPE-2932",
-    "SPE-2997",
-    "SPE-2996"
+    "SPE-2997"
   ],
   "sliceDocStatus": {
+    "planning/spe-3007-zone-spanning-route-link-slice.md": "Recently shipped",
     "planning/spe-3006-zone-spanning-contamination-slice.md": "Recently shipped",
     "planning/spe-3005-zone-spanning-alarm-slice.md": "Recently shipped",
     "planning/spe-3004-zone-spanning-panic-slice.md": "Recently shipped",

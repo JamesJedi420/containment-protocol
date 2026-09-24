@@ -33,8 +33,8 @@ This is a design fixture, not a claim that the literary event has one canonical 
 
 - Creation calls `resolveActiveHistoricalRoutePath` from SPE-1392 exactly once and fails closed if no active route resolves.
 - The resolved ordered anchors/edges are fixed on the replay record; advancement never discovers or invents a different edge.
-- `currentAnchorId`, route index, traversed anchors/edges, affected anchors, and terminal anchor are explicit.
-- Observer contact is permitted only at the event's current route position.
+- `currentAnchorId`, route index, traversed anchors/edges, affected anchors, observer-exposed anchors, and terminal anchor are explicit and separate.
+- Observer contact is permitted only at the event's current route position; contact writes `exposedAnchorIds` without changing route progression.
 - Post-contact evidence can strengthen without changing route progression.
 - Terminal resolution emits one retained ordinary-world consequence while causality stays `unresolved`.
 

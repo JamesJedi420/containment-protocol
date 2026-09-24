@@ -5014,7 +5014,8 @@ export function advanceWeek(
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
   // It runs before downstream persisted-record hooks and changes no queue but
   // the two canonical workshop registries.
-  // SPE-2913: the 4th-arg feed is the topology projection. A persisted
+  // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
+  // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,

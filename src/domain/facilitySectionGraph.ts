@@ -20,8 +20,18 @@ export type FacilitySectionNodeClass = (typeof FACILITY_SECTION_NODE_CLASSES)[nu
 export const FACILITY_SECTION_IDS = ['clinical'] as const
 export type FacilitySectionId = (typeof FACILITY_SECTION_IDS)[number]
 
-/** Spatial staging places. Not workshop staging conditions. */
-export const FACILITY_STAGING_LOCATION_IDS = ['clinical_hold'] as const
+/**
+ * Spatial staging places. Not workshop staging conditions.
+ * `clinical_hold` remains the SPE-2932 shared place. Input and output axes
+ * use their own ids and do not inherit adjacency from `clinical_hold`.
+ */
+export const FACILITY_INPUT_STAGING_LOCATION_ID = 'clinical_input_hold' as const
+export const FACILITY_OUTPUT_STAGING_LOCATION_ID = 'clinical_output_hold' as const
+export const FACILITY_STAGING_LOCATION_IDS = [
+  'clinical_hold',
+  FACILITY_INPUT_STAGING_LOCATION_ID,
+  FACILITY_OUTPUT_STAGING_LOCATION_ID,
+] as const
 export type FacilityStagingLocationId = (typeof FACILITY_STAGING_LOCATION_IDS)[number]
 
 export const FACILITY_PLACEMENT_DEPARTMENT_IDS = [
@@ -352,6 +362,16 @@ export const PRODUCTION_FACILITY_SECTION_TOPOLOGY = Object.freeze({
       placementKind: 'staging_location' as const,
       placementId: 'clinical_hold',
       nodeId: 'section:clinical',
+    }),
+    Object.freeze({
+      placementKind: 'staging_location' as const,
+      placementId: FACILITY_INPUT_STAGING_LOCATION_ID,
+      nodeId: 'section:clinical',
+    }),
+    Object.freeze({
+      placementKind: 'staging_location' as const,
+      placementId: FACILITY_OUTPUT_STAGING_LOCATION_ID,
+      nodeId: 'room:containment_cell',
     }),
     Object.freeze({
       placementKind: 'department' as const,

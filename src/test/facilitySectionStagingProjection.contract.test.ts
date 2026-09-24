@@ -6,6 +6,8 @@ import {
   projectProductionFacilitySectionStaging,
 } from '../domain/facilitySectionStagingProjection'
 import {
+  FACILITY_INPUT_STAGING_LOCATION_ID,
+  FACILITY_OUTPUT_STAGING_LOCATION_ID,
   PRODUCTION_FACILITY_SECTION_TOPOLOGY,
   readProductionFacilitySectionGraph,
   SPATIAL_ADJACENCY_EDGE_CLASS,
@@ -20,6 +22,18 @@ const BIOHAZARD = 'department:biohazard-response'
 const RECORDS = 'department:records-analysis'
 const ADJACENT = { inputStaging: 'adjacent', outputStaging: 'adjacent' } as const
 const REMOTE = { inputStaging: 'remote', outputStaging: 'remote' } as const
+const INPUT_ADJACENT_OUTPUT_REMOTE = {
+  inputStaging: 'adjacent',
+  outputStaging: 'remote',
+} as const
+
+function stagingPlacement(placementId: string, nodeId: string) {
+  return {
+    placementKind: 'staging_location' as const,
+    placementId,
+    nodeId,
+  }
+}
 
 const MED_BAY = 'room:med_bay'
 const CONTAINMENT = 'room:containment_cell'
@@ -30,7 +44,7 @@ function shuffled<T>(values: readonly T[]): T[] {
   return [...values].reverse()
 }
 
-describe('SPE-2913 facility section staging projection', () => {
+describe('SPE-2998 facility section staging projection', () => {
   it('projects production adjacency onto emergency-response and leaves siblings omitted', () => {
     const graph = readProductionFacilitySectionGraph()
     const projected = projectFacilitySectionGraphOntoDepartmentLocalStaging(graph)
@@ -53,6 +67,7 @@ describe('SPE-2913 facility section staging projection', () => {
       ],
       edges: [
         { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+        { fromNodeId: MED_BAY, toNodeId: CONTAINMENT },
         { fromNodeId: CLINICAL, toNodeId: MEDICAL },
       ],
       placements: [
@@ -66,11 +81,8 @@ describe('SPE-2913 facility section staging projection', () => {
           placementId: FIELD,
           nodeId: CONTAINMENT,
         },
-        {
-          placementKind: 'staging_location',
-          placementId: 'clinical_hold',
-          nodeId: CLINICAL,
-        },
+        stagingPlacement(FACILITY_INPUT_STAGING_LOCATION_ID, CLINICAL),
+        stagingPlacement(FACILITY_OUTPUT_STAGING_LOCATION_ID, CONTAINMENT),
       ],
     })
     expect(validated.ok).toBe(true)
@@ -83,6 +95,36 @@ describe('SPE-2913 facility section staging projection', () => {
     expect(Object.keys(projected ?? {})).toEqual([EMERGENCY, FIELD])
     expect(resolveDepartmentWorkshopThroughput(projected?.[FIELD]).workUnits).toBe(1)
     expect(projected?.[BIOHAZARD]).toBeUndefined()
+  })
+
+  it('projects remote on one axis when only that staging location is remote', () => {
+    const validated = validateFacilitySectionTopology({
+      nodes: [
+        { id: MED_BAY, classification: 'room' },
+        { id: CLINICAL, classification: 'section' },
+        { id: MEDICAL, classification: 'zone' },
+      ],
+      edges: [
+        { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+        { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+      ],
+      placements: [
+        {
+          placementKind: 'department',
+          placementId: EMERGENCY,
+          nodeId: MED_BAY,
+        },
+        stagingPlacement(FACILITY_INPUT_STAGING_LOCATION_ID, CLINICAL),
+        stagingPlacement(FACILITY_OUTPUT_STAGING_LOCATION_ID, MEDICAL),
+      ],
+    })
+    expect(validated.ok).toBe(true)
+    if (!validated.ok) return
+    const projected = projectFacilitySectionGraphOntoDepartmentLocalStaging(validated.graph)
+    expect(projected).toEqual({ [EMERGENCY]: INPUT_ADJACENT_OUTPUT_REMOTE })
+    expect(projected?.[BIOHAZARD]).toBeUndefined()
+    expect(projected?.[FIELD]).toBeUndefined()
+    expect(resolveDepartmentWorkshopThroughput(projected?.[EMERGENCY]).workUnits).toBe(1)
   })
 
   it('fails closed when topology or placement cannot be resolved', () => {
@@ -110,6 +152,32 @@ describe('SPE-2913 facility section staging projection', () => {
     expect(
       projectFacilitySectionGraphOntoDepartmentLocalStaging(missingStaging.graph)
     ).toBeUndefined()
+    expect(resolveDepartmentWorkshopThroughput(undefined).workUnits).toBe(1)
+
+    const inputOnly = validateFacilitySectionTopology({
+      nodes: [
+        { id: MED_BAY, classification: 'room' },
+        { id: CLINICAL, classification: 'section' },
+      ],
+      edges: [{ fromNodeId: MED_BAY, toNodeId: CLINICAL }],
+      placements: [
+        {
+          placementKind: 'department',
+          placementId: EMERGENCY,
+          nodeId: MED_BAY,
+        },
+        stagingPlacement('clinical_hold', CLINICAL),
+        stagingPlacement(FACILITY_INPUT_STAGING_LOCATION_ID, CLINICAL),
+      ],
+    })
+    expect(inputOnly.ok).toBe(true)
+    if (!inputOnly.ok) return
+    expect(projectFacilitySectionGraphOntoDepartmentLocalStaging(inputOnly.graph)).toBeUndefined()
+    expect(
+      resolveDepartmentWorkshopThroughput(
+        projectFacilitySectionGraphOntoDepartmentLocalStaging(inputOnly.graph)?.[EMERGENCY]
+      ).workUnits
+    ).toBe(1)
 
     const malformed = validateFacilitySectionTopology({
       nodes: [{ id: MED_BAY, classification: 'room' }],
@@ -130,11 +198,8 @@ describe('SPE-2913 facility section staging projection', () => {
       ],
       edges: [{ fromNodeId: CONTAINMENT, toNodeId: MED_BAY }],
       placements: [
-        {
-          placementKind: 'staging_location' as const,
-          placementId: 'clinical_hold',
-          nodeId: CONTAINMENT,
-        },
+        stagingPlacement(FACILITY_INPUT_STAGING_LOCATION_ID, CONTAINMENT),
+        stagingPlacement(FACILITY_OUTPUT_STAGING_LOCATION_ID, CONTAINMENT),
         {
           placementKind: 'department' as const,
           placementId: FIELD,

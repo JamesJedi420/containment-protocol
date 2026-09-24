@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2998",
     "SPE-2913",
     "SPE-2932",
     "SPE-2997",
@@ -12,10 +13,10 @@
     "SPE-2988",
     "SPE-2987",
     "SPE-2986",
-    "SPE-1026",
-    "SPE-2982"
+    "SPE-1026"
   ],
   "sliceDocStatus": {
+    "planning/spe-2998-split-input-output-staging-slice.md": "Recently shipped",
     "planning/spe-2913-department-local-staging-adjacency-slice.md": "Recently shipped",
     "planning/spe-2932-facility-section-graph-slice.md": "Recently shipped",
     "planning/spe-2997-layout-staging-catalog-slice.md": "Recently shipped",

@@ -5,10 +5,10 @@
 | **Status** | **In review** |
 | **Linear** | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) |
 | **Parent / lineage** | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog |
-| **Prerequisite** | [SPE-1392](https://linear.app/spectranoir/issue/SPE-1392/historical-route-memory-and-nonlocal-edge-graph) — merged in PR #3832 |
+| **Prerequisite** | [SPE-1392](https://linear.app/spectranoir/issue/SPE-1392/historical-route-memory-and-nonlocal-edge-graph) — merged in PR #3832; malformed-observation fail-closed hardening landed via SPE-3011 / PR #3837 |
 | **Boundary** | [SPE-950](https://linear.app/spectranoir/issue/SPE-950/reenactment-hauntings-and-scripted-possession-loops) retains possession/role-script reenactments; [SPE-3007](https://linear.app/spectranoir/issue/SPE-3007/spread-one-zone-spanning-event-by-route-link) retains present facility route-link spread |
 | **Branch** | `cursor/spe-3009-historical-route-replay` |
-| **Base `main` SHA** | `7faba700f47ab6b582c2d4100ee350927e88d286` |
+| **Base `main` SHA** | `c13caaaf1517bc86458ad7901b0dac18884b83d8` |
 
 ## Goal
 

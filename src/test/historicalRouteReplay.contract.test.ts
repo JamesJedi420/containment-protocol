@@ -247,4 +247,55 @@ describe('SPE-3009 historical route replay', () => {
     expect(ended.causalClassification).toBe('unresolved')
     expect(advanceHistoricalRouteReplay(ended)).toBe(ended)
   })
+  it('keeps replay state and nested history immutable across transitions', () => {
+    const replay = createHistoricalRouteReplay(phantomCoachGraph(), {
+      eventId: 'event:immutable-coach',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+    })
+    if (!replay) throw new Error('replay was not created')
+
+    expect(Object.isFrozen(replay)).toBe(true)
+    expect(Object.isFrozen(replay.routeAnchorIds)).toBe(true)
+    expect(Object.isFrozen(replay.routeEdgeIds)).toBe(true)
+    expect(Object.isFrozen(replay.traversedAnchorIds)).toBe(true)
+    expect(Object.isFrozen(replay.traversedEdgeIds)).toBe(true)
+    expect(Object.isFrozen(replay.affectedAnchorIds)).toBe(true)
+    expect(Object.isFrozen(replay.exposedAnchorIds)).toBe(true)
+    expect(Object.isFrozen(replay.observerExposures)).toBe(true)
+
+    const contacted = interceptHistoricalRouteReplay(
+      replay,
+      'observer:murray',
+      'anchor:moor-road'
+    )
+    expect(Object.isFrozen(contacted)).toBe(true)
+    expect(Object.isFrozen(contacted.exposedAnchorIds)).toBe(true)
+    expect(Object.isFrozen(contacted.observerExposures)).toBe(true)
+    expect(Object.isFrozen(contacted.observerExposures[0])).toBe(true)
+
+    const altered = revealHistoricalRoutePostContactObservation(contacted, 'observer:murray')
+    expect(Object.isFrozen(altered)).toBe(true)
+    expect(Object.isFrozen(altered.observerExposures)).toBe(true)
+    expect(Object.isFrozen(altered.observerExposures[0])).toBe(true)
+
+    const terminal = advanceHistoricalRouteReplay(advanceHistoricalRouteReplay(altered))
+    expect(Object.isFrozen(terminal)).toBe(true)
+    expect(Object.isFrozen(terminal.traversedAnchorIds)).toBe(true)
+    expect(Object.isFrozen(terminal.traversedEdgeIds)).toBe(true)
+    expect(Object.isFrozen(terminal.affectedAnchorIds)).toBe(true)
+
+    const ended = resolveHistoricalRouteReplayTerminal(terminal, {
+      consequenceId: 'consequence:immutable-injury',
+      kind: 'physical_injury',
+      subjectId: 'observer:murray',
+    })
+    expect(Object.isFrozen(ended)).toBe(true)
+    expect(ended.ordinaryConsequence).not.toBeNull()
+    expect(Object.isFrozen(ended.ordinaryConsequence)).toBe(true)
+    expect(Object.isFrozen(ended.routeAnchorIds)).toBe(true)
+    expect(Object.isFrozen(ended.routeEdgeIds)).toBe(true)
+  })
+
 })

@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3012",
     "SPE-3010",
     "SPE-3008",
     "SPE-3007",
@@ -12,10 +13,10 @@
     "SPE-3002",
     "SPE-3001",
     "SPE-2994",
-    "SPE-2998",
-    "SPE-2913"
+    "SPE-2998"
   ],
   "sliceDocStatus": {
+    "planning/spe-3012-zone-spanning-hazard-kind-slice.md": "Recently shipped",
     "planning/spe-3010-zone-spanning-full-site-alert-consume-slice.md": "Recently shipped",
     "planning/spe-102-full-site-alert-stage-slice.md": "Recently shipped",
     "planning/spe-3007-zone-spanning-route-link-slice.md": "Recently shipped",

@@ -127,6 +127,15 @@ describe('SPE-3009 historical route replay', () => {
         terminalAnchorId: 'anchor:broken-parapet',
       })
     ).toBeUndefined()
+
+    expect(
+      createHistoricalRouteReplay(phantomCoachGraph(), {
+        eventId: 'event:zero-length',
+        activationId: 'activation:current-night',
+        originAnchorId: 'anchor:moor-road',
+        terminalAnchorId: 'anchor:moor-road',
+      })
+    ).toBeUndefined()
   })
 
   it('uses an explicit interception threshold and stronger post-contact observation state', () => {
@@ -161,6 +170,9 @@ describe('SPE-3009 historical route replay', () => {
     expect(contacted.currentAnchorId).toBe(replay.currentAnchorId)
     expect(contacted.exposedAnchorIds).toEqual(['anchor:moor-road'])
     expect(contacted.affectedAnchorIds).toEqual(['anchor:moor-road'])
+    expect(
+      interceptHistoricalRouteReplay(contacted, 'observer:murray', 'anchor:moor-road')
+    ).toBe(contacted)
 
     const altered = revealHistoricalRoutePostContactObservation(contacted, 'observer:murray')
     expect(altered.observerExposures[0]).toEqual({
@@ -193,6 +205,30 @@ describe('SPE-3009 historical route replay', () => {
     expect(premature).toBe(replay)
 
     const terminal = advanceHistoricalRouteReplay(advanceHistoricalRouteReplay(replay))
+    expect(advanceHistoricalRouteReplay(terminal)).toBe(terminal)
+
+    expect(
+      resolveHistoricalRouteReplayTerminal(terminal, {
+        consequenceId: '',
+        kind: 'physical_injury',
+        subjectId: 'observer:murray',
+      })
+    ).toBe(terminal)
+    expect(
+      resolveHistoricalRouteReplayTerminal(terminal, {
+        consequenceId: 'consequence:fall-injury',
+        kind: '',
+        subjectId: 'observer:murray',
+      })
+    ).toBe(terminal)
+    expect(
+      resolveHistoricalRouteReplayTerminal(terminal, {
+        consequenceId: 'consequence:fall-injury',
+        kind: 'physical_injury',
+        subjectId: '',
+      })
+    ).toBe(terminal)
+
     const ended = resolveHistoricalRouteReplayTerminal(terminal, {
       consequenceId: 'consequence:fall-injury',
       kind: 'physical_injury',

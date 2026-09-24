@@ -307,6 +307,23 @@ export function rememberHistoricalRouteActivation(
         ),
       })
     )
+
+    for (const anchorId of [observed.fromAnchorId, observed.toAnchorId]) {
+      const endpoint = anchors.get(anchorId)
+      if (!endpoint) return graph
+
+      anchors.set(
+        anchorId,
+        frozenAnchor({
+          ...endpoint,
+          lastSeenActivationId: observation.activationId,
+          activationIds: appendActivation(endpoint.activationIds, observation.activationId),
+          contaminatedActivationIds: observed.contaminated
+            ? appendActivation(endpoint.contaminatedActivationIds, observation.activationId)
+            : endpoint.contaminatedActivationIds,
+        })
+      )
+    }
   }
 
   return freezeGraph({
@@ -527,7 +544,14 @@ export function resolveActiveHistoricalRoutePath(
   const knownAnchors = new Set(graph.anchors.map((anchor) => anchor.id))
   if (!knownAnchors.has(fromAnchorId) || !knownAnchors.has(toAnchorId)) return null
 
+  const activeEdges = readActiveHistoricalRouteEdges(graph, activationId)
+
   if (fromAnchorId === toAnchorId) {
+    const anchorIsActive = activeEdges.some(
+      (edge) => edge.fromAnchorId === fromAnchorId || edge.toAnchorId === fromAnchorId
+    )
+    if (!anchorIsActive) return null
+
     return Object.freeze({
       activationId,
       anchorIds: Object.freeze([fromAnchorId]),
@@ -535,7 +559,6 @@ export function resolveActiveHistoricalRoutePath(
     })
   }
 
-  const activeEdges = readActiveHistoricalRouteEdges(graph, activationId)
   const outgoing = new Map<string, HistoricalRouteEdgeMemory[]>()
 
   for (const edge of activeEdges) {

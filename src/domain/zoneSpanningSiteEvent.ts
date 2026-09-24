@@ -7,6 +7,7 @@
  * SPE-3006 — one contamination rule on that record.
  * SPE-3007 — one route-link rule on that record.
  * SPE-3010 — one apply that sets site-wide affected state from `full_site_alert`.
+ * SPE-3012 — one hazard event-kind token on that record.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
@@ -36,6 +37,7 @@ export const ZONE_SPANNING_PANIC_RULE = 'panic' as const
 export const ZONE_SPANNING_ALARM_RULE = 'alarm' as const
 export const ZONE_SPANNING_CONTAMINATION_RULE = 'contamination' as const
 export const ZONE_SPANNING_ROUTE_LINK_RULE = 'route_link' as const
+export const ZONE_SPANNING_HAZARD_KIND = 'hazard' as const
 export const ZONE_SPANNING_PROPAGATION_RULES = [
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_AIRFLOW_RULE,
@@ -63,6 +65,7 @@ export interface ZoneSpanningSiteEventRecord {
   readonly affectedNodeIds: readonly string[]
   readonly propagationRule: ZoneSpanningPropagationRule
   readonly siteWide: boolean
+  readonly eventKind?: typeof ZONE_SPANNING_HAZARD_KIND
   readonly pulse: ZoneSpanningPulseConfig
 }
 
@@ -427,6 +430,31 @@ export function applyZoneSpanningRouteLink(
   if (!reached) return record
 
   return freezeRecord(record, reached, ZONE_SPANNING_ROUTE_LINK_RULE)
+}
+
+/**
+ * Stamp event kind `hazard` on one record.
+ * A missing or unknown kind returns the same record. An existing `hazard` kind
+ * returns the same record. This does not add a propagation rule.
+ */
+export function applyZoneSpanningHazardKind(
+  record: ZoneSpanningSiteEventRecord,
+  kind: unknown
+): ZoneSpanningSiteEventRecord {
+  if (kind !== ZONE_SPANNING_HAZARD_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record
+  return Object.freeze({
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    affectedNodeIds: record.affectedNodeIds,
+    propagationRule: record.propagationRule,
+    siteWide: record.siteWide,
+    eventKind: ZONE_SPANNING_HAZARD_KIND,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
+  })
 }
 
 /**

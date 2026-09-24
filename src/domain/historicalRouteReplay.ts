@@ -59,6 +59,7 @@ export interface HistoricalRouteReplayRecord {
   readonly traversedAnchorIds: readonly string[]
   readonly traversedEdgeIds: readonly string[]
   readonly affectedAnchorIds: readonly string[]
+  readonly exposedAnchorIds: readonly string[]
   readonly phase: HistoricalRouteReplayPhase
   readonly observerExposures: readonly HistoricalRouteObserverExposure[]
   readonly ordinaryConsequence: HistoricalRouteOrdinaryConsequence | null
@@ -102,6 +103,7 @@ function freezeReplay(record: HistoricalRouteReplayRecord): HistoricalRouteRepla
     traversedAnchorIds: Object.freeze([...record.traversedAnchorIds]),
     traversedEdgeIds: Object.freeze([...record.traversedEdgeIds]),
     affectedAnchorIds: Object.freeze([...record.affectedAnchorIds]),
+    exposedAnchorIds: Object.freeze([...record.exposedAnchorIds]),
     observerExposures: Object.freeze(record.observerExposures.map(freezeExposure)),
     ordinaryConsequence: record.ordinaryConsequence
       ? freezeConsequence(record.ordinaryConsequence)
@@ -162,6 +164,7 @@ export function createHistoricalRouteReplay(
     traversedAnchorIds: [config.originAnchorId],
     traversedEdgeIds: [],
     affectedAnchorIds: [config.originAnchorId],
+    exposedAnchorIds: [],
     phase: 'approaching',
     observerExposures: [],
     ordinaryConsequence: null,
@@ -188,6 +191,9 @@ export function interceptHistoricalRouteReplay(
 
   return freezeReplay({
     ...record,
+    exposedAnchorIds: record.exposedAnchorIds.includes(observerAnchorId)
+      ? record.exposedAnchorIds
+      : [...record.exposedAnchorIds, observerAnchorId],
     observerExposures: [
       ...record.observerExposures,
       {

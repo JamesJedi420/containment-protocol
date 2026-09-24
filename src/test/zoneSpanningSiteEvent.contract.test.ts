@@ -5,11 +5,13 @@ import {
   facilityZoneNodeId,
   readProductionFacilitySectionGraph,
 } from '../domain/facilitySectionGraph'
+import { FULL_SITE_ALERT_STAGE } from '../domain/siteAlertStage'
 import {
   applyZoneSpanningAdjacency,
   applyZoneSpanningAirflow,
   applyZoneSpanningAlarm,
   applyZoneSpanningContamination,
+  applyZoneSpanningFullSiteAlert,
   applyZoneSpanningPanic,
   applyZoneSpanningRouteLink,
   applyZoneSpanningVisibility,
@@ -1403,5 +1405,56 @@ describe('SPE-3007 route link spread', () => {
     )
     expect(inventedOnly).toBe(siteEvent)
     expect(inventedOnly.affectedNodeIds).toBe(affectedNodeIds)
+  })
+})
+
+describe('SPE-3010 full-site-alert consume', () => {
+  it('sets site-wide affected state only for full_site_alert', () => {
+    const affectedNodeIds = [MED_BAY]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+      siteWide: false,
+    })
+    const result = applyZoneSpanningFullSiteAlert(siteEvent, FULL_SITE_ALERT_STAGE)
+
+    expect(result).not.toBe(siteEvent)
+    expect(result.siteWide).toBe(true)
+    expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.eventId).toBe(siteEvent.eventId)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+    expect(applyZoneSpanningFullSiteAlert(siteEvent, 'full_site_alert').siteWide).toBe(true)
+  })
+
+  it('returns the same record when the stage does not qualify', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const rejected = [
+      undefined,
+      null,
+      true,
+      { siteWide: true },
+      'spatial_adjacency',
+      'airflow',
+      'visibility',
+      'panic',
+      'alarm',
+      'contamination',
+      'route_link',
+    ]
+
+    for (const stage of rejected) {
+      const result = applyZoneSpanningFullSiteAlert(siteEvent, stage)
+      expect(result).toBe(siteEvent)
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    }
   })
 })

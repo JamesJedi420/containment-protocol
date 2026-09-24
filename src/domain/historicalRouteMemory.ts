@@ -231,6 +231,8 @@ export function rememberHistoricalRouteActivation(
     if (!knowledge) return graph
 
     const current = anchors.get(observed.id)
+    if (current && current.kind !== observed.kind) return graph
+
     anchors.set(
       observed.id,
       frozenAnchor({

@@ -194,6 +194,23 @@ describe('SPE-2932 facility section graph', () => {
     expect(queryDirectSpatialAdjacency(undefined, MED_BAY, CONTAINMENT)).toBe(false)
   })
 
+  it('does not treat a spread copy as a validated graph', () => {
+    const graph = readProductionFacilitySectionGraph()
+    const forged = {
+      ...graph,
+      edges: [
+        ...graph.edges,
+        {
+          edgeClass: SPATIAL_ADJACENCY_EDGE_CLASS,
+          fromNodeId: CONTAINMENT,
+          toNodeId: MEDICAL,
+        },
+      ],
+    }
+    expect(queryDirectSpatialAdjacency(forged, CONTAINMENT, MEDICAL)).toBe(false)
+    expect(queryDirectSpatialAdjacency(graph, CONTAINMENT, MEDICAL)).toBe(false)
+  })
+
   it('keeps the department placement catalog aligned with the registry', () => {
     const registryIds = DEFAULT_DEPARTMENT_CAPABILITY_REGISTRY.departments
       .map((department) => department.id)

@@ -84,11 +84,7 @@ export type FacilitySectionGraphValidation =
   | { readonly ok: true; readonly graph: FacilitySectionGraph }
   | { readonly ok: false; readonly rejection: FacilitySectionGraphRejection }
 
-const graphBrand: unique symbol = Symbol('FacilitySectionGraph')
-
-interface BrandedFacilitySectionGraph extends FacilitySectionGraph {
-  readonly [graphBrand]: true
-}
+const validatedGraphs = new WeakSet<FacilitySectionGraph>()
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -317,12 +313,12 @@ export function validateFacilitySectionTopology(value: unknown): FacilitySection
     return compareCodeUnit(left.placementId, right.placementId)
   })
 
-  const graph: BrandedFacilitySectionGraph = Object.freeze({
-    [graphBrand]: true as const,
+  const graph: FacilitySectionGraph = Object.freeze({
     nodes: Object.freeze(nodes),
     edges: Object.freeze(edges),
     placements: Object.freeze(placements),
   })
+  validatedGraphs.add(graph)
   return Object.freeze({ ok: true, graph })
 }
 
@@ -331,10 +327,8 @@ export function normalizeFacilitySectionTopology(value: unknown): FacilitySectio
   return validated.ok ? validated.graph : undefined
 }
 
-function isValidatedGraph(
-  value: FacilitySectionGraph | undefined
-): value is BrandedFacilitySectionGraph {
-  return value !== undefined && (value as BrandedFacilitySectionGraph)[graphBrand] === true
+function isValidatedGraph(value: FacilitySectionGraph | undefined): value is FacilitySectionGraph {
+  return value !== undefined && validatedGraphs.has(value)
 }
 
 /**

@@ -1,12 +1,13 @@
 /**
  * SPE-3001 — one zone-spanning record over the SPE-2994 facility walk.
  * SPE-3002 — one airflow rule on that record.
+ * SPE-3003 — one visibility rule on that record.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
- * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow reads an
- * optional source on the raw topology and crosses only existing
- * `spatial_adjacency` edges. Site-wide is a flag on the record. The pulse is
- * a pure week-index phase. This module does not author edges, persist
+ * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow and
+ * visibility each read an optional source on the raw topology and cross only
+ * existing `spatial_adjacency` edges. Site-wide is a flag on the record. The
+ * pulse is a pure week-index phase. This module does not author edges, persist
  * GameState, or register week-close.
  */
 
@@ -21,9 +22,11 @@ import type { BoundedSiteEvent, FacilityTopologyReference } from './siteEventTop
 
 export const ZONE_SPANNING_PROPAGATION_RULE = 'spatial_adjacency' as const
 export const ZONE_SPANNING_AIRFLOW_RULE = 'airflow' as const
+export const ZONE_SPANNING_VISIBILITY_RULE = 'visibility' as const
 export const ZONE_SPANNING_PROPAGATION_RULES = [
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_AIRFLOW_RULE,
+  ZONE_SPANNING_VISIBILITY_RULE,
 ] as const
 export type ZoneSpanningPropagationRule = (typeof ZONE_SPANNING_PROPAGATION_RULES)[number]
 
@@ -46,7 +49,9 @@ export interface ZoneSpanningSiteEventRecord {
   readonly pulse: ZoneSpanningPulseConfig
 }
 
-interface AirflowPair {
+type TopologyPairField = 'airflow' | 'visibility'
+
+interface TopologyPair {
   readonly fromNodeId: string
   readonly toNodeId: string
 }
@@ -70,18 +75,20 @@ function otherEndpoint(fromNodeId: string, toNodeId: string, nodeId: string): st
 }
 
 /**
- * Optional `airflow` pairs on an authored topology. Production reads and a
- * missing or malformed list are a missing source.
+ * Optional `airflow` or `visibility` pairs on an authored topology. Production
+ * reads and a missing or malformed list are a missing source.
  */
-function readAirflowPairs(
-  topologyReference: FacilityTopologyReference
-): readonly AirflowPair[] | null {
+function readAuthoredPairs(
+  topologyReference: FacilityTopologyReference,
+  field: TopologyPairField
+): readonly TopologyPair[] | null {
   if (topologyReference.source !== 'authored') return null
   const topology = topologyReference.topology
-  if (!isRecord(topology) || !Object.prototype.hasOwnProperty.call(topology, 'airflow')) return null
-  if (!Array.isArray(topology.airflow) || topology.airflow.length === 0) return null
-  const pairs: AirflowPair[] = []
-  for (const entry of topology.airflow) {
+  if (!isRecord(topology) || !Object.prototype.hasOwnProperty.call(topology, field)) return null
+  const list = topology[field]
+  if (!Array.isArray(list) || list.length === 0) return null
+  const pairs: TopologyPair[] = []
+  for (const entry of list) {
     if (!isRecord(entry)) return null
     if (typeof entry.fromNodeId !== 'string' || typeof entry.toNodeId !== 'string') return null
     if (entry.fromNodeId.length === 0 || entry.toNodeId.length === 0) return null
@@ -99,13 +106,13 @@ function validatedGraph(
 }
 
 /**
- * Nodes reached from the origin along airflow pairs that are already spatial edges.
+ * Nodes reached from the origin along pairs that are already spatial edges.
  * An empty allowed set is a missing source.
  */
-function airflowReach(
+function pairReach(
   graph: FacilitySectionGraph,
   originNodeId: string,
-  pairs: readonly AirflowPair[],
+  pairs: readonly TopologyPair[],
   maxHops: number
 ): readonly string[] | null {
   const allowed = new Set<string>()
@@ -209,7 +216,7 @@ export function applyZoneSpanningAirflow(
     return record
   }
 
-  const pairs = readAirflowPairs(topologyReference)
+  const pairs = readAuthoredPairs(topologyReference, 'airflow')
   if (!pairs) return record
 
   const event: BoundedSiteEvent = {
@@ -223,10 +230,45 @@ export function applyZoneSpanningAirflow(
 
   const graph = validatedGraph(topologyReference)
   if (!graph) return record
-  const reached = airflowReach(graph, record.originNodeId, pairs, maxHops)
+  const reached = pairReach(graph, record.originNodeId, pairs, maxHops)
   if (!reached) return record
 
   return freezeRecord(record, reached, ZONE_SPANNING_AIRFLOW_RULE)
+}
+
+/**
+ * Spread one record along visibility pairs that are already spatial edges.
+ * A missing source returns the same record and does not write affected ids.
+ */
+export function applyZoneSpanningVisibility(
+  record: ZoneSpanningSiteEventRecord,
+  topologyReference: FacilityTopologyReference,
+  maxHops: number
+): ZoneSpanningSiteEventRecord {
+  if (record.propagationRule !== ZONE_SPANNING_VISIBILITY_RULE) return record
+  if (topologyReference.source === 'production') {
+    readProductionFacilitySectionGraph()
+    return record
+  }
+
+  const pairs = readAuthoredPairs(topologyReference, 'visibility')
+  if (!pairs) return record
+
+  const event: BoundedSiteEvent = {
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    maxHops,
+    affectedNodeIds: record.affectedNodeIds,
+  }
+  const validated = propagateSiteEventOverFacilityTopology(event, topologyReference)
+  if (!validated.ok) return record
+
+  const graph = validatedGraph(topologyReference)
+  if (!graph) return record
+  const reached = pairReach(graph, record.originNodeId, pairs, maxHops)
+  if (!reached) return record
+
+  return freezeRecord(record, reached, ZONE_SPANNING_VISIBILITY_RULE)
 }
 
 /**

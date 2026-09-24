@@ -274,6 +274,13 @@ describe('SPE-1392 historical route memory and nonlocal edge graph', () => {
       ],
     })
 
+    const identityDrift = rememberHistoricalRouteActivation(remembered, {
+      activationId: 'activation:02',
+      anchors: [{ id: 'anchor:a', kind: 'historical_exit' }],
+      edges: [],
+    })
+    expect(identityDrift).toBe(remembered)
+
     expect(
       reactivateHistoricalRouteEdges(remembered, 'activation:02', ['edge:not-real'])
     ).toBe(remembered)

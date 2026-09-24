@@ -419,6 +419,20 @@ describe('SPE-1392 historical route memory and nonlocal edge graph', () => {
       }
     )
     expect(sparseEdge).toBe(initial)
+
+    const inheritedAnchors = new Array(1) as unknown as HistoricalRouteActivationObservation['anchors']
+    const inheritedAnchorPrototype = Object.create(Array.prototype) as Record<string, unknown>
+    inheritedAnchorPrototype['0'] = { id: 'anchor:inherited', kind: 'activation_point' }
+    Object.setPrototypeOf(inheritedAnchors, inheritedAnchorPrototype)
+    const inheritedAnchor = rememberHistoricalRouteActivation(
+      initial,
+      {
+        activationId: 'activation:inherited-anchor',
+        anchors: inheritedAnchors,
+        edges: [],
+      }
+    )
+    expect(inheritedAnchor).toBe(initial)
   })
 
   it('fails closed for dangling historical edges and unknown reactivation ids', () => {

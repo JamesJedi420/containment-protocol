@@ -221,8 +221,13 @@ export function rememberHistoricalRouteActivation(
 ): HistoricalRouteMemoryGraph {
   if (!validId(observation.activationId)) return graph
   if (!Array.isArray(observation.anchors) || !Array.isArray(observation.edges)) return graph
-  if (observation.anchors.some((anchor) => !isRecord(anchor))) return graph
-  if (observation.edges.some((edge) => !isRecord(edge))) return graph
+
+  for (let index = 0; index < observation.anchors.length; index += 1) {
+    if (!isRecord(observation.anchors[index])) return graph
+  }
+  for (let index = 0; index < observation.edges.length; index += 1) {
+    if (!isRecord(observation.edges[index])) return graph
+  }
 
   const anchorIds = observation.anchors.map((anchor) => anchor.id)
   const edgeIds = observation.edges.map((edge) => edge.id)

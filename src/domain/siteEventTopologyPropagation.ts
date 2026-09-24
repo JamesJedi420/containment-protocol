@@ -135,15 +135,19 @@ function readEdgeAccess(
   const accessByEdge = new Map<string, SiteEventEdgeAccess>()
   for (const entry of topology.edges) {
     if (!isRecord(entry)) return 'malformed_edge_state'
-    if (!Object.prototype.hasOwnProperty.call(entry, 'access')) continue
-    if (!isEdgeAccess(entry.access)) return 'malformed_edge_state'
     if (typeof entry.fromNodeId !== 'string' || typeof entry.toNodeId !== 'string') {
       return 'malformed_edge_state'
     }
+    const hasAccess = Object.prototype.hasOwnProperty.call(entry, 'access')
+    let access: SiteEventEdgeAccess = 'open'
+    if (hasAccess) {
+      if (!isEdgeAccess(entry.access)) return 'malformed_edge_state'
+      access = entry.access
+    }
     const key = canonicalEdgeKey(entry.fromNodeId, entry.toNodeId)
     const prior = accessByEdge.get(key)
-    if (prior !== undefined && prior !== entry.access) return 'malformed_edge_state'
-    accessByEdge.set(key, entry.access)
+    if (prior !== undefined && prior !== access) return 'malformed_edge_state'
+    accessByEdge.set(key, access)
   }
   return accessByEdge
 }

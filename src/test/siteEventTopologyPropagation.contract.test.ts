@@ -232,6 +232,23 @@ describe('SPE-2994 site event topology propagation', () => {
       },
     })
     expect(malformedAccess.failureReason).toBe('malformed_edge_state')
+
+    const conflictingAccess = propagateSiteEventOverFacilityTopology(siteEvent, {
+      source: 'authored',
+      topology: {
+        nodes: [
+          { id: MED_BAY, classification: 'room' },
+          { id: CLINICAL, classification: 'section' },
+        ],
+        edges: [
+          { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+          { fromNodeId: CLINICAL, toNodeId: MED_BAY, access: 'inaccessible' },
+        ],
+        placements: [],
+      },
+    })
+    expect(conflictingAccess.failureReason).toBe('malformed_edge_state')
+    expect(conflictingAccess.affectedNodeIds).toEqual([])
     expect(callerAffected).toEqual([MED_BAY])
     expect(siteEvent.affectedNodeIds).toBe(callerAffected)
     expect(PRODUCTION_FACILITY_SECTION_TOPOLOGY.edges).toHaveLength(3)

@@ -6,13 +6,16 @@
  * SPE-3005 — one alarm rule on that record.
  * SPE-3006 — one contamination rule on that record.
  * SPE-3007 — one route-link rule on that record.
+ * SPE-3010 — one apply that sets site-wide affected state from `full_site_alert`.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
  * visibility, panic, alarm, contamination, and route link each read an
  * optional source on the raw topology and cross only existing
  * `spatial_adjacency` edges.
- * Site-wide is a flag on the record. The pulse is a pure week-index phase.
+ * Site-wide affected state is `siteWide` on the record. SPE-3010 sets it
+ * only when `readFullSiteAlertStage` returns `full_site_alert`.
+ * The pulse is a pure week-index phase.
  * This module does not author edges, persist GameState, or register week-close.
  */
 
@@ -22,6 +25,7 @@ import {
   validateFacilitySectionTopology,
   type FacilitySectionGraph,
 } from './facilitySectionGraph'
+import { readFullSiteAlertStage } from './siteAlertStage'
 import { propagateSiteEventOverFacilityTopology } from './siteEventTopologyPropagation'
 import type { BoundedSiteEvent, FacilityTopologyReference } from './siteEventTopologyPropagation'
 
@@ -423,6 +427,28 @@ export function applyZoneSpanningRouteLink(
   if (!reached) return record
 
   return freezeRecord(record, reached, ZONE_SPANNING_ROUTE_LINK_RULE)
+}
+
+/**
+ * Set site-wide affected state only when the SPE-3008 stage qualifies.
+ * A null read returns the same record. This does not add a propagation rule.
+ */
+export function applyZoneSpanningFullSiteAlert(
+  record: ZoneSpanningSiteEventRecord,
+  stage: unknown
+): ZoneSpanningSiteEventRecord {
+  if (readFullSiteAlertStage(stage) === null) return record
+  return Object.freeze({
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    affectedNodeIds: record.affectedNodeIds,
+    propagationRule: record.propagationRule,
+    siteWide: true,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
+  })
 }
 
 /**

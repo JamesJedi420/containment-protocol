@@ -1,5 +1,6 @@
 import {
   HISTORICAL_NONLOCAL_EDGE_CLASS,
+  type HistoricalRouteActivationObservation,
   createHistoricalRouteMemoryGraph,
   readActiveHistoricalRouteEdges,
   readKnownHistoricalRouteEdges,
@@ -372,6 +373,30 @@ describe('SPE-1392 historical route memory and nonlocal edge graph', () => {
       ],
     })
     expect(routeKindConflict).toBe(remembered)
+  })
+
+  it('fails closed for malformed observation entries before reading ids', () => {
+    const initial = graph()
+
+    const nullAnchor = rememberHistoricalRouteActivation(
+      initial,
+      {
+        activationId: 'activation:malformed-anchor',
+        anchors: [null],
+        edges: [],
+      } as unknown as HistoricalRouteActivationObservation
+    )
+    expect(nullAnchor).toBe(initial)
+
+    const undefinedEdge = rememberHistoricalRouteActivation(
+      initial,
+      {
+        activationId: 'activation:malformed-edge',
+        anchors: [],
+        edges: [undefined],
+      } as unknown as HistoricalRouteActivationObservation
+    )
+    expect(undefinedEdge).toBe(initial)
   })
 
   it('fails closed for dangling historical edges and unknown reactivation ids', () => {

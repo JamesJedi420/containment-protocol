@@ -56,16 +56,16 @@ One canonical full-mobilization / full-site-alert stage id, owned by SPE-102. A 
 
 ## Deferred
 
-| Item or mechanic                                     | Owner or prerequisite                                                                            | Why deferred                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| SPE-1606 consume of this stage                       | Later SPE-1606 child, only after this stage is on `main`                                         | This slice defines the stage. It does not write site-wide affected state. |
-| Local awareness and partial site alert               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | This slice ships one stage id.                                            |
-| Alert devices, channels, and activation delay        | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No device family and no travel or activation time.                        |
-| Interruption of an alert path                        | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No alert chain to interrupt.                                              |
-| Responder choreography                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No defender reposition or ambush.                                         |
-| Persistence and `SCHEMA_REGISTRY`                    | Later SPE-102 child                                                                              | No GameState field this slice.                                            |
-| Week-close registration                              | Existing week-close owners                                                                       | This helper is not called from week-close.                                |
-| Site-wide affected state on the zone-spanning record | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)        | `siteWide` stays a flag. Do not infer escalation from it.                 |
+| Item or mechanic                                     | Owner or prerequisite                                                                                           | Why deferred                                                        |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| SPE-1606 consume of this stage                       | [SPE-3010](https://linear.app/spectranoir/issue/SPE-3010/consume-full-site-alert-onto-one-zone-spanning-record) | This slice defines the stage. SPE-3010 applies it.                  |
+| Local awareness and partial site alert               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                | This slice ships one stage id.                                      |
+| Alert devices, channels, and activation delay        | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                | No device family and no travel or activation time.                  |
+| Interruption of an alert path                        | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                | No alert chain to interrupt.                                        |
+| Responder choreography                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                | No defender reposition or ambush.                                   |
+| Persistence and `SCHEMA_REGISTRY`                    | Later SPE-102 child                                                                                             | No GameState field this slice.                                      |
+| Week-close registration                              | Existing week-close owners                                                                                      | This helper is not called from week-close.                          |
+| Site-wide affected state on the zone-spanning record | [SPE-3010](https://linear.app/spectranoir/issue/SPE-3010/consume-full-site-alert-onto-one-zone-spanning-record) | `siteWide` is output. SPE-3010 sets it only from `full_site_alert`. |
 
 Parent SPE-102 remains **Backlog**. SPE-1606 remains **Backlog**. Parent SPE-1023 remains open.
 

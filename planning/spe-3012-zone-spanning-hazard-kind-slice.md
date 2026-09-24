@@ -58,14 +58,14 @@ One event-kind token on the existing zone-spanning record. Exact `hazard` sets `
 
 ## Deferred
 
-| Item or mechanic                                         | Owner or prerequisite                                                                                           | Why deferred                                             |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Hostile event kind                                       | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                       | One token this slice. `'hostile'` fails closed.          |
-| Social/procedural event kind                             | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                       | One token this slice. `'social'` fails closed.           |
-| Zone maps, environment pressure, occupancy, and timeline | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                       | This apply does not connect those systems.               |
-| Persistence and `SCHEMA_REGISTRY`                        | Later SPE-1606 child                                                                                            | No GameState field this slice.                           |
-| Week-close registration                                  | Existing week-close owners                                                                                      | This helper is not called from week-close.               |
-| Full-site-alert consume                                  | [SPE-3010](https://linear.app/spectranoir/issue/SPE-3010/consume-full-site-alert-onto-one-zone-spanning-record) | `applyZoneSpanningFullSiteAlert` stays on its own apply. |
+| Item or mechanic                                         | Owner or prerequisite                                                                                              | Why deferred                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Hostile event kind                                       | [SPE-3013](https://linear.app/spectranoir/issue/SPE-3013/stamp-one-hostile-event-kind-on-the-zone-spanning-record) | One token this slice. `'hostile'` fails closed here.     |
+| Social/procedural event kind                             | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                          | One token this slice. `'social'` fails closed.           |
+| Zone maps, environment pressure, occupancy, and timeline | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                          | This apply does not connect those systems.               |
+| Persistence and `SCHEMA_REGISTRY`                        | Later SPE-1606 child                                                                                               | No GameState field this slice.                           |
+| Week-close registration                                  | Existing week-close owners                                                                                         | This helper is not called from week-close.               |
+| Full-site-alert consume                                  | [SPE-3010](https://linear.app/spectranoir/issue/SPE-3010/consume-full-site-alert-onto-one-zone-spanning-record)    | `applyZoneSpanningFullSiteAlert` stays on its own apply. |
 
 Parent SPE-1606 remains **Backlog**. Parent SPE-102 remains **Backlog**.
 

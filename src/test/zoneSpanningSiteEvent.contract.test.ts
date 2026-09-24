@@ -8,9 +8,11 @@ import {
 import {
   applyZoneSpanningAdjacency,
   applyZoneSpanningAirflow,
+  applyZoneSpanningVisibility,
   resolveZoneSpanningPulse,
   ZONE_SPANNING_AIRFLOW_RULE,
   ZONE_SPANNING_PROPAGATION_RULE,
+  ZONE_SPANNING_VISIBILITY_RULE,
   type ZoneSpanningSiteEventRecord,
 } from '../domain/zoneSpanningSiteEvent'
 
@@ -245,6 +247,152 @@ describe('SPE-3002 airflow spread', () => {
         topology: {
           ...airflowTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
           airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(inventedOnly).toBe(siteEvent)
+    expect(inventedOnly.affectedNodeIds).toBe(affectedNodeIds)
+  })
+})
+
+describe('SPE-3003 visibility spread', () => {
+  function visibilityTopology(edges: { fromNodeId: string; toNodeId: string }[]) {
+    return {
+      nodes: [
+        { id: CLINICAL, classification: 'section' },
+        { id: MED_BAY, classification: 'room' },
+        { id: MEDICAL, classification: 'zone' },
+        { id: COMMAND, classification: 'room' },
+      ],
+      edges,
+      placements: [],
+    }
+  }
+
+  const spatialEdges = [
+    { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+    { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+    { fromNodeId: CLINICAL, toNodeId: COMMAND },
+  ]
+
+  it('leaves the origin off affected ids when visibility pairs are existing edges', () => {
+    const siteEvent = record({ propagationRule: ZONE_SPANNING_VISIBILITY_RULE })
+    const topology = {
+      ...visibilityTopology(spatialEdges),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      visibility: [
+        { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+        { fromNodeId: MEDICAL, toNodeId: CLINICAL },
+      ],
+    }
+    const result = applyZoneSpanningVisibility(siteEvent, { source: 'authored', topology }, 1)
+    const reversed = applyZoneSpanningVisibility(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...topology,
+          edges: [...spatialEdges].reverse(),
+          visibility: [...topology.visibility].reverse(),
+        },
+      },
+      1
+    )
+
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY, MEDICAL])
+    expect(result.affectedNodeIds).not.toContain(result.originNodeId)
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_VISIBILITY_RULE)
+    expect(reversed.affectedNodeIds).toEqual(result.affectedNodeIds)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+  })
+
+  it('keeps the affected array reference when the visibility source is missing', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_VISIBILITY_RULE,
+      affectedNodeIds,
+    })
+    const production = applyZoneSpanningVisibility(siteEvent, PRODUCTION, 1)
+    expect(production).toBe(siteEvent)
+    expect(production.affectedNodeIds).toBe(affectedNodeIds)
+
+    const omitted = applyZoneSpanningVisibility(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...visibilityTopology(spatialEdges),
+          airflow: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+        },
+      },
+      1
+    )
+    expect(omitted).toBe(siteEvent)
+    expect(omitted.affectedNodeIds).toBe(affectedNodeIds)
+    expect(omitted.affectedNodeIds).not.toContain(MED_BAY)
+
+    const adjacency = applyZoneSpanningAdjacency(
+      record({ affectedNodeIds }),
+      { source: 'authored', topology: visibilityTopology(spatialEdges) },
+      1
+    )
+    expect(adjacency.affectedNodeIds).toEqual([COMMAND, MED_BAY, MEDICAL])
+
+    const airflowEvent = record({
+      propagationRule: ZONE_SPANNING_AIRFLOW_RULE,
+      affectedNodeIds,
+    })
+    const airflow = applyZoneSpanningAirflow(
+      airflowEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...visibilityTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+        },
+      },
+      1
+    )
+    expect(airflow).not.toBe(airflowEvent)
+    expect(airflow.affectedNodeIds).toEqual([MED_BAY])
+    expect(airflow.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(airflow.propagationRule).toBe(ZONE_SPANNING_AIRFLOW_RULE)
+  })
+
+  it('does not add a node named only by a pair that is not an existing edge', () => {
+    const affectedNodeIds = [ARCHIVE]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_VISIBILITY_RULE,
+      affectedNodeIds,
+    })
+    const topology = {
+      ...visibilityTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      visibility: [
+        { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+        { fromNodeId: CLINICAL, toNodeId: COMMAND },
+      ],
+    }
+    const result = applyZoneSpanningVisibility(siteEvent, { source: 'authored', topology }, 1)
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY])
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.affectedNodeIds).not.toContain(CLINICAL)
+
+    const inventedOnly = applyZoneSpanningVisibility(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...visibilityTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
         },
       },
       1

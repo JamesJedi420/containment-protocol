@@ -3,13 +3,14 @@
  * SPE-3002 — one airflow rule on that record.
  * SPE-3003 — one visibility rule on that record.
  * SPE-3004 — one panic rule on that record.
+ * SPE-3005 — one alarm rule on that record.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
- * visibility, and panic each read an optional source on the raw topology and
- * cross only existing `spatial_adjacency` edges. Site-wide is a flag on the
- * record. The pulse is a pure week-index phase. This module does not author
- * edges, persist GameState, or register week-close.
+ * visibility, panic, and alarm each read an optional source on the raw
+ * topology and cross only existing `spatial_adjacency` edges. Site-wide is a
+ * flag on the record. The pulse is a pure week-index phase. This module does
+ * not author edges, persist GameState, or register week-close.
  */
 
 import {
@@ -25,11 +26,13 @@ export const ZONE_SPANNING_PROPAGATION_RULE = 'spatial_adjacency' as const
 export const ZONE_SPANNING_AIRFLOW_RULE = 'airflow' as const
 export const ZONE_SPANNING_VISIBILITY_RULE = 'visibility' as const
 export const ZONE_SPANNING_PANIC_RULE = 'panic' as const
+export const ZONE_SPANNING_ALARM_RULE = 'alarm' as const
 export const ZONE_SPANNING_PROPAGATION_RULES = [
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_AIRFLOW_RULE,
   ZONE_SPANNING_VISIBILITY_RULE,
   ZONE_SPANNING_PANIC_RULE,
+  ZONE_SPANNING_ALARM_RULE,
 ] as const
 export type ZoneSpanningPropagationRule = (typeof ZONE_SPANNING_PROPAGATION_RULES)[number]
 
@@ -52,7 +55,7 @@ export interface ZoneSpanningSiteEventRecord {
   readonly pulse: ZoneSpanningPulseConfig
 }
 
-type TopologyPairField = 'airflow' | 'visibility' | 'panic'
+type TopologyPairField = 'airflow' | 'visibility' | 'panic' | 'alarm'
 
 interface TopologyPair {
   readonly fromNodeId: string
@@ -78,7 +81,7 @@ function otherEndpoint(fromNodeId: string, toNodeId: string, nodeId: string): st
 }
 
 /**
- * Optional `airflow`, `visibility`, or `panic` pairs on an authored topology.
+ * Optional `airflow`, `visibility`, `panic`, or `alarm` pairs on an authored topology.
  * Production reads and a missing or malformed list are a missing source.
  */
 function readAuthoredPairs(
@@ -307,6 +310,41 @@ export function applyZoneSpanningPanic(
   if (!reached) return record
 
   return freezeRecord(record, reached, ZONE_SPANNING_PANIC_RULE)
+}
+
+/**
+ * Spread one record along alarm pairs that are already spatial edges.
+ * A missing source returns the same record and does not write affected ids.
+ */
+export function applyZoneSpanningAlarm(
+  record: ZoneSpanningSiteEventRecord,
+  topologyReference: FacilityTopologyReference,
+  maxHops: number
+): ZoneSpanningSiteEventRecord {
+  if (record.propagationRule !== ZONE_SPANNING_ALARM_RULE) return record
+  if (topologyReference.source === 'production') {
+    readProductionFacilitySectionGraph()
+    return record
+  }
+
+  const pairs = readAuthoredPairs(topologyReference, 'alarm')
+  if (!pairs) return record
+
+  const event: BoundedSiteEvent = {
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    maxHops,
+    affectedNodeIds: record.affectedNodeIds,
+  }
+  const validated = propagateSiteEventOverFacilityTopology(event, topologyReference)
+  if (!validated.ok) return record
+
+  const graph = validatedGraph(topologyReference)
+  if (!graph) return record
+  const reached = pairReach(graph, record.originNodeId, pairs, maxHops)
+  if (!reached) return record
+
+  return freezeRecord(record, reached, ZONE_SPANNING_ALARM_RULE)
 }
 
 /**

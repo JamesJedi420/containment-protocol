@@ -8,10 +8,12 @@ import {
 import {
   applyZoneSpanningAdjacency,
   applyZoneSpanningAirflow,
+  applyZoneSpanningAlarm,
   applyZoneSpanningPanic,
   applyZoneSpanningVisibility,
   resolveZoneSpanningPulse,
   ZONE_SPANNING_AIRFLOW_RULE,
+  ZONE_SPANNING_ALARM_RULE,
   ZONE_SPANNING_PANIC_RULE,
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_VISIBILITY_RULE,
@@ -572,6 +574,238 @@ describe('SPE-3004 panic spread', () => {
           airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
           visibility: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
           panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(inventedOnly).toBe(siteEvent)
+    expect(inventedOnly.affectedNodeIds).toBe(affectedNodeIds)
+  })
+})
+
+describe('SPE-3005 alarm spread', () => {
+  function alarmTopology(edges: { fromNodeId: string; toNodeId: string }[]) {
+    return {
+      nodes: [
+        { id: CLINICAL, classification: 'section' },
+        { id: MED_BAY, classification: 'room' },
+        { id: MEDICAL, classification: 'zone' },
+        { id: COMMAND, classification: 'room' },
+      ],
+      edges,
+      placements: [],
+    }
+  }
+
+  const spatialEdges = [
+    { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+    { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+    { fromNodeId: CLINICAL, toNodeId: COMMAND },
+  ]
+
+  it('leaves the origin off affected ids when alarm pairs are existing edges', () => {
+    const siteEvent = record({ propagationRule: ZONE_SPANNING_ALARM_RULE })
+    const topology = {
+      ...alarmTopology(spatialEdges),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      alarm: [
+        { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+        { fromNodeId: MEDICAL, toNodeId: CLINICAL },
+      ],
+    }
+    const result = applyZoneSpanningAlarm(siteEvent, { source: 'authored', topology }, 1)
+    const reversed = applyZoneSpanningAlarm(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...topology,
+          edges: [...spatialEdges].reverse(),
+          alarm: [...topology.alarm].reverse(),
+        },
+      },
+      1
+    )
+
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY, MEDICAL])
+    expect(result.affectedNodeIds).not.toContain(result.originNodeId)
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ALARM_RULE)
+    expect(reversed.affectedNodeIds).toEqual(result.affectedNodeIds)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+
+    const panic = applyZoneSpanningPanic(
+      record({ propagationRule: ZONE_SPANNING_PANIC_RULE }),
+      { source: 'authored', topology },
+      1
+    )
+    expect(panic.affectedNodeIds).toEqual([COMMAND])
+    expect(panic.propagationRule).toBe(ZONE_SPANNING_PANIC_RULE)
+  })
+
+  it('keeps the affected array reference when the alarm source is missing', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+    })
+    const production = applyZoneSpanningAlarm(siteEvent, PRODUCTION, 1)
+    expect(production).toBe(siteEvent)
+    expect(production.affectedNodeIds).toBe(affectedNodeIds)
+
+    const omitted = applyZoneSpanningAlarm(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology(spatialEdges),
+          airflow: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          visibility: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          panic: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+        },
+      },
+      1
+    )
+    expect(omitted).toBe(siteEvent)
+    expect(omitted.affectedNodeIds).toBe(affectedNodeIds)
+    expect(omitted.affectedNodeIds).not.toContain(MED_BAY)
+
+    const malformed = applyZoneSpanningAlarm(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology(spatialEdges),
+          panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          alarm: [{ fromNodeId: CLINICAL }],
+        },
+      },
+      1
+    )
+    expect(malformed).toBe(siteEvent)
+    expect(malformed.affectedNodeIds).toBe(affectedNodeIds)
+
+    const adjacency = applyZoneSpanningAdjacency(
+      record({ affectedNodeIds }),
+      { source: 'authored', topology: alarmTopology(spatialEdges) },
+      1
+    )
+    expect(adjacency.affectedNodeIds).toEqual([COMMAND, MED_BAY, MEDICAL])
+
+    const airflowEvent = record({
+      propagationRule: ZONE_SPANNING_AIRFLOW_RULE,
+      affectedNodeIds,
+    })
+    const airflow = applyZoneSpanningAirflow(
+      airflowEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(airflow).not.toBe(airflowEvent)
+    expect(airflow.affectedNodeIds).toEqual([MED_BAY])
+    expect(airflow.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(airflow.propagationRule).toBe(ZONE_SPANNING_AIRFLOW_RULE)
+
+    const visibilityEvent = record({
+      propagationRule: ZONE_SPANNING_VISIBILITY_RULE,
+      affectedNodeIds,
+    })
+    const visibility = applyZoneSpanningVisibility(
+      visibilityEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: MEDICAL }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(visibility).not.toBe(visibilityEvent)
+    expect(visibility.affectedNodeIds).toEqual([MEDICAL])
+    expect(visibility.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(visibility.propagationRule).toBe(ZONE_SPANNING_VISIBILITY_RULE)
+
+    const panicEvent = record({
+      propagationRule: ZONE_SPANNING_PANIC_RULE,
+      affectedNodeIds,
+    })
+    const panic = applyZoneSpanningPanic(
+      panicEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(panic).not.toBe(panicEvent)
+    expect(panic.affectedNodeIds).toEqual([MED_BAY])
+    expect(panic.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(panic.propagationRule).toBe(ZONE_SPANNING_PANIC_RULE)
+  })
+
+  it('does not add a node named only by a pair that is not an existing edge', () => {
+    const affectedNodeIds = [ARCHIVE]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+    })
+    const topology = {
+      ...alarmTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      visibility: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      alarm: [
+        { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+        { fromNodeId: CLINICAL, toNodeId: COMMAND },
+      ],
+    }
+    const result = applyZoneSpanningAlarm(siteEvent, { source: 'authored', topology }, 1)
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY])
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.affectedNodeIds).not.toContain(CLINICAL)
+
+    const inventedOnly = applyZoneSpanningAlarm(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...alarmTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
         },
       },
       1

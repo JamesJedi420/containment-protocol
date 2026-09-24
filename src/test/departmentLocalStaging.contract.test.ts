@@ -168,7 +168,7 @@ describe('department-local staging persist', () => {
     expect(hydrated.facilityStockpile).toEqual(unrelated.facilityStockpile)
   })
 
-  it('week-close adjacent both axes advances two work units; omit/remote/mixed stay one; siblings stay baseline', () => {
+  it('week-close keeps unplaced departments at one work unit even when the persisted cache says adjacent', () => {
     const close = (staging: ReturnType<typeof createStartingState>['departmentLocalStaging']) => {
       const state = createStartingState()
       attachTwoDepartmentWork(state)
@@ -185,11 +185,10 @@ describe('department-local staging persist', () => {
     }
 
     const adjacent = close({ [RECORDS]: ADJACENT })
-    expect(adjacent.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(adjacent.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(adjacent.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(adjacent.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(adjacent.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -235,6 +234,8 @@ describe('department-local staging persist', () => {
     expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
       { workOrderId: 'work:records', completedWork: 1 },
     ])
-    expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([])
+    expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
+      { workOrderId: 'work:biohazard', completedWork: 1 },
+    ])
   })
 })

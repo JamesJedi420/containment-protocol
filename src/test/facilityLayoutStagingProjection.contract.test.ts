@@ -224,17 +224,16 @@ describe('facility layout staging projection', () => {
     ).toBeUndefined()
 
     const next = closeWith(staging)
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
   })
 
-  it('projects one adjacent archive room onto records-analysis and week-close grants 2 work units', () => {
+  it('projects one adjacent archive room onto records-analysis without granting week-close throughput', () => {
     const layout = layoutFrom([{ roomId: 'archive', adjacentToCritical: true }])
     const stagingBefore = parseDepartmentLocalStaging({ [BIOHAZARD]: REMOTE })
     const stagingClone = structuredClone(stagingBefore)
@@ -250,11 +249,10 @@ describe('facility layout staging projection', () => {
     expect(Object.keys(projected ?? {})).toEqual([BIOHAZARD, RECORDS])
 
     const next = closeWith(projected, layout)
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -293,11 +291,10 @@ describe('facility layout staging projection', () => {
     expect(medBayOnly).toEqual({ [EMERGENCY]: ADJACENT })
 
     const next = closeWith(projected, layout, { emergency: true })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
@@ -345,21 +342,19 @@ describe('facility layout staging projection', () => {
     expect(armoryOnly).toEqual({ [FIELD]: ADJACENT })
 
     const next = closeWith(projected, layout, { emergency: true, field: true })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
       completedWeek: 1,
     })
-    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
+      { workOrderId: 'work:field', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -412,26 +407,23 @@ describe('facility layout staging projection', () => {
     expect(closetOnly).toEqual({ [PROCUREMENT]: ADJACENT })
 
     const next = closeWith(projected, layout, { emergency: true, field: true, procurement: true })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
       completedWeek: 1,
     })
-    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
+      { workOrderId: 'work:field', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([
+      { workOrderId: 'work:procurement', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -494,31 +486,27 @@ describe('facility layout staging projection', () => {
       field: true,
       procurement: true,
     })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
       completedWeek: 1,
     })
-    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
+      { workOrderId: 'work:field', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([
+      { workOrderId: 'work:procurement', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([
+      { workOrderId: 'work:ethics', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -587,36 +575,31 @@ describe('facility layout staging projection', () => {
       field: true,
       procurement: true,
     })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
       completedWeek: 1,
     })
-    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[CONCEPT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:concept']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
+      { workOrderId: 'work:field', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([
+      { workOrderId: 'work:procurement', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([
+      { workOrderId: 'work:ethics', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[CONCEPT]?.active).toEqual([
+      { workOrderId: 'work:concept', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:concept']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -690,36 +673,31 @@ describe('facility layout staging projection', () => {
       field: true,
       procurement: true,
     })
-    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
+      { workOrderId: 'work:records', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
       outcome: 'completed',
       completedWeek: 1,
     })
-    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
-    expect(next.departmentWorkshopSnapshots?.[CONCEPT]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:concept']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
+      { workOrderId: 'work:field', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:field']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[PROCUREMENT]?.active).toEqual([
+      { workOrderId: 'work:procurement', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:procurement']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[ETHICS]?.active).toEqual([
+      { workOrderId: 'work:ethics', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:ethics']).toBeUndefined()
+    expect(next.departmentWorkshopSnapshots?.[CONCEPT]?.active).toEqual([
+      { workOrderId: 'work:concept', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:concept']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[BIOHAZARD]?.active).toEqual([
       { workOrderId: 'work:biohazard', completedWork: 1 },
     ])
@@ -1068,9 +1046,11 @@ describe('facility layout staging projection', () => {
 
     const falseClose = closeWith(undefined, falseMedBay, { emergency: true })
     expect(falseClose.departmentLocalStaging).toBeUndefined()
-    expect(falseClose.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
-      { workOrderId: 'work:emergency', completedWork: 1 },
-    ])
+    expect(falseClose.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
+    expect(falseClose.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
     expect(falseClose.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
       { workOrderId: 'work:records', completedWork: 1 },
     ])
@@ -1182,9 +1162,11 @@ describe('facility layout staging projection', () => {
     expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
       { workOrderId: 'work:records', completedWork: 1 },
     ])
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
-      { workOrderId: 'work:emergency', completedWork: 1 },
-    ])
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: 1,
+    })
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])

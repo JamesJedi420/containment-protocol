@@ -92,7 +92,7 @@ import {
   reconcileDepartmentWorkshopTerminalLanes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
-import { parseDepartmentLocalStaging } from '../departmentLocalStaging'
+import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -5014,11 +5014,13 @@ export function advanceWeek(
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
   // It runs before downstream persisted-record hooks and changes no queue but
   // the two canonical workshop registries.
+  // SPE-2913: the 4th-arg feed is the topology projection. A persisted
+  // departmentLocalStaging cache cannot override missing or conflicting topology.
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,
     undefined,
     undefined,
-    parseDepartmentLocalStaging(inputWeeklyState.departmentLocalStaging)
+    projectProductionFacilitySectionStaging()
   )
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders

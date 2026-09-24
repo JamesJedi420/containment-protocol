@@ -5,14 +5,14 @@
 | **Status**          | **Recently shipped**                                                                                                                                                        |
 | **Linear**          | [SPE-2932](https://linear.app/spectranoir/issue/SPE-2932/authoritative-facility-section-graph-and-placement-kernel)                                                         |
 | **Parent**          | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog** (this child does not finish the umbrella) |
-| **Blocks**          | [SPE-2913](https://linear.app/spectranoir/issue/SPE-2913/project-facility-topology-into-department-local-staging-adjacency) stays **Backlog**                               |
+| **Blocks**          | [SPE-2913](https://linear.app/spectranoir/issue/SPE-2913/project-facility-topology-into-department-local-staging-adjacency) — **Recently shipped**                          |
 | **Related**         | SPE-1026 layout parse/resolve and closed `FACILITY_ROOM_IDS`; SPE-2889 persisted staging; SPE-2775 throughput; SPE-792 dependency edges stay distinct                       |
 | **Branch**          | `cursor/spe-2932-facility-section-graph-a70e`                                                                                                                               |
 | **Base `main` SHA** | `8fa884cbf9f850d7a4eef74a5675a4b646840f92`                                                                                                                                  |
 
 ## Goal
 
-One production-authoritative spatial read path: stable node ids, bounded node classification, deterministic adjacency edges, department/staging-location placement lookup, and fail-closed validation. SPE-2913 stays blocked until it consumes this path in a later slice.
+One production-authoritative spatial read path: stable node ids, bounded node classification, deterministic adjacency edges, department/staging-location placement lookup, and fail-closed validation. SPE-2913 consumes this path in its own slice.
 
 ## Pre-coding summary
 
@@ -64,7 +64,7 @@ One production-authoritative spatial read path: stable node ids, bounded node cl
 - [x] Shuffled equivalent topology normalizes to the same nodes, edges, and placements
 - [x] Edges are `spatial_adjacency`. A dependency-class edge fails closed
 - [x] No new GameState field. `FACILITY_ROOM_IDS` stays the closed 17-id catalog
-- [x] Seven staging pairs are unchanged. SPE-2913 is not implemented
+- [x] Seven staging pairs are unchanged. SPE-2913 consumes this read path in its own slice
 
 ## Deferred
 
@@ -78,7 +78,7 @@ One production-authoritative spatial read path: stable node ids, bounded node cl
 | Staff housing campaign morale                                        | [SPE-1029](https://linear.app/spectranoir/issue/SPE-1029/staff-housing-recovery-and-morale-stabilization-system)                        | Layout-presence bump stays in the SPE-1026 kernel.                                                                                                                                                                     |
 | Functional/service dependency edges                                  | [SPE-792](https://linear.app/spectranoir/issue/SPE-792/facility-core-dependency-graph)                                                  | Spatial edges stay `spatial_adjacency`.                                                                                                                                                                                |
 
-Parent SPE-1052 remains **Backlog**. SPE-2913 remains **Backlog**.
+Parent SPE-1052 remains **Backlog**. SPE-2913 shipped in a later slice.
 
 ## Validation
 

@@ -43,6 +43,12 @@ describe('SPE-3001 zone-spanning origin, affected zones, and one pulse', () => {
     expect(result.affectedNodeIds).not.toContain(result.originNodeId)
     expect(result.propagationRule).toBe(ZONE_SPANNING_PROPAGATION_RULE)
     expect(result.siteWide).toBe(false)
+
+    const pulse = { activeWeekCount: 1, returnAfterWeekCount: 1 }
+    const frozen = applyZoneSpanningAdjacency(record({ pulse }), PRODUCTION, 1)
+    pulse.activeWeekCount = 2
+    expect(frozen.pulse).not.toBe(pulse)
+    expect(resolveZoneSpanningPulse(frozen, 1)).toBe('subsided')
   })
 
   it('keeps canonical affected order when authored edges are reversed', () => {

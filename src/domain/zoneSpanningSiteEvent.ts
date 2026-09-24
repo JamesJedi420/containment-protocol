@@ -67,7 +67,10 @@ export function applyZoneSpanningAdjacency(
     affectedNodeIds: Object.freeze(affectedNodeIds),
     propagationRule: ZONE_SPANNING_PROPAGATION_RULE,
     siteWide: record.siteWide,
-    pulse: record.pulse,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
   })
 }
 

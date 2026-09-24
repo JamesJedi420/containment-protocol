@@ -397,6 +397,28 @@ describe('SPE-1392 historical route memory and nonlocal edge graph', () => {
       } as unknown as HistoricalRouteActivationObservation
     )
     expect(undefinedEdge).toBe(initial)
+
+    const sparseAnchors = new Array(1) as unknown as HistoricalRouteActivationObservation['anchors']
+    const sparseAnchor = rememberHistoricalRouteActivation(
+      initial,
+      {
+        activationId: 'activation:sparse-anchor',
+        anchors: sparseAnchors,
+        edges: [],
+      }
+    )
+    expect(sparseAnchor).toBe(initial)
+
+    const sparseEdges = new Array(1) as unknown as HistoricalRouteActivationObservation['edges']
+    const sparseEdge = rememberHistoricalRouteActivation(
+      initial,
+      {
+        activationId: 'activation:sparse-edge',
+        anchors: [],
+        edges: sparseEdges,
+      }
+    )
+    expect(sparseEdge).toBe(initial)
   })
 
   it('fails closed for dangling historical edges and unknown reactivation ids', () => {

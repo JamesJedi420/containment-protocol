@@ -242,6 +242,138 @@ describe('SPE-1392 historical route memory and nonlocal edge graph', () => {
     })
   })
 
+  it('updates remembered endpoint histories when an observed edge omits anchor observations', () => {
+    const remembered = rememberHistoricalRouteActivation(graph(), {
+      activationId: 'activation:01',
+      anchors: [
+        { id: 'anchor:a', kind: 'activation_point' },
+        { id: 'anchor:b', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:a-b',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:b',
+        },
+      ],
+    })
+
+    const observedAgain = rememberHistoricalRouteActivation(remembered, {
+      activationId: 'activation:02',
+      anchors: [],
+      edges: [
+        {
+          id: 'edge:a-b',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:b',
+          contaminated: true,
+        },
+      ],
+    })
+
+    expect(observedAgain.edges[0]?.activationIds).toEqual(['activation:01', 'activation:02'])
+    expect(observedAgain.edges[0]?.contaminatedActivationIds).toEqual(['activation:02'])
+    expect(
+      observedAgain.anchors.every(
+        (anchor) =>
+          anchor.lastSeenActivationId === 'activation:02' &&
+          anchor.activationIds.includes('activation:02') &&
+          anchor.contaminatedActivationIds.includes('activation:02')
+      )
+    ).toBe(true)
+  })
+
+  it('requires a remembered anchor to participate in the active route for a zero-edge path', () => {
+    const remembered = rememberHistoricalRouteActivation(graph(), {
+      activationId: 'activation:01',
+      anchors: [
+        { id: 'anchor:a', kind: 'activation_point' },
+        { id: 'anchor:b', kind: 'landmark' },
+        { id: 'anchor:c', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:a-b',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:b',
+        },
+      ],
+    })
+
+    const reactivated = reactivateHistoricalRouteEdges(remembered, 'activation:02', ['edge:a-b'])
+
+    expect(
+      resolveActiveHistoricalRoutePath(
+        reactivated,
+        'activation:02',
+        'anchor:a',
+        'anchor:a'
+      )
+    ).toEqual({
+      activationId: 'activation:02',
+      anchorIds: ['anchor:a'],
+      edgeIds: [],
+    })
+    expect(
+      resolveActiveHistoricalRoutePath(
+        reactivated,
+        'activation:02',
+        'anchor:c',
+        'anchor:c'
+      )
+    ).toBeNull()
+  })
+
+  it('rejects reused edge ids when endpoints or route kind change', () => {
+    const remembered = rememberHistoricalRouteActivation(graph(), {
+      activationId: 'activation:01',
+      anchors: [
+        { id: 'anchor:a', kind: 'activation_point' },
+        { id: 'anchor:b', kind: 'landmark' },
+        { id: 'anchor:c', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:stable',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:b',
+        },
+      ],
+    })
+
+    const endpointConflict = rememberHistoricalRouteActivation(remembered, {
+      activationId: 'activation:02',
+      anchors: [],
+      edges: [
+        {
+          id: 'edge:stable',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:c',
+        },
+      ],
+    })
+    expect(endpointConflict).toBe(remembered)
+
+    const routeKindConflict = rememberHistoricalRouteActivation(remembered, {
+      activationId: 'activation:02',
+      anchors: [],
+      edges: [
+        {
+          id: 'edge:stable',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:a',
+          toAnchorId: 'anchor:b',
+        },
+      ],
+    })
+    expect(routeKindConflict).toBe(remembered)
+  })
+
   it('fails closed for dangling historical edges and unknown reactivation ids', () => {
     const initial = graph()
     const dangling = rememberHistoricalRouteActivation(initial, {

@@ -223,9 +223,11 @@ export function rememberHistoricalRouteActivation(
   if (!Array.isArray(observation.anchors) || !Array.isArray(observation.edges)) return graph
 
   for (let index = 0; index < observation.anchors.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(observation.anchors, index)) return graph
     if (!isRecord(observation.anchors[index])) return graph
   }
   for (let index = 0; index < observation.edges.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(observation.edges, index)) return graph
     if (!isRecord(observation.edges[index])) return graph
   }
 

@@ -66,6 +66,7 @@ describe('SPE-3009 historical route replay', () => {
       traversedAnchorIds: ['anchor:moor-road'],
       traversedEdgeIds: [],
       affectedAnchorIds: ['anchor:moor-road'],
+      exposedAnchorIds: [],
     })
 
     const middle = advanceHistoricalRouteReplay(replay)
@@ -158,6 +159,8 @@ describe('SPE-3009 historical route replay', () => {
       },
     ])
     expect(contacted.currentAnchorId).toBe(replay.currentAnchorId)
+    expect(contacted.exposedAnchorIds).toEqual(['anchor:moor-road'])
+    expect(contacted.affectedAnchorIds).toEqual(['anchor:moor-road'])
 
     const altered = revealHistoricalRoutePostContactObservation(contacted, 'observer:murray')
     expect(altered.observerExposures[0]).toEqual({
@@ -168,6 +171,7 @@ describe('SPE-3009 historical route replay', () => {
     })
     expect(altered.routeAnchorIds).toEqual(contacted.routeAnchorIds)
     expect(altered.currentRouteIndex).toBe(contacted.currentRouteIndex)
+    expect(altered.exposedAnchorIds).toEqual(contacted.exposedAnchorIds)
     expect('roleAssignments' in altered).toBe(false)
     expect('possession' in altered).toBe(false)
   })

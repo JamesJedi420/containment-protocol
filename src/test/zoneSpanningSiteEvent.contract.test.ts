@@ -11,12 +11,14 @@ import {
   applyZoneSpanningAlarm,
   applyZoneSpanningContamination,
   applyZoneSpanningPanic,
+  applyZoneSpanningRouteLink,
   applyZoneSpanningVisibility,
   resolveZoneSpanningPulse,
   ZONE_SPANNING_AIRFLOW_RULE,
   ZONE_SPANNING_ALARM_RULE,
   ZONE_SPANNING_CONTAMINATION_RULE,
   ZONE_SPANNING_PANIC_RULE,
+  ZONE_SPANNING_ROUTE_LINK_RULE,
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_VISIBILITY_RULE,
   type ZoneSpanningSiteEventRecord,
@@ -1074,6 +1076,327 @@ describe('SPE-3006 contamination spread', () => {
           panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
           alarm: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
           contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(inventedOnly).toBe(siteEvent)
+    expect(inventedOnly.affectedNodeIds).toBe(affectedNodeIds)
+  })
+})
+
+describe('SPE-3007 route link spread', () => {
+  function routeLinkTopology(edges: { fromNodeId: string; toNodeId: string }[]) {
+    return {
+      nodes: [
+        { id: CLINICAL, classification: 'section' },
+        { id: MED_BAY, classification: 'room' },
+        { id: MEDICAL, classification: 'zone' },
+        { id: COMMAND, classification: 'room' },
+      ],
+      edges,
+      placements: [],
+    }
+  }
+
+  const spatialEdges = [
+    { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+    { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+    { fromNodeId: CLINICAL, toNodeId: COMMAND },
+  ]
+
+  it('leaves the origin off affected ids when route link pairs are existing edges', () => {
+    const siteEvent = record({ propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE })
+    const topology = {
+      ...routeLinkTopology(spatialEdges),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+      route_link: [
+        { fromNodeId: MED_BAY, toNodeId: CLINICAL },
+        { fromNodeId: MEDICAL, toNodeId: CLINICAL },
+      ],
+    }
+    const result = applyZoneSpanningRouteLink(siteEvent, { source: 'authored', topology }, 1)
+    const reversed = applyZoneSpanningRouteLink(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...topology,
+          edges: [...spatialEdges].reverse(),
+          route_link: [...topology.route_link].reverse(),
+        },
+      },
+      1
+    )
+
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY, MEDICAL])
+    expect(result.affectedNodeIds).not.toContain(result.originNodeId)
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+    expect(reversed.affectedNodeIds).toEqual(result.affectedNodeIds)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+
+    const contaminationEvent = record({ propagationRule: ZONE_SPANNING_CONTAMINATION_RULE })
+    const contamination = applyZoneSpanningContamination(
+      contaminationEvent,
+      { source: 'authored', topology },
+      1
+    )
+    expect(contamination.affectedNodeIds).toEqual([COMMAND])
+    expect(contamination.propagationRule).toBe(ZONE_SPANNING_CONTAMINATION_RULE)
+    expect(
+      applyZoneSpanningRouteLink(contaminationEvent, { source: 'authored', topology }, 1)
+    ).toBe(contaminationEvent)
+  })
+
+  it('keeps the affected array reference when the route link source is missing', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+    })
+    const production = applyZoneSpanningRouteLink(siteEvent, PRODUCTION, 1)
+    expect(production).toBe(siteEvent)
+    expect(production.affectedNodeIds).toBe(affectedNodeIds)
+
+    const omitted = applyZoneSpanningRouteLink(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          visibility: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          panic: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          alarm: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+          contamination: [
+            { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+            { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+          ],
+        },
+      },
+      1
+    )
+    expect(omitted).toBe(siteEvent)
+    expect(omitted.affectedNodeIds).toBe(affectedNodeIds)
+    expect(omitted.affectedNodeIds).not.toContain(MED_BAY)
+
+    const malformed = applyZoneSpanningRouteLink(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          route_link: [{ fromNodeId: CLINICAL }],
+        },
+      },
+      1
+    )
+    expect(malformed).toBe(siteEvent)
+    expect(malformed.affectedNodeIds).toBe(affectedNodeIds)
+
+    const empty = applyZoneSpanningRouteLink(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          route_link: [],
+        },
+      },
+      1
+    )
+    expect(empty).toBe(siteEvent)
+    expect(empty.affectedNodeIds).toBe(affectedNodeIds)
+
+    const adjacency = applyZoneSpanningAdjacency(
+      record({ affectedNodeIds }),
+      { source: 'authored', topology: routeLinkTopology(spatialEdges) },
+      1
+    )
+    expect(adjacency.affectedNodeIds).toEqual([COMMAND, MED_BAY, MEDICAL])
+
+    const airflowEvent = record({
+      propagationRule: ZONE_SPANNING_AIRFLOW_RULE,
+      affectedNodeIds,
+    })
+    const airflow = applyZoneSpanningAirflow(
+      airflowEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(airflow).not.toBe(airflowEvent)
+    expect(airflow.affectedNodeIds).toEqual([MED_BAY])
+    expect(airflow.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(airflow.propagationRule).toBe(ZONE_SPANNING_AIRFLOW_RULE)
+
+    const visibilityEvent = record({
+      propagationRule: ZONE_SPANNING_VISIBILITY_RULE,
+      affectedNodeIds,
+    })
+    const visibility = applyZoneSpanningVisibility(
+      visibilityEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: MEDICAL }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(visibility).not.toBe(visibilityEvent)
+    expect(visibility.affectedNodeIds).toEqual([MEDICAL])
+    expect(visibility.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(visibility.propagationRule).toBe(ZONE_SPANNING_VISIBILITY_RULE)
+
+    const panicEvent = record({
+      propagationRule: ZONE_SPANNING_PANIC_RULE,
+      affectedNodeIds,
+    })
+    const panic = applyZoneSpanningPanic(
+      panicEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(panic).not.toBe(panicEvent)
+    expect(panic.affectedNodeIds).toEqual([MED_BAY])
+    expect(panic.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(panic.propagationRule).toBe(ZONE_SPANNING_PANIC_RULE)
+
+    const alarmEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+    })
+    const alarm = applyZoneSpanningAlarm(
+      alarmEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: MEDICAL }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(alarm).not.toBe(alarmEvent)
+    expect(alarm.affectedNodeIds).toEqual([MEDICAL])
+    expect(alarm.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(alarm.propagationRule).toBe(ZONE_SPANNING_ALARM_RULE)
+
+    const contaminationEvent = record({
+      propagationRule: ZONE_SPANNING_CONTAMINATION_RULE,
+      affectedNodeIds,
+    })
+    const contamination = applyZoneSpanningContamination(
+      contaminationEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology(spatialEdges),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+        },
+      },
+      1
+    )
+    expect(contamination).not.toBe(contaminationEvent)
+    expect(contamination.affectedNodeIds).toEqual([MED_BAY])
+    expect(contamination.affectedNodeIds).not.toBe(affectedNodeIds)
+    expect(contamination.propagationRule).toBe(ZONE_SPANNING_CONTAMINATION_RULE)
+  })
+
+  it('does not add a node named only by a pair that is not an existing edge', () => {
+    const affectedNodeIds = [ARCHIVE]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+    })
+    const topology = {
+      ...routeLinkTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+      airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      visibility: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      alarm: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      contamination: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+      route_link: [
+        { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+        { fromNodeId: CLINICAL, toNodeId: COMMAND },
+      ],
+    }
+    const result = applyZoneSpanningRouteLink(siteEvent, { source: 'authored', topology }, 1)
+    expect(result.originNodeId).toBe(CLINICAL)
+    expect(result.affectedNodeIds).toEqual([MED_BAY])
+    expect(result.affectedNodeIds).not.toContain(COMMAND)
+    expect(result.affectedNodeIds).not.toContain(CLINICAL)
+
+    const inventedOnly = applyZoneSpanningRouteLink(
+      siteEvent,
+      {
+        source: 'authored',
+        topology: {
+          ...routeLinkTopology([{ fromNodeId: CLINICAL, toNodeId: MED_BAY }]),
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          visibility: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          panic: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          alarm: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          contamination: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
+          route_link: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
         },
       },
       1

@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3005",
     "SPE-3004",
     "SPE-3003",
     "SPE-3002",
@@ -12,10 +13,10 @@
     "SPE-2932",
     "SPE-2997",
     "SPE-2996",
-    "SPE-2992",
-    "SPE-2990"
+    "SPE-2992"
   ],
   "sliceDocStatus": {
+    "planning/spe-3005-zone-spanning-alarm-slice.md": "Recently shipped",
     "planning/spe-3004-zone-spanning-panic-slice.md": "Recently shipped",
     "planning/spe-3003-zone-spanning-visibility-slice.md": "Recently shipped",
     "planning/spe-3002-zone-spanning-airflow-slice.md": "Recently shipped",

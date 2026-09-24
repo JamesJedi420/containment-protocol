@@ -110,6 +110,10 @@ function compareCodeUnit(left: string, right: string): number {
   return 0
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function validId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0
 }
@@ -217,6 +221,8 @@ export function rememberHistoricalRouteActivation(
 ): HistoricalRouteMemoryGraph {
   if (!validId(observation.activationId)) return graph
   if (!Array.isArray(observation.anchors) || !Array.isArray(observation.edges)) return graph
+  if (observation.anchors.some((anchor) => !isRecord(anchor))) return graph
+  if (observation.edges.some((edge) => !isRecord(edge))) return graph
 
   const anchorIds = observation.anchors.map((anchor) => anchor.id)
   const edgeIds = observation.edges.map((edge) => edge.id)

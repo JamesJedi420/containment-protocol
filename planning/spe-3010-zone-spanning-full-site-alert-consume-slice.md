@@ -18,7 +18,7 @@ One apply on the existing zone-spanning record. It calls `readFullSiteAlertStage
 | Item              | Finding                                                                                                                                                              |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Relevant files    | `src/domain/zoneSpanningSiteEvent.ts`; `src/test/zoneSpanningSiteEvent.contract.test.ts`; `src/domain/siteAlertStage.ts`                                             |
-| Current behavior  | `readFullSiteAlertStage` returns `full_site_alert` or null. Zone-spanning applies copy `siteWide` and do not read the stage.                                         |
+| Current behavior  | `readFullSiteAlertStage` returns `full_site_alert` or null. Zone-spanning apply helpers copy `siteWide` and do not read the stage.                                         |
 | Expected behavior | `applyZoneSpanningFullSiteAlert` sets `siteWide` to true only when the reader returns `full_site_alert`. A null read returns the input record.                       |
 | Boundary          | One apply, contract tests, this slice doc, and backlog handoff. No new stage id. No new propagation rule. No edit to the SPE-3008 reader.                            |
 | Risks             | Treating `siteWide`, a propagation-rule token, or another spread result as the stage. Naming a second stage id.                                                      |

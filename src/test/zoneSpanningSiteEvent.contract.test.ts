@@ -344,18 +344,24 @@ describe('SPE-3003 visibility spread', () => {
     )
     expect(adjacency.affectedNodeIds).toEqual([COMMAND, MED_BAY, MEDICAL])
 
+    const airflowEvent = record({
+      propagationRule: ZONE_SPANNING_AIRFLOW_RULE,
+      affectedNodeIds,
+    })
     const airflow = applyZoneSpanningAirflow(
-      record({ propagationRule: ZONE_SPANNING_AIRFLOW_RULE, affectedNodeIds }),
+      airflowEvent,
       {
         source: 'authored',
         topology: {
           ...visibilityTopology(spatialEdges),
-          airflow: [{ fromNodeId: CLINICAL, toNodeId: COMMAND }],
+          airflow: [{ fromNodeId: CLINICAL, toNodeId: MED_BAY }],
         },
       },
       1
     )
-    expect(airflow.affectedNodeIds).toEqual([COMMAND])
+    expect(airflow).not.toBe(airflowEvent)
+    expect(airflow.affectedNodeIds).toEqual([MED_BAY])
+    expect(airflow.affectedNodeIds).not.toBe(affectedNodeIds)
     expect(airflow.propagationRule).toBe(ZONE_SPANNING_AIRFLOW_RULE)
   })
 

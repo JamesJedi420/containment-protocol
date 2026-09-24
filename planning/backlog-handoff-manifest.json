@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3002",
     "SPE-3001",
     "SPE-2994",
     "SPE-2998",
@@ -12,10 +13,10 @@
     "SPE-2992",
     "SPE-2990",
     "SPE-2989",
-    "SPE-2988",
-    "SPE-2987"
+    "SPE-2988"
   ],
   "sliceDocStatus": {
+    "planning/spe-3002-zone-spanning-airflow-slice.md": "Recently shipped",
     "planning/spe-3001-zone-spanning-origin-pulse-slice.md": "Recently shipped",
     "planning/spe-2994-site-event-topology-propagation-slice.md": "Recently shipped",
     "planning/spe-2998-split-input-output-staging-slice.md": "Recently shipped",

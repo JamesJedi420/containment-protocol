@@ -10,6 +10,7 @@
  * SPE-3012 — one hazard event-kind token on that record.
  * SPE-3013 — one hostile event-kind token beside that hazard kind.
  * SPE-3014 — one social event-kind token beside those kinds.
+ * SPE-3015 — spread success copies an existing eventKind.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
@@ -173,17 +174,28 @@ function pairReach(
   return affected
 }
 
+function reservedEventKind(
+  record: ZoneSpanningSiteEventRecord
+): ZoneSpanningSiteEventRecord['eventKind'] {
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record.eventKind
+  if (record.eventKind === ZONE_SPANNING_HOSTILE_KIND) return record.eventKind
+  if (record.eventKind === ZONE_SPANNING_SOCIAL_KIND) return record.eventKind
+  return undefined
+}
+
 function freezeRecord(
   record: ZoneSpanningSiteEventRecord,
   affectedNodeIds: readonly string[],
   propagationRule: ZoneSpanningPropagationRule
 ): ZoneSpanningSiteEventRecord {
+  const eventKind = reservedEventKind(record)
   return Object.freeze({
     eventId: record.eventId,
     originNodeId: record.originNodeId,
     affectedNodeIds: Object.freeze(affectedNodeIds),
     propagationRule,
     siteWide: record.siteWide,
+    ...(eventKind === undefined ? {} : { eventKind }),
     pulse: Object.freeze({
       activeWeekCount: record.pulse.activeWeekCount,
       returnAfterWeekCount: record.pulse.returnAfterWeekCount,
@@ -216,17 +228,7 @@ export function applyZoneSpanningAdjacency(
   if (!result.ok) return record
 
   const affectedNodeIds = result.affectedNodeIds.filter((nodeId) => nodeId !== record.originNodeId)
-  return Object.freeze({
-    eventId: record.eventId,
-    originNodeId: record.originNodeId,
-    affectedNodeIds: Object.freeze(affectedNodeIds),
-    propagationRule: ZONE_SPANNING_PROPAGATION_RULE,
-    siteWide: record.siteWide,
-    pulse: Object.freeze({
-      activeWeekCount: record.pulse.activeWeekCount,
-      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
-    }),
-  })
+  return freezeRecord(record, affectedNodeIds, ZONE_SPANNING_PROPAGATION_RULE)
 }
 
 /**

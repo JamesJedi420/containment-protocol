@@ -40,6 +40,7 @@ const startingStateTemplate: GameState = {
   events: [],
   rivalExpeditionProgressPackets: {},
   rivalExpeditionClues: {},
+  historicalRouteReplays: {},
   departmentWorkshopWorkOrders: {},
   departmentWorkshopSnapshots: {},
   departmentWorkshopCompletionOutcomes: {},

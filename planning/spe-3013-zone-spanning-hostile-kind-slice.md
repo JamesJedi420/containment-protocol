@@ -64,7 +64,7 @@ One event-kind token beside the shipped `hazard` kind. Exact `hostile` sets `eve
 
 | Item or mechanic                                         | Owner or prerequisite                                                                                             | Why deferred                                             |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Social/procedural event kind                             | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                         | One token this slice. `'social'` fails closed.           |
+| Social/procedural event kind                             | [SPE-3014](https://linear.app/spectranoir/issue/SPE-3014/stamp-one-social-event-kind-on-the-zone-spanning-record) | One token this slice. `'social'` fails closed here.      |
 | Zone maps, environment pressure, occupancy, and timeline | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation)                         | This apply does not connect those systems.               |
 | Persistence and `SCHEMA_REGISTRY`                        | Later SPE-1606 child                                                                                              | No GameState field this slice.                           |
 | Week-close registration                                  | Existing week-close owners                                                                                        | This helper is not called from week-close.               |

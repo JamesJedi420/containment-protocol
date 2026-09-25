@@ -202,7 +202,6 @@
     "planning/spe-956-hotline-channel-slice-1.md": "Shipped",
     "planning/spe-956-community-advisory-decision-influence-slice-1.md": "Shipped",
     "planning/spe-2625-propagation-graph-counter-overflow-fix.md": "Shipped",
-    "planning/spe-956-propagation-graph-surfacing-slice-4.md": "Shipped",
-    "planning/spe-3009-historical-route-replay-slice.md": "Recently shipped"
+    "planning/spe-956-propagation-graph-surfacing-slice-4.md": "Shipped"
   }
 }

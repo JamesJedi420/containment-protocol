@@ -1,15 +1,15 @@
 # SPE-3018 — Advance historical-route replays at campaign week-close
 
-| Field                     | Value                                                                                                                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                | **In progress**                                                                                                                                                                           |
-| **Linear**                | [SPE-3018](https://linear.app/spectranoir/issue/SPE-3018/advance-persisted-historical-route-replays-at-campaign-week-close)                                                               |
-| **Parent / lineage**      | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                               |
+| Field                        | Value                                                                                                                                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                   | **Recently shipped**                                                                                                                                                                      |
+| **Linear**                   | [SPE-3018](https://linear.app/spectranoir/issue/SPE-3018/advance-persisted-historical-route-replays-at-campaign-week-close)                                                               |
+| **Parent / lineage**         | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                               |
 | **Prerequisite persistence** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) — sanitize/hydrate unchanged                                     |
-| **Prerequisite contract** | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — pure advance helpers unchanged                           |
-| **Week-close pattern**    | [SPE-2741](https://linear.app/spectranoir/issue/SPE-2741/persist-rival-expeditions-and-advance-them-at-campaign-week-close) — post-calendar registry orchestrator wire                   |
-| **Branch**                | `cursor/spe-1606-historical-route-replay-week-close-1999`                                                                                                                                 |
-| **Base `main` SHA**       | `774924a83987de6892235dc71f998e4ac67f2022`                                                                                                                                                |
+| **Prerequisite contract**    | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — pure advance helpers unchanged                           |
+| **Week-close pattern**       | [SPE-2741](https://linear.app/spectranoir/issue/SPE-2741/persist-rival-expeditions-and-advance-them-at-campaign-week-close) — post-calendar registry orchestrator wire                   |
+| **Branch**                   | `cursor/spe-1606-historical-route-replay-week-close-1999`                                                                                                                                 |
+| **Base `main` SHA**          | `774924a83987de6892235dc71f998e4ac67f2022`                                                                                                                                                |
 
 ## Goal
 

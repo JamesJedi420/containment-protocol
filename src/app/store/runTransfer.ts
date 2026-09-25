@@ -334,6 +334,8 @@ import {
   normalizeRivalExpeditionProgressRegistry,
 } from '../../domain/rivalExpeditionProgress'
 import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalRouteReplay'
+import { normalizeHistoricalRouteReplayActivationCandidates } from '../../domain/historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraph } from '../../domain/historicalRouteMemory'
 import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
@@ -10230,6 +10232,13 @@ export function hydrateGame(
     rivalExpeditionProgressPackets
   )
   const historicalRouteReplays = normalizeHistoricalRouteReplayRegistry(game.historicalRouteReplays)
+  const historicalRouteReplayActivationCandidates =
+    normalizeHistoricalRouteReplayActivationCandidates(
+      game.historicalRouteReplayActivationCandidates
+    )
+  const historicalRouteMemoryGraph = normalizeHistoricalRouteMemoryGraph(
+    game.historicalRouteMemoryGraph
+  )
   const departmentWorkshopState = readDepartmentWorkshopState(game)
   const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     game.departmentWorkshopCompletionOutcomes
@@ -10651,6 +10660,8 @@ export function hydrateGame(
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,
+    historicalRouteReplayActivationCandidates,
+    ...(historicalRouteMemoryGraph ? { historicalRouteMemoryGraph } : {}),
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
@@ -10862,6 +10873,8 @@ export function hydrateGame(
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,
+    historicalRouteReplayActivationCandidates,
+    ...(historicalRouteMemoryGraph ? { historicalRouteMemoryGraph } : {}),
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,

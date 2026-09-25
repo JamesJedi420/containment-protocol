@@ -333,6 +333,7 @@ import {
   normalizeRivalExpeditionClueRegistry,
   normalizeRivalExpeditionProgressRegistry,
 } from '../../domain/rivalExpeditionProgress'
+import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalRouteReplay'
 import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
@@ -10228,6 +10229,7 @@ export function hydrateGame(
     game.rivalExpeditionClues,
     rivalExpeditionProgressPackets
   )
+  const historicalRouteReplays = normalizeHistoricalRouteReplayRegistry(game.historicalRouteReplays)
   const departmentWorkshopState = readDepartmentWorkshopState(game)
   const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     game.departmentWorkshopCompletionOutcomes
@@ -10648,6 +10650,7 @@ export function hydrateGame(
     events,
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
+    historicalRouteReplays,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
@@ -10852,12 +10855,13 @@ export function hydrateGame(
     }
   }
 
-  // Reapply SPE-2741 registries plus SPE-956 participatory channel + incident baseline maps after
+  // Reapply SPE-2741 / SPE-3017 registries plus SPE-956 participatory channel + incident baseline maps after
   // stripUndefinedFields / spreads so per-entry Object.freeze from normalization/sanitize survives.
   hydrated = {
     ...hydrated,
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
+    historicalRouteReplays,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,

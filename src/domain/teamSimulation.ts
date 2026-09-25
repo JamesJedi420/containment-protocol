@@ -62,6 +62,7 @@ import {
   normalizeRivalExpeditionClueRegistry,
   normalizeRivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
+import { normalizeHistoricalRouteReplayRegistry } from './historicalRouteReplay'
 
 export interface TeamCompositionProfile {
   members: Agent[]
@@ -1130,6 +1131,9 @@ export function normalizeGameState(state: GameState): GameState {
     rivalExpeditionClues: normalizeRivalExpeditionClueRegistry(
       normalized.rivalExpeditionClues,
       rivalExpeditionProgressPackets
+    ),
+    historicalRouteReplays: normalizeHistoricalRouteReplayRegistry(
+      normalized.historicalRouteReplays
     ),
   }
 }

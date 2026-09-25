@@ -27,8 +27,7 @@ export const HISTORICAL_ROUTE_EXPOSURE_STATES = ['contact', 'post_contact'] as c
 export type HistoricalRouteExposureState = (typeof HISTORICAL_ROUTE_EXPOSURE_STATES)[number]
 
 export const HISTORICAL_ROUTE_OBSERVATION_STATES = ['external', 'altered'] as const
-export type HistoricalRouteObservationState =
-  (typeof HISTORICAL_ROUTE_OBSERVATION_STATES)[number]
+export type HistoricalRouteObservationState = (typeof HISTORICAL_ROUTE_OBSERVATION_STATES)[number]
 
 export const HISTORICAL_ROUTE_CAUSAL_CLASSIFICATION = 'unresolved' as const
 
@@ -79,8 +78,266 @@ export interface HistoricalRouteOrdinaryConsequenceInput {
   readonly subjectId?: string
 }
 
+/**
+ * SPE-3017: canonical GameState registry of historical-route replay records,
+ * keyed by embedded eventId. Legacy omit hydrates empty.
+ */
+export type HistoricalRouteReplayRegistry = Readonly<Record<string, HistoricalRouteReplayRecord>>
+
+const PHASE_SET: ReadonlySet<string> = new Set(HISTORICAL_ROUTE_REPLAY_PHASES)
+const EXPOSURE_STATE_SET: ReadonlySet<string> = new Set(HISTORICAL_ROUTE_EXPOSURE_STATES)
+const OBSERVATION_STATE_SET: ReadonlySet<string> = new Set(HISTORICAL_ROUTE_OBSERVATION_STATES)
+
 function validId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+/** Reject JavaScript integer-index keys that cannot retain code-unit object-key order. */
+function isIntegerIndexId(value: string): boolean {
+  const numeric = Number(value)
+  return (
+    Number.isInteger(numeric) &&
+    numeric >= 0 &&
+    numeric < 4_294_967_295 &&
+    String(numeric) === value
+  )
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function normalizeIdList(value: unknown): readonly string[] | null {
+  if (!Array.isArray(value)) return null
+  const ids: string[] = []
+  for (const entry of value) {
+    if (!validId(entry)) return null
+    ids.push(entry)
+  }
+  return ids
+}
+
+function sameIdSequence(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false
+  }
+  return true
+}
+
+function normalizeObserverExposure(
+  value: unknown,
+  routeAnchorIds: readonly string[],
+  exposedAnchorIds: readonly string[]
+): HistoricalRouteObserverExposure | null {
+  if (!isRecord(value)) return null
+  if (
+    !validId(value.observerId) ||
+    !validId(value.contactAnchorId) ||
+    !EXPOSURE_STATE_SET.has(value.exposureState as string) ||
+    !OBSERVATION_STATE_SET.has(value.observationState as string)
+  ) {
+    return null
+  }
+
+  const contactAnchorId = value.contactAnchorId
+  if (!routeAnchorIds.includes(contactAnchorId)) return null
+  if (!exposedAnchorIds.includes(contactAnchorId)) return null
+
+  const exposureState = value.exposureState as HistoricalRouteExposureState
+  const observationState = value.observationState as HistoricalRouteObservationState
+  if (exposureState === 'contact' && observationState !== 'external') return null
+  if (exposureState === 'post_contact' && observationState !== 'altered') return null
+
+  return freezeExposure({
+    observerId: value.observerId,
+    contactAnchorId,
+    exposureState,
+    observationState,
+  })
+}
+
+function normalizeOrdinaryConsequence(value: unknown): HistoricalRouteOrdinaryConsequence | null {
+  if (!isRecord(value)) return null
+  if (
+    !validId(value.consequenceId) ||
+    !validId(value.kind) ||
+    value.persistence !== 'ordinary_world'
+  ) {
+    return null
+  }
+  if (value.subjectId !== undefined && !validId(value.subjectId)) return null
+
+  return freezeConsequence({
+    consequenceId: value.consequenceId,
+    kind: value.kind,
+    ...(value.subjectId !== undefined ? { subjectId: value.subjectId } : {}),
+    persistence: 'ordinary_world',
+  })
+}
+
+/**
+ * Fail-closed hydration for one persisted SPE-3009 replay record.
+ *
+ * Validates self-contained frozen route arrays only. Does not call SPE-1392
+ * path resolution, facility adjacency, or SPE-3007 route_link, and never
+ * invents missing edges.
+ */
+export function normalizeHistoricalRouteReplayRecord(
+  value: unknown
+): HistoricalRouteReplayRecord | null {
+  if (!isRecord(value)) return null
+
+  if (
+    !validId(value.eventId) ||
+    isIntegerIndexId(value.eventId) ||
+    value.propagationFamily !== HISTORICAL_ROUTE_REPLAY_FAMILY ||
+    !validId(value.activationId) ||
+    !validId(value.originAnchorId) ||
+    !validId(value.currentAnchorId) ||
+    !validId(value.terminalAnchorId) ||
+    value.originAnchorId === value.terminalAnchorId ||
+    !isNonNegativeInteger(value.currentRouteIndex) ||
+    !PHASE_SET.has(value.phase as string) ||
+    value.causalClassification !== HISTORICAL_ROUTE_CAUSAL_CLASSIFICATION
+  ) {
+    return null
+  }
+
+  const routeAnchorIds = normalizeIdList(value.routeAnchorIds)
+  const routeEdgeIds = normalizeIdList(value.routeEdgeIds)
+  const traversedAnchorIds = normalizeIdList(value.traversedAnchorIds)
+  const traversedEdgeIds = normalizeIdList(value.traversedEdgeIds)
+  const affectedAnchorIds = normalizeIdList(value.affectedAnchorIds)
+  const exposedAnchorIds = normalizeIdList(value.exposedAnchorIds)
+  if (
+    !routeAnchorIds ||
+    !routeEdgeIds ||
+    !traversedAnchorIds ||
+    !traversedEdgeIds ||
+    !affectedAnchorIds ||
+    !exposedAnchorIds
+  ) {
+    return null
+  }
+
+  if (routeAnchorIds.length < 2) return null
+  if (routeEdgeIds.length !== routeAnchorIds.length - 1) return null
+  if (routeAnchorIds[0] !== value.originAnchorId) return null
+  if (routeAnchorIds[routeAnchorIds.length - 1] !== value.terminalAnchorId) return null
+  if (value.currentRouteIndex >= routeAnchorIds.length) return null
+  if (routeAnchorIds[value.currentRouteIndex] !== value.currentAnchorId) return null
+
+  const expectedTraversedAnchors = routeAnchorIds.slice(0, value.currentRouteIndex + 1)
+  const expectedTraversedEdges = routeEdgeIds.slice(0, value.currentRouteIndex)
+  if (!sameIdSequence(traversedAnchorIds, expectedTraversedAnchors)) return null
+  if (!sameIdSequence(traversedEdgeIds, expectedTraversedEdges)) return null
+  if (!sameIdSequence(affectedAnchorIds, expectedTraversedAnchors)) return null
+
+  for (const exposedAnchorId of exposedAnchorIds) {
+    if (!routeAnchorIds.includes(exposedAnchorId)) return null
+  }
+
+  if (!Array.isArray(value.observerExposures)) return null
+  const observerExposures: HistoricalRouteObserverExposure[] = []
+  const seenObserverIds = new Set<string>()
+  for (const rawExposure of value.observerExposures) {
+    const exposure = normalizeObserverExposure(rawExposure, routeAnchorIds, exposedAnchorIds)
+    if (!exposure) return null
+    if (seenObserverIds.has(exposure.observerId)) return null
+    seenObserverIds.add(exposure.observerId)
+    observerExposures.push(exposure)
+  }
+
+  for (const exposedAnchorId of exposedAnchorIds) {
+    if (!observerExposures.some((exposure) => exposure.contactAnchorId === exposedAnchorId)) {
+      return null
+    }
+  }
+
+  const phase = value.phase as HistoricalRouteReplayPhase
+  const ordinaryConsequence =
+    value.ordinaryConsequence === null || value.ordinaryConsequence === undefined
+      ? null
+      : normalizeOrdinaryConsequence(value.ordinaryConsequence)
+  if (value.ordinaryConsequence != null && ordinaryConsequence === null) return null
+
+  if (phase === 'approaching') {
+    if (value.currentRouteIndex !== 0 || ordinaryConsequence !== null) return null
+  } else if (phase === 'traversing') {
+    if (
+      value.currentRouteIndex === 0 ||
+      value.currentAnchorId === value.terminalAnchorId ||
+      ordinaryConsequence !== null
+    ) {
+      return null
+    }
+  } else if (phase === 'terminal') {
+    if (value.currentAnchorId !== value.terminalAnchorId || ordinaryConsequence !== null) {
+      return null
+    }
+  } else if (phase === 'ended') {
+    if (value.currentAnchorId !== value.terminalAnchorId || ordinaryConsequence === null) {
+      return null
+    }
+  } else {
+    const _exhaustive: never = phase
+    void _exhaustive
+    return null
+  }
+
+  return freezeReplay({
+    eventId: value.eventId,
+    propagationFamily: HISTORICAL_ROUTE_REPLAY_FAMILY,
+    activationId: value.activationId,
+    originAnchorId: value.originAnchorId,
+    currentAnchorId: value.currentAnchorId,
+    terminalAnchorId: value.terminalAnchorId,
+    routeAnchorIds,
+    routeEdgeIds,
+    currentRouteIndex: value.currentRouteIndex,
+    traversedAnchorIds,
+    traversedEdgeIds,
+    affectedAnchorIds,
+    exposedAnchorIds,
+    phase,
+    observerExposures,
+    ordinaryConsequence,
+    causalClassification: HISTORICAL_ROUTE_CAUSAL_CLASSIFICATION,
+  })
+}
+
+/**
+ * Normalize a replay map by embedded eventId in deterministic code-unit order.
+ * Malformed, key-mismatched, and integer-index siblings drop independently.
+ * Missing/non-record input hydrates to an empty frozen registry.
+ */
+export function normalizeHistoricalRouteReplayRegistry(
+  value: unknown
+): HistoricalRouteReplayRegistry {
+  if (!isRecord(value)) {
+    return Object.freeze({})
+  }
+
+  const entries: [string, HistoricalRouteReplayRecord][] = []
+  for (const [registryId, rawRecord] of Object.entries(value)) {
+    if (isIntegerIndexId(registryId)) continue
+    const record = normalizeHistoricalRouteReplayRecord(rawRecord)
+    if (record && registryId === record.eventId) {
+      entries.push([record.eventId, record])
+    }
+  }
+  entries.sort(([left], [right]) => compareCodeUnits(left, right))
+
+  return Object.freeze(Object.fromEntries(entries))
 }
 
 function freezeExposure(

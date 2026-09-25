@@ -2,6 +2,7 @@ import type {
   RivalExpeditionClueRegistry,
   RivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
+import type { HistoricalRouteReplayRegistry } from './historicalRouteReplay'
 import type {
   DepartmentWorkshopCompletionOutcomeRegistry,
   DepartmentWorkshopSnapshotRegistry,
@@ -2766,6 +2767,11 @@ export interface GameState {
    * Exact hidden progress counters and pressure inputs do not enter this collection.
    */
   rivalExpeditionClues?: RivalExpeditionClueRegistry
+  /**
+   * SPE-3017: canonical historical-route replay records keyed by embedded event id.
+   * Hydration validates frozen SPE-3009 route arrays fail-closed and never invents edges.
+   */
+  historicalRouteReplays?: HistoricalRouteReplayRegistry
   /**
    * SPE-2747: canonical workshop work orders keyed by embedded work-order ID.
    * Static SPE-2083 department definitions are never persisted in this map.

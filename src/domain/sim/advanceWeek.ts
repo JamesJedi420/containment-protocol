@@ -305,6 +305,7 @@ import {
   advanceRivalExpeditionRegistryAtWeekClose,
   normalizeRivalExpeditionProgressRegistry,
 } from '../rivalExpeditionProgress'
+import { advanceHistoricalRouteReplayRegistryAtWeekClose } from '../historicalRouteReplay'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -5125,6 +5126,13 @@ export function advanceWeek(
   )
   outputWeeklyState.rivalExpeditionProgressPackets = rivalWeekClose.packets
   outputWeeklyState.rivalExpeditionClues = rivalWeekClose.clues
+
+  // SPE-3018: advance persisted historical-route replays once for the week that
+  // just closed. Terminal/ended siblings are SPE-3009 identity no-ops; no
+  // terminal→ended resolve or consequence invent happens here.
+  outputWeeklyState.historicalRouteReplays = advanceHistoricalRouteReplayRegistryAtWeekClose(
+    inputWeeklyState.historicalRouteReplays
+  )
 
   // SPE-2720: one graph-local consequence-driven mutation at week-close.
   // Missing/empty legacy state remains a no-op and does not couple into other systems.

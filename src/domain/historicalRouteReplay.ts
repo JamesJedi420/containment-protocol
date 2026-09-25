@@ -519,6 +519,30 @@ export function advanceHistoricalRouteReplay(
 }
 
 /**
+ * SPE-3018: advance every eligible persisted replay exactly once at week-close.
+ *
+ * Normalizes via SPE-3017, calls SPE-3009 `advanceHistoricalRouteReplay` once
+ * per sibling in deterministic code-unit `eventId` order, then re-normalizes.
+ * Terminal/ended records stay identity no-ops. Does not resolve terminal →
+ * ended or invent ordinary-world consequence IDs. Call only from campaign
+ * week-close (never mid-week).
+ */
+export function advanceHistoricalRouteReplayRegistryAtWeekClose(
+  registry: unknown
+): HistoricalRouteReplayRegistry {
+  const normalized = normalizeHistoricalRouteReplayRegistry(registry)
+  const nextEntries: Array<[string, HistoricalRouteReplayRecord]> = []
+
+  for (const eventId of Object.keys(normalized)) {
+    const record = normalized[eventId]
+    if (!record) continue
+    nextEntries.push([eventId, advanceHistoricalRouteReplay(record)])
+  }
+
+  return normalizeHistoricalRouteReplayRegistry(Object.fromEntries(nextEntries))
+}
+
+/**
  * Close a replay at its configured historical terminal location and emit one
  * ordinary-world consequence record. Causality remains explicitly unresolved.
  */

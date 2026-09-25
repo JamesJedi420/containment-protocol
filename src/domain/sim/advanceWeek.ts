@@ -5159,6 +5159,10 @@ export function advanceWeek(
   )
   if (weekCloseHistoricalRouteMemoryGraph) {
     outputWeeklyState.historicalRouteMemoryGraph = weekCloseHistoricalRouteMemoryGraph
+  } else {
+    // Drop legacy-copied malformed/absent activation graphs (unknown-field preserve
+    // would otherwise keep a fail-closed input on the week-close result).
+    delete outputWeeklyState.historicalRouteMemoryGraph
   }
 
   // SPE-2720: one graph-local consequence-driven mutation at week-close.

@@ -300,6 +300,23 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
     expect(direct['event:alpha']?.phase).toBe('ended')
   })
 
+  it('drops malformed activation graphs through advanceWeek instead of preserving them', () => {
+    const baseline = createStartingState()
+    const withMalformed = {
+      ...structuredClone(baseline),
+      historicalRouteMemoryGraph: {
+        siteId: 'site:bad',
+        anchors: [],
+        edges: [],
+        activeActivationId: 'activation:orphan',
+        activeEdgeIds: ['edge:missing'],
+      },
+    }
+
+    const next = advanceWeek(withMalformed, 1_700_000_000_000)
+    expect(next.historicalRouteMemoryGraph).toBeUndefined()
+  })
+
   it('hydrates activation candidates and graph fail-closed through save round-trip', () => {
     const graph = phantomCoachGraph()
     const state = {

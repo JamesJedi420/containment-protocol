@@ -12,11 +12,18 @@ import {
   applyZoneSpanningAlarm,
   applyZoneSpanningContamination,
   applyZoneSpanningFullSiteAlert,
+  applyZoneSpanningHazardKind,
+  applyZoneSpanningHostileKind,
+  applyZoneSpanningSocialKind,
   applyZoneSpanningPanic,
   applyZoneSpanningRouteLink,
   applyZoneSpanningVisibility,
   resolveZoneSpanningPulse,
   ZONE_SPANNING_AIRFLOW_RULE,
+  ZONE_SPANNING_HAZARD_KIND,
+  ZONE_SPANNING_HOSTILE_KIND,
+  ZONE_SPANNING_SOCIAL_KIND,
+  ZONE_SPANNING_PROPAGATION_RULES,
   ZONE_SPANNING_ALARM_RULE,
   ZONE_SPANNING_CONTAMINATION_RULE,
   ZONE_SPANNING_PANIC_RULE,
@@ -1456,5 +1463,397 @@ describe('SPE-3010 full-site-alert consume', () => {
       expect(result.siteWide).toBe(true)
       expect(result.affectedNodeIds).toBe(affectedNodeIds)
     }
+  })
+})
+
+describe('SPE-3016 full-site alert copies eventKind', () => {
+  const kinds = [
+    ZONE_SPANNING_HAZARD_KIND,
+    ZONE_SPANNING_HOSTILE_KIND,
+    ZONE_SPANNING_SOCIAL_KIND,
+  ] as const
+
+  it('keeps each existing kind on a qualifying stage and still sets siteWide', () => {
+    const affectedNodeIds = [MED_BAY]
+    for (const kind of kinds) {
+      const siteEvent = record({
+        propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+        affectedNodeIds,
+        eventKind: kind,
+        siteWide: false,
+      })
+      const result = applyZoneSpanningFullSiteAlert(siteEvent, FULL_SITE_ALERT_STAGE)
+
+      expect(result).not.toBe(siteEvent)
+      expect(result.eventKind).toBe(kind)
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+      expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+      expect(result.originNodeId).toBe(siteEvent.originNodeId)
+      expect(result.eventId).toBe(siteEvent.eventId)
+      expect(result.pulse).toEqual(siteEvent.pulse)
+      expect(result.pulse).not.toBe(siteEvent.pulse)
+    }
+  })
+
+  it('omits a missing kind on a qualifying stage', () => {
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds: [COMMAND],
+      siteWide: false,
+    })
+    const result = applyZoneSpanningFullSiteAlert(siteEvent, FULL_SITE_ALERT_STAGE)
+
+    expect(result).not.toBe(siteEvent)
+    expect(result.eventKind).toBeUndefined()
+    expect(Object.prototype.hasOwnProperty.call(result, 'eventKind')).toBe(false)
+    expect(result.siteWide).toBe(true)
+    expect(result.affectedNodeIds).toBe(siteEvent.affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ALARM_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+  })
+
+  it('returns the same record for a null stage even when a kind is already set', () => {
+    for (const kind of kinds) {
+      const siteEvent = record({
+        eventKind: kind,
+        siteWide: false,
+        affectedNodeIds: [COMMAND],
+      })
+      const result = applyZoneSpanningFullSiteAlert(siteEvent, null)
+      expect(result).toBe(siteEvent)
+      expect(result.eventKind).toBe(kind)
+      expect(result.siteWide).toBe(false)
+    }
+  })
+})
+
+describe('SPE-3012 hazard event kind', () => {
+  it('stamps hazard and keeps the affected-id array, rule, origin, pulse, and siteWide', () => {
+    const affectedNodeIds = [MED_BAY]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const result = applyZoneSpanningHazardKind(siteEvent, ZONE_SPANNING_HAZARD_KIND)
+
+    expect(ZONE_SPANNING_PROPAGATION_RULES).not.toContain(ZONE_SPANNING_HAZARD_KIND)
+    expect(result).not.toBe(siteEvent)
+    expect(result.eventKind).toBe('hazard')
+    expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.eventId).toBe(siteEvent.eventId)
+    expect(result.siteWide).toBe(true)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+
+  it('returns the same record for a missing or unknown kind', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const rejected = [
+      undefined,
+      null,
+      '',
+      true,
+      { siteWide: true },
+      'full_site_alert',
+      'hostile',
+      'social',
+      'spatial_adjacency',
+      'airflow',
+      'visibility',
+      'panic',
+      'alarm',
+      'contamination',
+      'route_link',
+    ]
+
+    for (const kind of rejected) {
+      const result = applyZoneSpanningHazardKind(siteEvent, kind)
+      expect(result).toBe(siteEvent)
+      expect(result.eventKind).toBeUndefined()
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    }
+  })
+
+  it('returns the same record when the kind is already hazard', () => {
+    const siteEvent = record({ eventKind: 'hazard' })
+    const result = applyZoneSpanningHazardKind(siteEvent, 'hazard')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hazard')
+  })
+
+  it('returns the same record when the kind is already hostile', () => {
+    const siteEvent = record({ eventKind: 'hostile' })
+    const result = applyZoneSpanningHazardKind(siteEvent, 'hazard')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hostile')
+  })
+})
+
+describe('SPE-3013 hostile event kind', () => {
+  it('stamps hostile and keeps the affected-id array, rule, origin, pulse, and siteWide', () => {
+    const affectedNodeIds = [MED_BAY]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const result = applyZoneSpanningHostileKind(siteEvent, ZONE_SPANNING_HOSTILE_KIND)
+
+    expect(ZONE_SPANNING_PROPAGATION_RULES).not.toContain(ZONE_SPANNING_HOSTILE_KIND)
+    expect(result).not.toBe(siteEvent)
+    expect(result.eventKind).toBe('hostile')
+    expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.eventId).toBe(siteEvent.eventId)
+    expect(result.siteWide).toBe(true)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+
+  it('returns the same record for a missing or unknown kind', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const rejected = [
+      undefined,
+      null,
+      '',
+      true,
+      { siteWide: true },
+      'full_site_alert',
+      'hazard',
+      'social',
+      'spatial_adjacency',
+      'airflow',
+      'visibility',
+      'panic',
+      'alarm',
+      'contamination',
+      'route_link',
+    ]
+
+    for (const kind of rejected) {
+      const result = applyZoneSpanningHostileKind(siteEvent, kind)
+      expect(result).toBe(siteEvent)
+      expect(result.eventKind).toBeUndefined()
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    }
+  })
+
+  it('returns the same record when the kind is already hostile', () => {
+    const siteEvent = record({ eventKind: 'hostile' })
+    const result = applyZoneSpanningHostileKind(siteEvent, 'hostile')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hostile')
+  })
+
+  it('does not clear an existing hazard stamp', () => {
+    const siteEvent = record({ eventKind: 'hazard', siteWide: true })
+    const result = applyZoneSpanningHostileKind(siteEvent, 'hostile')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hazard')
+    expect(result.siteWide).toBe(true)
+  })
+})
+
+describe('SPE-3014 social event kind', () => {
+  it('stamps social and keeps the affected-id array, rule, origin, pulse, and siteWide', () => {
+    const affectedNodeIds = [MED_BAY]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const result = applyZoneSpanningSocialKind(siteEvent, ZONE_SPANNING_SOCIAL_KIND)
+
+    expect(ZONE_SPANNING_PROPAGATION_RULES).not.toContain(ZONE_SPANNING_SOCIAL_KIND)
+    expect(result).not.toBe(siteEvent)
+    expect(result.eventKind).toBe('social')
+    expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.eventId).toBe(siteEvent.eventId)
+    expect(result.siteWide).toBe(true)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+    expect(result.pulse).not.toBe(siteEvent.pulse)
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+
+  it('returns the same record for a missing or unknown kind', () => {
+    const affectedNodeIds = [COMMAND]
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds,
+      siteWide: true,
+    })
+    const rejected = [
+      undefined,
+      null,
+      '',
+      true,
+      { siteWide: true },
+      'full_site_alert',
+      'hazard',
+      'hostile',
+      'spatial_adjacency',
+      'airflow',
+      'visibility',
+      'panic',
+      'alarm',
+      'contamination',
+      'route_link',
+    ]
+
+    for (const kind of rejected) {
+      const result = applyZoneSpanningSocialKind(siteEvent, kind)
+      expect(result).toBe(siteEvent)
+      expect(result.eventKind).toBeUndefined()
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+    }
+  })
+
+  it('returns the same record when the kind is already social', () => {
+    const siteEvent = record({ eventKind: 'social' })
+    const result = applyZoneSpanningSocialKind(siteEvent, 'social')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('social')
+  })
+
+  it('does not clear an existing hazard stamp', () => {
+    const siteEvent = record({ eventKind: 'hazard', siteWide: true })
+    const result = applyZoneSpanningSocialKind(siteEvent, 'social')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hazard')
+    expect(result.siteWide).toBe(true)
+  })
+
+  it('does not clear an existing hostile stamp', () => {
+    const siteEvent = record({ eventKind: 'hostile', siteWide: true })
+    const result = applyZoneSpanningSocialKind(siteEvent, 'social')
+    expect(result).toBe(siteEvent)
+    expect(result.eventKind).toBe('hostile')
+    expect(result.siteWide).toBe(true)
+  })
+
+  it('leaves an existing social stamp when hazard or hostile is applied', () => {
+    const siteEvent = record({ eventKind: 'social', siteWide: true })
+    const hazard = applyZoneSpanningHazardKind(siteEvent, 'hazard')
+    const hostile = applyZoneSpanningHostileKind(siteEvent, 'hostile')
+    expect(hazard).toBe(siteEvent)
+    expect(hostile).toBe(siteEvent)
+    expect(hazard.eventKind).toBe('social')
+    expect(hostile.eventKind).toBe('social')
+  })
+})
+
+describe('SPE-3015 spread success reserves eventKind', () => {
+  const kinds = [
+    ZONE_SPANNING_HAZARD_KIND,
+    ZONE_SPANNING_HOSTILE_KIND,
+    ZONE_SPANNING_SOCIAL_KIND,
+  ] as const
+
+  const spatialEdges = [
+    { fromNodeId: CLINICAL, toNodeId: MED_BAY },
+    { fromNodeId: CLINICAL, toNodeId: MEDICAL },
+  ]
+
+  function pairTopology(field: string) {
+    return {
+      nodes: [
+        { id: CLINICAL, classification: 'section' },
+        { id: MED_BAY, classification: 'room' },
+        { id: MEDICAL, classification: 'zone' },
+      ],
+      edges: spatialEdges,
+      placements: [],
+      [field]: [{ fromNodeId: MED_BAY, toNodeId: CLINICAL }],
+    }
+  }
+
+  function expectKindOmitted(result: ZoneSpanningSiteEventRecord): void {
+    expect(result.eventKind).toBeUndefined()
+    expect(Object.prototype.hasOwnProperty.call(result, 'eventKind')).toBe(false)
+  }
+
+  function expectReserved(
+    result: ZoneSpanningSiteEventRecord,
+    source: ZoneSpanningSiteEventRecord,
+    kind: (typeof kinds)[number]
+  ): void {
+    expect(result).not.toBe(source)
+    expect(result.eventKind).toBe(kind)
+    expect(result.originNodeId).toBe(source.originNodeId)
+    expect(result.propagationRule).toBe(source.propagationRule)
+    expect(result.siteWide).toBe(source.siteWide)
+    expect(result.pulse).toEqual(source.pulse)
+    expect(result.pulse).not.toBe(source.pulse)
+    expect(result.affectedNodeIds).toEqual([MED_BAY])
+    expect(result.affectedNodeIds).not.toContain(source.originNodeId)
+  }
+
+  it('keeps hazard, hostile, and social on adjacency success and omits a missing kind', () => {
+    for (const kind of kinds) {
+      const siteEvent = record({ eventKind: kind, siteWide: true })
+      const result = applyZoneSpanningAdjacency(siteEvent, PRODUCTION, 1)
+      expect(result).not.toBe(siteEvent)
+      expect(result.eventKind).toBe(kind)
+      expect(result.originNodeId).toBe(CLINICAL)
+      expect(result.propagationRule).toBe(ZONE_SPANNING_PROPAGATION_RULE)
+      expect(result.siteWide).toBe(true)
+      expect(result.pulse).toEqual(siteEvent.pulse)
+      expect(result.affectedNodeIds).toEqual([MED_BAY, MEDICAL])
+    }
+
+    const bare = record()
+    const omitted = applyZoneSpanningAdjacency(bare, PRODUCTION, 1)
+    expect(omitted).not.toBe(bare)
+    expectKindOmitted(omitted)
+    expect(omitted.affectedNodeIds).toEqual([MED_BAY, MEDICAL])
+  })
+
+  it.each([
+    ['airflow', ZONE_SPANNING_AIRFLOW_RULE, applyZoneSpanningAirflow],
+    ['visibility', ZONE_SPANNING_VISIBILITY_RULE, applyZoneSpanningVisibility],
+    ['panic', ZONE_SPANNING_PANIC_RULE, applyZoneSpanningPanic],
+    ['alarm', ZONE_SPANNING_ALARM_RULE, applyZoneSpanningAlarm],
+    ['contamination', ZONE_SPANNING_CONTAMINATION_RULE, applyZoneSpanningContamination],
+    ['route_link', ZONE_SPANNING_ROUTE_LINK_RULE, applyZoneSpanningRouteLink],
+  ] as const)('keeps each kind on %s success and omits a missing kind', (field, rule, apply) => {
+    const topology = { source: 'authored' as const, topology: pairTopology(field) }
+    for (const kind of kinds) {
+      const siteEvent = record({
+        propagationRule: rule,
+        eventKind: kind,
+        siteWide: true,
+      })
+      expectReserved(apply(siteEvent, topology, 1), siteEvent, kind)
+    }
+
+    const bare = record({ propagationRule: rule })
+    const omitted = apply(bare, topology, 1)
+    expect(omitted).not.toBe(bare)
+    expectKindOmitted(omitted)
+    expect(omitted.propagationRule).toBe(rule)
+    expect(omitted.affectedNodeIds).toEqual([MED_BAY])
   })
 })

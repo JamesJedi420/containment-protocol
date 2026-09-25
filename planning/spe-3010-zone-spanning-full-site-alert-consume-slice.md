@@ -18,7 +18,7 @@ One apply on the existing zone-spanning record. It calls `readFullSiteAlertStage
 | Item              | Finding                                                                                                                                                              |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Relevant files    | `src/domain/zoneSpanningSiteEvent.ts`; `src/test/zoneSpanningSiteEvent.contract.test.ts`; `src/domain/siteAlertStage.ts`                                             |
-| Current behavior  | `readFullSiteAlertStage` returns `full_site_alert` or null. Zone-spanning apply helpers copy `siteWide` and do not read the stage.                                         |
+| Current behavior  | `readFullSiteAlertStage` returns `full_site_alert` or null. Zone-spanning apply helpers copy `siteWide` and do not read the stage.                                   |
 | Expected behavior | `applyZoneSpanningFullSiteAlert` sets `siteWide` to true only when the reader returns `full_site_alert`. A null read returns the input record.                       |
 | Boundary          | One apply, contract tests, this slice doc, and backlog handoff. No new stage id. No new propagation rule. No edit to the SPE-3008 reader.                            |
 | Risks             | Treating `siteWide`, a propagation-rule token, or another spread result as the stage. Naming a second stage id.                                                      |
@@ -54,15 +54,16 @@ One apply on the existing zone-spanning record. It calls `readFullSiteAlertStage
 
 ## Deferred
 
-| Item or mechanic                                                            | Owner or prerequisite                                                                            | Why deferred                                                                   |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Local awareness and partial site alert                                      | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | This apply reads one stage id.                                                 |
-| Alert devices, channels, and activation delay                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No device family and no travel or activation time.                             |
-| Interruption of an alert path                                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No alert chain to interrupt.                                                   |
-| Responder choreography                                                      | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography) | No defender reposition or ambush.                                              |
-| Adjacency, airflow, visibility, panic, alarm, contamination, and route link | Existing SPE-3001–SPE-3007 applies                                                               | Those applies stay on their own rules. This apply does not copy their results. |
-| Persistence and `SCHEMA_REGISTRY`                                           | Later SPE-1606 child                                                                             | No GameState field this slice.                                                 |
-| Week-close registration                                                     | Existing week-close owners                                                                       | This helper is not called from week-close.                                     |
+| Item or mechanic                                                            | Owner or prerequisite                                                                                             | Why deferred                                                                   |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Local awareness and partial site alert                                      | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                  | This apply reads one stage id.                                                 |
+| Alert devices, channels, and activation delay                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                  | No device family and no travel or activation time.                             |
+| Interruption of an alert path                                               | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                  | No alert chain to interrupt.                                                   |
+| Responder choreography                                                      | [SPE-102](https://linear.app/spectranoir/issue/SPE-102/alert-networks-and-response-choreography)                  | No defender reposition or ambush.                                              |
+| Adjacency, airflow, visibility, panic, alarm, contamination, and route link | Existing SPE-3001–SPE-3007 applies                                                                                | Those applies stay on their own rules. This apply does not copy their results. |
+| Hazard event kind on the zone-spanning record                               | [SPE-3012](https://linear.app/spectranoir/issue/SPE-3012/stamp-one-hazard-event-kind-on-the-zone-spanning-record) | This child owns the `hazard` kind. Hostile and social stay on SPE-1606.        |
+| Persistence and `SCHEMA_REGISTRY`                                           | Later SPE-1606 child                                                                                              | No GameState field this slice.                                                 |
+| Week-close registration                                                     | Existing week-close owners                                                                                        | This helper is not called from week-close.                                     |
 
 Parent SPE-1606 remains **Backlog**. Parent SPE-102 remains **Backlog**.
 

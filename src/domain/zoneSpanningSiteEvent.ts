@@ -7,6 +7,11 @@
  * SPE-3006 — one contamination rule on that record.
  * SPE-3007 — one route-link rule on that record.
  * SPE-3010 — one apply that sets site-wide affected state from `full_site_alert`.
+ * SPE-3012 — one hazard event-kind token on that record.
+ * SPE-3013 — one hostile event-kind token beside that hazard kind.
+ * SPE-3014 — one social event-kind token beside those kinds.
+ * SPE-3015 — spread success copies an existing eventKind.
+ * SPE-3016 — full-site-alert success copies an existing eventKind.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
@@ -36,6 +41,9 @@ export const ZONE_SPANNING_PANIC_RULE = 'panic' as const
 export const ZONE_SPANNING_ALARM_RULE = 'alarm' as const
 export const ZONE_SPANNING_CONTAMINATION_RULE = 'contamination' as const
 export const ZONE_SPANNING_ROUTE_LINK_RULE = 'route_link' as const
+export const ZONE_SPANNING_HAZARD_KIND = 'hazard' as const
+export const ZONE_SPANNING_HOSTILE_KIND = 'hostile' as const
+export const ZONE_SPANNING_SOCIAL_KIND = 'social' as const
 export const ZONE_SPANNING_PROPAGATION_RULES = [
   ZONE_SPANNING_PROPAGATION_RULE,
   ZONE_SPANNING_AIRFLOW_RULE,
@@ -63,6 +71,10 @@ export interface ZoneSpanningSiteEventRecord {
   readonly affectedNodeIds: readonly string[]
   readonly propagationRule: ZoneSpanningPropagationRule
   readonly siteWide: boolean
+  readonly eventKind?:
+    | typeof ZONE_SPANNING_HAZARD_KIND
+    | typeof ZONE_SPANNING_HOSTILE_KIND
+    | typeof ZONE_SPANNING_SOCIAL_KIND
   readonly pulse: ZoneSpanningPulseConfig
 }
 
@@ -163,17 +175,28 @@ function pairReach(
   return affected
 }
 
+function reservedEventKind(
+  record: ZoneSpanningSiteEventRecord
+): ZoneSpanningSiteEventRecord['eventKind'] {
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record.eventKind
+  if (record.eventKind === ZONE_SPANNING_HOSTILE_KIND) return record.eventKind
+  if (record.eventKind === ZONE_SPANNING_SOCIAL_KIND) return record.eventKind
+  return undefined
+}
+
 function freezeRecord(
   record: ZoneSpanningSiteEventRecord,
   affectedNodeIds: readonly string[],
   propagationRule: ZoneSpanningPropagationRule
 ): ZoneSpanningSiteEventRecord {
+  const eventKind = reservedEventKind(record)
   return Object.freeze({
     eventId: record.eventId,
     originNodeId: record.originNodeId,
     affectedNodeIds: Object.freeze(affectedNodeIds),
     propagationRule,
     siteWide: record.siteWide,
+    ...(eventKind === undefined ? {} : { eventKind }),
     pulse: Object.freeze({
       activeWeekCount: record.pulse.activeWeekCount,
       returnAfterWeekCount: record.pulse.returnAfterWeekCount,
@@ -206,17 +229,7 @@ export function applyZoneSpanningAdjacency(
   if (!result.ok) return record
 
   const affectedNodeIds = result.affectedNodeIds.filter((nodeId) => nodeId !== record.originNodeId)
-  return Object.freeze({
-    eventId: record.eventId,
-    originNodeId: record.originNodeId,
-    affectedNodeIds: Object.freeze(affectedNodeIds),
-    propagationRule: ZONE_SPANNING_PROPAGATION_RULE,
-    siteWide: record.siteWide,
-    pulse: Object.freeze({
-      activeWeekCount: record.pulse.activeWeekCount,
-      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
-    }),
-  })
+  return freezeRecord(record, affectedNodeIds, ZONE_SPANNING_PROPAGATION_RULE)
 }
 
 /**
@@ -430,20 +443,107 @@ export function applyZoneSpanningRouteLink(
 }
 
 /**
+ * Stamp event kind `hazard` on one record.
+ * A missing or unknown kind returns the same record. An existing `hazard`,
+ * `hostile`, or `social` kind returns the same record. This does not add a
+ * propagation rule.
+ */
+export function applyZoneSpanningHazardKind(
+  record: ZoneSpanningSiteEventRecord,
+  kind: unknown
+): ZoneSpanningSiteEventRecord {
+  if (kind !== ZONE_SPANNING_HAZARD_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HOSTILE_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_SOCIAL_KIND) return record
+  return Object.freeze({
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    affectedNodeIds: record.affectedNodeIds,
+    propagationRule: record.propagationRule,
+    siteWide: record.siteWide,
+    eventKind: ZONE_SPANNING_HAZARD_KIND,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
+  })
+}
+
+/**
+ * Stamp event kind `hostile` on one record.
+ * A missing or unknown kind returns the same record. An existing `hazard`,
+ * `hostile`, or `social` kind returns the same record. This does not add a
+ * propagation rule.
+ */
+export function applyZoneSpanningHostileKind(
+  record: ZoneSpanningSiteEventRecord,
+  kind: unknown
+): ZoneSpanningSiteEventRecord {
+  if (kind !== ZONE_SPANNING_HOSTILE_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HOSTILE_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_SOCIAL_KIND) return record
+  return Object.freeze({
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    affectedNodeIds: record.affectedNodeIds,
+    propagationRule: record.propagationRule,
+    siteWide: record.siteWide,
+    eventKind: ZONE_SPANNING_HOSTILE_KIND,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
+  })
+}
+
+/**
+ * Stamp event kind `social` on one record.
+ * A missing or unknown kind returns the same record. An existing `hazard`,
+ * `hostile`, or `social` kind returns the same record. This does not add a
+ * propagation rule.
+ */
+export function applyZoneSpanningSocialKind(
+  record: ZoneSpanningSiteEventRecord,
+  kind: unknown
+): ZoneSpanningSiteEventRecord {
+  if (kind !== ZONE_SPANNING_SOCIAL_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HAZARD_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_HOSTILE_KIND) return record
+  if (record.eventKind === ZONE_SPANNING_SOCIAL_KIND) return record
+  return Object.freeze({
+    eventId: record.eventId,
+    originNodeId: record.originNodeId,
+    affectedNodeIds: record.affectedNodeIds,
+    propagationRule: record.propagationRule,
+    siteWide: record.siteWide,
+    eventKind: ZONE_SPANNING_SOCIAL_KIND,
+    pulse: Object.freeze({
+      activeWeekCount: record.pulse.activeWeekCount,
+      returnAfterWeekCount: record.pulse.returnAfterWeekCount,
+    }),
+  })
+}
+
+/**
  * Set site-wide affected state only when the SPE-3008 stage qualifies.
  * A null read returns the same record. This does not add a propagation rule.
+ * SPE-3016 copies an existing hazard, hostile, or social kind onto that freeze.
  */
 export function applyZoneSpanningFullSiteAlert(
   record: ZoneSpanningSiteEventRecord,
   stage: unknown
 ): ZoneSpanningSiteEventRecord {
   if (readFullSiteAlertStage(stage) === null) return record
+  const eventKind = reservedEventKind(record)
   return Object.freeze({
     eventId: record.eventId,
     originNodeId: record.originNodeId,
     affectedNodeIds: record.affectedNodeIds,
     propagationRule: record.propagationRule,
     siteWide: true,
+    ...(eventKind === undefined ? {} : { eventKind }),
     pulse: Object.freeze({
       activeWeekCount: record.pulse.activeWeekCount,
       returnAfterWeekCount: record.pulse.returnAfterWeekCount,

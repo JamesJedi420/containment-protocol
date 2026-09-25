@@ -2,7 +2,7 @@
 
 | Field                        | Value                                                                                                                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **In progress**                                                                                                                                                                       |
+| **Status**                   | **Recently shipped**                                                                                                                                                                  |
 | **Linear**                   | [SPE-3020](https://linear.app/spectranoir/issue/SPE-3020/auto-resolve-historical-route-replay-terminal-ended-with-ordinary)                                                           |
 | **Parent / lineage**         | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                           |
 | **Prerequisite week-close**  | [SPE-3018](https://linear.app/spectranoir/issue/SPE-3018/advance-persisted-historical-route-replays-at-campaign-week-close) — advance-once wire unchanged beyond post-advance resolve |

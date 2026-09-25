@@ -305,7 +305,7 @@ import {
   advanceRivalExpeditionRegistryAtWeekClose,
   normalizeRivalExpeditionProgressRegistry,
 } from '../rivalExpeditionProgress'
-import { advanceHistoricalRouteReplayRegistryAtWeekClose } from '../historicalRouteReplay'
+import { applyHistoricalRouteReplayRegistryAtWeekClose } from '../historicalRouteReplay'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -5127,10 +5127,11 @@ export function advanceWeek(
   outputWeeklyState.rivalExpeditionProgressPackets = rivalWeekClose.packets
   outputWeeklyState.rivalExpeditionClues = rivalWeekClose.clues
 
-  // SPE-3018: advance persisted historical-route replays once for the week that
-  // just closed. Terminal/ended siblings are SPE-3009 identity no-ops; no
-  // terminal→ended resolve or consequence invent happens here.
-  outputWeeklyState.historicalRouteReplays = advanceHistoricalRouteReplayRegistryAtWeekClose(
+  // SPE-3018 + SPE-3020: advance persisted historical-route replays once for the
+  // week that just closed, then resolve terminal → ended with the owned
+  // week-close ordinary-world consequence policy. Already-ended siblings stay
+  // SPE-3009 identity no-ops.
+  outputWeeklyState.historicalRouteReplays = applyHistoricalRouteReplayRegistryAtWeekClose(
     inputWeeklyState.historicalRouteReplays
   )
 

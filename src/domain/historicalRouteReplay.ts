@@ -523,9 +523,9 @@ export function advanceHistoricalRouteReplay(
  *
  * Normalizes via SPE-3017, calls SPE-3009 `advanceHistoricalRouteReplay` once
  * per sibling in deterministic code-unit `eventId` order, then re-normalizes.
- * Terminal/ended records stay identity no-ops. Does not resolve terminal →
- * ended or invent ordinary-world consequence IDs. Call only from campaign
- * week-close (never mid-week).
+ * Terminal/ended records stay identity no-ops here. SPE-3020 owns terminal →
+ * ended resolve after this advance. Call only from campaign week-close
+ * (never mid-week).
  */
 export function advanceHistoricalRouteReplayRegistryAtWeekClose(
   registry: unknown
@@ -540,6 +540,68 @@ export function advanceHistoricalRouteReplayRegistryAtWeekClose(
   }
 
   return normalizeHistoricalRouteReplayRegistry(Object.fromEntries(nextEntries))
+}
+
+/**
+ * SPE-3020 week-close ownership: deterministic ordinary-world consequence for a
+ * terminal historical-route replay. IDs derive only from the record's eventId
+ * and (when present) the first exposed observer by code-unit observerId order.
+ * Does not invent SPE-950 possession subjects or SPE-3007 adjacency.
+ */
+export const HISTORICAL_ROUTE_WEEK_CLOSE_TERMINAL_CONSEQUENCE_KIND =
+  'historical_route_terminal' as const
+
+export function ownedHistoricalRouteReplayTerminalConsequence(
+  record: HistoricalRouteReplayRecord
+): HistoricalRouteOrdinaryConsequenceInput {
+  const subjectId = [...record.observerExposures]
+    .map((exposure) => exposure.observerId)
+    .sort(compareCodeUnits)[0]
+
+  return {
+    consequenceId: `historical-route-replay:${record.eventId}:terminal-ordinary-consequence`,
+    kind: HISTORICAL_ROUTE_WEEK_CLOSE_TERMINAL_CONSEQUENCE_KIND,
+    ...(subjectId !== undefined ? { subjectId } : {}),
+  }
+}
+
+/**
+ * SPE-3020: resolve every terminal sibling once via SPE-3009
+ * `resolveHistoricalRouteReplayTerminal` using the owned week-close
+ * consequence-id policy. Ended / non-terminal siblings stay identity no-ops.
+ * Call only after SPE-3018 advance in the same campaign week-close.
+ */
+export function resolveHistoricalRouteReplayRegistryTerminalsAtWeekClose(
+  registry: unknown
+): HistoricalRouteReplayRegistry {
+  const normalized = normalizeHistoricalRouteReplayRegistry(registry)
+  const nextEntries: Array<[string, HistoricalRouteReplayRecord]> = []
+
+  for (const eventId of Object.keys(normalized)) {
+    const record = normalized[eventId]
+    if (!record) continue
+    nextEntries.push([
+      eventId,
+      resolveHistoricalRouteReplayTerminal(
+        record,
+        ownedHistoricalRouteReplayTerminalConsequence(record)
+      ),
+    ])
+  }
+
+  return normalizeHistoricalRouteReplayRegistry(Object.fromEntries(nextEntries))
+}
+
+/**
+ * SPE-3020: campaign week-close entry — SPE-3018 advance once, then SPE-3020
+ * terminal → ended resolve with the owned consequence policy.
+ */
+export function applyHistoricalRouteReplayRegistryAtWeekClose(
+  registry: unknown
+): HistoricalRouteReplayRegistry {
+  return resolveHistoricalRouteReplayRegistryTerminalsAtWeekClose(
+    advanceHistoricalRouteReplayRegistryAtWeekClose(registry)
+  )
 }
 
 /**

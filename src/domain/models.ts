@@ -3,6 +3,8 @@ import type {
   RivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
 import type { HistoricalRouteReplayRegistry } from './historicalRouteReplay'
+import type { HistoricalRouteReplayActivationCandidateList } from './historicalRouteReplayActivation'
+import type { HistoricalRouteMemoryGraph } from './historicalRouteMemory'
 import type {
   DepartmentWorkshopCompletionOutcomeRegistry,
   DepartmentWorkshopSnapshotRegistry,
@@ -2772,6 +2774,16 @@ export interface GameState {
    * Hydration validates frozen SPE-3009 route arrays fail-closed and never invents edges.
    */
   historicalRouteReplays?: HistoricalRouteReplayRegistry
+  /**
+   * SPE-3024: authored SPE-1605 calendar/start-condition candidates for historical-route
+   * replay activation. Legacy omit hydrates empty; malformed siblings drop independently.
+   */
+  historicalRouteReplayActivationCandidates?: HistoricalRouteReplayActivationCandidateList
+  /**
+   * SPE-3024: optional SPE-1392 graph used as week-close activation input.
+   * Fail-closed hydrate; full multi-site graph persistence remains a separate follow-on.
+   */
+  historicalRouteMemoryGraph?: HistoricalRouteMemoryGraph
   /**
    * SPE-2747: canonical workshop work orders keyed by embedded work-order ID.
    * Static SPE-2083 department definitions are never persisted in this map.

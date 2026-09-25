@@ -208,6 +208,153 @@ export function createHistoricalRouteMemoryGraph(
   })
 }
 
+function normalizeIdHistory(value: unknown): readonly string[] | null {
+  if (!Array.isArray(value)) return null
+  const ids: string[] = []
+  for (const entry of value) {
+    if (!validId(entry)) return null
+    ids.push(entry)
+  }
+  return uniqueSorted(ids)
+}
+
+function normalizeAnchorMemory(value: unknown): HistoricalRouteAnchorMemory | null {
+  if (!isRecord(value)) return null
+  if (
+    !validId(value.id) ||
+    !isAnchorKind(value.kind) ||
+    !validId(value.firstSeenActivationId) ||
+    !validId(value.lastSeenActivationId) ||
+    !isKnowledgeState(value.knowledgeState) ||
+    !validConfidence(value.reconnaissanceConfidence)
+  ) {
+    return null
+  }
+
+  const activationIds = normalizeIdHistory(value.activationIds)
+  const contaminatedActivationIds = normalizeIdHistory(value.contaminatedActivationIds)
+  if (!activationIds || !contaminatedActivationIds) return null
+
+  return frozenAnchor({
+    id: value.id,
+    kind: value.kind,
+    firstSeenActivationId: value.firstSeenActivationId,
+    lastSeenActivationId: value.lastSeenActivationId,
+    activationIds,
+    contaminatedActivationIds,
+    knowledgeState: value.knowledgeState,
+    reconnaissanceConfidence: value.reconnaissanceConfidence,
+  })
+}
+
+function normalizeEdgeMemory(
+  value: unknown,
+  knownAnchorIds: ReadonlySet<string>
+): HistoricalRouteEdgeMemory | null {
+  if (!isRecord(value)) return null
+  if (
+    !validId(value.id) ||
+    value.edgeClass !== HISTORICAL_NONLOCAL_EDGE_CLASS ||
+    !isRouteKind(value.routeKind) ||
+    !validId(value.fromAnchorId) ||
+    !validId(value.toAnchorId) ||
+    !knownAnchorIds.has(value.fromAnchorId) ||
+    !knownAnchorIds.has(value.toAnchorId) ||
+    !validId(value.firstSeenActivationId) ||
+    !validId(value.lastSeenActivationId) ||
+    !isKnowledgeState(value.knowledgeState) ||
+    !validConfidence(value.reconnaissanceConfidence)
+  ) {
+    return null
+  }
+
+  const activationIds = normalizeIdHistory(value.activationIds)
+  const contaminatedActivationIds = normalizeIdHistory(value.contaminatedActivationIds)
+  if (!activationIds || !contaminatedActivationIds) return null
+
+  return frozenEdge({
+    id: value.id,
+    edgeClass: HISTORICAL_NONLOCAL_EDGE_CLASS,
+    routeKind: value.routeKind,
+    fromAnchorId: value.fromAnchorId,
+    toAnchorId: value.toAnchorId,
+    firstSeenActivationId: value.firstSeenActivationId,
+    lastSeenActivationId: value.lastSeenActivationId,
+    activationIds,
+    contaminatedActivationIds,
+    knowledgeState: value.knowledgeState,
+    reconnaissanceConfidence: value.reconnaissanceConfidence,
+  })
+}
+
+/**
+ * Fail-closed hydrate for one SPE-1392 graph used as SPE-3024 activation input.
+ *
+ * Missing/non-record input returns undefined (legacy omit). Malformed anchors,
+ * edges, or active-edge references fail the whole graph closed — this does not
+ * invent missing edges or facility/`route_link` adjacency. Full multi-site
+ * registry persistence remains a separate SPE-1392 follow-on.
+ */
+export function normalizeHistoricalRouteMemoryGraph(
+  value: unknown
+): HistoricalRouteMemoryGraph | undefined {
+  if (!isRecord(value)) return undefined
+  if (!validId(value.siteId)) return undefined
+  if (!Array.isArray(value.anchors) || !Array.isArray(value.edges)) return undefined
+  if (
+    value.activeActivationId !== null &&
+    value.activeActivationId !== undefined &&
+    !validId(value.activeActivationId)
+  ) {
+    return undefined
+  }
+  if (!Array.isArray(value.activeEdgeIds)) return undefined
+
+  const anchors: HistoricalRouteAnchorMemory[] = []
+  const seenAnchorIds = new Set<string>()
+  for (const rawAnchor of value.anchors) {
+    const anchor = normalizeAnchorMemory(rawAnchor)
+    if (!anchor) return undefined
+    if (seenAnchorIds.has(anchor.id)) return undefined
+    seenAnchorIds.add(anchor.id)
+    anchors.push(anchor)
+  }
+  anchors.sort((left, right) => compareCodeUnit(left.id, right.id))
+
+  const knownAnchorIds = new Set(anchors.map((anchor) => anchor.id))
+  const edges: HistoricalRouteEdgeMemory[] = []
+  const seenEdgeIds = new Set<string>()
+  for (const rawEdge of value.edges) {
+    const edge = normalizeEdgeMemory(rawEdge, knownAnchorIds)
+    if (!edge) return undefined
+    if (seenEdgeIds.has(edge.id)) return undefined
+    seenEdgeIds.add(edge.id)
+    edges.push(edge)
+  }
+  edges.sort((left, right) => compareCodeUnit(left.id, right.id))
+
+  const activeEdgeIdsRaw: string[] = []
+  for (const edgeId of value.activeEdgeIds) {
+    if (!validId(edgeId) || !seenEdgeIds.has(edgeId)) return undefined
+    activeEdgeIdsRaw.push(edgeId)
+  }
+  const activeEdgeIds = uniqueSorted(activeEdgeIdsRaw)
+  if (activeEdgeIds.length !== activeEdgeIdsRaw.length) return undefined
+
+  const activeActivationId =
+    value.activeActivationId === undefined ? null : (value.activeActivationId as string | null)
+  if (activeActivationId === null && activeEdgeIds.length > 0) return undefined
+  if (activeActivationId !== null && activeEdgeIds.length === 0) return undefined
+
+  return freezeGraph({
+    siteId: value.siteId,
+    anchors,
+    edges,
+    activeActivationId,
+    activeEdgeIds,
+  })
+}
+
 /**
  * Record one site activation into historical memory.
  *

@@ -63,6 +63,8 @@ import {
   normalizeRivalExpeditionProgressRegistry,
 } from './rivalExpeditionProgress'
 import { normalizeHistoricalRouteReplayRegistry } from './historicalRouteReplay'
+import { normalizeHistoricalRouteReplayActivationCandidates } from './historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraph } from './historicalRouteMemory'
 
 export interface TeamCompositionProfile {
   members: Agent[]
@@ -1125,6 +1127,10 @@ export function normalizeGameState(state: GameState): GameState {
     }
   )
 
+  const historicalRouteMemoryGraph = normalizeHistoricalRouteMemoryGraph(
+    normalized.historicalRouteMemoryGraph
+  )
+
   return {
     ...normalized,
     rivalExpeditionProgressPackets,
@@ -1135,6 +1141,11 @@ export function normalizeGameState(state: GameState): GameState {
     historicalRouteReplays: normalizeHistoricalRouteReplayRegistry(
       normalized.historicalRouteReplays
     ),
+    historicalRouteReplayActivationCandidates:
+      normalizeHistoricalRouteReplayActivationCandidates(
+        normalized.historicalRouteReplayActivationCandidates
+      ),
+    ...(historicalRouteMemoryGraph ? { historicalRouteMemoryGraph } : {}),
   }
 }
 

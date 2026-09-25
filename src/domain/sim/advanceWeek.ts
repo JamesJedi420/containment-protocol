@@ -306,6 +306,11 @@ import {
   normalizeRivalExpeditionProgressRegistry,
 } from '../rivalExpeditionProgress'
 import { applyHistoricalRouteReplayRegistryAtWeekClose } from '../historicalRouteReplay'
+import {
+  activateHistoricalRouteReplayRegistryForCalendarWeek,
+  normalizeHistoricalRouteReplayActivationCandidates,
+} from '../historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraph } from '../historicalRouteMemory'
 import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
 import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
 import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
@@ -5131,9 +5136,34 @@ export function advanceWeek(
   // week that just closed, then resolve terminal → ended with the owned
   // week-close ordinary-world consequence policy. Already-ended siblings stay
   // SPE-3009 identity no-ops.
-  outputWeeklyState.historicalRouteReplays = applyHistoricalRouteReplayRegistryAtWeekClose(
+  // SPE-3024: after advance/resolve, activate matching calendar/start-condition
+  // candidates into approaching records (idempotent; inactive SPE-1392 fail-closed).
+  // Newly activated records stay approaching until the next week-close advance.
+  const afterHistoricalRouteWeekClose = applyHistoricalRouteReplayRegistryAtWeekClose(
     inputWeeklyState.historicalRouteReplays
   )
+  outputWeeklyState.historicalRouteReplays = activateHistoricalRouteReplayRegistryForCalendarWeek(
+    afterHistoricalRouteWeekClose,
+    normalizeHistoricalRouteMemoryGraph(inputWeeklyState.historicalRouteMemoryGraph),
+    normalizeHistoricalRouteReplayActivationCandidates(
+      inputWeeklyState.historicalRouteReplayActivationCandidates
+    ),
+    sourceState.week
+  )
+  outputWeeklyState.historicalRouteReplayActivationCandidates =
+    normalizeHistoricalRouteReplayActivationCandidates(
+      inputWeeklyState.historicalRouteReplayActivationCandidates
+    )
+  const weekCloseHistoricalRouteMemoryGraph = normalizeHistoricalRouteMemoryGraph(
+    inputWeeklyState.historicalRouteMemoryGraph
+  )
+  if (weekCloseHistoricalRouteMemoryGraph) {
+    outputWeeklyState.historicalRouteMemoryGraph = weekCloseHistoricalRouteMemoryGraph
+  } else {
+    // Drop legacy-copied malformed/absent activation graphs (unknown-field preserve
+    // would otherwise keep a fail-closed input on the week-close result).
+    delete outputWeeklyState.historicalRouteMemoryGraph
+  }
 
   // SPE-2720: one graph-local consequence-driven mutation at week-close.
   // Missing/empty legacy state remains a no-op and does not couple into other systems.

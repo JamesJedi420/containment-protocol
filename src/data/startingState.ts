@@ -41,6 +41,7 @@ const startingStateTemplate: GameState = {
   rivalExpeditionProgressPackets: {},
   rivalExpeditionClues: {},
   historicalRouteReplays: {},
+  historicalRouteReplayActivationCandidates: [],
   departmentWorkshopWorkOrders: {},
   departmentWorkshopSnapshots: {},
   departmentWorkshopCompletionOutcomes: {},

@@ -10229,9 +10229,7 @@ export function hydrateGame(
     game.rivalExpeditionClues,
     rivalExpeditionProgressPackets
   )
-  const historicalRouteReplays = normalizeHistoricalRouteReplayRegistry(
-    game.historicalRouteReplays
-  )
+  const historicalRouteReplays = normalizeHistoricalRouteReplayRegistry(game.historicalRouteReplays)
   const departmentWorkshopState = readDepartmentWorkshopState(game)
   const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     game.departmentWorkshopCompletionOutcomes

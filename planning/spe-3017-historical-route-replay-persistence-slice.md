@@ -1,15 +1,15 @@
 # SPE-3017 — Persist historical-route replay registries
 
-| Field | Value |
-| --- | --- |
-| **Status** | **Recently shipped** |
-| **Linear** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) |
-| **Parent / lineage** | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog |
-| **Prerequisite contract** | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — pure freeze/replay helpers unchanged |
-| **Convention reference** | [SPE-2991](https://linear.app/spectranoir/issue/SPE-2991/active-anomaly-effect-instance-lifecycle-and-persistence) — sanitize/hydrate conventions only; do not reopen effect-instance lifecycle |
-| **Prerequisite data** | [SPE-1392](https://linear.app/spectranoir/issue/SPE-1392/historical-route-memory-and-nonlocal-edge-graph) — frozen route arrays originate from active-path resolution at creation |
-| **Branch** | `cursor/spe-1606-historical-route-replay-persistence-1999` |
-| **Base `main` SHA** | `11b2bba47a443c2eaa7e425498018aaf167abc5e` |
+| Field                     | Value                                                                                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                | **Recently shipped**                                                                                                                                                                            |
+| **Linear**                | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed)                                                                           |
+| **Parent / lineage**      | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                                     |
+| **Prerequisite contract** | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — pure freeze/replay helpers unchanged                             |
+| **Convention reference**  | [SPE-2991](https://linear.app/spectranoir/issue/SPE-2991/active-anomaly-effect-instance-lifecycle-and-persistence) — sanitize/hydrate conventions only; do not reopen effect-instance lifecycle |
+| **Prerequisite data**     | [SPE-1392](https://linear.app/spectranoir/issue/SPE-1392/historical-route-memory-and-nonlocal-edge-graph) — frozen route arrays originate from active-path resolution at creation               |
+| **Branch**                | `cursor/spe-1606-historical-route-replay-persistence-1999`                                                                                                                                      |
+| **Base `main` SHA**       | `11b2bba47a443c2eaa7e425498018aaf167abc5e`                                                                                                                                                      |
 
 ## Goal
 
@@ -17,14 +17,14 @@ Persist canonical `HistoricalRouteReplayRecord` registries on `GameState` with f
 
 ## Ownership audit
 
-| Concern | Existing owner reused by this slice |
-| --- | --- |
-| Replay freeze / advance / intercept / terminal | `src/domain/historicalRouteReplay.ts` / SPE-3009 |
-| Historical path resolution at creation | `src/domain/historicalRouteMemory.ts` / SPE-1392 |
-| Canonical runtime normalization | `normalizeGameState` in `src/domain/teamSimulation.ts` |
-| Hydration and run transfer | `src/app/store/runTransfer.ts` |
-| Manual save envelope | `src/app/store/saveSystem.ts`; `GAME_SAVE_VERSION` remains `1` |
-| Registry sanitize pattern | SPE-2741 rival-expedition registries; SPE-2991 conventions |
+| Concern                                        | Existing owner reused by this slice                            |
+| ---------------------------------------------- | -------------------------------------------------------------- |
+| Replay freeze / advance / intercept / terminal | `src/domain/historicalRouteReplay.ts` / SPE-3009               |
+| Historical path resolution at creation         | `src/domain/historicalRouteMemory.ts` / SPE-1392               |
+| Canonical runtime normalization                | `normalizeGameState` in `src/domain/teamSimulation.ts`         |
+| Hydration and run transfer                     | `src/app/store/runTransfer.ts`                                 |
+| Manual save envelope                           | `src/app/store/saveSystem.ts`; `GAME_SAVE_VERSION` remains `1` |
+| Registry sanitize pattern                      | SPE-2741 rival-expedition registries; SPE-2991 conventions     |
 
 ## Scope
 
@@ -69,9 +69,9 @@ Not implemented here:
 
 ## Deferred
 
-| Item | Suggested owner issue | Why deferred |
-| --- | --- | --- |
-| Authoritative week-close advancement/orchestration | New SPE-1606 child | Persistence only; does not choose when campaign time advances a replay. |
-| Player-facing replay/map/explanation surfacing | [SPE-1080](https://linear.app/spectranoir/issue/SPE-1080/presentation-accessibility-and-simulation-explainability) with a bounded SPE-1606 integration child | Presentation must consume canonical replay state rather than owning route/causality logic. |
-| Automatic calendar/time/interaction activation | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) / [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071/calendar-seasonal-cycle-and-time-gated-events) | Activation policy stays with start-condition/calendar owners. |
-| SPE-1392 graph persistence on `GameState` | Separate SPE-1392 / SPE-1606 follow-on if required | Hydrate validates frozen route arrays as self-contained; live graph storage is a distinct boundary. |
+| Item                                               | Suggested owner issue                                                                                                                                                                               | Why deferred                                                                                        |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Authoritative week-close advancement/orchestration | New SPE-1606 child                                                                                                                                                                                  | Persistence only; does not choose when campaign time advances a replay.                             |
+| Player-facing replay/map/explanation surfacing     | [SPE-1080](https://linear.app/spectranoir/issue/SPE-1080/presentation-accessibility-and-simulation-explainability) with a bounded SPE-1606 integration child                                        | Presentation must consume canonical replay state rather than owning route/causality logic.          |
+| Automatic calendar/time/interaction activation     | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) / [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071/calendar-seasonal-cycle-and-time-gated-events) | Activation policy stays with start-condition/calendar owners.                                       |
+| SPE-1392 graph persistence on `GameState`          | Separate SPE-1392 / SPE-1606 follow-on if required                                                                                                                                                  | Hydrate validates frozen route arrays as self-contained; live graph storage is a distinct boundary. |

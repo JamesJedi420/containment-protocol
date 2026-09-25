@@ -68,11 +68,7 @@ function buildEndedReplay(): HistoricalRouteReplayRecord {
   })
   if (!created) throw new Error('fixture replay was not created')
 
-  const contacted = interceptHistoricalRouteReplay(
-    created,
-    'observer:traveler',
-    'anchor:moor-road'
-  )
+  const contacted = interceptHistoricalRouteReplay(created, 'observer:traveler', 'anchor:moor-road')
   const altered = revealHistoricalRoutePostContactObservation(contacted, 'observer:traveler')
   const middle = advanceHistoricalRouteReplay(altered)
   const terminal = advanceHistoricalRouteReplay(middle)
@@ -180,9 +176,7 @@ describe('SPE-3017 historical route replay persistence', () => {
       fallback
     )
 
-    expect(Object.keys(hydratedMixed.historicalRouteReplays ?? {})).toEqual([
-      'event:phantom-coach',
-    ])
+    expect(Object.keys(hydratedMixed.historicalRouteReplays ?? {})).toEqual(['event:phantom-coach'])
     expect(hydratedMixed.historicalRouteReplays?.['event:phantom-coach']).toEqual(valid)
     expect(Object.isFrozen(hydratedMixed.historicalRouteReplays)).toBe(true)
   })

@@ -27,8 +27,7 @@ export const HISTORICAL_ROUTE_EXPOSURE_STATES = ['contact', 'post_contact'] as c
 export type HistoricalRouteExposureState = (typeof HISTORICAL_ROUTE_EXPOSURE_STATES)[number]
 
 export const HISTORICAL_ROUTE_OBSERVATION_STATES = ['external', 'altered'] as const
-export type HistoricalRouteObservationState =
-  (typeof HISTORICAL_ROUTE_OBSERVATION_STATES)[number]
+export type HistoricalRouteObservationState = (typeof HISTORICAL_ROUTE_OBSERVATION_STATES)[number]
 
 export const HISTORICAL_ROUTE_CAUSAL_CLASSIFICATION = 'unresolved' as const
 
@@ -83,9 +82,7 @@ export interface HistoricalRouteOrdinaryConsequenceInput {
  * SPE-3017: canonical GameState registry of historical-route replay records,
  * keyed by embedded eventId. Legacy omit hydrates empty.
  */
-export type HistoricalRouteReplayRegistry = Readonly<
-  Record<string, HistoricalRouteReplayRecord>
->
+export type HistoricalRouteReplayRegistry = Readonly<Record<string, HistoricalRouteReplayRecord>>
 
 const PHASE_SET: ReadonlySet<string> = new Set(HISTORICAL_ROUTE_REPLAY_PHASES)
 const EXPOSURE_STATE_SET: ReadonlySet<string> = new Set(HISTORICAL_ROUTE_EXPOSURE_STATES)
@@ -168,9 +165,7 @@ function normalizeObserverExposure(
   })
 }
 
-function normalizeOrdinaryConsequence(
-  value: unknown
-): HistoricalRouteOrdinaryConsequence | null {
+function normalizeOrdinaryConsequence(value: unknown): HistoricalRouteOrdinaryConsequence | null {
   if (!isRecord(value)) return null
   if (
     !validId(value.consequenceId) ||

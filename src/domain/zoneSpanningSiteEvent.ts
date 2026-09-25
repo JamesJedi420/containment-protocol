@@ -11,6 +11,7 @@
  * SPE-3013 — one hostile event-kind token beside that hazard kind.
  * SPE-3014 — one social event-kind token beside those kinds.
  * SPE-3015 — spread success copies an existing eventKind.
+ * SPE-3016 — full-site-alert success copies an existing eventKind.
  *
  * Origin, affected zones, and the propagation rule are separate fields.
  * Adjacency calls `propagateSiteEventOverFacilityTopology`. Airflow,
@@ -528,18 +529,21 @@ export function applyZoneSpanningSocialKind(
 /**
  * Set site-wide affected state only when the SPE-3008 stage qualifies.
  * A null read returns the same record. This does not add a propagation rule.
+ * SPE-3016 copies an existing hazard, hostile, or social kind onto that freeze.
  */
 export function applyZoneSpanningFullSiteAlert(
   record: ZoneSpanningSiteEventRecord,
   stage: unknown
 ): ZoneSpanningSiteEventRecord {
   if (readFullSiteAlertStage(stage) === null) return record
+  const eventKind = reservedEventKind(record)
   return Object.freeze({
     eventId: record.eventId,
     originNodeId: record.originNodeId,
     affectedNodeIds: record.affectedNodeIds,
     propagationRule: record.propagationRule,
     siteWide: true,
+    ...(eventKind === undefined ? {} : { eventKind }),
     pulse: Object.freeze({
       activeWeekCount: record.pulse.activeWeekCount,
       returnAfterWeekCount: record.pulse.returnAfterWeekCount,

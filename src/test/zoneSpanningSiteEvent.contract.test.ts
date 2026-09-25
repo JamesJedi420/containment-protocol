@@ -1466,6 +1466,69 @@ describe('SPE-3010 full-site-alert consume', () => {
   })
 })
 
+describe('SPE-3016 full-site alert copies eventKind', () => {
+  const kinds = [
+    ZONE_SPANNING_HAZARD_KIND,
+    ZONE_SPANNING_HOSTILE_KIND,
+    ZONE_SPANNING_SOCIAL_KIND,
+  ] as const
+
+  it('keeps each existing kind on a qualifying stage and still sets siteWide', () => {
+    const affectedNodeIds = [MED_BAY]
+    for (const kind of kinds) {
+      const siteEvent = record({
+        propagationRule: ZONE_SPANNING_ROUTE_LINK_RULE,
+        affectedNodeIds,
+        eventKind: kind,
+        siteWide: false,
+      })
+      const result = applyZoneSpanningFullSiteAlert(siteEvent, FULL_SITE_ALERT_STAGE)
+
+      expect(result).not.toBe(siteEvent)
+      expect(result.eventKind).toBe(kind)
+      expect(result.siteWide).toBe(true)
+      expect(result.affectedNodeIds).toBe(affectedNodeIds)
+      expect(result.propagationRule).toBe(ZONE_SPANNING_ROUTE_LINK_RULE)
+      expect(result.originNodeId).toBe(siteEvent.originNodeId)
+      expect(result.eventId).toBe(siteEvent.eventId)
+      expect(result.pulse).toEqual(siteEvent.pulse)
+      expect(result.pulse).not.toBe(siteEvent.pulse)
+    }
+  })
+
+  it('omits a missing kind on a qualifying stage', () => {
+    const siteEvent = record({
+      propagationRule: ZONE_SPANNING_ALARM_RULE,
+      affectedNodeIds: [COMMAND],
+      siteWide: false,
+    })
+    const result = applyZoneSpanningFullSiteAlert(siteEvent, FULL_SITE_ALERT_STAGE)
+
+    expect(result).not.toBe(siteEvent)
+    expect(result.eventKind).toBeUndefined()
+    expect(Object.prototype.hasOwnProperty.call(result, 'eventKind')).toBe(false)
+    expect(result.siteWide).toBe(true)
+    expect(result.affectedNodeIds).toBe(siteEvent.affectedNodeIds)
+    expect(result.propagationRule).toBe(ZONE_SPANNING_ALARM_RULE)
+    expect(result.originNodeId).toBe(siteEvent.originNodeId)
+    expect(result.pulse).toEqual(siteEvent.pulse)
+  })
+
+  it('returns the same record for a null stage even when a kind is already set', () => {
+    for (const kind of kinds) {
+      const siteEvent = record({
+        eventKind: kind,
+        siteWide: false,
+        affectedNodeIds: [COMMAND],
+      })
+      const result = applyZoneSpanningFullSiteAlert(siteEvent, null)
+      expect(result).toBe(siteEvent)
+      expect(result.eventKind).toBe(kind)
+      expect(result.siteWide).toBe(false)
+    }
+  })
+})
+
 describe('SPE-3012 hazard event kind', () => {
   it('stamps hazard and keeps the affected-id array, rule, origin, pulse, and siteWide', () => {
     const affectedNodeIds = [MED_BAY]

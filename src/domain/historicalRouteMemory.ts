@@ -63,6 +63,14 @@ export interface HistoricalRouteMemoryGraph {
   readonly activeEdgeIds: readonly string[]
 }
 
+/**
+ * SPE-3027: multi-site SPE-1392 memory graphs keyed by embedded `siteId`.
+ * Legacy omit / missing hydrate to an empty frozen registry.
+ */
+export type HistoricalRouteMemoryGraphRegistry = Readonly<
+  Record<string, HistoricalRouteMemoryGraph>
+>
+
 export interface HistoricalRouteAnchorObservation {
   readonly id: string
   readonly kind: HistoricalRouteAnchorKind
@@ -287,19 +295,29 @@ function normalizeEdgeMemory(
   })
 }
 
+/** Reject JavaScript integer-index keys that cannot retain code-unit object-key order. */
+function isIntegerIndexId(value: string): boolean {
+  const numeric = Number(value)
+  return (
+    Number.isInteger(numeric) &&
+    numeric >= 0 &&
+    numeric < 4_294_967_295 &&
+    String(numeric) === value
+  )
+}
+
 /**
- * Fail-closed hydrate for one SPE-1392 graph used as SPE-3024 activation input.
+ * Fail-closed hydrate for one SPE-1392 site-scoped memory graph.
  *
  * Missing/non-record input returns undefined (legacy omit). Malformed anchors,
  * edges, or active-edge references fail the whole graph closed — this does not
- * invent missing edges or facility/`route_link` adjacency. Full multi-site
- * registry persistence remains a separate SPE-1392 follow-on.
+ * invent missing edges or facility/`route_link` adjacency.
  */
 export function normalizeHistoricalRouteMemoryGraph(
   value: unknown
 ): HistoricalRouteMemoryGraph | undefined {
   if (!isRecord(value)) return undefined
-  if (!validId(value.siteId)) return undefined
+  if (!validId(value.siteId) || isIntegerIndexId(value.siteId)) return undefined
   if (!Array.isArray(value.anchors) || !Array.isArray(value.edges)) return undefined
   if (
     value.activeActivationId !== null &&
@@ -353,6 +371,72 @@ export function normalizeHistoricalRouteMemoryGraph(
     activeActivationId,
     activeEdgeIds,
   })
+}
+
+/**
+ * SPE-3027: normalize a multi-site SPE-1392 graph registry.
+ *
+ * Missing/non-record input hydrates to an empty frozen registry. Malformed,
+ * key-mismatched, and integer-index siblings drop independently. Valid siblings
+ * insert in deterministic code-unit `siteId` order. Does not invent edges.
+ */
+export function normalizeHistoricalRouteMemoryGraphRegistry(
+  value: unknown
+): HistoricalRouteMemoryGraphRegistry {
+  if (!isRecord(value)) {
+    return Object.freeze({})
+  }
+
+  const entries: [string, HistoricalRouteMemoryGraph][] = []
+  for (const [registryId, rawGraph] of Object.entries(value)) {
+    if (isIntegerIndexId(registryId)) continue
+    const graph = normalizeHistoricalRouteMemoryGraph(rawGraph)
+    if (graph && registryId === graph.siteId) {
+      entries.push([graph.siteId, graph])
+    }
+  }
+  entries.sort(([left], [right]) => compareCodeUnit(left, right))
+
+  return Object.freeze(Object.fromEntries(entries))
+}
+
+/**
+ * SPE-3027: dual-read hydrate for GameState graph fields.
+ *
+ * Canonical store is `historicalRouteMemoryGraphs`. SPE-3024 single optional
+ * `historicalRouteMemoryGraph` folds into the registry under `graph.siteId`
+ * when that site is absent; an existing registry sibling wins on collision.
+ */
+export function normalizeHistoricalRouteMemoryGraphsFromGameState(input: {
+  readonly historicalRouteMemoryGraphs?: unknown
+  readonly historicalRouteMemoryGraph?: unknown
+}): HistoricalRouteMemoryGraphRegistry {
+  const registry = normalizeHistoricalRouteMemoryGraphRegistry(
+    input.historicalRouteMemoryGraphs
+  )
+  const legacy = normalizeHistoricalRouteMemoryGraph(input.historicalRouteMemoryGraph)
+  if (!legacy) {
+    return registry
+  }
+  if (registry[legacy.siteId]) {
+    return registry
+  }
+  return normalizeHistoricalRouteMemoryGraphRegistry({
+    ...registry,
+    [legacy.siteId]: legacy,
+  })
+}
+
+/** Ordered site graphs for SPE-3024 activation (deterministic code-unit `siteId`). */
+export function listHistoricalRouteMemoryGraphs(
+  registry: HistoricalRouteMemoryGraphRegistry | null | undefined
+): readonly HistoricalRouteMemoryGraph[] {
+  const normalized = normalizeHistoricalRouteMemoryGraphRegistry(registry)
+  return Object.freeze(
+    Object.keys(normalized)
+      .sort(compareCodeUnit)
+      .map((siteId) => normalized[siteId]!)
+  )
 }
 
 /**

@@ -335,7 +335,7 @@ import {
 } from '../../domain/rivalExpeditionProgress'
 import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalRouteReplay'
 import { normalizeHistoricalRouteReplayActivationCandidates } from '../../domain/historicalRouteReplayActivation'
-import { normalizeHistoricalRouteMemoryGraph } from '../../domain/historicalRouteMemory'
+import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../../domain/historicalRouteMemory'
 import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
@@ -10236,9 +10236,10 @@ export function hydrateGame(
     normalizeHistoricalRouteReplayActivationCandidates(
       game.historicalRouteReplayActivationCandidates
     )
-  const historicalRouteMemoryGraph = normalizeHistoricalRouteMemoryGraph(
-    game.historicalRouteMemoryGraph
-  )
+  const historicalRouteMemoryGraphs = normalizeHistoricalRouteMemoryGraphsFromGameState({
+    historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+    historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+  })
   const departmentWorkshopState = readDepartmentWorkshopState(game)
   const departmentWorkshopCompletionOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     game.departmentWorkshopCompletionOutcomes
@@ -10661,7 +10662,7 @@ export function hydrateGame(
     rivalExpeditionClues,
     historicalRouteReplays,
     historicalRouteReplayActivationCandidates,
-    ...(historicalRouteMemoryGraph ? { historicalRouteMemoryGraph } : {}),
+    historicalRouteMemoryGraphs,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,
@@ -10874,7 +10875,7 @@ export function hydrateGame(
     rivalExpeditionClues,
     historicalRouteReplays,
     historicalRouteReplayActivationCandidates,
-    ...(historicalRouteMemoryGraph ? { historicalRouteMemoryGraph } : {}),
+    historicalRouteMemoryGraphs,
     departmentWorkshopWorkOrders: departmentWorkshopState.workOrders,
     departmentWorkshopSnapshots: departmentWorkshopState.snapshots,
     departmentWorkshopCompletionOutcomes,

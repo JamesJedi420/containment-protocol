@@ -4,7 +4,10 @@ import type {
 } from './rivalExpeditionProgress'
 import type { HistoricalRouteReplayRegistry } from './historicalRouteReplay'
 import type { HistoricalRouteReplayActivationCandidateList } from './historicalRouteReplayActivation'
-import type { HistoricalRouteMemoryGraph } from './historicalRouteMemory'
+import type {
+  HistoricalRouteMemoryGraph,
+  HistoricalRouteMemoryGraphRegistry,
+} from './historicalRouteMemory'
 import type {
   DepartmentWorkshopCompletionOutcomeRegistry,
   DepartmentWorkshopSnapshotRegistry,
@@ -2780,8 +2783,14 @@ export interface GameState {
    */
   historicalRouteReplayActivationCandidates?: HistoricalRouteReplayActivationCandidateList
   /**
-   * SPE-3024: optional SPE-1392 graph used as week-close activation input.
-   * Fail-closed hydrate; full multi-site graph persistence remains a separate follow-on.
+   * SPE-3027: multi-site SPE-1392 historical-route memory graphs keyed by `siteId`.
+   * Fail-closed hydrate; legacy omit is `{}`. SPE-3024 calendar activation reads this registry.
+   */
+  historicalRouteMemoryGraphs?: HistoricalRouteMemoryGraphRegistry
+  /**
+   * SPE-3024 legacy single activation graph. Dual-read on hydrate only: folds into
+   * `historicalRouteMemoryGraphs` under `graph.siteId` when that site is absent.
+   * Canonical output omits this field after SPE-3027 normalize/hydrate.
    */
   historicalRouteMemoryGraph?: HistoricalRouteMemoryGraph
   /**

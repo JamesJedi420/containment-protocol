@@ -12,7 +12,14 @@ import {
   normalizeHistoricalRouteReplayRegistry,
   type HistoricalRouteReplayRegistry,
 } from './historicalRouteReplay'
-import type { HistoricalRouteMemoryGraph } from './historicalRouteMemory'
+import {
+  listHistoricalRouteMemoryGraphs,
+  normalizeHistoricalRouteMemoryGraph,
+  normalizeHistoricalRouteMemoryGraphRegistry,
+  normalizeHistoricalRouteMemoryGraphsFromGameState,
+  type HistoricalRouteMemoryGraph,
+  type HistoricalRouteMemoryGraphRegistry,
+} from './historicalRouteMemory'
 
 export const HISTORICAL_ROUTE_REPLAY_ABSOLUTE_WEEK_START = 'absolute_week' as const
 
@@ -147,13 +154,56 @@ function startConditionMatchesCampaignWeek(
 }
 
 /**
+ * Resolve the SPE-1392 graphs SPE-3024 activation may try, in deterministic
+ * `siteId` order. Accepts the SPE-3027 multi-site registry, a single legacy
+ * SPE-3024 graph, or a dual-read GameState-shaped object.
+ */
+function resolveActivationGraphs(
+  graphs:
+    | HistoricalRouteMemoryGraphRegistry
+    | HistoricalRouteMemoryGraph
+    | {
+        readonly historicalRouteMemoryGraphs?: unknown
+        readonly historicalRouteMemoryGraph?: unknown
+      }
+    | null
+    | undefined
+): readonly HistoricalRouteMemoryGraph[] {
+  if (graphs == null) {
+    return Object.freeze([])
+  }
+  if (isRecord(graphs) && Array.isArray((graphs as HistoricalRouteMemoryGraph).anchors)) {
+    const single = normalizeHistoricalRouteMemoryGraph(graphs)
+    return single ? Object.freeze([single]) : Object.freeze([])
+  }
+  if (
+    isRecord(graphs) &&
+    ('historicalRouteMemoryGraphs' in graphs || 'historicalRouteMemoryGraph' in graphs)
+  ) {
+    return listHistoricalRouteMemoryGraphs(
+      normalizeHistoricalRouteMemoryGraphsFromGameState(
+        graphs as {
+          readonly historicalRouteMemoryGraphs?: unknown
+          readonly historicalRouteMemoryGraph?: unknown
+        }
+      )
+    )
+  }
+  return listHistoricalRouteMemoryGraphs(
+    normalizeHistoricalRouteMemoryGraphRegistry(graphs)
+  )
+}
+
+/**
  * SPE-3024: activate matching calendar/start-condition candidates into the
  * persisted replay registry.
  *
  * - Matching uses SPE-1071 absolute week (`campaignWeek` === `GameState.week`
  *   for the closing campaign week).
- * - Creation calls SPE-3009 `createHistoricalRouteReplay` (fail-closed on
- *   missing/inactive SPE-1392 path).
+ * - Creation calls SPE-3009 `createHistoricalRouteReplay` against SPE-3027
+ *   registry graphs in deterministic `siteId` order (fail-closed on
+ *   missing/inactive SPE-1392 path). A single legacy SPE-3024 graph remains
+ *   accepted as activation input for dual-read migration.
  * - Existing `eventId` siblings stay identity (idempotent re-activation).
  * - Insert order is deterministic code-unit `eventId`; result is SPE-3017
  *   normalized.
@@ -161,12 +211,21 @@ function startConditionMatchesCampaignWeek(
  */
 export function activateHistoricalRouteReplayRegistryForCalendarWeek(
   registry: unknown,
-  graph: HistoricalRouteMemoryGraph | null | undefined,
+  graphs:
+    | HistoricalRouteMemoryGraphRegistry
+    | HistoricalRouteMemoryGraph
+    | {
+        readonly historicalRouteMemoryGraphs?: unknown
+        readonly historicalRouteMemoryGraph?: unknown
+      }
+    | null
+    | undefined,
   candidates: readonly HistoricalRouteReplayActivationCandidate[] | null | undefined,
   campaignWeek: number
 ): HistoricalRouteReplayRegistry {
   const normalized = normalizeHistoricalRouteReplayRegistry(registry)
-  if (!graph || !isNonNegativeInteger(campaignWeek)) {
+  const siteGraphs = resolveActivationGraphs(graphs)
+  if (siteGraphs.length === 0 || !isNonNegativeInteger(campaignWeek)) {
     return normalized
   }
 
@@ -184,12 +243,16 @@ export function activateHistoricalRouteReplayRegistryForCalendarWeek(
   for (const candidate of matching) {
     if (nextEntries[candidate.eventId]) continue
 
-    const created = createHistoricalRouteReplay(graph, {
-      eventId: candidate.eventId,
-      activationId: candidate.activationId,
-      originAnchorId: candidate.originAnchorId,
-      terminalAnchorId: candidate.terminalAnchorId,
-    })
+    let created: ReturnType<typeof createHistoricalRouteReplay> = undefined
+    for (const graph of siteGraphs) {
+      created = createHistoricalRouteReplay(graph, {
+        eventId: candidate.eventId,
+        activationId: candidate.activationId,
+        originAnchorId: candidate.originAnchorId,
+        terminalAnchorId: candidate.terminalAnchorId,
+      })
+      if (created) break
+    }
     if (!created) continue
 
     nextEntries[candidate.eventId] = created

@@ -5,7 +5,9 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { projectOperationalExplanation } from '../../domain/operationalExplanation'
 import { HistoricalRouteReplayExplanationPanel } from '../operations/HistoricalRouteReplayExplanationPanel'
+import { HistoricalRouteReplayMapChromePanel } from '../operations/HistoricalRouteReplayMapChromePanel'
 import { getHistoricalRouteReplayOperationalExplanations } from '../operations/historicalRouteReplayExplanationAdapter'
+import { getHistoricalRouteReplayMapChromeViews } from '../operations/historicalRouteReplayMapChromeAdapter'
 import { getOperationsReportView } from '../report/operationsReportView'
 
 export function OperationsReportPanel() {
@@ -18,6 +20,14 @@ export function OperationsReportPanel() {
           summary: projectOperationalExplanation(record, 'summary'),
           detail: projectOperationalExplanation(record, 'detail'),
         })
+      ),
+    [game]
+  )
+  const historicalRouteReplayMapChrome = useMemo(
+    () =>
+      getHistoricalRouteReplayMapChromeViews(
+        game.historicalRouteReplays,
+        game.historicalRouteMemoryGraphs
       ),
     [game]
   )
@@ -449,6 +459,8 @@ export function OperationsReportPanel() {
         </article>
 
         <HistoricalRouteReplayExplanationPanel explanations={historicalRouteReplayExplanations} />
+
+        <HistoricalRouteReplayMapChromePanel views={historicalRouteReplayMapChrome} />
       </div>
     </section>
   )

@@ -67,8 +67,8 @@ Not implemented here:
 
 ## Deferred
 
-| Item                                      | Suggested owner issue                                                                                 | Why deferred                                                            |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Map / route-graph visual surfacing        | Later SPE-1080 / SPE-1606 child                                                                       | This slice owns SPE-2688 text explanation only; map chrome is separate. |
-| Knowledge-system-driven visibility inputs | Later SPE-1080 / intel child                                                                          | Conservative default visibility is enough for the first consumer.       |
-| Interaction-triggered mid-week starts     | Later [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) child | Activation remains SPE-3024 / SPE-1605; this slice is read-only.        |
+| Item                                      | Suggested owner issue                                                                                                                                                                            | Why deferred                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Map / route-graph visual surfacing        | [SPE-3031](https://linear.app/spectranoir/issue/SPE-3031/surface-historical-route-replay-anchorsedges-in-one-bounded-maproute) — `planning/spe-3031-historical-route-replay-map-chrome-slice.md` | Retargeted from this slice; SPE-3026 owns SPE-2688 text explanation only. |
+| Knowledge-system-driven visibility inputs | Later SPE-1080 / intel child                                                                                                                                                                     | Conservative default visibility is enough for the first consumer.         |
+| Interaction-triggered mid-week starts     | Later [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) child                                                                                            | Activation remains SPE-3024 / SPE-1605; this slice is read-only.          |

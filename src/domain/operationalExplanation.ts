@@ -7,17 +7,11 @@ export const OPERATIONAL_EXPLANATION_SEVERITIES = [
   'critical',
 ] as const
 
-export type OperationalExplanationSeverity =
-  (typeof OPERATIONAL_EXPLANATION_SEVERITIES)[number]
+export type OperationalExplanationSeverity = (typeof OPERATIONAL_EXPLANATION_SEVERITIES)[number]
 
-export const OPERATIONAL_EXPLANATION_LIFECYCLES = [
-  'active',
-  'resolved',
-  'superseded',
-] as const
+export const OPERATIONAL_EXPLANATION_LIFECYCLES = ['active', 'resolved', 'superseded'] as const
 
-export type OperationalExplanationLifecycle =
-  (typeof OPERATIONAL_EXPLANATION_LIFECYCLES)[number]
+export type OperationalExplanationLifecycle = (typeof OPERATIONAL_EXPLANATION_LIFECYCLES)[number]
 
 export const OPERATIONAL_EXPLANATION_CONFIDENCES = [
   'confirmed',
@@ -26,15 +20,15 @@ export const OPERATIONAL_EXPLANATION_CONFIDENCES = [
   'unknown',
 ] as const
 
-export type OperationalExplanationConfidence =
-  (typeof OPERATIONAL_EXPLANATION_CONFIDENCES)[number]
+export type OperationalExplanationConfidence = (typeof OPERATIONAL_EXPLANATION_CONFIDENCES)[number]
 
 export const OPERATIONAL_EXPLANATION_DEPTHS = ['summary', 'detail', 'diagnostic'] as const
 export type OperationalExplanationDepth = (typeof OPERATIONAL_EXPLANATION_DEPTHS)[number]
 
 export interface OperationalExplanationSource {
-  readonly system: 'department_workshop' | 'deployable_readiness'
-  readonly recordType: 'work_order' | 'completion_outcome' | 'readiness_composition'
+  readonly system: 'department_workshop' | 'deployable_readiness' | 'historical_route_replay'
+  readonly recordType:
+    'work_order' | 'completion_outcome' | 'readiness_composition' | 'replay_record'
   readonly recordId: string
 }
 
@@ -105,8 +99,9 @@ export function compareOperationalExplanationCodeUnits(left: string, right: stri
 
 function normalizeStringList(values: readonly string[]): readonly string[] {
   return Object.freeze(
-    [...new Set(values.filter((value) => typeof value === 'string' && value.trim().length > 0))]
-      .sort(compareOperationalExplanationCodeUnits)
+    [
+      ...new Set(values.filter((value) => typeof value === 'string' && value.trim().length > 0)),
+    ].sort(compareOperationalExplanationCodeUnits)
   )
 }
 
@@ -219,10 +214,18 @@ export function validateOperationalExplanationRecord(
   if (typeof source !== 'object' || source === null || Array.isArray(source)) {
     issues.push('source-required')
   } else {
-    if (!['department_workshop', 'deployable_readiness'].includes(source.system as string)) {
+    if (
+      !['department_workshop', 'deployable_readiness', 'historical_route_replay'].includes(
+        source.system as string
+      )
+    ) {
       issues.push('invalid-source-system')
     }
-    if (!['work_order', 'completion_outcome', 'readiness_composition'].includes(source.recordType as string)) {
+    if (
+      !['work_order', 'completion_outcome', 'readiness_composition', 'replay_record'].includes(
+        source.recordType as string
+      )
+    ) {
       issues.push('invalid-record-type')
     }
     if (!isNonEmptyString(source.recordId)) issues.push('source-record-id-required')
@@ -232,13 +235,23 @@ export function validateOperationalExplanationRecord(
   if (!isNonEmptyString(record.reasonCode) || !record.reasonCode?.includes('.')) {
     issues.push('namespaced-reason-code-required')
   }
-  if (!OPERATIONAL_EXPLANATION_SEVERITIES.includes(record.severity as OperationalExplanationSeverity)) {
+  if (
+    !OPERATIONAL_EXPLANATION_SEVERITIES.includes(record.severity as OperationalExplanationSeverity)
+  ) {
     issues.push('invalid-severity')
   }
-  if (!OPERATIONAL_EXPLANATION_LIFECYCLES.includes(record.lifecycle as OperationalExplanationLifecycle)) {
+  if (
+    !OPERATIONAL_EXPLANATION_LIFECYCLES.includes(
+      record.lifecycle as OperationalExplanationLifecycle
+    )
+  ) {
     issues.push('invalid-lifecycle')
   }
-  if (!OPERATIONAL_EXPLANATION_CONFIDENCES.includes(record.confidence as OperationalExplanationConfidence)) {
+  if (
+    !OPERATIONAL_EXPLANATION_CONFIDENCES.includes(
+      record.confidence as OperationalExplanationConfidence
+    )
+  ) {
     issues.push('invalid-confidence')
   }
   if (!isNonEmptyString(record.summary)) issues.push('summary-required')

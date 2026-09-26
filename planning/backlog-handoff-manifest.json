@@ -1,9 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [
-    "SPE-3031"
-  ],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3031",
     "SPE-3026",
     "SPE-3027",
     "SPE-3024",
@@ -14,11 +13,10 @@
     "SPE-3016",
     "SPE-3015",
     "SPE-3014",
-    "SPE-3013",
-    "SPE-3012"
+    "SPE-3013"
   ],
   "sliceDocStatus": {
-    "planning/spe-3031-historical-route-replay-map-chrome-slice.md": "In Progress",
+    "planning/spe-3031-historical-route-replay-map-chrome-slice.md": "Recently shipped",
     "planning/spe-3026-historical-route-replay-explanation-slice.md": "Recently shipped",
     "planning/spe-3027-historical-route-memory-graph-persistence-slice.md": "Recently shipped",
     "planning/spe-3024-historical-route-replay-activation-slice.md": "Recently shipped",

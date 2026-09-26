@@ -13,8 +13,7 @@
     "SPE-3014",
     "SPE-3013",
     "SPE-3012",
-    "SPE-3010",
-    "SPE-3008"
+    "SPE-3010"
   ],
   "sliceDocStatus": {
     "planning/spe-3027-historical-route-memory-graph-persistence-slice.md": "Recently shipped",

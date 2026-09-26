@@ -85,11 +85,13 @@ function withoutHistoricalRouteActivationFields<T extends Record<string, unknown
     historicalRouteReplays: _replays,
     historicalRouteReplayActivationCandidates: _candidates,
     historicalRouteMemoryGraph: _graph,
+    historicalRouteMemoryGraphs: _graphs,
     ...unrelated
   } = state
   void _replays
   void _candidates
   void _graph
+  void _graphs
   return unrelated
 }
 
@@ -238,7 +240,9 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
         'event:already': approachingExisting,
       },
       historicalRouteReplayActivationCandidates: candidates,
-      historicalRouteMemoryGraph: graph,
+      historicalRouteMemoryGraphs: {
+        [graph.siteId]: graph,
+      },
     }
 
     const baselineNext = advanceWeek(structuredClone(baseline), 1_700_000_000_000)
@@ -254,6 +258,8 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
     // Newly activated stays approaching until the next week-close advance.
     expect(activatedNext.historicalRouteReplays?.['event:new-coach']?.phase).toBe('approaching')
     expect(activatedNext.historicalRouteReplays?.['event:new-coach']?.ordinaryConsequence).toBeNull()
+    expect(activatedNext.historicalRouteMemoryGraphs?.[graph.siteId]?.siteId).toBe(graph.siteId)
+    expect(activatedNext.historicalRouteMemoryGraph).toBeUndefined()
 
     expect(withoutHistoricalRouteActivationFields(activatedNext)).toEqual(
       withoutHistoricalRouteActivationFields(baselineNext)
@@ -311,13 +317,23 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
         activeActivationId: 'activation:orphan',
         activeEdgeIds: ['edge:missing'],
       },
+      historicalRouteMemoryGraphs: {
+        'site:bad': {
+          siteId: 'site:bad',
+          anchors: [],
+          edges: [],
+          activeActivationId: 'activation:orphan',
+          activeEdgeIds: ['edge:missing'],
+        },
+      },
     }
 
     const next = advanceWeek(withMalformed, 1_700_000_000_000)
     expect(next.historicalRouteMemoryGraph).toBeUndefined()
+    expect(next.historicalRouteMemoryGraphs).toEqual({})
   })
 
-  it('hydrates activation candidates and graph fail-closed through save round-trip', () => {
+  it('hydrates activation candidates and multi-site graphs fail-closed through save round-trip', () => {
     const graph = phantomCoachGraph()
     const state = {
       ...createStartingState(),
@@ -332,9 +348,10 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
     expect(hydrated.historicalRouteReplayActivationCandidates).toEqual([
       phantomCoachCandidate('event:phantom-coach', 5),
     ])
-    expect(hydrated.historicalRouteMemoryGraph).toEqual(
+    expect(hydrated.historicalRouteMemoryGraphs?.[graph.siteId]).toEqual(
       normalizeHistoricalRouteMemoryGraph(graph)
     )
+    expect(hydrated.historicalRouteMemoryGraph).toBeUndefined()
     expect(normalizeHistoricalRouteReplayRegistry(hydrated.historicalRouteReplays)).toEqual({})
   })
 })

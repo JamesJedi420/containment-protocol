@@ -2,7 +2,7 @@
 
 | Field                 | Value                                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**            | **In progress**                                                                                                                                                                 |
+| **Status**            | **Recently shipped**                                                                                                                                                            |
 | **Linear**            | [SPE-3027](https://linear.app/spectranoir/issue/SPE-3027/persist-multi-site-spe-1392-historical-route-memory-graphs-on)                                                         |
 | **Parent / lineage**  | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                     |
 | **Related**           | [SPE-1392](https://linear.app/spectranoir/issue/SPE-1392/historical-route-memory-and-nonlocal-edge-graph) (domain graph Done; persistence was out of scope)                     |

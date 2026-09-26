@@ -1,16 +1,16 @@
 # SPE-3024 — Activate historical-route replays from calendar/start-condition policy
 
-| Field                        | Value                                                                                                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **Recently shipped**                                                                                                                                                                  |
-| **Linear**                   | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy)                                                       |
-| **Parent / lineage**         | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                           |
-| **Activation owners**        | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) / [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071/calendar-seasonal-cycle-and-time-gated-events) |
-| **Prerequisite create**      | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — `createHistoricalRouteReplay` unchanged               |
-| **Prerequisite persistence** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) — sanitize/hydrate unchanged                                    |
+| Field                        | Value                                                                                                                                                                                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**                   | **Recently shipped**                                                                                                                                                                                                                                                                                               |
+| **Linear**                   | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy)                                                                                                                                                                                    |
+| **Parent / lineage**         | [SPE-1606](https://linear.app/spectranoir/issue/SPE-1606/zone-spanning-event-propagation) — remains Backlog                                                                                                                                                                                                        |
+| **Activation owners**        | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) / [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071/calendar-seasonal-cycle-and-time-gated-events)                                                                                                                |
+| **Prerequisite create**      | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — `createHistoricalRouteReplay` unchanged                                                                                                                                             |
+| **Prerequisite persistence** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) — sanitize/hydrate unchanged                                                                                                                                                                 |
 | **Prerequisite week-close**  | [SPE-3018](https://linear.app/spectranoir/issue/SPE-3018/advance-persisted-historical-route-replays-at-campaign-week-close) / [SPE-3020](https://linear.app/spectranoir/issue/SPE-3020/auto-resolve-historical-route-replay-terminal-ended-with-ordinary) — advance+resolve unchanged beyond post-apply activation |
-| **Branch**                   | `cursor/spe-3024-historical-route-replay-activation-8c00`                                                                                                                             |
-| **Base `main` SHA**          | `565d259f04ca00a66fc8ddebf31eb5e441395aec`                                                                                                                                            |
+| **Branch**                   | `cursor/spe-3024-historical-route-replay-activation-8c00`                                                                                                                                                                                                                                                          |
+| **Base `main` SHA**          | `565d259f04ca00a66fc8ddebf31eb5e441395aec`                                                                                                                                                                                                                                                                         |
 
 ## Goal
 
@@ -18,14 +18,14 @@ Decide when an SPE-1392 reactivated route becomes a persisted `HistoricalRouteRe
 
 ## Ownership audit
 
-| Concern                                      | Existing owner reused by this slice                                      |
-| -------------------------------------------- | ------------------------------------------------------------------------ |
-| Replay create (fail-closed inactive path)    | `createHistoricalRouteReplay` / SPE-3009                                 |
-| Canonical registry sanitize                  | `normalizeHistoricalRouteReplayRegistry` / SPE-3017                      |
-| Week-close advance + terminal resolve        | `applyHistoricalRouteReplayRegistryAtWeekClose` / SPE-3018 + SPE-3020    |
-| Campaign absolute week                       | `GameState.week` / SPE-1071 `CampaignDate.absoluteWeek`                  |
-| Calendar/start-condition activation policy   | **This slice** — `activateHistoricalRouteReplayRegistryForCalendarWeek`  |
-| SPE-1392 path resolution                     | `resolveActiveHistoricalRoutePath` / SPE-1392                            |
+| Concern                                    | Existing owner reused by this slice                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| Replay create (fail-closed inactive path)  | `createHistoricalRouteReplay` / SPE-3009                                |
+| Canonical registry sanitize                | `normalizeHistoricalRouteReplayRegistry` / SPE-3017                     |
+| Week-close advance + terminal resolve      | `applyHistoricalRouteReplayRegistryAtWeekClose` / SPE-3018 + SPE-3020   |
+| Campaign absolute week                     | `GameState.week` / SPE-1071 `CampaignDate.absoluteWeek`                 |
+| Calendar/start-condition activation policy | **This slice** — `activateHistoricalRouteReplayRegistryForCalendarWeek` |
+| SPE-1392 path resolution                   | `resolveActiveHistoricalRoutePath` / SPE-1392                           |
 
 ## Owned start-condition policy
 
@@ -83,9 +83,9 @@ Not implemented here:
 
 ## Deferred
 
-| Item                                                    | Suggested owner issue                                                                                                                                                                               | Why deferred                                                                                       |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Player-facing replay/map/explanation surfacing          | [SPE-1080](https://linear.app/spectranoir/issue/SPE-1080/presentation-accessibility-and-simulation-explainability) with a bounded SPE-1606 integration child                                        | Presentation must consume canonical replay state rather than owning route/causality logic.         |
-| Interaction-triggered mid-week starts                   | Later [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) child                                                                                               | This child owns calendar `absolute_week` only; interaction starts need a mid-week seam.            |
-| Full SPE-1392 multi-site graph persistence/migration    | [SPE-3027](https://linear.app/spectranoir/issue/SPE-3027/persist-multi-site-spe-1392-historical-route-memory-graphs-on) — `planning/spe-3027-historical-route-memory-graph-persistence-slice.md` | SPE-3024 only hydrated one optional activation graph; SPE-3027 owns the multi-site registry. |
-| Anniversary / week-of-year / seasonal start conditions  | Later SPE-1071 / SPE-1605 child                                                                                                                                                                     | Slice-1 calendar absolute week is enough for the SPE-3020 activation Deferred row.                 |
+| Item                                                   | Suggested owner issue                                                                                                                                                                            | Why deferred                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Player-facing replay/map/explanation surfacing         | [SPE-3026](https://linear.app/spectranoir/issue/SPE-3026/project-historical-route-replays-into-a-bounded-player-facing) — `planning/spe-3026-historical-route-replay-explanation-slice.md`       | Presentation must consume canonical replay state rather than owning route/causality logic.   |
+| Interaction-triggered mid-week starts                  | Later [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) child                                                                                            | This child owns calendar `absolute_week` only; interaction starts need a mid-week seam.      |
+| Full SPE-1392 multi-site graph persistence/migration   | [SPE-3027](https://linear.app/spectranoir/issue/SPE-3027/persist-multi-site-spe-1392-historical-route-memory-graphs-on) — `planning/spe-3027-historical-route-memory-graph-persistence-slice.md` | SPE-3024 only hydrated one optional activation graph; SPE-3027 owns the multi-site registry. |
+| Anniversary / week-of-year / seasonal start conditions | Later SPE-1071 / SPE-1605 child                                                                                                                                                                  | Slice-1 calendar absolute week is enough for the SPE-3020 activation Deferred row.           |

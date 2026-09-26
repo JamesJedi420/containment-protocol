@@ -3,11 +3,24 @@ import { Link } from 'react-router'
 
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
+import { projectOperationalExplanation } from '../../domain/operationalExplanation'
+import { HistoricalRouteReplayExplanationPanel } from '../operations/HistoricalRouteReplayExplanationPanel'
+import { getHistoricalRouteReplayOperationalExplanations } from '../operations/historicalRouteReplayExplanationAdapter'
 import { getOperationsReportView } from '../report/operationsReportView'
 
 export function OperationsReportPanel() {
   const { game, setContractNextIntent, clearContractNextIntent } = useGameStore()
   const view = useMemo(() => getOperationsReportView(game), [game])
+  const historicalRouteReplayExplanations = useMemo(
+    () =>
+      getHistoricalRouteReplayOperationalExplanations(game.historicalRouteReplays).map((record) =>
+        Object.freeze({
+          summary: projectOperationalExplanation(record, 'summary'),
+          detail: projectOperationalExplanation(record, 'detail'),
+        })
+      ),
+    [game]
+  )
   const debrief = view.contractDebrief
 
   return (
@@ -15,13 +28,16 @@ export function OperationsReportPanel() {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Operations report</h2>
         <p className="text-sm opacity-60">
-          Compact derived explanations for routing, readiness, recent outcomes, and current
-          campaign pressure.
+          Compact derived explanations for routing, readiness, recent outcomes, and current campaign
+          pressure.
         </p>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded border border-white/10 px-3 py-3" aria-label="Weekly operations summary">
+        <article
+          className="rounded border border-white/10 px-3 py-3"
+          aria-label="Weekly operations summary"
+        >
           <div className="space-y-1">
             <h3 className="text-base font-semibold">Weekly operations summary</h3>
             <p className="text-sm opacity-70">{view.weeklySummary.summary}</p>
@@ -40,7 +56,9 @@ export function OperationsReportPanel() {
             <p>{view.weeklySummary.attritionPressureSummary}</p>
             <p>{view.weeklySummary.intelConfidenceSummary}</p>
             {view.weeklySummary.crossSessionAttritionContinuitySummary ? (
-              <p className="opacity-90">{view.weeklySummary.crossSessionAttritionContinuitySummary}</p>
+              <p className="opacity-90">
+                {view.weeklySummary.crossSessionAttritionContinuitySummary}
+              </p>
             ) : null}
             {view.weeklySummary.deploymentMomentumSummary ? (
               <p className="opacity-90">{view.weeklySummary.deploymentMomentumSummary}</p>
@@ -56,7 +74,10 @@ export function OperationsReportPanel() {
           ) : null}
         </article>
 
-        <article className="rounded border border-white/10 px-3 py-3" aria-label="Operational certainty">
+        <article
+          className="rounded border border-white/10 px-3 py-3"
+          aria-label="Operational certainty"
+        >
           <div className="space-y-1">
             <h3 className="text-base font-semibold">Operational certainty</h3>
             <p className="text-sm opacity-70">{view.operationalCertainty.summary}</p>
@@ -85,7 +106,10 @@ export function OperationsReportPanel() {
           </div>
         </article>
 
-        <article className="rounded border border-white/10 px-3 py-3" aria-label="Mission routing report">
+        <article
+          className="rounded border border-white/10 px-3 py-3"
+          aria-label="Mission routing report"
+        >
           <div className="space-y-1">
             <h3 className="text-base font-semibold">Mission routing report</h3>
             <p className="text-sm opacity-60">
@@ -155,14 +179,14 @@ export function OperationsReportPanel() {
           {view.deploymentReadiness.length > 0 ? (
             <ul className="mt-3 space-y-3">
               {view.deploymentReadiness.map((entry) => (
-                <li key={`${entry.missionId}:${entry.teamId}`} className="rounded border border-white/10 px-3 py-3">
+                <li
+                  key={`${entry.missionId}:${entry.teamId}`}
+                  className="rounded border border-white/10 px-3 py-3"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">
-                        <Link
-                          to={APP_ROUTES.teamDetail(entry.teamId)}
-                          className="hover:underline"
-                        >
+                        <Link to={APP_ROUTES.teamDetail(entry.teamId)} className="hover:underline">
                           {entry.teamName}
                         </Link>{' '}
                         <span className="opacity-50">for</span>{' '}
@@ -178,7 +202,13 @@ export function OperationsReportPanel() {
                       </p>
                     </div>
                     <Tag
-                      tone={entry.hardBlockers.length > 0 ? 'danger' : entry.softRisks.length > 0 ? 'warning' : 'info'}
+                      tone={
+                        entry.hardBlockers.length > 0
+                          ? 'danger'
+                          : entry.softRisks.length > 0
+                            ? 'warning'
+                            : 'info'
+                      }
                     >
                       {entry.dominantFactorLabel}
                     </Tag>
@@ -217,7 +247,9 @@ export function OperationsReportPanel() {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm opacity-60">No deployment readiness pairings are available.</p>
+            <p className="mt-3 text-sm opacity-60">
+              No deployment readiness pairings are available.
+            </p>
           )}
         </article>
 
@@ -243,19 +275,13 @@ export function OperationsReportPanel() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">
-                        <Link
-                          to={APP_ROUTES.caseDetail(record.caseId)}
-                          className="hover:underline"
-                        >
+                        <Link to={APP_ROUTES.caseDetail(record.caseId)} className="hover:underline">
                           {record.caseTitle}
                         </Link>
                       </p>
                       <p className="text-xs opacity-50">
                         Week{' '}
-                        <Link
-                          to={APP_ROUTES.reportDetail(record.week)}
-                          className="hover:underline"
-                        >
+                        <Link to={APP_ROUTES.reportDetail(record.week)} className="hover:underline">
                           {record.week}
                         </Link>{' '}
                         / {record.outcomeLabel}
@@ -266,7 +292,8 @@ export function OperationsReportPanel() {
                       tone={
                         record.outcomeLabel === 'Fail'
                           ? 'danger'
-                          : record.outcomeLabel === 'Partial' || record.outcomeLabel === 'Unresolved'
+                          : record.outcomeLabel === 'Partial' ||
+                              record.outcomeLabel === 'Unresolved'
                             ? 'warning'
                             : 'info'
                       }
@@ -341,7 +368,10 @@ export function OperationsReportPanel() {
           </div>
         </article>
 
-        <article className="rounded border border-white/10 px-3 py-3" aria-label="Recent outcome report">
+        <article
+          className="rounded border border-white/10 px-3 py-3"
+          aria-label="Recent outcome report"
+        >
           <div className="space-y-1">
             <h3 className="text-base font-semibold">Recent outcome report</h3>
             <p className="text-sm opacity-60">
@@ -352,7 +382,10 @@ export function OperationsReportPanel() {
           {view.recentOutcomes.length > 0 ? (
             <ul className="mt-3 space-y-3">
               {view.recentOutcomes.map((entry) => (
-                <li key={`${entry.week}:${entry.missionId}`} className="rounded border border-white/10 px-3 py-3">
+                <li
+                  key={`${entry.week}:${entry.missionId}`}
+                  className="rounded border border-white/10 px-3 py-3"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">
@@ -365,16 +398,21 @@ export function OperationsReportPanel() {
                       </p>
                       <p className="text-xs opacity-50">
                         Week{' '}
-                        <Link
-                          to={APP_ROUTES.reportDetail(entry.week)}
-                          className="hover:underline"
-                        >
+                        <Link to={APP_ROUTES.reportDetail(entry.week)} className="hover:underline">
                           {entry.week}
                         </Link>{' '}
                         / {entry.outcomeLabel}
                       </p>
                     </div>
-                    <Tag tone={entry.outcomeLabel === 'Fail' ? 'danger' : entry.outcomeLabel === 'Partial' ? 'warning' : 'info'}>
+                    <Tag
+                      tone={
+                        entry.outcomeLabel === 'Fail'
+                          ? 'danger'
+                          : entry.outcomeLabel === 'Partial'
+                            ? 'warning'
+                            : 'info'
+                      }
+                    >
                       {entry.dominantFactorLabel}
                     </Tag>
                   </div>
@@ -409,6 +447,8 @@ export function OperationsReportPanel() {
             </p>
           )}
         </article>
+
+        <HistoricalRouteReplayExplanationPanel explanations={historicalRouteReplayExplanations} />
       </div>
     </section>
   )

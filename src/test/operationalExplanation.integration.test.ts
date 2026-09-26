@@ -35,9 +35,7 @@ function makeFacility(status: FacilityStatus) {
 function makeWorkshopState(status?: FacilityStatus): GameState {
   const state = createStartingState()
   state.facilityState = {
-    facilities: status
-      ? { [BIOHAZARD_RESPONSE_FACILITY_ID]: makeFacility(status) }
-      : {},
+    facilities: status ? { [BIOHAZARD_RESPONSE_FACILITY_ID]: makeFacility(status) } : {},
   }
   state.departmentWorkshopWorkOrders = {
     [WORK_ORDER_ID]: {
@@ -92,9 +90,7 @@ describe('shared operational explanation contract', () => {
       confidence: 'supported',
     })
 
-    expect(active.id).toBe(
-      'department_workshop:work_order:work%3Ab:department_workshop.reason'
-    )
+    expect(active.id).toBe('department_workshop:work_order:work%3Ab:department_workshop.reason')
     expect(
       createOperationalExplanationId(
         { system: 'department_workshop', recordType: 'work_order', recordId: 'a:b' },
@@ -121,12 +117,18 @@ describe('shared operational explanation contract', () => {
     expect(diagnostic.source).toEqual(summary.source)
     expect(diagnostic.provenance).toEqual(active.provenance)
     expect(validateOperationalExplanationRecord(active).valid).toBe(true)
-    expect(validateOperationalExplanationRegistry([active, active]).issues).toContain('1:duplicate-id')
+    expect(validateOperationalExplanationRegistry([active, active]).issues).toContain(
+      '1:duplicate-id'
+    )
   })
 
   it('rejects malformed or tampered records', () => {
     const record = createOperationalExplanationRecord({
-      source: { system: 'deployable_readiness', recordType: 'readiness_composition', recordId: 'unit' },
+      source: {
+        system: 'deployable_readiness',
+        recordType: 'readiness_composition',
+        recordId: 'unit',
+      },
       subjectId: 'unit',
       reasonCode: 'deployable_readiness.ready',
       severity: 'routine',
@@ -142,6 +144,37 @@ describe('shared operational explanation contract', () => {
     expect(
       validateOperationalExplanationRecord({ ...record, provenance: ['z', 'a'] }).issues
     ).toContain('provenance-not-normalized')
+  })
+
+  it('accepts historical_route_replay source and replay_record type', () => {
+    const record = createOperationalExplanationRecord({
+      source: {
+        system: 'historical_route_replay',
+        recordType: 'replay_record',
+        recordId: 'event:phantom-coach',
+      },
+      subjectId: 'event:phantom-coach',
+      reasonCode: 'historical_route_replay.phase_approaching',
+      severity: 'pending',
+      lifecycle: 'active',
+      summary: 'Approaching',
+      cause: 'Causal classification remains unresolved.',
+      currentEffect: 'Known progression only.',
+      confidence: 'limited',
+    })
+    expect(validateOperationalExplanationRecord(record).valid).toBe(true)
+    expect(
+      validateOperationalExplanationRecord({
+        ...record,
+        source: { ...record.source, system: 'unknown_system' as never },
+      }).issues
+    ).toContain('invalid-source-system')
+    expect(
+      validateOperationalExplanationRecord({
+        ...record,
+        source: { ...record.source, recordType: 'unknown_type' as never },
+      }).issues
+    ).toContain('invalid-record-type')
   })
 })
 

@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3031"
+  ],
   "recentlyShipped": [
     "SPE-3026",
     "SPE-3027",
@@ -16,6 +18,7 @@
     "SPE-3012"
   ],
   "sliceDocStatus": {
+    "planning/spe-3031-historical-route-replay-map-chrome-slice.md": "In Progress",
     "planning/spe-3026-historical-route-replay-explanation-slice.md": "Recently shipped",
     "planning/spe-3027-historical-route-memory-graph-persistence-slice.md": "Recently shipped",
     "planning/spe-3024-historical-route-replay-activation-slice.md": "Recently shipped",

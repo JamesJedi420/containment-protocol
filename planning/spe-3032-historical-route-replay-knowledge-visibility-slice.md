@@ -66,6 +66,6 @@ Not implemented here:
 
 | Item                                  | Suggested owner issue                                                                                 | Why deferred                                                        |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Interaction-triggered mid-week starts | Later [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) child | Activation remains SPE-3024 / SPE-1605; this slice is read-only.    |
+| Interaction-triggered mid-week starts | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — `planning/spe-3033-historical-route-replay-interaction-start-slice.md` | Sibling of SPE-3024 calendar path; owns one SPE-1605 interaction → approaching create. |
 | SPE-22 KnowledgeStateMap bridge       | Later SPE-22 / SPE-58 child                                                                           | Out of bound — memory-graph knowledge only; no domain knowledge.ts. |
 | Full cartographic map framework       | SPE-1104 / SPE-1244                                                                                   | Out of bound; this is one visibility input only.                    |

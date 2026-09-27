@@ -2,7 +2,7 @@
 
 | Field                        | Value                                                                                                                                                                              |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **In Progress**                                                                                                                                                                    |
+| **Status**                   | **Recently shipped**                                                                                                                                                               |
 | **Linear**                   | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from)                                                                |
 | **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                        |
 | **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics                 |
@@ -63,13 +63,13 @@ Not implemented here:
 
 ## Acceptance
 
-- [ ] Matching applied ask (`interview_witness` + authored questionId) + active SPE-1392 graph writes an `approaching` persisted replay.
-- [ ] Different questionId (applied or not) OR rejected ask leaves the registry frozen.
-- [ ] Rejected ask does not activate even when a matching candidate exists.
-- [ ] Calendar week-close still ignores interaction-only `interview_witness` candidates.
-- [ ] Mid-week call does not advance the replay (approaching only).
-- [ ] Slice doc, backlog handoff/manifest, SPE-3034 Deferred row 1 retargeted for this wire.
-- [ ] Parent SPE-1605 remains **Backlog**.
+- [x] Matching applied ask (`interview_witness` + authored questionId) + active SPE-1392 graph writes an `approaching` persisted replay.
+- [x] Different questionId (applied or not) OR rejected ask leaves the registry frozen.
+- [x] Rejected ask does not activate even when a matching candidate exists.
+- [x] Calendar week-close still ignores interaction-only `interview_witness` candidates.
+- [x] Mid-week call does not advance the replay (approaching only).
+- [x] Slice doc, backlog handoff/manifest, SPE-3034 Deferred row 1 retargeted for this wire.
+- [x] Parent SPE-1605 remains **Backlog**.
 
 ## Validation
 

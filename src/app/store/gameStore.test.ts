@@ -539,6 +539,270 @@ describe('gameStore', () => {
     ).toEqual({})
   })
 
+  it('askInvestigationQuestion fires SPE-1605 interview_witness historical-route replay start (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    let game = createStartingState()
+    game.cases['case-investigation-store'] = {
+      ...createStarterCase({ id: 'case-investigation-store', templateId: 'ops-003' }),
+      status: 'in_progress',
+      weeksRemaining: 2,
+      assignedTeamIds: [],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    game = applySuccessfulInvestigation(game, {
+      caseId: 'case-investigation-store',
+      forensicBudget: 2,
+      tacticalBudget: 0,
+    })
+    game = {
+      ...game,
+      historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+      historicalRouteReplayActivationCandidates: [matchingCandidate],
+      historicalRouteReplays: {},
+    }
+
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    const afterMatch = useGameStore.getState().game
+    const matched = normalizeHistoricalRouteReplayRegistry(afterMatch.historicalRouteReplays)
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-interview'])
+    expect(matched['event:phantom-coach-interview']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-interview']?.currentAnchorId).toBe('anchor:moor-road')
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.missing-proof'
+      )
+
+    const afterDifferentQuestion = useGameStore.getState().game
+    expect(
+      normalizeHistoricalRouteReplayRegistry(afterDifferentQuestion.historicalRouteReplays)
+    ).toEqual(matched)
+    expect(afterDifferentQuestion.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
+
+    const frozenRegistry = afterDifferentQuestion.historicalRouteReplays
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(useGameStore.getState().game.historicalRouteReplays).toBe(frozenRegistry)
+  })
+
+  it('rejected askInvestigationQuestion does not activate interview_witness candidates (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    let game = createStartingState()
+    game.cases['case-investigation-store'] = {
+      ...createStarterCase({ id: 'case-investigation-store', templateId: 'ops-003' }),
+      status: 'in_progress',
+      weeksRemaining: 2,
+      assignedTeamIds: [],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    game = applySuccessfulInvestigation(game, {
+      caseId: 'case-investigation-store',
+      forensicBudget: 1,
+      tacticalBudget: 0,
+    })
+    game = {
+      ...game,
+      historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+      historicalRouteReplayActivationCandidates: [matchingCandidate],
+      historicalRouteReplays: {},
+    }
+
+    useGameStore.setState({ game })
+    const beforeMissingCase = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
+
+    expect(useGameStore.getState().game).toBe(beforeMissingCase)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+
+    useGameStore.setState({
+      game: {
+        ...beforeMissingCase,
+        cases: {
+          ...beforeMissingCase.cases,
+          'case-investigation-store': {
+            ...beforeMissingCase.cases['case-investigation-store']!,
+            status: 'resolved',
+          },
+        },
+      },
+    })
+    const resolvedSnapshot = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(useGameStore.getState().game).toBe(resolvedSnapshot)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
+  it('week-close still ignores interview_witness-only historical-route replay candidates (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const interactionOnly: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        week: 3,
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [interactionOnly],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
   it('executes authored choices through the store and returns structured results', () => {
     const choice = buildWeeklyReportTutorialChoices()[0]
 

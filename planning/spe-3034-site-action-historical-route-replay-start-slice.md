@@ -76,6 +76,6 @@ Not implemented here:
 
 | Item                                                      | Suggested owner issue               | Why deferred                                                                 |
 | --------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| Wire remaining SPE-1605 kinds from other site actions     | Later SPE-1605 child                | One `enter_zone` scene-visit wire satisfies SPE-3033 Deferred row 1.         |
+| Wire remaining SPE-1605 kinds from other site actions (`interview_witness` / `askInvestigationQuestion` owned by SPE-3035; remaining kinds still later) | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from) (`interview_witness`); later SPE-1605 child for remaining kinds | One `enter_zone` scene-visit wire satisfies SPE-3033 Deferred row 1; SPE-3035 owns the next `interview_witness` ask wire. |
 | Full SPE-1605 dormant/armed/spent/recurring state machine | Later SPE-1605 child                | Out of this store-wire boundary.                                             |
 | Anniversary / week-of-year / seasonal start conditions    | Later SPE-1071 / SPE-1605 child     | Outside this interaction wire; calendar absolute week remains SPE-3024.      |

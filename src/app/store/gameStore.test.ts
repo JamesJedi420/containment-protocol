@@ -77,6 +77,13 @@ import {
   buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
 } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
+import {
+  createHistoricalRouteMemoryGraph,
+  reactivateHistoricalRouteEdges,
+  rememberHistoricalRouteActivation,
+} from '../../domain/historicalRouteMemory'
+import type { HistoricalRouteReplayActivationCandidate } from '../../domain/historicalRouteReplayActivation'
+import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalRouteReplay'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -399,6 +406,137 @@ describe('gameStore', () => {
     expect(game.runtimeState?.progressClocks['story.clock']?.value).toBe(2)
     expect(game.runtimeState?.ui.debug.flags.tracing).toBe(true)
     expect(game.inventory.debug_supplies).toBe(2)
+  })
+
+  it('recordSceneVisit fires SPE-1605 enter_zone historical-route replay interaction start (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().recordSceneVisit({
+      locationId: 'location:old-coach-road',
+      sceneId: 'scene:old-coach-road-moor',
+    })
+
+    const afterMatch = useGameStore.getState().game
+    const matched = normalizeHistoricalRouteReplayRegistry(afterMatch.historicalRouteReplays)
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-enter'])
+    expect(matched['event:phantom-coach-enter']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-enter']?.currentAnchorId).toBe('anchor:moor-road')
+
+    useGameStore.getState().recordSceneVisit({
+      locationId: 'location:old-coach-road',
+      sceneId: 'scene:unrelated-yard',
+    })
+
+    const afterNoMatch = useGameStore.getState().game
+    expect(normalizeHistoricalRouteReplayRegistry(afterNoMatch.historicalRouteReplays)).toEqual(
+      matched
+    )
+    expect(afterNoMatch.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
+  })
+
+  it('week-close still ignores interaction-only historical-route replay candidates (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const interactionOnly: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        week: 3,
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [interactionOnly],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
   })
 
   it('executes authored choices through the store and returns structured results', () => {

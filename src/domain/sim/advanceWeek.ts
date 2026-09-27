@@ -94,6 +94,7 @@ import {
 } from '../departmentWorkshopQueue'
 import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
+import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
@@ -5023,6 +5024,10 @@ export function advanceWeek(
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
+  // SPE-3110: specialist labor gate map is omitted here — caller-owned and
+  // transient; no GameState roster. Tick still accepts the trailing optional
+  // gate map; completion registration stays on outputWeeklyState so
+  // post-inspection integrity / facility axes remain authoritative.
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,
     undefined,
@@ -5036,7 +5041,11 @@ export function advanceWeek(
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
     outputWeeklyState,
     workshopProcessingTick.completedWorkOrderIds,
-    sourceState.week
+    sourceState.week,
+    deriveSpecialistLaborQualityConditionsByWorkOrderId(
+      workshopProcessingTick.completedWorkOrderIds,
+      undefined
+    )
   )
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes

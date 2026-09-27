@@ -1538,7 +1538,32 @@ export const useGameStore = create<GameStore>()(
             return { game: s.game }
           }
 
-          return { game: result.state }
+          // SPE-3035: applied investigation ask matches SPE-1605 interview_witness.
+          // interactionId is the trimmed questionId (same role sceneId plays for
+          // SPE-3034 enter_zone). Creates approaching only; SPE-3018 advance stays
+          // week-close. Rejected asks / empty candidates / no-match stay no-ops.
+          const askQuestionId =
+            typeof questionId === 'string' ? questionId.trim() : ''
+          let game = result.state
+          if (askQuestionId.length > 0) {
+            game = {
+              ...game,
+              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+                game.historicalRouteReplays,
+                normalizeHistoricalRouteMemoryGraphsFromGameState({
+                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+                }),
+                game.historicalRouteReplayActivationCandidates,
+                {
+                  interactionKind: 'interview_witness',
+                  interactionId: askQuestionId,
+                }
+              ),
+            }
+          }
+
+          return { game }
         }),
 
       setInfiltrationWeeklyProbeAction: (caseId, action) =>

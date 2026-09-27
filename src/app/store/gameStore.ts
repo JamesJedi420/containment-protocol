@@ -117,6 +117,7 @@ import {
   askInvestigationQuestion as applyAskInvestigationQuestion,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
+import { applySiteExplorationAction } from '../../domain/siteOperationalExploration'
 import { canAskInvestigationQuestionOnCase } from '../../features/cases/investigationCasePrepView'
 import type { InfiltrationProbeAction } from '../../domain/infiltrationProbe'
 import {
@@ -383,6 +384,11 @@ interface GameStore {
     domain: InvestigationQuestionDomain,
     questionId: string
   ) => void
+  /**
+   * SPE-3040: apply the SPE-1610 site-exploration `search` action on an eligible case.
+   * Search-only — not a generic exploration-action store command.
+   */
+  applySiteExplorationSearch: (caseId: Id) => void
   /** SPE-521 deferred UX: override or clear weekly infiltration probe action on an eligible case. */
   setInfiltrationWeeklyProbeAction: (caseId: Id, action: InfiltrationProbeAction | null) => void
   /** SPE-521 follow-up: set or clear infiltration encounter cover stance on an eligible case. */
@@ -1558,6 +1564,41 @@ export const useGameStore = create<GameStore>()(
                 {
                   interactionKind: 'interview_witness',
                   interactionId: askQuestionId,
+                }
+              ),
+            }
+          }
+
+          return { game }
+        }),
+
+      applySiteExplorationSearch: (caseId) =>
+        set((s) => {
+          const result = applySiteExplorationAction(s.game, caseId, 'search')
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          // SPE-3040: applied site-exploration search matches SPE-1605 search.
+          // interactionId is the trimmed caseId (same role sceneId / questionId
+          // play for SPE-3034 / SPE-3035). Creates approaching only; SPE-3018
+          // advance stays week-close. Rejected searches / empty candidates /
+          // no-match stay no-ops.
+          const searchCaseId = typeof caseId === 'string' ? caseId.trim() : ''
+          let game = result.state
+          if (searchCaseId.length > 0) {
+            game = {
+              ...game,
+              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+                game.historicalRouteReplays,
+                normalizeHistoricalRouteMemoryGraphsFromGameState({
+                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+                }),
+                game.historicalRouteReplayActivationCandidates,
+                {
+                  interactionKind: 'search',
+                  interactionId: searchCaseId,
                 }
               ),
             }

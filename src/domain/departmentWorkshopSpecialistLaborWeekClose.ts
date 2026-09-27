@@ -76,9 +76,10 @@ export function deriveSpecialistLaborQualityConditionsByWorkOrderId(
 
 /**
  * One week-close workshop tick + completion registration with optional
- * specialist labor gate inputs. Omit the gate map for today's default path
- * (campaign `advanceWeek` omits it). Staging remains the topology projection
- * feed when supplied by the caller.
+ * specialist labor gate inputs. Omit the gate map for today's default path.
+ * Campaign `advanceWeek` runs the tick and registers on post-close output
+ * state separately so live integrity/facility axes stay authoritative; this
+ * helper is the composed seam for caller-owned gate composition tests.
  */
 export function runDepartmentWorkshopSpecialistLaborWeekClose(
   source: DepartmentWorkshopLiveFacilitySafetySource,

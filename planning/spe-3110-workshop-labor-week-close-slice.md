@@ -33,7 +33,7 @@ Wire SPE-3109 `mapSpecialistLaborGateToWorkshopConsume` and SPE-1058 `projectSpe
 - Optional last arg `gateInputsByWorkOrderId` on `processDepartmentWorkshopTick` / `advanceDepartmentWorkshopQueue`
 - Present gate entries: project → map; `consumeAllowed === false` leaves active item at same `completedWork` (no receipt)
 - Allowed gates: set only `specialistCondition` into completion quality conditions; facility composers keep room/equipment
-- `advanceWeek` calls the helper with staging projection and **omits** the gate map
+- `advanceWeek` calls the tick with staging projection and **omits** the gate map; completion registration stays on post-close `outputWeeklyState` so live integrity/facility axes remain authoritative
 - Targeted Vitest + backlog handoff
 
 ### Out of scope

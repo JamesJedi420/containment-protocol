@@ -42,11 +42,7 @@ export type FacilityRestrictedObjectStoredResult =
       mode: 'stored'
       components: readonly RestrictedObjectComponentId[]
     }
-  | {
-      ok: false
-      state: GameState
-      code: Exclude<FacilityRestrictedObjectReleaseFailureCode, 'illegal_transition'>
-    }
+  | { ok: false; state: GameState; code: FacilityRestrictedObjectReleaseFailureCode }
 
 export type FacilityRestrictedObjectTransitionResult =
   | {
@@ -244,6 +240,13 @@ export function recordRestrictedObjectStored(
   const components = readComponents(input, setId)
   if (!components) {
     return { ok: false, state, code: 'incomplete_set' }
+  }
+
+  const currentSnapshot = parseFacilityRestrictedObjectRelease(
+    state.facilityRestrictedObjectRelease
+  )?.[setId]
+  if (currentSnapshot && currentSnapshot.mode !== 'stored') {
+    return { ok: false, state, code: 'illegal_transition' }
   }
 
   const snapshot = Object.freeze({

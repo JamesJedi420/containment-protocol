@@ -2,7 +2,7 @@
 
 | Field                        | Value                                                                                                                                                                              |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **In Progress**                                                                                                                                                                    |
+| **Status**                   | **Recently shipped**                                                                                                                                                               |
 | **Linear**                   | [SPE-3040](https://linear.app/spectranoir/issue/SPE-3040/fire-historical-route-replay-search-start-from-site-exploration-search)                                                   |
 | **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                        |
 | **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics                 |

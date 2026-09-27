@@ -87,13 +87,12 @@ import {
   expireCombatStimOverdrivesAtWeekClose,
 } from '../combatStimWeekClose'
 import {
-  processDepartmentWorkshopTick,
   readDepartmentWorkshopState,
   reconcileDepartmentWorkshopTerminalLanes,
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
 import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
-import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
+import { runDepartmentWorkshopSpecialistLaborWeekClose } from '../departmentWorkshopSpecialistLaborWeekClose'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
@@ -5020,24 +5019,23 @@ export function advanceWeek(
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
   // It runs before downstream persisted-record hooks and changes no queue but
   // the two canonical workshop registries.
-  // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
+  // SPE-2913 / SPE-2998: the staging feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
-  const workshopProcessingTick = processDepartmentWorkshopTick(
+  // SPE-3110: specialist labor gate map is omitted here — caller-owned and
+  // transient; no GameState roster. Tick + completion registration share one
+  // helper so a present gate can stall before receipt grade.
+  const workshopSpecialistLaborWeekClose = runDepartmentWorkshopSpecialistLaborWeekClose(
     inputWeeklyState,
-    undefined,
-    undefined,
+    sourceState.week,
     projectProductionFacilitySectionStaging()
   )
+  const workshopProcessingTick = workshopSpecialistLaborWeekClose.tick
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
   }
-  const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
-    outputWeeklyState,
-    workshopProcessingTick.completedWorkOrderIds,
-    sourceState.week
-  )
+  const workshopCompletionOutcomes = workshopSpecialistLaborWeekClose.completionOutcomes
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
   }

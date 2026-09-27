@@ -13,6 +13,11 @@ import {
 import type { AuthorityGraph } from './authorityGraph'
 import type { DepartmentCapabilityRegistry, DepartmentTaskType } from './departmentCapabilities'
 import type { DepartmentWorkloadSnapshot } from './departmentCoordination'
+import {
+  projectSpecialistLaborGate,
+  type SpecialistLaborGateInput,
+} from './specialistLaborRegistry'
+import { mapSpecialistLaborGateToWorkshopConsume } from './specialistLaborWorkshopConsume'
 
 export interface DepartmentWorkshopWorkOrder {
   readonly id: string
@@ -190,6 +195,15 @@ export interface DepartmentWorkshopSpecializationContext {
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopSpecializationContextsByDepartment = Readonly<Record<string, unknown>>
+
+/**
+ * SPE-3110: caller-owned specialist labor gate inputs keyed by work-order ID.
+ * Absent keys leave the tick on today's path. Present keys (including
+ * `undefined` / `null` / malformed) fail closed through SPE-1058 → SPE-3109.
+ */
+export type DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId = Readonly<
+  Record<string, SpecialistLaborGateInput | null | undefined>
+>
 
 /** SPE-2768: discrete caller-owned axes for completion output quality. */
 export type DepartmentWorkshopConditionLevel = 'good' | 'poor'
@@ -402,6 +416,23 @@ const DEPARTMENT_TASK_TYPE_SET = new Set<string>(DEPARTMENT_TASK_TYPES)
 
 function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
+}
+
+/**
+ * Present work-order gate entries that fail SPE-3109 consumeAllowed block work
+ * units this tick. Absent map / absent key → do not apply the adapter.
+ */
+function isSpecialistLaborConsumeBlocked(
+  gateInputsByWorkOrderId: unknown,
+  workOrderId: string
+): boolean {
+  if (!isRecord(gateInputsByWorkOrderId) || !Object.hasOwn(gateInputsByWorkOrderId, workOrderId)) {
+    return false
+  }
+  const projection = projectSpecialistLaborGate(
+    gateInputsByWorkOrderId[workOrderId] as SpecialistLaborGateInput | null | undefined
+  )
+  return !mapSpecialistLaborGateToWorkshopConsume(projection).consumeAllowed
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1902,7 +1933,8 @@ export function advanceDepartmentWorkshopQueue(
   certificationContext?: unknown,
   stationContext?: unknown,
   automationContext?: unknown,
-  specializationContext?: unknown
+  specializationContext?: unknown,
+  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1962,6 +1994,12 @@ export function advanceDepartmentWorkshopQueue(
         frozenReason('missing-work-order', validated.snapshot.departmentId, [item.workOrderId])
       )
     }
+    // SPE-3110: present gate entries that block consume leave the active item
+    // at the same completedWork and do not emit a completion receipt.
+    if (isSpecialistLaborConsumeBlocked(gateInputsByWorkOrderId, item.workOrderId)) {
+      remainingActive.push({ workOrderId: item.workOrderId, completedWork: item.completedWork })
+      continue
+    }
     const completedWork = item.completedWork + throughput.workUnits
     if (completedWork >= workOrder.requiredWork) {
       completedWorkOrderIds.push(item.workOrderId)
@@ -2007,8 +2045,9 @@ export function advanceDepartmentWorkshopQueue(
  * order. `advanceWeek` owns when this runs; this pure seam owns neither
  * GameState nor any non-workshop queue. Optional staging, operating-mode,
  * load-pressure, dependency-availability, certification, station, automation,
- * and anomaly-specialization maps are caller-owned transient context isolated
- * by exact department ID.
+ * anomaly-specialization, and specialist-labor gate maps are caller-owned
+ * transient context. Staging maps are isolated by exact department ID; gate
+ * inputs are isolated by exact work-order ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
@@ -2021,7 +2060,8 @@ export function processDepartmentWorkshopTick(
   certificationContextsByDepartment?: DepartmentWorkshopCertificationContextsByDepartment,
   stationContextsByDepartment?: DepartmentWorkshopStationContextsByDepartment,
   automationContextsByDepartment?: DepartmentWorkshopAutomationContextsByDepartment,
-  specializationContextsByDepartment?: DepartmentWorkshopSpecializationContextsByDepartment
+  specializationContextsByDepartment?: DepartmentWorkshopSpecializationContextsByDepartment,
+  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -2071,7 +2111,8 @@ export function processDepartmentWorkshopTick(
       isRecord(specializationContextsByDepartment) &&
         Object.hasOwn(specializationContextsByDepartment, departmentId)
         ? specializationContextsByDepartment[departmentId]
-        : undefined
+        : undefined,
+      gateInputsByWorkOrderId
     )
     reasons.push(...advanceResult.reasons)
 

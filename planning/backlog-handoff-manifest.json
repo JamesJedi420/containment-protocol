@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2261",
     "SPE-2262",
     "SPE-3043",
     "SPE-3040",
@@ -12,10 +13,10 @@
     "SPE-3031",
     "SPE-3026",
     "SPE-3027",
-    "SPE-3024",
-    "SPE-3020"
+    "SPE-3024"
   ],
   "sliceDocStatus": {
+    "planning/spe-2261-institutional-collapse-pathways-slice.md": "Recently shipped",
     "planning/spe-2262-facility-expansion-burden-slice.md": "Recently shipped",
     "planning/spe-3043-remaining-interaction-kind-ownership-audit-slice.md": "Recently shipped",
     "planning/spe-3040-site-search-historical-route-replay-start-slice.md": "Recently shipped",

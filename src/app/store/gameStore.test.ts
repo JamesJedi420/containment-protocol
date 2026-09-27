@@ -7,6 +7,7 @@ import {
   buildInvestigationAskedFlagId,
 } from '../../domain/investigationEconomy'
 import { readPersistentFlag } from '../../domain/flagSystem'
+import type { AuthoredChoiceDefinition } from '../../domain/choiceSystem'
 import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
 import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
@@ -481,6 +482,109 @@ describe('gameStore', () => {
     expect(afterNoMatch.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
   })
 
+  it('applyAuthoredChoice scene visits fire SPE-1605 enter_zone historical-route replay starts (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-authored-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+    const choice: AuthoredChoiceDefinition = {
+      id: 'choice:old-coach-road-enter',
+      label: 'Enter the old coach road',
+      consequences: [
+        {
+          type: 'record_scene_visit',
+          entry: {
+            locationId: 'location:old-coach-road',
+            sceneId: 'scene:old-coach-road-moor',
+          },
+        },
+      ],
+    }
+    const missingLocationChoice: AuthoredChoiceDefinition = {
+      ...choice,
+      id: 'choice:old-coach-road-enter-missing-location',
+      consequences: [
+        {
+          type: 'record_scene_visit',
+          entry: {
+            locationId: '',
+            sceneId: 'scene:old-coach-road-moor',
+          },
+        },
+      ],
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    const missingLocation = useGameStore.getState().applyAuthoredChoice(missingLocationChoice)
+    expect(missingLocation.sceneVisits).toEqual(['scene:old-coach-road-moor'])
+    expect(
+      normalizeHistoricalRouteReplayRegistry(missingLocation.state.historicalRouteReplays)
+    ).toEqual({})
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    const result = useGameStore.getState().applyAuthoredChoice(choice)
+
+    const matched = normalizeHistoricalRouteReplayRegistry(result.state.historicalRouteReplays)
+    expect(result.sceneVisits).toEqual(['scene:old-coach-road-moor'])
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-authored-enter'])
+    expect(matched['event:phantom-coach-authored-enter']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-authored-enter']?.currentAnchorId).toBe('anchor:moor-road')
+    expect(useGameStore.getState().game.historicalRouteReplays).toEqual(
+      result.state.historicalRouteReplays
+    )
+  })
+
   it('week-close still ignores interaction-only historical-route replay candidates (SPE-3034)', () => {
     const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
     if (!empty) throw new Error('fixture graph was not created')
@@ -619,11 +723,7 @@ describe('gameStore', () => {
 
     useGameStore
       .getState()
-      .askInvestigationQuestion(
-        'case-investigation-store',
-        'forensic',
-        'forensic.missing-proof'
-      )
+      .askInvestigationQuestion('case-investigation-store', 'forensic', 'forensic.missing-proof')
 
     const afterDifferentQuestion = useGameStore.getState().game
     expect(

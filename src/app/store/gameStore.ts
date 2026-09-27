@@ -110,7 +110,10 @@ import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
-import { activateHistoricalRouteReplayRegistryForInteractionStart } from '../../domain/historicalRouteReplayActivation'
+import {
+  activateHistoricalRouteReplayRegistryForInteractionStart,
+  type HistoricalRouteReplayInteractionKind,
+} from '../../domain/historicalRouteReplayActivation'
 import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../../domain/historicalRouteMemory'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import {
@@ -536,6 +539,33 @@ function areLocationStatesEqual(left: GameLocationState, right: GameLocationStat
     left.sceneId === right.sceneId &&
     left.updatedWeek === right.updatedWeek
   )
+}
+
+function activateHistoricalRouteReplayInteractionStartOnGame(
+  game: GameState,
+  interactionKind: HistoricalRouteReplayInteractionKind,
+  interactionId: string
+): GameState {
+  const normalizedInteractionId = interactionId.trim()
+  if (normalizedInteractionId.length === 0) {
+    return game
+  }
+
+  return {
+    ...game,
+    historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+      game.historicalRouteReplays,
+      normalizeHistoricalRouteMemoryGraphsFromGameState({
+        historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+        historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+      }),
+      game.historicalRouteReplayActivationCandidates,
+      {
+        interactionKind,
+        interactionId: normalizedInteractionId,
+      }
+    ),
+  }
 }
 
 function areProgressClocksEqual(
@@ -1132,8 +1162,29 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           // Pure deterministic choice-application logic is handled by domain
           result = applyAuthoredChoiceState(s.game, choice, context)
+          let gameAfterChoice = result.state
+          if (result.applied) {
+            for (const consequence of choice.consequences) {
+              if (consequence.type !== 'record_scene_visit') continue
+              const sceneId =
+                typeof consequence.entry.sceneId === 'string'
+                  ? consequence.entry.sceneId.trim()
+                  : ''
+              const locationId =
+                typeof consequence.entry.locationId === 'string'
+                  ? consequence.entry.locationId.trim()
+                  : ''
+              if (sceneId.length === 0 || locationId.length === 0) continue
+
+              gameAfterChoice = activateHistoricalRouteReplayInteractionStartOnGame(
+                gameAfterChoice,
+                'enter_zone',
+                sceneId
+              )
+            }
+          }
           // Context logging, debug snapshotting, and event queue wiring remain in the store
-          let gameWithDebugSnapshot: GameState = setUiDebugState(result.state, {
+          let gameWithDebugSnapshot: GameState = setUiDebugState(gameAfterChoice, {
             authoring: {
               ...(context?.activeContextId ? { activeContextId: context.activeContextId } : {}),
               lastChoiceId: result.choiceId,
@@ -1328,26 +1379,15 @@ export const useGameStore = create<GameStore>()(
           // SPE-3018 advance stays week-close. No-match / empty candidates no-op.
           // Gate on the same non-empty scene+location ids the domain visit requires
           // so a rejected visit cannot re-fire against a stale currentLocation scene.
-          const visitSceneId =
-            typeof entry.sceneId === 'string' ? entry.sceneId.trim() : ''
+          const visitSceneId = typeof entry.sceneId === 'string' ? entry.sceneId.trim() : ''
           const visitLocationId =
             typeof entry.locationId === 'string' ? entry.locationId.trim() : ''
           if (visitSceneId.length > 0 && visitLocationId.length > 0) {
-            game = {
-              ...game,
-              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
-                game.historicalRouteReplays,
-                normalizeHistoricalRouteMemoryGraphsFromGameState({
-                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
-                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
-                }),
-                game.historicalRouteReplayActivationCandidates,
-                {
-                  interactionKind: 'enter_zone',
-                  interactionId: visitSceneId,
-                }
-              ),
-            }
+            game = activateHistoricalRouteReplayInteractionStartOnGame(
+              game,
+              'enter_zone',
+              visitSceneId
+            )
           }
 
           return {
@@ -1548,8 +1588,7 @@ export const useGameStore = create<GameStore>()(
           // interactionId is the trimmed questionId (same role sceneId plays for
           // SPE-3034 enter_zone). Creates approaching only; SPE-3018 advance stays
           // week-close. Rejected asks / empty candidates / no-match stay no-ops.
-          const askQuestionId =
-            typeof questionId === 'string' ? questionId.trim() : ''
+          const askQuestionId = typeof questionId === 'string' ? questionId.trim() : ''
           let game = result.state
           if (askQuestionId.length > 0) {
             game = {

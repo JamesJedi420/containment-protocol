@@ -10,6 +10,7 @@ import {
 } from '../domain/historicalRouteReplay'
 import {
   activateHistoricalRouteReplayRegistryForCalendarWeek,
+  activateHistoricalRouteReplayRegistryForInteractionStart,
   normalizeHistoricalRouteReplayActivationCandidates,
   type HistoricalRouteReplayActivationCandidate,
 } from '../domain/historicalRouteReplayActivation'
@@ -66,6 +67,23 @@ function phantomCoachCandidate(
     originAnchorId: 'anchor:moor-road',
     terminalAnchorId: 'anchor:broken-parapet',
     startCondition: { kind: 'absolute_week', absoluteWeek },
+  }
+}
+
+function phantomCoachInteractionCandidate(
+  eventId: string,
+  interactionId = 'interaction:touch-parapet-marker'
+): HistoricalRouteReplayActivationCandidate {
+  return {
+    eventId,
+    activationId: 'activation:current-night',
+    originAnchorId: 'anchor:moor-road',
+    terminalAnchorId: 'anchor:broken-parapet',
+    startCondition: {
+      kind: 'interaction',
+      interactionKind: 'touch_sensitive_object',
+      interactionId,
+    },
   }
 }
 
@@ -203,11 +221,26 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
           activationId: 'activation:current-night',
           originAnchorId: 'anchor:moor-road',
           terminalAnchorId: 'anchor:broken-parapet',
-          startCondition: { kind: 'interaction', absoluteWeek: 1 },
+          startCondition: { kind: 'seasonal', absoluteWeek: 1 },
         },
+        {
+          eventId: 'event:bad-interaction',
+          activationId: 'activation:current-night',
+          originAnchorId: 'anchor:moor-road',
+          terminalAnchorId: 'anchor:broken-parapet',
+          startCondition: {
+            kind: 'interaction',
+            interactionKind: 'not_a_real_kind',
+            interactionId: 'interaction:x',
+          },
+        },
+        phantomCoachInteractionCandidate('event:interaction-ok'),
         phantomCoachCandidate('event:ok', 99),
       ])
-    ).toEqual([phantomCoachCandidate('event:ok', 1)])
+    ).toEqual([
+      phantomCoachInteractionCandidate('event:interaction-ok'),
+      phantomCoachCandidate('event:ok', 1),
+    ])
   })
 
   it('sanitizes activation graph fail-closed without inventing edges', () => {
@@ -257,7 +290,9 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
     expect(activatedNext.historicalRouteReplays?.['event:already']?.phase).toBe('traversing')
     // Newly activated stays approaching until the next week-close advance.
     expect(activatedNext.historicalRouteReplays?.['event:new-coach']?.phase).toBe('approaching')
-    expect(activatedNext.historicalRouteReplays?.['event:new-coach']?.ordinaryConsequence).toBeNull()
+    expect(
+      activatedNext.historicalRouteReplays?.['event:new-coach']?.ordinaryConsequence
+    ).toBeNull()
     expect(activatedNext.historicalRouteMemoryGraphs?.[graph.siteId]?.siteId).toBe(graph.siteId)
     expect(activatedNext.historicalRouteMemoryGraph).toBeUndefined()
 
@@ -353,5 +388,142 @@ describe('historical-route replay calendar activation (SPE-3024)', () => {
     )
     expect(hydrated.historicalRouteMemoryGraph).toBeUndefined()
     expect(normalizeHistoricalRouteReplayRegistry(hydrated.historicalRouteReplays)).toEqual({})
+  })
+})
+
+describe('historical-route replay interaction activation (SPE-3033)', () => {
+  const matchingSignal = {
+    interactionKind: 'touch_sensitive_object' as const,
+    interactionId: 'interaction:touch-parapet-marker',
+  }
+
+  it('activates an approaching record when an interaction start matches an active SPE-1392 path', () => {
+    const graph = phantomCoachGraph()
+    const result = activateHistoricalRouteReplayRegistryForInteractionStart(
+      {},
+      graph,
+      [phantomCoachInteractionCandidate('event:phantom-coach')],
+      matchingSignal
+    )
+
+    expect(Object.keys(result)).toEqual(['event:phantom-coach'])
+    expect(result['event:phantom-coach']?.phase).toBe('approaching')
+    expect(result['event:phantom-coach']?.routeEdgeIds).toEqual([
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    expect(Object.isFrozen(result['event:phantom-coach']?.routeAnchorIds)).toBe(true)
+  })
+
+  it('no-ops for dormant or non-matching interaction signals', () => {
+    const graph = phantomCoachGraph()
+    const candidates = [
+      phantomCoachInteractionCandidate('event:phantom-coach'),
+      phantomCoachCandidate('event:calendar-only', 3),
+    ]
+    const empty = activateHistoricalRouteReplayRegistryForInteractionStart({}, graph, candidates, {
+      interactionKind: 'enter_zone',
+      interactionId: 'interaction:wrong-zone',
+    })
+    expect(empty).toEqual({})
+    expect(Object.isFrozen(empty)).toBe(true)
+
+    const noSignal = activateHistoricalRouteReplayRegistryForInteractionStart(
+      {},
+      graph,
+      candidates,
+      null
+    )
+    expect(noSignal).toEqual({})
+  })
+
+  it('fail-closes when the SPE-1392 path is inactive or missing', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('empty graph missing')
+
+    const rememberedOnly = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+
+    expect(
+      activateHistoricalRouteReplayRegistryForInteractionStart(
+        {},
+        rememberedOnly,
+        [phantomCoachInteractionCandidate('event:phantom-coach')],
+        matchingSignal
+      )
+    ).toEqual({})
+
+    expect(
+      activateHistoricalRouteReplayRegistryForInteractionStart(
+        {},
+        undefined,
+        [phantomCoachInteractionCandidate('event:phantom-coach')],
+        matchingSignal
+      )
+    ).toEqual({})
+  })
+
+  it('is idempotent on re-trigger and leaves an existing sibling frozen', () => {
+    const existing = advanceHistoricalRouteReplay(createReplay('event:phantom-coach'))
+    const result = activateHistoricalRouteReplayRegistryForInteractionStart(
+      { 'event:phantom-coach': existing },
+      phantomCoachGraph(),
+      [phantomCoachInteractionCandidate('event:phantom-coach')],
+      matchingSignal
+    )
+
+    expect(result['event:phantom-coach']).toEqual(existing)
+    expect(result['event:phantom-coach']?.phase).toBe('traversing')
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+
+  it('returns a frozen registry identity no-op when the path is denied', () => {
+    const existing = createReplay('event:other')
+    const denied = activateHistoricalRouteReplayRegistryForInteractionStart(
+      { 'event:other': existing },
+      undefined,
+      [phantomCoachInteractionCandidate('event:phantom-coach')],
+      matchingSignal
+    )
+
+    expect(denied['event:other']).toEqual(existing)
+    expect(denied['event:phantom-coach']).toBeUndefined()
+    expect(Object.isFrozen(denied)).toBe(true)
+  })
+
+  it('does not activate calendar-only candidates and does not regress calendar activation', () => {
+    const graph = phantomCoachGraph()
+    const calendarCandidate = phantomCoachCandidate('event:calendar', 4)
+    const interactionCandidate = phantomCoachInteractionCandidate('event:interaction')
+
+    const fromInteraction = activateHistoricalRouteReplayRegistryForInteractionStart(
+      {},
+      graph,
+      [calendarCandidate, interactionCandidate],
+      matchingSignal
+    )
+    expect(Object.keys(fromInteraction)).toEqual(['event:interaction'])
+
+    const fromCalendar = activateHistoricalRouteReplayRegistryForCalendarWeek(
+      {},
+      graph,
+      [calendarCandidate, interactionCandidate],
+      4
+    )
+    expect(Object.keys(fromCalendar)).toEqual(['event:calendar'])
+    expect(fromCalendar['event:calendar']?.phase).toBe('approaching')
   })
 })

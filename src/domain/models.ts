@@ -2778,8 +2778,9 @@ export interface GameState {
    */
   historicalRouteReplays?: HistoricalRouteReplayRegistry
   /**
-   * SPE-3024: authored SPE-1605 calendar/start-condition candidates for historical-route
-   * replay activation. Legacy omit hydrates empty; malformed siblings drop independently.
+   * SPE-3024 / SPE-3033: authored SPE-1605 calendar (`absolute_week`) and interaction
+   * start-condition candidates for historical-route replay activation. Legacy omit
+   * hydrates empty; malformed siblings drop independently.
    */
   historicalRouteReplayActivationCandidates?: HistoricalRouteReplayActivationCandidateList
   /**

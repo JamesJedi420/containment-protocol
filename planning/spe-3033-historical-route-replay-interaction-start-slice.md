@@ -82,6 +82,6 @@ Not implemented here:
 
 | Item                                                      | Suggested owner issue               | Why deferred                                                                |
 | --------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
-| Store/UI interaction command that fires the seam          | Later SPE-1605 / site-trigger child | This slice owns the pure domain activator; presentation wiring is separate. |
+| Store/UI interaction command that fires the seam          | [SPE-3034](https://linear.app/spectranoir/issue/SPE-3034/fire-one-historical-route-replay-interaction-start-from-an-existing) | Retargeted: store `recordSceneVisit` → SPE-1605 `enter_zone` fires the SPE-3033 activator. |
 | Full SPE-1605 dormant/armed/spent/recurring state machine | Later SPE-1605 child                | One interaction → approaching is enough for the SPE-3032 Deferred row.      |
 | Anniversary / week-of-year / seasonal start conditions    | Later SPE-1071 / SPE-1605 child     | Outside this interaction boundary; calendar absolute week remains SPE-3024. |

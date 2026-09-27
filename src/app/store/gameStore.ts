@@ -110,6 +110,8 @@ import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
+import { activateHistoricalRouteReplayRegistryForInteractionStart } from '../../domain/historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../../domain/historicalRouteMemory'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import {
   askInvestigationQuestion as applyAskInvestigationQuestion,
@@ -1314,6 +1316,33 @@ export const useGameStore = create<GameStore>()(
                   ...(entry.outcome ? { outcome: entry.outcome } : {}),
                 },
               })
+
+          // SPE-3034: existing site scene visit matches SPE-1605 enter_zone.
+          // interactionId is the visited sceneId. Creates approaching only;
+          // SPE-3018 advance stays week-close. No-match / empty candidates no-op.
+          // Gate on the same non-empty scene+location ids the domain visit requires
+          // so a rejected visit cannot re-fire against a stale currentLocation scene.
+          const visitSceneId =
+            typeof entry.sceneId === 'string' ? entry.sceneId.trim() : ''
+          const visitLocationId =
+            typeof entry.locationId === 'string' ? entry.locationId.trim() : ''
+          if (visitSceneId.length > 0 && visitLocationId.length > 0) {
+            game = {
+              ...game,
+              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+                game.historicalRouteReplays,
+                normalizeHistoricalRouteMemoryGraphsFromGameState({
+                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+                }),
+                game.historicalRouteReplayActivationCandidates,
+                {
+                  interactionKind: 'enter_zone',
+                  interactionId: visitSceneId,
+                }
+              ),
+            }
+          }
 
           return {
             game,

@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                                                                             |
+| **Status**          | **Recently shipped**                                                                                                                                                        |
 | **Linear**          | [SPE-3109](https://linear.app/spectranoir/issue/SPE-3109/pure-workshop-consume-adapter-over-specialist-labor-gate)                                                           |
 | **Parent**          | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog** (this child does not finish the umbrella) |
 | **Related**         | SPE-1058 registry (Done — do not reopen); SPE-2768 workshop quality axis; SPE-1028 workshop queues (read consume inputs only — do not wire tick)                           |
@@ -69,7 +69,7 @@ Callers pass a `SpecialistLaborGateProjection` (or `undefined` / malformed). `ma
 
 | Item or mechanic                                                         | Owner or prerequisite                                                                                                        | Why deferred                                                                          |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Week-close / GameState wire of specialist gate into workshop tick        | later SPE-1052 child                                                                                                         | This slice owns pure adapter only; no `processDepartmentWorkshopTick` / `advanceWeek` |
+| Week-close / GameState wire of specialist gate into workshop tick        | [SPE-3110](https://linear.app/spectranoir/issue/SPE-3110/week-close-wire-of-specialist-labor-workshop-consume-adapter)         | This slice owns pure adapter only; week-close wire is the next SPE-1052 child         |
 | Automation mitigation path (reduces labor dependency + new failure mode) | later SPE-1058 child or SPE-1052 child                                                                                       | Full SPE-1058 AC remains; out of adapter boundary                                     |
 | Training / succession / cross-training long-term capability change       | later SPE-1058 child; progression authority remains SPE-1059 / SPE-14                                                        | Adapter does not grow or lose capability                                              |
 | Priority-conflict arbitration between competing specialist tasks         | later SPE-1058 child or SPE-1052 child                                                                                       | Adapter maps one gate projection at a time                                            |

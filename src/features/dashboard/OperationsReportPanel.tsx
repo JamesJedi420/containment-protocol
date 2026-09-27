@@ -8,29 +8,34 @@ import { HistoricalRouteReplayExplanationPanel } from '../operations/HistoricalR
 import { HistoricalRouteReplayMapChromePanel } from '../operations/HistoricalRouteReplayMapChromePanel'
 import { getHistoricalRouteReplayOperationalExplanations } from '../operations/historicalRouteReplayExplanationAdapter'
 import { getHistoricalRouteReplayMapChromeViews } from '../operations/historicalRouteReplayMapChromeAdapter'
+import { createHistoricalRouteReplayVisibilityForFromKnowledge } from '../operations/historicalRouteReplayVisibilityFromKnowledge'
 import { getOperationsReportView } from '../report/operationsReportView'
 
 export function OperationsReportPanel() {
   const { game, setContractNextIntent, clearContractNextIntent } = useGameStore()
   const view = useMemo(() => getOperationsReportView(game), [game])
-  const historicalRouteReplayExplanations = useMemo(
-    () =>
-      getHistoricalRouteReplayOperationalExplanations(game.historicalRouteReplays).map((record) =>
+  const { historicalRouteReplayExplanations, historicalRouteReplayMapChrome } = useMemo(() => {
+    // SPE-3032: one knowledge-driven visibilityFor shared by explanation + map chrome.
+    const visibilityFor = createHistoricalRouteReplayVisibilityForFromKnowledge(
+      game.historicalRouteMemoryGraphs
+    )
+    return {
+      historicalRouteReplayExplanations: getHistoricalRouteReplayOperationalExplanations(
+        game.historicalRouteReplays,
+        visibilityFor
+      ).map((record) =>
         Object.freeze({
           summary: projectOperationalExplanation(record, 'summary'),
           detail: projectOperationalExplanation(record, 'detail'),
         })
       ),
-    [game]
-  )
-  const historicalRouteReplayMapChrome = useMemo(
-    () =>
-      getHistoricalRouteReplayMapChromeViews(
+      historicalRouteReplayMapChrome: getHistoricalRouteReplayMapChromeViews(
         game.historicalRouteReplays,
-        game.historicalRouteMemoryGraphs
+        game.historicalRouteMemoryGraphs,
+        visibilityFor
       ),
-    [game]
-  )
+    }
+  }, [game])
   const debrief = view.contractDebrief
 
   return (

@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3112",
     "SPE-3110",
     "SPE-3109",
     "SPE-1058",
@@ -13,10 +14,10 @@
     "SPE-3034",
     "SPE-3033",
     "SPE-3032",
-    "SPE-3031",
     "SPE-3026"
   ],
   "sliceDocStatus": {
+    "planning/spe-3112-specialist-operator-feed-slice.md": "Recently shipped",
     "planning/spe-3110-workshop-labor-week-close-slice.md": "Recently shipped",
     "planning/spe-3109-workshop-labor-consume-slice.md": "Recently shipped",
     "planning/spe-1058-specialist-labor-registry-slice.md": "Recently shipped",

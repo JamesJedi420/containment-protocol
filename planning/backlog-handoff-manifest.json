@@ -1,9 +1,9 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [
-    "SPE-3115"
-  ],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3116",
+    "SPE-3115",
     "SPE-3113",
     "SPE-3112",
     "SPE-3110",
@@ -13,12 +13,11 @@
     "SPE-2262",
     "SPE-3043",
     "SPE-3040",
-    "SPE-3035",
-    "SPE-3034",
-    "SPE-3033"
+    "SPE-3035"
   ],
   "sliceDocStatus": {
-    "planning/spe-3115-map-agent-role-archive-analyst-slots-slice.md": "In Progress",
+    "planning/spe-3116-map-staff-role-archive-analyst-slots-slice.md": "Recently shipped",
+    "planning/spe-3115-map-agent-role-archive-analyst-slots-slice.md": "Recently shipped",
     "planning/spe-3113-persist-specialist-operator-slots-slice.md": "Recently shipped",
     "planning/spe-3112-specialist-operator-feed-slice.md": "Recently shipped",
     "planning/spe-3110-workshop-labor-week-close-slice.md": "Recently shipped",

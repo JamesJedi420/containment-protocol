@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-1051",
     "SPE-3118",
     "SPE-3114",
     "SPE-3117",
@@ -16,6 +17,7 @@
     "SPE-2262"
   ],
   "sliceDocStatus": {
+    "planning/spe-1051-scar-degraded-registry-slice.md": "Recently shipped",
     "planning/spe-3118-clear-specialist-slots-when-mapped-personnel-leave-slice.md": "Recently shipped",
     "planning/spe-3114-specialist-operator-persistence-authority-slice.md": "Recently shipped",
     "planning/spe-3117-containment-response-cell-repair-pair-slice.md": "Recently shipped",

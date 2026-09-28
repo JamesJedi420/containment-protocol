@@ -96,7 +96,7 @@ import { projectProductionFacilitySectionStaging } from '../facilitySectionStagi
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import {
-  deriveArchiveAnalystSlotsFromMappedAgents,
+  deriveArchiveAnalystSlotsFromMappedPersonnel,
   projectSpecialistLaborGateInputsByWorkOrderId,
   resolveCampaignSpecialistLaborOperatorSlots,
 } from '../specialistLaborOperatorFeed'
@@ -5031,19 +5031,21 @@ export function advanceWeek(
   // departmentLocalStaging cache cannot override missing or conflicting topology.
   // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113
   // feed it from saved specialistOperatorSlots when valid (including []), else
-  // the authored production fixture. SPE-3115 may materialize one
-  // archive_analyst slot from a mapped investigator when the field is still
-  // absent; a present list (including []) is never overwritten and never
-  // becomes [] for “no match.” Undefined (no records_review orders) omits
-  // the map. Completion registration stays on outputWeeklyState so
-  // post-inspection integrity / facility axes remain authoritative.
-  const derivedMappedAgentSlots = deriveArchiveAnalystSlotsFromMappedAgents(
+  // the authored production fixture. SPE-3115 / SPE-3116 may materialize one
+  // archive_analyst slot from a mapped investigator or analysis staff when the
+  // field is still absent (agent-then-staff compose); a present list (including
+  // []) is never overwritten and never becomes [] for “no match.” Undefined
+  // (no records_review orders) omits the map. Completion registration stays on
+  // outputWeeklyState so post-inspection integrity / facility axes remain
+  // authoritative.
+  const derivedMappedPersonnelSlots = deriveArchiveAnalystSlotsFromMappedPersonnel(
     inputWeeklyState.agents,
+    inputWeeklyState.staff,
     inputWeeklyState.specialistOperatorSlots
   )
   const specialistLaborOperatorSlots =
-    derivedMappedAgentSlots !== undefined
-      ? derivedMappedAgentSlots
+    derivedMappedPersonnelSlots !== undefined
+      ? derivedMappedPersonnelSlots
       : resolveCampaignSpecialistLaborOperatorSlots(inputWeeklyState.specialistOperatorSlots)
   const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
     inputWeeklyState.departmentWorkshopWorkOrders,
@@ -5067,8 +5069,8 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
   }
-  if (derivedMappedAgentSlots !== undefined) {
-    outputWeeklyState.specialistOperatorSlots = derivedMappedAgentSlots
+  if (derivedMappedPersonnelSlots !== undefined) {
+    outputWeeklyState.specialistOperatorSlots = derivedMappedPersonnelSlots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
     outputWeeklyState,

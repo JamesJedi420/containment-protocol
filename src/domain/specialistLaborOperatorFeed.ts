@@ -1,6 +1,6 @@
 /**
- * SPE-3112 / SPE-3113 / SPE-3115 — live specialist operator feed for workshop
- * week-close.
+ * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 — live specialist operator feed for
+ * workshop week-close.
  *
  * Projects an authored or persisted operator-slot list into the SPE-3110
  * work-order gate map. One explicit pair: department task `records_review` →
@@ -13,11 +13,13 @@
  * list is kept and stalls `records_review`.
  *
  * SPE-3115 adds one explicit AgentRole → archive_analyst binding
- * (`investigator`). It writes slots only when a matching agent is present and
- * the field is still absent. Unmapped roles and an empty roster leave the
- * field absent so week-close keeps the production fixture. Never writes `[]`
- * for “no match.” Staff mapping and stat-to-band formulas stay out of scope.
- * Does not change SPE-1058 / SPE-3109 / SPE-3110 gate semantics.
+ * (`investigator`). SPE-3116 adds one explicit staff specialty →
+ * archive_analyst binding (`analysis`). Both write slots only when a match is
+ * present and the field is still absent. Compose agent-then-staff. Unmapped
+ * roles/specialties and empty rosters leave the field absent so week-close
+ * keeps the production fixture. Never writes `[]` for “no match.” Stat-to-band
+ * formulas stay out of scope. Does not change SPE-1058 / SPE-3109 / SPE-3110
+ * gate semantics.
  */
 
 import type { DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId } from './departmentWorkshopQueue'
@@ -38,11 +40,19 @@ const ARCHIVE_CLASSIFICATION_TASK = 'archive_classification'
 export const ARCHIVE_ANALYST_MAPPED_AGENT_ROLE = 'investigator' as const
 
 /**
+ * SPE-3116: one authored staff specialty that materializes an `archive_analyst`
+ * slot. Not an identity map onto `SpecialistRoleFamily`. Instructors are not a
+ * match (they lack `specialty`).
+ */
+export const ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY = 'analysis' as const
+
+/**
  * Campaign week-close roster when `GameState.specialistOperatorSlots` is
  * absent or malformed. `competent` + `fit` is operable, so existing
  * `records_review` completions stay on the nominal path. Tests inject other
  * lists; do not retune this constant to stall or degrade campaign ticks.
- * SPE-3115 reuses this same slot shape when a mapped agent is present.
+ * SPE-3115 / SPE-3116 reuse this same slot shape when a mapped agent or staff
+ * member is present.
  */
 export const PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS: readonly SpecialistOperatorSlot[] =
   Object.freeze([
@@ -134,6 +144,56 @@ export function deriveArchiveAnalystSlotsFromMappedAgents(
     }
   }
   return undefined
+}
+
+function isMappedStaffRecord(value: unknown): value is { readonly specialty: string } {
+  return isRecord(value) && typeof value.specialty === 'string'
+}
+
+/**
+ * SPE-3116 — derive one `archive_analyst` slot from a mapped staff specialty.
+ *
+ * Writes only when `specialistOperatorSlots` is still absent and at least one
+ * staff record has `specialty === 'analysis'`. Returns the production fixture
+ * slot list (one `competent` / `fit` archive_analyst). Never returns `[]`.
+ * A present field (including `[]`) or no matching staff returns `undefined`
+ * so callers leave the persisted field untouched. Instructors (no specialty)
+ * and other specialties are not matches.
+ */
+export function deriveArchiveAnalystSlotsFromMappedStaff(
+  staff: unknown,
+  specialistOperatorSlots: unknown
+): readonly SpecialistOperatorSlot[] | undefined {
+  if (specialistOperatorSlots !== undefined) return undefined
+  if (!isRecord(staff)) return undefined
+
+  for (const member of Object.values(staff)) {
+    if (
+      isMappedStaffRecord(member) &&
+      member.specialty === ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY
+    ) {
+      return PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+    }
+  }
+  return undefined
+}
+
+/**
+ * SPE-3116 — compose SPE-3115 agent map then SPE-3116 staff map.
+ *
+ * Order is explicit and deterministic: agent-then-staff. Either source writes
+ * the same production fixture when it matches and the field is absent. A
+ * present field short-circuits both helpers (never overwrite).
+ */
+export function deriveArchiveAnalystSlotsFromMappedPersonnel(
+  agents: unknown,
+  staff: unknown,
+  specialistOperatorSlots: unknown
+): readonly SpecialistOperatorSlot[] | undefined {
+  return (
+    deriveArchiveAnalystSlotsFromMappedAgents(agents, specialistOperatorSlots) ??
+    deriveArchiveAnalystSlotsFromMappedStaff(staff, specialistOperatorSlots)
+  )
 }
 
 function isRecordsReviewWorkOrder(

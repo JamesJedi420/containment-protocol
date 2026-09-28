@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                                                                             |
+| **Status**          | **Recently shipped**                                                                                                                                                        |
 | **Linear**          | [SPE-3115](https://linear.app/spectranoir/issue/SPE-3115/map-one-authored-agent-role-onto-archive-analyst-specialist-slots)                                                 |
 | **Parent**          | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog** (this child does not finish the umbrella) |
 | **Related**         | SPE-3113 persist slots (Done — do not reopen); SPE-3112 live feed (Done); SPE-3110 week-close wire (Done); SPE-3109 adapter (Done); SPE-1058 registry (Done)               |
@@ -63,7 +63,7 @@ Map one authored `AgentRole` (`investigator`) onto a single `archive_analyst` sp
 
 | Item or mechanic                                                         | Owner or prerequisite                                                                 | Why deferred                                                                 |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Staff → specialist role-family mapping                                   | later SPE-1052 child                                                                  | This slice binds one agent role only                                         |
+| Staff → specialist role-family mapping                                   | [SPE-3116](https://linear.app/spectranoir/issue/SPE-3116/map-one-authored-staff-role-onto-archive-analyst-specialist-slots) | Owned by SPE-3116 staff specialty → archive_analyst child |
 | Clear materialized slots when the mapped agent leaves the roster         | SPE-3114 authority disposition; later SPE-1052 child                                  | Absent-field-only write; no weekly overwrite or clear                        |
 | Stat-to-band formula (skill / availability from agent stats)             | later SPE-1052 child or SPE-1059 / SPE-1058 consumer                                  | Fixed competent/fit bands only                                               |
 | Further department-task → specialist-task pairs beyond `records_review` | later SPE-1052 child                                                                  | One explicit pair remains the live feed                                      |

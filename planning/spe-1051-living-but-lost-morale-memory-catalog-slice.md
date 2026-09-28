@@ -45,7 +45,7 @@ Add a pure deterministic living-but-lost / morale-memory catalog so a configured
 - Week-close hooks, planner UI, combat win/loss economy
 - True-defeat / agency-dissolution thresholds (SPE-1103 adjacency)
 - Full living-but-lost taxonomy (institutionalization, fugue, paranoia, chanting fixation, dissociation, identity erosion, patron devotion, anomaly obsession, care burden, recovery paths)
-- Post-loss adaptation unlocks (SPE-1694), sealed-site / confiscated-evidence endings
+- Post-loss adaptation unlocks (SPE-1051 later slice; SPE-1694 stays Canceled), sealed-site / confiscated-evidence endings
 - SPE-868 after-action cause-chain narrative surface
 - SPE-2261 / SPE-2262 registry semantic changes; SPE-3118 labor boundaries
 - Rewrite of slice 1 `SCAR_DEFINITIONS` / `morale_memory_drag` into a second scar system
@@ -64,16 +64,16 @@ Callers pass a retained survivor/staff group plus either a configured `effectKin
 
 ## Deferred
 
-| Item or mechanic                                                       | Owner or prerequisite                    | Why deferred                                                                                   |
-| ---------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Full living-but-lost taxonomy + care / recovery paths                  | SPE-1051 later slice; SPE-1682 adjacency | Compact catalog only; institutionalization/fugue/paranoia/etc. and recovery economies stay out |
-| Post-loss adaptation unlocks from scar / catalog history               | SPE-1051 later slice; SPE-1694 adjacency | Catalog projects effects; unlock economy not started                                           |
-| After-action cause-chain explanation surface                           | SPE-1051 later slice; SPE-868 adjacency  | No after-action narrative output in this slice                                                 |
-| Sealed-site / confiscated-evidence endings                             | SPE-1051 later slice                     | Survival-with-clarity-loss endings beyond slice-1 `knowledgeClarityLoss` effect field          |
-| True-defeat / agency-dissolution thresholds                            | SPE-1103 / SPE-1051 later slice          | Slice intentionally omits game-over / true-defeat outcome kinds                                |
-| Week-close / GameState wire of campaign scars or morale-memory catalog | later SPE-1051 / SPE-1052 child          | Caller-owned projection only                                                                   |
-| Consume of SPE-2261 pathway outputs into scar / morale triggers        | SPE-2261 shipped; wire stays deferred    | Do not rewrite SPE-2261; callers may pass pressures independently                              |
-| Broader collapse-chain AC beyond slice-1 scar cascade                  | SPE-1051 later slice                     | Slice 1 cascade exists; additional multi-system collapse chains stay deferred                  |
+| Item or mechanic                                                       | Owner or prerequisite                                                                                       | Why deferred                                                                                   |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Full living-but-lost taxonomy + care / recovery paths                  | SPE-1051 later slice; SPE-1682 adjacency                                                                    | Compact catalog only; institutionalization/fugue/paranoia/etc. and recovery economies stay out |
+| Post-loss adaptation unlocks from scar / catalog history               | SPE-1051 — `planning/spe-1051-post-loss-adaptation-unlock-slice.md` (SPE-1694 stays Canceled; not an owner) | Catalog projects effects; unlock economy owned by SPE-1051 adaptation-unlock slice             |
+| After-action cause-chain explanation surface                           | SPE-1051 later slice; SPE-868 adjacency                                                                     | No after-action narrative output in this slice                                                 |
+| Sealed-site / confiscated-evidence endings                             | SPE-1051 later slice                                                                                        | Survival-with-clarity-loss endings beyond slice-1 `knowledgeClarityLoss` effect field          |
+| True-defeat / agency-dissolution thresholds                            | SPE-1103 / SPE-1051 later slice                                                                             | Slice intentionally omits game-over / true-defeat outcome kinds                                |
+| Week-close / GameState wire of campaign scars or morale-memory catalog | later SPE-1051 / SPE-1052 child                                                                             | Caller-owned projection only                                                                   |
+| Consume of SPE-2261 pathway outputs into scar / morale triggers        | SPE-2261 shipped; wire stays deferred                                                                       | Do not rewrite SPE-2261; callers may pass pressures independently                              |
+| Broader collapse-chain AC beyond slice-1 scar cascade                  | SPE-1051 later slice                                                                                        | Slice 1 cascade exists; additional multi-system collapse chains stay deferred                  |
 
 Parent SPE-1052 remains **Backlog**. SPE-1051 remains **Backlog** (slice 3 living-but-lost / morale-memory catalog shipped; umbrella ACs incomplete). Do not close SPE-1052 from this slice. Do not mark SPE-1051 Done.
 

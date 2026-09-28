@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                                                                             |
+| **Status**          | **Recently shipped**                                                                                                                                                        |
 | **Linear**          | [SPE-3113](https://linear.app/spectranoir/issue/SPE-3113/persist-specialist-operator-slots-for-the-workshop-week-close-feed)                                                 |
 | **Parent**          | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog** (this child does not finish the umbrella) |
 | **Related**         | SPE-3112 live feed (Done — do not reopen); SPE-3110 week-close wire (Done); SPE-3109 adapter (Done); SPE-1058 registry (Done)                                               |
@@ -60,7 +60,8 @@ Hydration parses the optional list. A valid array (including empty) freezes own-
 
 | Item or mechanic                                                         | Owner or prerequisite                                                                 | Why deferred                                                                 |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Agent or staff → specialist role-family mapping                         | later SPE-1052 child                                                                  | `AgentRole` does not match `SpecialistRoleFamily`; do not invent the bridge |
+| Agent → specialist role-family mapping (`investigator` → `archive_analyst`) | [SPE-3115](https://linear.app/spectranoir/issue/SPE-3115/map-one-authored-agent-role-onto-archive-analyst-specialist-slots) | One authored agent role map; see `planning/spe-3115-map-agent-role-archive-analyst-slots-slice.md` |
+| Staff → specialist role-family mapping                                   | later SPE-1052 child                                                                  | Staff roster is out of SPE-3115; do not invent the bridge                    |
 | Further department-task → specialist-task pairs beyond `records_review` | later SPE-1052 child                                                                  | One explicit pair remains the live feed                                      |
 | Automation mitigation path (reduces labor dependency + new failure mode) | later SPE-1058 child or SPE-1052 child                                                | Full SPE-1058 AC remains; out of this persist boundary                       |
 | Training / succession / cross-training long-term capability change       | later SPE-1058 child; progression authority remains SPE-1059 / SPE-14                 | Persist copies current slots; it does not grow or lose capability            |

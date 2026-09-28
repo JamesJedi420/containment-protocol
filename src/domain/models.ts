@@ -2844,11 +2844,14 @@ export interface GameState {
    */
   departmentLocalStaging?: DepartmentLocalStaging
   /**
-   * SPE-3113 / SPE-1052: optional specialist operator slots for the SPE-3112 workshop
-   * week-close feed. Valid saved lists (including empty) replace the authored production
-   * fixture at the projector call. Omit / malformed hydrate absent so campaign
-   * `records_review` keeps the production fixture. Empty present list still stalls.
-   * Not agent/staff role mapping. Not a new department-task pair.
+   * SPE-3113 / SPE-3115 / SPE-1052: optional specialist operator slots for the
+   * SPE-3112 workshop week-close feed. Valid saved lists (including empty)
+   * replace the authored production fixture at the projector call. Omit /
+   * malformed hydrate absent so campaign `records_review` keeps the production
+   * fixture. Empty present list still stalls. SPE-3115 may materialize one
+   * `archive_analyst` slot from a mapped `investigator` when the field is still
+   * absent; it never writes `[]` for “no match.” Not staff mapping. Not a new
+   * department-task pair.
    */
   specialistOperatorSlots?: readonly SpecialistOperatorSlot[]
   /**

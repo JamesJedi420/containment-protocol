@@ -1,5 +1,6 @@
 /**
- * SPE-3112 / SPE-3113 — live specialist operator feed for workshop week-close.
+ * SPE-3112 / SPE-3113 / SPE-3115 — live specialist operator feed for workshop
+ * week-close.
  *
  * Projects an authored or persisted operator-slot list into the SPE-3110
  * work-order gate map. One explicit pair: department task `records_review` →
@@ -9,9 +10,14 @@
  *
  * SPE-3113 adds optional `GameState.specialistOperatorSlots`. Absent or
  * malformed payloads fail-close to the production fixture. A present empty
- * list is kept and stalls `records_review`. This module does not map agents
- * or staff onto role families, or change SPE-1058 / SPE-3109 / SPE-3110 gate
- * semantics.
+ * list is kept and stalls `records_review`.
+ *
+ * SPE-3115 adds one explicit AgentRole → archive_analyst binding
+ * (`investigator`). It writes slots only when a matching agent is present and
+ * the field is still absent. Unmapped roles and an empty roster leave the
+ * field absent so week-close keeps the production fixture. Never writes `[]`
+ * for “no match.” Staff mapping and stat-to-band formulas stay out of scope.
+ * Does not change SPE-1058 / SPE-3109 / SPE-3110 gate semantics.
  */
 
 import type { DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId } from './departmentWorkshopQueue'
@@ -26,10 +32,17 @@ const RECORDS_REVIEW_TASK = 'records_review'
 const ARCHIVE_CLASSIFICATION_TASK = 'archive_classification'
 
 /**
+ * SPE-3115: one authored `AgentRole` that materializes an `archive_analyst`
+ * slot. Not an identity map onto `SpecialistRoleFamily`.
+ */
+export const ARCHIVE_ANALYST_MAPPED_AGENT_ROLE = 'investigator' as const
+
+/**
  * Campaign week-close roster when `GameState.specialistOperatorSlots` is
  * absent or malformed. `competent` + `fit` is operable, so existing
  * `records_review` completions stay on the nominal path. Tests inject other
  * lists; do not retune this constant to stall or degrade campaign ticks.
+ * SPE-3115 reuses this same slot shape when a mapped agent is present.
  */
 export const PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS: readonly SpecialistOperatorSlot[] =
   Object.freeze([
@@ -93,6 +106,34 @@ export function resolveCampaignSpecialistLaborOperatorSlots(
 ): readonly SpecialistOperatorSlot[] {
   const parsed = parseSpecialistOperatorSlots(value)
   return parsed !== undefined ? parsed : PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+}
+
+function isMappedAgentRecord(value: unknown): value is { readonly role: string } {
+  return isRecord(value) && typeof value.role === 'string'
+}
+
+/**
+ * SPE-3115 — derive one `archive_analyst` slot from a mapped agent role.
+ *
+ * Writes only when `specialistOperatorSlots` is still absent and at least one
+ * agent has `role === 'investigator'`. Returns the production fixture slot
+ * list (one `competent` / `fit` archive_analyst). Never returns `[]`.
+ * A present field (including `[]`) or no matching agent returns `undefined`
+ * so callers leave the persisted field untouched.
+ */
+export function deriveArchiveAnalystSlotsFromMappedAgents(
+  agents: unknown,
+  specialistOperatorSlots: unknown
+): readonly SpecialistOperatorSlot[] | undefined {
+  if (specialistOperatorSlots !== undefined) return undefined
+  if (!isRecord(agents)) return undefined
+
+  for (const agent of Object.values(agents)) {
+    if (isMappedAgentRecord(agent) && agent.role === ARCHIVE_ANALYST_MAPPED_AGENT_ROLE) {
+      return PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+    }
+  }
+  return undefined
 }
 
 function isRecordsReviewWorkOrder(

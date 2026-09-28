@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3118",
     "SPE-3114",
     "SPE-3117",
     "SPE-3116",
@@ -12,10 +13,10 @@
     "SPE-3109",
     "SPE-1058",
     "SPE-2261",
-    "SPE-2262",
-    "SPE-3043"
+    "SPE-2262"
   ],
   "sliceDocStatus": {
+    "planning/spe-3118-clear-specialist-slots-when-mapped-personnel-leave-slice.md": "Recently shipped",
     "planning/spe-3114-specialist-operator-persistence-authority-slice.md": "Recently shipped",
     "planning/spe-3117-containment-response-cell-repair-pair-slice.md": "Recently shipped",
     "planning/spe-3116-map-staff-role-archive-analyst-slots-slice.md": "Recently shipped",

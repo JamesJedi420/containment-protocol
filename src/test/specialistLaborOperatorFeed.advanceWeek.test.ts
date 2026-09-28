@@ -210,3 +210,84 @@ describe('SPE-3112 / SPE-3117 advanceWeek operator feed wire', () => {
     expect(next.departmentWorkshopCompletionOutcomes?.[CONTAINMENT_WORK_ORDER_ID]).toBeUndefined()
   })
 })
+
+describe('SPE-3118 clear stale production slots when mapped personnel leave', () => {
+  it('clears a production-shaped list to absent and uses the campaign roster when mapped personnel leave', async () => {
+    const actual = await vi.importActual<
+      typeof import('../domain/specialistLaborOperatorFeed')
+    >('../domain/specialistLaborOperatorFeed')
+    projectSpy.mockImplementation(actual.projectSpecialistLaborGateInputsByWorkOrderId)
+
+    const state = makePairedWorkshopState({
+      includeContainment: true,
+      includeSibling: true,
+      clearMappedPersonnel: true,
+    })
+    state.specialistOperatorSlots = [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
+
+    const next = advanceWeek(state)
+    expect(projectSpy).toHaveBeenCalledWith(
+      state.departmentWorkshopWorkOrders,
+      CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+    expect(next.specialistOperatorSlots).toBeUndefined()
+    expect(next.departmentWorkshopCompletionOutcomes?.[WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[CONTAINMENT_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[SIBLING_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+  })
+
+  it('keeps intentional [] and does not rewrite it into the campaign roster', async () => {
+    const actual = await vi.importActual<
+      typeof import('../domain/specialistLaborOperatorFeed')
+    >('../domain/specialistLaborOperatorFeed')
+    projectSpy.mockImplementation(actual.projectSpecialistLaborGateInputsByWorkOrderId)
+
+    const state = makePairedWorkshopState({
+      includeContainment: true,
+      includeSibling: true,
+      clearMappedPersonnel: true,
+    })
+    state.specialistOperatorSlots = []
+
+    const next = advanceWeek(state)
+    expect(projectSpy).toHaveBeenCalledWith(state.departmentWorkshopWorkOrders, [])
+    expect(next.specialistOperatorSlots).toEqual([])
+    expect(next.departmentWorkshopCompletionOutcomes?.[WORK_ORDER_ID]).toBeUndefined()
+    expect(next.departmentWorkshopCompletionOutcomes?.[CONTAINMENT_WORK_ORDER_ID]).toBeUndefined()
+    expect(next.departmentWorkshopCompletionOutcomes?.[SIBLING_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+  })
+
+  it('keeps a production-shaped list when mapped personnel remain', async () => {
+    const actual = await vi.importActual<
+      typeof import('../domain/specialistLaborOperatorFeed')
+    >('../domain/specialistLaborOperatorFeed')
+    projectSpy.mockImplementation(actual.projectSpecialistLaborGateInputsByWorkOrderId)
+
+    const state = makePairedWorkshopState({ includeContainment: true })
+    state.specialistOperatorSlots = [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
+
+    const next = advanceWeek(state)
+    expect(projectSpy).toHaveBeenCalledWith(
+      state.departmentWorkshopWorkOrders,
+      PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+    expect(next.specialistOperatorSlots).toEqual(PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS)
+    expect(next.departmentWorkshopCompletionOutcomes?.[WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[CONTAINMENT_WORK_ORDER_ID]).toBeUndefined()
+  })
+})

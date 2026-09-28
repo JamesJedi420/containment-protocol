@@ -95,6 +95,10 @@ import {
 import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
+import {
+  PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS,
+  projectSpecialistLaborGateInputsByWorkOrderId,
+} from '../specialistLaborOperatorFeed'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
@@ -5024,15 +5028,27 @@ export function advanceWeek(
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
-  // SPE-3110: specialist labor gate map is omitted here — caller-owned and
-  // transient; no GameState roster. Tick still accepts the trailing optional
-  // gate map; completion registration stays on outputWeeklyState so
+  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 feeds it
+  // from the authored operator fixture. Undefined (no records_review orders)
+  // omits the map. Completion registration stays on outputWeeklyState so
   // post-inspection integrity / facility axes remain authoritative.
+  const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
+    inputWeeklyState.departmentWorkshopWorkOrders,
+    PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+  )
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,
     undefined,
     undefined,
-    projectProductionFacilitySectionStaging()
+    projectProductionFacilitySectionStaging(),
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    specialistLaborGateInputs
   )
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
@@ -5044,7 +5060,7 @@ export function advanceWeek(
     sourceState.week,
     deriveSpecialistLaborQualityConditionsByWorkOrderId(
       workshopProcessingTick.completedWorkOrderIds,
-      undefined
+      specialistLaborGateInputs
     )
   )
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
@@ -5150,11 +5166,10 @@ export function advanceWeek(
   // Newly activated records stay approaching until the next week-close advance.
   // SPE-3027: activation reads the multi-site memory-graph registry (legacy
   // single historicalRouteMemoryGraph dual-reads into the registry).
-  const weekCloseHistoricalRouteMemoryGraphs =
-    normalizeHistoricalRouteMemoryGraphsFromGameState({
-      historicalRouteMemoryGraphs: inputWeeklyState.historicalRouteMemoryGraphs,
-      historicalRouteMemoryGraph: inputWeeklyState.historicalRouteMemoryGraph,
-    })
+  const weekCloseHistoricalRouteMemoryGraphs = normalizeHistoricalRouteMemoryGraphsFromGameState({
+    historicalRouteMemoryGraphs: inputWeeklyState.historicalRouteMemoryGraphs,
+    historicalRouteMemoryGraph: inputWeeklyState.historicalRouteMemoryGraph,
+  })
   const afterHistoricalRouteWeekClose = applyHistoricalRouteReplayRegistryAtWeekClose(
     inputWeeklyState.historicalRouteReplays
   )

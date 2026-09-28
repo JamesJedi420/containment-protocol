@@ -33,6 +33,7 @@ import type { EquipmentInstanceRegistry } from './equipmentInstance'
 import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
 import type { FacilityStockpile } from './facilityStockpile'
 import type { DepartmentLocalStaging } from './departmentLocalStaging'
+import type { SpecialistOperatorSlot } from './specialistLaborRegistry'
 import type { FacilityLayoutSnapshot } from './facilityLayoutStrategy'
 import type { FacilityStockPlacement } from './facilityStockAccess'
 import type { FacilityStockCondition } from './facilityStockSpoilage'
@@ -2842,6 +2843,14 @@ export interface GameState {
    * Adjacent both axes feeds SPE-2775 week-close throughput (2 work units).
    */
   departmentLocalStaging?: DepartmentLocalStaging
+  /**
+   * SPE-3113 / SPE-1052: optional specialist operator slots for the SPE-3112 workshop
+   * week-close feed. Valid saved lists (including empty) replace the authored production
+   * fixture at the projector call. Omit / malformed hydrate absent so campaign
+   * `records_review` keeps the production fixture. Empty present list still stalls.
+   * Not agent/staff role mapping. Not a new department-task pair.
+   */
+  specialistOperatorSlots?: readonly SpecialistOperatorSlot[]
   /**
    * SPE-2986 / SPE-1052: optional authored facility layout snapshot (archetype, zone
    * adjacencies, morale/oversight/room space sets, containment mode). Not SPE-2889

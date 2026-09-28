@@ -30,6 +30,7 @@ import {
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
 import { parseFacilityStockpile } from '../../domain/facilityStockpile'
 import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
+import { parseSpecialistOperatorSlots } from '../../domain/specialistLaborOperatorFeed'
 import { parseFacilityLayoutSnapshot } from '../../domain/facilityLayoutStrategy'
 import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
 import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
@@ -10550,6 +10551,7 @@ export function hydrateGame(
   )
   const facilityStockpile = parseFacilityStockpile(game.facilityStockpile)
   const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
+  const specialistOperatorSlots = parseSpecialistOperatorSlots(game.specialistOperatorSlots)
   const facilityLayoutSnapshot = parseFacilityLayoutSnapshot(game.facilityLayoutSnapshot)
   const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
   const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
@@ -10673,6 +10675,7 @@ export function hydrateGame(
     inventory,
     facilityStockpile,
     departmentLocalStaging,
+    specialistOperatorSlots,
     facilityLayoutSnapshot,
     facilityStockPlacement,
     facilityStockCondition,

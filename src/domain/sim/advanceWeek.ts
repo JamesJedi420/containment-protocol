@@ -96,8 +96,8 @@ import { projectProductionFacilitySectionStaging } from '../facilitySectionStagi
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import {
-  PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS,
   projectSpecialistLaborGateInputsByWorkOrderId,
+  resolveCampaignSpecialistLaborOperatorSlots,
 } from '../specialistLaborOperatorFeed'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -5028,13 +5028,14 @@ export function advanceWeek(
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
-  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 feeds it
-  // from the authored operator fixture. Undefined (no records_review orders)
+  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113
+  // feed it from saved specialistOperatorSlots when valid (including []), else
+  // the authored production fixture. Undefined (no records_review orders)
   // omits the map. Completion registration stays on outputWeeklyState so
   // post-inspection integrity / facility axes remain authoritative.
   const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
     inputWeeklyState.departmentWorkshopWorkOrders,
-    PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+    resolveCampaignSpecialistLaborOperatorSlots(inputWeeklyState.specialistOperatorSlots)
   )
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,

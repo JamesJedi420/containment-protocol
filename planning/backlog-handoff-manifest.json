@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3113"
+  ],
   "recentlyShipped": [
     "SPE-3112",
     "SPE-3110",
@@ -17,6 +19,7 @@
     "SPE-3026"
   ],
   "sliceDocStatus": {
+    "planning/spe-3113-persist-specialist-operator-slots-slice.md": "In Progress",
     "planning/spe-3112-specialist-operator-feed-slice.md": "Recently shipped",
     "planning/spe-3110-workshop-labor-week-close-slice.md": "Recently shipped",
     "planning/spe-3109-workshop-labor-consume-slice.md": "Recently shipped",

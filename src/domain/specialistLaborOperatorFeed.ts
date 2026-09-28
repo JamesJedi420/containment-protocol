@@ -1,6 +1,6 @@
 /**
- * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 / SPE-3117 — live specialist
- * operator feed for workshop week-close.
+ * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 / SPE-3117 / SPE-3118 — live
+ * specialist operator feed for workshop week-close.
  *
  * Projects an authored or persisted operator-slot list into the SPE-3110
  * work-order gate map. Two explicit pairs: department task `records_review` →
@@ -25,6 +25,11 @@
  * SPE-3117 adds the containment_response pair and a separate two-slot campaign
  * roster for absent/malformed saves. Personnel helpers still return only the
  * one-slot archive_analyst production list.
+ *
+ * SPE-3118 clears a present one-slot production-shaped list to absent at
+ * week-close when no mapped investigator / analysis staff remain. Present `[]`
+ * and non-production shapes stay. After clear, maps may rewrite only when the
+ * field is absent (they do not re-fire without mapped personnel).
  */
 
 import type { DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId } from './departmentWorkshopQueue'
@@ -227,6 +232,49 @@ export function deriveArchiveAnalystSlotsFromMappedPersonnel(
     deriveArchiveAnalystSlotsFromMappedAgents(agents, specialistOperatorSlots) ??
     deriveArchiveAnalystSlotsFromMappedStaff(staff, specialistOperatorSlots)
   )
+}
+
+function isProductionSpecialistLaborOperatorSlotsShape(
+  slots: readonly SpecialistOperatorSlot[]
+): boolean {
+  if (slots.length !== PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS.length) return false
+  const expected = PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS[0]!
+  const actual = slots[0]!
+  return (
+    actual.roleFamily === expected.roleFamily &&
+    actual.skillBand === expected.skillBand &&
+    actual.availabilityBand === expected.availabilityBand
+  )
+}
+
+function hasMappedArchiveAnalystPersonnel(agents: unknown, staff: unknown): boolean {
+  return (
+    deriveArchiveAnalystSlotsFromMappedAgents(agents, undefined) !== undefined ||
+    deriveArchiveAnalystSlotsFromMappedStaff(staff, undefined) !== undefined
+  )
+}
+
+/**
+ * SPE-3118 — clear a stale production-shaped archived list to absent.
+ *
+ * Returns `true` when present slots equal the one-slot
+ * `PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS` shape and no mapped investigator
+ * / analysis staff remain. Callers clear the field to absent (not `[]`) so
+ * campaign roster / future maps can recover. Returns `false` for absent or
+ * malformed payloads, intentional `[]`, non-production shapes, or when any
+ * mapped personnel remain.
+ */
+export function shouldClearStaleMappedProductionSpecialistOperatorSlots(
+  agents: unknown,
+  staff: unknown,
+  specialistOperatorSlots: unknown
+): boolean {
+  const parsed = parseSpecialistOperatorSlots(specialistOperatorSlots)
+  if (parsed === undefined) return false
+  if (parsed.length === 0) return false
+  if (!isProductionSpecialistLaborOperatorSlotsShape(parsed)) return false
+  if (hasMappedArchiveAnalystPersonnel(agents, staff)) return false
+  return true
 }
 
 function isPairedWorkOrder(

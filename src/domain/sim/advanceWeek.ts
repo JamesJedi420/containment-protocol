@@ -99,6 +99,7 @@ import {
   deriveArchiveAnalystSlotsFromMappedPersonnel,
   projectSpecialistLaborGateInputsByWorkOrderId,
   resolveCampaignSpecialistLaborOperatorSlots,
+  shouldClearStaleMappedProductionSpecialistOperatorSlots,
 } from '../specialistLaborOperatorFeed'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -5032,22 +5033,33 @@ export function advanceWeek(
   // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113 /
   // SPE-3117 feed it from saved specialistOperatorSlots when valid (including
   // []), else the two-slot campaign roster (archive_analyst +
-  // containment_engineer). SPE-3115 / SPE-3116 may materialize one
-  // archive_analyst slot from a mapped investigator or analysis staff when the
-  // field is still absent (agent-then-staff compose); a present list (including
-  // []) is never overwritten and never becomes [] for “no match.” The projector
+  // containment_engineer). SPE-3118 clears a present one-slot production-shaped
+  // list to absent when no mapped investigator / analysis staff remain (keeps
+  // intentional [] and non-production shapes). SPE-3115 / SPE-3116 may then
+  // materialize one archive_analyst slot from a mapped investigator or analysis
+  // staff when the field is still absent (agent-then-staff compose); maps never
+  // overwrite a present list and never write [] for “no match.” The projector
   // keys records_review and containment_response only; other tasks omit.
   // Completion registration stays on outputWeeklyState so post-inspection
   // integrity / facility axes remain authoritative.
+  const clearStaleMappedProductionSlots =
+    shouldClearStaleMappedProductionSpecialistOperatorSlots(
+      inputWeeklyState.agents,
+      inputWeeklyState.staff,
+      inputWeeklyState.specialistOperatorSlots
+    )
+  const specialistOperatorSlotsForFeed = clearStaleMappedProductionSlots
+    ? undefined
+    : inputWeeklyState.specialistOperatorSlots
   const derivedMappedPersonnelSlots = deriveArchiveAnalystSlotsFromMappedPersonnel(
     inputWeeklyState.agents,
     inputWeeklyState.staff,
-    inputWeeklyState.specialistOperatorSlots
+    specialistOperatorSlotsForFeed
   )
   const specialistLaborOperatorSlots =
     derivedMappedPersonnelSlots !== undefined
       ? derivedMappedPersonnelSlots
-      : resolveCampaignSpecialistLaborOperatorSlots(inputWeeklyState.specialistOperatorSlots)
+      : resolveCampaignSpecialistLaborOperatorSlots(specialistOperatorSlotsForFeed)
   const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
     inputWeeklyState.departmentWorkshopWorkOrders,
     specialistLaborOperatorSlots
@@ -5072,6 +5084,8 @@ export function advanceWeek(
   }
   if (derivedMappedPersonnelSlots !== undefined) {
     outputWeeklyState.specialistOperatorSlots = derivedMappedPersonnelSlots
+  } else if (clearStaleMappedProductionSlots) {
+    delete outputWeeklyState.specialistOperatorSlots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
     outputWeeklyState,

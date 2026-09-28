@@ -7,6 +7,7 @@ import {
   CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS,
   PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS,
   projectSpecialistLaborGateInputsByWorkOrderId,
+  shouldClearStaleMappedProductionSpecialistOperatorSlots,
 } from '../domain/specialistLaborOperatorFeed'
 import type { SpecialistOperatorSlot } from '../domain/specialistLaborRegistry'
 
@@ -476,5 +477,68 @@ describe('SPE-3112 / SPE-3117 specialist operator feed', () => {
     })
     expect(result.tick.completedWorkOrderIds).toContain(RECORDS_WORK_ORDER_ID)
     expect(result.completionOutcomes.outcomes[RECORDS_WORK_ORDER_ID]?.qualityReason).toBeUndefined()
+  })
+})
+
+describe('SPE-3118 shouldClearStaleMappedProductionSpecialistOperatorSlots', () => {
+  const NOVICE_SLOT: SpecialistOperatorSlot = {
+    roleFamily: 'archive_analyst',
+    skillBand: 'novice',
+    availabilityBand: 'fit',
+  }
+
+  it('clears when the present list matches the production shape and no mapped personnel remain', () => {
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots(
+        { a: { role: 'hunter' } },
+        { s: { specialty: 'intel' } },
+        [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
+      )
+    ).toBe(true)
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots(
+        {},
+        {},
+        PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+      )
+    ).toBe(true)
+  })
+
+  it('keeps intentional [] and does not clear absent or malformed payloads', () => {
+    expect(shouldClearStaleMappedProductionSpecialistOperatorSlots({}, {}, [])).toBe(false)
+    expect(shouldClearStaleMappedProductionSpecialistOperatorSlots({}, {}, undefined)).toBe(false)
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots({}, {}, { not: 'an-array' })
+    ).toBe(false)
+  })
+
+  it('keeps the list when mapped investigator or analysis staff remain', () => {
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots(
+        { a: { role: 'investigator' } },
+        {},
+        [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
+      )
+    ).toBe(false)
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots(
+        { a: { role: 'hunter' } },
+        { s: { specialty: 'analysis' } },
+        [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
+      )
+    ).toBe(false)
+  })
+
+  it('keeps non-production shapes including campaign roster and novice bands', () => {
+    expect(
+      shouldClearStaleMappedProductionSpecialistOperatorSlots(
+        {},
+        {},
+        CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
+      )
+    ).toBe(false)
+    expect(shouldClearStaleMappedProductionSpecialistOperatorSlots({}, {}, [NOVICE_SLOT])).toBe(
+      false
+    )
   })
 })

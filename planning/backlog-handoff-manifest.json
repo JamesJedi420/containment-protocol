@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3114"
+  ],
   "recentlyShipped": [
     "SPE-3117",
     "SPE-3116",
@@ -16,6 +18,7 @@
     "SPE-3040"
   ],
   "sliceDocStatus": {
+    "planning/spe-3114-specialist-operator-persistence-authority-slice.md": "In progress",
     "planning/spe-3117-containment-response-cell-repair-pair-slice.md": "Recently shipped",
     "planning/spe-3116-map-staff-role-archive-analyst-slots-slice.md": "Recently shipped",
     "planning/spe-3115-map-agent-role-archive-analyst-slots-slice.md": "Recently shipped",

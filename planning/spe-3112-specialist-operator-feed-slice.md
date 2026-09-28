@@ -76,7 +76,7 @@ Parent SPE-1052 remains **Backlog**. Do not treat GitHub linkback alone as umbre
 
 ## Validation
 
-- Targeted Vitest: `src/test/specialistLaborOperatorFeed.contract.test.ts`
+- Targeted Vitest: `src/test/specialistLaborOperatorFeed.contract.test.ts`, `src/test/specialistLaborOperatorFeed.advanceWeek.test.ts`
 - Related: `src/test/departmentWorkshopSpecialistLaborWeekClose.contract.test.ts`
 - ESLint on touched files
 - `npm run verify:backlog-handoff`

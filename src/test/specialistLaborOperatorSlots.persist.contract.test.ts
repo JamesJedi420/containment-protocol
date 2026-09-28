@@ -4,8 +4,8 @@ import { hydrateGame } from '../app/store/runTransfer'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import type { GameState } from '../domain/models'
 import {
+  CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS,
   parseSpecialistOperatorSlots,
-  PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS,
   resolveCampaignSpecialistLaborOperatorSlots,
 } from '../domain/specialistLaborOperatorFeed'
 import type { SpecialistOperatorSlot } from '../domain/specialistLaborRegistry'
@@ -95,11 +95,23 @@ describe('SPE-3113 parseSpecialistOperatorSlots', () => {
         skillBand: 'novice',
         availabilityBand: 'fit',
       })
-    ).toBe(PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS)
+    ).toBe(CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS)
     expect(resolveCampaignSpecialistLaborOperatorSlots(undefined)).toBe(
-      PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+      CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
     )
     expect(resolveCampaignSpecialistLaborOperatorSlots([])).toEqual([])
+    expect(CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS).toEqual([
+      {
+        roleFamily: 'archive_analyst',
+        skillBand: 'competent',
+        availabilityBand: 'fit',
+      },
+      {
+        roleFamily: 'containment_engineer',
+        skillBand: 'competent',
+        availabilityBand: 'fit',
+      },
+    ])
   })
 
   it('does not inherit specialistOperatorSlots from hydration fallback when omitted', () => {
@@ -175,7 +187,7 @@ describe('SPE-3113 persist specialist operator slots through advanceWeek', () =>
     })
   })
 
-  it('keeps the production fixture when the payload is malformed', () => {
+  it('keeps the campaign roster when the payload is malformed', () => {
     const state = makeWorkshopState()
     // Bypass hydrate: simulate a corrupt in-memory value. Resolve fail-closes.
     ;(state as { specialistOperatorSlots?: unknown }).specialistOperatorSlots = {

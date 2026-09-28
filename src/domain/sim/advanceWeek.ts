@@ -5029,15 +5029,16 @@ export function advanceWeek(
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
-  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113
-  // feed it from saved specialistOperatorSlots when valid (including []), else
-  // the authored production fixture. SPE-3115 / SPE-3116 may materialize one
+  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113 /
+  // SPE-3117 feed it from saved specialistOperatorSlots when valid (including
+  // []), else the two-slot campaign roster (archive_analyst +
+  // containment_engineer). SPE-3115 / SPE-3116 may materialize one
   // archive_analyst slot from a mapped investigator or analysis staff when the
   // field is still absent (agent-then-staff compose); a present list (including
-  // []) is never overwritten and never becomes [] for “no match.” Undefined
-  // (no records_review orders) omits the map. Completion registration stays on
-  // outputWeeklyState so post-inspection integrity / facility axes remain
-  // authoritative.
+  // []) is never overwritten and never becomes [] for “no match.” The projector
+  // keys records_review and containment_response only; other tasks omit.
+  // Completion registration stays on outputWeeklyState so post-inspection
+  // integrity / facility axes remain authoritative.
   const derivedMappedPersonnelSlots = deriveArchiveAnalystSlotsFromMappedPersonnel(
     inputWeeklyState.agents,
     inputWeeklyState.staff,

@@ -4,6 +4,7 @@ import { BIOHAZARD_RESPONSE_FACILITY_ID } from '../domain/departmentWorkshopFaci
 import { runDepartmentWorkshopSpecialistLaborWeekClose } from '../domain/departmentWorkshopSpecialistLaborWeekClose'
 import type { FacilityStatus, GameState } from '../domain/models'
 import {
+  CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS,
   PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS,
   projectSpecialistLaborGateInputsByWorkOrderId,
 } from '../domain/specialistLaborOperatorFeed'
@@ -11,10 +12,12 @@ import type { SpecialistOperatorSlot } from '../domain/specialistLaborRegistry'
 
 const RECORDS_DEPARTMENT_ID = 'department:records-analysis'
 const BIO_DEPARTMENT_ID = 'department:biohazard-response'
+const FIELD_CONTAINMENT_DEPARTMENT_ID = 'department:field-containment'
 const RECORDS_WORK_ORDER_ID = 'work:records-operator-feed'
 const LATER_RECORDS_WORK_ORDER_ID = 'work:records-operator-feed-b'
 const SIBLING_WORK_ORDER_ID = 'work:research-operator-feed'
 const BIO_WORK_ORDER_ID = 'work:bio-operator-feed'
+const CONTAINMENT_WORK_ORDER_ID = 'work:containment-operator-feed'
 
 function makeFacility(status: FacilityStatus) {
   return {
@@ -31,8 +34,10 @@ function makeWorkshopState(options?: {
   includeSibling?: boolean
   includeLaterRecords?: boolean
   includeBio?: boolean
+  includeContainment?: boolean
   facilityStatus?: FacilityStatus
   recordsTaskType?: 'records_review' | 'research_case'
+  omitRecords?: boolean
 }): GameState {
   const state = createStartingState()
   state.events = []
@@ -45,21 +50,30 @@ function makeWorkshopState(options?: {
   }
 
   const active = [
-    { workOrderId: RECORDS_WORK_ORDER_ID, completedWork: 0 },
+    ...(options?.omitRecords
+      ? []
+      : [{ workOrderId: RECORDS_WORK_ORDER_ID, completedWork: 0 }]),
     ...(options?.includeSibling ? [{ workOrderId: SIBLING_WORK_ORDER_ID, completedWork: 0 }] : []),
     ...(options?.includeLaterRecords
       ? [{ workOrderId: LATER_RECORDS_WORK_ORDER_ID, completedWork: 0 }]
       : []),
+    ...(options?.includeContainment
+      ? [{ workOrderId: CONTAINMENT_WORK_ORDER_ID, completedWork: 0 }]
+      : []),
   ]
 
   state.departmentWorkshopWorkOrders = {
-    [RECORDS_WORK_ORDER_ID]: {
-      id: RECORDS_WORK_ORDER_ID,
-      departmentId: RECORDS_DEPARTMENT_ID,
-      caseId: 'case-records-operator-feed',
-      taskType: options?.recordsTaskType ?? 'records_review',
-      requiredWork: 1,
-    },
+    ...(options?.omitRecords
+      ? {}
+      : {
+          [RECORDS_WORK_ORDER_ID]: {
+            id: RECORDS_WORK_ORDER_ID,
+            departmentId: RECORDS_DEPARTMENT_ID,
+            caseId: 'case-records-operator-feed',
+            taskType: options?.recordsTaskType ?? 'records_review',
+            requiredWork: 1,
+          },
+        }),
     ...(options?.includeSibling
       ? {
           [SIBLING_WORK_ORDER_ID]: {
@@ -82,15 +96,51 @@ function makeWorkshopState(options?: {
           },
         }
       : {}),
+    ...(options?.includeContainment
+      ? {
+          [CONTAINMENT_WORK_ORDER_ID]: {
+            id: CONTAINMENT_WORK_ORDER_ID,
+            departmentId: FIELD_CONTAINMENT_DEPARTMENT_ID,
+            caseId: 'case-containment-operator-feed',
+            taskType: 'containment_response' as const,
+            requiredWork: 1,
+          },
+        }
+      : {}),
   }
   state.departmentWorkshopSnapshots = {
-    [RECORDS_DEPARTMENT_ID]: {
-      departmentId: RECORDS_DEPARTMENT_ID,
-      slotCapacity: active.length,
+    ...(options?.omitRecords && !options?.includeSibling && !options?.includeLaterRecords
+      ? {}
+      : {
+          [RECORDS_DEPARTMENT_ID]: {
+            departmentId: RECORDS_DEPARTMENT_ID,
+            slotCapacity: Math.max(
+              1,
+              active.filter(
+                (entry) =>
+                  entry.workOrderId !== CONTAINMENT_WORK_ORDER_ID &&
+                  entry.workOrderId !== BIO_WORK_ORDER_ID
+              ).length
+            ),
+            queued: [],
+            active: active.filter(
+              (entry) =>
+                entry.workOrderId !== CONTAINMENT_WORK_ORDER_ID &&
+                entry.workOrderId !== BIO_WORK_ORDER_ID
+            ),
+            paused: [],
+          },
+        }),
+  }
+
+  if (options?.includeContainment) {
+    state.departmentWorkshopSnapshots[FIELD_CONTAINMENT_DEPARTMENT_ID] = {
+      departmentId: FIELD_CONTAINMENT_DEPARTMENT_ID,
+      slotCapacity: 1,
       queued: [],
-      active,
+      active: [{ workOrderId: CONTAINMENT_WORK_ORDER_ID, completedWork: 0 }],
       paused: [],
-    },
+    }
   }
 
   if (options?.includeBio) {
@@ -134,7 +184,7 @@ function wrongRoleSlots(): readonly SpecialistOperatorSlot[] {
   ]
 }
 
-describe('SPE-3112 specialist operator feed', () => {
+describe('SPE-3112 / SPE-3117 specialist operator feed', () => {
   it('omits the gate map when operator slots are undefined', () => {
     const state = makeWorkshopState()
     expect(
@@ -154,7 +204,7 @@ describe('SPE-3112 specialist operator feed', () => {
     })
   })
 
-  it('omits the map when no work order is records_review', () => {
+  it('omits the map when no work order is a paired department task', () => {
     const state = makeWorkshopState({ recordsTaskType: 'research_case' })
     expect(
       projectSpecialistLaborGateInputsByWorkOrderId(
@@ -208,6 +258,82 @@ describe('SPE-3112 specialist operator feed', () => {
     expect(replay).toEqual(first)
   })
 
+  it('projects containment_response onto containment_cell_repair with the same operator list', () => {
+    const state = makeWorkshopState({ includeContainment: true, includeSibling: true })
+    const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
+      state.departmentWorkshopWorkOrders,
+      CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+
+    expect(Object.keys(gateInputs!)).toEqual([CONTAINMENT_WORK_ORDER_ID, RECORDS_WORK_ORDER_ID])
+    expect(gateInputs![CONTAINMENT_WORK_ORDER_ID]).toEqual({
+      taskId: 'containment_cell_repair',
+      operators: [
+        {
+          roleFamily: 'archive_analyst',
+          skillBand: 'competent',
+          availabilityBand: 'fit',
+        },
+        {
+          roleFamily: 'containment_engineer',
+          skillBand: 'competent',
+          availabilityBand: 'fit',
+        },
+      ],
+    })
+    expect(gateInputs![RECORDS_WORK_ORDER_ID]?.taskId).toBe('archive_classification')
+    expect(gateInputs![RECORDS_WORK_ORDER_ID]?.operators).toBe(
+      gateInputs![CONTAINMENT_WORK_ORDER_ID]?.operators
+    )
+    expect(gateInputs).not.toHaveProperty(SIBLING_WORK_ORDER_ID)
+  })
+
+  it('completes both gated pairs on the two-slot campaign roster', () => {
+    const state = makeWorkshopState({ includeContainment: true })
+    const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
+      state.departmentWorkshopWorkOrders,
+      CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+    const result = runDepartmentWorkshopSpecialistLaborWeekClose(
+      state,
+      state.week,
+      undefined,
+      gateInputs
+    )
+
+    expect(result.tick.completedWorkOrderIds).toContain(RECORDS_WORK_ORDER_ID)
+    expect(result.tick.completedWorkOrderIds).toContain(CONTAINMENT_WORK_ORDER_ID)
+    expect(result.completionOutcomes.outcomes[RECORDS_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+    expect(result.completionOutcomes.outcomes[CONTAINMENT_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      quality: 'nominal',
+    })
+  })
+
+  it('stalls containment_response on an archive_analyst-only list while records_review stays operable', () => {
+    const state = makeWorkshopState({ includeContainment: true })
+    const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
+      state.departmentWorkshopWorkOrders,
+      PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+    const result = runDepartmentWorkshopSpecialistLaborWeekClose(
+      state,
+      state.week,
+      undefined,
+      gateInputs
+    )
+
+    expect(result.tick.completedWorkOrderIds).toContain(RECORDS_WORK_ORDER_ID)
+    expect(result.tick.completedWorkOrderIds).not.toContain(CONTAINMENT_WORK_ORDER_ID)
+    expect(result.completionOutcomes.outcomes[CONTAINMENT_WORK_ORDER_ID]).toBeUndefined()
+    expect(result.tick.workshopState.snapshots[FIELD_CONTAINMENT_DEPARTMENT_ID]?.active).toEqual([
+      { workOrderId: CONTAINMENT_WORK_ORDER_ID, completedWork: 0 },
+    ])
+  })
+
   it('completes an operable production feed without poor_specialist_condition', () => {
     const state = makeWorkshopState()
     const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
@@ -251,12 +377,13 @@ describe('SPE-3112 specialist operator feed', () => {
   })
 
   it('does not complete a present empty roster and leaves completedWork unchanged', () => {
-    const state = makeWorkshopState()
+    const state = makeWorkshopState({ includeContainment: true })
     const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
       state.departmentWorkshopWorkOrders,
       []
     )
     expect(gateInputs?.[RECORDS_WORK_ORDER_ID]?.operators).toEqual([])
+    expect(gateInputs?.[CONTAINMENT_WORK_ORDER_ID]?.operators).toEqual([])
 
     const result = runDepartmentWorkshopSpecialistLaborWeekClose(
       state,
@@ -265,7 +392,9 @@ describe('SPE-3112 specialist operator feed', () => {
       gateInputs
     )
     expect(result.tick.completedWorkOrderIds).not.toContain(RECORDS_WORK_ORDER_ID)
+    expect(result.tick.completedWorkOrderIds).not.toContain(CONTAINMENT_WORK_ORDER_ID)
     expect(result.completionOutcomes.outcomes[RECORDS_WORK_ORDER_ID]).toBeUndefined()
+    expect(result.completionOutcomes.outcomes[CONTAINMENT_WORK_ORDER_ID]).toBeUndefined()
     expect(result.tick.workshopState.snapshots[RECORDS_DEPARTMENT_ID]?.active).toEqual([
       { workOrderId: RECORDS_WORK_ORDER_ID, completedWork: 0 },
     ])
@@ -288,8 +417,8 @@ describe('SPE-3112 specialist operator feed', () => {
     expect(result.completionOutcomes.outcomes[RECORDS_WORK_ORDER_ID]).toBeUndefined()
   })
 
-  it('still completes a non-records_review sibling when records_review is stalled', () => {
-    const state = makeWorkshopState({ includeSibling: true })
+  it('still completes a non-paired sibling when gated tasks are stalled', () => {
+    const state = makeWorkshopState({ includeSibling: true, includeContainment: true })
     const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
       state.departmentWorkshopWorkOrders,
       []
@@ -303,11 +432,22 @@ describe('SPE-3112 specialist operator feed', () => {
       gateInputs
     )
     expect(result.tick.completedWorkOrderIds).not.toContain(RECORDS_WORK_ORDER_ID)
+    expect(result.tick.completedWorkOrderIds).not.toContain(CONTAINMENT_WORK_ORDER_ID)
     expect(result.tick.completedWorkOrderIds).toContain(SIBLING_WORK_ORDER_ID)
     expect(result.completionOutcomes.outcomes[SIBLING_WORK_ORDER_ID]).toMatchObject({
       outcome: 'completed',
       quality: 'nominal',
     })
+  })
+
+  it('projects containment_response alone without requiring records_review', () => {
+    const state = makeWorkshopState({ omitRecords: true, includeContainment: true })
+    const gateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
+      state.departmentWorkshopWorkOrders,
+      CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
+    )
+    expect(Object.keys(gateInputs!)).toEqual([CONTAINMENT_WORK_ORDER_ID])
+    expect(gateInputs![CONTAINMENT_WORK_ORDER_ID]?.taskId).toBe('containment_cell_repair')
   })
 
   it('keeps facility poor room on an ungated biohazard order while records_review is gated', () => {

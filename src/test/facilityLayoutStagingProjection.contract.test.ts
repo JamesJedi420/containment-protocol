@@ -15,6 +15,7 @@ import {
   projectFacilityLayoutRoomsOntoDepartmentLocalStaging,
 } from '../domain/facilityLayoutStagingProjection'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { withoutMappedArchiveAnalystPersonnel } from './helpers/withoutMappedArchiveAnalystPersonnel'
 
 const RECORDS = LAYOUT_STAGING_DEPARTMENT_ID
 const EMERGENCY = LAYOUT_STAGING_EMERGENCY_DEPARTMENT_ID
@@ -195,7 +196,7 @@ function closeWith(
     readonly concept?: boolean
   }
 ) {
-  const state = createStartingState()
+  const state = withoutMappedArchiveAnalystPersonnel(createStartingState())
   attachTwoDepartmentWork(state)
   if (options?.emergency) attachEmergencyWork(state)
   if (options?.field) attachFieldContainmentWork(state)

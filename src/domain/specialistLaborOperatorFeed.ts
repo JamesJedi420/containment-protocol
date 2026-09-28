@@ -1,25 +1,30 @@
 /**
- * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 — live specialist operator feed for
- * workshop week-close.
+ * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 / SPE-3117 — live specialist
+ * operator feed for workshop week-close.
  *
  * Projects an authored or persisted operator-slot list into the SPE-3110
- * work-order gate map. One explicit pair: department task `records_review` →
- * specialist task `archive_classification`. Other task types omit their keys.
- * `undefined` slots omit the map. A present list, including `[]`, is copied
- * onto every valid `records_review` work order.
+ * work-order gate map. Two explicit pairs: department task `records_review` →
+ * specialist task `archive_classification`, and `containment_response` →
+ * `containment_cell_repair`. Other task types omit their keys. `undefined`
+ * slots omit the map. A present list, including `[]`, is copied onto every
+ * valid paired work order.
  *
  * SPE-3113 adds optional `GameState.specialistOperatorSlots`. Absent or
- * malformed payloads fail-close to the production fixture. A present empty
- * list is kept and stalls `records_review`.
+ * malformed payloads fail-close to the campaign week-close roster. A present
+ * empty list is kept and stalls both gated tasks.
  *
  * SPE-3115 adds one explicit AgentRole → archive_analyst binding
  * (`investigator`). SPE-3116 adds one explicit staff specialty →
  * archive_analyst binding (`analysis`). Both write slots only when a match is
  * present and the field is still absent. Compose agent-then-staff. Unmapped
  * roles/specialties and empty rosters leave the field absent so week-close
- * keeps the production fixture. Never writes `[]` for “no match.” Stat-to-band
+ * keeps the campaign roster. Never writes `[]` for “no match.” Stat-to-band
  * formulas stay out of scope. Does not change SPE-1058 / SPE-3109 / SPE-3110
  * gate semantics.
+ *
+ * SPE-3117 adds the containment_response pair and a separate two-slot campaign
+ * roster for absent/malformed saves. Personnel helpers still return only the
+ * one-slot archive_analyst production list.
  */
 
 import type { DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId } from './departmentWorkshopQueue'
@@ -28,10 +33,22 @@ import {
   isSpecialistRoleFamily,
   isSpecialistSkillBand,
   type SpecialistOperatorSlot,
+  type SpecialistTaskId,
 } from './specialistLaborRegistry'
 
 const RECORDS_REVIEW_TASK = 'records_review'
 const ARCHIVE_CLASSIFICATION_TASK = 'archive_classification'
+const CONTAINMENT_RESPONSE_TASK = 'containment_response'
+const CONTAINMENT_CELL_REPAIR_TASK = 'containment_cell_repair'
+
+type PairedDepartmentTask = typeof RECORDS_REVIEW_TASK | typeof CONTAINMENT_RESPONSE_TASK
+
+const PAIRED_SPECIALIST_TASK_BY_DEPARTMENT: Readonly<
+  Record<PairedDepartmentTask, SpecialistTaskId>
+> = Object.freeze({
+  [RECORDS_REVIEW_TASK]: ARCHIVE_CLASSIFICATION_TASK,
+  [CONTAINMENT_RESPONSE_TASK]: CONTAINMENT_CELL_REPAIR_TASK,
+})
 
 /**
  * SPE-3115: one authored `AgentRole` that materializes an `archive_analyst`
@@ -47,17 +64,33 @@ export const ARCHIVE_ANALYST_MAPPED_AGENT_ROLE = 'investigator' as const
 export const ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY = 'analysis' as const
 
 /**
- * Campaign week-close roster when `GameState.specialistOperatorSlots` is
- * absent or malformed. `competent` + `fit` is operable, so existing
- * `records_review` completions stay on the nominal path. Tests inject other
- * lists; do not retune this constant to stall or degrade campaign ticks.
- * SPE-3115 / SPE-3116 reuse this same slot shape when a mapped agent or staff
- * member is present.
+ * One-slot archive_analyst list reused by SPE-3115 / SPE-3116 personnel
+ * materialization. `competent` + `fit` is operable for `records_review`.
+ * Tests inject other lists; do not retune this constant to stall or degrade
+ * campaign ticks. SPE-3117 campaign week-close uses
+ * `CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS` instead.
  */
 export const PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS: readonly SpecialistOperatorSlot[] =
   Object.freeze([
     Object.freeze({
       roleFamily: 'archive_analyst' as const,
+      skillBand: 'competent' as const,
+      availabilityBand: 'fit' as const,
+    }),
+  ])
+
+/**
+ * SPE-3117 — campaign week-close roster when `GameState.specialistOperatorSlots`
+ * is absent or malformed. Includes the production archive_analyst slot plus one
+ * `containment_engineer` / `competent` / `fit` slot so both gated pairs stay
+ * operable. Used only by `resolveCampaignSpecialistLaborOperatorSlots`.
+ * Personnel helpers must not return this list.
+ */
+export const CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS: readonly SpecialistOperatorSlot[] =
+  Object.freeze([
+    PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS[0]!,
+    Object.freeze({
+      roleFamily: 'containment_engineer' as const,
       skillBand: 'competent' as const,
       availabilityBand: 'fit' as const,
     }),
@@ -82,7 +115,7 @@ function isSpecialistOperatorSlot(value: unknown): value is SpecialistOperatorSl
 
 /**
  * Hydrate optional `GameState.specialistOperatorSlots`.
- * - `undefined` / omit → `undefined` (campaign week-close keeps the production fixture)
+ * - `undefined` / omit → `undefined` (campaign week-close keeps the campaign roster)
  * - valid array, including `[]` → frozen own-key copies in input order
  * - non-array or any malformed slot → `undefined` (fail-close entire payload; do not become `[]`)
  */
@@ -108,14 +141,14 @@ export function parseSpecialistOperatorSlots(
 
 /**
  * Resolve the operator list for campaign `advanceWeek`.
- * Valid saved lists (including empty) replace the production fixture.
- * Absent or malformed payloads keep the production fixture.
+ * Valid saved lists (including empty) replace the campaign roster.
+ * Absent or malformed payloads keep the campaign roster.
  */
 export function resolveCampaignSpecialistLaborOperatorSlots(
   value: unknown
 ): readonly SpecialistOperatorSlot[] {
   const parsed = parseSpecialistOperatorSlots(value)
-  return parsed !== undefined ? parsed : PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+  return parsed !== undefined ? parsed : CAMPAIGN_SPECIALIST_LABOR_OPERATOR_SLOTS
 }
 
 function isMappedAgentRecord(value: unknown): value is { readonly role: string } {
@@ -196,13 +229,14 @@ export function deriveArchiveAnalystSlotsFromMappedPersonnel(
   )
 }
 
-function isRecordsReviewWorkOrder(
+function isPairedWorkOrder(
   value: unknown
-): value is { readonly id: string; readonly taskType: typeof RECORDS_REVIEW_TASK } {
+): value is { readonly id: string; readonly taskType: PairedDepartmentTask } {
   if (!isRecord(value)) return false
   const id = value.id
+  const taskType = value.taskType
   return (
-    value.taskType === RECORDS_REVIEW_TASK &&
+    (taskType === RECORDS_REVIEW_TASK || taskType === CONTAINMENT_RESPONSE_TASK) &&
     typeof id === 'string' &&
     id.length > 0 &&
     id === id.trim()
@@ -212,8 +246,9 @@ function isRecordsReviewWorkOrder(
 /**
  * Build a SPE-3110 gate-input map from caller-owned operator slots.
  * `undefined` slots return `undefined` (omit the map). Present slots emit
- * keys only for valid `records_review` work orders. Zero matching orders
- * also return `undefined`.
+ * keys only for valid `records_review` and `containment_response` work
+ * orders. Zero matching orders also return `undefined`. The same operator
+ * list is copied onto each keyed work order.
  */
 export function projectSpecialistLaborGateInputsByWorkOrderId(
   workOrders: unknown,
@@ -227,20 +262,19 @@ export function projectSpecialistLaborGateInputsByWorkOrderId(
 
   if (!isRecord(workOrders)) return undefined
 
-  const ids = Object.values(workOrders)
-    .filter(isRecordsReviewWorkOrder)
-    .map((workOrder) => workOrder.id)
-    .filter((id, index, all) => all.indexOf(id) === index)
-    .sort(compareCodeUnits)
+  const paired = Object.values(workOrders)
+    .filter(isPairedWorkOrder)
+    .filter((workOrder, index, all) => all.findIndex((entry) => entry.id === workOrder.id) === index)
+    .sort((left, right) => compareCodeUnits(left.id, right.id))
 
-  if (ids.length === 0) return undefined
+  if (paired.length === 0) return undefined
 
   return Object.freeze(
     Object.fromEntries(
-      ids.map((workOrderId) => [
-        workOrderId,
+      paired.map((workOrder) => [
+        workOrder.id,
         Object.freeze({
-          taskId: ARCHIVE_CLASSIFICATION_TASK,
+          taskId: PAIRED_SPECIALIST_TASK_BY_DEPARTMENT[workOrder.taskType],
           operators: slots,
         }),
       ])

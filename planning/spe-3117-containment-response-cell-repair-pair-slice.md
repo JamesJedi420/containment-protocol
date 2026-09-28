@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In progress**                                                                                                                                                             |
+| **Status**          | **Recently shipped**                                                                                                                                                             |
 | **Linear**          | [SPE-3117](https://linear.app/spectranoir/issue/SPE-3117/map-containment-response-onto-containment-cell-repair-in-the-workshop)                                             |
 | **Parent**          | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog** (this child does not finish the umbrella) |
 | **Related**         | SPE-3116 staff map (Done — deferred pair retarget; do not reopen); SPE-3114 contradiction check (Backlog — do not close); SPE-3113 persist slots (Done); SPE-3112 live feed (Done) |

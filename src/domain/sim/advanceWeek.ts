@@ -96,6 +96,7 @@ import { projectProductionFacilitySectionStaging } from '../facilitySectionStagi
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import {
+  deriveArchiveAnalystSlotsFromMappedAgents,
   projectSpecialistLaborGateInputsByWorkOrderId,
   resolveCampaignSpecialistLaborOperatorSlots,
 } from '../specialistLaborOperatorFeed'
@@ -5030,12 +5031,23 @@ export function advanceWeek(
   // departmentLocalStaging cache cannot override missing or conflicting topology.
   // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113
   // feed it from saved specialistOperatorSlots when valid (including []), else
-  // the authored production fixture. Undefined (no records_review orders)
-  // omits the map. Completion registration stays on outputWeeklyState so
+  // the authored production fixture. SPE-3115 may materialize one
+  // archive_analyst slot from a mapped investigator when the field is still
+  // absent; a present list (including []) is never overwritten and never
+  // becomes [] for “no match.” Undefined (no records_review orders) omits
+  // the map. Completion registration stays on outputWeeklyState so
   // post-inspection integrity / facility axes remain authoritative.
+  const derivedMappedAgentSlots = deriveArchiveAnalystSlotsFromMappedAgents(
+    inputWeeklyState.agents,
+    inputWeeklyState.specialistOperatorSlots
+  )
+  const specialistLaborOperatorSlots =
+    derivedMappedAgentSlots !== undefined
+      ? derivedMappedAgentSlots
+      : resolveCampaignSpecialistLaborOperatorSlots(inputWeeklyState.specialistOperatorSlots)
   const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
     inputWeeklyState.departmentWorkshopWorkOrders,
-    resolveCampaignSpecialistLaborOperatorSlots(inputWeeklyState.specialistOperatorSlots)
+    specialistLaborOperatorSlots
   )
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,
@@ -5054,6 +5066,9 @@ export function advanceWeek(
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
+  }
+  if (derivedMappedAgentSlots !== undefined) {
+    outputWeeklyState.specialistOperatorSlots = derivedMappedAgentSlots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
     outputWeeklyState,

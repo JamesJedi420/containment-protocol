@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import { parseDepartmentLocalStaging } from '../domain/departmentLocalStaging'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { withoutMappedArchiveAnalystPersonnel } from './helpers/withoutMappedArchiveAnalystPersonnel'
 
 const RECORDS = 'department:records-analysis'
 const BIOHAZARD = 'department:biohazard-response'
@@ -170,7 +171,7 @@ describe('department-local staging persist', () => {
 
   it('week-close keeps unplaced departments at one work unit even when the persisted cache says adjacent', () => {
     const close = (staging: ReturnType<typeof createStartingState>['departmentLocalStaging']) => {
-      const state = createStartingState()
+      const state = withoutMappedArchiveAnalystPersonnel(createStartingState())
       attachTwoDepartmentWork(state)
       if (staging !== undefined) {
         state.departmentLocalStaging = staging
@@ -220,7 +221,7 @@ describe('department-local staging persist', () => {
   })
 
   it('hydratable malformed sibling does not grant adjacent throughput at week-close', () => {
-    const state = createStartingState()
+    const state = withoutMappedArchiveAnalystPersonnel(createStartingState())
     attachTwoDepartmentWork(state)
     const hydrated = hydrateGame({
       ...state,

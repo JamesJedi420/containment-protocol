@@ -27,6 +27,7 @@ import type { EquipmentInstance } from '../domain/equipmentInstance'
 import type { DepartmentWorkshopQualityConditions } from '../domain/departmentWorkshopQueue'
 import type { FacilityStatus, GameState } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { withoutMappedArchiveAnalystPersonnel } from './helpers/withoutMappedArchiveAnalystPersonnel'
 
 const BIO_DEPARTMENT_ID = 'department:biohazard-response'
 const RECORDS_DEPARTMENT_ID = 'department:records-analysis'
@@ -95,7 +96,7 @@ function makeWorkshopState(options?: {
   condition?: EquipmentInstance['condition']
   facilityStatus?: FacilityStatus
 }): GameState {
-  const state = createStartingState()
+  const state = withoutMappedArchiveAnalystPersonnel(createStartingState())
   state.cases = resolveAllCases(state)
   state.events = []
   state.reports = []

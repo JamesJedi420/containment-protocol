@@ -15,6 +15,7 @@ import {
 } from '../domain/facilitySectionGraph'
 import { resolveDepartmentWorkshopThroughput } from '../domain/departmentWorkshopQueue'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { withoutMappedArchiveAnalystPersonnel } from './helpers/withoutMappedArchiveAnalystPersonnel'
 
 const EMERGENCY = 'department:emergency-response'
 const FIELD = 'department:field-containment'
@@ -235,7 +236,7 @@ describe('SPE-2998 facility section staging projection', () => {
   })
 
   it('feeds production staging through the existing week-close tick and ignores a conflicting cache', () => {
-    const state = createStartingState()
+    const state = withoutMappedArchiveAnalystPersonnel(createStartingState())
     state.departmentWorkshopWorkOrders = {
       'work:emergency': {
         id: 'work:emergency',

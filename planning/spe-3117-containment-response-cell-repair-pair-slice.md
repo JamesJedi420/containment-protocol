@@ -72,5 +72,6 @@ Parent SPE-1052 remains **Backlog**. Do not treat GitHub linkback alone as umbre
 
 - Targeted Vitest: `src/test/specialistLaborOperatorFeed.contract.test.ts`, `src/test/specialistLaborOperatorFeed.advanceWeek.test.ts`, `src/test/specialistLaborOperatorSlots.persist.contract.test.ts`
 - Related: `src/test/specialistLaborAgentRoleMap.contract.test.ts`, `src/test/specialistLaborStaffRoleMap.contract.test.ts`
+- Regression fixtures that need operable `containment_response` under starter-roster investigators: `src/test/helpers/withoutMappedArchiveAnalystPersonnel.ts` (used by workshop persistence / layout / staging / live-integrity suites)
 - ESLint on touched files
 - `npm run verify:backlog-handoff`

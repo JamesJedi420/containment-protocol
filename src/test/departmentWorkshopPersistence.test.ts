@@ -22,6 +22,7 @@ import { hydrateGame, stripGameTemplates } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import type { GameState } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { withoutMappedArchiveAnalystPersonnel } from './helpers/withoutMappedArchiveAnalystPersonnel'
 
 const WORK_ORDERS: DepartmentWorkshopWorkOrderRegistry = {
   'work:zulu': {
@@ -435,7 +436,7 @@ describe('department workshop persistence', () => {
 
   it('processes persisted workshops once per week-close without changing the global queue', () => {
     const baseline = {
-      ...createStartingState(),
+      ...withoutMappedArchiveAnalystPersonnel(createStartingState()),
       facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
     }
     const withWorkshops = {
@@ -492,7 +493,7 @@ describe('department workshop persistence', () => {
 
   it('consumes completed workshop receipts into one case ledger once, without queue mutation', () => {
     const baseline = {
-      ...createStartingState(),
+      ...withoutMappedArchiveAnalystPersonnel(createStartingState()),
       facilityState: ACTIVE_BIOHAZARD_FACILITY_STATE,
     }
     const caseId = Object.keys(baseline.cases).sort()[0]
@@ -550,7 +551,7 @@ describe('department workshop persistence', () => {
   })
 
   it('hands off a completed case-owned prerequisite, enqueues Fabrication, and resolves the case', () => {
-    const baseline = createStartingState()
+    const baseline = withoutMappedArchiveAnalystPersonnel(createStartingState())
     const caseId = Object.keys(baseline.cases).sort()[0]!
     const workOrderId = 'work:finalization-input'
     const control = advanceWeek(baseline, Date.UTC(2026, 0, 1))
@@ -788,7 +789,7 @@ describe('department workshop persistence', () => {
   })
 
   it('keeps the canonical advanceWeek hook on baseline throughput', () => {
-    const baseline = createStartingState()
+    const baseline = withoutMappedArchiveAnalystPersonnel(createStartingState())
     const caseId = Object.keys(baseline.cases).sort()[0]!
     const source = {
       ...baseline,

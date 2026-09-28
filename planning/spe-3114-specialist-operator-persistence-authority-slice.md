@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In progress**                                                                                                                                                             |
+| **Status**          | **Recently shipped**                                                                                                                                                             |
 | **Linear**          | [SPE-3114](https://linear.app/spectranoir/issue/SPE-3114/contradiction-check-specialist-operator-persistence-versus-canonical)                                               |
 | **Parent**          | none (related to [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**)                          |
 | **Related**         | SPE-3113 persist slots (Done — retain as cache); SPE-3117 / SPE-3116 / SPE-3115 feed maps (Done); SPE-3118 clear-on-leave child (Backlog); SPE-1058 / SPE-1059 / SPE-2266  |

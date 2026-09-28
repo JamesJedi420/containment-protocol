@@ -17,6 +17,7 @@
     "SPE-2262"
   ],
   "sliceDocStatus": {
+    "planning/spe-1051-living-but-lost-morale-memory-catalog-slice.md": "Recently shipped",
     "planning/spe-1051-state-change-success-slice.md": "Recently shipped",
     "planning/spe-1051-scar-degraded-registry-slice.md": "Recently shipped",
     "planning/spe-3118-clear-specialist-slots-when-mapped-personnel-leave-slice.md": "Recently shipped",

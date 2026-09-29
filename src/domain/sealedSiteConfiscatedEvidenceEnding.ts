@@ -135,24 +135,47 @@ export function projectSealedSiteConfiscatedEvidenceEnding(
   if (!validateSealedSiteConfiscatedEvidenceEndingInput(input)) return undefined
 
   const endingKind = input.endingKind
-  const isSealedSite = endingKind === 'sealed_site'
   const siteId = isNonEmptyString(input.siteId) ? input.siteId : null
 
-  return Object.freeze({
-    outcomeKind: 'survival_with_clarity_loss' as const,
-    endingKind,
-    siteId,
-    preservesSurvival: true as const,
-    gameOver: false as const,
-    trueDefeat: false as const,
-    entityEliminated: false as const,
-    knowledgeRecoveryReduced: true as const,
-    institutionalClarityReduced: true as const,
-    accessPermanentlyClosed: isSealedSite,
-    officialUnderstandingIsPartialRecord: isSealedSite,
-    siteStabilizedByIntervention: !isSealedSite,
-    samplesTelemetryNotesConfiscated: !isSealedSite,
-  })
+  switch (endingKind) {
+    case 'sealed_site':
+      return Object.freeze({
+        outcomeKind: 'survival_with_clarity_loss' as const,
+        endingKind,
+        siteId,
+        preservesSurvival: true as const,
+        gameOver: false as const,
+        trueDefeat: false as const,
+        entityEliminated: false as const,
+        knowledgeRecoveryReduced: true as const,
+        institutionalClarityReduced: true as const,
+        accessPermanentlyClosed: true,
+        officialUnderstandingIsPartialRecord: true,
+        siteStabilizedByIntervention: false,
+        samplesTelemetryNotesConfiscated: false,
+      })
+    case 'confiscated_evidence':
+      return Object.freeze({
+        outcomeKind: 'survival_with_clarity_loss' as const,
+        endingKind,
+        siteId,
+        preservesSurvival: true as const,
+        gameOver: false as const,
+        trueDefeat: false as const,
+        entityEliminated: false as const,
+        knowledgeRecoveryReduced: true as const,
+        institutionalClarityReduced: true as const,
+        accessPermanentlyClosed: false,
+        officialUnderstandingIsPartialRecord: false,
+        siteStabilizedByIntervention: true,
+        samplesTelemetryNotesConfiscated: true,
+      })
+    default: {
+      const _exhaustive: never = endingKind
+      void _exhaustive
+      return undefined
+    }
+  }
 }
 
 export function listSealedSiteConfiscatedEvidenceEndingKinds(): readonly SealedSiteConfiscatedEvidenceEndingKind[] {

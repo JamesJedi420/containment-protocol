@@ -75,3 +75,7 @@ Parent SPE-1052 remains **Backlog**. SPE-1058 remains **Backlog** (not Done from
 - Targeted Vitest: `src/test/institutionalCollapsePathways.contract.test.ts`
 - `npm run lint` (touched files)
 - `npm run verify:backlog-handoff`
+
+## SPE-3119 integration follow-up
+
+The live maintenance wire is owned by [SPE-3119](https://linear.app/spectranoir/issue/SPE-3119), documented in `planning/spe-3119-expansion-collapse-week-close-slice.md`. It consumes these unchanged pure contracts, persists accumulated debt, and routes collapse through existing workshop dependency gates. The original slice remains shipped; facility repair and broader burden conversions remain deferred.

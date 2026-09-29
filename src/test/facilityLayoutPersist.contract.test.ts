@@ -215,7 +215,7 @@ describe('SPE-2986 facility layout snapshot persist', () => {
     expect(migrated.game.facilityLayoutSnapshot).toEqual(expectedSnapshot())
   })
 
-  it('does not consume or rewrite the snapshot at week-close', () => {
+  it('does not rewrite the snapshot or stock/staging at week-close', () => {
     const state = createStartingState()
     state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 2 }
     state.departmentLocalStaging = {

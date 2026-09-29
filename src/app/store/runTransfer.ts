@@ -32,6 +32,7 @@ import { parseFacilityStockpile } from '../../domain/facilityStockpile'
 import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
 import { parseSpecialistOperatorSlots } from '../../domain/specialistLaborOperatorFeed'
 import { parseFacilityLayoutSnapshot } from '../../domain/facilityLayoutStrategy'
+import { parseFacilityMaintenanceState } from '../../domain/facilityMaintenanceWeekClose'
 import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
 import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
 import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
@@ -10553,6 +10554,7 @@ export function hydrateGame(
   const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
   const specialistOperatorSlots = parseSpecialistOperatorSlots(game.specialistOperatorSlots)
   const facilityLayoutSnapshot = parseFacilityLayoutSnapshot(game.facilityLayoutSnapshot)
+  const facilityMaintenanceState = parseFacilityMaintenanceState(game.facilityMaintenanceState)
   const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
   const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
   const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
@@ -10677,6 +10679,7 @@ export function hydrateGame(
     departmentLocalStaging,
     specialistOperatorSlots,
     facilityLayoutSnapshot,
+    facilityMaintenanceState,
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,

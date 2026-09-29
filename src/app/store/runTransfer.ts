@@ -691,7 +691,18 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'standingGainScale',
     'week',
   ],
-  'system.week_delta': ['delta'],
+  'system.week_delta': [
+    'delta',
+    'source',
+    'week',
+    'roomCount',
+    'accruedDebt',
+    'maintenanceDebt',
+    'pathways',
+    'workshopDependency',
+    'upkeepLoad',
+    'staffingMinimum',
+  ],
   'system.recruitment_expired': ['count'],
   'recruitment.candidate_departed': ['candidateId', 'candidateName', 'destination', 'reason'],
   'system.recruitment_generated': ['count'],
@@ -10554,7 +10565,10 @@ export function hydrateGame(
   const departmentLocalStaging = parseDepartmentLocalStaging(game.departmentLocalStaging)
   const specialistOperatorSlots = parseSpecialistOperatorSlots(game.specialistOperatorSlots)
   const facilityLayoutSnapshot = parseFacilityLayoutSnapshot(game.facilityLayoutSnapshot)
-  const facilityMaintenanceState = parseFacilityMaintenanceState(game.facilityMaintenanceState)
+  const facilityMaintenanceState = parseFacilityMaintenanceState(
+    game.facilityMaintenanceState,
+    week
+  )
   const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
   const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
   const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)

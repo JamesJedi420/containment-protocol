@@ -173,6 +173,37 @@ describe('SPE-3119 facility maintenance resolver', () => {
 })
 
 describe('SPE-3119 live week-close and persistence', () => {
+  it('preserves maintenance notes, the report clock, and event counts through save/load', () => {
+    const first = advanceWeek(campaign(4))
+    const next = advanceWeek(first)
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(next)), createStartingState())
+    const report = next.reports.at(-1)!
+    const note = report.notes.find((entry) => entry.metadata?.source === 'facility_maintenance')!
+    const loadedNote = hydrated.reports.at(-1)!.notes.find((entry) => entry.id === note.id)
+    expect(note.metadata).toMatchObject({ maintenanceDebt: 16, accruedDebt: 8, roomCount: 4 })
+    expect(loadedNote).toEqual(note)
+    const generated = next.events.find(
+      (event) => event.type === 'intel.report_generated' && event.payload.week === report.week
+    )
+    const loadedEvent = hydrated.events.find((event) => event.id === generated?.id)
+    expect(generated?.payload).toMatchObject({ noteCount: report.notes.length })
+    expect(loadedEvent?.payload).toMatchObject({ noteCount: report.notes.length })
+  })
+
+  it('rejects future replay guards atomically at the canonical hydration boundary', () => {
+    const state = campaign(4)
+    state.facilityMaintenanceState = { maintenanceDebt: 0, lastProcessedWeek: state.week + 100 }
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+    expect(hydrated.facilityMaintenanceState).toBeUndefined()
+    expect(advanceWeek(hydrated).facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(
+      parseFacilityMaintenanceState(
+        { maintenanceDebt: 8, lastProcessedWeek: state.week },
+        state.week
+      )
+    ).toBeDefined()
+  })
+
   it('reset removes debt rather than inheriting the prior campaign', () => {
     const previous = useGameStore.getState().game
     try {

@@ -232,6 +232,7 @@ import {
 import { countCaseHiddenModifiers } from '../recon'
 import {
   buildAnchorFactionInstabilityNote,
+  buildReportNoteTimestamp,
   buildDeterministicReportNotesFromEventDrafts,
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
@@ -5132,7 +5133,11 @@ export function advanceWeek(
       const note: ReportNote = {
         id: `note-facility-maintenance-${sourceState.week}`,
         type: 'system.week_delta',
-        timestamp: noteBaseTimestamp ?? sourceState.week,
+        timestamp: buildReportNoteTimestamp(
+          lastReport.week,
+          lastReport.notes.length,
+          noteBaseTimestamp
+        ),
         content: `Facility maintenance: ${facilityMaintenance.roomCount ?? 'unknown'} rooms; debt +${facilityMaintenance.accruedDebt}, total ${totalDebt}; pathways ${facilityMaintenance.collapse.firedPathwayIds.map((id) => id.replaceAll('_', ' ')).join(', ') || 'none'}; ${workshopEffect}.`,
         metadata: {
           source: 'facility_maintenance',
@@ -6679,6 +6684,18 @@ export function advanceWeek(
     }
     result.coordinationFrictionActive = false
     result.coordinationFrictionReason = undefined
+  }
+  // SPE-3119: reconcile after all post-finalize note producers, not only when
+  // an unrelated status-upkeep hook happens to append a note.
+  if (facilityMaintenance.state !== undefined || facilityMaintenance.burden !== undefined) {
+    const report = result.reports.at(-1)
+    if (report) {
+      result.events = result.events.map((event) =>
+        event.type === 'intel.report_generated' && event.payload.week === report.week
+          ? { ...event, payload: { ...event.payload, noteCount: report.notes.length } }
+          : event
+      )
+    }
   }
   return result
 }

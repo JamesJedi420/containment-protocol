@@ -19,7 +19,8 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
 }
 
 export function parseFacilityMaintenanceState(
-  value: unknown
+  value: unknown,
+  campaignWeek?: number
 ): FacilityMaintenanceState | undefined {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
   const record = value as Record<string, unknown>
@@ -27,7 +28,9 @@ export function parseFacilityMaintenanceState(
     !Object.hasOwn(record, 'maintenanceDebt') ||
     !Object.hasOwn(record, 'lastProcessedWeek') ||
     !isNonNegativeSafeInteger(record.maintenanceDebt) ||
-    !isNonNegativeSafeInteger(record.lastProcessedWeek)
+    !isNonNegativeSafeInteger(record.lastProcessedWeek) ||
+    (campaignWeek !== undefined &&
+      (!isNonNegativeSafeInteger(campaignWeek) || record.lastProcessedWeek > campaignWeek))
   )
     return undefined
   return Object.freeze({

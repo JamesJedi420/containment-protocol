@@ -173,6 +173,20 @@ describe('SPE-3119 facility maintenance resolver', () => {
 })
 
 describe('SPE-3119 live week-close and persistence', () => {
+  it.each([0, 3])(
+    'round-trips the baseline note for %i rooms without empty-array metadata',
+    (rooms) => {
+      const next = advanceWeek(campaign(rooms))
+      const hydrated = hydrateGame(JSON.parse(JSON.stringify(next)), createStartingState())
+      const note = next.reports
+        .at(-1)!
+        .notes.find((entry) => entry.metadata?.source === 'facility_maintenance')!
+      expect(note.content).toContain('pathways none')
+      expect(note.metadata).not.toHaveProperty('pathways')
+      expect(hydrated.reports.at(-1)!.notes.find((entry) => entry.id === note.id)).toEqual(note)
+    }
+  )
+
   it('preserves maintenance notes, the report clock, and event counts through save/load', () => {
     const first = advanceWeek(campaign(4))
     const next = advanceWeek(first)

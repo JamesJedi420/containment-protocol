@@ -55,3 +55,5 @@ Parent SPE-1052 remains Backlog. No supporting child is created. SPE-3119 alone 
 PR #4013 review identified report-note metadata hydration, canonical timestamp, generated-event note-count alignment, future replay-marker validation, and stale handoff wording gaps. These are corrected in-scope. Save/load regressions use the production no-override clock and verify both notes and event counts. The correction run passed 446 tests including the full run-transfer suite. Amazon Q comments named predictive-maintenance item APIs absent from this implementation and are not applicable.
 
 PR: https://github.com/JamesJedi420/containment-protocol/pull/4013. Landing documentation records the shipped boundary; Linear remains In Progress until merge is confirmed. Final focused rerun: 7 files / 91 tests passed.
+
+Baseline (0–3 room) report notes omit empty pathways metadata so canonical hydration preserves the complete note; regression coverage includes both empty and three-room layouts.

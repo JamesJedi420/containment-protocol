@@ -5145,7 +5145,9 @@ export function advanceWeek(
           roomCount: facilityMaintenance.roomCount ?? null,
           accruedDebt: facilityMaintenance.accruedDebt,
           maintenanceDebt: totalDebt,
-          pathways: facilityMaintenance.collapse.firedPathwayIds,
+          ...(facilityMaintenance.collapse.firedPathwayIds.length > 0
+            ? { pathways: facilityMaintenance.collapse.firedPathwayIds }
+            : {}),
           workshopDependency: impact,
           upkeepLoad: facilityMaintenance.burden?.upkeepLoad ?? null,
           staffingMinimum: facilityMaintenance.burden?.staffingMinimum ?? null,

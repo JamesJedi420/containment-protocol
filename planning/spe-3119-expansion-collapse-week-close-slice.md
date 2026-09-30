@@ -57,3 +57,5 @@ PR #4013 review identified report-note metadata hydration, canonical timestamp, 
 PR: https://github.com/JamesJedi420/containment-protocol/pull/4013. Landing documentation records the shipped boundary; Linear remains In Progress until merge is confirmed. Final focused rerun: 7 files / 91 tests passed.
 
 Baseline (0–3 room) report notes omit empty pathways metadata so canonical hydration preserves the complete note; regression coverage includes both empty and three-room layouts.
+
+SPE-3119 replay protection also records valid baseline-layout closes as zero debt plus the processed week. A same/older-week retry cannot accrue after the layout changes; absent/unusable layouts with no prior state remain omitted.

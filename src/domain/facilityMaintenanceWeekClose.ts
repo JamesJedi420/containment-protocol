@@ -57,7 +57,7 @@ export function resolveFacilityMaintenanceWeekClose(
   const debt = Math.min(Number.MAX_SAFE_INTEGER, (prior?.maintenanceDebt ?? 0) + requestedAccrual)
   const accruedDebt = debt - (prior?.maintenanceDebt ?? 0)
   const state =
-    canAdvance && (prior !== undefined || accruedDebt > 0)
+    canAdvance && (prior !== undefined || burden !== undefined)
       ? Object.freeze({ maintenanceDebt: debt, lastProcessedWeek: closingWeek })
       : prior
   // Debt is always a finite nonnegative integer, so the projector accepts this input.

@@ -112,7 +112,7 @@ describe('SPE-3119 facility maintenance resolver', () => {
       1
     )
     expect(result.roomCount).toBe(3)
-    expect(result.state).toBeUndefined()
+    expect(result.state).toEqual({ maintenanceDebt: 0, lastProcessedWeek: 1 })
   })
 
   it.each([
@@ -139,6 +139,21 @@ describe('SPE-3119 facility maintenance resolver', () => {
     expect(resolveFacilityMaintenanceWeekClose(null, result.state, 3).state?.maintenanceDebt).toBe(
       Number.MAX_SAFE_INTEGER
     )
+  })
+
+  it('records a zero-debt close so a changed layout cannot replay that week', () => {
+    const first = resolveFacilityMaintenanceWeekClose(layout(3), undefined, 4)
+    expect(first.state).toEqual({ maintenanceDebt: 0, lastProcessedWeek: 4 })
+    for (const week of [3, 4]) {
+      const replay = resolveFacilityMaintenanceWeekClose(layout(8), first.state, week)
+      expect(replay.state).toEqual(first.state)
+      expect(replay.accruedDebt).toBe(0)
+      expect(replay.dependencies).toBeUndefined()
+    }
+    expect(resolveFacilityMaintenanceWeekClose(layout(8), first.state, 5).state).toEqual({
+      maintenanceDebt: 18,
+      lastProcessedWeek: 5,
+    })
   })
 
   it('caps two-unit processing with the existing dependency seam', () => {
@@ -288,7 +303,10 @@ describe('SPE-3119 live week-close and persistence', () => {
     expect(next.departmentWorkshopSnapshots?.[DEPARTMENT].active[0].completedWork).toBe(2)
     const baseline = campaign(3)
     const closed = advanceWeek(baseline, NOW)
-    expect(closed.facilityMaintenanceState).toBeUndefined()
+    expect(closed.facilityMaintenanceState).toEqual({
+      maintenanceDebt: 0,
+      lastProcessedWeek: baseline.week,
+    })
     expect(closed.facilityLayoutSnapshot).toEqual(baseline.facilityLayoutSnapshot)
   })
 

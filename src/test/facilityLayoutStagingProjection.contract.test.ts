@@ -412,11 +412,12 @@ describe('facility layout staging projection', () => {
       { workOrderId: 'work:records', completedWork: 1 },
     ])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    // SPE-3119: expansion debt caps the topology-derived two-unit throughput.
+    expect(next.facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])
@@ -491,11 +492,12 @@ describe('facility layout staging projection', () => {
       { workOrderId: 'work:records', completedWork: 1 },
     ])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    // SPE-3119: expansion debt caps the topology-derived two-unit throughput.
+    expect(next.facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])
@@ -580,11 +582,12 @@ describe('facility layout staging projection', () => {
       { workOrderId: 'work:records', completedWork: 1 },
     ])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    // SPE-3119: expansion debt caps the topology-derived two-unit throughput.
+    expect(next.facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])
@@ -678,11 +681,12 @@ describe('facility layout staging projection', () => {
       { workOrderId: 'work:records', completedWork: 1 },
     ])
     expect(next.departmentWorkshopCompletionOutcomes?.['work:records']).toBeUndefined()
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    // SPE-3119: expansion debt caps the topology-derived two-unit throughput.
+    expect(next.facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])
@@ -1163,11 +1167,12 @@ describe('facility layout staging projection', () => {
     expect(next.departmentWorkshopSnapshots?.[RECORDS]?.active).toEqual([
       { workOrderId: 'work:records', completedWork: 1 },
     ])
-    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([])
-    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toMatchObject({
-      outcome: 'completed',
-      completedWeek: 1,
-    })
+    // SPE-3119: expansion debt caps the topology-derived two-unit throughput.
+    expect(next.facilityMaintenanceState?.maintenanceDebt).toBe(8)
+    expect(next.departmentWorkshopSnapshots?.[EMERGENCY]?.active).toEqual([
+      { workOrderId: 'work:emergency', completedWork: 1 },
+    ])
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:emergency']).toBeUndefined()
     expect(next.departmentWorkshopSnapshots?.[FIELD]?.active).toEqual([
       { workOrderId: 'work:field', completedWork: 1 },
     ])

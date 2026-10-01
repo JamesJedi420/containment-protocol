@@ -96,6 +96,10 @@ import { projectProductionFacilitySectionStaging } from '../facilitySectionStagi
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import {
+  resolveFacilityMaintenanceWeekClose,
+  composeFacilityMaintenanceWorkshopQuality,
+} from '../facilityMaintenanceWeekClose'
+import {
   deriveArchiveAnalystSlotsFromMappedPersonnel,
   projectSpecialistLaborGateInputsByWorkOrderId,
   resolveCampaignSpecialistLaborOperatorSlots,
@@ -228,6 +232,7 @@ import {
 import { countCaseHiddenModifiers } from '../recon'
 import {
   buildAnchorFactionInstabilityNote,
+  buildReportNoteTimestamp,
   buildDeterministicReportNotesFromEventDrafts,
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
@@ -5025,8 +5030,8 @@ export function advanceWeek(
   const outputWeeklyState = resultWithUnknownFields as unknown as AdvanceWeekState
 
   // SPE-2753: campaign week-close owns one pure workshop-processing tick.
-  // It runs before downstream persisted-record hooks and changes no queue but
-  // the two canonical workshop registries.
+  // SPE-3119 accrues facility maintenance immediately before that tick and
+  // passes transient dependency gates; the tick owns only workshop registries.
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
@@ -5042,12 +5047,11 @@ export function advanceWeek(
   // keys records_review and containment_response only; other tasks omit.
   // Completion registration stays on outputWeeklyState so post-inspection
   // integrity / facility axes remain authoritative.
-  const clearStaleMappedProductionSlots =
-    shouldClearStaleMappedProductionSpecialistOperatorSlots(
-      inputWeeklyState.agents,
-      inputWeeklyState.staff,
-      inputWeeklyState.specialistOperatorSlots
-    )
+  const clearStaleMappedProductionSlots = shouldClearStaleMappedProductionSpecialistOperatorSlots(
+    inputWeeklyState.agents,
+    inputWeeklyState.staff,
+    inputWeeklyState.specialistOperatorSlots
+  )
   const specialistOperatorSlotsForFeed = clearStaleMappedProductionSlots
     ? undefined
     : inputWeeklyState.specialistOperatorSlots
@@ -5064,6 +5068,16 @@ export function advanceWeek(
     inputWeeklyState.departmentWorkshopWorkOrders,
     specialistLaborOperatorSlots
   )
+  const facilityMaintenance = resolveFacilityMaintenanceWeekClose(
+    inputWeeklyState.facilityLayoutSnapshot,
+    inputWeeklyState.facilityMaintenanceState,
+    sourceState.week
+  )
+  if (facilityMaintenance.state !== undefined) {
+    outputWeeklyState.facilityMaintenanceState = facilityMaintenance.state
+  } else {
+    delete outputWeeklyState.facilityMaintenanceState
+  }
   const workshopProcessingTick = processDepartmentWorkshopTick(
     inputWeeklyState,
     undefined,
@@ -5071,7 +5085,7 @@ export function advanceWeek(
     projectProductionFacilitySectionStaging(),
     undefined,
     undefined,
-    undefined,
+    facilityMaintenance.dependencies,
     undefined,
     undefined,
     undefined,
@@ -5091,13 +5105,60 @@ export function advanceWeek(
     outputWeeklyState,
     workshopProcessingTick.completedWorkOrderIds,
     sourceState.week,
-    deriveSpecialistLaborQualityConditionsByWorkOrderId(
+    composeFacilityMaintenanceWorkshopQuality(
       workshopProcessingTick.completedWorkOrderIds,
-      specialistLaborGateInputs
+      facilityMaintenance.dependencyAvailability,
+      deriveSpecialistLaborQualityConditionsByWorkOrderId(
+        workshopProcessingTick.completedWorkOrderIds,
+        specialistLaborGateInputs
+      )
     )
   )
   if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
     outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
+  }
+
+  if (facilityMaintenance.state !== undefined || facilityMaintenance.burden !== undefined) {
+    const lastReportIndex = result.reports.length - 1
+    const lastReport = result.reports[lastReportIndex]
+    if (lastReport) {
+      const impact = facilityMaintenance.dependencyAvailability ?? 'baseline'
+      const totalDebt = facilityMaintenance.state?.maintenanceDebt ?? 0
+      const workshopEffect =
+        impact === 'unavailable'
+          ? 'workshop processing paused'
+          : impact === 'degraded'
+            ? 'workshop progress capped at one unit'
+            : 'workshop processing unchanged'
+      const note: ReportNote = {
+        id: `note-facility-maintenance-${sourceState.week}`,
+        type: 'system.week_delta',
+        timestamp: buildReportNoteTimestamp(
+          lastReport.week,
+          lastReport.notes.length,
+          noteBaseTimestamp
+        ),
+        content: `Facility maintenance: ${facilityMaintenance.roomCount ?? 'unknown'} rooms; debt +${facilityMaintenance.accruedDebt}, total ${totalDebt}; pathways ${facilityMaintenance.collapse.firedPathwayIds.map((id) => id.replaceAll('_', ' ')).join(', ') || 'none'}; ${workshopEffect}.`,
+        metadata: {
+          source: 'facility_maintenance',
+          week: sourceState.week,
+          roomCount: facilityMaintenance.roomCount ?? null,
+          accruedDebt: facilityMaintenance.accruedDebt,
+          maintenanceDebt: totalDebt,
+          ...(facilityMaintenance.collapse.firedPathwayIds.length > 0
+            ? { pathways: facilityMaintenance.collapse.firedPathwayIds }
+            : {}),
+          workshopDependency: impact,
+          upkeepLoad: facilityMaintenance.burden?.upkeepLoad ?? null,
+          staffingMinimum: facilityMaintenance.burden?.staffingMinimum ?? null,
+        },
+      }
+      result.reports = result.reports.map((report, index) =>
+        index === lastReportIndex
+          ? { ...report, notes: [...report.notes.filter((entry) => entry.id !== note.id), note] }
+          : report
+      )
+    }
   }
 
   // SPE-1028: durable unsafe receipts feed one parent-linked follow-up case each.
@@ -6625,6 +6686,18 @@ export function advanceWeek(
     }
     result.coordinationFrictionActive = false
     result.coordinationFrictionReason = undefined
+  }
+  // SPE-3119: reconcile after all post-finalize note producers, not only when
+  // an unrelated status-upkeep hook happens to append a note.
+  if (facilityMaintenance.state !== undefined || facilityMaintenance.burden !== undefined) {
+    const report = result.reports.at(-1)
+    if (report) {
+      result.events = result.events.map((event) =>
+        event.type === 'intel.report_generated' && event.payload.week === report.week
+          ? { ...event, payload: { ...event.payload, noteCount: report.notes.length } }
+          : event
+      )
+    }
   }
   return result
 }

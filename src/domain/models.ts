@@ -1,3 +1,4 @@
+import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
 import type {
   RivalExpeditionClueRegistry,
   RivalExpeditionProgressRegistry,
@@ -2857,9 +2858,11 @@ export interface GameState {
   /**
    * SPE-2986 / SPE-1052: optional authored facility layout snapshot (archetype, zone
    * adjacencies, morale/oversight/room space sets, containment mode). Not SPE-2889
-   * staging and not a CAD graph. Omit hydrates absent. Week-close does not consume it.
+   * staging and not a CAD graph. Omit hydrates absent. SPE-3119 reads room count at week-close.
    */
   facilityLayoutSnapshot?: FacilityLayoutSnapshot
+  /** SPE-3119: canonical accrued expansion debt and closed-week replay guard. */
+  facilityMaintenanceState?: FacilityMaintenanceState
   /**
    * SPE-2890 / SPE-1027: access-controlled storage-class placement keyed by authored class id.
    * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.

@@ -22,7 +22,10 @@ import {
   unequipAgentItem as unequipAgentItemDomain,
 } from '../../domain/sim/equipment'
 import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
-import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../../domain/sparePartSuitability'
 import { queueFabrication as queueFabricationDomain } from '../../domain/sim/production'
 import { GAME_STORE_VERSION } from './runTransfer'
 import { hydrateGame, parseRunExport, serializeRunExport } from './runTransfer'
@@ -1675,6 +1678,74 @@ describe('gameStore', () => {
         }),
       }),
     ])
+  })
+
+  it('repairs a pressure seal with one gasket and emits only the existing repair event', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.facilityStockpile = { [PRESSURE_SEAL_SPARE_PART_ID]: 2 }
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const integrityBefore = structuredClone(created.instance.containmentIntegrity)
+    const eventCountBefore = created.state.events.length
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    const instance = next.equipmentInstances?.[created.instance.instanceId]
+    expect(instance?.condition).toBe('operational')
+    expect(instance?.containmentIntegrity).toEqual(integrityBefore)
+    expect(next.inventory.ward_seals).toBe(0)
+    expect(next.facilityStockpile).toEqual({ [PRESSURE_SEAL_SPARE_PART_ID]: 1 })
+    expect(next.events).toHaveLength(eventCountBefore + 1)
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
+  })
+
+  it('does not mutate a pressure seal or emit a repair event when gasket stock is unavailable', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const before = structuredClone(created.state)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.equipmentInstances?.[created.instance.instanceId]).toEqual(
+      before.equipmentInstances?.[created.instance.instanceId]
+    )
+    expect(next.facilityStockpile).toBeUndefined()
+    expect(next.inventory).toEqual(before.inventory)
+    expect(next.events).toEqual(before.events)
   })
 
   it('repairStoredEquipmentInstanceCondition fail-closes missing named stock without a repair event', () => {

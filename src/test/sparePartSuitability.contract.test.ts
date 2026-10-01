@@ -2,17 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { BLAST_DOOR_COMPENSATING_CONTROL_ID } from '../domain/containmentClassInspection'
 import {
   BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
   getRequiredRepairSparePartId,
   resolveRepairSparePartSuitability,
   SPARE_PART_IDS,
 } from '../domain/sparePartSuitability'
 
 describe('spare-part suitability for SPE-2851 repair', () => {
-  it('exposes exactly one named blast-door spare part', () => {
-    expect(SPARE_PART_IDS).toEqual(['blast_door_hinge_seal'])
+  it('exposes canonical named parts only for blast doors and pressure seals', () => {
+    expect(SPARE_PART_IDS).toEqual(['blast_door_hinge_seal', 'pressure_seal_gasket'])
     expect(getRequiredRepairSparePartId('blast_door')).toBe(BLAST_DOOR_SPARE_PART_ID)
+    expect(getRequiredRepairSparePartId('pressure_seal')).toBe(PRESSURE_SEAL_SPARE_PART_ID)
     expect(getRequiredRepairSparePartId(undefined)).toBeUndefined()
-    expect(getRequiredRepairSparePartId('pressure_seal')).toBeUndefined()
     expect(getRequiredRepairSparePartId('interlock')).toBeUndefined()
   })
 
@@ -83,14 +84,28 @@ describe('spare-part suitability for SPE-2851 repair', () => {
       resolveRepairSparePartSuitability({
         classId: 'pressure_seal',
         deficiency: { kind: 'none' },
+        sparePartId: PRESSURE_SEAL_SPARE_PART_ID,
+      })
+    ).toEqual({ ok: true, required: true, sparePartId: PRESSURE_SEAL_SPARE_PART_ID })
+    expect(
+      resolveRepairSparePartSuitability({
+        classId: 'pressure_seal',
+        deficiency: { kind: 'none' },
         sparePartId: BLAST_DOOR_SPARE_PART_ID,
       })
-    ).toEqual({ ok: false, code: 'invalid_class' })
+    ).toEqual({ ok: false, code: 'unsuitable_part' })
+    expect(
+      resolveRepairSparePartSuitability({
+        classId: 'blast_door',
+        deficiency: { kind: 'hard_stop' },
+        sparePartId: PRESSURE_SEAL_SPARE_PART_ID,
+      })
+    ).toEqual({ ok: false, code: 'unsuitable_part' })
     expect(
       resolveRepairSparePartSuitability({
         classId: 'interlock',
         deficiency: { kind: 'none' },
-        sparePartId: BLAST_DOOR_SPARE_PART_ID,
+        sparePartId: PRESSURE_SEAL_SPARE_PART_ID,
       })
     ).toEqual({ ok: false, code: 'invalid_class' })
     expect(

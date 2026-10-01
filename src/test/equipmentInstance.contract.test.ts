@@ -12,6 +12,7 @@ import {
   reaggregateStoredOrdinaryEquipmentInstance,
   relocateEquipmentInstance,
   repairStoredEquipmentInstanceCondition,
+  resolveStoredEquipmentInstanceConditionRepair,
   sanitizeEquipmentInstanceRegistry,
   stabilizeContainmentClassDeficiency,
   inspectContainmentClassIntegrity,
@@ -66,7 +67,10 @@ import {
   INTERLOCK_MEMBRANE_ZONE_ID,
   PRESSURE_SEAL_MEMBRANE_ZONE_ID,
 } from '../domain/containmentBarrierIntegrity'
-import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../domain/sparePartSuitability'
 import {
   BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
   INTERLOCK_INTEGRITY_LABOR_STATION_ID,
@@ -2723,6 +2727,18 @@ function blastDoorIntegrity(
   }
 }
 
+function pressureSealIntegrity(
+  overrides: Partial<ContainmentClassIntegrity> = {}
+): ContainmentClassIntegrity {
+  return {
+    classId: 'pressure_seal',
+    lastInspectionWeek: 1,
+    cycleCount: 0,
+    deficiency: { kind: 'none' },
+    ...overrides,
+  }
+}
+
 function seedFacilitySparePart(state: GameState, quantity = 1) {
   state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: quantity }
 }
@@ -3077,6 +3093,96 @@ describe('SPE-2860 containment-class integrity on equipment instances', () => {
 })
 
 describe('SPE-2870 named-part repair consume', () => {
+  it('previews and repairs a damaged pressure seal with exactly one gasket, preserving integrity', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.facilityStockpile = { [PRESSURE_SEAL_SPARE_PART_ID]: 2 }
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: pressureSealIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const integrityBefore = structuredClone(created.instance.containmentIntegrity)
+    const inventoryBefore = structuredClone(created.state.inventory)
+
+    expect(
+      resolveStoredEquipmentInstanceConditionRepair(
+        created.state,
+        created.instance.instanceId,
+        PRESSURE_SEAL_SPARE_PART_ID
+      )
+    ).toMatchObject({
+      canRepairCondition: true,
+      requiredSparePartId: PRESSURE_SEAL_SPARE_PART_ID,
+    })
+
+    const repaired = repairStoredEquipmentInstanceCondition(
+      created.state,
+      created.instance.instanceId,
+      PRESSURE_SEAL_SPARE_PART_ID
+    )
+    expect(repaired).toMatchObject({ ok: true, instance: { condition: 'operational' } })
+    if (!repaired.ok) throw new Error(repaired.code)
+    expect(repaired.instance.containmentIntegrity).toEqual(integrityBefore)
+    expect(isContainmentClassInService(repaired.instance.containmentIntegrity)).toBe(false)
+    expect(repaired.state.facilityStockpile).toEqual({ [PRESSURE_SEAL_SPARE_PART_ID]: 1 })
+    expect(repaired.state.inventory).toEqual(inventoryBefore)
+    expect(created.state.facilityStockpile).toEqual({ [PRESSURE_SEAL_SPARE_PART_ID]: 2 })
+  })
+
+  it('fails closed for missing, wrong, unavailable, and malformed pressure-seal repair inputs', () => {
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(state, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: pressureSealIntegrity({ deficiency: { kind: 'hard_stop' } }),
+    })
+    if (!created.ok) throw new Error(created.code)
+    const instanceId = created.instance.instanceId
+    const attempts = [
+      [undefined, 'missing_part'],
+      [BLAST_DOOR_SPARE_PART_ID, 'unsuitable_part'],
+      [PRESSURE_SEAL_SPARE_PART_ID, 'stock_unavailable'],
+      [{ malformed: true }, 'unsuitable_part'],
+    ] as const
+
+    for (const [sparePartId, code] of attempts) {
+      const before = structuredClone(created.state)
+      const result = repairStoredEquipmentInstanceCondition(created.state, instanceId, sparePartId)
+      expect(result).toMatchObject({ ok: false, code })
+      expect(created.state).toEqual(before)
+      expect(result.state.equipmentInstances?.[instanceId]?.condition).toBe('damaged')
+      expect(result.state.facilityStockpile).toBeUndefined()
+      expect(result.state.inventory).toEqual(before.inventory)
+    }
+
+    const current = created.state.equipmentInstances?.[instanceId]
+    if (!current?.containmentIntegrity) throw new Error('missing pressure-seal integrity')
+    const malformedState = {
+      ...created.state,
+      equipmentInstances: {
+        ...created.state.equipmentInstances,
+        [instanceId]: {
+          ...current,
+          containmentIntegrity: {
+            ...current.containmentIntegrity,
+            deficiency: { kind: 'compensating_continue' },
+          },
+        },
+      },
+    } as unknown as GameState
+    const malformedBefore = structuredClone(malformedState)
+    const malformed = repairStoredEquipmentInstanceCondition(
+      malformedState,
+      instanceId,
+      PRESSURE_SEAL_SPARE_PART_ID
+    )
+    expect(malformed).toMatchObject({ ok: false, code: 'malformed_containment_integrity' })
+    expect(malformedState).toEqual(malformedBefore)
+    expect(malformed.state.inventory).toEqual(malformedBefore.inventory)
+    expect(malformed.state.facilityStockpile).toBeUndefined()
+  })
+
   it('debits one blast_door_hinge_seal on successful stored blast-door repair', () => {
     const state = createStartingState()
     state.inventory.ward_seals = 1
@@ -3194,7 +3300,7 @@ describe('SPE-2870 named-part repair consume', () => {
       created.instance.instanceId,
       BLAST_DOOR_SPARE_PART_ID
     )
-    expect(failed).toMatchObject({ ok: false, code: 'invalid_containment_class' })
+    expect(failed).toMatchObject({ ok: false, code: 'unsuitable_part' })
     expect(created.state.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
     expect(created.state.equipmentInstances?.[created.instance.instanceId]?.condition).toBe(
       'damaged'

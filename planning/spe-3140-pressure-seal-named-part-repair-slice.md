@@ -2,7 +2,7 @@
 
 | Field                   | Value                                                                                                                         |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Status**              | **Recently shipped**                                                                                                          |
+| **Status**              | **In Progress**                                                                                                               |
 | **Linear**              | [SPE-3140](https://linear.app/spectranoir/issue/SPE-3140/pressure-seal-named-part-condition-repair)                           |
 | **Parent**              | [SPE-877](https://linear.app/spectranoir/issue/SPE-877/critical-equipment-integrity-and-deficiency-control) — remains Backlog |
 | **Priority / assignee** | High / James Dye                                                                                                              |

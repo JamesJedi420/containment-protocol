@@ -9,8 +9,9 @@ import {
 
 export const BLAST_DOOR_SPARE_PART_ID = 'blast_door_hinge_seal' as const
 export type BlastDoorSparePartId = typeof BLAST_DOOR_SPARE_PART_ID
+export const PRESSURE_SEAL_SPARE_PART_ID = 'pressure_seal_gasket' as const
 
-export const SPARE_PART_IDS = [BLAST_DOOR_SPARE_PART_ID] as const
+export const SPARE_PART_IDS = [BLAST_DOOR_SPARE_PART_ID, PRESSURE_SEAL_SPARE_PART_ID] as const
 export type SparePartId = (typeof SPARE_PART_IDS)[number]
 
 export function isSparePartId(value: unknown): value is SparePartId {
@@ -20,6 +21,7 @@ export function isSparePartId(value: unknown): value is SparePartId {
 const SPARE_PART_BY_CLASS: Readonly<Partial<Record<ContainmentClassId, SparePartId>>> =
   Object.freeze({
     blast_door: BLAST_DOOR_SPARE_PART_ID,
+    pressure_seal: PRESSURE_SEAL_SPARE_PART_ID,
   })
 
 export type SparePartSuitabilityFailureCode =
@@ -38,7 +40,7 @@ export function getRequiredRepairSparePartId(classId: unknown): SparePartId | un
 /**
  * Typed spare-part gate for stored condition repair.
  * Ordinary identities (omitted class) do not require a part.
- * `blast_door` requires `blast_door_hinge_seal` for every deficiency kind.
+ * `blast_door` and `pressure_seal` require their class-specific named part for every deficiency kind.
  * Deficiency is validated, not used to pick a part or to clear hard-stop.
  */
 export function resolveRepairSparePartSuitability(input: {

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import { consumeFacilityStock, parseFacilityStockpile } from '../domain/facilityStockpile'
-import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../domain/sparePartSuitability'
 
 function snapshotCatalog(state: ReturnType<typeof createStartingState>) {
   return {
@@ -110,6 +113,7 @@ describe('facility stockpile consume helper', () => {
   it('drops malformed hydration siblings independently', () => {
     const raw = {
       [BLAST_DOOR_SPARE_PART_ID]: 2,
+      [PRESSURE_SEAL_SPARE_PART_ID]: 3,
       ward_seals: 4,
       '0': 3,
       constructor: 1,
@@ -118,13 +122,17 @@ describe('facility stockpile consume helper', () => {
       zero: 0,
       nan: Number.NaN,
     }
-    expect(parseFacilityStockpile(raw)).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+    expect(parseFacilityStockpile(raw)).toEqual({
+      [BLAST_DOOR_SPARE_PART_ID]: 2,
+      [PRESSURE_SEAL_SPARE_PART_ID]: 3,
+    })
     expect(parseFacilityStockpile(undefined)).toBeUndefined()
     expect(parseFacilityStockpile({})).toBeUndefined()
     expect(parseFacilityStockpile(null)).toBeUndefined()
     expect(parseFacilityStockpile([])).toBeUndefined()
     expect(parseFacilityStockpile({ [BLAST_DOOR_SPARE_PART_ID]: 0 })).toBeUndefined()
     expect(parseFacilityStockpile({ [BLAST_DOOR_SPARE_PART_ID]: -1 })).toBeUndefined()
+    expect(parseFacilityStockpile({ [PRESSURE_SEAL_SPARE_PART_ID]: 1.5 })).toBeUndefined()
 
     const state = createStartingState()
     const catalog = snapshotCatalog(state)
@@ -132,17 +140,20 @@ describe('facility stockpile consume helper', () => {
       ...state,
       facilityStockpile: raw,
     })
-    expect(hydrated.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+    expect(hydrated.facilityStockpile).toEqual({
+      [BLAST_DOOR_SPARE_PART_ID]: 2,
+      [PRESSURE_SEAL_SPARE_PART_ID]: 3,
+    })
     expect(hydrated.inventory).toEqual(catalog.inventory)
     expect(hydrated.equipmentInstances).toEqual(catalog.equipmentInstances)
   })
 
   it('round-trips a valid quantity through hydrateGame without debiting', () => {
     const state = createStartingState()
-    state.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 2 }
+    state.facilityStockpile = { [PRESSURE_SEAL_SPARE_PART_ID]: 2 }
     const catalog = snapshotCatalog(state)
     const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)))
-    expect(hydrated.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 2 })
+    expect(hydrated.facilityStockpile).toEqual({ [PRESSURE_SEAL_SPARE_PART_ID]: 2 })
     expect(hydrated.inventory).toEqual(catalog.inventory)
     expect(hydrated.equipmentInstances).toEqual(catalog.equipmentInstances)
 

@@ -14,7 +14,10 @@ import {
   instantiateEquipmentInstance,
   relocateEquipmentInstance,
 } from '../../domain/equipmentInstance'
-import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../../domain/sparePartSuitability'
 import { queueEquipmentDeconstruction } from '../../domain/sim/equipmentDeconstruction'
 
 describe('getEquipmentDeconstructionViews', () => {
@@ -851,6 +854,50 @@ describe('getGearRecommendationsForActiveCases', () => {
         .find((view) => view.itemId === 'ward_seals')
         ?.storedInstances.find((instance) => instance.instanceId === created.instance.instanceId)
     ).not.toHaveProperty('repairConditionReasonLabel')
+  })
+
+  it('enables stored pressure-seal condition repair only with its named spare-part stock', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    const viewWithoutStock = getEquipmentInstanceMaterializationViews(created.state).find(
+      (view) => view.itemId === 'ward_seals'
+    )
+    expect(viewWithoutStock?.storedInstances).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canRepairCondition: false,
+          repairConditionReasonLabel: 'Named spare-part stock is unavailable.',
+        }),
+      ])
+    )
+
+    const stocked = {
+      ...created.state,
+      facilityStockpile: { [PRESSURE_SEAL_SPARE_PART_ID]: 1 },
+    }
+    const viewWithStock = getEquipmentInstanceMaterializationViews(stocked).find(
+      (view) => view.itemId === 'ward_seals'
+    )
+    expect(viewWithStock?.storedInstances).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          canRepairCondition: true,
+        }),
+      ])
+    )
   })
 
   it('offers blast-door and extra-class deficiency stabilization and fail-closes ordinary and none', () => {

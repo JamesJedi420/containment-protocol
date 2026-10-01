@@ -12,7 +12,10 @@ import {
   getEquipmentInstanceAtAgentSlot,
   instantiateEquipmentInstance,
 } from '../../domain/equipmentInstance'
-import { BLAST_DOOR_SPARE_PART_ID } from '../../domain/sparePartSuitability'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../../domain/sparePartSuitability'
 import EquipmentPage from './EquipmentPage'
 
 function renderEquipmentPage() {
@@ -626,6 +629,53 @@ describe('EquipmentPage', () => {
     )
     expect(repaired.facilityStockpile).toBeUndefined()
     expect(repaired.inventory.ward_seals).toBe(created.state.inventory.ward_seals)
+  })
+
+  it('repairs a pressure-seal instance with its named spare-part stock', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.facilityStockpile = { [PRESSURE_SEAL_SPARE_PART_ID]: 1 }
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 2,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+
+    renderEquipmentPage()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review condition repair Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: `Repair condition Ward Seals instance ${created.instance.instanceId}`,
+      })
+    )
+
+    const repaired = useGameStore.getState().game
+    expect(repaired.equipmentInstances?.[created.instance.instanceId]).toMatchObject({
+      condition: 'operational',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 2,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    expect(repaired.facilityStockpile).toBeUndefined()
+    expect(repaired.inventory.ward_seals).toBe(created.state.inventory.ward_seals)
+    expect(
+      repaired.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toHaveLength(1)
   })
 
   it('confirms blast-door deficiency stabilization and hides the command on ordinary copies', async () => {

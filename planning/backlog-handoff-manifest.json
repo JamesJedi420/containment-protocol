@@ -13,6 +13,7 @@
     "SPE-3112",
     "SPE-3110",
     "SPE-3109",
+    "SPE-3140",
     "SPE-1058",
     "SPE-2261",
     "SPE-2262"
@@ -236,6 +237,7 @@
     "planning/spe-956-community-advisory-decision-influence-slice-1.md": "Shipped",
     "planning/spe-2625-propagation-graph-counter-overflow-fix.md": "Shipped",
     "planning/spe-956-propagation-graph-surfacing-slice-4.md": "Shipped",
-    "planning/spe-3119-expansion-collapse-week-close-slice.md": "Recently shipped"
+    "planning/spe-3119-expansion-collapse-week-close-slice.md": "Recently shipped",
+    "planning/spe-3140-pressure-seal-named-part-repair-slice.md": "Recently shipped"
   }
 }

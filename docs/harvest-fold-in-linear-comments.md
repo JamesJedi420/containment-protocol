@@ -1,51 +1,53 @@
 # Harvest comments on Linear (owner + hub)
 
-**Purpose:** Linear is the **durable agent-readable record** for each reconciled harvest **candidate** (extracted pattern from a source batch). A future agent implementing SPE-#### must understand **what the mechanic is**, **why this owner**, **what changes vs what is forbidden**, and **why it is a fold-in vs a new child** — without re-reading the source packet or guessing from a one-line note.
+**Purpose:** Preserve durable, agent-readable traceability for reconciled harvest candidates without letting a comment or triage verdict silently create or expand backlog scope.
 
-**When:** Same session as candidate adjudication, before the batch mirror PR lands. See `planning/harvest-reconciliation-index.md` and **`docs/harvest-candidate-triage-agent.md`**.
+A future agent should be able to understand the mechanic, evidence, likely ownership, boundaries, and disposition without reopening the source packet.
 
-**Mirror doc:** `planning/<batch-id>-harvest.md` holds the full candidate table (owners authoritative). Linear comments must be **at least as informative** as the mirror **Mechanic / note** column — typically **more** detail on acceptance and boundaries.
-
-**Not a substitute for:** A **new child issue** when the candidate is a bounded shippable slice (own branch, tests, slice doc). Fold-ins clarify owners; child issues **own** delivery.
+**When:** Same reconciliation session as the candidate adjudication. See `planning/harvest-reconciliation-index.md` and `docs/harvest-candidate-triage-agent.md`.
 
 ---
 
-## What you are posting (candidates)
+## Governance boundary
 
-Each **C##** is one **pattern-level mechanic** abstracted from an external source (walkthrough, PDF, transcript, manual). Post enough on Linear that an agent never needs the source document to understand the intended simulation/design behavior in Containment Protocol terms.
+This document does **not** authorize issue creation.
 
----
+- A fold-in comment may clarify an **existing approved owner** only when it stays inside that owner’s durable boundary.
+- If the candidate cannot truthfully fit an existing approved owner, classify it as a **missing-boundary candidate**.
+- Do not create a child, coordinator, contradiction issue, relationship, or expanded owner boundary during harvest triage.
+- Missing-boundary and scope-changing candidates must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog mutation.
+- If approval state is missing or ambiguous, fail closed and preserve candidate evidence only.
 
-## Required content (every owner comment)
+## Required content for existing-owner traceability
 
-Use **all six sections**. If a section is N/A, say so explicitly. **Do not** collapse the mechanic into a single sentence.
+Use all six sections when posting a legal non-scope-expanding owner comment. If a section is N/A, state that explicitly.
 
 | # | Section | What to include |
 | --- | --- | --- |
-| 1 | **Candidate & source** | `C##`, batch id, source type (e.g. mission-hub walkthrough metadata). One sentence on what pattern was extracted (not franchise names). |
-| 2 | **Mechanic (agent-readable)** | **What it is and how it behaves** in CP terms: triggers, state, player-facing effect, persistence, ties to weekly loop / site / hub / case as applicable. Bullets OK. This is the core payload — not optional. |
-| 3 | **Repo / subsystem anchor** | Files, modules, audits, or existing SPE scope that already touch this behavior; what exists vs net-new. |
-| 4 | **Ownership & reconciliation** | Primary **SPE-####** (link) and co-owners; **why** this owner (not another). Dedup / no-op reference if applicable. |
-| 5 | **Boundary** | **In scope for this owner when it ships:** concrete acceptance deltas (state shape, resolver rule, UI surface, test). **Out of scope:** franchise import, prose, other owners’ subsystems, whole batch mandate. |
-| 6 | **Disposition & issue decision** | **Fold-in** / **new child SPE-####** / **no implementation change** — with **one paragraph of reasoning** using the decision tests below. |
+| 1 | **Candidate & source** | Candidate ID, batch ID, source type, and the abstracted pattern. |
+| 2 | **Mechanic (agent-readable)** | CP-native behavior: triggers, state, player-facing effect, persistence, failure modes, and loop/site/case ties as applicable. |
+| 3 | **Repo / subsystem anchor** | Existing files, modules, audits, shipped behavior, or approved SPE scope. |
+| 4 | **Ownership & reconciliation** | Existing primary owner and co-owners checked; explain why this owner already contains the boundary. |
+| 5 | **Boundary** | What the existing owner already permits this comment to clarify; explicitly state what would be new scope and is therefore excluded. |
+| 6 | **Disposition & governance state** | `fold_in`, `no implementation change`, `doc note only`, `contradiction_check`, or `missing_boundary_candidate`; include current approval phase when scope change is proposed. |
 
 ---
 
-## Fold-in vs new child (same-boundary test)
+## Same-boundary test
 
-Use this when the candidate “feels like” the same theme as an existing issue.
+Use this test to decide whether an existing-owner comment is legal or whether the candidate must remain outside authoritative backlog scope.
 
-| Prefer **fold-in** on owner | Prefer **new child** under owner (or SPE-2110) |
+| Existing-owner fold-in may be appropriate | Missing-boundary candidate — approval required before issue creation |
 | --- | --- |
-| Extends the **same implementation boundary** as the owner: same module(s), same acceptance envelope, would land in the **same future PR slice** as other work on that issue | **Distinct Definition of Done**: own branch, tests, and `planning/*-slice.md` without blocking the parent |
-| Adds acceptance detail or guardrails to behavior the owner **already owns** | Would **bloat** the parent Goal or mix unrelated deliverables on one issue |
-| No new top-level subsystem or registry file; fits files the owner already names | Needs a **new domain file**, registry, or cross-cutting contract not on the owner |
-| Co-owners are **consulted** via links in the comment, not separate delivery owners | **3+ owners** with equal delivery responsibility — create a coordinator **child** and link fold-ins |
-| `contradiction_check` / `no_op` — disposition **no implementation change** or **doc note only** | Harvest row verdict **`new child`** in `*-harvest.md` |
+| Same implementation boundary, modules, state authority, and acceptance envelope already owned by the issue. | Distinct Definition of Done that cannot truthfully fit the existing owner. |
+| Adds bounded clarification/guardrail to behavior the issue already owns. | Requires a new top-level subsystem, registry, state authority, or cross-cutting contract. |
+| Would ship inside the same already-approved implementation slice. | Requires an independently reviewable implementation slice not already approved. |
+| Co-owners are consulted but one existing owner remains clearly authoritative. | Ownership cannot be resolved without changing parent boundaries or creating a coordinator. |
+| No-op, documentation-only, or contradiction traceability that does not alter scope. | Any durable obligation that would expand Goal/Scope/Acceptance Criteria beyond the approved boundary. |
 
-**Shared-boundary rule:** If two candidates would be implemented in the **same module and same acceptance tests** without inventing a new subsystem, they belong on the **same owner** (fold-in or one child), not split across duplicate issues. If they need **separate PRs** with separate merge criteria, use a **new child** (or separate children), even if themes overlap.
+**When unsure:** fail closed. Record a `missing_boundary_candidate` and route it through the phased governance workflow. Do not default to creating a child.
 
-**When unsure:** Default to **new child** if delivery is bounded and testable in isolation; default to **fold-in** if the comment only clarifies how an existing backlog item should behave when eventually built.
+Two candidates that share a future implementation boundary may later reconcile into one approved child; that is a Phase 3 decision, not a harvest-triage side effect.
 
 ---
 
@@ -53,123 +55,86 @@ Use this when the candidate “feels like” the same theme as an existing issue
 
 | Disposition | Meaning |
 | --- | --- |
-| **No implementation change** | `no_op`, dedup, or `contradiction_check` — traceability; owner backlog unchanged. Still write **Mechanic** and **Boundary** so agents know why. |
-| **Doc note only** | Planning/audit update when owner ships; no code until owner slice starts. |
-| **Fold-in** | Owner issue unchanged in title/Goal; this comment is the spec supplement. |
-| **Child issue** | Create (or link) SPE-#### with slice doc; parent stays Backlog until child ships; fold-in comment links child. |
+| **No implementation change** | No-op/dedup/traceability only; backlog scope unchanged. |
+| **Doc note only** | Documentation consequence; no feature issue creation implied. |
+| **Fold-in** | Existing approved owner can absorb the clarification without changing its durable boundary. |
+| **Contradiction check** | Durable conflict requires reconciliation; finding the conflict does not itself authorize a new issue. |
+| **Missing-boundary candidate** | No truthful existing owner; requires Phase 1–3 approvals and Phase 4 before any new issue/child is created. |
+| **Approved Phase 4 issue** | Use only after the governance workflow has actually authorized and created/updated the delivery issue; link the resulting SPE issue for traceability. |
 
 ---
 
-## Comment template (paste into Linear)
+## Comment template
 
 ```markdown
 **Harvest** — `<batch-id>` · **C##** · `<short mechanic title>`
 
 ### 1. Candidate & source
 - **ID:** C##
-- **Batch:** `<batch-id>` — <source type in plain language>
-- **Extracted pattern:** <what was abstracted from the source, pattern-only>
+- **Batch:** `<batch-id>` — <source type>
+- **Extracted pattern:** <pattern-only abstraction>
 
 ### 2. Mechanic (agent-readable)
-- <what happens in the sim / authoring model>
-- <state, triggers, persistence, failure modes>
-- <relation to hub / site / case / week if relevant>
+- <behavior, trigger, state, persistence>
+- <player/system effect and failure modes>
+- <loop/site/case relation if relevant>
 
 ### 3. Repo / subsystem anchor
-- **Existing:** <files, modules, prior harvest, partial implementation>
-- **Net-new when owner ships:** <what does not exist yet>
+- **Existing:** <files/modules/approved SPE/shipped behavior>
+- **Unimplemented or uncertain:** <evidence gap; do not present as approved scope>
 
 ### 4. Ownership & reconciliation
-- **Primary:** [SPE-####](url) — <why this owner>
-- **Co-owners:** [SPE-####](url) — <role: consult / shared state / guardrails only>
-- **Dedup / no-op:** <prior batch C## or repo behavior already covers X, or "none">
+- **Existing primary owner checked:** [SPE-####](url) — <why it owns this boundary, or why it does not>
+- **Co-owners checked:** <links + role>
+- **Dedup / prior candidate:** <reference or none>
 
 ### 5. Boundary
-**In scope (when owner ships):**
-- <concrete acceptance bullets>
+**Inside existing approved scope:**
+- <clarification that is already within owner boundary, or “none”>
 
-**Out of scope:**
-- <bullets — franchise, other SPE subsystems, full batch, etc.>
+**Would be new scope and is excluded until approved:**
+- <candidate obligations>
 
-### 6. Disposition & issue decision
-- **Disposition:** <fold-in | doc note only | no implementation change | child [SPE-####](url)>
-- **Reasoning:** <why fold-in vs child vs no-op — shared-boundary test applied>
+### 6. Disposition & governance state
+- **Disposition:** <fold_in | doc note only | no implementation change | contradiction_check | missing_boundary_candidate | approved Phase 4 issue [SPE-####](url)>
+- **Current phase:** <not required | Phase 1 | Phase 2 | Phase 3 | Phase 4 complete>
+- **Reasoning:** <same-boundary / missing-boundary rationale>
 
 **Traceability:** `planning/<batch-id>-harvest.md` (row C##)
 ```
 
 ### Grouping
 
-Group **only** when multiple **C##** share the **same owner**, **same disposition**, and **same acceptance envelope**. Inside one comment, give **each C##** its own **Mechanic** subsection — do not list IDs without behavior.
+Group candidates only when they share the same existing owner, same disposition, and same acceptance envelope. Give each C## enough mechanic detail to stand on its own.
 
 ---
 
-## Mirror doc `Note` column (planning)
+## Mirror `Note` column
 
-The harvest table **Note** column is not a one-liner. Minimum per row:
+Minimum per row:
 
-- **Mechanic summary** (2–4 sentences, same substance as Linear §2, can be shorter).
-- **Verdict** implied by wording (fold-in / no-op / contradiction).
-- Pointer: “Linear: fold-in posted YYYY-MM-DD” or “child SPE-####”.
+- 2–4 sentence mechanic summary;
+- disposition;
+- matched/proposed owner;
+- approval state when any scope mutation is proposed;
+- pointer to Linear traceability or candidate-ledger record.
 
-Linear comments should **match or exceed** this depth.
+Do not write “child SPE-####” unless that issue already existed or Phase 4 actually created it.
 
 ---
 
 ## Anti-patterns
 
-- One-line notes on Linear or in the mirror table (“stress-dream motif” only).
-- Fold-in with **boundary** but no **mechanic** — agents cannot implement or prioritize.
-- Choosing **fold-in** because the theme sounds similar when delivery needs a **separate child** (shared-boundary test failed).
-- Choosing **new child** for every row to avoid writing mechanics on the parent.
-- Restating the owner issue **Goal** as if the harvest replaces product direction.
-- Implying priority (“do next”) — queue lives in `planning/backlog.md`.
-
-**Good tension:** Long **mechanic** sections are required; long **theme marketing** paragraphs without acceptance deltas are not.
-
----
-
-## Good example (fold-in, rich mechanic)
-
-```markdown
-**Harvest** — `osr-site-exploration-metadata-165` · **C2** · Per-action turn costs on site clock
-
-### 1. Candidate & source
-- **ID:** C2
-- **Batch:** `osr-site-exploration-metadata-165` — OSR site exploration pattern library (metadata)
-- **Extracted pattern:** Each exploration action spends a bounded number of site-turn ticks before effects resolve.
-
-### 2. Mechanic (agent-readable)
-- Site exploration runs on a **site turn clock** distinct from weekly `advanceWeek`.
-- Each `actionId` (search, breach, rest, etc.) declares a **turn cost**; spending reduces remaining site turns for the visit.
-- Invalid or unknown `actionId` is rejected in pure logic (no silent zero-cost actions).
-- Does not by itself add encounters, loot tables, or UI — only the cost table contract.
-
-### 3. Repo / subsystem anchor
-- **Existing:** `exploration` helpers (SPE-2260 landed C1–C2 partial), SPE-371, SPE-562 turn advance.
-- **Net-new when owner ships:** Full cost table coverage for all action ids in scope of SPE-1610 slice 2+.
-
-### 4. Ownership & reconciliation
-- **Primary:** [SPE-371](…) — site exploration action economy
-- **Co-owners:** [SPE-562](…) — turn advance integration
-- **Dedup:** none (C1 partial land only)
-
-### 5. Boundary
-**In scope (when owner ships):**
-- Authoring-time or data-driven `actionId → turnCost` map; validator rejects unknown ids.
-
-**Out of scope:**
-- Trap adaptation (C13), encounter tables (C18–C21), action picker UI, weekly campaign integration.
-
-### 6. Disposition & issue decision
-- **Disposition:** fold-in (doc note until SPE-1610 exploration slice 2+)
-- **Reasoning:** Same module and PR slice as SPE-371 exploration clock work; no separate DoD or new registry — extends existing owner boundary (shared-boundary test → fold-in).
-
-**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C2)
-```
+- One-line candidate notes with no behavior or boundary.
+- Treating a harvest verdict as backlog admission.
+- Creating a child because the candidate is independently testable before parent/child reconciliation is approved.
+- Creating a coordinator because several owners appear relevant before Phase 2/3 resolves ownership.
+- Expanding an existing issue through a comment when the candidate materially changes Goal/Scope/Acceptance Criteria.
+- Implying priority from source order; queue priority belongs to the authoritative planning workflow.
+- Using a historical `new child` verdict as evidence that a current issue may be created automatically.
 
 ---
 
-## Hub intake (SPE-2110)
+## Hub intake (SPE-2110 or successor intake owner)
 
-Batch closure on SPE-2110: counts, batch id, mirror path, owner list, **child issues created**. Do **not** paste the full candidate table on the hub — per-owner comments carry row-level detail.
+Batch closure may record counts, batch ID, mirror path, owner list, dispositions, unresolved contradictions, and **missing-boundary candidates awaiting governance**. List new issue IDs only when they already existed or the Phase 4 update has been approved and applied.

@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Non-negotiable.** Applies to local Cursor, Cloud Agents, background agents, and subagents — not only feature implementation.
 
-Linear is the **system of record** for approved issue scope, lifecycle state, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates.
+Linear is the **system of record** for approved issue scope, lifecycle state, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates when an approved Linear owner exists.
 
 ## Scope-mutation guardrail
 
@@ -28,8 +28,9 @@ When approval state is absent or ambiguous, fail closed: preserve the finding as
 
 | Phase | Linear action |
 | --- | --- |
-| **Task start** | Use the already-approved slice issue named by the task and set it **In Progress** before substantive implementation. If no approved issue exists, stop and route the work through candidate governance instead of creating one from this rule. |
-| **During work** | Keep the approved slice current with material progress/blocker comments. Harvest triage follows `docs/harvest-candidate-triage-agent.md`; missing boundaries remain candidates until the approval flow reaches Phase 4. |
+| **Task start — approved implementation/harvest** | Use the already-approved slice/workflow issue named by the task and set it **In Progress** when substantive owned work begins. If feature scope has no approved owner, stop that scope and route it through candidate governance instead of creating one from this rule. |
+| **Task start — unowned review/docs analysis** | A review, audit, or docs analysis that has no named approved Linear owner may proceed **read-only with no Linear mutation**. Do not manufacture an issue merely to satisfy this rule. If the work discovers durable product scope, record it as candidate input for the approval flow. |
+| **During owned work** | Keep the approved slice current with material progress/blocker comments. Harvest triage follows `docs/harvest-candidate-triage-agent.md`; missing boundaries remain candidates until the approval flow reaches Phase 4. |
 | **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the approved slice complete locally (`implementation-lite.mdc` ship loop). |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
 | **Babysit → merge** | Same session: independent review + comment triage + CI until green, merge PR, then `git checkout main` && `git pull origin main` (`implementation-lite.mdc`). |
@@ -39,13 +40,15 @@ When approval state is absent or ambiguous, fail closed: preserve the finding as
 ## Do not skip because
 
 - The PR has a GitHub linkback bot comment.
-- The task was docs-only, harvest-only, or review-only.
-- Linear MCP failed once; report the exact updates to apply and retry when possible.
+- An **owned** task was docs-only, harvest-only, or review-only.
+- Linear MCP failed once; report the exact legal updates to apply and retry when possible.
 - A prior agent already commented; add closure for **this** session's implementation evidence when relevant.
+
+For an **unowned read-only review/docs session**, no Linear mutation is required or permitted solely for bookkeeping. “Linear mandatory” means respect existing Linear authority when one exists; it does not mean create authority when none exists.
 
 ## Cloud Agent → local-agent Linear handoff
 
-Emit only after a Cloud Agent **implemented an already-approved plan to completion and merged** that implementation PR when Linear was not updated in-session. Planning-only PRs, open PRs, and harvest sessions do not trigger it. Canonical: `docs/cloud-agent-linear-handoff.md`; tracked rule `.cursor/rules/cloud-agent-linear-handoff.mdc`.
+Emit only after a Cloud Agent **implemented an already-approved plan to completion and merged** that implementation PR when Linear was not updated in-session. Planning-only PRs, open PRs, unowned read-only reviews/docs, and harvest sessions do not trigger it. Canonical: `docs/cloud-agent-linear-handoff.md`; tracked rule `.cursor/rules/cloud-agent-linear-handoff.mdc`.
 
 ## Authoritative detail
 

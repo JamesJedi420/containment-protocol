@@ -1,38 +1,54 @@
 # Harvest candidate triage — agent workflow
 
-**Purpose:** Reconcile **candidates** (pattern rows **C1…Cn** extracted from external source batches) to repo owners and **Linear**. Linear comments must let a **future agent** understand each **mechanic**, **ownership**, **boundaries**, and **fold-in vs new child** without re-opening the source packet.
+**Purpose:** Reconcile source-derived **candidates** (pattern rows **C1…Cn**) to existing Containment Protocol owners without treating extraction or triage as permission to create backlog scope.
 
 **Related:**
 
-- [`planning/harvest-reconciliation-index.md`](../planning/harvest-reconciliation-index.md) — batch index (row only after `*-harvest.md` exists)
-- [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md) — **required** Linear comment shape (six sections; not one-line)
-- [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md) — owner map ↔ outcome table checks before PR
+- [`planning/harvest-reconciliation-index.md`](../planning/harvest-reconciliation-index.md) — batch index
+- [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md) — required Linear comment shape
+- [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md) — owner map ↔ outcome-table checks
 
 ---
+
+## Governance boundary
+
+Harvest triage is reconciliation evidence, not autonomous issue creation.
+
+- Existing approved owners may receive non-scope-expanding traceability comments.
+- A candidate that does not truthfully fit an existing owner is a **missing-boundary candidate**, not a new child yet.
+- New parents, children, contradiction issues, relationships, reparenting, or durable scope must pass the normal approval flow before Linear mutation:
+  1. Phase 1 — candidate assessment and production decomposition;
+  2. Phase 2 — parent reconciliation and approval;
+  3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
+  4. Phase 4 — approved Linear update.
+- If approval state is unclear, fail closed and leave the candidate non-authoritative.
 
 ## What a candidate is
 
 | Term | Meaning |
 | ---- | ------- |
-| **Candidate (C##)** | One abstracted **design/mechanic pattern** from a source packet (walkthrough metadata, PDF, transcript, manual, etc.) — **pattern-only**, no franchise import. |
-| **Batch** | One reconciliation pass (`<batch-id>-harvest.md`) with a fixed candidate count. |
-| **Verdict** | `fold_in`, `no_op`, `contradiction_check`, or `new child` — whether CP needs to act and how. |
-| **Owner(s)** | Existing Linear **SPE-####** that should absorb or coordinate the pattern. |
+| **Candidate (C##)** | One abstracted design/mechanic pattern from a source packet — pattern-only, no franchise import. |
+| **Batch** | One reconciliation pass (`<batch-id>-harvest.md`). Batch size should preserve reconciliation accuracy; do not force an arbitrary count. |
+| **Verdict** | `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, or `missing_boundary_candidate`. |
+| **Owner(s)** | Existing Linear SPE issue(s) that may already own the pattern; proposed ownership is not authoritative until the required phase approval. |
 
-Your job is **not** to ship code in the mirror PR; it is to **adjudicate**, **document**, and **post rich Linear records** so implementation agents can execute later.
+Your job is **not** to ship code or manufacture issue structure in the mirror PR. It is to adjudicate, document, and preserve evidence so the normal approval workflow can decide whether any backlog mutation is warranted.
 
 ---
 
-## Session checklist (same turn)
+## Session checklist
 
-1. **Linear** — Set [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) (or assigned slice) **In Progress** before adjudication.
-2. **Repo read** — Dedup against prior `planning/*-harvest.md` and relevant `src/` / audits named in the batch.
-3. **Adjudicate each C##** — Verdict, **Owner(s)**, and a **mechanic summary** (2–4 sentences minimum) for the mirror table **Note** column.
-4. **Issue decision** — Apply **fold-in vs new child** using the shared-boundary test in [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md); create child issues when verdict is `new child`.
-5. **Mirror doc** — `planning/<batch-id>-harvest.md`: summary counts, primary owner map, per-candidate outcomes (**Owner(s)** authoritative).
-6. **Owner-map QA** — [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md).
-7. **Linear closure** — SPE-2110 batch summary; **per-owner comments** with full six-section payload (one comment per owner per mechanic cluster — see fold-in doc). **Do not defer** Linear because the mirror table exists.
-8. **Index + PR** — Row in `harvest-reconciliation-index.md`; **docs-only** PR.
+1. **Linear context** — inspect SPE-2110 (or the assigned already-approved slice) and relevant existing owners. Do not create a slice merely because triage work exists.
+2. **Repo read** — deduplicate against prior `planning/*-harvest.md`, relevant code, audits, and current Linear authority.
+3. **Adjudicate each C##** — record verdict, likely existing owner(s), mechanic summary, dependencies, and contradiction risks.
+4. **Boundary decision** — apply the shared-boundary test in [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md):
+   - same approved implementation boundary → fold-in candidate;
+   - no truthful existing owner → `missing_boundary_candidate` for the phased governance flow;
+   - do **not** create a child during triage.
+5. **Mirror doc** — `planning/<batch-id>-harvest.md`: summary counts, candidate outcomes, provenance, and proposed/matched owners.
+6. **Owner-map QA** — run [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md).
+7. **Linear traceability** — post rich comments only to existing approved owners when the comment does not expand their durable scope. Missing-boundary candidates remain in the candidate/reconciliation ledger until approvals authorize Phase 4.
+8. **Index + PR** — add the batch row to `harvest-reconciliation-index.md`; docs-only PR.
 
 ---
 
@@ -40,32 +56,32 @@ Your job is **not** to ship code in the mirror PR; it is to **adjudicate**, **do
 
 | Artifact | Role |
 | -------- | ---- |
-| **Per-candidate outcomes** (`Owner(s)`) | Authoritative for which SPE-#### owns each candidate |
-| **Note / mechanic column** | In-repo summary; must align with Linear §2 |
-| **Linear owner comments** | **Primary handoff for future agents** — mechanic + boundary + disposition reasoning |
-| **Primary owner map** | Rollup index; reconciled to the table before commit |
-| **New child issues** | Own delivery when fold-in would violate shared-boundary test |
+| **Candidate/reconciliation ledger** | Durable candidate identity, provenance, disposition, approval state, and contradiction result. |
+| **Per-candidate mirror outcomes** | Repository mirror of the triage evidence; not backlog authority. |
+| **Linear owner comments** | Traceability/spec clarification only when they do not expand an existing approved boundary. |
+| **Primary owner map** | Rollup index; proposed/matched ownership until approved where scope changes. |
+| **Phase 4 issue links** | Authoritative delivery owners only after the required approvals have authorized creation or scope mutation. |
 
 ---
 
-## Linear vs mirror (depth)
+## Linear vs mirror depth
 
 | Too thin | Correct |
 | -------- | ------- |
-| Note: “Stress-dream motif” | Note: 2–4 sentences on trigger, state, hub/site tie-in + verdict |
-| Linear: “Fold-in C48” | Linear: six sections including **Mechanic** and **Disposition reasoning** |
-| Mirror-only closure | Mirror + Linear both complete same session |
+| Note: “Stress-dream motif” | Note: 2–4 sentences on trigger, state, subsystem tie-in, and verdict. |
+| Linear: “Fold-in C48” | Rich mechanic, repo anchor, ownership reasoning, boundary, and disposition. |
+| Mirror-only closure | Mirror plus any legal existing-owner traceability; candidate ledger preserves unresolved/missing-boundary work. |
 
 ---
 
 ## Branch and PR rules
 
-- Docs-only branch (e.g. `docs/harvest-linear-mirror`); no implementation commits on mirror PRs.
-- PR links SPE-2110 or triage slice issue.
-- Fix owner-map review comments by aligning map to table, not by thinning Linear text.
+- Docs-only branch; no implementation commits on mirror PRs.
+- Link an existing approved triage/workflow issue when one owns the docs work; otherwise use a workflow/docs PR without inventing a feature issue.
+- Fix owner-map review comments by aligning map to candidate evidence, not by converting candidates into unapproved scope.
 
 ---
 
-## When Linear MCP is unavailable
+## When Linear tooling is unavailable
 
-Draft full comments in the session output (six-section template); post when MCP works. Do not treat GitHub or a one-line mirror note as closure. The Cloud-agent Linear handoff (`docs/cloud-agent-linear-handoff.md`) does **not** apply to harvest-only sessions; it fires after an implementation PR merges.
+Draft the durable candidate/owner notes in the session output and repository mirror. Do not treat GitHub, chat, or a one-line note as feature/backlog approval. When Linear becomes available, apply only legal traceability/lifecycle updates; any scope mutation still requires the phased approvals.

@@ -1,0 +1,114 @@
+name: Governance surgical fix
+
+on:
+  push:
+    branches:
+      - chore/governance-approval-gate-alignment
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: chore/governance-approval-gate-alignment
+          fetch-depth: 0
+
+      - name: Apply bounded governance text corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          index = Path('planning/harvest-reconciliation-index.md')
+          text = index.read_text()
+
+          historical_heading = '## Mirrored batches (committed harvest docs)'
+          if historical_heading in text:
+              text = text.replace(
+                  historical_heading,
+                  '## Historical mirrored batches (committed harvest docs)\n\n'
+                  '> This table preserves historical reconciliation evidence. Its legacy `Child issue(s)` and owner columns are not the schema for new batches and do not authorize issue creation or Linear ownership. Use the forward schema below for all new rows.',
+                  1,
+              )
+
+          marker = '## How to add a row'
+          if marker not in text:
+              raise SystemExit('harvest index marker not found')
+          prefix, _ = text.split(marker, 1)
+          forward = '''## Forward batch tracking schema
+
+For every **new** reconciliation batch, record the candidate-only result using this schema. Proposed or matched owners are evidence/navigation only until the normal approval workflow establishes authoritative ownership.
+
+| Batch ID | Candidates | Disposition counts | Matched/proposed owner(s) | Planning doc | Canonical candidate-ledger state | Ledger reference / pending apply |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `<batch-id>` | `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/<batch-id>-harvest.md` | `applied` or `pending apply` | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
+
+The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, and `missing_boundary_candidate`. None of them creates a child, parent, relationship, or authoritative owner. A missing boundary remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes Linear mutation.
+
+## How to add a row
+
+**Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, durable-ledger rules, unavailable-Linear fallback). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
+
+1. Adjudicate every candidate using only the five dispositions above. Do not create a child during triage.
+2. Add `planning/<batch-id>-harvest.md` with provenance, per-candidate outcome, matched/proposed owner evidence, contradiction findings, and summary counts. The mirror is non-authoritative for Linear ownership.
+3. Persist the batch/candidates to the canonical Linear candidate ledger when Linear is available. Post rich traceability comments only to existing approved owners when those comments do not expand their approved scope.
+4. If Linear is unavailable, add the exact `## Pending canonical-ledger apply` payload required by `docs/harvest-candidate-triage-agent.md`; set the index ledger state to `pending apply`. Do not claim canonical closure.
+5. Append the new batch to the **Forward batch tracking schema** above with ledger state `applied` or `pending apply` and the corresponding reference.
+6. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
+7. Later authenticated agents process `pending apply` entries oldest-first, verify current authority, apply the canonical-ledger records idempotently, then update the mirror/index to `applied`. Feature/backlog mutation still requires the normal approval phases and Phase 4.
+
+Historical batches above remain preserved as evidence; their legacy columns and terminology are not current issue-creation authority.
+'''
+          index.write_text(prefix + forward)
+
+          backlog = Path('planning/backlog.md')
+          text = backlog.read_text()
+          intro = ('This file is the **canonical ordered queue** for concrete engineering and design follow-ups that were previously split across `README.md` and high-level hints in `planning/roadmap.md`. **Edit order here when priorities change**; avoid duplicating long tactical lists elsewhere.\n')
+          guard = '''\n## Governance guardrail (current)\n\nOnly already-approved Linear boundaries are actionable from this queue. Legacy text such as `create`, `create/claim`, `create on start`, `create on merge`, `owner creates Linear child`, or `pending create` is retained only as historical planning evidence and **does not authorize issue creation now**. Any unresolved/new durable boundary must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before Linear backlog mutation. If approval state is unclear, fail closed and preserve the item as candidate evidence.\n'''
+          if '## Governance guardrail (current)' not in text:
+              if intro not in text:
+                  raise SystemExit('backlog intro marker not found')
+              text = text.replace(intro, intro + guard, 1)
+
+          text = text.replace(
+              '**§14-pass alternates (owner creates Linear child when starting):**',
+              '**§14-pass alternates (historical shipped evidence; no current issue-creation authority):**',
+          )
+          text = text.replace(
+              'deferred runtime publish executor / publish-queue persistence / modifiable-pack import wiring require **new** Linear children — do not reopen Done parent',
+              'deferred runtime publish executor / publish-queue persistence / modifiable-pack import wiring are historical follow-up evidence only; any still-unresolved boundary requires the approval flow before issue creation — do not reopen Done parent',
+          )
+
+          # Neutralize legacy actionable wording while preserving that it existed historically.
+          replacements = [
+              (r'Linear child ID pending local create', 'Historical note: Linear child ID was pending local creation; no current creation authority'),
+              (r'Linear: \*\*create child\*\*', 'Historical Linear note: **child creation was proposed; no current creation authority**'),
+              (r'\(create/claim on start\)', '(historical create/claim-on-start note; no current creation authority)'),
+              (r'\(create on session start\)', '(historical create-on-session-start note; no current creation authority)'),
+              (r'\(create on merge\)', '(historical create-on-merge note; no current creation authority)'),
+              (r'pending create', 'historical pending-create note (non-authoritative)'),
+          ]
+          for pattern, repl in replacements:
+              text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+
+          backlog.write_text(text)
+          PY
+
+      - name: Commit bounded changes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add planning/harvest-reconciliation-index.md planning/backlog.md
+          if git diff --cached --quiet; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git commit -m 'fix: neutralize legacy backlog creation directives'
+          git push origin HEAD:chore/governance-approval-gate-alignment

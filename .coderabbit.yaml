@@ -35,16 +35,19 @@ reviews:
   high_level_summary_in_walkthrough: true
   high_level_summary_placeholder: "@coderabbitai summary"
   high_level_summary_instructions: |
-    Summarize for a Containment Protocol implementation slice:
-    - Linked Linear issue (SPE-####), parent/child scope, and acceptance criteria
-    - Layer touched: domain (src/domain), store, projections (*View.ts), or UI (src/features)
-    - Determinism, week-close ordering, persistence/hydration, event schema/migration risks
+    Summarize for Containment Protocol according to the PR's actual boundary:
+    - For implementation PRs: linked already-approved Linear issue (SPE-####), parent/child scope, and acceptance criteria
+    - For bounded workflow/docs-only PRs with no feature/backlog mutation: state that no Linear slice is required; do not invent one
+    - Layer touched: domain (src/domain), store, projections (*View.ts), UI (src/features), or governance/docs
+    - Determinism, week-close ordering, persistence/hydration, event schema/migration risks when relevant
     - Tests and docs updated; what is explicitly out of scope
+    - Any newly discovered durable feature scope remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4
     Align with AGENTS.md Review guidelines and docs/dependency-boundaries.md.
 
   auto_title_instructions: |
-    Use: feat(SPE-####): <imperative summary> or fix(SPE-####): / docs(SPE-####): when appropriate.
-    Pull SPE id from PR body or branch name. Keep under 72 characters.
+    For implementation PRs with an approved slice, use: feat(SPE-####): <imperative summary>, fix(SPE-####): ..., or docs(SPE-####): ... when appropriate.
+    For bounded workflow/docs-only PRs with no approved slice and no feature/backlog mutation, use a descriptive chore/docs title without inventing an SPE id.
+    Keep under 72 characters.
 
   poem: false
   sequence_diagrams: true
@@ -113,35 +116,35 @@ reviews:
 
     - path: "planning/spe-*-slice.md"
       instructions: |
-        Slice contract. Flag P1 if PR exceeds Goal/Acceptance or contradicts ## Deferred.
-        Check SPE-#### in PR body matches slice.
+        Approved slice contract. Flag P1 if PR exceeds Goal/Acceptance or contradicts ## Deferred.
+        Check SPE-#### in PR body matches the approved slice. Do not treat an unapproved planning note as implementation authority.
 
     - path: "docs/**"
       instructions: |
         New docs/*audit*.md must update docs/design-audits-index.md in strict alphabetical order.
-        Flag stale docs contradicting src/ in the same PR.
+        Flag stale docs contradicting src/ in the same PR. Workflow/docs-only governance PRs may be ownerless when they create/expand no feature backlog scope.
 
     - path: "package.json"
       instructions: |
         Dependency changes (with package-lock.json). Flag P1 if a new or upgraded package lands without
-        slice justification, or without evidence of required Sonatype /check-dependency (or MCP
+        approved slice justification, or without evidence of required Sonatype /check-dependency (or MCP
         getComponentVersion) per docs/agent-cursor-plugins.md. Snyk package health is optional and
         must not replace Sonatype.
 
     - path: "package-lock.json"
       instructions: |
         Same dependency policy as package.json. Flag unexplained lockfile churn without package.json
-        or slice justification.
+        or approved slice justification.
 
     - path: "src/**"
       instructions: |
-        Flag P1 if the PR wires vendor search/scan/SaaS SDKs into src/ without an explicit Linear slice
+        Flag P1 if the PR wires vendor search/scan/SaaS SDKs into src/ without an already-approved Linear slice
         (docs/agent-cursor-plugins.md). Still apply existing domain/store/UI path instructions above.
 
     - path: ".github/workflows/**"
       instructions: |
         Flag P1 if CI weakened, STRICT_TEST_CONSOLE removed, or Node version is not 22.
-        Flag P1 if a vendor scan/search API is added to CI without an explicit Linear slice
+        Flag P1 if a vendor scan/search API is added to CI without an already-approved Linear slice
         (see docs/agent-cursor-plugins.md).
 
   labeling_instructions:
@@ -149,7 +152,7 @@ reviews:
       instructions: Regression or incorrect behavior. Not refactors or docs-only.
 
     - label: enhancement
-      instructions: New slice behavior, domain rules, or UI surfaces. Default for implementation PRs.
+      instructions: New approved slice behavior, domain rules, or UI surfaces. Default for implementation PRs.
 
     - label: documentation
       instructions: Primarily planning/, docs/, AGENTS.md, .cursor/rules, README. No meaningful src/ change.

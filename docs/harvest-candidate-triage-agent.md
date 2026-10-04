@@ -7,6 +7,7 @@
 - [`planning/harvest-reconciliation-index.md`](../planning/harvest-reconciliation-index.md) — batch index
 - [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md) — required Linear comment shape
 - [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md) — owner map ↔ outcome-table checks
+- [Candidate extraction and reconciliation ledger — canonical workflow](https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf) — durable candidate identity, provenance, reconciliation, approval state, and contradiction record
 
 ---
 
@@ -22,6 +23,7 @@ Harvest triage is reconciliation evidence, not autonomous issue creation.
   3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
   4. Phase 4 — approved Linear update.
 - If approval state is unclear, fail closed and leave the candidate non-authoritative.
+- The durable destination for unresolved/missing-boundary candidate state is the Linear **Candidate extraction and reconciliation ledger — canonical workflow** linked above (plus the source-specific candidate ledger when one exists), not an invented repository file or new feature issue.
 
 ## What a candidate is
 
@@ -42,12 +44,12 @@ Your job is **not** to ship code or manufacture issue structure in the mirror PR
 2. **Repo read** — deduplicate against prior `planning/*-harvest.md`, relevant code, audits, and current Linear authority.
 3. **Adjudicate each C##** — record verdict, likely existing owner(s), mechanic summary, dependencies, and contradiction risks.
 4. **Boundary decision** — apply the shared-boundary test in [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md):
-   - same approved implementation boundary → fold-in candidate;
+   - same approved implementation boundary → `fold_in`;
    - no truthful existing owner → `missing_boundary_candidate` for the phased governance flow;
    - do **not** create a child during triage.
 5. **Mirror doc** — `planning/<batch-id>-harvest.md`: summary counts, candidate outcomes, provenance, and proposed/matched owners.
 6. **Owner-map QA** — run [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md).
-7. **Linear traceability** — post rich comments only to existing approved owners when the comment does not expand their durable scope. Missing-boundary candidates remain in the candidate/reconciliation ledger until approvals authorize Phase 4.
+7. **Durable ledger + Linear traceability** — persist unresolved/missing-boundary candidates to the canonical Linear candidate ledger. Post rich comments only to existing approved owners when the comment does not expand their durable scope. Missing-boundary candidates remain non-authoritative until approvals authorize Phase 4.
 8. **Index + PR** — add the batch row to `harvest-reconciliation-index.md`; docs-only PR.
 
 ---
@@ -56,10 +58,10 @@ Your job is **not** to ship code or manufacture issue structure in the mirror PR
 
 | Artifact | Role |
 | -------- | ---- |
-| **Candidate/reconciliation ledger** | Durable candidate identity, provenance, disposition, approval state, and contradiction result. |
-| **Per-candidate mirror outcomes** | Repository mirror of the triage evidence; not backlog authority. |
+| **Canonical Linear candidate ledger** | Durable candidate identity, provenance, disposition, approval state, contradiction result, and queue/frontier. |
+| **Per-candidate mirror outcomes** | Repository mirror of triage evidence; not backlog authority. |
 | **Linear owner comments** | Traceability/spec clarification only when they do not expand an existing approved boundary. |
-| **Primary owner map** | Rollup index; proposed/matched ownership until approved where scope changes. |
+| **Primary owner map** | Rollup index of matched/proposed owners; it does not confer Linear ownership or approval. |
 | **Phase 4 issue links** | Authoritative delivery owners only after the required approvals have authorized creation or scope mutation. |
 
 ---
@@ -70,7 +72,7 @@ Your job is **not** to ship code or manufacture issue structure in the mirror PR
 | -------- | ------- |
 | Note: “Stress-dream motif” | Note: 2–4 sentences on trigger, state, subsystem tie-in, and verdict. |
 | Linear: “Fold-in C48” | Rich mechanic, repo anchor, ownership reasoning, boundary, and disposition. |
-| Mirror-only closure | Mirror plus any legal existing-owner traceability; candidate ledger preserves unresolved/missing-boundary work. |
+| Mirror-only closure | Mirror plus durable candidate-ledger record and any legal existing-owner traceability. |
 
 ---
 
@@ -84,4 +86,4 @@ Your job is **not** to ship code or manufacture issue structure in the mirror PR
 
 ## When Linear tooling is unavailable
 
-Draft the durable candidate/owner notes in the session output and repository mirror. Do not treat GitHub, chat, or a one-line note as feature/backlog approval. When Linear becomes available, apply only legal traceability/lifecycle updates; any scope mutation still requires the phased approvals.
+Draft the durable candidate/owner notes in the session output and repository mirror, including enough provenance to apply them later to the canonical candidate ledger. Do not treat GitHub, chat, or a one-line note as feature/backlog approval. When Linear becomes available, apply only legal ledger/traceability/lifecycle updates; any scope mutation still requires the phased approvals.

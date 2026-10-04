@@ -1,5 +1,5 @@
 ---
-description: Mandatory Linear issue updates for every agent session and task type (implementation, harvest, PR, review).
+description: Mandatory Linear lifecycle updates for every agent session and task type without bypassing approval-gated scope governance.
 alwaysApply: true
 ---
 
@@ -7,34 +7,46 @@ alwaysApply: true
 
 **Non-negotiable.** Applies to local Cursor, Cloud Agents, background agents, and subagents — not only feature implementation.
 
-Linear is the **system of record** for issue state, scope, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates.
+Linear is the **system of record** for approved issue scope, lifecycle state, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates.
+
+## Scope-mutation guardrail
+
+Separate lifecycle/evidence maintenance from backlog-shape mutation.
+
+Agents may directly update an **already-approved issue boundary** when evidence supports only lifecycle/evidence changes: implementation progress, PR/review links, truthful status movement, verified closure, or concise factual notes that do not expand scope.
+
+Agents must **not** create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope merely because work is discovered. New or changed scope must return to the Containment Protocol approval flow:
+
+1. Phase 1 — candidate assessment and production decomposition;
+2. Phase 2 — parent reconciliation and approval;
+3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
+4. Phase 4 — approved Linear update.
+
+When approval state is absent or ambiguous, fail closed: preserve the finding as candidate/deferred evidence and do not mutate backlog shape.
 
 ## When to update
 
 | Phase | Linear action |
 | --- | --- |
-| **Task start** | Find or create the slice issue; set **In Progress** before substantive code or harvest closure. |
-| **During work** | Harvest triage: **`docs/harvest-candidate-triage-agent.md`**; owner comments with full mechanic + boundary + fold-in vs child reasoning (**`docs/harvest-fold-in-linear-comments.md`**, not one-liners); owner map QA **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session; comment on slice issue when scope or blockers change materially. |
-| **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete locally (`implementation-lite.mdc` ship loop). |
+| **Task start** | Use the already-approved slice issue named by the task and set it **In Progress** before substantive implementation. If no approved issue exists, stop and route the work through candidate governance instead of creating one from this rule. |
+| **During work** | Keep the approved slice current with material progress/blocker comments. Harvest triage follows `docs/harvest-candidate-triage-agent.md`; missing boundaries remain candidates until the approval flow reaches Phase 4. |
+| **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the approved slice complete locally (`implementation-lite.mdc` ship loop). |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
 | **Babysit → merge** | Same session: independent review + comment triage + CI until green, merge PR, then `git checkout main` && `git pull origin main` (`implementation-lite.mdc`). |
-| **PR merged** | Set slice issue **Done**; parent **Done** only if full parent scope shipped, else return parent to **Backlog**. |
-| **After merge** | Short comment on the slice issue: PR URL + what shipped. |
+| **PR merged** | Set slice issue **Done** only when its full approved boundary is satisfied; parent **Done** only if full parent scope shipped, otherwise keep the truthful parent status. |
+| **After merge** | Short comment on the slice issue: PR URL + what shipped + validation. |
 
 ## Do not skip because
 
-- The PR has a GitHub linkback bot comment
-- The task was "docs only," "harvest only," or "review only"
-- Linear MCP failed once (report the exact comments/issues to post; retry when possible)
-- A prior agent already commented (add closure for **this** session's work)
+- The PR has a GitHub linkback bot comment.
+- The task was docs-only, harvest-only, or review-only.
+- Linear MCP failed once; report the exact updates to apply and retry when possible.
+- A prior agent already commented; add closure for **this** session's implementation evidence when relevant.
 
 ## Cloud Agent → local-agent Linear handoff
 
-Emit only after a Cloud Agent **implemented a plan to completion and merged** that implementation
-PR, when Linear was not updated in-session. Planning-only PRs, open PRs, and harvest sessions do
-not trigger it. Canonical: **`docs/cloud-agent-linear-handoff.md`**; tracked rule
-**`.cursor/rules/cloud-agent-linear-handoff.mdc`**.
+Emit only after a Cloud Agent **implemented an already-approved plan to completion and merged** that implementation PR when Linear was not updated in-session. Planning-only PRs, open PRs, and harvest sessions do not trigger it. Canonical: `docs/cloud-agent-linear-handoff.md`; tracked rule `.cursor/rules/cloud-agent-linear-handoff.mdc`.
 
 ## Authoritative detail
 
-Full lifecycle, harvest batches, and documentation hygiene: **`AGENTS.md`** (repo root) and **`docs/agent-session-handoff.md`**.
+Full lifecycle, harvest batches, and documentation hygiene: `AGENTS.md` and `docs/agent-session-handoff.md`. If older repository wording implies autonomous scope creation, this approval-gated rule controls and the older wording must be treated as stale until corrected.

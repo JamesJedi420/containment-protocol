@@ -8,24 +8,29 @@ Paste into **Cursor → Settings → Rules → User Rules** (or merge into your 
 
 When commit, push, and PR are done but babysit/merge **cannot** finish in-session (blocker or explicit **do not merge**):
 
-Do not implement the next issue. **Do not** write a next-issue plan yet.
+Do not implement the next issue. **Do not** write a next-issue implementation plan yet.
 
 End using the **phase A** structure in `docs/agent-session-closeout.md`. Local-agent Linear handoff is **not** required while the PR is open.
 
-## Phase B — After merge (normal session end)
+## Phase B — After merge
 
-After babysit (independent review + comment triage + CI) → merge, slice **Done**, merge comment on Linear, and **`git checkout main` && `git pull origin main`**:
+After babysit → merge → `git checkout main` && `git pull origin main`:
 
-Do not implement the next issue unless the user explicitly asks. Prepare a **next-issue implementation plan** only.
+- Do not implement the next issue unless the user explicitly asks.
+- Prepare a next-issue implementation plan **only when an already-approved next Linear issue exists**.
+- If the only follow-up is a deferred/new durable boundary with no approved issue, report it as candidate/governance continuation instead of creating or selecting a child.
+- Use the phase B structure in `docs/agent-session-closeout.md`.
 
-Next-issue plan must include: (1) issue ID and title, (2) smallest correct boundary, (3) files to inspect first, (4) systems to reuse, (5) risks/edge cases, (6) required tests, (7) required docs, (8) what not to change, (9) step-by-step sequence.
+An approved next-issue plan includes: issue ID/title, smallest boundary, files to inspect, systems to reuse, risks/edge cases, required tests/docs, what not to change, and implementation sequence.
 
-End with the **phase B** structure in `docs/agent-session-closeout.md` (merge closeout → next-issue plan → handoff).
-
-Remind: agent already synced `main` in-session; **new agent chat** for the next slice with Linear URL, slice doc, branch name, and `main` SHA.
+Remind: agent already synced `main` in-session; use a **new agent chat** for the next approved slice with Linear URL, slice doc, branch name, and `main` SHA.
 
 ---
 
-Do not expand the current issue. Do not mark the slice **Done** until merge when the full child boundary is satisfied. Keep parent issues open for child-only slices. Prefer small deterministic testable changes. Preserve mistaken records + later corrections; do not silent overwrite.
+Do not expand the current issue. Do not mark the slice **Done** until merge when the full approved boundary is satisfied. Keep parent issues open for partial child shipping. Preserve mistaken records + later corrections; do not silently overwrite.
 
-When deferring work: same session, record in the slice doc `## Deferred` + Linear parent/child comment (mechanic + boundary). Chat alone is not enough. See `docs/agent-session-closeout.md` § Deferred work recording.
+When deferring work:
+- approved in-boundary deferral → slice doc `## Deferred` + existing approved owner comment;
+- new durable boundary → persist candidate/provenance to the canonical Linear candidate ledger and return it to Phase 1; **do not create a child**.
+
+Canonical candidate workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf

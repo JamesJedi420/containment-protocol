@@ -1,6 +1,6 @@
 # Harvest reconciliation index
 
-**Purpose:** Track pattern-harvest batches reconciled to Linear. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). They mirror closure already posted on Linear.
+**Purpose:** Track historical pattern-harvest batches reconciled to Linear and forward batches whose canonical candidate-ledger state is `applied` or `pending apply`. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). Historical rows mirror closure already posted on Linear; forward `pending apply` rows explicitly do not claim canonical closure.
 
 **Content policy:** Do not add franchise names, wiki URLs, or imported canon labels to extracted prose/copy in this repo. Existing internal batch IDs, planning filenames, and SPE issue links may retain established identifiers used for reconciliation and traceability.
 

@@ -91,4 +91,4 @@ Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/
 4. Append a row to **Mirrored batches** above (verify the planning doc link opens).
 5. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
 
-Batches reconciled on Linear without a mirror doc yet stay off this index until the `*-harvest.md` file lands. If Linear is unavailable during triage, the batch mirror carries an exact pending canonical-ledger apply payload and the index durably queues it for later authenticated apply.
+Batches reconciled on Linear without a mirror doc yet stay off this index until the `*-harvest.md` file lands.

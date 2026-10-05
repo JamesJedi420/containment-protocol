@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3182",
     "SPE-3119",
     "SPE-1051",
     "SPE-3118",
@@ -238,6 +239,7 @@
     "planning/spe-2625-propagation-graph-counter-overflow-fix.md": "Shipped",
     "planning/spe-956-propagation-graph-surfacing-slice-4.md": "Shipped",
     "planning/spe-3119-expansion-collapse-week-close-slice.md": "Recently shipped",
-    "planning/spe-3140-pressure-seal-named-part-repair-slice.md": "Recently shipped"
+    "planning/spe-3140-pressure-seal-named-part-repair-slice.md": "Recently shipped",
+    "planning/facility-maintenance-recovery-contract-slice.md": "Recently shipped"
   }
 }

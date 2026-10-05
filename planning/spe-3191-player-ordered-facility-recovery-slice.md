@@ -17,20 +17,21 @@ Preserve SPE-3182 recovery costs, SPE-3184 atomic budget/debt application, SPE-3
 ## Contract
 
 - `orderFacilityMaintenanceRecovery(): void` revalidates current GameState through the domain adapter on each invocation; only recovered commits a new game. Other statuses preserve store/game identity.
-- Agency Command exposes one compact panel with debt, domain pressure, available hours/parts, required cost and blocked explanations. Order facility recovery is enabled only for a recovered preview; state refreshes immediately.
+- The existing `/agency` route renders Agency Command through the established lazy-route wrapper. No new URL is added. Agency Command exposes one compact panel with debt, domain pressure, available hours/parts, required cost and blocked explanations. Order facility recovery is enabled only for a recovered preview; state refreshes immediately.
 - A pure projection delegates recovery and pressure decisions to domain owners; unavailable axes remain unavailable. No threshold or cost policy in UI.
 - Preserve lastProcessedWeek, time, reports and unrelated authorities. No new field, migration, route, event kind, scheduling, auto-repair, replenishment, conversion, equipment repair or scar changes.
 
 ## Validation
 
 - Focused recovery/store/projection/UI tests: 5 files / 96 tests passed. Final preview and persistence refinement rerun: 3 files / 29 tests passed.
-- Final full regression: 854 files / 9,282 tests passed. An earlier overlapping run loaded the previous preview module against the updated assertion; the stable full rerun passed.
+- Production-route review follow-up: Codex caught that `/agency` still rendered its placeholder. Replaced that route component with the existing Agency page and added a real-route order/refresh test; 3 files / 27 focused tests passed. Full regression rerun after this fix: 854 files / 9,282 tests passed; full lint and route formatting passed.
+- Initial full regression: 854 files / 9,282 tests passed. An earlier overlapping run loaded the previous preview module against the updated assertion; the stable full rerun passed.
 - Full lint and focused final-change lint passed; audit-index, theme-contract and backlog-handoff verifiers passed. Changed-file formatting and diff checks passed.
 - Six iterative pre-ship passes completed: scope/integration, edge cases, determinism/state, regression, documentation and cleanup. No unresolved in-boundary findings.
 - Browser inventory was empty, so visual screenshot inspection was unavailable. Rendered-component tests verify accessible descriptions, blocked states and immediate refresh.
 - Local Node 24; required Node 22 validation runs in hosted CI. Build remains outside this slice because of documented baseline type-contract drift.
 
-Repository Recently shipped is the merge-ready handoff status. Linear stays In Progress until merge; independent full-diff review and hosted CI remain pending.
+Repository Recently shipped is the merge-ready handoff status. Linear stays In Progress until merge; independent full-diff review completed and Codex route finding fixed; latest-head hosted CI remains pending.
 
 ## Deferred
 

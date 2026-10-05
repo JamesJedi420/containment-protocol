@@ -4,8 +4,8 @@ Repo config mirrors dashboard Custom Instructions and Custom Context. See also `
 
 ## Severity
 
-- **P0 / P1:** correctness, determinism, hydration, layer boundaries, week-close order, hidden UI truth, migrations, missing required tests, security.
-- **Skip:** style nits, drive-by refactors, scope expansion, pre-existing `npm run build` baseline TS drift unless this PR makes it worse.
+- **P0 / P1:** correctness, determinism, hydration, layer boundaries, week-close order, hidden UI truth, migrations, missing required tests, security, or implementation that exceeds an approved boundary.
+- **Skip:** style nits, drive-by refactors, scope expansion suggestions, pre-existing `npm run build` baseline TS drift unless this PR makes it worse.
 
 ## Layers
 
@@ -22,10 +22,12 @@ Repo config mirrors dashboard Custom Instructions and Custom Context. See also `
 - Week-close mutations belong on week-close (`advanceWeek`), not mid-week.
 - New persisted fields need `normalize*` defaults and event schema updates per `SCHEMA_REGISTRY.md`.
 
-## Slice discipline
+## Scope discipline
 
-- One Linear slice per PR; match `planning/spe-*-slice.md` Goal and Acceptance.
-- Read PR **Linear** section before commenting.
+- Implementation PRs must match an **already-approved** Linear slice/workflow issue and its Goal/Acceptance.
+- A workflow/docs-only PR may intentionally have no Linear slice when it creates or expands no feature/backlog scope. Do **not** pressure the author to manufacture an issue for bookkeeping.
+- Read the PR **Linear** section and scope boundary before commenting.
+- Newly discovered durable feature scope is candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog mutation. Do not recommend creating a child/parent/relationship as a review shortcut.
 - Manual re-review: comment `@greptileai` on the PR.
 
 ## Vite 8

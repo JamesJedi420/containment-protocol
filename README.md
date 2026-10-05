@@ -144,16 +144,18 @@ Work is tracked in Linear, not GitHub Issues:
 - Contribution and release policy: `docs/contribution-and-release-operations.md`
 - Agent/session handoff: `AGENTS.md` and `docs/agent-session-handoff.md`
 
-Expected PR flow:
+Expected PR flow for an **already-approved implementation slice**:
 
 1. Start from updated `main`.
-2. Create or find the Linear slice issue and set it In Progress.
+2. Use the Linear slice issue already approved for the task and set it In Progress when implementation begins.
 3. Keep the implementation boundary small and testable.
 4. Run targeted checks, then full validation as appropriate.
-5. Link the Linear issue in the PR body.
+5. Link the approved Linear issue in the PR body.
 6. Merge only after CI is green.
 
-After a PR merges, sync local `main` before starting the next slice.
+If useful work has no approved issue boundary yet, do **not** create one from this contributing flow. Preserve it as candidate input and route it through the project’s Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4 governance workflow.
+
+After a PR merges, sync local `main` before starting the next approved slice.
 
 ## Planning and Documentation
 

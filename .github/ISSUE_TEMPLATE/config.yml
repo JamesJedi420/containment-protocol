@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Linear — bugs, features, and slices
+  - name: Linear — approved bugs, features, and slices
     url: https://linear.app/spectranoir/team/SPE/all
-    about: Linear is the source of truth for scope, status, and acceptance. Open or find an issue there before coding.
+    about: Linear is the source of truth for approved scope, status, and acceptance. Find the already-approved issue before coding; route genuinely new or changed scope through candidate governance and Phase 1 → Phase 2 → Phase 3 → Phase 4 instead of creating a feature issue directly.
   - name: Contribution and release operations
     url: https://github.com/JamesJedi420/containment-protocol/blob/main/docs/contribution-and-release-operations.md
     about: Intake stages, PR policy, and doc standards for this repository.

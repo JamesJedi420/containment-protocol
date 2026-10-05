@@ -8,7 +8,7 @@
 | --- | --- |
 | **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
 | **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
-| **Linear + `planning/*-slice.md` + first message** | One task: issue link, slice doc, branch name, `main` SHA. |
+| **Linear + `planning/*-slice.md` + first message** | One approved implementation task: issue link, slice doc, branch name, `main` SHA. Unowned review/docs analysis may proceed read-only without creating an issue. |
 
 ### After you merge a PR (human)
 
@@ -22,21 +22,24 @@ Agents: when merge is complete, sync `main` in-session, then remind the user to 
 
 **Non-negotiable** for all agents (local, Cloud, background, subagents) and all task types: implementation, harvest reconciliation, PR babysit, reviews, and docs-only slices. Cursor loads **`.cursor/rules/linear-always-update.mdc`** and **`.cursor/rules/cloud-agent-linear-handoff.mdc`** (`alwaysApply: true`) on every session.
 
-Linear is the system of record for issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because the task feels "metadata only."
+Linear is the system of record for approved issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because an owned task feels "metadata only." An unowned review/docs analysis may remain read-only with no Linear mutation; do not manufacture an issue for bookkeeping.
+
+**Scope-mutation guardrail:** direct Linear updates are allowed only for lifecycle/evidence maintenance on an already-approved issue boundary. Do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope because work was discovered. New or changed scope must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4. If approval state is unclear, fail closed and preserve the finding as candidate/deferred evidence.
 
 | When | Action |
 | --- | --- |
-| **Before substantive work** | Find or create the slice issue; set **In Progress**. |
-| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** owner comments (mechanic, repo anchor, ownership, boundary, fold-in vs child reasoning) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes; mirror table must match. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session — not "table only." |
+| **Before substantive owned work** | Use the already-approved slice/workflow issue named by the task; set **In Progress**. If feature scope has no approved issue, stop that scope and route it through candidate governance instead of creating one. |
+| **Unowned review/docs analysis** | May proceed **read-only with no Linear mutation**. If it discovers durable product scope, record candidate evidence and route it through governance; do not create an issue solely to satisfy workflow bookkeeping. |
+| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** existing-owner comments only when they stay inside the approved boundary. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**. Missing boundaries remain candidates until Phase 4. |
 | **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
-| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
+| **PR opened** | Link the **approved slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
 | **Babysit → merge** | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`. |
-| **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
-| **After merge** | Short Linear comment: PR URL + what shipped. |
+| **On merge** | Slice issue **Done** only when its full approved boundary is satisfied; evaluate the parent separately and keep its **truthful existing status** unless full parent completion is proven. |
+| **After merge** | Short Linear comment on the approved slice: PR URL + what shipped. |
 
-If Linear MCP is unavailable during an implementation merge, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) once the plan is complete and the PR is merged. Do not emit it for planning-only or open PRs. Do not treat GitHub as Linear closure.
+If Linear MCP is unavailable during an approved implementation merge, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) once the approved plan is complete and the PR is merged. Do not emit it for planning-only/open PRs, unowned read-only reviews/docs, or harvest-only work. Do not treat GitHub as Linear closure.
 
-Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation. Also paste **`docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`** so Cloud Agent sessions leave a Linear apply block after implementation merge.
+Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation. Also paste **`docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`** so Cloud Agent sessions leave a Linear apply block after an approved implementation merge.
 
 ### During an open PR
 
@@ -46,7 +49,7 @@ One session on the **same branch** is fine (implement, CI, review). New session 
 
 If checkout of a migrated branch fails (`couldn't find remote ref`), use updated **`main`** and a new branch; do not chase deleted remote branch names from old sessions.
 
-Whenever a Cloud Agent **implements a plan to completion and merges that PR**, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can update Linear. Planning-only and open PRs do not trigger it.
+Whenever a Cloud Agent **implements an already-approved plan to completion and merges that PR**, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can update Linear. Planning-only and open PRs do not trigger it. Newly discovered durable scope is reported separately as candidate input; the handoff does not authorize issue creation.
 
 ---
 
@@ -81,15 +84,15 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 ### Documentation hygiene
 
-- **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI).
+- **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI). Any stale backlog text that says to create a child/issue is non-authoritative unless the required governance approvals already authorize Phase 4.
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
 - **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
 - **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
 - **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
-- **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
-- **Deferred work:** same session — slice doc `## Deferred` + Linear parent/child comment; see `docs/agent-session-closeout.md` § Deferred work recording and `.cursor/rules/implementation-lite.mdc`.
+- **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-approved-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
+- **Deferred work:** same session — record approved in-boundary deferrals in the slice doc + existing owner comment. A new durable boundary is candidate input and must not create a child directly; see `docs/agent-session-closeout.md` and `.cursor/rules/implementation-lite.mdc`.
 - **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` (optional local `.cursor/rules/backlog-hygiene.mdc`; grooming only, not implementation).
 
 ### Live web research (agents)
@@ -105,16 +108,16 @@ When an agent needs **live web research** (current docs, vendor APIs, product ch
 
 Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cursor/rules/agent-cursor-plugins.mdc`). Summary:
 
-- **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox). Cloud Agents: Linear handoff for a local agent after an implementation PR merges when MCP is `needsAuth` (`docs/cloud-agent-linear-handoff.md`).
+- **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox). Cloud Agents: Linear handoff for a local agent after an approved implementation PR merges when MCP is `needsAuth` (`docs/cloud-agent-linear-handoff.md`).
 - Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype).
 - PR review configs already in repo: `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `CLAUDE.md`.
-- Do **not** wire vendor search/scan/SaaS SDKs into the game runtime or CI unless a Linear slice requires it. Marketplace install/uninstall is human-only.
+- Do **not** wire vendor search/scan/SaaS SDKs into the game runtime or CI unless an approved Linear slice requires it. Marketplace install/uninstall is human-only.
 
 ---
 
 ## Review guidelines
 
-Codex (`@codex review`), **Greptile** (`@greptileai`), **CodeRabbit**, **Amazon Q Developer** (`/q review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the Linear slice issue, `planning/*-slice.md`, and stated boundary before commenting.
+Codex (`@codex review`), **Greptile** (`@greptileai`), **CodeRabbit**, **Amazon Q Developer** (`/q review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the approved Linear slice issue when one exists, `planning/*-slice.md`, and stated boundary before commenting. Unowned review-only sessions may remain read-only and must not manufacture scope.
 
 AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `.amazonq/rules/*.md`, `.coderabbit.yaml`, `CLAUDE.md` (Claude Code). Dashboard or marketplace settings may also apply; in-repo files are version-controlled and reviewed in PRs.
 
@@ -141,8 +144,8 @@ Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 
 ### Scope discipline
 
-- PR must match linked Linear/slice acceptance; flag scope creep as P1.
-- Do not request unrelated refactors, renames, or parallel subsystems.
+- PR must match linked approved Linear/slice acceptance when an approved implementation boundary exists; flag scope creep as P1.
+- Do not request unrelated refactors, renames, parallel subsystems, or autonomous issue creation.
 - Do not duplicate feedback already fixed in the same PR unless the fix is wrong.
 
 ### Tests and docs

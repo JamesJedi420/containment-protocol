@@ -34,7 +34,7 @@ Targeted coverage checks room/threshold boundaries, chain ordering, replay/skip 
 
 | Mechanic                                                  | Owner                                        | Reason                                                                                                                       |
 | --------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Facility repair and debt reduction                        | SPE-1052 follow-up                           | Explicitly deferred by the approved plan; critical stalls persist. Do not consume equipment-maintenance capacity implicitly. |
+| Facility repair and debt reduction | SPE-3182 pure recovery contract; later SPE-1052 integration child | Pure recovery proposes debt reduction from caller-owned resources; playable recovery and provisioning stay deferred. Do not consume equipment-maintenance capacity implicitly. |
 | Upkeep/staffing conversion and production delivery timing | SPE-1052 / existing subsystem owners         | No owned conversion or production-delay policy is introduced by this integration.                                            |
 | Campaign scars and terminal defeat                        | SPE-3121 / SPE-1051; terminal owner SPE-1103 | Outside this facility seam; the scar implementation hold remains in force.                                                   |
 

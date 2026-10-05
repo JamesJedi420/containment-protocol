@@ -1,0 +1,58 @@
+name: Backlog governance fix
+
+on:
+  push:
+    branches:
+      - chore/governance-approval-gate-alignment
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: chore/governance-approval-gate-alignment
+          fetch-depth: 0
+
+      - name: Apply exact backlog substitutions
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('planning/backlog.md')
+          text = p.read_text()
+
+          intro = 'This file is the **canonical ordered queue** for concrete engineering and design follow-ups that were previously split across `README.md` and high-level hints in `planning/roadmap.md`. **Edit order here when priorities change**; avoid duplicating long tactical lists elsewhere.\n'
+          guard = '\n## Governance guardrail (current)\n\nOnly already-approved Linear boundaries are actionable from this queue. Legacy text such as `create`, `create/claim`, `create on start`, `create on merge`, `owner creates Linear child`, or `pending create` is retained only as historical planning evidence and **does not authorize issue creation now**. Any unresolved/new durable boundary must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before Linear backlog mutation. If approval state is unclear, fail closed and preserve the item as candidate evidence.\n'
+          if '## Governance guardrail (current)' not in text:
+              if intro not in text:
+                  raise SystemExit('backlog intro marker not found')
+              text = text.replace(intro, intro + guard, 1)
+
+          replacements = {
+              '**§14-pass alternates (owner creates Linear child when starting):**': '**§14-pass alternates (historical shipped evidence; no current issue-creation authority):**',
+              'deferred runtime publish executor / publish-queue persistence / modifiable-pack import wiring require **new** Linear children — do not reopen Done parent': 'deferred runtime publish executor / publish-queue persistence / modifiable-pack import wiring are historical follow-up evidence only; any still-unresolved boundary requires the approval flow before issue creation — do not reopen Done parent',
+              'Linear child ID pending local create.': 'Historical note: Linear child ID was pending local creation; no current creation authority.',
+              'Linear ID pending create.': 'Historical note: Linear ID was pending creation; no current creation authority.',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+
+          p.write_text(text)
+          PY
+
+      - name: Commit intended docs change and remove this helper
+        shell: bash
+        run: |
+          rm .github/workflows/backlog-governance-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add planning/backlog.md .github/workflows/backlog-governance-fix.yml
+          git diff --cached --check
+          git commit -m 'fix: neutralize legacy backlog creation directives'
+          git push origin HEAD:chore/governance-approval-gate-alignment

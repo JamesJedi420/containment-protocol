@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3191",
     "SPE-3190",
     "SPE-3184",
     "SPE-3182",
@@ -244,6 +245,7 @@
     "planning/spe-3140-pressure-seal-named-part-repair-slice.md": "Recently shipped",
     "planning/facility-maintenance-recovery-contract-slice.md": "Recently shipped",
     "planning/facility-maintenance-resource-authority-slice.md": "Recently shipped",
-    "planning/spe-3190-initial-facility-maintenance-allocation-slice.md": "Recently shipped"
+    "planning/spe-3190-initial-facility-maintenance-allocation-slice.md": "Recently shipped",
+    "planning/spe-3191-player-ordered-facility-recovery-slice.md": "Recently shipped"
   }
 }

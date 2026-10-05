@@ -70,13 +70,7 @@ const RankingsRoute = createRouteComponent(() =>
     },
   }))
 )
-const AgencyRoute = createRouteComponent(() =>
-  import('../features/divisions/SystemBoundaryPage').then((module) => ({
-    default: function AgencyRoute() {
-      return <module.SystemBoundaryPage boundary="agency" />
-    },
-  }))
-)
+const AgencyRoute = createRouteComponent(() => import('../features/agency/AgencyPage'))
 const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpPlaceholderPage'))
 const PatternSourceSeriesMirrorRoute = createRouteComponent(
   () => import('../features/operations/PatternSourceSeriesMirrorPage')

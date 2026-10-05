@@ -33,6 +33,7 @@ import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging
 import { parseSpecialistOperatorSlots } from '../../domain/specialistLaborOperatorFeed'
 import { parseFacilityLayoutSnapshot } from '../../domain/facilityLayoutStrategy'
 import { parseFacilityMaintenanceState } from '../../domain/facilityMaintenanceWeekClose'
+import { parseFacilityMaintenanceRecoveryResources } from '../../domain/facilityMaintenanceRecovery'
 import { parseFacilityStockPlacement } from '../../domain/facilityStockAccess'
 import { parseFacilityStockCondition } from '../../domain/facilityStockSpoilage'
 import { parseFacilityEmergencyCaches } from '../../domain/facilityEmergencyCache'
@@ -10569,6 +10570,9 @@ export function hydrateGame(
     game.facilityMaintenanceState,
     week
   )
+  const facilityMaintenanceRecoveryResources = parseFacilityMaintenanceRecoveryResources(
+    game.facilityMaintenanceRecoveryResources
+  )
   const facilityStockPlacement = parseFacilityStockPlacement(game.facilityStockPlacement)
   const facilityStockCondition = parseFacilityStockCondition(game.facilityStockCondition)
   const facilityEmergencyCaches = parseFacilityEmergencyCaches(game.facilityEmergencyCaches)
@@ -10694,6 +10698,7 @@ export function hydrateGame(
     specialistOperatorSlots,
     facilityLayoutSnapshot,
     facilityMaintenanceState,
+    facilityMaintenanceRecoveryResources,
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,
@@ -10909,6 +10914,10 @@ export function hydrateGame(
     spe956AsyncDiscussionSurfaceRecords,
     spe956CommunityAdvisoryBodyRecords,
     spe956IncidentBaselineRecords,
+  }
+
+  if (facilityMaintenanceRecoveryResources !== undefined) {
+    hydrated.facilityMaintenanceRecoveryResources = facilityMaintenanceRecoveryResources
   }
 
   return reconcileContainmentBarrierIntegritySources(hydrated)

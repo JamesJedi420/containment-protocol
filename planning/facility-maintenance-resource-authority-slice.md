@@ -32,12 +32,12 @@ Repository status **Recently shipped** denotes the merge-ready handoff; Linear r
 
 ## Deferred
 
-| Mechanic                             | Owner                                                             | Boundary and reason                                                                        |
-| ------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Provisioning and replenishment       | Create later SPE-1052 child                                       | Define campaign allocation before adding income; this slice accepts explicit budgets only. |
-| Conversion from labor or named parts | Create later SPE-1052 child coordinating existing resource owners | No implicit transfer from equipment-maintenance capacity or SPE-2887 stock.                |
-| Playable command and UI              | Create later SPE-1052 child                                       | Consume the atomic adapter once provisioning policy is owned.                              |
-| Scheduling and reporting             | Create later SPE-1052 child                                       | No automatic week-close recovery or new events; preserve SPE-3119 accrual order.           |
-| Other collapse and scars             | Existing collapse owners; SPE-1051 / SPE-3121                     | Only maintenance debt clears; campaign consequences retain separate ownership.             |
+| Mechanic                             | Owner                                                   | Boundary and reason                                                                        |
+| ------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Provisioning and replenishment       | SPE-1052 candidate; approval required                   | Define campaign allocation before adding income; this slice accepts explicit budgets only. |
+| Conversion from labor or named parts | SPE-1052 candidate; coordinate existing resource owners | No implicit transfer from equipment-maintenance capacity or SPE-2887 stock.                |
+| Playable command and UI              | SPE-1052 candidate; approval required                   | Consume the atomic adapter once provisioning policy is owned.                              |
+| Scheduling and reporting             | SPE-1052 candidate; approval required                   | No automatic week-close recovery or new events; preserve SPE-3119 accrual order.           |
+| Other collapse and scars             | Existing collapse owners; SPE-1051 / SPE-3121           | Only maintenance debt clears; campaign consequences retain separate ownership.             |
 
 Keep SPE-3182 Done and SPE-1052 Backlog. Close SPE-3184 only after merge.

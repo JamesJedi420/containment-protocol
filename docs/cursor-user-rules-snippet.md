@@ -1,37 +1,40 @@
 # Cursor User Rules snippet (paste into Settings → Rules)
 
-Copy the standing-workflow block below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same standing workflow. For implementation-lite or backlog-hygiene blocks, use the sources listed below. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
+Copy the standing-workflow block below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same workflow. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
 
-1. **Standing workflow** (this file, section below)
-2. **Implementation lite** — full block in `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding sessions)
-3. **Pre-ship audit** — `docs/cursor-pre-ship-audit-user-rules-snippet.md` (six passes + validation before commit/merge)
-4. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md` (phase A after PR open: no next-issue plan; phase B after merge: next-issue plan only)
+1. **Standing workflow** — this file
+2. **Implementation lite** — `docs/cursor-implementation-lite-user-rules-snippet.md`
+3. **Pre-ship audit** — `docs/cursor-pre-ship-audit-user-rules-snippet.md`
+4. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md`
 5. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
-6. **Cloud-agent Linear handoff** — `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md` (after implementation merge only)
+6. **Cloud-agent Linear handoff** — `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`
 
 ---
 
 ## Containment Protocol — standing workflow
 
-- **Git exception:** For Containment Protocol **implementation slices**, follow repo **`implementation-lite` ship loop** (commit → push → open PR → **babysit: independent review + triage Greptile/CodeRabbit/Amazon Q/bot comments + CI until green → merge** → `git checkout main` && `git pull origin main`) even when another rule says "only commit when requested." Do **not** plan the next slice until merge and local `main` sync complete. Tracked repo rules: `.cursor/rules/implementation-lite.mdc` and `.cursor/rules/linear-always-update.mdc` (`alwaysApply: true`). Honor explicit **no commit** / **no PR** / **local only** / **do not merge** only when the user says so in that session.
-- **Linear is mandatory on every agent session** (implementation, harvest, PR babysit, review): In Progress before work, **commit + push + open PR** before claiming an implementation slice complete, slice issue linked in PR, Done + comment on merge. Never skip because GitHub has a bot linkback. Repo rules: `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/cloud-agent-linear-handoff.mdc`, `.cursor/rules/implementation-lite.mdc`; detail in **`AGENTS.md`**. Harvest triage: post **rich** owner comments (mechanic + boundary + fold-in vs child) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes. **Cloud Agents:** emit a local-agent Linear handoff (`docs/cloud-agent-linear-handoff.md`) only after a plan is implemented to completion and that PR is merged.
-- After a PR **merges**: run `git checkout main` and `git pull origin main`, then **start a new agent chat** for the next slice. Do not continue the old thread—it keeps stale branches, CI context, and failed "Move to local" branch names.
-- During an **open PR** on one branch: one agent session is fine until merge.
-- Each new task: give the agent the **Linear issue**, **`planning/*-slice.md`**, **branch name**, and confirm **current `main` commit** in the first message.
-- Standing repo rules: read **`AGENTS.md`** at repo root first.
-- Prefer slice docs and backlog over re-explaining finished work in chat.
-- **Live web research:** prefer repo sources first; use **Tavily** (MCP/CLI) only when current external docs or facts are needed and repo sources are insufficient; do not add search APIs to the game runtime.
-- **Cursor plugins:** keep-list in `docs/agent-cursor-plugins.md` (tracked rule `.cursor/rules/agent-cursor-plugins.mdc`); **required** Sonatype before add/upgrade deps; optional Snyk; do not wire vendor scan/search into `src/` or CI without a Linear slice.
-- When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
-- **Implementation lite:** `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **pre-ship audit**, **ship loop**, PR mapping, Linear).
-- **Pre-ship audit:** before commit/merge — six passes until clean; `docs/agent-pre-ship-audit.md`.
-- **Session closeout:** babysit (independent review + comment triage + CI) → merge → sync `main`, then phase B (next-issue plan only). Phase A only if babysit blocked. Final reply per `docs/agent-session-closeout.md`.
-- **Backlog hygiene:** remind me to use the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene or grooming passes (not implementation).
+- **Scope authority:** Linear is authoritative for **already-approved** planning/lifecycle state; GitHub code/PR/CI/tests are implementation evidence. Newly discovered durable scope is not automatically backlog scope.
+- **Scope mutation:** do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or expanded durable scope from implementation, harvest, deferred-work notes, review, or closeout. New/changed scope goes through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+- **Unowned review/docs work:** may proceed read-only without a Linear mutation. Do not invent an issue just to satisfy bookkeeping. If durable product scope is discovered, record it as candidate input.
+- **Implementation slices:** use the already-approved Linear issue named by the task. Follow the repo `implementation-lite` ship loop (commit → push → PR → independent review + external-comment triage + CI → merge → sync `main`) unless the user explicitly says no commit/PR/push/merge or local/plan only.
+- **Linear lifecycle:** keep approved owned work current with truthful progress/PR/status/closure evidence. Done only when the full existing boundary is satisfied; parent closure is evaluated separately.
+- **Harvest triage:** use `docs/harvest-candidate-triage-agent.md`; rich existing-owner traceability is allowed only inside an already-approved boundary. Missing boundaries stay in the canonical Linear candidate ledger until governance authorizes Phase 4.
+- **Candidate ledger:** https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
+- After a PR **merges**: `git checkout main` + `git pull origin main`, then start a **new agent chat** before the next approved slice.
+- During one open PR on one branch, one agent session is fine until merge.
+- Each approved implementation task: give the agent the Linear issue, `planning/*-slice.md` when present, branch name, and current `main` SHA.
+- Standing repo rules: read `AGENTS.md` first.
+- Prefer slice docs and authoritative records over re-explaining finished work in chat.
+- Live web research: prefer repo sources first; use configured read-only research tools only when current external facts are necessary; do not add search APIs to runtime without approved scope.
+- Cursor plugin keep-list: `docs/agent-cursor-plugins.md`; follow dependency-scanning requirements before adding/upgrading packages.
+- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise report candidate/governance continuation.
 
 ---
 
-## Optional one-line first message (per task)
+## Optional one-line first message (approved next task)
 
+```text
+PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
 ```
-PR #____ merged. On main @ <sha>. Next: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
-```
+
+If no approved next issue exists, continue candidate governance instead of using the implementation template.

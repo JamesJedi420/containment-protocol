@@ -1,5 +1,5 @@
 ---
-description: Cloud Agents emit a local-agent Linear handoff only after a plan is implemented to completion and that PR is merged.
+description: Cloud Agents emit a local-agent Linear handoff only after an already-approved implementation plan is completed and that PR is merged.
 alwaysApply: true
 ---
 
@@ -8,22 +8,32 @@ alwaysApply: true
 Canonical detail: **`docs/cloud-agent-linear-handoff.md`**.
 
 Emit a copy-paste **local-agent Linear handoff** only when this session is a Cloud Agent /
-background / remote agent **and** it **implemented a plan to completion** **and** **merged** that
-implementation PR, and Linear was not updated in-session. A local agent with Linear MCP `ready`
-applies slice **Done** + merge comment. GitHub PR linkbacks do not replace Linear.
+background / remote agent **and** it implemented an **already-approved plan** to completion **and**
+merged that implementation PR, and Linear was not updated in-session. A local agent with Linear MCP
+`ready` applies only truthful lifecycle/evidence updates on those already-approved issues. GitHub PR
+linkbacks do not replace Linear.
+
+The handoff does **not** authorize new issues, children, parents, relationships, reparenting, or scope
+expansion. Newly discovered durable scope remains candidate input for Phase 1 → Phase 2 → Phase 3
+(including mandatory contradiction review) → Phase 4.
 
 ## Do not emit when
 
 - the PR is still open;
-- the merge is planning-only or does not satisfy slice acceptance;
-- harvest / triage with no implementation merge.
+- the merge is planning-only or does not satisfy an approved slice acceptance bar;
+- the implementation boundary was not already approved or approval state is ambiguous;
+- harvest / triage with no approved implementation merge;
+- unowned read-only review/docs work.
 
-## After implementation merge (phase B)
+## After approved implementation merge (phase B)
 
-Write the payload in phase B closeout only (not a post-merge slice-doc edit on `main`): issue IDs;
-slice **Done** (or **do not change**); parent Backlog unless full parent shipped; verbatim comment
-(PR URL + what shipped + validation); **Do not** list; already-posted flag.
+Write the payload in phase B closeout only (not a post-merge slice-doc edit on `main`): approved issue
+IDs; slice **Done** only when the full approved child boundary shipped; parent truthful current status
+(or **do not change**) unless full parent completion is independently proven; verbatim lifecycle/evidence
+comment (PR URL + what shipped + validation); candidate-evidence reference if any; **Do not** list;
+already-posted flag.
 
 ## Local agent
 
-Apply verbatim. Skip duplicates with the same PR URL and facts.
+Verify approval basis, then apply the lifecycle/evidence payload verbatim. Preserve truthful parent state,
+skip duplicates with the same PR URL and facts, and never convert candidate evidence into backlog scope.

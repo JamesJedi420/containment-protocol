@@ -1,95 +1,76 @@
 # Cursor User Rules — implementation lite (paste into Settings → Rules)
 
-Paste the block below into **Cursor → Settings → Rules → User Rules** so every implementation session gets lightweight guardrails. User Rules apply globally (equivalent to `alwaysApply: true` on a project rule).
+Paste this block into **Cursor → Settings → Rules → User Rules** for normal Containment Protocol implementation sessions. Tracked repo copy: `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`).
 
-Tracked copy: `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true` in this repo).
-
-Full repo detail: `AGENTS.md`. Pre-ship audit paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`. Closeout paste: `docs/cursor-session-closeout-user-rules-snippet.md`. Backlog grooming: `docs/cursor-backlog-hygiene-user-rules-snippet.md`.
+Full detail: `AGENTS.md`. Pre-ship audit: `docs/cursor-pre-ship-audit-user-rules-snippet.md`. Closeout: `docs/cursor-session-closeout-user-rules-snippet.md`.
 
 ---
 
-## Containment Protocol — Implementation Lite Rules
-
-Use this rule for ordinary implementation work. Do not perform full backlog hygiene unless explicitly asked.
+## Containment Protocol — Implementation Lite
 
 ### Source of truth
 
-Linear is authoritative for scope, status, and closure. Also use repo docs, tests, architecture, and current code. Fold durable issue comments into scope. Preserve boundary; do not expand scope.
+Linear is authoritative for **already-approved** scope, status, and closure. GitHub code/tests/PRs provide implementation evidence. Current CP governance decides whether newly discovered scope may enter the backlog.
 
-Before coding: read Linear (and GitHub mirror); parent/child when relevant; treat Goal, Scope, Constraints, Acceptance criteria as binding. If chat diverges from Linear, follow Linear and call out mismatch.
+Before coding: read the approved Linear issue, relevant comments, parent/children, linked implementation evidence, and slice doc. Treat Goal, Scope, Constraints, Acceptance criteria, and approved reconciliation records as binding.
+
+If no approved issue boundary exists for feature work, stop that implementation and route the finding through candidate governance. Do not create an issue merely to make the task actionable.
 
 ### Scope discipline
 
-Implement the smallest coherent deterministic slice that satisfies the issue.
+Implement the smallest coherent deterministic slice that satisfies the approved issue.
 
 Do not:
-- expand scope
-- create parallel systems
-- rewrite unrelated code
-- fix nearby issues unless required by the current acceptance criteria
-- close parent issues because a child slice shipped
+- expand scope;
+- create parallel systems;
+- create a new Linear issue, child, parent, contradiction issue, relationship, or durable obligation discovered during implementation;
+- rewrite unrelated code;
+- fix nearby issues unless required by current acceptance criteria;
+- close a parent because only one child shipped.
 
-If the issue boundary is unclear, stop and report the ambiguity instead of guessing.
+New or changed scope is candidate input and must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+
+### Deferred work
+
+- Approved in-boundary deferral: record it in the slice doc and the smallest existing approved owner.
+- New durable boundary: preserve candidate/provenance in the canonical Linear candidate ledger and return it to Phase 1. Do **not** create a child.
+
+Canonical candidate workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
 
 ### Pre-coding summary
 
-Inspect files, tests, docs, routes, state, schemas, fixtures, patterns. Confirm: already complete / partial / wrong / blocked.
-
-Report: relevant files; current vs expected behavior; boundary; risks; validation plan; in-boundary docs to update.
+Inspect files, tests, docs, routes, state, schemas, fixtures, and patterns. Report relevant files, current vs expected behavior, approved boundary, risks, validation plan, and in-boundary docs to update.
 
 ### Implementation rules
 
-Prefer existing systems over new abstractions.
+Prefer existing systems over new abstractions. Update targeted tests, preserve deterministic behavior, respect architecture boundaries, and update in-boundary docs when required.
 
-Keep changes inside the issue boundary.
+### Pre-ship audit
 
-When adding or changing behavior:
-- update targeted tests
-- preserve deterministic behavior
-- keep domain logic out of UI unless the existing architecture already does otherwise
-- update in-boundary docs when the implementation would make docs stale
+Run the six passes in `docs/agent-pre-ship-audit.md` iteratively until clean: scope/integration, edge cases, determinism/state, regression, docs/authoring, cleanup. Run specific tests first, then lint/broader validation. Do not weaken tests or CI to pass.
 
-### Pre-ship audit (mandatory — before commit)
+### Ship loop
 
-Six passes iteratively until clean: scope/integration, edge cases, determinism/state, regression, docs/authoring, cleanup. Validation: specific tests first, then lint/broader; fix and rerun. Ready for commit only when boundary, tests, docs, validation, and minimal diff all satisfy. Full checklist: `docs/agent-pre-ship-audit.md`.
+For an approved implementation slice, after the pre-ship audit:
 
-### Ship loop (mandatory)
+1. Commit focused in-boundary changes.
+2. Push the named branch.
+3. Open a PR against `main`.
+4. Link/comment the approved Linear slice issue.
+5. Independently review the full diff, triage external review comments, and run CI until green/mergeable.
+6. Merge unless the user explicitly says not to.
+7. Sync `main`.
 
-An implementation slice is **not complete** until it is on GitHub as a pull request.
-
-Run only **after** pre-ship audit passes:
-
-1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
-2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
-3. **Open a PR** against `main` with the PR mapping body below.
-4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment).
-5. **Babysit → merge (same session):** after the PR opens — **independent review** of full diff vs `main` from scratch (slice doc + Linear acceptance; optionally use `code-reviewer` / `bugbot` subagents when available on non-trivial diffs); fix in-boundary findings and push; **triage external comments** (Greptile, CodeRabbit, Amazon Q, Copilot, Codex, Gemini, humans); `@greptileai` or `/q review` after material fixes if needed; **CI loop** (`gh pr checks`) until green; merge when mergeable. Do **not** rely only on existing PR comments. Do **not** end the session or write a next-issue plan while the PR is still open.
-6. **Sync `main`:** `git checkout main` && `git pull origin main`.
-
-Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."
-
-**Exceptions** (explicit user words only): "no commit," "no PR," "local only," "plan only," "do not push," or "do not merge."
-
-Repo ship loop overrides a generic "commit only when asked" preference for Containment Protocol **implementation** sessions on a named slice branch.
+Explicit user exceptions such as `no commit`, `no PR`, `local only`, `plan only`, `do not push`, or `do not merge` override the corresponding step.
 
 ### PR mapping
 
-When opening or updating a PR, use `.github/pull_request_template.md`. Put `@coderabbitai summary` under **Summary** (CodeRabbit replaces it on review); fill Linear, what shipped, docs, parent status, validation, and scope boundary.
-
-The PR body must name: canonical Linear slice issue; parent (if any); each child covered; what shipped; validation run; docs updated; whether the parent remains open. If the PR satisfies a child issue, do not reference only the parent.
+PR body names the canonical approved slice, parent if any, approved children covered, what shipped, validation, docs, parent status, and any newly discovered candidate scope deliberately not implemented. Do not list a new candidate as a child unless Phase 4 already authorized and created it.
 
 ### Linear updates
 
-After implementation evidence exists:
+After implementation evidence exists, update lifecycle/evidence on the already-approved boundary: truthful status, PR/validation comment, Done only when full acceptance is satisfied, parent closure only when full parent completion is satisfied. Do not convert follow-up candidates into issues from this implementation flow.
 
-- Move the child issue to the truthful status.
-- Mark Done only when the full child acceptance bar is satisfied.
-- Add a concise Linear comment with PR URL, what shipped, and validation.
-- Keep parent issues open unless the completed children satisfy the full parent body.
-- If work is partial, add a progress comment instead of closing.
+### Session closeout
 
-If Linear tooling is unavailable after an implementation PR merges, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) with verbatim Done + merge comments. Do not emit it for planning-only or open PRs. Do not treat GitHub as Linear closure.
-
-### Session closeout (mandatory)
-
-**Order:** ship loop → babysit (independent review + comment triage + CI) → merge → `checkout main` && pull → closeout. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. **Phase A (interim):** only when babysit/merge is blocked in-session. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
+Order: review/CI → merge → sync `main` → closeout. Phase A while merge is blocked: no next-issue plan. Phase B after merge: plan only an already-approved next issue; otherwise report candidate/governance continuation. Full format: `docs/agent-session-closeout.md`.

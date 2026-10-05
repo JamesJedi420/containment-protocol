@@ -11,41 +11,42 @@ Use this rule for ordinary implementation work. Do not perform full backlog hygi
 
 ## Source of truth
 
-Linear is the authoritative source for scope, status, and closure. Also use repository docs, tests, existing architecture, and current code.
+Linear is the authoritative source for already-approved scope, status, and closure. Also use repository docs, tests, existing architecture, and current code. Current Containment Protocol governance controls whether newly discovered scope may enter the backlog.
 
 Before coding:
 1. Read the target Linear issue (and GitHub mirror if linked).
 2. Read issue comments; fold durable scope, constraints, acceptance criteria, deferred work, and implementation notes into your working summary.
 3. Read parent/child issues when the issue sits under a broader umbrella.
-4. Treat Goal, Scope, Constraints, Acceptance criteria, and reconciliation comments as binding.
+4. Treat Goal, Scope, Constraints, Acceptance criteria, and approved reconciliation comments as binding.
 
-If Linear and chat instructions diverge, follow Linear and call out the mismatch. **Preserve the issue boundary.** Do not expand scope.
+If Linear and chat instructions diverge, follow the current approved issue boundary and call out the mismatch. **Preserve the issue boundary.** Do not expand scope.
 
 ## Scope discipline
 
-Implement the smallest coherent deterministic slice that satisfies the issue.
+Implement the smallest coherent deterministic slice that satisfies the approved issue.
 
 Do not:
 - expand scope
 - create parallel systems
+- create a new Linear issue, child, parent, contradiction issue, relationship, or durable obligation discovered during implementation
 - rewrite unrelated code
 - fix nearby issues unless required by the current acceptance criteria
 - close parent issues because a child slice shipped
 
-If the issue boundary is unclear, stop and report the ambiguity instead of guessing.
+If the issue boundary is unclear, stop and report the ambiguity instead of guessing. If implementation exposes a new durable boundary, preserve it as candidate input and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 rather than creating scope directly.
 
 ## Deferred work recording (mandatory)
 
 When scope is intentionally **out of slice** or **not done this session**, record it durably in the **same session** — not only in chat or closeout prose.
 
-Minimum (pick all that apply):
+Distinguish:
 
-1. **Slice doc** — `## Deferred` table: item, suggested owner issue, why deferred.
-2. **Linear** — comment on the **parent** or a **new/existing child** in Backlog with mechanic + boundary (not a one-liner).
-3. **Parent stays open** — do not mark the umbrella Done while deferred items satisfy parent acceptance.
-4. **Closeout** — `Remaining risks or deferred work` must match what was written to (1) and (2).
+1. **Approved in-boundary deferral** — `## Deferred` table: item, existing approved owner issue, why deferred; add a rich comment to that existing owner when useful.
+2. **New durable boundary** — record the candidate and provenance in the slice doc/candidate ledger and return it to Phase 1. Do **not** create a child or expand the parent.
+3. **Parent stays open** — do not mark the umbrella Done while unmet work remains inside its approved acceptance/completion rule.
+4. **Closeout** — `Remaining risks or deferred work` must match the durable record and must distinguish approved deferral from candidate scope.
 
-Chat and session memory do **not** substitute for (1)–(2). Full checklist: `docs/agent-session-closeout.md` § Deferred work recording.
+Chat and session memory do **not** substitute for the durable record. Full checklist: `docs/agent-session-closeout.md` § Deferred work recording.
 
 ## Pre-coding summary
 
@@ -99,7 +100,7 @@ Run the ship loop only **after** pre-ship audit completion criteria are met:
 1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
-4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
+4. **Linear:** comment the PR URL on the **approved slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
 5. **Babysit → merge (same session, mandatory):** after the PR opens, babysit until CI is clean and the PR is mergeable. **Do not** rely only on existing PR comments — run a full independent review first, then triage external feedback and CI. Sub-steps (in order):
    - **Independent review (mandatory):** review the full branch diff against `main` from scratch — slice doc, Linear acceptance, edge cases, regressions, tests, docs. Optionally use `code-reviewer` and/or `bugbot` subagents when available on non-trivial diffs. Record findings (critical / warning / note).
    - **Fix in-boundary findings** from the independent review; push.
@@ -120,24 +121,25 @@ When opening or updating a PR, use `.github/pull_request_template.md` as the bod
 
 The PR body must name:
 
-- the canonical Linear issue
+- the canonical approved Linear issue
 - any parent issue
-- each child issue covered by the branch
+- each approved child issue covered by the branch
 - what shipped
 - validation run
 - docs updated
 - whether the parent remains open
+- any newly discovered candidate scope that was deliberately not implemented
 
-If the PR satisfies a child issue, do not reference only the parent.
+If the PR satisfies a child issue, do not reference only the parent. Do not list a newly discovered candidate as a child issue unless Phase 4 has already authorized and created it.
 
 **Agent `gh pr create` body** (fill placeholders; keep template section order):
 
 ```markdown
 ## Linear
 
-- **Slice issue:** SPE-___ — <url> (or **none — workflow/docs slice**)
+- **Slice issue:** SPE-___ — <url> (or **none — approved workflow/docs slice**)
 - **Parent issue (if any):** <!-- or none -->
-- **Child issues covered:** <!-- or slice only -->
+- **Child issues covered:** <!-- approved children only; or slice only -->
 
 ## Summary
 
@@ -170,7 +172,7 @@ If the PR satisfies a child issue, do not reference only the parent.
 
 ## Follow-ups
 
-<!-- Remaining slices or known gaps -->
+<!-- Separate approved in-boundary follow-up from candidate scope -->
 
 ## Linear updated
 
@@ -183,17 +185,18 @@ If the PR satisfies a child issue, do not reference only the parent.
 
 After implementation evidence exists:
 
-- Move the child issue to the truthful status.
-- Mark Done only when the full child acceptance bar is satisfied.
+- Move the approved child/slice issue to the truthful status.
+- Mark Done only when the full existing acceptance bar is satisfied.
 - Add a concise Linear comment with PR URL, what shipped, and validation.
 - Keep parent issues open unless the completed children satisfy the full parent body.
 - If work is partial, add a progress comment instead of closing.
+- Do not convert newly discovered candidate scope into an issue or parent/child mutation from this implementation flow.
 
-If Linear tooling is unavailable after an implementation PR merges, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) with verbatim Done + merge comments. Do not emit it for planning-only or open PRs. Do not treat GitHub as Linear closure.
+If Linear tooling is unavailable after an implementation PR merges, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) with verbatim legal lifecycle/evidence updates plus any candidate findings separately. Do not emit it for planning-only or open PRs. Do not treat GitHub as Linear closure or scope-creation authority.
 
 ## Session closeout (mandatory)
 
-**Order:** ship loop → babysit (independent review + comment triage + CI) → merge → `checkout main` && pull → **then** closeout. **Do not** produce a next-issue plan until merge and local `main` sync are complete.
+**Order:** ship loop → babysit (independent review + comment triage + CI) → merge → `checkout main` && pull → **then** closeout. **Do not** produce a next-issue implementation plan until merge and local `main` sync are complete.
 
 ### Phase A — PR open, babysit blocked (interim only)
 
@@ -205,14 +208,14 @@ Use only when babysit cannot finish in-session (external blocker, merge policy, 
 
 ### Phase B — After merge (normal session end)
 
-After **PR merged**, slice issue **Done**, merge comment on Linear, and **`git checkout main` && `git pull`**:
+After **PR merged**, slice issue **Done** when justified, merge comment on Linear, and **`git checkout main` && `git pull`**:
 
 1. **Do not** implement the next issue unless the user explicitly asks in that session.
-2. **Do** prepare a **next-issue implementation plan** only (see `docs/agent-session-closeout.md`).
+2. Prepare a **next-issue implementation plan** only when an already-approved next issue exists; otherwise report the candidate/governance continuation instead of inventing a slice.
 3. Return the **phase B** final response structure from that doc.
 
-Next-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
+Next-approved-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
 
 Closeout rules: do not expand the current issue; do not mark Done until merge when the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite).
 
-After **merge** (phase B): remind the human to **start a new agent chat** with Linear URL, slice doc, branch name, and current `main` SHA (agent already synced `main` in-session).
+After **merge** (phase B): remind the human to **start a new agent chat** with the approved Linear URL, slice doc, branch name, and current `main` SHA (agent already synced `main` in-session). If no approved next issue exists, route useful follow-up through candidate governance instead.

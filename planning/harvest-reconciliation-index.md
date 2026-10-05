@@ -1,6 +1,6 @@
 # Harvest reconciliation index
 
-**Purpose:** Track pattern-harvest batches reconciled to Linear. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). They mirror closure already posted on Linear.
+**Purpose:** Track historical pattern-harvest batches reconciled to Linear and forward batches whose canonical candidate-ledger state is `applied` or `pending apply`. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). Historical rows mirror closure already posted on Linear; forward `pending apply` rows explicitly do not claim canonical closure.
 
 **Content policy:** Do not add franchise names, wiki URLs, or imported canon labels to extracted prose/copy in this repo. Existing internal batch IDs, planning filenames, and SPE issue links may retain established identifiers used for reconciliation and traceability.
 
@@ -10,7 +10,9 @@
 
 **Not duplicate rows:** Uniqueness is the full batch ID string. Different IDs with the same candidate count are separate batches (e.g. `institutional-research-governance-18` and `personal-invention-records-18` are both 15 candidates but distinct reconciliations).
 
-## Mirrored batches (committed harvest docs)
+## Historical mirrored batches (committed harvest docs)
+
+> This table preserves historical reconciliation evidence. Its legacy `Child issue(s)` and owner columns are not the schema for new batches and do not authorize issue creation or Linear ownership. Use the forward schema below for all new batches.
 
 | Batch ID | Candidates | Child issue(s) | Hub / parent | Planning doc | Linear closed |
 | -------- | -----------: | -------------- | ------------ | ------------ | ------------- |
@@ -81,14 +83,26 @@
 
 Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310).
 
+## Forward batch tracking schema
+
+For every **new** reconciliation batch, record the candidate-only result using this schema. Proposed or matched owners are evidence/navigation only until the normal approval workflow establishes authoritative ownership.
+
+| Batch ID | Candidates | Disposition counts | Matched/proposed owner(s) | Planning doc | Canonical candidate-ledger state | Ledger reference / pending apply |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `<batch-id>` | `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/<batch-id>-harvest.md` | `applied` or `pending apply` | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
+
+The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, and `missing_boundary_candidate`. None creates a child, parent, relationship, or authoritative owner. A missing boundary remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes Linear mutation.
+
 ## How to add a row
 
-**Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, branch rules). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
+**Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, durable-ledger rules, unavailable-Linear fallback). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
 
-1. Close the batch on Linear (SPE-2110 intake + **fold-in comments on owners**) in the same session as adjudication.
-2. **Owner comments on Linear** must be agent-readable: mechanic behavior, repo anchor, ownership, in/out scope, fold-in vs new-child reasoning. Required format: [`docs/harvest-fold-in-linear-comments.md`](../docs/harvest-fold-in-linear-comments.md) (six sections — not one-line notes).
-3. Add `planning/<batch-id>-harvest.md`; reconcile **Primary owner map** to **Per-candidate outcomes** (table is authoritative).
-4. Append a row to **Mirrored batches** above (verify the planning doc link opens).
-5. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
+1. Adjudicate every candidate using only the five dispositions above. Do not create a child during triage.
+2. Add `planning/<batch-id>-harvest.md` with provenance, per-candidate outcome, matched/proposed owner evidence, contradiction findings, and summary counts. The mirror is non-authoritative for Linear ownership.
+3. Persist the batch/candidates to the canonical Linear candidate ledger when Linear is available. Post rich traceability comments only to existing approved owners when those comments do not expand their approved scope.
+4. If Linear is unavailable, add the exact `## Pending canonical-ledger apply` payload required by `docs/harvest-candidate-triage-agent.md`; set the index ledger state to `pending apply`. Do not claim canonical closure.
+5. Append the new batch to the **Forward batch tracking schema** above with ledger state `applied` or `pending apply` and the corresponding reference.
+6. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
+7. Later authenticated agents process `pending apply` entries oldest-first, verify current authority, apply canonical-ledger records idempotently, then update the mirror/index to `applied`. Feature/backlog mutation still requires the normal approval phases and Phase 4.
 
-Batches reconciled on Linear without a mirror doc yet stay off this index until the `*-harvest.md` file lands.
+Historical batches above remain preserved as evidence; their legacy columns and terminology are not current issue-creation authority.

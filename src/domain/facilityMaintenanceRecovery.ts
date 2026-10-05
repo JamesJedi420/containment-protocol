@@ -60,6 +60,7 @@ export function resolveFacilityMaintenanceRecovery(
   const available = parseResources(resources)
   if (prior === undefined || available === undefined) return Object.freeze({ status: 'invalid' })
 
+  // The shared parser guarantees finite nonnegative debt, which the projector accepts.
   const collapse = projectInstitutionalCollapsePathways({ maintenanceDebt: prior.maintenanceDebt })!
   const maintenance = collapse.activePathways.find(
     (pathway) => pathway.pathwayId === 'maintenance_debt_overrun' && pathway.chainedFrom === null
@@ -93,6 +94,7 @@ export function resolveFacilityMaintenanceRecovery(
     })
   }
 
+  // Zero is a valid maintenance trigger; its projection is defined with no active pathways.
   return Object.freeze({
     status: 'recovered',
     state: Object.freeze({ maintenanceDebt: 0, lastProcessedWeek: prior.lastProcessedWeek }),

@@ -1,5 +1,5 @@
 import '../../test/setup'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
@@ -74,6 +74,47 @@ describe('AgencyPage escalation/pressure cadence surfacing', () => {
 })
 
 describe('AgencyPage', () => {
+  it('orders facility recovery and refreshes debt, budget, and eligibility', () => {
+    useGameStore.setState({
+      game: {
+        ...makeMinimalGameState(),
+        facilityMaintenanceState: { maintenanceDebt: 18, lastProcessedWeek: 0 },
+      },
+    })
+    renderAgencyPage()
+    const order = screen.getByRole('button', { name: 'Order facility recovery' })
+    expect(order).toBeEnabled()
+    expect(screen.getByText('Recovery cost: 10 hours / 6 parts')).toBeInTheDocument()
+    fireEvent.click(order)
+    expect(screen.getByText('Recovery budget: 0 hours / 0 parts')).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance debt: 0/)).toBeInTheDocument()
+    expect(screen.getByText('No facility recovery is required.')).toBeInTheDocument()
+    expect(order).toBeDisabled()
+  })
+
+  it.each(['missing', 'insufficient', 'not_required', 'malformed'])(
+    'explains blocked recovery: %s',
+    (scenario) => {
+      const game = makeMinimalGameState()
+      if (scenario !== 'missing')
+        game.facilityMaintenanceState = {
+          maintenanceDebt: scenario === 'not_required' ? 7 : scenario === 'malformed' ? -1 : 30,
+          lastProcessedWeek: 0,
+        }
+      useGameStore.setState({ game })
+      renderAgencyPage()
+      const order = screen.getByRole('button', { name: 'Order facility recovery' })
+      expect(order).toBeDisabled()
+      expect(order).toHaveAccessibleDescription(
+        scenario === 'insufficient'
+          ? 'Insufficient maintenance hours or parts for facility recovery.'
+          : scenario === 'not_required'
+            ? 'No facility recovery is required.'
+            : 'Recovery unavailable: maintenance state or recovery budget is missing or invalid.'
+      )
+    }
+  )
+
   it('renders the agency strategic overview and recommendation sections', () => {
     renderAgencyPage()
 

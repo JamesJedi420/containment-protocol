@@ -3,9 +3,11 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
+import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 
 export default function AgencyPage() {
-  const { game } = useGameStore()
+  const { game, orderFacilityMaintenanceRecovery } = useGameStore()
+  const maintenance = projectFacilityMaintenanceView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -60,6 +62,39 @@ export default function AgencyPage() {
             ))}
           </ul>
         </div>
+      </article>
+
+      <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">
+        <h3 id="facility-maintenance-heading" className="text-base font-semibold">
+          Facility maintenance
+        </h3>
+        <p className="text-sm">
+          Maintenance debt: {maintenance.debt ?? 'Unavailable'} · Pressure: {maintenance.pressure}
+        </p>
+        <p className="text-sm">
+          Recovery budget:{' '}
+          {maintenance.resources
+            ? `${maintenance.resources.maintenanceHours} hours / ${maintenance.resources.partsReserve} parts`
+            : 'Unavailable'}
+        </p>
+        {maintenance.required && (
+          <p className="text-sm">
+            Recovery cost: {maintenance.required.maintenanceHours} hours /{' '}
+            {maintenance.required.partsReserve} parts
+          </p>
+        )}
+        <p id="facility-maintenance-explanation" className="text-sm opacity-80" aria-live="polite">
+          {maintenance.explanation}
+        </p>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          disabled={!maintenance.canOrder}
+          aria-describedby="facility-maintenance-explanation"
+          onClick={orderFacilityMaintenanceRecovery}
+        >
+          Order facility recovery
+        </button>
       </article>
 
       <div className="grid gap-4 xl:grid-cols-2">

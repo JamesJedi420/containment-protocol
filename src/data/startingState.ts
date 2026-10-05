@@ -58,6 +58,8 @@ const startingStateTemplate: GameState = {
       createProcurementLogisticsInterlockWorkshopInstance(),
   },
   damagedEquipmentQueue: [],
+  // SPE-3190: one authored endowment per fresh campaign, never a hydration fallback grant.
+  facilityMaintenanceRecoveryResources: { maintenanceHours: 10, partsReserve: 6 },
   caseQueue: {
     queuedCaseIds: [],
     priorities: {},

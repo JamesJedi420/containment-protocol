@@ -2404,6 +2404,12 @@ describe('gameStore', () => {
 
   it('resets to a fresh starting state after mutations', () => {
     const initialGame = useGameStore.getState().game
+    useGameStore.setState({
+      game: {
+        ...initialGame,
+        facilityMaintenanceRecoveryResources: { maintenanceHours: 0, partsReserve: 0 },
+      },
+    })
 
     useGameStore.getState().assign('case-001', 't_nightwatch')
     useGameStore.getState().advanceWeek()
@@ -2416,6 +2422,14 @@ describe('gameStore', () => {
 
     expect(resetGame).toEqual(createStartingState())
     expect(resetGame).not.toBe(initialGame)
+    expect(resetGame.facilityMaintenanceRecoveryResources).toEqual({
+      maintenanceHours: 10,
+      partsReserve: 6,
+    })
+    expect(initialGame.facilityMaintenanceRecoveryResources).toEqual({
+      maintenanceHours: 10,
+      partsReserve: 6,
+    })
   })
 
   it('exports a save payload and imports it back through the store actions', () => {

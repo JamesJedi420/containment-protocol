@@ -25,6 +25,7 @@ Phase 1 identified initial allocation as candidate scope. Phase 2 reconciled own
 - Focused recovery/resolver/store tests: 3 files / 176 tests passed. Strengthened production week-close assertion rerun: 28 tests passed.
 - Full regression: 852 files / 9,258 tests passed.
 - Lint, backlog-handoff, audit-index, and theme-contract verification passed; changed-file formatting checked.
+- Review follow-up: updated `SCHEMA_REGISTRY.md` initialization contract after Codex identified stale no-starting-budget wording; legacy no-grant semantics remain unchanged.
 - Six pre-ship passes completed: scope/integration, edge cases, determinism/state, regression, documentation/authoring, and cleanup. No unresolved in-boundary findings.
 - Local Node is 24; CI validates the required Node 22 environment. Build is not used as a gate because repository baseline type-contract drift is outside this initialization slice.
 

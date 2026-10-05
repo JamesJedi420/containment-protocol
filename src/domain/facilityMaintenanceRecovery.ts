@@ -2,6 +2,7 @@ import { parseFacilityMaintenanceState } from './facilityMaintenanceWeekClose'
 import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
 import { projectInstitutionalCollapsePathways } from './institutionalCollapsePathways'
 import type { InstitutionalCollapseProjection } from './institutionalCollapsePathways'
+import type { GameState } from './models'
 
 /** Caller-owned abstract resources; not equipment capacity or named-part stock. */
 export interface FacilityMaintenanceRecoveryResources {
@@ -31,7 +32,9 @@ const ZERO_RESOURCES: FacilityMaintenanceRecoveryResources = Object.freeze({
   partsReserve: 0,
 })
 
-function parseResources(value: unknown): FacilityMaintenanceRecoveryResources | undefined {
+export function parseFacilityMaintenanceRecoveryResources(
+  value: unknown
+): FacilityMaintenanceRecoveryResources | undefined {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
   const record = value as Record<string, unknown>
   if (
@@ -57,7 +60,7 @@ export function resolveFacilityMaintenanceRecovery(
   resources: unknown
 ): FacilityMaintenanceRecoveryResult {
   const prior = parseFacilityMaintenanceState(state)
-  const available = parseResources(resources)
+  const available = parseFacilityMaintenanceRecoveryResources(resources)
   if (prior === undefined || available === undefined) return Object.freeze({ status: 'invalid' })
 
   // The shared parser guarantees finite nonnegative debt, which the projector accepts.
@@ -105,5 +108,30 @@ export function resolveFacilityMaintenanceRecovery(
     consumed: required,
     required,
     collapse: projectInstitutionalCollapsePathways({ maintenanceDebt: 0 })!,
+  })
+}
+
+/** SPE-3184: apply only the dedicated facility budget and debt outputs together. */
+export function applyFacilityMaintenanceRecovery(game: GameState): {
+  readonly status: FacilityMaintenanceRecoveryResult['status']
+  readonly game: GameState
+  readonly recovery: FacilityMaintenanceRecoveryResult
+} {
+  const state = parseFacilityMaintenanceState(game.facilityMaintenanceState, game.week)
+  const recovery = resolveFacilityMaintenanceRecovery(
+    state,
+    game.facilityMaintenanceRecoveryResources
+  )
+  return Object.freeze({
+    status: recovery.status,
+    game:
+      recovery.status === 'recovered'
+        ? {
+            ...game,
+            facilityMaintenanceState: recovery.state,
+            facilityMaintenanceRecoveryResources: recovery.resources,
+          }
+        : game,
+    recovery,
   })
 }

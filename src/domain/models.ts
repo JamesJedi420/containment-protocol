@@ -1,4 +1,5 @@
 import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
+import type { FacilityMaintenanceRecoveryResources } from './facilityMaintenanceRecovery'
 import type {
   RivalExpeditionClueRegistry,
   RivalExpeditionProgressRegistry,
@@ -2863,6 +2864,8 @@ export interface GameState {
   facilityLayoutSnapshot?: FacilityLayoutSnapshot
   /** SPE-3119: canonical accrued expansion debt and closed-week replay guard. */
   facilityMaintenanceState?: FacilityMaintenanceState
+  /** SPE-3184: dedicated owner-supplied facility repair budget; no implicit conversion or refill. */
+  facilityMaintenanceRecoveryResources?: FacilityMaintenanceRecoveryResources
   /**
    * SPE-2890 / SPE-1027: access-controlled storage-class placement keyed by authored class id.
    * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.

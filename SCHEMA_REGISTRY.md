@@ -77,6 +77,8 @@ Documents the versioned serialization format for the full game store state.
 
 **Current version**: `GAME_STORE_VERSION = 7`
 
+- SPE-3184 optional `GameState.facilityMaintenanceRecoveryResources` owns a dedicated facility recovery budget (`maintenanceHours`, `partsReserve`). Hydration reuses the recovery resource parser: own nonnegative safe-integer fields, detached frozen values; missing/malformed budgets hydrate absent without fallback inheritance, and valid zero balances remain present. Starting/reset state supplies no budget. Pure `applyFacilityMaintenanceRecovery` validates maintenance state against campaign week and applies debt/resource outputs together only on recovery. No equipment-capacity or named-part conversion, replenishment, store/UI wire, automatic recovery, or new event kind. This additive field does not change `GAME_STORE_VERSION` or `GAME_SAVE_VERSION`.
+
 **Location**: `src/app/store/runTransfer.ts`
 
 **Migration**: `migratePersistedStore(raw, version)` — handles incremental upgrades from older versions to version 7.

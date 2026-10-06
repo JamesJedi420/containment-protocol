@@ -1,7 +1,7 @@
 import type { GameState, StaffData } from './models'
 import { normalizeStaffCandidateSpecialty } from './recruitment/helpers'
 
-type StaffSpecialty = 'analysis' | 'intel' | 'logistics' | 'fabrication'
+export type StaffSpecialty = 'analysis' | 'intel' | 'logistics' | 'fabrication'
 export type OperationalStaffPostId = `staff-post:${StaffSpecialty}:${1 | 2}`
 
 /** Authored assignment slots only; capacity and throughput belong to downstream consumers. */
@@ -17,7 +17,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function staffSpecialty(value: unknown): StaffSpecialty | undefined {
+export function operationalStaffSpecialty(value: unknown): StaffSpecialty | undefined {
   if (!isRecord(value) || (value.role !== undefined && value.role !== 'staff')) return undefined
   const specialty = value.specialty
   if (
@@ -35,7 +35,7 @@ export function isValidOperationalStaffPost(
   value: unknown,
   postId: unknown
 ): postId is OperationalStaffPostId {
-  const specialty = staffSpecialty(value)
+  const specialty = operationalStaffSpecialty(value)
   return (
     specialty !== undefined &&
     OPERATIONAL_STAFF_POSTS.some((post) => post.id === postId && post.specialty === specialty)
@@ -96,25 +96,50 @@ export interface OperationalStaffPostResult {
 }
 
 /** Shared assignment truth; recruitment metadata never establishes occupancy. */
-export function queryOperationalStaffPost(game: GameState, staffId: string) {
-  if (!isRecord(game.staff)) return { postId: null, reason: 'invalid_roster' as const }
-  if (!Object.hasOwn(game.staff, staffId)) return { postId: null, reason: 'unknown_staff' as const }
-  const entry = game.staff[staffId]
+function queryPostEntry(entry: unknown, claims: ReadonlyMap<string, number>) {
   if (isRecord(entry) && entry.role === 'instructor')
     return { postId: null, reason: 'instructor_not_supported' as const }
-  if (!staffSpecialty(entry)) return { postId: null, reason: 'invalid_staff' as const }
+  if (!operationalStaffSpecialty(entry)) return { postId: null, reason: 'invalid_staff' as const }
   const rawPost = (entry as Exclude<StaffData, { role: 'instructor' }>).operationalPostId
   if (rawPost === undefined) return { postId: null, reason: 'unassigned' as const }
   if (!isValidOperationalStaffPost(entry, rawPost))
     return { postId: null, reason: 'invalid_assignment' as const }
-  if (
-    Object.entries(game.staff).some(
-      ([id, other]) => id !== staffId && isRecord(other) && other.operationalPostId === rawPost
-    )
-  ) {
+  if (claims.get(rawPost) !== 1) {
     return { postId: null, reason: 'invalid_assignment' as const }
   }
   return { postId: rawPost, reason: 'assigned' as const }
+}
+
+export type OperationalStaffPostQuery = Readonly<ReturnType<typeof queryPostEntry>>
+
+/** One snapshot and two passes; all raw claims participate in conflict validation. */
+export function queryOperationalStaffPosts(game: GameState): {
+  readonly reason: 'valid_roster' | 'invalid_roster'
+  readonly byStaffId: Readonly<Record<string, OperationalStaffPostQuery>>
+} {
+  if (!isRecord(game.staff)) return { reason: 'invalid_roster', byStaffId: {} }
+  const entries = Object.entries(game.staff)
+  const claims = new Map<string, number>()
+  for (const [, entry] of entries) {
+    if (isRecord(entry) && typeof entry.operationalPostId === 'string') {
+      claims.set(entry.operationalPostId, (claims.get(entry.operationalPostId) ?? 0) + 1)
+    }
+  }
+  return {
+    reason: 'valid_roster',
+    byStaffId: Object.fromEntries(
+      entries.map(([id, entry]) => [id, queryPostEntry(entry, claims)])
+    ),
+  }
+}
+
+/** Recruitment metadata never establishes occupancy. */
+export function queryOperationalStaffPost(game: GameState, staffId: string) {
+  const batch = queryOperationalStaffPosts(game)
+  if (batch.reason === 'invalid_roster') return { postId: null, reason: 'invalid_roster' as const }
+  if (!Object.hasOwn(batch.byStaffId, staffId))
+    return { postId: null, reason: 'unknown_staff' as const }
+  return batch.byStaffId[staffId]!
 }
 
 function changePost(

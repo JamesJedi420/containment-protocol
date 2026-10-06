@@ -29,7 +29,8 @@ Focused projection/panel, Agency page, canonical capacity/post/store and boundar
 - Final typechecking matches clean main exactly after line-offset normalization: 673 diagnostics, none introduced. Local Node 24; hosted CI validates Node 22. Baseline drift remains outside the deployment gate.
 - Six iterative pre-ship passes (scope/integration, edge cases, determinism/state, regression, documentation and cleanup) found no unresolved in-boundary defects.
 - Browser tooling reports no available browser. Semantic accessibility and responsive markup checks pass; visual narrow-screen browser QA remains unverified. The panel is read-only, adds no focus targets, and introduces no controller/keyboard/pointer/touch input behavior.
-- Full regression and hosted PR CI/review pending.
+- Full regression passed: 861 files / 9,358 tests via bounded forks on local Node 24. The subsequently added separate Support Staff regression passed in the final 10-test focused run.
+- PR [#4242](https://github.com/JamesJedi420/containment-protocol/pull/4242) carries this display-only delivery. Amazon Q review found no blocking defects; hosted CI and automatic Codex review must pass before merge. Keep Linear In Progress for the recorded acceptance qualification rather than claiming full issue or parent completion.
 
 Advisor consultation is unavailable: its required escalated launcher is prohibited by session tool policy. Root owns verification and acceptance.
 

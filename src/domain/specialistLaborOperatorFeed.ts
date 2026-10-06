@@ -1,6 +1,8 @@
 /**
  * SPE-3112 / SPE-3113 / SPE-3115 / SPE-3116 / SPE-3117 / SPE-3118 — live
- * specialist operator feed for workshop week-close.
+ * specialist operator feed for workshop week-close. SPE-3148 production resolution
+ * gates mapped staff through canonical operational capacity; low-level authored
+ * mapping helpers below retain their compatibility contracts.
  *
  * Projects an authored or persisted operator-slot list into the SPE-3110
  * work-order gate map. Two explicit pairs: department task `records_review` →
@@ -33,6 +35,8 @@
  */
 
 import type { DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId } from './departmentWorkshopQueue'
+import type { GameState } from './models'
+import { deriveOperationalStaffCapacity } from './operationalStaffCapacity'
 import {
   isSpecialistAvailabilityBand,
   isSpecialistRoleFamily,
@@ -277,6 +281,56 @@ export function shouldClearStaleMappedProductionSpecialistOperatorSlots(
   return true
 }
 
+/**
+ * SPE-3148: production staff eligibility comes only from canonical capacity.
+ * Cache changes remain separate from transient filtering: unusable mapped staff
+ * cannot recover archive capacity through a saved list or campaign fallback.
+ * No mapped personnel still uses the legacy campaign recovery path.
+ */
+export function resolveWeekCloseSpecialistLaborOperatorSlots(game: GameState): {
+  readonly operators: readonly SpecialistOperatorSlot[]
+  readonly derivedSlots: readonly SpecialistOperatorSlot[] | undefined
+  readonly clearCache: boolean
+} {
+  const capacity = deriveOperationalStaffCapacity(game)
+  const hasAgent = deriveArchiveAnalystSlotsFromMappedAgents(game.agents, undefined) !== undefined
+  let hasMappedStaff = false
+  let hasUsableStaff = false
+  if (isRecord(game.staff)) {
+    for (const [id, member] of Object.entries(game.staff)) {
+      if (
+        !isMappedStaffRecord(member) ||
+        member.specialty !== ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY
+      )
+        continue
+      hasMappedStaff = true
+      const contribution = capacity.byStaffId[id]
+      if (contribution && contribution.available > 0 && contribution.effectiveCapacity > 0)
+        hasUsableStaff = true
+    }
+  }
+  const hasUsablePersonnel = hasAgent || hasUsableStaff
+  const parsed = parseSpecialistOperatorSlots(game.specialistOperatorSlots)
+  const clearCache =
+    parsed !== undefined &&
+    isProductionSpecialistLaborOperatorSlotsShape(parsed) &&
+    !hasUsablePersonnel
+  const savedSlots = clearCache ? undefined : game.specialistOperatorSlots
+  const derivedSlots =
+    savedSlots === undefined && hasUsablePersonnel
+      ? PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS
+      : undefined
+  const operators = derivedSlots ?? resolveCampaignSpecialistLaborOperatorSlots(savedSlots)
+  return {
+    operators:
+      hasMappedStaff && !hasUsablePersonnel
+        ? Object.freeze(operators.filter((slot) => slot.roleFamily !== 'archive_analyst'))
+        : operators,
+    derivedSlots,
+    clearCache,
+  }
+}
+
 function isPairedWorkOrder(
   value: unknown
 ): value is { readonly id: string; readonly taskType: PairedDepartmentTask } {
@@ -312,7 +366,9 @@ export function projectSpecialistLaborGateInputsByWorkOrderId(
 
   const paired = Object.values(workOrders)
     .filter(isPairedWorkOrder)
-    .filter((workOrder, index, all) => all.findIndex((entry) => entry.id === workOrder.id) === index)
+    .filter(
+      (workOrder, index, all) => all.findIndex((entry) => entry.id === workOrder.id) === index
+    )
     .sort((left, right) => compareCodeUnits(left.id, right.id))
 
   if (paired.length === 0) return undefined

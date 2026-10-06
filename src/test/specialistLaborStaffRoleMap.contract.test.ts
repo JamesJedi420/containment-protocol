@@ -76,7 +76,8 @@ function makeWorkshopState(options?: {
 }
 
 function staffWithSpecialties(
-  specialties: ReadonlyArray<'intel' | 'logistics' | 'fabrication' | 'analysis'>
+  specialties: ReadonlyArray<'intel' | 'logistics' | 'fabrication' | 'analysis'>,
+  assigned = false
 ): GameState['staff'] {
   return Object.fromEntries(
     specialties.map((specialty, index) => [
@@ -84,6 +85,7 @@ function staffWithSpecialties(
       {
         specialty,
         efficiency: 1,
+        operationalPostId: `staff-post:${specialty}:${(index % 2) + 1}` as const,
         role: 'staff',
       } satisfies StaffData,
     ])
@@ -194,7 +196,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
   it('leaves the field absent and keeps records_review operable when no matching staff or investigator is present', () => {
     const state = makeWorkshopState({
       agents: agentsWithRoles(['hunter', 'medic']),
-      staff: staffWithSpecialties(['intel', 'logistics']),
+      staff: staffWithSpecialties(['intel', 'logistics'], true),
     })
     expect(state.specialistOperatorSlots).toBeUndefined()
 
@@ -212,7 +214,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
   it('writes one archive_analyst slot from analysis staff and week-close consumes it', () => {
     const state = makeWorkshopState({
       agents: agentsWithRoles(['hunter']),
-      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY]),
+      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY], true),
     })
     expect(state.specialistOperatorSlots).toBeUndefined()
 
@@ -229,7 +231,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
     const state = makeWorkshopState({
       includeSibling: true,
       agents: agentsWithRoles(['hunter']),
-      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY]),
+      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY], true),
     })
     state.specialistOperatorSlots = []
 
@@ -250,7 +252,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
   it('does not overwrite a saved novice slot when analysis staff is also present', () => {
     const state = makeWorkshopState({
       agents: agentsWithRoles(['hunter']),
-      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY]),
+      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY], true),
     })
     state.specialistOperatorSlots = [NOVICE_SLOT]
 
@@ -266,7 +268,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
   it('does not overwrite agent-derived slots already present when analysis staff is also present', () => {
     const state = makeWorkshopState({
       agents: agentsWithRoles([ARCHIVE_ANALYST_MAPPED_AGENT_ROLE]),
-      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY]),
+      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY], true),
     })
     state.specialistOperatorSlots = [...PRODUCTION_SPECIALIST_LABOR_OPERATOR_SLOTS]
 
@@ -282,7 +284,7 @@ describe('SPE-3116 staff role map through advanceWeek', () => {
     const state = makeWorkshopState({
       includeSibling: true,
       agents: agentsWithRoles(['hunter']),
-      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY]),
+      staff: staffWithSpecialties([ARCHIVE_ANALYST_MAPPED_STAFF_SPECIALTY], true),
     })
 
     const next = advanceWeek(state)

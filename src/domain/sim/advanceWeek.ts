@@ -100,10 +100,8 @@ import {
   composeFacilityMaintenanceWorkshopQuality,
 } from '../facilityMaintenanceWeekClose'
 import {
-  deriveArchiveAnalystSlotsFromMappedPersonnel,
   projectSpecialistLaborGateInputsByWorkOrderId,
-  resolveCampaignSpecialistLaborOperatorSlots,
-  shouldClearStaleMappedProductionSpecialistOperatorSlots,
+  resolveWeekCloseSpecialistLaborOperatorSlots,
 } from '../specialistLaborOperatorFeed'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
@@ -5035,38 +5033,13 @@ export function advanceWeek(
   // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
   // and output come from separate staging placements. A persisted
   // departmentLocalStaging cache cannot override missing or conflicting topology.
-  // SPE-3110: gate map is transient and work-order keyed. SPE-3112 / SPE-3113 /
-  // SPE-3117 feed it from saved specialistOperatorSlots when valid (including
-  // []), else the two-slot campaign roster (archive_analyst +
-  // containment_engineer). SPE-3118 clears a present one-slot production-shaped
-  // list to absent when no mapped investigator / analysis staff remain (keeps
-  // intentional [] and non-production shapes). SPE-3115 / SPE-3116 may then
-  // materialize one archive_analyst slot from a mapped investigator or analysis
-  // staff when the field is still absent (agent-then-staff compose); maps never
-  // overwrite a present list and never write [] for “no match.” The projector
-  // keys records_review and containment_response only; other tasks omit.
-  // Completion registration stays on outputWeeklyState so post-inspection
-  // integrity / facility axes remain authoritative.
-  const clearStaleMappedProductionSlots = shouldClearStaleMappedProductionSpecialistOperatorSlots(
-    inputWeeklyState.agents,
-    inputWeeklyState.staff,
-    inputWeeklyState.specialistOperatorSlots
-  )
-  const specialistOperatorSlotsForFeed = clearStaleMappedProductionSlots
-    ? undefined
-    : inputWeeklyState.specialistOperatorSlots
-  const derivedMappedPersonnelSlots = deriveArchiveAnalystSlotsFromMappedPersonnel(
-    inputWeeklyState.agents,
-    inputWeeklyState.staff,
-    specialistOperatorSlotsForFeed
-  )
-  const specialistLaborOperatorSlots =
-    derivedMappedPersonnelSlots !== undefined
-      ? derivedMappedPersonnelSlots
-      : resolveCampaignSpecialistLaborOperatorSlots(specialistOperatorSlotsForFeed)
+  // SPE-3148 gates staff through canonical capacity on the workshop input snapshot.
+  // Cache cleanup/materialization remains independent of transient archive filtering;
+  // unusable analysis staff cannot regain capacity through campaign fallback.
+  const specialistLaborFeed = resolveWeekCloseSpecialistLaborOperatorSlots(inputWeeklyState)
   const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
     inputWeeklyState.departmentWorkshopWorkOrders,
-    specialistLaborOperatorSlots
+    specialistLaborFeed.operators
   )
   const facilityMaintenance = resolveFacilityMaintenanceWeekClose(
     inputWeeklyState.facilityLayoutSnapshot,
@@ -5096,9 +5069,9 @@ export function advanceWeek(
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
     outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
   }
-  if (derivedMappedPersonnelSlots !== undefined) {
-    outputWeeklyState.specialistOperatorSlots = derivedMappedPersonnelSlots
-  } else if (clearStaleMappedProductionSlots) {
+  if (specialistLaborFeed.derivedSlots !== undefined) {
+    outputWeeklyState.specialistOperatorSlots = specialistLaborFeed.derivedSlots
+  } else if (specialistLaborFeed.clearCache) {
     delete outputWeeklyState.specialistOperatorSlots
   }
   const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(

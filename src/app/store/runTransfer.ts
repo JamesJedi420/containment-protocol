@@ -252,6 +252,7 @@ import {
 } from '../../domain/progression'
 import { reconcileAgentBetrayedFields } from '../../domain/sim/betrayal'
 import { reconcileAgentInstructorAssignmentFields } from '../../domain/sim/instructorAssignment'
+import { normalizeOperationalStaffPosts } from '../../domain/operationalStaffPosts'
 import { reconcileAgentRelationshipChangedFields } from '../../domain/sim/relationshipProjection'
 import { sanitizePersistedAgencyProtocols } from '../../domain/protocols'
 import { isDistortionState, propagateDistortion } from '../../domain/shared/distortion'
@@ -3616,13 +3617,14 @@ export function sanitizeStaffMap(
   fallback: GameState['staff']
 ): GameState['staff'] {
   if (!isRecord(value)) {
-    return fallback
+    return normalizeOperationalStaffPosts(fallback)
   }
 
   const knownAgentIds = new Set(Object.keys(agents))
   const next: Record<string, StaffData> = {}
+  const normalizedPosts = normalizeOperationalStaffPosts(value as GameState['staff'])
 
-  for (const [staffId, entry] of Object.entries(value)) {
+  for (const [staffId, entry] of Object.entries(normalizedPosts)) {
     if (!isRecord(entry) || staffId.length === 0) {
       continue
     }
@@ -3677,10 +3679,13 @@ export function sanitizeStaffMap(
         ? { assignmentType: entry.assignmentType }
         : {}),
       ...(passiveBonuses ? { passiveBonuses } : {}),
+      ...(typeof entry.operationalPostId === 'string'
+        ? { operationalPostId: entry.operationalPostId }
+        : {}),
     }
   }
 
-  return Object.keys(next).length > 0 ? next : fallback
+  return Object.keys(next).length > 0 ? next : normalizeOperationalStaffPosts(fallback)
 }
 
 export interface SanitizeAgentsMapContext {

@@ -389,3 +389,11 @@ Tick wired from `advanceWeek` via `applyWeeklySpe956ParticipatoryChannelTick` ov
 
 - No migration path defined yet (single version)
 - If a breaking field change is needed, bump the discriminant string (e.g. `spe-956-participatory-channel.v2`) and add hydration defaults alongside `runTransfer.ts`
+
+## SPE-3147 — Operational staff post references
+
+Live non-instructor `GameState.staff` records may carry `operationalPostId` referencing one of eight authored `staff-post:<specialty>:<1|2>` slots (analysis, intel, logistics, fabrication). Absence explicitly means unassigned. Recruitment `assignmentType` never establishes occupancy and hiring never copies an operational reference from candidate input.
+
+Roster keys identify staff; occupancy is derived from these references, never persisted separately. Assignment commands validate exact normalized specialty, destination occupancy and expected previous reference atomically. Existing instructor, agent-duty and specialist mapping contracts remain independent. Post assignment alone grants no capacity or simulation bonus.
+
+Hydration validates references before legacy staff-specialty normalization. Unknown, malformed, incompatible and instructor-owned references are dropped; all claimants to duplicate references are cleared without choosing a winner by roster order. Missing legacy references remain absent. Valid references survive local persistence, manual saves and run export/import. This additive optional field uses existing save-envelope version 7; no event schema or migration version changes are required.

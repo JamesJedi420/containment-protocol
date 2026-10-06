@@ -6,7 +6,8 @@ import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategi
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 
 export default function AgencyPage() {
-  const { game, orderFacilityMaintenanceRecovery } = useGameStore()
+  const { game, orderFacilityMaintenanceRecovery, purchaseFacilityMaintenancePackage } =
+    useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
@@ -94,6 +95,28 @@ export default function AgencyPage() {
           onClick={orderFacilityMaintenanceRecovery}
         >
           Order facility recovery
+        </button>
+        <p className="text-sm">
+          Maintenance package: {maintenance.purchase.package.maintenanceHours} hours /{' '}
+          {maintenance.purchase.package.partsReserve} parts · Price:{' '}
+          {maintenance.purchase.package.price} funding · Available funding:{' '}
+          {maintenance.purchase.availableFunding ?? 'Unavailable'}
+        </p>
+        <p
+          id="facility-maintenance-purchase-explanation"
+          className="text-sm opacity-80"
+          aria-live="polite"
+        >
+          {maintenance.purchase.explanation}
+        </p>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          disabled={!maintenance.purchase.canPurchase}
+          aria-describedby="facility-maintenance-purchase-explanation"
+          onClick={purchaseFacilityMaintenancePackage}
+        >
+          Buy maintenance package
         </button>
       </article>
 

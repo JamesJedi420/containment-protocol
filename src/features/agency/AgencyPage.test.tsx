@@ -74,6 +74,61 @@ describe('AgencyPage escalation/pressure cadence surfacing', () => {
 })
 
 describe('AgencyPage', () => {
+  it('purchases a package and refreshes funding/budget without repairing debt', () => {
+    useGameStore.setState({
+      game: {
+        ...makeMinimalGameState(),
+        funding: 200,
+        facilityMaintenanceState: { maintenanceDebt: 18, lastProcessedWeek: 0 },
+        facilityMaintenanceRecoveryResources: undefined,
+      },
+    })
+    renderAgencyPage()
+    const purchase = screen.getByRole('button', { name: 'Buy maintenance package' })
+    expect(purchase).toBeEnabled()
+    expect(purchase).toHaveAccessibleDescription(
+      'Buy one maintenance package. Recovery requires a separate order.'
+    )
+    expect(
+      screen.getByText(
+        /Maintenance package: 10 hours \/ 6 parts · Price: 100 funding · Available funding: 200/
+      )
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Order facility recovery' })).toBeDisabled()
+    fireEvent.click(purchase)
+    expect(screen.getByText('Recovery budget: 10 hours / 6 parts')).toBeInTheDocument()
+    expect(screen.getByText(/Available funding: 100/)).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance debt: 18/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Order facility recovery' })).toBeEnabled()
+    fireEvent.click(purchase)
+    expect(screen.getByText('Recovery budget: 20 hours / 12 parts')).toBeInTheDocument()
+    expect(screen.getByText(/Available funding: 0/)).toBeInTheDocument()
+    expect(purchase).toBeDisabled()
+    expect(purchase).toHaveAccessibleDescription('Insufficient funding for a maintenance package.')
+  })
+
+  it.each(['insufficient', 'malformed', 'overflow'])(
+    'explains a blocked package purchase: %s',
+    (scenario) => {
+      const game = makeMinimalGameState()
+      if (scenario === 'insufficient') game.funding = 99
+      else
+        game.facilityMaintenanceRecoveryResources = {
+          maintenanceHours: scenario === 'overflow' ? Number.MAX_SAFE_INTEGER : -1,
+          partsReserve: 0,
+        }
+      useGameStore.setState({ game })
+      renderAgencyPage()
+      const purchase = screen.getByRole('button', { name: 'Buy maintenance package' })
+      expect(purchase).toBeDisabled()
+      expect(purchase).toHaveAccessibleDescription(
+        scenario === 'insufficient'
+          ? 'Insufficient funding for a maintenance package.'
+          : 'Purchase unavailable: funding or maintenance budget is invalid, or the budget would overflow.'
+      )
+    }
+  )
+
   it('orders facility recovery and refreshes debt, budget, and eligibility', () => {
     useGameStore.setState({
       game: {

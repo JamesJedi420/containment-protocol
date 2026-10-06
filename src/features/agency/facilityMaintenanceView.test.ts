@@ -3,6 +3,27 @@ import { createStartingState } from '../../data/startingState'
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 
 describe('facility maintenance preview', () => {
+  it('previews a paid legacy allocation without changing budget, debt, funding or history', () => {
+    const game = createStartingState()
+    game.facilityMaintenanceRecoveryResources = undefined
+    const before = structuredClone(game)
+    expect(projectFacilityMaintenanceView(game)).toMatchObject({
+      canOrder: false,
+      purchase: {
+        package: { price: 100, maintenanceHours: 10, partsReserve: 6 },
+        availableFunding: game.funding,
+        canPurchase: true,
+      },
+    })
+    expect(game).toEqual(before)
+    game.funding = 99
+    expect(projectFacilityMaintenanceView(game).purchase).toMatchObject({
+      availableFunding: 99,
+      canPurchase: false,
+      explanation: 'Insufficient funding for a maintenance package.',
+    })
+  })
+
   it.each([
     [8, 'strained', 4, 2],
     [18, 'degraded', 10, 6],

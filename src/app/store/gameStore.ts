@@ -1,6 +1,7 @@
 // cspell:words partialize unequip
 import { create } from 'zustand'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
+import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import {
   appendOperationEventDrafts,
@@ -447,6 +448,7 @@ interface GameStore {
   ) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
   orderFacilityMaintenanceRecovery: () => void
+  purchaseFacilityMaintenancePackage: () => void
   repairStoredEquipmentInstanceCondition: (instanceId: string) => void
   stabilizeContainmentClassDeficiency: (instanceId: string) => void
   inspectContainmentClassIntegrity: (instanceId: string) => void
@@ -2021,6 +2023,12 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           const result = applyFacilityMaintenanceRecovery(s.game)
           return result.status === 'recovered' ? { game: result.game } : s
+        }),
+
+      purchaseFacilityMaintenancePackage: () =>
+        set((s) => {
+          const result = purchaseFacilityMaintenancePackage(s.game)
+          return result.status === 'purchased' ? { game: result.game } : s
         }),
 
       repairStoredEquipmentInstanceCondition: (instanceId) =>

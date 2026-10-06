@@ -279,6 +279,12 @@ function sanitizeFundingHistory(
       return left.delta - right.delta
     })
     .filter((entry, index, entries) => {
+      // SPE-3283: each paid package is a distinct expense, including same-week orders.
+      if (
+        entry.reason === 'facility_maintenance_package' &&
+        entry.sourceId === 'facility-maintenance-package'
+      )
+        return true
       const key = `${entry.week}:${entry.reason}:${entry.sourceId ?? ''}`
       return (
         entries.findIndex(

@@ -195,10 +195,14 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
         ? -4
         : 4
       : 0
-    const factionBefore = candidate.sourceFactionId ? state.factions?.[candidate.sourceFactionId] : undefined
+    const factionBefore = candidate.sourceFactionId
+      ? state.factions?.[candidate.sourceFactionId]
+      : undefined
     const contactBefore =
       candidate.sourceFactionId && candidate.sourceContactId
-        ? (factionBefore?.contacts ?? []).find((contact) => contact.id === candidate.sourceContactId)
+        ? (factionBefore?.contacts ?? []).find(
+            (contact) => contact.id === candidate.sourceContactId
+          )
         : undefined
     const nextFactions = applyFactionRecruitInteraction(state.factions ?? {}, {
       factionId: candidate.sourceFactionId,
@@ -206,7 +210,9 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
       relationshipDelta,
       reputationDelta,
     })
-    const factionAfter = candidate.sourceFactionId ? nextFactions[candidate.sourceFactionId] : undefined
+    const factionAfter = candidate.sourceFactionId
+      ? nextFactions[candidate.sourceFactionId]
+      : undefined
     const contactAfter =
       candidate.sourceFactionId && candidate.sourceContactId
         ? (factionAfter?.contacts ?? []).find((contact) => contact.id === candidate.sourceContactId)
@@ -251,12 +257,11 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
         createFactionStandingChangedDraft({
           week: state.week,
           factionId: candidate.sourceFactionId,
-          factionName: candidate.sourceFactionName ?? factionAfter.name ?? candidate.sourceFactionId,
+          factionName:
+            candidate.sourceFactionName ?? factionAfter.name ?? candidate.sourceFactionId,
           delta: reputationDelta,
           standingBefore: Math.round((factionBefore.reputation ?? 0) / 5),
-          standingAfter: Math.round(
-            (factionAfter.reputation ?? factionBefore.reputation ?? 0) / 5
-          ),
+          standingAfter: Math.round((factionAfter.reputation ?? factionBefore.reputation ?? 0) / 5),
           reputationBefore: factionBefore.reputation ?? 0,
           reputationAfter: factionAfter.reputation ?? factionBefore.reputation ?? 0,
           reason: 'recruitment.hired',
@@ -293,16 +298,19 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
   }
 
   if (recruitCategory === 'staff' && candidate.staffData) {
+    const liveStaff = {
+      ...candidate.staffData,
+      specialty: normalizeStaffCandidateSpecialty(candidate.staffData.specialty),
+    }
+    // Candidate/background data cannot establish live operational occupancy.
+    Reflect.deleteProperty(liveStaff, 'operationalPostId')
     const nextState = syncCandidatePoolState(
       {
         ...state,
         funding: state.funding - weeklyCost,
         staff: {
           ...state.staff,
-          [candidateId]: {
-            ...candidate.staffData,
-            specialty: normalizeStaffCandidateSpecialty(candidate.staffData.specialty),
-          },
+          [candidateId]: liveStaff,
         },
       },
       remainingCandidates

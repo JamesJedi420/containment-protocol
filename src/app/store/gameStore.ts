@@ -2,6 +2,16 @@
 import { create } from 'zustand'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
+import {
+  assignOperationalStaffPost,
+  reassignOperationalStaffPost,
+  unassignOperationalStaffPost,
+} from '../../domain/operationalStaffPosts'
+import type {
+  OperationalStaffPostAssignmentRequest,
+  OperationalStaffPostRequest,
+  OperationalStaffPostResult,
+} from '../../domain/operationalStaffPosts'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import {
   appendOperationEventDrafts,
@@ -404,6 +414,13 @@ interface GameStore {
   /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
   setPublicDisclosurePostureChoice: (recordId: Id, posture: PublicDisclosurePostureChoice) => void
   hireCandidate: (candidateId: Id) => void
+  assignOperationalStaffPost: (
+    request: OperationalStaffPostAssignmentRequest
+  ) => OperationalStaffPostResult
+  reassignOperationalStaffPost: (
+    request: OperationalStaffPostAssignmentRequest
+  ) => OperationalStaffPostResult
+  unassignOperationalStaffPost: (request: OperationalStaffPostRequest) => OperationalStaffPostResult
   scoutCandidate: (candidateId: Id) => void
   transitionCandidateFunnel: (
     candidateId: Id,
@@ -1696,6 +1713,21 @@ export const useGameStore = create<GameStore>()(
         }),
 
       hireCandidate: (candidateId) => set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+      assignOperationalStaffPost: (request) => {
+        const result = assignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      reassignOperationalStaffPost: (request) => {
+        const result = reassignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      unassignOperationalStaffPost: (request) => {
+        const result = unassignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
 
       scoutCandidate: (candidateId) => set((s) => ({ game: scoutCandidate(s.game, candidateId) })),
 

@@ -1331,7 +1331,8 @@ export interface InstructorData {
   assignedAgentId?: string
 }
 
-export type StaffData = (RecruitmentStaffData & { role?: 'staff' }) | InstructorData
+export type StaffData =
+  (RecruitmentStaffData & { role?: 'staff'; operationalPostId?: string }) | InstructorData
 
 export type FieldTechData = SpecialistCandidateData
 

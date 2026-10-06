@@ -70,7 +70,7 @@ describe('operational staff post store and persistence', () => {
       expect(restored.staff.instructor).toEqual(assigned.staff.instructor)
       expect(restored.specialistOperatorSlots).toEqual(assigned.specialistOperatorSlots)
     }
-    // Reset memory without rewriting storage, then load the persisted Zustand envelope.
+    // Reset memory, restore the saved envelope, then rehydrate from local persistence.
     const { storage, name } = useGameStore.persist.getOptions()
     const saved = await storage!.getItem(name!)
     expect(saved?.state).toMatchObject({

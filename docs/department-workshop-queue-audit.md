@@ -451,3 +451,9 @@ canonical `advanceWeek` hook. No second hook, grader, persisted quality-input
 map, schema field, or hydration key is introduced. Existing receipts retain
 precedence across replay and save/load, so later integrity recovery cannot
 regrade historical output. The SPE-2792 biohazard room path remains unchanged.
+
+## SPE-3148 — Operational analysis staff in week-close
+
+The production specialist feed consumes `deriveOperationalStaffCapacity` once on the workshop input snapshot. A mapped analysis staff member requires positive canonical availability and effective capacity; investigators retain precedence. The existing single archive slot and task/quality gates remain unchanged.
+
+Unusable mapped analysis staff cannot bypass this requirement through saved slots or campaign fallback: archive analysts are removed transiently while containment operators remain. Intentional empty lists and custom cache shapes stay persisted unchanged; stale production-shaped caches clear to absence. When all mapped personnel leave, legacy campaign recovery remains. Staff-time allocation, maintenance conversion, staffing UI and competency-band derivation remain outside SPE-3148.

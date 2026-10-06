@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3148",
     "SPE-3135",
     "SPE-3147",
     "SPE-3283",
@@ -16,6 +17,7 @@
     "SPE-2262"
   ],
   "sliceDocStatus": {
+    "planning/spe-3148-specialist-operational-capacity-slice.md": "Recently shipped",
     "planning/spe-3283-paid-facility-maintenance-slice.md": "Recently shipped",
     "planning/spe-1051-sealed-site-confiscated-evidence-slice.md": "Recently shipped",
     "planning/spe-1051-after-action-cause-chain-slice.md": "Recently shipped",

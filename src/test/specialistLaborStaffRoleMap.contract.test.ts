@@ -85,7 +85,9 @@ function staffWithSpecialties(
       {
         specialty,
         efficiency: 1,
-        operationalPostId: `staff-post:${specialty}:${(index % 2) + 1}` as const,
+        ...(assigned
+          ? { operationalPostId: `staff-post:${specialty}:${(index % 2) + 1}` as const }
+          : {}),
         role: 'staff',
       } satisfies StaffData,
     ])

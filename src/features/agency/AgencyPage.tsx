@@ -4,11 +4,14 @@ import { useGameStore } from '../../app/store/gameStore'
 import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
+import { OperationalStaffingPanel } from './OperationalStaffingPanel'
+import { projectOperationalStaffingView } from './operationalStaffingView'
 
 export default function AgencyPage() {
   const { game, orderFacilityMaintenanceRecovery, purchaseFacilityMaintenancePackage } =
     useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
+  const staffing = projectOperationalStaffingView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -64,6 +67,8 @@ export default function AgencyPage() {
           </ul>
         </div>
       </article>
+
+      <OperationalStaffingPanel staffing={staffing} />
 
       <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">
         <h3 id="facility-maintenance-heading" className="text-base font-semibold">

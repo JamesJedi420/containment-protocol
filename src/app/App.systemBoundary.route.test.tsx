@@ -13,6 +13,28 @@ beforeEach(() => {
 })
 
 describe('App future-expansion system boundary routes', () => {
+  it('purchases a maintenance package through the production Agency route', async () => {
+    const game = createStartingState()
+    game.funding = 100
+    game.facilityMaintenanceRecoveryResources = { maintenanceHours: 0, partsReserve: 0 }
+    game.facilityMaintenanceState = { maintenanceDebt: 18, lastProcessedWeek: 0 }
+    useGameStore.setState({ game })
+    render(
+      <MemoryRouter initialEntries={[APP_ROUTES.agency]}>
+        <App />
+      </MemoryRouter>
+    )
+    const purchase = await screen.findByRole('button', { name: 'Buy maintenance package' })
+    fireEvent.click(purchase)
+    expect(screen.getByText('Recovery budget: 10 hours / 6 parts')).toBeInTheDocument()
+    expect(screen.getByText(/Available funding: 0/)).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance debt: 18/)).toBeInTheDocument()
+    expect(purchase).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Order facility recovery' }))
+    expect(screen.getByText('Recovery budget: 0 hours / 0 parts')).toBeInTheDocument()
+    expect(screen.getByText(/Maintenance debt: 0/)).toBeInTheDocument()
+  })
+
   it.each([
     {
       path: APP_ROUTES.rankings,

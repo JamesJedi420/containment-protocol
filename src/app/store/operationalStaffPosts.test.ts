@@ -14,6 +14,7 @@ import {
   stripGameTemplates,
 } from './runTransfer'
 import { loadGameSave, serializeGameSave } from './saveSystem'
+import { deriveOperationalStaffCapacity } from '../../domain/operationalStaffCapacity'
 
 const request = {
   staffId: 'a',
@@ -63,6 +64,9 @@ describe('operational staff post store and persistence', () => {
       parseRunExport(serializeRunExport(assigned)),
       loadGameSave(serializeGameSave(assigned)),
     ]) {
+      expect(deriveOperationalStaffCapacity(restored)).toEqual(
+        deriveOperationalStaffCapacity(assigned)
+      )
       expect(queryOperationalStaffPost(restored, 'a')).toEqual({
         postId: request.postId,
         reason: 'assigned',
@@ -81,11 +85,15 @@ describe('operational staff post store and persistence', () => {
     await storage!.setItem(name!, saved!)
     await useGameStore.persist.rehydrate()
     expect(queryOperationalStaffPost(useGameStore.getState().game, 'a').postId).toBe(request.postId)
+    expect(deriveOperationalStaffCapacity(useGameStore.getState().game)).toEqual(
+      deriveOperationalStaffCapacity(assigned)
+    )
   })
   it('leaves legacy staff unassigned despite assignmentType and grants no posts', () => {
     const legacy = hydrateGame(stripGameTemplates(initial()))
     expect(queryOperationalStaffPost(legacy, 'a').reason).toBe('unassigned')
     expect(legacy.staff.a).not.toHaveProperty('operationalPostId')
+    expect(deriveOperationalStaffCapacity(legacy).effectiveCapacity).toBe(0)
   })
   it('drops malformed, unknown, incompatible and instructor references before staff normalization', () => {
     const raw = {

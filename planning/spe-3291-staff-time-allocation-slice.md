@@ -2,11 +2,13 @@
 
 | Field             | Value                                                     |
 | ----------------- | --------------------------------------------------------- |
-| **Status**        | **In Progress**                                           |
+| **Status**        | **Recently shipped**                                      |
 | **Linear**        | [SPE-3291](https://linear.app/spectranoir/issue/SPE-3291) |
 | **Parent**        | SPE-1189 — remains Backlog                                |
 | **Branch**        | `cursor/spe-3291-staff-time-allocation`                   |
 | **Base main SHA** | `1a8d025f`                                                |
+
+PR [#4243](https://github.com/JamesJedi420/containment-protocol/pull/4243) carries this delivery. Status rows describe the merged artifact; keep Linear In Progress until this PR merges and acceptance is verified.
 
 ## Approved boundary
 
@@ -25,10 +27,10 @@ The user approved the complete implementation plan: reusable canonical staff-tim
 ## Validation
 
 - Full local regression passed: 863 files / 9,379 tests via eight bounded forks on Node 24. The default vmThreads attempt exited unexpectedly; hosted CI validates Node 22 with its configured pool.
-- Focused tests demonstrate real reserved-order progress and zero displaced-order progress; success/blocked week-close release; duplicate/stale commands; conflicting/disjoint claims; removal/reassignment; malformed/sparse saves; multi-contributor deterministic replay; manual-save/export/localStorage persistence; legacy fallback; independent agents; UI announcements, invalid-contributor explanation, unavailable state, and reset.
+- Final focused integration and boundary run passed 45 tests, followed by a 5-test panel run including keyboard activation. Focused tests demonstrate real reserved-order progress and zero displaced-order progress; success/blocked week-close release; duplicate/stale commands; conflicting/disjoint claims; removal/reassignment; malformed/sparse saves; multi-contributor deterministic replay; manual-save/export/localStorage persistence; legacy fallback; independent agents; UI announcements, invalid-contributor explanation, unavailable state, and reset.
 - Typecheck baseline remains 673 diagnostics, with no new diagnostic locations/codes after source-line mapping. Lint, audit-index, backlog-handoff, and theme-contract checks pass. New/changed small artifacts are formatted; large pre-existing source/backlog formatting drift is preserved.
 - Six iterative pre-ship passes covered scope/integration, edge cases, determinism/state, regressions, documentation, and cleanup. Fixes preserved the legacy single-derivation bound, unreserved fallback after older receipts, and owner release after a blocked attempt without depending on roster validity. No unresolved in-boundary findings.
-- Semantic and responsive markup are tested; interactive browser/controller visual QA was not performed.
+- Native-control semantics, pointer activation, accessible labels/status announcements, and keyboard submission are tested. Responsive layout classes are implemented; browser/controller visual QA was not performed.
 
 Advisor consultation is unavailable: its mandatory escalated launcher is prohibited by session tool policy. Root owns the six-pass audit, validation, and acceptance.
 

@@ -1,3 +1,5 @@
+import { reserveWorkshopStaffTime, releaseWorkshopStaffTime } from '../../domain/workshopStaffTime'
+import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAllocation'
 // cspell:words partialize unequip
 import { create } from 'zustand'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
@@ -414,6 +416,8 @@ interface GameStore {
   /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
   setPublicDisclosurePostureChoice: (recordId: Id, posture: PublicDisclosurePostureChoice) => void
   hireCandidate: (candidateId: Id) => void
+  reserveWorkshopStaffTime: (request: StaffTimeRequest) => StaffTimeResult
+  releaseWorkshopStaffTime: (id: string, revision: string) => StaffTimeResult
   assignOperationalStaffPost: (
     request: OperationalStaffPostAssignmentRequest
   ) => OperationalStaffPostResult
@@ -1713,6 +1717,16 @@ export const useGameStore = create<GameStore>()(
         }),
 
       hireCandidate: (candidateId) => set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+      reserveWorkshopStaffTime: (request) => {
+        const result = reserveWorkshopStaffTime(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      releaseWorkshopStaffTime: (id, revision) => {
+        const result = releaseWorkshopStaffTime(get().game, id, revision)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
       assignOperationalStaffPost: (request) => {
         const result = assignOperationalStaffPost(get().game, request)
         if (result.status === 'applied') set({ game: result.game })

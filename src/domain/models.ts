@@ -1,3 +1,4 @@
+import type { StaffTimeLedger } from './staffTimeAllocation'
 import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
 import type { FacilityMaintenanceRecoveryResources } from './facilityMaintenanceRecovery'
 import type {
@@ -2865,6 +2866,8 @@ export interface GameState {
   facilityLayoutSnapshot?: FacilityLayoutSnapshot
   /** SPE-3119: canonical accrued expansion debt and closed-week replay guard. */
   facilityMaintenanceState?: FacilityMaintenanceState
+  /** SPE-3291: canonical staff-capacity commitments and retained displacement receipts. */
+  staffTimeAllocations?: StaffTimeLedger
   /** SPE-3184: dedicated owner-supplied facility repair budget; no implicit conversion or refill. */
   facilityMaintenanceRecoveryResources?: FacilityMaintenanceRecoveryResources
   /**

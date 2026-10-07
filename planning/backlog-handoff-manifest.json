@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-3136"],
+  "inProgress": ["SPE-3291"],
   "recentlyShipped": [
+    "SPE-3136",
     "SPE-3148",
     "SPE-3135",
     "SPE-3147",
@@ -245,6 +246,7 @@
     "planning/spe-3191-player-ordered-facility-recovery-slice.md": "Recently shipped",
     "planning/spe-3147-operational-staff-posts-slice.md": "Recently shipped",
     "planning/spe-3135-operational-staff-capacity-slice.md": "Recently shipped",
-    "planning/spe-3136-operational-staffing-capacity-slice.md": "In Progress"
+    "planning/spe-3136-operational-staffing-capacity-slice.md": "Recently shipped",
+    "planning/spe-3291-staff-time-allocation-slice.md": "In Progress"
   }
 }

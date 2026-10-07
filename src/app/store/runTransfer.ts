@@ -1,3 +1,4 @@
+import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
 import { createSeedCampaignLedger, sanitizeCampaignLedger } from '../../domain/campaignLedger'
@@ -10704,6 +10705,7 @@ export function hydrateGame(
     facilityLayoutSnapshot,
     facilityMaintenanceState,
     facilityMaintenanceRecoveryResources,
+    staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,

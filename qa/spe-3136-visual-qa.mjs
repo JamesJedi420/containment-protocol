@@ -16,9 +16,31 @@ for (const viewport of [
   page.on('pageerror', (err) => pageErrors.push(String(err)))
 
   await page.goto(`${baseURL}/agency`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1500)
 
-  const panel = page.getByRole('article', { name: 'Operational staffing' })
-  await panel.waitFor({ state: 'visible' })
+  const diagnosticScreenshot = `qa-artifacts/spe-3136-${viewport.name}-page.png`
+  await page.screenshot({ path: diagnosticScreenshot, fullPage: true })
+
+  const bodyText = (await page.locator('body').innerText()).slice(0, 8000)
+  const url = page.url()
+  const title = await page.title()
+
+  const panel = page.locator('article[aria-labelledby="operational-staffing-heading"]')
+  const panelVisible = await panel.isVisible().catch(() => false)
+
+  if (!panelVisible) {
+    results.push({
+      viewport,
+      url,
+      title,
+      bodyText,
+      pageErrors,
+      panelVisible: false,
+      diagnosticScreenshot,
+    })
+    await page.close()
+    continue
+  }
 
   const optionalText = async (text) =>
     panel.getByText(text, { exact: false }).textContent().catch(() => null)
@@ -65,7 +87,6 @@ for (const viewport of [
           scrollWidth: node.scrollWidth,
           clientWidth: node.clientWidth,
           fontSize: style.fontSize,
-          lineHeight: style.lineHeight,
           visibility: style.visibility,
           display: style.display,
         }
@@ -104,18 +125,23 @@ for (const viewport of [
     clientWidth: document.documentElement.clientWidth,
   }))
 
-  const screenshot = `qa-artifacts/spe-3136-${viewport.name}.png`
-  await page.screenshot({ path: screenshot, fullPage: true })
+  const panelScreenshot = `qa-artifacts/spe-3136-${viewport.name}-panel.png`
+  await panel.screenshot({ path: panelScreenshot })
 
   results.push({
     viewport,
+    url,
+    title,
+    bodyText,
+    panelVisible: true,
     texts,
     supportStaffText,
     interactiveCount,
     visual,
     documentOverflow,
     pageErrors,
-    screenshot,
+    diagnosticScreenshot,
+    panelScreenshot,
   })
 
   await page.close()
@@ -126,6 +152,13 @@ await browser.close()
 const failures = []
 for (const result of results) {
   const prefix = result.viewport.name
+  if (!result.panelVisible) {
+    failures.push(`${prefix}: operational staffing panel not visible; current URL ${result.url}`)
+    if (result.pageErrors.length > 0)
+      failures.push(`${prefix}: page errors: ${result.pageErrors.join(' | ')}`)
+    continue
+  }
+
   if (!result.texts.heading) failures.push(`${prefix}: operational staffing heading missing`)
   if (!result.texts.headcount?.includes('Operational staff headcount'))
     failures.push(`${prefix}: headcount metric missing`)
@@ -153,7 +186,7 @@ const report = {
   branch: process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME ?? 'unknown',
   sha: process.env.GITHUB_SHA ?? 'unknown',
   note:
-    'Rendered actual /agency starting state. Warning strings are recorded when naturally present; warning-state logic is covered by merged SPE-3136 regression tests.',
+    'Rendered actual /agency starting state. Diagnostic screenshots/body text are always captured, including when the staffing panel is absent.',
   results,
   failures,
   passed: failures.length === 0,

@@ -22,9 +22,12 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Install browser QA dependency
+      - name: Install browser QA dependency in isolated temp directory
         run: |
-          npm install --no-save --package-lock=false playwright
+          mkdir -p /tmp/spe-qa
+          cd /tmp/spe-qa
+          npm init -y
+          npm install playwright
           npx playwright install --with-deps chromium
 
       - name: Start Vite

@@ -304,6 +304,8 @@ describe('weekly maintenance conversion', () => {
       null,
       {},
       { version: 1, receipts: [receipt, receipt] },
+      { version: 1, unavailable: true, receipts: [] },
+      { version: 1, receipts: [Object.create(receipt)] },
       { version: 1, receipts: new Array(1) },
       { version: 1, receipts: [{ ...receipt, week: -1 }] },
     ]) {

@@ -54,12 +54,23 @@ export function normalizeMaintenanceConversionLedger(
 ): MaintenanceConversionLedger | undefined {
   if (raw === undefined) return undefined
   const invalid = { version: 1, unavailable: true } as const
-  if (!record(raw) || raw.version !== 1 || !Array.isArray(raw.receipts)) return invalid
+  if (
+    !record(raw) ||
+    !Object.hasOwn(raw, 'version') ||
+    !Object.hasOwn(raw, 'receipts') ||
+    Object.hasOwn(raw, 'unavailable') ||
+    raw.version !== 1 ||
+    !Array.isArray(raw.receipts)
+  )
+    return invalid
   const receipts: MaintenanceConversionReceipt[] = []
   const seen = new Set<string>()
   for (const value of raw.receipts) {
     if (
       !record(value) ||
+      !Object.hasOwn(value, 'staffId') ||
+      !Object.hasOwn(value, 'week') ||
+      !Object.hasOwn(value, 'revision') ||
       !identifier(value.staffId) ||
       !Number.isSafeInteger(value.week) ||
       (value.week as number) < 0 ||

@@ -92,9 +92,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **In progress:** (none).
 
-**Recently shipped:** [SPE-3292](https://linear.app/spectranoir/issue/SPE-3292) — weekly staff/gasket maintenance conversion with successful per-staff receipts and immediate canonical capacity release; PR #4260. See `planning/spe-3292-maintenance-conversion-slice.md` (merge handoff; effective when the PR merges).
+**Recently shipped:** [SPE-3292](https://linear.app/spectranoir/issue/SPE-3292) — weekly staff/gasket maintenance conversion with successful per-staff receipts and immediate canonical capacity release; PR #4260. See `planning/spe-3292-maintenance-conversion-slice.md` (merge handoff; effective when the PR merges). Previously shipped prerequisite: [SPE-3291](https://linear.app/spectranoir/issue/SPE-3291) — canonical staff-time reservations and displaced-use accounting with opt-in archive-workshop integration; PR #4243. See `planning/spe-3291-staff-time-allocation-slice.md`.
 
-**Recently shipped:** [SPE-3291](https://linear.app/spectranoir/issue/SPE-3291) — canonical staff-time reservations and displaced-use accounting with opt-in archive-workshop integration; PR #4243. See `planning/spe-3291-staff-time-allocation-slice.md`.
 
 **Recently shipped:** [SPE-3136](https://linear.app/spectranoir/issue/SPE-3136) — canonical operational staffing capacity on Agency Command; PR #4242 merged. Assignment navigation remains unavailable.
 

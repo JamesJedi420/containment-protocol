@@ -14,7 +14,7 @@ Missing legacy state remains absent. Malformed, sparse, or duplicate present rec
 
 Optional `GameState.staffTimeAllocations` uses `version: 1` and sorted commitment receipts containing ID, campaign week, staff IDs with matching operational-post snapshots, destination, nullable displaced alternative, and active/released status. Contributor count is committed capacity. Release retains displacement history and replay identity.
 
-Missing legacy data remains absent. Invalid present data becomes `{ version: 1, unavailable: true }`; hydration must not erase invalid reservations into free capacity. Commands fail closed on this marker. No OperationEvent payload or global event-schema version changes are required; the ledger is authoritative saved state.
+Missing legacy data remains absent. Invalid present data becomes `{ version: 1, unavailable: true }`; hydration must not erase invalid reservations into free capacity. SPE-3292 supporting validation rejects hybrid payloads containing both `unavailable` and `commitments`, preserving exclusive union arms for every consumer. Commands fail closed on this marker. No OperationEvent payload or global event-schema version changes are required; the ledger is authoritative saved state.
 
 ## Current Schema Version
 

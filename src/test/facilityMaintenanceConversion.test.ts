@@ -207,6 +207,7 @@ describe('weekly maintenance conversion', () => {
     },
     { facilityMaintenanceConversionReceipts: { version: 1, unavailable: true } },
     { staffTimeAllocations: { version: 1, unavailable: true } },
+    { staffTimeAllocations: { version: 1, unavailable: true, commitments: [] } },
   ])('fails closed without consuming weekly eligibility: %j', (override) => {
     const game = { ...campaign(), ...override } as GameState
     const before = structuredClone(game)
@@ -381,5 +382,24 @@ describe('weekly maintenance conversion', () => {
       receipts: [{ ...receipt, week: game.week + 1 }],
     }
     expect(preview(game, 'a').reason).toBe('malformed_source')
+  })
+
+  it('preserves hybrid allocation unavailability through hydration and every save path', () => {
+    const game = {
+      ...campaign(),
+      staffTimeAllocations: { version: 1, unavailable: true, commitments: [] },
+    } as GameState
+    const states = [
+      normalizeGameState(game),
+      hydrateGame(game, createStartingState()),
+      parseRunExport(serializeRunExport(game)),
+      loadGameSave(serializeGameSave(game)),
+    ]
+    for (const hydrated of states) {
+      expect(hydrated.staffTimeAllocations).toEqual({ version: 1, unavailable: true })
+      expect(preview(hydrated, 'a').reason).toBe('malformed_source')
+      expect(convert(hydrated, preview(hydrated, 'a').request).game).toBe(hydrated)
+      expect(hydrated.facilityMaintenanceConversionReceipts).toBeUndefined()
+    }
   })
 })

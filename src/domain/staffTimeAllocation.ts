@@ -45,7 +45,13 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export function normalizeStaffTimeLedger(raw: unknown): StaffTimeLedger | undefined {
   if (raw === undefined) return undefined
   const invalid = { version: 1, unavailable: true } as const
-  if (!record(raw) || raw.version !== 1 || !Array.isArray(raw.commitments)) return invalid
+  if (
+    !record(raw) ||
+    Object.hasOwn(raw, 'unavailable') ||
+    raw.version !== 1 ||
+    !Array.isArray(raw.commitments)
+  )
+    return invalid
   const commitments: StaffTimeCommitment[] = []
   const ids = new Set<string>()
   const claims = new Set<string>()

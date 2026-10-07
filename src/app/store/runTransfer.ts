@@ -1,3 +1,4 @@
+import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
@@ -10706,6 +10707,9 @@ export function hydrateGame(
     facilityMaintenanceState,
     facilityMaintenanceRecoveryResources,
     staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      game.facilityMaintenanceConversionReceipts
+    ),
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,

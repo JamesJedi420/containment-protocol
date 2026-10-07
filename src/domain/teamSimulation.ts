@@ -1,3 +1,4 @@
+import { normalizeMaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import { normalizeStaffTimeLedger } from './staffTimeAllocation'
 import { getOutcomeBand, resolveConsequenceRoute } from './shared/outcomes'
 import type { ThreatFamily } from './shared/modifiers'
@@ -1140,6 +1141,9 @@ export function normalizeGameState(state: GameState): GameState {
   return {
     ...withoutLegacyGraph,
     staffTimeAllocations: normalizeStaffTimeLedger(normalized.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      normalized.facilityMaintenanceConversionReceipts
+    ),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues: normalizeRivalExpeditionClueRegistry(
       normalized.rivalExpeditionClues,

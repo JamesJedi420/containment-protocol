@@ -1,5 +1,13 @@
 # Containment Protocol — Game State Schema
 
+## Weekly staff maintenance conversion (SPE-3292)
+
+`facilityMaintenanceConversion` owns one explicit Agency Command recipe: one `pressure_seal_gasket` plus one canonical operational staff-capacity unit produces 2 maintenance hours and 1 parts reserve. The existing gasket is a class-specific service spare in `sparePartSuitability`; converting it into prepared maintenance reserve consumes stock otherwise available for direct pressure-seal repairs. This authored use adds no stock identity and does not substitute inventory, funding, or existing reserve balances.
+
+Preview and command read canonical operational capacity and allocation, named facility stock, maintenance resources, and weekly conversion receipts. Execution revalidates its revision, stages SPE-3291 commitment, SPE-2887 consumption, resource credit and the successful staff/week receipt, then immediately releases through SPE-3291 before publishing one complete GameState. Any failure retains the original state. Equivalent completed requests are no-ops; fresh same-staff same-week requests are exhausted. Different staff may each convert, and a new authoritative campaign week restores eligibility without automatic credit.
+
+The separate optional versioned `facilityMaintenanceConversionReceipts` retains weekly-use and replay evidence after release and save/load. Missing legacy data is absent; malformed present receipts remain unavailable. An absent maintenance budget starts at zero only on success; malformed present budgets or overflow block. Capacity becomes available for unrelated work immediately, but release does not restore recipe eligibility. Existing reservations are not displaced automatically. Paid replenishment and explicit debt recovery remain separate commands. Agency Command uses projection-owned requirements, stock tradeoff, reservation destination, reasons, native controls, and accessible announcements.
+
 ## Operational staff-time allocation (SPE-3291)
 
 `src/domain/staffTimeAllocation.ts` owns optional versioned staff commitments, deriving every contributor through canonical operational-post capacity. Reservations withhold explicit staff identities for `game.week`; post snapshots invalidate a changed contributor without automatic selection. Revision-token commands are atomic and idempotent, and released receipts retain displaced-use history across saves.

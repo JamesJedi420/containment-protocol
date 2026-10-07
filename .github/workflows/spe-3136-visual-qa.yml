@@ -1,0 +1,54 @@
+name: SPE-3136 Visual QA
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install browser QA dependency
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/spe-3136-vite.log 2>&1 &
+          echo $! > /tmp/spe-3136-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/agency >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/spe-3136-vite.log
+          exit 1
+
+      - name: Run desktop and mobile visual QA
+        env:
+          QA_BASE_URL: http://127.0.0.1:4173
+        run: node qa/spe-3136-visual-qa.mjs
+
+      - name: Upload visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spe-3136-visual-qa
+          path: qa-artifacts/
+          if-no-files-found: error

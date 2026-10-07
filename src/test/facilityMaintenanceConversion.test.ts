@@ -44,6 +44,64 @@ function campaign(): GameState {
 }
 
 describe('weekly maintenance conversion', () => {
+  it('publishes only conversion authorities even when unrelated state has normalization drift', () => {
+    const game = campaign()
+    game.funding = 123
+    game.agency = { ...game.agency!, funding: 987 }
+    game.market = { ...game.market, week: game.week + 10 }
+    const result = convert(game, preview(game, 'a').request)
+    expect(result.status).toBe('applied')
+    const participating = new Set([
+      'staffTimeAllocations',
+      'facilityStockpile',
+      'facilityMaintenanceRecoveryResources',
+      'facilityMaintenanceConversionReceipts',
+    ])
+    for (const key of Object.keys(game) as (keyof GameState)[]) {
+      if (!participating.has(key)) expect(result.game[key]).toBe(game[key])
+    }
+    expect(result.game.agency?.funding).toBe(987)
+    expect(result.game.staff).toBe(game.staff)
+    expect(result.game.agents).toBe(game.agents)
+  })
+
+  it('stores bounded replay tokens even after a long allocation and conversion history', () => {
+    const game = campaign()
+    const initialRevision = preview(game, 'a').request.revision
+    game.week = 500
+    game.staffTimeAllocations = {
+      version: 1,
+      commitments: Array.from({ length: 500 }, (_, week) => ({
+        id: `maintenance-conversion:${JSON.stringify([week, 'a'])}`,
+        destination: `maintenance-conversion:${JSON.stringify([week, 'a'])}`,
+        week,
+        staffIds: ['a'],
+        postIds: ['staff-post:analysis:1'],
+        displacedAlternative: null,
+        status: 'released' as const,
+      })),
+    }
+    game.facilityMaintenanceConversionReceipts = {
+      version: 1,
+      receipts: Array.from({ length: 500 }, (_, week) => ({
+        staffId: 'a',
+        week,
+        revision: initialRevision,
+      })),
+    }
+    const request = preview(game, 'a').request
+    expect(request.revision).toMatch(/^maintenance-v1:[0-9a-f]{16}$/)
+    const result = convert(game, request)
+    expect(result.status).toBe('applied')
+    const ledger = result.game.facilityMaintenanceConversionReceipts!
+    if ('receipts' in ledger) {
+      expect(ledger.receipts).toHaveLength(501)
+      expect(ledger.receipts.every((receipt) => receipt.revision.length === 31)).toBe(true)
+      expect(JSON.stringify(ledger).length).toBeLessThan(50000)
+    } else throw new Error('Expected valid completed receipts')
+    expect(convert(result.game, request).status).toBe('no_op')
+  })
+
   it('debits exactly one named part, credits the recipe, records eligibility, and releases capacity atomically', () => {
     const game = campaign(),
       before = structuredClone(game)
@@ -299,7 +357,7 @@ describe('weekly maintenance conversion', () => {
   })
 
   it('keeps malformed, sparse, duplicate and future receipt data unavailable across hydration', () => {
-    const receipt = { staffId: 'a', week: 0, revision: 'token' }
+    const receipt = { staffId: 'a', week: 0, revision: preview(campaign(), 'a').request.revision }
     for (const raw of [
       null,
       {},

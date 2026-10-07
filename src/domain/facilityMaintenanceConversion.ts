@@ -48,6 +48,15 @@ const record = (value: unknown): value is Record<string, unknown> =>
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.trim() === value
 
+/** Bounded FNV-1a/64 over UTF-16 units; a revision token, never an authorization credential. */
+function conversionRevision(snapshot: string): string {
+  let digest = 0xcbf29ce484222325n
+  for (let index = 0; index < snapshot.length; index++) {
+    digest = BigInt.asUintN(64, (digest ^ BigInt(snapshot.charCodeAt(index))) * 0x100000001b3n)
+  }
+  return `maintenance-v1:${digest.toString(16).padStart(16, '0')}`
+}
+
 /** Preserve corrupt present data as unavailable, never as renewed weekly eligibility. */
 export function normalizeMaintenanceConversionLedger(
   raw: unknown
@@ -74,7 +83,8 @@ export function normalizeMaintenanceConversionLedger(
       !identifier(value.staffId) ||
       !Number.isSafeInteger(value.week) ||
       (value.week as number) < 0 ||
-      !identifier(value.revision)
+      typeof value.revision !== 'string' ||
+      !/^maintenance-v1:[0-9a-f]{16}$/.test(value.revision)
     )
       return invalid
     const key = JSON.stringify([value.week, value.staffId])
@@ -124,14 +134,16 @@ function conversionSources(game: GameState) {
       partsReserve: resources.partsReserve + FACILITY_MAINTENANCE_CONVERSION.partsReserve,
     })
   // Include receipt keys, but exclude their revisions to avoid recursive token growth.
-  const revision = JSON.stringify([
-    allocation.revision,
-    stockValid,
-    stockQuantity,
-    resources,
-    credited,
-    receipts.map((r) => [r.week, r.staffId]),
-  ])
+  const revision = conversionRevision(
+    JSON.stringify([
+      allocation.revision,
+      stockValid,
+      stockQuantity,
+      resources,
+      credited,
+      receipts.map((r) => [r.week, r.staffId]),
+    ])
+  )
   return { allocation, receipts, unavailable, stockValid, stockQuantity, credited, revision }
 }
 
@@ -210,7 +222,9 @@ export function convertFacilityMaintenanceResources(
   const consumed = consumeFacilityStock(committed.game, PRESSURE_SEAL_SPARE_PART_ID)
   if (!consumed.ok) return blocked('stock_unavailable')
   const credited: GameState = {
-    ...consumed.state,
+    // The stock owner normalizes its whole input; publish only its canonical debit.
+    ...committed.game,
+    facilityStockpile: consumed.state.facilityStockpile,
     facilityMaintenanceRecoveryResources: source.credited!,
     facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger({
       version: 1,
@@ -220,6 +234,7 @@ export function convertFacilityMaintenanceResources(
       ],
     }),
   }
+  if (credited.facilityStockpile === undefined) delete credited.facilityStockpile
   const released = releaseStaffTime(credited, identity, queryStaffTimeAllocation(credited).revision)
   if (released.status !== 'applied') return blocked('conflict')
   return { game: released.game, status: 'applied', reason: 'converted' }

@@ -6,7 +6,7 @@ Documents versioning strategy for OperationEvent types to ensure backward compat
 
 ### Weekly maintenance conversion receipts (SPE-3292)
 
-Optional `GameState.facilityMaintenanceConversionReceipts` uses `version: 1` with sorted `{ staffId, week, revision }` receipts. The staff/week pair is unique; the successful request revision distinguishes equivalent replay from a fresh exhausted attempt. Only an atomic successful conversion writes a receipt. The receipt gates this recipe alone, independently of the immediately released SPE-3291 commitment.
+Optional `GameState.facilityMaintenanceConversionReceipts` uses `version: 1` with sorted `{ staffId, week, revision }` receipts. The staff/week pair is unique; the successful request revision distinguishes equivalent replay from a fresh exhausted attempt. Revisions are bounded `maintenance-v1:` plus 16 hex digits (FNV-1a/64 over the deterministic authority snapshot), rather than saved snapshots of retained allocation history. Only an atomic successful conversion writes a receipt. The receipt gates this recipe alone, independently of the immediately released SPE-3291 commitment.
 
 Missing legacy state remains absent. Malformed, sparse, or duplicate present receipts normalize to `{ version: 1, unavailable: true }`, retaining the fail-closed marker through normalization, hydration, manual saves, exports, and persisted-store migration. Future-week receipts block commands. Reset starts without receipts. Eligibility compares against authoritative `GameState.week` without recurring grants or receipt deletion. Field-level hydration supplies the additive migration; no OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 

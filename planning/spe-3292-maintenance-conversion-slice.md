@@ -2,11 +2,13 @@
 
 | Field             | Value                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                             |
+| **Status**        | **Recently shipped**                                                                        |
 | **Issue**         | [SPE-3292](https://linear.app/spectranoir/issue/SPE-3292)                                   |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog; completion not claimed |
 | **Branch**        | `cursor/spe-3292-maintenance-conversion`                                                    |
 | **Base main SHA** | `ad9109a5`                                                                                  |
+
+PR [#4260](https://github.com/JamesJedi420/containment-protocol/pull/4260) carries this delivery. Status and backlog rows describe the merge handoff; they take effect on merge. Keep Linear In Progress until merge and acceptance are verified.
 
 ## Approved boundary and recipe prerequisite
 
@@ -27,7 +29,7 @@ The existing `PRESSURE_SEAL_SPARE_PART_ID` in `sparePartSuitability` supplies a 
 - Full regression passed: 866 files / 9,410 tests with the CI forks pool and eight bounded workers on local Node 24. Hosted CI validates Node 22 with the pinned install.
 - Focused boundary/integration run passed 38 tests; the earlier Agency Command and allocation regression run passed 60 tests. Coverage includes canonical debit/credit and release, same/different staff weekly use, next-week restoration, stale previews, rollback after provisional claim or debit, replay, corrupt/sparse/duplicate/future receipts, stable ordering, inherited stock, legacy establishment, normalize/hydrate/export/manual-save/migration/localStorage persistence, reset, recovery composition, conflicts, pointer and keyboard activation, and accessible announcements.
 - Typecheck remains at 673 baseline diagnostics, with no new file/error-code entries. Lint, audit-index, backlog-handoff and theme-contract checks pass. Changed small artifacts pass formatting; unrelated large-file baseline formatting drift is retained.
-- Six iterative pre-ship passes covered scope/integration, edge cases, determinism/state, regression, documentation, and cleanup. Fixes ensured stable receipt ordering, consistent own-property stock preview, and baseline-safe types. No unresolved in-boundary findings.
+- Six iterative pre-ship passes covered scope/integration, edge cases, determinism/state, regression, documentation, and cleanup. Fixes ensured stable receipt ordering, consistent own-property stock preview, and baseline-safe types. No unresolved in-boundary findings. The independent full-diff review against main also found no correctness or scope issues.
 - Native controls share one command path. Browser visual QA and physical-controller verification were unavailable: the session reports no browser providers. Agency Command rendering and interaction were verified by component tests.
 
 Advisor consultation is unavailable because the installed skill requires an escalated launcher prohibited by session tool policy. Root owns integration and completion review.

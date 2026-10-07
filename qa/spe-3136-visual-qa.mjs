@@ -1,5 +1,8 @@
-import { chromium } from 'playwright'
+import { createRequire } from 'node:module'
 import fs from 'node:fs/promises'
+
+const require = createRequire(import.meta.url)
+const { chromium } = require('/tmp/spe-qa/node_modules/playwright')
 
 const baseURL = process.env.QA_BASE_URL ?? 'http://127.0.0.1:4173'
 await fs.mkdir('qa-artifacts', { recursive: true })

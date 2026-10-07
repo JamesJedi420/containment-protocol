@@ -67,7 +67,7 @@ export function normalizeMaintenanceConversionLedger(
     !record(raw) ||
     !Object.hasOwn(raw, 'version') ||
     !Object.hasOwn(raw, 'receipts') ||
-    Object.hasOwn(raw, 'unavailable') ||
+    'unavailable' in raw ||
     raw.version !== 1 ||
     !Array.isArray(raw.receipts)
   )

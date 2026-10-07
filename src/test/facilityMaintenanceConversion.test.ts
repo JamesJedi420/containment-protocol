@@ -364,6 +364,7 @@ describe('weekly maintenance conversion', () => {
       {},
       { version: 1, receipts: [receipt, receipt] },
       { version: 1, unavailable: true, receipts: [] },
+      Object.assign(Object.create({ unavailable: true }), { version: 1, receipts: [] }),
       { version: 1, receipts: [Object.create(receipt)] },
       { version: 1, receipts: new Array(1) },
       { version: 1, receipts: [{ ...receipt, week: -1 }] },
@@ -400,6 +401,42 @@ describe('weekly maintenance conversion', () => {
       expect(preview(hydrated, 'a').reason).toBe('malformed_source')
       expect(convert(hydrated, preview(hydrated, 'a').request).game).toBe(hydrated)
       expect(hydrated.facilityMaintenanceConversionReceipts).toBeUndefined()
+    }
+  })
+
+  it('rejects inherited allocation authority and required commitment fields before conversion and hydration', () => {
+    const receipt = {
+      id: 'reserved',
+      week: campaign().week,
+      staffIds: ['a'],
+      postIds: ['staff-post:analysis:1'],
+      destination: 'other',
+      displacedAlternative: null,
+      status: 'active',
+    }
+    const inheritedReceipts = Object.keys(receipt).map((key) => {
+      const value = { ...receipt } as Record<string, unknown>
+      const inherited = value[key]
+      delete value[key]
+      return Object.assign(Object.create({ [key]: inherited }), value)
+    })
+    const malformed = [
+      Object.create({ version: 1, commitments: [] }),
+      Object.assign(Object.create({ unavailable: true }), { version: 1, commitments: [] }),
+      Object.assign(Object.create({ version: 1 }), { commitments: [] }),
+      Object.assign(Object.create({ commitments: [] }), { version: 1 }),
+      ...inheritedReceipts.map((value) => ({ version: 1, commitments: [value] })),
+    ]
+    for (const raw of malformed) {
+      const game = { ...campaign(), staffTimeAllocations: raw }
+      expect(convert(game, preview(game, 'a').request)).toMatchObject({
+        status: 'blocked',
+        reason: 'malformed_source',
+        game,
+      })
+      const hydrated = hydrateGame(game, createStartingState())
+      expect(hydrated.staffTimeAllocations).toEqual({ version: 1, unavailable: true })
+      expect(preview(hydrated, 'a').canConvert).toBe(false)
     }
   })
 })

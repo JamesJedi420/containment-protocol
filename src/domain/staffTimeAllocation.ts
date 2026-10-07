@@ -47,7 +47,9 @@ export function normalizeStaffTimeLedger(raw: unknown): StaffTimeLedger | undefi
   const invalid = { version: 1, unavailable: true } as const
   if (
     !record(raw) ||
-    Object.hasOwn(raw, 'unavailable') ||
+    !Object.hasOwn(raw, 'version') ||
+    !Object.hasOwn(raw, 'commitments') ||
+    'unavailable' in raw ||
     raw.version !== 1 ||
     !Array.isArray(raw.commitments)
   )
@@ -59,6 +61,9 @@ export function normalizeStaffTimeLedger(raw: unknown): StaffTimeLedger | undefi
   for (const value of raw.commitments) {
     if (
       !record(value) ||
+      !['id', 'week', 'staffIds', 'postIds', 'destination', 'displacedAlternative', 'status'].every(
+        (key) => Object.hasOwn(value, key)
+      ) ||
       !id(value.id) ||
       ids.has(value.id) ||
       !Number.isSafeInteger(value.week) ||

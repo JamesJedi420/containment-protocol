@@ -1,8 +1,10 @@
 # SPE-3136 — Operational staffing capacity surfacing
 
+PR #4242 merged at `1a8d025f`; Linear SPE-3136 is Done. Earlier validation and acceptance-qualification notes below record pre-merge evidence.
+
 | Field             | Value                                                     |
 | ----------------- | --------------------------------------------------------- |
-| **Status**        | **In Progress**                                           |
+| **Status**        | **Recently shipped**                                      |
 | **Linear**        | [SPE-3136](https://linear.app/spectranoir/issue/SPE-3136) |
 | **Parent**        | SPE-3134 — remains Backlog                                |
 | **Branch**        | `cursor/spe-3136-operational-staffing-capacity`           |

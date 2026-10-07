@@ -1,3 +1,5 @@
+import { WORKSHOP_STAFF_TIME_COPY } from './workshopStaffTimeCopy'
+import { WorkshopStaffTimePanel } from './WorkshopStaffTimePanel'
 import { useMemo } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
@@ -66,9 +68,10 @@ export default function DepartmentWorkshopMirrorPage() {
           />
         </div>
 
-        <p className="text-xs opacity-55">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.readOnlyNote}</p>
+        <p className="text-xs opacity-55">{WORKSHOP_STAFF_TIME_COPY.mirrorNote}</p>
       </article>
 
+      <WorkshopStaffTimePanel />
       {view.departments.length === 0 ? (
         <article className="panel panel-support space-y-2" role="region" aria-label="Empty workshop state">
           <h3 className="text-lg font-semibold">

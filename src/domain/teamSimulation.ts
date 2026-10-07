@@ -1,3 +1,4 @@
+import { normalizeStaffTimeLedger } from './staffTimeAllocation'
 import { getOutcomeBand, resolveConsequenceRoute } from './shared/outcomes'
 import type { ThreatFamily } from './shared/modifiers'
 // Deterministic consequence summary for each threat family based on team readiness and composition
@@ -1138,6 +1139,7 @@ export function normalizeGameState(state: GameState): GameState {
 
   return {
     ...withoutLegacyGraph,
+    staffTimeAllocations: normalizeStaffTimeLedger(normalized.staffTimeAllocations),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues: normalizeRivalExpeditionClueRegistry(
       normalized.rivalExpeditionClues,

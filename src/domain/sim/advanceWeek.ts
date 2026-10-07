@@ -1,3 +1,4 @@
+import { projectWorkshopAllocatedLabor, finishWorkshopStaffTimeWindow } from '../workshopStaffTime'
 // Canonical per-tick outcome registrar for exclusive bucketing.
 function recordCaseOutcome(
   context: WeeklyExecutionContext,
@@ -99,10 +100,7 @@ import {
   resolveFacilityMaintenanceWeekClose,
   composeFacilityMaintenanceWorkshopQuality,
 } from '../facilityMaintenanceWeekClose'
-import {
-  projectSpecialistLaborGateInputsByWorkOrderId,
-  resolveWeekCloseSpecialistLaborOperatorSlots,
-} from '../specialistLaborOperatorFeed'
+import { resolveWeekCloseSpecialistLaborOperatorSlots } from '../specialistLaborOperatorFeed'
 import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
 import {
   listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
@@ -5037,8 +5035,8 @@ export function advanceWeek(
   // Cache cleanup/materialization remains independent of transient archive filtering;
   // unusable analysis staff cannot regain capacity through campaign fallback.
   const specialistLaborFeed = resolveWeekCloseSpecialistLaborOperatorSlots(inputWeeklyState)
-  const specialistLaborGateInputs = projectSpecialistLaborGateInputsByWorkOrderId(
-    inputWeeklyState.departmentWorkshopWorkOrders,
+  const specialistLaborGateInputs = projectWorkshopAllocatedLabor(
+    inputWeeklyState,
     specialistLaborFeed.operators
   )
   const facilityMaintenance = resolveFacilityMaintenanceWeekClose(
@@ -5064,6 +5062,10 @@ export function advanceWeek(
     undefined,
     undefined,
     specialistLaborGateInputs
+  )
+  outputWeeklyState.staffTimeAllocations = finishWorkshopStaffTimeWindow(
+    inputWeeklyState,
+    sourceState.week
   )
   if (workshopProcessingTick.state === 'advanced') {
     outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders

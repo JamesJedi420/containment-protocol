@@ -1,5 +1,11 @@
 # Containment Protocol — Game State Schema
 
+## Operational staff-time allocation (SPE-3291)
+
+`src/domain/staffTimeAllocation.ts` owns optional versioned staff commitments, deriving every contributor through canonical operational-post capacity. Reservations withhold explicit staff identities for `game.week`; post snapshots invalidate a changed contributor without automatic selection. Revision-token commands are atomic and idempotent, and released receipts retain displaced-use history across saves.
+
+`src/domain/workshopStaffTime.ts` owns the first live consumer: opt-in records-review reservations for one analysis staff member. Per-order week-close gates exclude reserved staff from competitors while preserving independent investigator eligibility and specialist quality semantics. The workshop releases its claims after its processing attempt; manual cancellation releases once. Existing absent-ledger saves retain their original processing path. UI projections expose canonical availability and reasons without another staffing formula. Malformed ledgers remain unavailable through hydration; reset begins without reservations. Maintenance conversion and research allocation remain separate owners.
+
 ## Outcome Registrar and Exclusive Bucketing (SPE-20)
 
 All case outcome assignment (resolved, failed, partial, unresolved) is now

@@ -58,4 +58,31 @@ describe('maintenance conversion store command', () => {
     expect(useGameStore.getState()).toBe(changed)
     expect(changed.game.facilityMaintenanceConversionReceipts).toBeUndefined()
   })
+
+  it('writes explicit unavailable markers before JSON can discard inherited flags', async () => {
+    const initial = useGameStore.getState().game
+    useGameStore.setState({
+      game: {
+        ...initial,
+        staffTimeAllocations: Object.assign(Object.create({ unavailable: true }), {
+          version: 1,
+          commitments: [],
+        }),
+        facilityMaintenanceConversionReceipts: Object.assign(Object.create({ unavailable: true }), {
+          version: 1,
+          receipts: [],
+        }),
+      },
+    })
+    const persisted = JSON.parse(localStorage.getItem('containment-protocol-game-state')!)
+    expect(persisted.state.game.staffTimeAllocations).toEqual({ version: 1, unavailable: true })
+    expect(persisted.state.game.facilityMaintenanceConversionReceipts).toEqual({
+      version: 1,
+      unavailable: true,
+    })
+    await useGameStore.persist.rehydrate()
+    expect(
+      previewFacilityMaintenanceConversion(useGameStore.getState().game, 'analyst').reason
+    ).toBe('malformed_source')
+  })
 })

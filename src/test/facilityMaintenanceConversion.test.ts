@@ -439,4 +439,24 @@ describe('weekly maintenance conversion', () => {
       expect(preview(hydrated, 'a').canConvert).toBe(false)
     }
   })
+
+  it('retains inherited unavailable markers when serializing a malformed live state', () => {
+    const game = campaign()
+    game.staffTimeAllocations = Object.assign(Object.create({ unavailable: true }), {
+      version: 1,
+      commitments: [],
+    })
+    game.facilityMaintenanceConversionReceipts = Object.assign(
+      Object.create({ unavailable: true }),
+      { version: 1, receipts: [] }
+    )
+    for (const saved of [
+      parseRunExport(serializeRunExport(game)),
+      loadGameSave(serializeGameSave(game)),
+    ]) {
+      expect(saved.staffTimeAllocations).toEqual({ version: 1, unavailable: true })
+      expect(saved.facilityMaintenanceConversionReceipts).toEqual({ version: 1, unavailable: true })
+      expect(preview(saved, 'a').canConvert).toBe(false)
+    }
+  })
 })

@@ -2296,7 +2296,13 @@ export function getFatigueBand(value: number): FatigueBand {
 export function stripGameTemplates(game: GameState): PersistedGame {
   const { templates, ...persistedGame } = game
   void templates
-  return stripUndefinedFields(persistedGame)
+  return stripUndefinedFields({
+    ...persistedGame,
+    staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      game.facilityMaintenanceConversionReceipts
+    ),
+  })
 }
 
 export function buildReportCaseSnapshot(

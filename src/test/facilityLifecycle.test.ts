@@ -281,6 +281,32 @@ describe('canonical whole-facility lifecycle', () => {
     )
   })
 
+  it('classifies older gated receipts as stale before validating them against a later campaign week', () => {
+    const activated = initialActivation()
+    const restarting = restartInspection()
+    const reactivated = applyFacilityLifecycleTransition(
+      { ...restarting, week: 2 },
+      request('reactivate', 6, 2)
+    ).game
+    const restrictedAgain = applyFacilityLifecycleTransition(
+      { ...reactivated, week: 3 },
+      request('restrict', 7, 3)
+    ).game
+    const cases = [
+      [activated, request('submit_construction', 2)],
+      [restarting, request('activate', 3)],
+      [restrictedAgain, request('reactivate', 6, 2)],
+    ] as const
+    for (const [source, historical] of cases) {
+      for (const week of [source.week, source.week + 1]) {
+        const current = { ...source, week }
+        const result = applyFacilityLifecycleTransition(current, historical)
+        expect(result.reason).toBe('stale_transition')
+        expect(result.game).toBe(current)
+      }
+    }
+  })
+
   it.each([
     'available',
     'constructing',

@@ -32,7 +32,7 @@ Requests carry `facilityId`, `expectedStatus`, sequential `transition` (starting
 
 For gated actions, supply exactly one owner-verified bundle attestation: `kind`, matching `authority`, nonempty `sourceRef`, exact `facilityId`, target `transition`, canonical `week`, and `verified: true`. Distinct kinds identify startup and restart bundles; the caller supplies the relevant verified source reference. The caller verifies the upstream owner facts; the kernel validates their identity/provenance envelope, not construction progress or readiness content. Missing upstream authority leaves the dependent transition unavailable. No production caller fabricates these attestations in this slice.
 
-Rejections are `invalid_request`, `missing_facility`, `invalid_campaign_week`, `upgrade_in_progress`, `lifecycle_unavailable`, `stale_transition`, `stale_status`, `illegal_transition`, `missing_prerequisite`, `invalid_prerequisite`, and `inspection_provenance_required`. Checks have deterministic order. A repeat of the exact latest receipt is unchanged, even in a later campaign week; older or conflicting receipts reject. No wall-clock input or hidden randomness.
+Rejections are `invalid_request`, `missing_facility`, `invalid_campaign_week`, `upgrade_in_progress`, `lifecycle_unavailable`, `stale_transition`, `stale_status`, `illegal_transition`, `missing_prerequisite`, `invalid_prerequisite`, and `inspection_provenance_required`. Checks have deterministic order. A repeat of the exact latest receipt is unchanged, even in a later campaign week; older or conflicting receipts reject. Classify non-next historical requests as `stale_transition` before checking their attestations against the current campaign week. No wall-clock input or hidden randomness.
 
 ## Persistence and compatibility
 
@@ -46,11 +46,11 @@ The existing SPE-2790/SPE-2772 biohazard workshop mapping consumes canonical sta
 
 ## Validation and audit
 
-Focused upgrade/hydration/workshop regression passed **494 tests / seven files**; the final lifecycle file passed **46 tests**, including the real campaign week-close path. The complete `npm run test:run:ci -- --maxWorkers=2` suite passed **867 files / 9,465 tests**. Local `npm run test:run -- --maxWorkers=4` exited with an unexpected vmThreads worker failure before assertion results; the supported forks rerun completed successfully. Local Node is 24.18.0; hosted CI uses Node 22.
+Focused upgrade/hydration/workshop regression passed **498 tests / seven files**; the final lifecycle file passed **47 tests**, including the real campaign week-close path. Before the review ordering correction, the complete `npm run test:run:ci -- --maxWorkers=2` suite passed **867 files / 9,465 tests**. Local `npm run test:run -- --maxWorkers=4` exited with an unexpected vmThreads worker failure before assertion results; the supported forks rerun completed successfully. Local Node is 24.18.0; hosted CI uses Node 22.
 
 Lint, formatting of new/touched clean-baseline files, backlog-handoff, audit-index, theme-contract, and whitespace checks pass. Pre-existing whole-file formatting drift in `facility.ts` and `backlog.md` was verified against base main and preserved. TypeScript diagnostic comparison against base main found **673 diagnostics on both versions, zero added**; the existing build drift remains outside this slice.
 
-Six iterative pre-ship passes are clean: scope/integration, edge cases, determinism/state, regression, documentation/authoring, and cleanup. Root reviewed the complete diff and the approved Linear/GitHub contracts. Advisor runtime verification was unavailable at planning and completion preflight; root owns review. Hosted CI and external feedback remain the merge gate.
+Six iterative pre-ship passes are clean: scope/integration, edge cases, determinism/state, regression, documentation/authoring, and cleanup. Root reviewed the complete diff and the approved Linear/GitHub contracts. Advisor runtime verification was unavailable at planning and completion preflight; root owns review. The review ordering correction classifies older gated requests as stale before current-week evidence validation; all three gated actions have later-week regression coverage. Hosted CI and external feedback remain the merge gate.
 
 ## Deferred
 

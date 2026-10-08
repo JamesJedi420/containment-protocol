@@ -256,6 +256,9 @@ export function resolveFacilityLifecycleTransition(
   const previous = transitions.at(-1)
   const edge = FACILITY_LIFECYCLE_TRANSITIONS[request.action]
   if (request.expectedStatus !== edge.from) return reject('illegal_transition')
+  // Classify old/non-next requests before interpreting their historical evidence as current.
+  const replay = previous?.transition === request.transition ? previous : undefined
+  if (!replay && request.transition !== transitions.length + 1) return reject('stale_transition')
   const kind = requiredKind(request.action)
   if (
     kind &&
@@ -264,7 +267,6 @@ export function resolveFacilityLifecycleTransition(
   )
     return reject('missing_prerequisite')
   // The original receipt week owns a replay, including after a later campaign week.
-  const replay = previous?.transition === request.transition ? previous : undefined
   const prerequisites = parsePrerequisites(
     request.prerequisites === undefined ? [] : request.prerequisites,
     kind,

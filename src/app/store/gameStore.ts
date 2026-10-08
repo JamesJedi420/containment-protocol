@@ -1,3 +1,8 @@
+import { convertFacilityMaintenanceResources } from '../../domain/facilityMaintenanceConversion'
+import type {
+  MaintenanceConversionRequest,
+  MaintenanceConversionResult,
+} from '../../domain/facilityMaintenanceConversion'
 import { reserveWorkshopStaffTime, releaseWorkshopStaffTime } from '../../domain/workshopStaffTime'
 import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAllocation'
 // cspell:words partialize unequip
@@ -470,6 +475,9 @@ interface GameStore {
   destroyStoredEquipmentInstance: (instanceId: string) => void
   orderFacilityMaintenanceRecovery: () => void
   purchaseFacilityMaintenancePackage: () => void
+  convertFacilityMaintenanceResources: (
+    request: MaintenanceConversionRequest
+  ) => MaintenanceConversionResult
   repairStoredEquipmentInstanceCondition: (instanceId: string) => void
   stabilizeContainmentClassDeficiency: (instanceId: string) => void
   inspectContainmentClassIntegrity: (instanceId: string) => void
@@ -2070,6 +2078,12 @@ export const useGameStore = create<GameStore>()(
           const result = applyFacilityMaintenanceRecovery(s.game)
           return result.status === 'recovered' ? { game: result.game } : s
         }),
+
+      convertFacilityMaintenanceResources: (request) => {
+        const result = convertFacilityMaintenanceResources(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
 
       purchaseFacilityMaintenancePackage: () =>
         set((s) => {

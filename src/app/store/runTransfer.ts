@@ -1,3 +1,4 @@
+import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
@@ -2295,7 +2296,13 @@ export function getFatigueBand(value: number): FatigueBand {
 export function stripGameTemplates(game: GameState): PersistedGame {
   const { templates, ...persistedGame } = game
   void templates
-  return stripUndefinedFields(persistedGame)
+  return stripUndefinedFields({
+    ...persistedGame,
+    staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      game.facilityMaintenanceConversionReceipts
+    ),
+  })
 }
 
 export function buildReportCaseSnapshot(
@@ -10706,6 +10713,9 @@ export function hydrateGame(
     facilityMaintenanceState,
     facilityMaintenanceRecoveryResources,
     staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      game.facilityMaintenanceConversionReceipts
+    ),
     facilityStockPlacement,
     facilityStockCondition,
     facilityEmergencyCaches,

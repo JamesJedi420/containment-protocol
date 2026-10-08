@@ -92,7 +92,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **In progress:** (none).
 
-**Recently shipped:** [SPE-3291](https://linear.app/spectranoir/issue/SPE-3291) — canonical staff-time reservations and displaced-use accounting with opt-in archive-workshop integration; PR #4243. See `planning/spe-3291-staff-time-allocation-slice.md`.
+**Recently shipped:** [SPE-3292](https://linear.app/spectranoir/issue/SPE-3292) — weekly staff/gasket maintenance conversion with successful per-staff receipts and immediate canonical capacity release; PR #4260. See `planning/spe-3292-maintenance-conversion-slice.md` (merge handoff; effective when the PR merges). Previously shipped prerequisite: [SPE-3291](https://linear.app/spectranoir/issue/SPE-3291) — canonical staff-time reservations and displaced-use accounting with opt-in archive-workshop integration; PR #4243. See `planning/spe-3291-staff-time-allocation-slice.md`.
+
 
 **Recently shipped:** [SPE-3136](https://linear.app/spectranoir/issue/SPE-3136) — canonical operational staffing capacity on Agency Command; PR #4242 merged. Assignment navigation remains unavailable.
 
@@ -794,6 +795,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `facility-maintenance-recovery-contract-slice.md`                                         | **Recently shipped**        | SPE-3182 pure maintenance debt recovery contract; caller-owned resources; parent SPE-1052 stays Backlog.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `spe-3191-player-ordered-facility-recovery-slice.md` | **Recently shipped** | SPE-3191: immediate Agency Command order over the existing atomic recovery adapter; parent SPE-1052 stays Backlog. |
 | `spe-3135-operational-staff-capacity-slice.md` | **Recently shipped** | SPE-3135: pure canonical capacity derivation and bounded occupancy query. |
+| `spe-3292-maintenance-conversion-slice.md` | **Recently shipped** | SPE-3292 — one gasket plus one staff capacity for 2 hours / 1 reserve; weekly receipts and immediate release. |
 | `spe-3291-staff-time-allocation-slice.md` | **Recently shipped** | SPE-3291: explicit staff-time reservations, weekly release, and archive-workshop displacement. |
 | `spe-3136-operational-staffing-capacity-slice.md` | **Recently shipped** | SPE-3136: Agency Command canonical capacity and warnings; conditional assignment navigation unavailable. |
 | `spe-3148-specialist-operational-capacity-slice.md` | **Recently shipped** | SPE-3148: canonical capacity eligibility and transient archive fallback gating. |

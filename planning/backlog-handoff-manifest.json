@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3292",
     "SPE-3291",
     "SPE-3136",
     "SPE-3148",
@@ -248,6 +249,7 @@
     "planning/spe-3147-operational-staff-posts-slice.md": "Recently shipped",
     "planning/spe-3135-operational-staff-capacity-slice.md": "Recently shipped",
     "planning/spe-3136-operational-staffing-capacity-slice.md": "Recently shipped",
-    "planning/spe-3291-staff-time-allocation-slice.md": "Recently shipped"
+    "planning/spe-3291-staff-time-allocation-slice.md": "Recently shipped",
+    "planning/spe-3292-maintenance-conversion-slice.md": "Recently shipped"
   }
 }

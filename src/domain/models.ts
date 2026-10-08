@@ -1,3 +1,4 @@
+import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
 import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
 import type { FacilityMaintenanceRecoveryResources } from './facilityMaintenanceRecovery'
@@ -2866,6 +2867,8 @@ export interface GameState {
   facilityLayoutSnapshot?: FacilityLayoutSnapshot
   /** SPE-3119: canonical accrued expansion debt and closed-week replay guard. */
   facilityMaintenanceState?: FacilityMaintenanceState
+  /** SPE-3292: successful per-staff weekly maintenance-conversion eligibility receipts. */
+  facilityMaintenanceConversionReceipts?: MaintenanceConversionLedger
   /** SPE-3291: canonical staff-capacity commitments and retained displacement receipts. */
   staffTimeAllocations?: StaffTimeLedger
   /** SPE-3184: dedicated owner-supplied facility repair budget; no implicit conversion or refill. */

@@ -6,10 +6,15 @@ import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategi
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 import { OperationalStaffingPanel } from './OperationalStaffingPanel'
 import { projectOperationalStaffingView } from './operationalStaffingView'
+import { MaintenanceConversionPanel } from './MaintenanceConversionPanel'
 
 export default function AgencyPage() {
-  const { game, orderFacilityMaintenanceRecovery, purchaseFacilityMaintenancePackage } =
-    useGameStore()
+  const {
+    game,
+    orderFacilityMaintenanceRecovery,
+    purchaseFacilityMaintenancePackage,
+    convertFacilityMaintenanceResources,
+  } = useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const staffing = projectOperationalStaffingView(game)
   const overview = buildAgencyOverview(game)
@@ -123,6 +128,10 @@ export default function AgencyPage() {
         >
           Buy maintenance package
         </button>
+        <MaintenanceConversionPanel
+          conversion={maintenance.conversion}
+          onConvert={convertFacilityMaintenanceResources}
+        />
       </article>
 
       <div className="grid gap-4 xl:grid-cols-2">

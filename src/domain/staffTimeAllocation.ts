@@ -45,7 +45,15 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export function normalizeStaffTimeLedger(raw: unknown): StaffTimeLedger | undefined {
   if (raw === undefined) return undefined
   const invalid = { version: 1, unavailable: true } as const
-  if (!record(raw) || raw.version !== 1 || !Array.isArray(raw.commitments)) return invalid
+  if (
+    !record(raw) ||
+    !Object.hasOwn(raw, 'version') ||
+    !Object.hasOwn(raw, 'commitments') ||
+    'unavailable' in raw ||
+    raw.version !== 1 ||
+    !Array.isArray(raw.commitments)
+  )
+    return invalid
   const commitments: StaffTimeCommitment[] = []
   const ids = new Set<string>()
   const claims = new Set<string>()
@@ -53,6 +61,9 @@ export function normalizeStaffTimeLedger(raw: unknown): StaffTimeLedger | undefi
   for (const value of raw.commitments) {
     if (
       !record(value) ||
+      !['id', 'week', 'staffIds', 'postIds', 'destination', 'displacedAlternative', 'status'].every(
+        (key) => Object.hasOwn(value, key)
+      ) ||
       !id(value.id) ||
       ids.has(value.id) ||
       !Number.isSafeInteger(value.week) ||

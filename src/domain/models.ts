@@ -2096,7 +2096,8 @@ export interface RuntimeState {
 }
 
 export type FacilityCategory = string
-export type FacilityStatus = 'available' | 'active' | 'upgrading' | 'inactive' | 'locked'
+export type FacilityStatus =
+  'available' | 'constructing' | 'inspecting' | 'active' | 'upgrading' | 'inactive' | 'locked'
 
 export interface FacilityEffect {
   researchSlots?: number
@@ -2119,6 +2120,7 @@ export interface FacilityInstance {
   upgradeStartedWeek?: number
   upgradeCompleteWeek?: number
   pendingEffectDeltas?: FacilityEffect
+  lifecycleHistory?: import('./facilityLifecycle').FacilityLifecycleHistory
 }
 
 export interface FacilityUpgradeMetadata {

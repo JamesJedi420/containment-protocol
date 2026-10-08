@@ -4,6 +4,14 @@
 
 Documents versioning strategy for OperationEvent types to ensure backward compatibility and safe migrations.
 
+### Whole-facility lifecycle history (SPE-3380)
+
+`FacilityInstance.status` adds `constructing` and `inspecting`. Optional `lifecycleHistory` is a version-1 ordered causal receipt packet, not a second current-status field. Receipts contain sequential transition number, canonical campaign week, authored action, from/to status, cause code, and owner-verified prerequisite references tied to the facility and transition. Construction completion is attested by SPE-110; startup/restart readiness is attested by SPE-876. Lifecycle validation does not calculate their facts.
+
+Missing legacy history stays absent. Invalid present metadata becomes `{ version: 1, unavailable: true }` and blocks lifecycle commands. New constructing/inspecting states without valid provenance normalize to inactive. Receipt chronology, legal edges, inspection provenance, prerequisites and final status are validated without manufacturing history. Pre-serialization normalization preserves malformed/unavailable authority through manual saves, run exports and store migration.
+
+SPE-2549 upgrade normalization retains precedence: coherent timing owns upgrading, and invalid/orphaned timing loses pending effects. Valid history ending at active remains compatible with temporary upgrading and its existing completion back to active. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required; field-level hydration is the additive migration. Installed effects and facility/site identities are unchanged.
+
 ### Weekly maintenance conversion receipts (SPE-3292)
 
 Optional `GameState.facilityMaintenanceConversionReceipts` uses `version: 1` with sorted `{ staffId, week, revision }` receipts. The staff/week pair is unique; the successful request revision distinguishes equivalent replay from a fresh exhausted attempt. Revisions are bounded `maintenance-v1:` plus 16 hex digits (FNV-1a/64 over the deterministic authority snapshot), rather than saved snapshots of retained allocation history. Only an atomic successful conversion writes a receipt. The receipt gates this recipe alone, independently of the immediately released SPE-3291 commitment.

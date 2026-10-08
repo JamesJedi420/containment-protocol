@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3380",
     "SPE-3290",
     "SPE-3292",
     "SPE-3291",
@@ -15,12 +16,10 @@
     "SPE-3184",
     "SPE-3182",
     "SPE-3119",
-    "SPE-1051",
-    "SPE-3140",
-    "SPE-2261",
-    "SPE-2262"
+    "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3380-facility-lifecycle-kernel-slice.md": "Recently shipped",
     "planning/spe-3290-maintenance-replenishment-contradiction-slice.md": "Recently shipped",
     "planning/spe-3148-specialist-operational-capacity-slice.md": "Recently shipped",
     "planning/spe-3283-paid-facility-maintenance-slice.md": "Recently shipped",

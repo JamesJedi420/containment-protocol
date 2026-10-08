@@ -1,4 +1,5 @@
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
+import { normalizeFacilityLifecycleHistory } from '../../domain/facilityLifecycle'
 import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
@@ -2298,6 +2299,25 @@ export function stripGameTemplates(game: GameState): PersistedGame {
   void templates
   return stripUndefinedFields({
     ...persistedGame,
+    facilityState: game.facilityState
+      ? {
+          ...game.facilityState,
+          facilities: Object.fromEntries(
+            Object.entries(game.facilityState.facilities).map(([id, facility]) => [
+              id,
+              {
+                ...facility,
+                lifecycleHistory: normalizeFacilityLifecycleHistory(
+                  facility.lifecycleHistory,
+                  facility.facilityId,
+                  facility.status,
+                  game.week
+                ),
+              },
+            ])
+          ),
+        }
+      : undefined,
     staffTimeAllocations: normalizeStaffTimeLedger(game.staffTimeAllocations),
     facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
       game.facilityMaintenanceConversionReceipts
@@ -2779,6 +2799,8 @@ const RESEARCH_PROJECT_STATUSES = [
 
 const FACILITY_STATUSES = [
   'available',
+  'constructing',
+  'inspecting',
   'active',
   'upgrading',
   'inactive',
@@ -7452,6 +7474,18 @@ function sanitizeFacilityInstance(
       ? 'inactive'
       : status
 
+  const lifecycleHistory = normalizeFacilityLifecycleHistory(
+    value.lifecycleHistory,
+    facilityId,
+    normalizedStatus,
+    campaignWeek
+  )
+  const lifecycleStatus =
+    (normalizedStatus === 'constructing' || normalizedStatus === 'inspecting') &&
+    (!lifecycleHistory || 'unavailable' in lifecycleHistory)
+      ? 'inactive'
+      : normalizedStatus
+
   return stripUndefinedFields({
     facilityId,
     category:
@@ -7460,7 +7494,8 @@ function sanitizeFacilityInstance(
         : facilityId,
     level,
     maxLevel,
-    status: normalizedStatus,
+    status: lifecycleStatus,
+    ...(lifecycleHistory !== undefined ? { lifecycleHistory } : {}),
     effects: sanitizeFacilityEffect(value.effects),
     ...(normalizedUpgradeInProgress
       ? {

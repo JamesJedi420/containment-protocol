@@ -7,6 +7,12 @@ import type {
 import { assessFundingPressure, normalizeFundingState } from './funding'
 import { assessResearchRequirements } from './research'
 
+export {
+  applyFacilityLifecycleTransition,
+  resolveFacilityLifecycleTransition,
+} from './facilityLifecycle'
+export type { FacilityLifecycleRequest, FacilityLifecycleResult } from './facilityLifecycle'
+
 export interface FacilityUpgradeAssessment {
   canUpgrade: boolean
   blockedReasons: string[]

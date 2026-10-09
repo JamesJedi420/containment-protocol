@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3388",
     "SPE-3387",
     "SPE-3386",
     "SPE-3383",
@@ -23,6 +24,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3388-persist-facility-supported-capability-unlocks-slice.md": "Recently shipped",
     "planning/spe-3387-facility-operational-post-validity-slice.md": "Recently shipped",
     "planning/spe-3386-facility-dependency-inputs-slice.md": "Recently shipped",
     "planning/spe-3383-facility-dependency-graph-slice.md": "Recently shipped",
@@ -90,7 +92,7 @@
     "planning/spe-2987-layout-staging-projection-slice.md": "Recently shipped",
     "planning/spe-2986-layout-persist-slice.md": "Recently shipped",
     "planning/spe-1026-layout-adjacency-kernel-slice.md": "Recently shipped",
-    "planning/spe-1027-parent-targeted-test-language-slice.md": "Recently shipped",
+    "planning/spe-1027-parent-targeted-test-language-slice.md": "Recently shipped / Done",
     "planning/spe-1027-capacity-as-warehouse-slice.md": "Done",
     "planning/spe-1027-misfile-inventory-mismatch-slice.md": "Recently shipped",
     "planning/spe-1027-typed-overflow-loss-slice.md": "Recently shipped",

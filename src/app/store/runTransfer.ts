@@ -1,5 +1,6 @@
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeFacilityLifecycleHistory } from '../../domain/facilityLifecycle'
+import { sanitizeFacilityCapabilityUnlock } from '../../domain/facilityCapabilityUnlock'
 import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
@@ -2322,6 +2323,7 @@ export function stripGameTemplates(game: GameState): PersistedGame {
     facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
       game.facilityMaintenanceConversionReceipts
     ),
+    facilityCapabilityUnlock: sanitizeFacilityCapabilityUnlock(game.facilityCapabilityUnlock),
   })
 }
 
@@ -10483,6 +10485,7 @@ export function hydrateGame(
     fallback.runtimeState
   )
   const facilityState = sanitizeFacilityState(game.facilityState, week, fallback.facilityState)
+  const facilityCapabilityUnlock = sanitizeFacilityCapabilityUnlock(game.facilityCapabilityUnlock)
   const squadKitTemplates = sanitizeSquadKitTemplatesMap(game.squadKitTemplates)
   const squadKitAssignments = sanitizeSquadKitAssignmentsMap(
     game.squadKitAssignments,
@@ -10779,6 +10782,7 @@ export function hydrateGame(
       facilityState
     ),
     facilityState,
+    ...(facilityCapabilityUnlock ? { facilityCapabilityUnlock } : {}),
     relationshipHistory: sanitizeRelationshipHistory(
       game.relationshipHistory,
       week,

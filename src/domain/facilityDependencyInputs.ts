@@ -89,7 +89,7 @@ function compareCodeUnit(left: string, right: string): number {
 }
 
 function isLifecycleStatus(value: unknown): value is FacilityStatus {
-  return typeof value === 'string' && hasOwn(FACILITY_LIFECYCLE_STATUSES, value)
+  return typeof value === 'string' && Object.hasOwn(FACILITY_LIFECYCLE_STATUSES, value)
 }
 
 function isAvailability(value: unknown): value is FacilityDependencyAvailability {
@@ -150,9 +150,7 @@ export function mapExplicitFacilityDependencySources(
   if (hasOwn(packet, 'status') && isLifecycleStatus(packet.status)) {
     return rejectInput('unsupported_status_filter')
   }
-  if (hasFacilityInstanceKey(packet) || hasInstalledEffectKey(packet)) {
-    return rejectInput('malformed_source')
-  }
+  if (hasFacilityInstanceKey(packet)) return rejectInput('malformed_source')
 
   const nodeIds = new Set(validated.graph.nodes.map((node) => node.id))
   const parsed = new Map<string, FacilityDependencySourceInput>()

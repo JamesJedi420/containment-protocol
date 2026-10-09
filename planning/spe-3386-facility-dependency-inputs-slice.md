@@ -39,7 +39,7 @@ SPE-3383 remains the pure kernel. SPE-2932 remains the spatial graph. SPE-3380 s
 
 ## Validation
 
-Focused regression passed **75 tests across five files**: the new input contract, the SPE-3383 kernel contract, the spatial section graph, facility lifecycle, and facility effects. Lint on the new domain and test files passed. `npm run verify:backlog-handoff` passed.
+Focused regression passed **76 tests across five files**: the new input contract, the SPE-3383 kernel contract, the spatial section graph, facility lifecycle, and facility effects. Lint on the new domain and test files passed. `npm run verify:backlog-handoff` passed.
 
 ## Deferred
 

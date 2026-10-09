@@ -4,6 +4,7 @@ import {
   type FacilityDependencyAvailability,
   readRepresentativeFacilityDependencyGraph,
   resolveFacilityDependencyAvailability,
+  validateFacilityDependencyGraph,
 } from '../domain/facilityDependencyGraph'
 import {
   mapExplicitFacilityDependencySources,
@@ -172,6 +173,10 @@ describe('SPE-3386 explicit facility dependency inputs', () => {
         effects: { researchSlots: 2 },
       })
     ).toEqual({ ok: false, rejection: 'malformed_source' })
+    expect(mapExplicitFacilityDependencySources(graph, { researchSlots: 2 })).toEqual({
+      ok: false,
+      rejection: 'malformed_source',
+    })
     expect(
       mapExplicitFacilityDependencySources(graph, {
         ...packet(),
@@ -205,6 +210,29 @@ describe('SPE-3386 explicit facility dependency inputs', () => {
       throughputCap: 2,
       effect: 'baseline',
     })
+  })
+
+  it('keeps a node whose id matches an installed effect key on its own source', () => {
+    const custom = validateFacilityDependencyGraph({
+      nodes: [
+        { id: HUB, role: 'core' },
+        { id: 'researchSlots', role: 'service' },
+      ],
+      edges: [],
+    })
+    expect(custom.ok).toBe(true)
+    if (!custom.ok) throw new Error('expected graph')
+    const resolved = resolveExplicitFacilityDependencyAvailability(custom.graph, {
+      [HUB]: { availability: 'degraded', sourceRef: 'source:hub' },
+      researchSlots: { availability: 'ready', sourceRef: 'source:slots' },
+    })
+    expect(resolved.ok).toBe(true)
+    if (!resolved.ok) throw new Error('expected resolution')
+    expect(resolved.results.find((result) => result.nodeId === 'researchSlots')).toMatchObject({
+      availability: 'ready',
+      reason: 'source_condition',
+    })
+    expect(resolved.results.find((result) => result.nodeId === HUB)?.availability).toBe('degraded')
   })
 
   it('passes an invalid graph through the kernel rejection and leaves kernel codes unchanged', () => {

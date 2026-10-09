@@ -369,7 +369,7 @@ describe('SPE-3383 facility dependency graph', () => {
   })
 
   it('rejects graphs above the closed node and edge bounds', () => {
-    const nodes = [{ id: HUB, role: 'core' as const }]
+    const nodes: { id: string; role: 'core' | 'service' }[] = [{ id: HUB, role: 'core' }]
     for (let index = 0; index < FACILITY_DEPENDENCY_MAX_NODES; index += 1) {
       nodes.push({ id: `service:n${index}`, role: 'service' })
     }
@@ -379,7 +379,7 @@ describe('SPE-3383 facility dependency graph', () => {
       rejection: 'graph_too_large',
     })
 
-    const edges = []
+    const edges: ReturnType<typeof requires>[] = []
     for (let index = 0; index < FACILITY_DEPENDENCY_MAX_EDGES + 1; index += 1) {
       edges.push(requires(HUB, ROUTING))
     }

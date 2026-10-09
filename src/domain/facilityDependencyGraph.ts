@@ -75,7 +75,7 @@ export type FacilityDependencyResolution =
   | { readonly ok: true; readonly results: readonly FacilityDependencyAvailabilityResult[] }
   | { readonly ok: false; readonly rejection: FacilityDependencyRejection }
 
-const validatedGraphs = new WeakSet<FacilityDependencyGraph>()
+const validatedGraphs = new WeakSet<object>()
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -288,7 +288,7 @@ export function normalizeFacilityDependencyGraph(
 }
 
 function isValidatedGraph(value: unknown): value is FacilityDependencyGraph {
-  return isRecord(value) && validatedGraphs.has(value as FacilityDependencyGraph)
+  return isRecord(value) && validatedGraphs.has(value)
 }
 
 /**

@@ -1,3 +1,8 @@
+import {
+  indexFacilityOperationalPostValidity,
+  type FacilityOperationalPostValidity,
+  type FacilityOperationalPostValidityReason,
+} from './facilityOperationalPostValidity'
 import type { GameState, StaffData } from './models'
 import { normalizeStaffCandidateSpecialty } from './recruitment/helpers'
 
@@ -110,10 +115,34 @@ function queryPostEntry(entry: unknown, claims: ReadonlyMap<string, number>) {
   return { postId: rawPost, reason: 'assigned' as const }
 }
 
-export type OperationalStaffPostQuery = Readonly<ReturnType<typeof queryPostEntry>>
+export interface OperationalStaffPostFacilityGate {
+  readonly facilityEligible: boolean
+  readonly facilityReason: FacilityOperationalPostValidityReason
+}
+
+export type OperationalStaffPostQuery = Readonly<
+  ReturnType<typeof queryPostEntry> & Partial<OperationalStaffPostFacilityGate>
+>
+
+function withFacilityGate(
+  occupancy: ReturnType<typeof queryPostEntry>,
+  gates: ReadonlyMap<string, FacilityOperationalPostValidity> | undefined
+): OperationalStaffPostQuery {
+  if (!gates || occupancy.postId === null) return occupancy
+  const gate = gates.get(occupancy.postId)
+  if (!gate) return occupancy
+  return {
+    ...occupancy,
+    facilityEligible: gate.eligible,
+    facilityReason: gate.reason,
+  }
+}
 
 /** One snapshot and two passes; all raw claims participate in conflict validation. */
-export function queryOperationalStaffPosts(game: GameState): {
+export function queryOperationalStaffPosts(
+  game: GameState,
+  facilityValidity?: readonly FacilityOperationalPostValidity[]
+): {
   readonly reason: 'valid_roster' | 'invalid_roster'
   readonly byStaffId: Readonly<Record<string, OperationalStaffPostQuery>>
 } {
@@ -125,10 +154,14 @@ export function queryOperationalStaffPosts(game: GameState): {
       claims.set(entry.operationalPostId, (claims.get(entry.operationalPostId) ?? 0) + 1)
     }
   }
+  const gates =
+    facilityValidity === undefined
+      ? undefined
+      : indexFacilityOperationalPostValidity(facilityValidity)
   return {
     reason: 'valid_roster',
     byStaffId: Object.fromEntries(
-      entries.map(([id, entry]) => [id, queryPostEntry(entry, claims)])
+      entries.map(([id, entry]) => [id, withFacilityGate(queryPostEntry(entry, claims), gates)])
     ),
   }
 }

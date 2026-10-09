@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3387",
     "SPE-3386",
     "SPE-3383",
     "SPE-3382",
@@ -22,6 +23,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3387-facility-operational-post-validity-slice.md": "Recently shipped",
     "planning/spe-3386-facility-dependency-inputs-slice.md": "Recently shipped",
     "planning/spe-3383-facility-dependency-graph-slice.md": "Recently shipped",
     "planning/spe-3382-facility-effect-authority-review-slice.md": "Recently shipped",

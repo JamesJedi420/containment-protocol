@@ -4,6 +4,12 @@
 
 Documents versioning strategy for OperationEvent types to ensure backward compatibility and safe migrations.
 
+### Facility-supported capability unlock (SPE-3388)
+
+Optional `GameState.facilityCapabilityUnlock` stores one durable record for `capability:alert_timing`: capability id, `dangerous_use` liability, and the integer campaign week the biohazard-response lab upgrade completed at level 2 or higher. Ready, degraded, and suspended use are derived from an SPE-3386 resolution and are not stored.
+
+Missing legacy state stays absent. A duplicate list, unknown capability, wrong or missing liability, non-integer week, or any other shape is dropped. Hydration does not invent an unlock from facility level, and it does not delete a well-formed record when support is lost or the facility is later locked. Field-level hydration is the additive migration. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Whole-facility lifecycle history (SPE-3380)
 
 `FacilityInstance.status` adds `constructing` and `inspecting`. Optional `lifecycleHistory` is a version-1 ordered causal receipt packet, not a second current-status field. Receipts contain sequential transition number, canonical campaign week, authored action, from/to status, cause code, and owner-verified prerequisite references tied to the facility and transition. Construction completion is attested by SPE-110; startup/restart readiness is attested by SPE-876. Lifecycle validation does not calculate their facts.

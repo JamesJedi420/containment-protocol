@@ -2138,6 +2138,16 @@ export interface FacilityState {
   facilities: Record<string, FacilityInstance>
 }
 
+/**
+ * SPE-3388: one durable facility-supported capability unlock.
+ * Effective ready, degraded, and suspended use is derived and is not stored here.
+ */
+export interface FacilityCapabilityUnlock {
+  capabilityId: 'capability:alert_timing'
+  liability: 'dangerous_use'
+  acquiredWeek: number
+}
+
 export type FundingCategory =
   | 'weekly_income'
   | 'resolution_reward'
@@ -3017,6 +3027,11 @@ export interface GameState {
   runtimeState?: RuntimeState
   researchState?: ResearchState
   facilityState?: FacilityState
+  /**
+   * SPE-3388: durable unlock for `capability:alert_timing` and its `dangerous_use` liability.
+   * Omit means never unlocked. Support loss does not delete this record.
+   */
+  facilityCapabilityUnlock?: FacilityCapabilityUnlock
   missionRouting?: MissionRoutingState
   contracts?: ContractSystemState
   replacementPressureState?: ReplacementPressureState

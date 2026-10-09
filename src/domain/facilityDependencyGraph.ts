@@ -257,7 +257,7 @@ export function validateFacilityDependencyGraph(value: unknown): FacilityDepende
     if (!nodesById.has(edge.fromNodeId) || !nodesById.has(edge.toNodeId)) {
       return reject('missing_endpoint')
     }
-    const key = `${edge.fromNodeId}|${edge.toNodeId}`
+    const key = JSON.stringify([edge.fromNodeId, edge.toNodeId])
     if (edgeKeys.has(key)) continue
     edgeKeys.add(key)
     edges.push(edge)

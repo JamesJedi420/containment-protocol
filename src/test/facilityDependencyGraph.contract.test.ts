@@ -368,6 +368,22 @@ describe('SPE-3383 facility dependency graph', () => {
     })
   })
 
+  it('keeps distinct edges when node ids contain the same characters', () => {
+    const graph = validateFacilityDependencyGraph({
+      nodes: [
+        { id: HUB, role: 'core' },
+        { id: 'a|b', role: 'service' },
+        { id: 'c', role: 'capability' },
+        { id: 'a', role: 'service' },
+        { id: 'b|c', role: 'capability' },
+      ],
+      edges: [requires('a|b', 'c'), requires('a', 'b|c')],
+    })
+    expect(graph.ok).toBe(true)
+    if (!graph.ok) throw new Error('expected graph')
+    expect(graph.graph.edges).toEqual([requires('a', 'b|c'), requires('a|b', 'c')])
+  })
+
   it('rejects graphs above the closed node and edge bounds', () => {
     const nodes: { id: string; role: 'core' | 'service' }[] = [{ id: HUB, role: 'core' }]
     for (let index = 0; index < FACILITY_DEPENDENCY_MAX_NODES; index += 1) {

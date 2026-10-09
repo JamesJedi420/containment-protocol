@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-3382"],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3382",
     "SPE-3380",
     "SPE-3290",
     "SPE-3292",
@@ -19,7 +20,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3382-facility-effect-authority-review-slice.md": "In progress",
+    "planning/spe-3382-facility-effect-authority-review-slice.md": "Recently shipped",
     "planning/spe-3380-facility-lifecycle-kernel-slice.md": "Recently shipped",
     "planning/spe-3290-maintenance-replenishment-contradiction-slice.md": "Recently shipped",
     "planning/spe-3148-specialist-operational-capacity-slice.md": "Recently shipped",

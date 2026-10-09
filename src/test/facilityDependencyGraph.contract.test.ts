@@ -346,6 +346,17 @@ describe('SPE-3383 facility dependency graph', () => {
         edges: [requires(HUB, HUB)],
       })
     ).toEqual({ ok: false, rejection: 'cycle' })
+    expect(
+      validateFacilityDependencyGraph({
+        nodes: [
+          { id: 'a|b', role: 'core' },
+          { id: 'c', role: 'service' },
+          { id: 'a', role: 'service' },
+          { id: 'b|c', role: 'capability' },
+        ],
+        edges: [requires('a|b', 'c'), requires('b|c', 'a'), requires('a', 'b|c')],
+      })
+    ).toEqual({ ok: false, rejection: 'cycle' })
     expect(resolveFacilityDependencyAvailability(cycleInput, sources())).toEqual({
       ok: false,
       rejection: 'cycle',

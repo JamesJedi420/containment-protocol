@@ -35,7 +35,7 @@ The residue records `fromCondition: present`, `toCondition: corrupted`, `causeCa
 
 Restore accepts only a well-formed residue for this transition and the same `provenanceRef`. It returns that validated residue without rewriting its fields or symptom ids. Current ready results do not replace them.
 
-The projection does not copy `causeCategory`, `fromCondition`, `provenanceRef`, cause chains, locations, or investigation fields. It does not import the clue registry or intake engine.
+The projection copies `evidenceKind`, `coreNodeId`, and `symptomNodeIds` only. Symptom ids must be non-core nodes on the representative graph. It does not copy `causeCategory`, `fromCondition`, `provenanceRef`, cause chains, locations, or investigation fields. It does not import the clue registry or intake engine.
 
 ## Upstream contracts
 

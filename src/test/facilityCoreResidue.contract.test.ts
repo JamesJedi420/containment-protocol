@@ -159,6 +159,12 @@ describe('SPE-3389 facility core residue', () => {
     expect(
       projectFacilityCoreResidueEvidence({ ...corrupted.residue, causeCategory: 'tamper' })
     ).toEqual({ ok: false, rejection: 'malformed_residue' })
+    expect(
+      projectFacilityCoreResidueEvidence({
+        ...corrupted.residue,
+        symptomNodeIds: ['service:not_real'],
+      })
+    ).toEqual({ ok: false, rejection: 'malformed_residue' })
   })
 
   it('leaves an independent failure out of the residue', () => {

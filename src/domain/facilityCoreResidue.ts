@@ -42,16 +42,26 @@ export const FACILITY_CORE_CAUSE_CATEGORY = 'corruption' as const
 
 const SYMPTOM_NODE_ID = /^(service|capability):[a-z0-9_]+$/
 
-function requireRepresentativeCoreId(): 'core:facility_hub' {
+function readRepresentativeCore(): {
+  readonly coreId: 'core:facility_hub'
+  readonly symptomNodeIds: ReadonlySet<string>
+} {
   const graph = readRepresentativeFacilityDependencyGraph()
   const core = graph.nodes.find((node) => node.role === 'core')
   if (core?.id !== 'core:facility_hub') {
     throw new Error('SPE-3389 representative facility core is not core:facility_hub')
   }
-  return core.id
+  return {
+    coreId: core.id,
+    symptomNodeIds: new Set(
+      graph.nodes.filter((node) => node.id !== core.id).map((node) => node.id)
+    ),
+  }
 }
 
-export const FACILITY_CORE_NODE_ID = requireRepresentativeCoreId()
+const REPRESENTATIVE_CORE = readRepresentativeCore()
+
+export const FACILITY_CORE_NODE_ID = REPRESENTATIVE_CORE.coreId
 
 export interface FacilityCoreResidue {
   readonly coreNodeId: typeof FACILITY_CORE_NODE_ID
@@ -356,7 +366,7 @@ export function applyFacilityCoreResidueTransition(
 export function projectFacilityCoreResidueEvidence(
   residue: unknown
 ): FacilityCoreResidueEvidenceProjection {
-  const parsed = parseResidue(residue, undefined)
+  const parsed = parseResidue(residue, REPRESENTATIVE_CORE.symptomNodeIds)
   if (!parsed) return Object.freeze({ ok: false, rejection: 'malformed_residue' })
   return Object.freeze({
     ok: true,

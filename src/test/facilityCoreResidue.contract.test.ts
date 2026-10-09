@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   type FacilityDependencyAvailability,
@@ -266,10 +267,7 @@ describe('SPE-3389 facility core residue', () => {
   })
 
   it('does not import investigation or intake modules', () => {
-    const source = readFileSync(
-      new URL('../domain/facilityCoreResidue.ts', import.meta.url),
-      'utf8'
-    )
+    const source = readFileSync(resolve('src/domain/facilityCoreResidue.ts'), 'utf8')
     expect(source).not.toContain('investigationExposureClueRegistry')
     expect(source).not.toContain('projectClueActionability')
     expect(source).not.toContain('facilityCapabilityUnlock')

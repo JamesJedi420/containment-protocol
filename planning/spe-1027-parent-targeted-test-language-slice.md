@@ -2,9 +2,9 @@
 
 | Field               | Value                                                                                                                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**          | **In Progress**                                                                                                                                                                                                             |
+| **Status**          | **Recently shipped / Done**                                                                                                                                                                                                             |
 | **Linear**          | [SPE-2984](https://linear.app/spectranoir/issue/SPE-2984/parent-targeted-test-language-leftovers-storage-zoning-staging-hauling)                                                                                            |
-| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — evaluate **Done** only after this child ships and every parent AC bullet is true; else stay **Backlog** |
+| **Parent**          | [SPE-1027](https://linear.app/spectranoir/issue/SPE-1027/facility-storage-evidence-and-logistics-stockpile-model) — **Done** after SPE-2984 merged and the full parent AC evaluation passed; SPE-1052 remains **Backlog** |
 | **Grandparent**     | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052/core-facility-institution-and-base-simulation-model) — stays **Backlog**                                                                                           |
 | **Related**         | SPE-2890 zoning; SPE-2889 staging; SPE-2935 hauling; SPE-2891 spoilage; SPE-2934 quarantine; SPE-2981 mismatch (compose-only). Inspect-only: SPE-2895 / 2896 / 2980 / 2982                                                  |
 | **Branch**          | `cursor/spe-1027-parent-targeted-test-language-2e4e`                                                                                                                                                                        |
@@ -104,7 +104,7 @@ It does not re-prove full child fail-closed hydration matrices.
 - `consumeFacilityStock` remains ungated
 - SPE-2895 / 2896 / 2980 / 2982 remain inspect-only (not recoded)
 - Slice doc + backlog handoff updated
-- Child Done only after merge; parent Done only if full SPE-1027 AC list is then true, else parent Backlog; SPE-1052 / SPE-877 stay Backlog; GitHub #1036 follows parent closure decision
+- SPE-2984 is **Done** after PR #3782 merged; the subsequent full SPE-1027 AC evaluation passed and SPE-1027 is **Done**. SPE-1052 / SPE-877 remain **Backlog**.
 
 ## Validation
 

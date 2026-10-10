@@ -94,9 +94,7 @@ export function projectWorkshopAllocatedLabor(
   const orders = readDepartmentWorkshopState(game).workOrders
   return Object.fromEntries(
     Object.values(orders).flatMap((order) => {
-      const own = query.commitments.find(
-        (c) => c.week === game.week && c.destination === `workshop:${order.id}`
-      )
+      const own = query.active.find((c) => c.destination === `workshop:${order.id}`)
       if (!own && !allocationAffectsArchive) {
         const gate = projectSpecialistLaborGateInputsByWorkOrderId(
           { [order.id]: order },

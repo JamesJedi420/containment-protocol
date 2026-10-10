@@ -129,6 +129,21 @@ describe('staff-time allocation', () => {
       'conflict'
     )
   })
+  it('does not let released workshop receipts suppress available staff labor', () => {
+    const game = allocationCampaign(),
+      command = request(game),
+      reserved = reserveWorkshopStaffTime(game, command).game
+    const released = releaseStaffTime(
+      reserved,
+      command.id,
+      queryStaffTimeAllocation(reserved).revision
+    ).game
+
+    expect(queryStaffTimeAllocation(released).availableIds).toEqual(['a', 'b'])
+    expect(projectWorkshopAllocatedLabor(released)?.first?.operators).toContainEqual(
+      expect.objectContaining({ roleFamily: 'archive_analyst' })
+    )
+  })
   it('rejects stale releases without mutation', () => {
     const game = allocationCampaign(),
       command = request(game),

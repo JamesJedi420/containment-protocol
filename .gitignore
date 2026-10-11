@@ -42,6 +42,7 @@ remaining-subset.json
 !.cursor/rules/agent-cursor-plugins.mdc
 !.cursor/rules/cloud-agent-linear-handoff.mdc
 !.cursor/rules/no-candidate-reconciliation.mdc
+!.cursor/rules/clean-main-before-next-slice.mdc
 .DS_Store
 *.suo
 *.ntvs*

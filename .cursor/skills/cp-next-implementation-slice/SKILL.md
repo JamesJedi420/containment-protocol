@@ -14,9 +14,11 @@ Pick one already-approved SPE issue and start it. Candidate reconciliation belon
 
 ## When to run
 
-Run only when no implementation slice is already in progress and the user did not name an issue.
+Obey `.cursor/rules/clean-main-before-next-slice.mdc` first. If `main` is dirty or any PR is open, babysit and merge that PR, then sync `main`. Do not pick or start a slice until `main` is clean and no PR is open.
 
-If the user named a Linear issue, implement that issue. Do not override it with this picker.
+Run this picker only when no implementation slice is already in progress and the user did not name an issue.
+
+If the user named a Linear issue, implement that issue after `main` is clean. Do not override it with this picker.
 
 ## Confirm the queue is empty
 

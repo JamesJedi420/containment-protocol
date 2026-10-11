@@ -30,7 +30,10 @@ remaining-subset.json
 .idea
 
 # Cursor-local agent config (solo dev; environment.json stays tracked)
-.cursor/skills/
+.cursor/skills/*
+!.cursor/skills/
+!.cursor/skills/cp-next-implementation-slice/
+!.cursor/skills/cp-next-implementation-slice/SKILL.md
 # Shared repo rules are tracked explicitly; other files here stay local-only
 .cursor/rules/*
 !.cursor/rules/

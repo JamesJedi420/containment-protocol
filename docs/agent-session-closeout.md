@@ -12,7 +12,7 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 2. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable.
 3. **`git checkout main` && `git pull origin main`** — agent syncs local `main` before closeout.
 4. Linear slice **Done** only when its full approved boundary is satisfied + merge comment.
-5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise report the candidate/governance continuation. **Do not** code the next issue.
+5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue. **Do not** perform candidate reconciliation.
 
 **Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope.
 
@@ -21,9 +21,9 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 | Phase | When | Agent does | Agent does **not** |
 | ----- | ---- | ---------- | ------------------- |
 | **A — Babysit blocked** | PR open; merge cannot complete in-session | Interim status, PR URL, CI/blocker | Next-issue plan; mark slice **Done** |
-| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or report candidate/governance continuation | Code the next issue; create a new issue/child/parent from follow-up discovery |
+| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one | Code the next issue; perform candidate reconciliation; create a new issue/child/parent from follow-up discovery |
 
-Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, route useful follow-up through the governance workflow instead of inventing one.
+Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one. Candidate reconciliation belongs to ChatGPT.
 
 ---
 
@@ -151,11 +151,11 @@ Next approved issue implementation plan:
 - What not to change:
 - Implementation sequence:
 
-Candidate/governance continuation:
-- <newly discovered candidate + current phase, or “none”>
+Waiting for the next approved slice:
+- <Linear issue URL, slice doc, and branch, or “none — ask; do not reconcile candidates”>
 
 Handoff:
-- Agent already synced main in-session; remind human: new agent chat with approved Linear URL, slice doc, branch name, main SHA. If there is no approved next issue, continue the governance flow instead of starting implementation.
+- Agent already synced main in-session; remind human: new agent chat with approved Linear URL, slice doc, branch name, main SHA. If there is no approved next issue, stop and ask for one. Do not perform candidate reconciliation.
 ```
 
-Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next approved issue or the governance continuation. **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).
+Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next approved issue. If none is named, stop. Do not perform candidate reconciliation. **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).

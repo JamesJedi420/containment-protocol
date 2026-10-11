@@ -27,7 +27,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - Prefer slice docs and authoritative records over re-explaining finished work in chat.
 - Live web research: prefer repo sources first; use configured read-only research tools only when current external facts are necessary; do not add search APIs to runtime without approved scope.
 - Cursor plugin keep-list: `docs/agent-cursor-plugins.md`; follow dependency-scanning requirements before adding/upgrading packages.
-- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise report candidate/governance continuation.
+- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise stop and ask for one. Do not perform candidate reconciliation; that work belongs to ChatGPT.
 
 ---
 
@@ -37,4 +37,4 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
 ```
 
-If no approved next issue exists, continue candidate governance instead of using the implementation template.
+If no approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. Do not perform candidate reconciliation.

@@ -18,7 +18,7 @@ After babysit → merge → `git checkout main` && `git pull origin main`:
 
 - Do not implement the next issue unless the user explicitly asks.
 - Prepare a next-issue implementation plan **only when an already-approved next Linear issue exists**.
-- If the only follow-up is a deferred/new durable boundary with no approved issue, report it as candidate/governance continuation instead of creating or selecting a child.
+- If no already-approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. Do not perform candidate reconciliation; that work belongs to ChatGPT. Do not create or select a child.
 - Use the phase B structure in `docs/agent-session-closeout.md`.
 
 An approved next-issue plan includes: issue ID/title, smallest boundary, files to inspect, systems to reuse, risks/edge cases, required tests/docs, what not to change, and implementation sequence.

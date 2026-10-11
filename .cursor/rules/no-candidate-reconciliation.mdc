@@ -1,0 +1,19 @@
+---
+description: Do not perform candidate reconciliation; that work belongs to ChatGPT
+alwaysApply: true
+---
+
+# No candidate reconciliation
+
+This agent plans and implements already-approved Linear issues, one coding slice at a time.
+
+Candidate reconciliation belongs to ChatGPT. Do not perform it.
+
+Do not:
+
+- run candidate-ledger phases (assessment, parent reconciliation, child reconciliation, contradiction review, or feature/backlog writeback)
+- harvest, triage, or close candidate batches
+- edit the candidate reconciliation ledger or its frontier
+- treat “no approved next slice” or “continue the governance flow” as an assignment to reconcile candidates
+
+When no approved implementation slice is named, stop. Ask for the Linear issue URL, slice doc, and branch name. Do not invent a slice and do not start reconciliation while waiting.

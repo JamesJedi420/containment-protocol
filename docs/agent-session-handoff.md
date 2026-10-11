@@ -29,7 +29,7 @@ If approval state is missing or ambiguous, fail closed and preserve the finding 
 1. `git checkout main` and `git pull origin main`.
 2. Start a new agent chat before another implementation slice.
 3. If the next task is already approved, first message includes Linear issue URL, `planning/…-slice.md`, branch name, and current `main` SHA.
-4. If no approved next issue exists, do not invent one. Return the useful follow-up as candidate input for the governance workflow.
+4. If no approved next issue exists, do not invent one and do not perform candidate reconciliation. Stop and ask for the next approved Linear issue, slice doc, and branch.
 
 ## During an open PR
 
@@ -56,7 +56,7 @@ One agent session on the same branch may implement, review, fix CI, and merge th
 
 **Phase A — PR open / merge blocked:** report blocker, PR URL, CI status, and current approved issue state. Do not code or plan another issue.
 
-**Phase B — after merge:** verify the approved slice lifecycle update, then prepare a next-issue plan only when an already-approved next issue exists. Otherwise identify the candidate/governance continuation without creating scope.
+**Phase B — after merge:** verify the approved slice lifecycle update, then prepare a next-issue plan only when an already-approved next issue exists. Otherwise stop and ask for one. Do not perform candidate reconciliation.
 
 Use `docs/agent-session-closeout.md` for the detailed response structures.
 
@@ -68,4 +68,4 @@ For an approved next slice:
 PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>.
 ```
 
-For discovered but unapproved work, do not use the implementation template; route the finding through candidate governance instead.
+For discovered but unapproved work, do not use the implementation template and do not perform candidate reconciliation. Stop and ask for an already-approved Linear issue.

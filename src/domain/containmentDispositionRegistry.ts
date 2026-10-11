@@ -409,8 +409,12 @@ function dependencyCycles(
 ): ContainmentDispositionFinding[] {
   const outgoing = new Map<string, string[]>()
   for (const record of records) {
-    const current = outgoing.get(record.subjectId) ?? []
-    outgoing.set(record.subjectId, current.concat(record.dependencyNodeIds))
+    let targets = outgoing.get(record.subjectId)
+    if (targets === undefined) {
+      targets = []
+      outgoing.set(record.subjectId, targets)
+    }
+    for (const nodeId of record.dependencyNodeIds) targets.push(nodeId)
   }
   for (const [node, targets] of outgoing) {
     outgoing.set(node, [...new Set(targets)].sort(compareCodeUnit))

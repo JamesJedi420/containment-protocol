@@ -209,22 +209,34 @@ function freezeFinding(input: {
   })
 }
 
-function findingSortKey(item: ContainmentDispositionFinding): string {
-  return JSON.stringify([
-    item.severity,
-    item.code,
-    item.recordId ?? null,
-    item.subjectId ?? null,
-    item.nodeIds ?? [],
-  ])
+function compareNodeLists(left: readonly string[], right: readonly string[]): number {
+  const count = Math.min(left.length, right.length)
+  for (let index = 0; index < count; index += 1) {
+    const order = compareCodeUnit(left[index] ?? '', right[index] ?? '')
+    if (order !== 0) return order
+  }
+  return left.length - right.length
+}
+
+function compareFindings(
+  left: ContainmentDispositionFinding,
+  right: ContainmentDispositionFinding
+): number {
+  const severity = compareCodeUnit(left.severity, right.severity)
+  if (severity !== 0) return severity
+  const code = compareCodeUnit(left.code, right.code)
+  if (code !== 0) return code
+  const recordId = compareCodeUnit(left.recordId ?? '', right.recordId ?? '')
+  if (recordId !== 0) return recordId
+  const subjectId = compareCodeUnit(left.subjectId ?? '', right.subjectId ?? '')
+  if (subjectId !== 0) return subjectId
+  return compareNodeLists(left.nodeIds ?? [], right.nodeIds ?? [])
 }
 
 function emptyValidation(
   findings: readonly ContainmentDispositionFinding[]
 ): ContainmentDispositionGraphValidation {
-  const sorted = [...findings].sort((left, right) =>
-    compareCodeUnit(findingSortKey(left), findingSortKey(right))
-  )
+  const sorted = [...findings].sort(compareFindings)
   return Object.freeze({
     records: Object.freeze([]),
     findings: Object.freeze(sorted),
@@ -255,8 +267,11 @@ function parseRecord(value: unknown): ParsedRecord | ContainmentDispositionFindi
     if (typeof value.contained !== 'boolean') {
       return freezeFinding({ code: 'malformed', ...idRef, ...subjectRef })
     }
-    if (!isKind(value.kind)) {
+    if (!hasOwn(value, 'kind')) {
       return freezeFinding({ code: 'disposition_collapse', ...idRef, ...subjectRef })
+    }
+    if (!isKind(value.kind)) {
+      return freezeFinding({ code: 'malformed', ...idRef, ...subjectRef })
     }
   }
 
@@ -468,7 +483,7 @@ function dependencyCycles(
     if (component.length > 1 || selfLoop) cycles.push(component)
   }
 
-  cycles.sort((left, right) => compareCodeUnit(left.join('\u0001'), right.join('\u0001')))
+  cycles.sort(compareNodeLists)
   return cycles.map((nodeIds) => freezeFinding({ code: 'dependency_cycle', nodeIds }))
 }
 
@@ -560,7 +575,7 @@ export function validateContainmentDispositionGraph(
   findings.push(...dependencyCycles(accepted))
 
   accepted.sort((left, right) => compareCodeUnit(left.id, right.id))
-  findings.sort((left, right) => compareCodeUnit(findingSortKey(left), findingSortKey(right)))
+  findings.sort(compareFindings)
 
   return Object.freeze({
     records: Object.freeze(accepted),

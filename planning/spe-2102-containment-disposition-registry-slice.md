@@ -43,6 +43,7 @@ A record carries `id`, `subjectId`, `kind`, `confidence` in `0..1`, `rationaleCo
 | Subject ids and dependency node ids form a directed cycle           | `dependency_cycle` error. Accepted records stay. Each strongly connected component is one finding, members sorted. |
 | `partial` or `tolerated` with `highRisk: true` and no warning       | `missing_failure_warning` warning. Record stays.                                                                   |
 | `contained: boolean` used instead of a disposition kind             | `disposition_collapse` warning. Record omitted.                                                                    |
+| `contained: boolean` beside an unknown kind                         | `malformed` error. The boolean does not downgrade the unknown kind.                                                |
 | `contained: boolean` beside a valid kind                            | `disposition_collapse` warning. The kind stays. The boolean does not replace it.                                   |
 
 `emergentDefensiveSideEffect` is metadata. It does not change `kind` to `secured`. Cycle detection walks those dependency node ids only, iteratively, and reports every node in a strongly connected component. It does not call the SPE-3383 facility graph. A token containing NUL is malformed. There is no `breached` kind and no accidental-breach boolean.

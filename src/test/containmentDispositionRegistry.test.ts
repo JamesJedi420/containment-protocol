@@ -166,6 +166,19 @@ describe('SPE-2102 containment disposition registry', () => {
     ])
     expect(JSON.stringify(replaced)).not.toContain('secured')
 
+    const unknownWithBoolean = validateContainmentDispositionGraph([
+      record({ id: 'record-breach', kind: 'breached', contained: true }),
+    ])
+    expect(unknownWithBoolean.records).toEqual([])
+    expect(unknownWithBoolean.findings).toEqual([
+      {
+        code: 'malformed',
+        severity: 'error',
+        recordId: 'record-breach',
+        subjectId: 'subject-alpha',
+      },
+    ])
+
     const besideKind = validateContainmentDispositionGraph([
       record({ id: 'record-secured', contained: false }),
     ])
@@ -317,6 +330,13 @@ describe('SPE-2102 containment disposition registry', () => {
     ])
     expect(nul.records).toEqual([])
     expect(nul.findings[0]?.code).toBe('malformed')
+
+    const spaced = record({ id: 'a b' })
+    const lined = record({ id: 'a\nb' })
+    delete spaced.rationaleCodes
+    delete lined.rationaleCodes
+    const ordered = validateContainmentDispositionGraph([spaced, lined])
+    expect(ordered.findings.map((item) => item.recordId)).toEqual(['a\nb', 'a b'])
   })
 
   it('reports every node in a strongly connected dependency component', () => {

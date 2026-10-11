@@ -278,7 +278,7 @@ describe('SPE-2102 containment disposition registry', () => {
     expect(JSON.stringify(extra)).not.toContain('do-not-import')
   })
 
-  it('omits duplicate ids and fails closed on a non-array packet', () => {
+  it('omits every copy of a duplicate id, including a rejected sibling', () => {
     const duplicates = validateContainmentDispositionGraph([
       record({ id: 'record-same', subjectId: 'subject-b' }),
       record({ id: 'record-same', subjectId: 'subject-a' }),
@@ -288,6 +288,66 @@ describe('SPE-2102 containment disposition registry', () => {
       { code: 'duplicate_record', severity: 'error', recordId: 'record-same' },
     ])
 
+    const mixed = validateContainmentDispositionGraph([
+      record({ id: 'record-same' }),
+      { id: 'record-same', subjectId: 'subject-alpha', contained: true },
+    ])
+    expect(mixed.records).toEqual([])
+    expect(mixed.findings).toEqual([
+      { code: 'duplicate_record', severity: 'error', recordId: 'record-same' },
+      {
+        code: 'disposition_collapse',
+        severity: 'warning',
+        recordId: 'record-same',
+        subjectId: 'subject-alpha',
+      },
+    ])
+  })
+
+  it('rejects a missing required list and a NUL token', () => {
+    const source = record()
+    const withoutRationale = { ...source }
+    delete withoutRationale.rationaleCodes
+    const missing = validateContainmentDispositionGraph([withoutRationale])
+    expect(missing.records).toEqual([])
+    expect(missing.findings[0]?.code).toBe('malformed')
+
+    const nul = validateContainmentDispositionGraph([
+      record({ id: 'record-nul', subjectId: 'subject\u0000alpha' }),
+    ])
+    expect(nul.records).toEqual([])
+    expect(nul.findings[0]?.code).toBe('malformed')
+  })
+
+  it('reports every node in a strongly connected dependency component', () => {
+    const result = validateContainmentDispositionGraph([
+      record({ id: 'record-a', subjectId: 'node-a', dependencyNodeIds: ['node-c', 'node-b'] }),
+      record({ id: 'record-b', subjectId: 'node-b', dependencyNodeIds: ['node-a'] }),
+      record({ id: 'record-c', subjectId: 'node-c', dependencyNodeIds: ['node-b'] }),
+    ])
+    expect(result.findings).toEqual([
+      {
+        code: 'dependency_cycle',
+        severity: 'error',
+        nodeIds: ['node-a', 'node-b', 'node-c'],
+      },
+    ])
+  })
+
+  it('validates a long dependency chain without throwing', () => {
+    const chain = Array.from({ length: 2000 }, (_, index) =>
+      record({
+        id: `record-${index}`,
+        subjectId: `node-${index}`,
+        dependencyNodeIds: index === 1999 ? [] : [`node-${index + 1}`],
+      })
+    )
+    const result = validateContainmentDispositionGraph(chain)
+    expect(result.findings).toEqual([])
+    expect(result.records).toHaveLength(2000)
+  })
+
+  it('fails closed on a non-array packet', () => {
     expect(validateContainmentDispositionGraph(undefined)).toEqual({
       records: [],
       findings: [{ code: 'malformed', severity: 'error' }],

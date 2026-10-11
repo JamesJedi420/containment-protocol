@@ -177,6 +177,7 @@ function findingSeverity(
 
 function parseToken(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length === 0 || value !== value.trim()) return undefined
+  if (value.includes('\u0000')) return undefined
   return value
 }
 
@@ -209,13 +210,13 @@ function freezeFinding(input: {
 }
 
 function findingSortKey(item: ContainmentDispositionFinding): string {
-  return [
+  return JSON.stringify([
     item.severity,
     item.code,
-    item.recordId ?? '',
-    item.subjectId ?? '',
-    item.nodeIds?.join('\u0000') ?? '',
-  ].join('\u0000')
+    item.recordId ?? null,
+    item.subjectId ?? null,
+    item.nodeIds ?? [],
+  ])
 }
 
 function emptyValidation(
@@ -280,15 +281,17 @@ function parseRecord(value: unknown): ParsedRecord | ContainmentDispositionFindi
     return freezeFinding({ code: 'malformed', recordId: id, subjectId })
   }
 
-  const rationaleCodes = hasOwn(value, 'rationaleCodes')
-    ? parseStringList(value.rationaleCodes)
-    : Object.freeze([])
-  const dependencyNodeIds = hasOwn(value, 'dependencyNodeIds')
-    ? parseStringList(value.dependencyNodeIds)
-    : Object.freeze([])
-  const failureWarnings = hasOwn(value, 'failureWarnings')
-    ? parseStringList(value.failureWarnings)
-    : Object.freeze([])
+  if (
+    !hasOwn(value, 'rationaleCodes') ||
+    !hasOwn(value, 'dependencyNodeIds') ||
+    !hasOwn(value, 'failureWarnings')
+  ) {
+    return freezeFinding({ code: 'malformed', recordId: id, subjectId })
+  }
+
+  const rationaleCodes = parseStringList(value.rationaleCodes)
+  const dependencyNodeIds = parseStringList(value.dependencyNodeIds)
+  const failureWarnings = parseStringList(value.failureWarnings)
   if (
     rationaleCodes === undefined ||
     dependencyNodeIds === undefined ||
@@ -404,38 +407,68 @@ function dependencyCycles(
     for (const target of targets) nodes.add(target)
   }
   const orderedNodes = [...nodes].sort(compareCodeUnit)
-  const color = new Map<string, 'white' | 'gray' | 'black'>()
-  for (const node of orderedNodes) color.set(node, 'white')
 
-  const cycles: string[][] = []
-  const seen = new Set<string>()
-
-  const visit = (node: string, stack: string[]): void => {
-    color.set(node, 'gray')
-    stack.push(node)
-    for (const target of outgoing.get(node) ?? []) {
-      const state = color.get(target) ?? 'white'
-      if (state === 'gray') {
-        const start = stack.indexOf(target)
-        const members = (start === -1 ? [target] : stack.slice(start)).sort(compareCodeUnit)
-        const key = members.join('\u0000')
-        if (!seen.has(key)) {
-          seen.add(key)
-          cycles.push(members)
+  const finish: string[] = []
+  const seenFinish = new Set<string>()
+  for (const start of orderedNodes) {
+    if (seenFinish.has(start)) continue
+    const stack: { node: string; next: number }[] = [{ node: start, next: 0 }]
+    seenFinish.add(start)
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]
+      if (frame === undefined) break
+      const targets = outgoing.get(frame.node) ?? []
+      if (frame.next < targets.length) {
+        const child = targets[frame.next]
+        frame.next += 1
+        if (child !== undefined && !seenFinish.has(child)) {
+          seenFinish.add(child)
+          stack.push({ node: child, next: 0 })
         }
-      } else if (state === 'white') {
-        visit(target, stack)
+      } else {
+        finish.push(frame.node)
+        stack.pop()
       }
     }
-    stack.pop()
-    color.set(node, 'black')
   }
 
-  for (const node of orderedNodes) {
-    if (color.get(node) === 'white') visit(node, [])
+  const incoming = new Map<string, string[]>()
+  for (const node of orderedNodes) incoming.set(node, [])
+  for (const [node, targets] of outgoing) {
+    for (const target of targets) {
+      const sources = incoming.get(target) ?? []
+      sources.push(node)
+      incoming.set(target, sources)
+    }
+  }
+  for (const sources of incoming.values()) sources.sort(compareCodeUnit)
+
+  const seenComponent = new Set<string>()
+  const cycles: string[][] = []
+  for (let index = finish.length - 1; index >= 0; index -= 1) {
+    const start = finish[index]
+    if (start === undefined || seenComponent.has(start)) continue
+    const component: string[] = []
+    const stack = [start]
+    seenComponent.add(start)
+    while (stack.length > 0) {
+      const node = stack.pop()
+      if (node === undefined) break
+      component.push(node)
+      for (const source of incoming.get(node) ?? []) {
+        if (!seenComponent.has(source)) {
+          seenComponent.add(source)
+          stack.push(source)
+        }
+      }
+    }
+    component.sort(compareCodeUnit)
+    const only = component[0]
+    const selfLoop = only !== undefined && (outgoing.get(only) ?? []).includes(only)
+    if (component.length > 1 || selfLoop) cycles.push(component)
   }
 
-  cycles.sort((left, right) => compareCodeUnit(left.join('\u0000'), right.join('\u0000')))
+  cycles.sort((left, right) => compareCodeUnit(left.join('\u0001'), right.join('\u0001')))
   return cycles.map((nodeIds) => freezeFinding({ code: 'dependency_cycle', nodeIds }))
 }
 
@@ -481,13 +514,29 @@ export function validateContainmentDispositionGraph(
 
   const findings: ContainmentDispositionFinding[] = []
   const parsed: ContainmentDispositionRecord[] = []
+  const idCounts = new Map<string, number>()
+  for (const value of records) {
+    if (!isRecord(value)) continue
+    const id = parseToken(value.id)
+    if (id === undefined) continue
+    idCounts.set(id, (idCounts.get(id) ?? 0) + 1)
+  }
+  const reportedDuplicates = new Set<string>()
 
   for (const value of records) {
+    const rawId = isRecord(value) ? parseToken(value.id) : undefined
+    const duplicated = rawId !== undefined && (idCounts.get(rawId) ?? 0) > 1
+    if (duplicated && rawId !== undefined && !reportedDuplicates.has(rawId)) {
+      reportedDuplicates.add(rawId)
+      findings.push(freezeFinding({ code: 'duplicate_record', recordId: rawId }))
+    }
+
     const result = parseRecord(value)
     if (!('record' in result)) {
       findings.push(result)
       continue
     }
+    if (duplicated) continue
     if (result.collapse) {
       findings.push(
         freezeFinding({
@@ -500,26 +549,8 @@ export function validateContainmentDispositionGraph(
     parsed.push(result.record)
   }
 
-  const idCounts = new Map<string, number>()
-  for (const record of parsed) {
-    idCounts.set(record.id, (idCounts.get(record.id) ?? 0) + 1)
-  }
-
-  const unique: ContainmentDispositionRecord[] = []
-  const reportedDuplicates = new Set<string>()
-  for (const record of parsed) {
-    if ((idCounts.get(record.id) ?? 0) > 1) {
-      if (!reportedDuplicates.has(record.id)) {
-        reportedDuplicates.add(record.id)
-        findings.push(freezeFinding({ code: 'duplicate_record', recordId: record.id }))
-      }
-      continue
-    }
-    unique.push(record)
-  }
-
   const accepted: ContainmentDispositionRecord[] = []
-  for (const record of unique) {
+  for (const record of parsed) {
     const rules = ruleFindings(record)
     findings.push(...rules)
     if (rules.some(isError)) continue

@@ -30,21 +30,22 @@ A record carries `id`, `subjectId`, `kind`, `confidence` in `0..1`, `rationaleCo
 
 ## Validation
 
-| Condition                                                       | Result                                                                           |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Input is not an array, unknown kind, or a malformed record      | `malformed` error. The record is omitted and is not rewritten `secured`.         |
-| Duplicate record id                                             | `duplicate_record` error. Every copy of that id is omitted.                      |
-| `tolerated` without rationale                                   | `tolerated_without_rationale` error. Record omitted.                             |
-| `tolerated` without alternatives                                | `tolerated_without_alternatives` error. Record omitted.                          |
-| `authorized_disruption` without `authorizationRef`              | `authorized_disruption_without_authorization` error. Record omitted.             |
-| `partial` with `dependencyLinked: true` and no dependency nodes | `missing_dependency_nodes` error. Record omitted.                                |
-| Kind `dependency_linked` with no dependency nodes               | `missing_dependency_nodes` error. Record omitted.                                |
-| Subject ids and dependency node ids form a directed cycle       | `dependency_cycle` error. Accepted records stay. Cycle members are sorted.       |
-| `partial` or `tolerated` with `highRisk: true` and no warning   | `missing_failure_warning` warning. Record stays.                                 |
-| `contained: boolean` used instead of a disposition kind         | `disposition_collapse` warning. Record omitted.                                  |
-| `contained: boolean` beside a valid kind                        | `disposition_collapse` warning. The kind stays. The boolean does not replace it. |
+| Condition                                                           | Result                                                                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Input is not an array, unknown kind, or a malformed record          | `malformed` error. The record is omitted and is not rewritten `secured`.                                           |
+| Duplicate record id, including a readable id on a rejected packet   | `duplicate_record` error. Every copy of that id is omitted.                                                        |
+| Missing `rationaleCodes`, `dependencyNodeIds`, or `failureWarnings` | `malformed` error. Record omitted.                                                                                 |
+| `tolerated` without rationale                                       | `tolerated_without_rationale` error. Record omitted.                                                               |
+| `tolerated` without alternatives                                    | `tolerated_without_alternatives` error. Record omitted.                                                            |
+| `authorized_disruption` without `authorizationRef`                  | `authorized_disruption_without_authorization` error. Record omitted.                                               |
+| `partial` with `dependencyLinked: true` and no dependency nodes     | `missing_dependency_nodes` error. Record omitted.                                                                  |
+| Kind `dependency_linked` with no dependency nodes                   | `missing_dependency_nodes` error. Record omitted.                                                                  |
+| Subject ids and dependency node ids form a directed cycle           | `dependency_cycle` error. Accepted records stay. Each strongly connected component is one finding, members sorted. |
+| `partial` or `tolerated` with `highRisk: true` and no warning       | `missing_failure_warning` warning. Record stays.                                                                   |
+| `contained: boolean` used instead of a disposition kind             | `disposition_collapse` warning. Record omitted.                                                                    |
+| `contained: boolean` beside a valid kind                            | `disposition_collapse` warning. The kind stays. The boolean does not replace it.                                   |
 
-`emergentDefensiveSideEffect` is metadata. It does not change `kind` to `secured`. Cycle detection walks those dependency node ids only. It does not call the SPE-3383 facility graph. There is no `breached` kind and no accidental-breach boolean.
+`emergentDefensiveSideEffect` is metadata. It does not change `kind` to `secured`. Cycle detection walks those dependency node ids only, iteratively, and reports every node in a strongly connected component. It does not call the SPE-3383 facility graph. A token containing NUL is malformed. There is no `breached` kind and no accidental-breach boolean.
 
 Repeated validation of the same caller packet is byte-stable. String lists are sorted by code unit. Findings sort by severity, code, record id, subject id, then cycle members.
 

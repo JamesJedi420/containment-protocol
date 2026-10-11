@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2102",
     "SPE-3389",
     "SPE-3388",
     "SPE-3387",
@@ -25,6 +26,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-2102-containment-disposition-registry-slice.md": "Recently shipped",
     "planning/spe-3389-facility-core-displacement-residue-slice.md": "Recently shipped",
     "planning/spe-3388-persist-facility-supported-capability-unlocks-slice.md": "Recently shipped",
     "planning/spe-3387-facility-operational-post-validity-slice.md": "Recently shipped",

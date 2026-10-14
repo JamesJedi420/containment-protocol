@@ -15,6 +15,7 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 | **`architecture/knowledge-subsystems-expansion.md`**   | SPE-529 family surface tables           | Child scope semantics change; keep aligned with `architecture/knowledge-state-system.md`.                                                                                                                |
 | **`docs/design-audits-index.md`**                      | Catalog of `docs/*audit*.md`            | Any new top-level audit file: add one **alphabetically ordered** bullet; `npm run verify:audits-index` must pass.                                                                                        |
 | **`architecture/game-state-and-core-loop.md`**         | Systems map + SPE list + supplements    | New `architecture/*.md` (SPE-tagged or supplement); adjust **Architecture index notes** if SPE bands change.                                                                                             |
+| **GitHub wiki**                                        | Curated navigation and stable reference | Repository documentation ownership, canonical architecture/design references, validation commands, terminology, or planning entry points change. Keep the wiki as a projection/navigation layer; do not let it become a parallel source of truth.                         |
 | **`README.md`**                                        | Onboarding, scripts, scope              | Stack or scripts change; **not** for long tactical backlogs (link `planning/backlog.md`).                                                                                                                |
 
 ## Cadence (lightweight)
@@ -22,10 +23,12 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 - **Each PR that changes docs or planning:** skim **backlog** (still accurate order?), run **`npm run verify:audits-index`** if `docs/` changed; run **`npm run verify:theme-contracts`** if the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changed; run **`npm run verify:backlog-handoff`** if `planning/backlog.md`, slice docs, or **`planning/backlog-handoff-manifest.json`** changed.
 - **After a milestone or release slice:** reconcile **roadmap §15** tone with **backlog** top items; archive done backlog lines or move them to issue bodies.
 - **When Linear external doc changes:** refresh **`docs/linear-external-documentation-follow-ups.md`** from source so SPE-186+ mirror stays diffable.
+- **During wiki curation:** compare wiki navigation and summaries against current `main`; point planning, architecture, terminology, authoring, and QA pages at their canonical repository sources; update the page's verification date/commit when checked.
 
 ## Anti-patterns
 
 - Same tactical item listed in **README**, **backlog**, and a **Linear** description with conflicting priority—pick **one** ordered source (`planning/backlog.md`) for sequencing.
+- GitHub wiki pages presenting copied roadmap, backlog, architecture inventories, glossary definitions, or validation commands as independent truth instead of linking to the canonical repository sources.
 - Backlog handoff updated without **`planning/backlog-handoff-manifest.json`** or without running **`npm run verify:backlog-handoff`**—CI will fail after merge.
 - New audit file without index row—**CI will fail** after merge if `verify:audits-index` is not run locally.
 - Mirror / theme **SPE** mismatch—**CI will fail** if `verify:theme-contracts` is not run after editing the mirror or theme clusters.
@@ -33,6 +36,7 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 ## See also
 
+- GitHub wiki — curated navigation/reference layer; verify against current `main` rather than treating it as canonical issue or implementation state
 - `AGENTS.md` — scripts, audit-index rule, documentation hygiene, **session handoff**, **mandatory Linear**
 - `.cursor/rules/linear-always-update.mdc` — `alwaysApply` Cursor rule for every agent session
 - `.cursor/rules/cloud-agent-linear-handoff.mdc` — Cloud Agents emit a local-agent Linear apply block after an implementation PR merges

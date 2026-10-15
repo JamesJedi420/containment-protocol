@@ -1,18 +1,18 @@
 # SPE-3043 — Audit remaining SPE-1605 historical-route replay interaction wires (ownership STOP)
 
-| Field                        | Value                                                                                                                                                                              |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **Recently shipped**                                                                                                                                                               |
-| **Linear**                   | [SPE-3043](https://linear.app/spectranoir/issue/SPE-3043/audit-remaining-spe-1605-historical-route-replay-interaction-wires)                                                       |
-| **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                        |
-| **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics                 |
-| **Sibling calendar**         | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy) — Done; do not reopen calendar policy              |
-| **Sibling site-action wire** | [SPE-3034](https://linear.app/spectranoir/issue/SPE-3034/fire-one-historical-route-replay-interaction-start-from-an-existing) — Done; do not reopen `enter_zone` semantics        |
-| **Sibling ask wire**         | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from) — Done; do not reopen `interview_witness` semantics           |
-| **Sibling search wire**      | [SPE-3040](https://linear.app/spectranoir/issue/SPE-3040/fire-historical-route-replay-search-start-from-site-exploration-search) — Done; do not reopen `search` semantics         |
-| **Deferred source**          | SPE-3040 Deferred row 1 (remaining SPE-1605 kinds after `search`)                                                                                                                  |
-| **Branch**                   | `cursor/spe-1605-remaining-kind-ownership-stop-7063`                                                                                                                               |
-| **Base `main` SHA**          | `f05afcb539779f96042430cdb286f84207ddbb9f`                                                                                                                                         |
+| Field                        | Value                                                                                                                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                   | **Recently shipped**                                                                                                                                                       |
+| **Linear**                   | [SPE-3043](https://linear.app/spectranoir/issue/SPE-3043/audit-remaining-spe-1605-historical-route-replay-interaction-wires)                                               |
+| **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                |
+| **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics         |
+| **Sibling calendar**         | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy) — Done; do not reopen calendar policy      |
+| **Sibling site-action wire** | [SPE-3034](https://linear.app/spectranoir/issue/SPE-3034/fire-one-historical-route-replay-interaction-start-from-an-existing) — Done; do not reopen `enter_zone` semantics |
+| **Sibling ask wire**         | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from) — Done; do not reopen `interview_witness` semantics    |
+| **Sibling search wire**      | [SPE-3040](https://linear.app/spectranoir/issue/SPE-3040/fire-historical-route-replay-search-start-from-site-exploration-search) — Done; do not reopen `search` semantics  |
+| **Deferred source**          | SPE-3040 Deferred row 1 (remaining SPE-1605 kinds after `search`)                                                                                                          |
+| **Branch**                   | `cursor/spe-1605-remaining-kind-ownership-stop-7063`                                                                                                                       |
+| **Base `main` SHA**          | `f05afcb539779f96042430cdb286f84207ddbb9f`                                                                                                                                 |
 
 ## Goal
 
@@ -24,23 +24,23 @@ Complete an ownership audit of the five remaining SPE-1605 interaction kinds aft
 
 ## Already wired (out of scope)
 
-| Kind | Store seam | Slice |
-| ---- | ---------- | ----- |
-| `enter_zone` | `recordSceneVisit` | SPE-3034 |
-| `interview_witness` | `askInvestigationQuestion` | SPE-3035 |
-| `search` | `applySiteExplorationSearch` → `applySiteExplorationAction(..., 'search')` | SPE-3040 |
+| Kind                | Store seam                                                                 | Slice    |
+| ------------------- | -------------------------------------------------------------------------- | -------- |
+| `enter_zone`        | `recordSceneVisit`                                                         | SPE-3034 |
+| `interview_witness` | `askInvestigationQuestion`                                                 | SPE-3035 |
+| `search`            | `applySiteExplorationSearch` → `applySiteExplorationAction(..., 'search')` | SPE-3040 |
 
 Activator + vocabulary: `src/domain/historicalRouteReplayActivation.ts`. Store call shape to reuse later: `src/app/store/gameStore.ts` `applySiteExplorationSearch` (SPE-3040).
 
 ## Ownership audit (binding)
 
-| Kind | Near-miss | Why rejected |
-| ---- | --------- | ------------ |
-| `make_noise` | `breach` alert delta in `src/domain/siteOperationalExploration.ts` | SPE-3040 Kind choice: breach ≠ make noise |
-| `operate_control` | `repair` / `disarm` exploration; HQ `repairStoredEquipmentInstanceCondition` | Explicitly not operate_control |
-| `open_access` | `openCourierShellFront`; `probe_access` infiltration override | Front shell / weekly probe — not site open-access |
-| `remove_asset` | `destroyStoredEquipmentInstance` | HQ dispose — banned force-map; future owner [SPE-1667](https://linear.app/spectranoir/issue/SPE-1667/site-native-object-removal-escalation) (Backlog; no mid-week site remove seam yet) |
-| `touch_sensitive_object` | Activator contract fixture only; `applyAuthoredChoice` | No production touch seam; [SPE-71](https://linear.app/spectranoir/issue/SPE-71/preplaced-site-trigger-families-kernel) trigger surfaces still Backlog |
+| Kind                     | Near-miss                                                                    | Why rejected                                                                                                                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make_noise`             | `breach` alert delta in `src/domain/siteOperationalExploration.ts`           | SPE-3040 Kind choice: breach ≠ make noise                                                                                                                                                                                                |
+| `operate_control`        | `repair` / `disarm` exploration; HQ `repairStoredEquipmentInstanceCondition` | Explicitly not operate_control                                                                                                                                                                                                           |
+| `open_access`            | `openCourierShellFront`; `probe_access` infiltration override                | Front shell / weekly probe — not site open-access                                                                                                                                                                                        |
+| `remove_asset`           | `destroyStoredEquipmentInstance`                                             | HQ dispose — banned force-map. [SPE-1667](https://linear.app/spectranoir/issue/SPE-1667/site-native-object-removal-escalation) ships a pure removal projector only. It does not add a mid-week site remove action, so this stop remains. |
+| `touch_sensitive_object` | Activator contract fixture only; `applyAuthoredChoice`                       | No production touch seam; [SPE-71](https://linear.app/spectranoir/issue/SPE-71/preplaced-site-trigger-families-kernel) trigger surfaces still Backlog                                                                                    |
 
 Exploration catalog (`search|scan|breach|listen|hide|rest|repair|disarm|interrogate|move|retreat`) has no remaining honest SPE-1605 kind after `search`.
 
@@ -94,14 +94,14 @@ Queue a SPE-3040-shaped thin store wire for **one** kind only after one of:
 
 - [SPE-71](https://linear.app/spectranoir/issue/SPE-71/preplaced-site-trigger-families-kernel) ships a player interaction surface that is literally touch/open/loot (maps to `touch_sensitive_object` / `open_access` without stretch), or
 - [SPE-1610](https://linear.app/spectranoir/issue/SPE-1610/free-investigation-versus-crisis-action-mode) adds exploration actions literally named for noise/control/access/asset/touch, or
-- [SPE-1667](https://linear.app/spectranoir/issue/SPE-1667/site-native-object-removal-escalation) exposes a mid-week site-native remove action for `remove_asset`
+- a later child exposes a mid-week site-native remove action for `remove_asset`. [SPE-1667](https://linear.app/spectranoir/issue/SPE-1667/site-native-object-removal-escalation) is the pure projector only and does not satisfy this condition.
 
 Until then, do not queue another SPE-1605 “wire remaining kind” child that assumes an existing action.
 
 ## Deferred
 
-| Item | Suggested owner issue | Why deferred |
-| ---- | --------------------- | ------------ |
-| Thin store wire for `make_noise` / `operate_control` / `open_access` / `remove_asset` / `touch_sensitive_object` | Later SPE-1605 child **after** SPE-71 / SPE-1610 / SPE-1667 ships a matching mid-week seam | Ownership STOP — no honest existing action on `main` |
-| Full SPE-1605 dormant/armed/spent/recurring state machine | Later SPE-1605 child | Out of this audit boundary |
-| Anniversary / week-of-year / seasonal start conditions | Later SPE-1071 / SPE-1605 child | Outside this interaction audit; calendar absolute week remains SPE-3024 |
+| Item                                                                                                             | Suggested owner issue                                   | Why deferred                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Thin store wire for `make_noise` / `operate_control` / `open_access` / `remove_asset` / `touch_sensitive_object` | Later SPE-1605 child **after** a matching mid-week seam | Ownership STOP. SPE-1667's pure projector is not a mid-week remove action. SPE-71 / SPE-1610 still have no matching action. |
+| Full SPE-1605 dormant/armed/spent/recurring state machine                                                        | Later SPE-1605 child                                    | Out of this audit boundary                                                                                                  |
+| Anniversary / week-of-year / seasonal start conditions                                                           | Later SPE-1071 / SPE-1605 child                         | Outside this interaction audit; calendar absolute week remains SPE-3024                                                     |

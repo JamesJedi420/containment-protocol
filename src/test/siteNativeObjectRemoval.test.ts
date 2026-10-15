@@ -245,5 +245,4 @@ describe('SPE-1667 site-native object removal', () => {
       else delete (Object.prototype as { containmentRole?: unknown }).containmentRole
     }
   })
-
 })

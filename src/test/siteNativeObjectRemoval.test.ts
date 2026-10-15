@@ -153,6 +153,49 @@ describe('SPE-1667 site-native object removal', () => {
     expect(project(packet({ origin: 'loot' }))).toBeUndefined()
   })
 
+  it('rejects hidden or accessor-backed packet state and ignores inherited optional roles', () => {
+    const hidden = packet()
+    Object.defineProperty(hidden, 'extra', { value: true, enumerable: false })
+    expect(validate(hidden).findings[0]?.code).toBe('malformed')
+    expect(project(hidden)).toBeUndefined()
+
+    const symbolBacked = packet()
+    Object.defineProperty(symbolBacked, Symbol('extra'), { value: true })
+    expect(validate(symbolBacked).findings[0]?.code).toBe('malformed')
+    expect(project(symbolBacked)).toBeUndefined()
+
+    let getterReads = 0
+    const accessorBacked = packet()
+    Object.defineProperty(accessorBacked, 'origin', {
+      configurable: true,
+      enumerable: true,
+      get() {
+        getterReads += 1
+        return 'site_native_artifact'
+      },
+    })
+    expect(validate(accessorBacked).findings[0]?.code).toBe('malformed')
+    expect(project(accessorBacked)).toBeUndefined()
+    expect(getterReads).toBe(0)
+
+    const originalRole = Object.getOwnPropertyDescriptor(Object.prototype, 'containmentRole')
+    try {
+      Object.defineProperty(Object.prototype, 'containmentRole', {
+        configurable: true,
+        value: 'exposed',
+      })
+      const ordinary = packet()
+      expect(validate(ordinary).request).not.toHaveProperty('containmentRole')
+      expect(project(ordinary)?.attention).toBe(2)
+    } finally {
+      if (originalRole) {
+        Object.defineProperty(Object.prototype, 'containmentRole', originalRole)
+      } else {
+        Reflect.deleteProperty(Object.prototype, 'containmentRole')
+      }
+    }
+  })
+
   it('repeats validation and projection byte-stably without mutating the packet', () => {
     const input = packet({ containmentRole: 'secured', phase: 'extraction' })
     const snapshot = JSON.stringify(input)

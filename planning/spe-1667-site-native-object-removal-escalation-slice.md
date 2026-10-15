@@ -47,7 +47,7 @@ On a native origin, `unrecorded_origin` adds 1 attention and 1 instability. `sec
 | Phase is missing or not `ingress` / `extraction`                                                                                                                                    | `unknown_phase` error. No escalation.                                |
 | `containmentRole` is present and not `secured` / `exposed`                                                                                                                          | `unknown_containment_role` error. No escalation.                     |
 
-Repeated `validate` and `project` calls on the same packet are byte-stable. The input packet is not mutated.
+Required fields are enumerable own data properties. `validate` compares `Reflect.ownKeys` with one descriptor snapshot and copies those values onto a null prototype, so an inherited `origin` does not satisfy validation and a later key trap cannot add a field the snapshot missed. Repeated `validate` and `project` calls on the same packet are byte-stable. The input packet is not mutated.
 
 ## Deferred
 

@@ -204,6 +204,58 @@ describe('SPE-1667 site-native object removal', () => {
     expect(JSON.stringify(input)).toBe(snapshot)
     expect(validate(input).request).toEqual(input)
   })
+  it('rejects a non-enumerable allowlisted field and an inherited required origin', () => {
+    const hiddenOrigin = packet()
+    Object.defineProperty(hiddenOrigin, 'origin', {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: 'site_native_artifact',
+    })
+    expect(validate(hiddenOrigin).findings).toEqual([
+      { code: 'malformed', severity: 'error', recordId: 'removal-1' },
+    ])
+    expect(project(hiddenOrigin)).toBeUndefined()
+
+    const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'origin')
+    try {
+      Object.defineProperty(Object.prototype, 'origin', {
+        configurable: true,
+        value: 'authorized_external_tool',
+      })
+      const omitted = {
+        id: 'removal-1',
+        provenance: 'contained_record',
+        phase: 'ingress',
+      }
+      expect(validate(omitted).findings[0]?.code).toBe('unknown_origin')
+      expect(project(omitted)).toBeUndefined()
+    } finally {
+      if (previous) Object.defineProperty(Object.prototype, 'origin', previous)
+      else Reflect.deleteProperty(Object.prototype, 'origin')
+    }
+  })
+
+  it('rejects a packet whose own-key trap disagrees with its descriptor snapshot', () => {
+    let calls = 0
+    const proxy = new Proxy(packet(), {
+      ownKeys() {
+        calls += 1
+        return calls === 1
+          ? ['id', 'origin', 'provenance', 'phase']
+          : ['id', 'origin', 'provenance', 'phase', 'extra']
+      },
+      getOwnPropertyDescriptor(target, key) {
+        if (key === 'extra') {
+          return { configurable: true, enumerable: true, writable: true, value: true }
+        }
+        return Object.getOwnPropertyDescriptor(target, key)
+      },
+    })
+    expect(validate(proxy).findings[0]?.code).toBe('malformed')
+    expect(project(proxy)).toBeUndefined()
+  })
+
   it('rejects non-enumerable and symbol keys', () => {
     const hidden = packet()
     Object.defineProperty(hidden, 'hidden', { value: 1, enumerable: false })

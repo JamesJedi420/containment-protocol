@@ -127,10 +127,22 @@ function finding(
     : { code, severity: 'error', recordId }
 }
 
-function ownDataToken(input: object, key: string): string | undefined {
-  const descriptor = Object.getOwnPropertyDescriptor(input, key)
-  if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) return undefined
-  return isToken(descriptor.value) ? descriptor.value : undefined
+function isEnumerableData(
+  descriptor: PropertyDescriptor | undefined
+): descriptor is PropertyDescriptor & { value: unknown } {
+  return (
+    descriptor !== undefined &&
+    descriptor.enumerable === true &&
+    descriptor.get === undefined &&
+    descriptor.set === undefined &&
+    Object.prototype.hasOwnProperty.call(descriptor, 'value')
+  )
+}
+
+function sameKeys(left: readonly PropertyKey[], right: readonly PropertyKey[]): boolean {
+  if (left.length !== right.length) return false
+  const seen = new Set<PropertyKey>(right)
+  return left.every((key) => seen.has(key))
 }
 
 function acceptedRequest(values: Record<string, unknown>): SiteNativeObjectRemovalRequest {
@@ -149,29 +161,32 @@ function acceptedRequest(values: Record<string, unknown>): SiteNativeObjectRemov
 export function validate(input: unknown): SiteNativeRemovalValidation {
   // Inspect descriptors before reading values: getters, hidden properties and
   // inherited optional fields cannot change a caller-owned removal packet.
-  let descriptors: Record<string, PropertyDescriptor>
+  let values: Record<string, unknown>
   try {
     if (!isPlainRecord(input)) return { findings: [finding('malformed', undefined)] }
-    const recordId = ownDataToken(input, 'id')
-    const keys = Reflect.ownKeys(input)
-    if (keys.some((key) => typeof key !== 'string' || !REQUEST_KEYS.has(key))) {
-      return { findings: [finding('malformed', recordId)] }
-    }
-    descriptors = Object.getOwnPropertyDescriptors(input)
+    const listed = Reflect.ownKeys(input)
+    const descriptors = Object.getOwnPropertyDescriptors(input)
+    const captured = Reflect.ownKeys(descriptors)
+    const idDescriptor = Object.prototype.hasOwnProperty.call(descriptors, 'id')
+      ? descriptors.id
+      : undefined
+    const recordId =
+      isEnumerableData(idDescriptor) && isToken(idDescriptor.value) ? idDescriptor.value : undefined
     if (
-      Object.values(descriptors).some(
-        (descriptor) => !Object.prototype.hasOwnProperty.call(descriptor, 'value')
-      )
+      !sameKeys(listed, captured) ||
+      captured.some((key) => typeof key !== 'string' || !REQUEST_KEYS.has(key)) ||
+      captured.some((key) => !isEnumerableData(descriptors[key as string]))
     ) {
       return { findings: [finding('malformed', recordId)] }
+    }
+    values = Object.create(null) as Record<string, unknown>
+    for (const key of captured) {
+      values[key as string] = descriptors[key as string]?.value
     }
   } catch {
     return { findings: [finding('malformed', undefined)] }
   }
 
-  const values = Object.fromEntries(
-    Object.entries(descriptors).map(([key, descriptor]) => [key, descriptor.value])
-  ) as Record<string, unknown>
   const recordId = isToken(values.id) ? values.id : undefined
   if (!isToken(values.id)) return { findings: [finding('malformed', recordId)] }
 

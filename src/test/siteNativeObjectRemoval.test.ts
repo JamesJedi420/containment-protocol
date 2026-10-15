@@ -161,4 +161,46 @@ describe('SPE-1667 site-native object removal', () => {
     expect(JSON.stringify(input)).toBe(snapshot)
     expect(validate(input).request).toEqual(input)
   })
+  it('rejects non-enumerable and symbol keys', () => {
+    const hidden = packet()
+    Object.defineProperty(hidden, 'hidden', { value: 1, enumerable: false })
+    const symbol = packet()
+    Object.defineProperty(symbol, Symbol('hidden'), { value: 1 })
+    for (const input of [hidden, symbol]) {
+      expect(validate(input).findings[0]?.code).toBe('malformed')
+      expect(project(input)).toBeUndefined()
+    }
+  })
+
+  it('rejects getters without reading them or throwing', () => {
+    const input = packet()
+    let reads = 0
+    Object.defineProperty(input, 'origin', {
+      enumerable: true,
+      get() {
+        reads++
+        throw new Error('must not execute')
+      },
+    })
+    expect(validate(input).findings[0]?.code).toBe('malformed')
+    expect(project(input)).toBeUndefined()
+    expect(reads).toBe(0)
+  })
+
+  it('ignores an inherited optional role without ambient escalation', () => {
+    const input = packet()
+    const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'containmentRole')
+    try {
+      Object.defineProperty(Object.prototype, 'containmentRole', {
+        configurable: true,
+        value: 'exposed',
+      })
+      expect(validate(input).request).toEqual(input)
+      expect(project(input)?.attention).toBe(2)
+    } finally {
+      if (previous) Object.defineProperty(Object.prototype, 'containmentRole', previous)
+      else delete (Object.prototype as { containmentRole?: unknown }).containmentRole
+    }
+  })
+
 })

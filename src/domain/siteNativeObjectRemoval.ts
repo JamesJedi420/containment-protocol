@@ -123,54 +123,61 @@ function finding(
     : { code, severity: 'error', recordId }
 }
 
-function readableId(input: Record<string, unknown>): string | undefined {
-  return isToken(input.id) ? input.id : undefined
-}
-
 export function validate(input: unknown): SiteNativeRemovalValidation {
-  if (!isPlainRecord(input)) {
+  // Inspect descriptors before reading values: getters, hidden properties and
+  // inherited optional fields cannot change a caller-owned removal packet.
+  let descriptors: Record<string, PropertyDescriptor>
+  try {
+    if (!isPlainRecord(input)) return { findings: [finding('malformed', undefined)] }
+    const keys = Reflect.ownKeys(input)
+    if (keys.some((key) => typeof key !== 'string' || !REQUEST_KEYS.has(key))) {
+      return { findings: [finding('malformed', undefined)] }
+    }
+    descriptors = Object.getOwnPropertyDescriptors(input)
+    if (
+      Object.values(descriptors).some(
+        (descriptor) => !Object.prototype.hasOwnProperty.call(descriptor, 'value')
+      )
+    ) {
+      return { findings: [finding('malformed', undefined)] }
+    }
+  } catch {
     return { findings: [finding('malformed', undefined)] }
   }
 
-  const recordId = readableId(input)
-  const extraKey = Object.keys(input).some((key) => !REQUEST_KEYS.has(key))
-  if (extraKey || !isToken(input.id)) {
-    return { findings: [finding('malformed', recordId)] }
-  }
+  const values = Object.fromEntries(
+    Object.entries(descriptors).map(([key, descriptor]) => [key, descriptor.value])
+  ) as Record<string, unknown>
+  const recordId = isToken(values.id) ? values.id : undefined
+  if (!isToken(values.id)) return { findings: [finding('malformed', recordId)] }
 
   const findings: SiteNativeRemovalFinding[] = []
-  if (!includes(SITE_NATIVE_OBJECT_ORIGINS, input.origin)) {
-    findings.push(finding('unknown_origin', input.id))
+  if (!includes(SITE_NATIVE_OBJECT_ORIGINS, values.origin)) {
+    findings.push(finding('unknown_origin', recordId))
   }
-  if (
-    !Object.prototype.hasOwnProperty.call(input, 'provenance') ||
-    input.provenance === undefined ||
-    input.provenance === ''
-  ) {
-    findings.push(finding('missing_provenance', input.id))
-  } else if (!includes(SITE_NATIVE_PROVENANCE_CODES, input.provenance)) {
-    findings.push(finding('unknown_provenance', input.id))
+  if (!Object.prototype.hasOwnProperty.call(values, 'provenance') ||
+      values.provenance === undefined || values.provenance === '') {
+    findings.push(finding('missing_provenance', recordId))
+  } else if (!includes(SITE_NATIVE_PROVENANCE_CODES, values.provenance)) {
+    findings.push(finding('unknown_provenance', recordId))
   }
-  if (!includes(SITE_NATIVE_REMOVAL_PHASES, input.phase)) {
-    findings.push(finding('unknown_phase', input.id))
+  if (!includes(SITE_NATIVE_REMOVAL_PHASES, values.phase)) {
+    findings.push(finding('unknown_phase', recordId))
   }
-  if (
-    Object.prototype.hasOwnProperty.call(input, 'containmentRole') &&
-    !includes(SITE_NATIVE_CONTAINMENT_ROLES, input.containmentRole)
-  ) {
-    findings.push(finding('unknown_containment_role', input.id))
+  if (Object.prototype.hasOwnProperty.call(values, 'containmentRole') &&
+      !includes(SITE_NATIVE_CONTAINMENT_ROLES, values.containmentRole)) {
+    findings.push(finding('unknown_containment_role', recordId))
   }
-
   if (findings.length > 0) return { findings }
 
   const request: SiteNativeObjectRemovalRequest = {
-    id: input.id,
-    origin: input.origin as SiteNativeObjectOrigin,
-    provenance: input.provenance as SiteNativeProvenanceCode,
-    phase: input.phase as SiteNativeRemovalPhase,
-    ...(input.containmentRole === undefined
-      ? {}
-      : { containmentRole: input.containmentRole as SiteNativeContainmentRole }),
+    id: values.id as string,
+    origin: values.origin as SiteNativeObjectOrigin,
+    provenance: values.provenance as SiteNativeProvenanceCode,
+    phase: values.phase as SiteNativeRemovalPhase,
+    ...(Object.prototype.hasOwnProperty.call(values, 'containmentRole')
+      ? { containmentRole: values.containmentRole as SiteNativeContainmentRole }
+      : {}),
   }
   return { request, findings: [] }
 }

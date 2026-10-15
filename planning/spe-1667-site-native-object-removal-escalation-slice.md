@@ -47,7 +47,7 @@ On a native origin, `unrecorded_origin` adds 1 attention and 1 instability. `sec
 | Phase is missing or not `ingress` / `extraction`                                                                                                                                    | `unknown_phase` error. No escalation.                                |
 | `containmentRole` is present and not `secured` / `exposed`                                                                                                                          | `unknown_containment_role` error. No escalation.                     |
 
-Required fields are enumerable own data properties. `validate` compares `Reflect.ownKeys` with one descriptor snapshot and copies those values onto a null prototype, so an inherited `origin` does not satisfy validation and a later key trap cannot add a field the snapshot missed. Repeated `validate` and `project` calls on the same packet are byte-stable. The input packet is not mutated.
+Required fields are enumerable own data properties. A token `id` on a data descriptor stays on a `malformed` finding even when that `id` is non-enumerable. `validate` reads the descriptor snapshot twice, copies accepted values onto a null prototype, and returns a null-prototype result. An inherited `origin`, `request`, or descriptor `get`/`set` slot does not change the outcome. Two snapshots that disagree are `malformed`. Repeated `validate` and `project` calls on the same packet are byte-stable. The input packet is not mutated.
 
 ## Deferred
 

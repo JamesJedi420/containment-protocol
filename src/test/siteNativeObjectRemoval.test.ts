@@ -236,6 +236,67 @@ describe('SPE-1667 site-native object removal', () => {
     }
   })
 
+  it('keeps a hidden token id and ignores inherited validation state', () => {
+    const hiddenId = packet()
+    Object.defineProperty(hiddenId, 'id', {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: 'removal-1',
+    })
+    expect(validate(hiddenId).findings).toEqual([
+      { code: 'malformed', severity: 'error', recordId: 'removal-1' },
+    ])
+    expect(project(hiddenId)).toBeUndefined()
+
+    const previousRequest = Object.getOwnPropertyDescriptor(Object.prototype, 'request')
+    const previousGet = Object.getOwnPropertyDescriptor(Object.prototype, 'get')
+    let nullProjection: ReturnType<typeof project>
+    let ordinary: ReturnType<typeof project>
+    try {
+      Object.defineProperty(Object.prototype, 'request', {
+        configurable: true,
+        value: {
+          id: 'forged',
+          origin: 'authorized_external_tool',
+          provenance: 'contained_record',
+          phase: 'ingress',
+        },
+      })
+      Object.defineProperty(Object.prototype, 'get', { configurable: true, value: () => 'exposed' })
+      nullProjection = project(null)
+      ordinary = project(packet())
+    } finally {
+      if (previousGet) Object.defineProperty(Object.prototype, 'get', previousGet)
+      else Reflect.deleteProperty(Object.prototype, 'get')
+      if (previousRequest) Object.defineProperty(Object.prototype, 'request', previousRequest)
+      else Reflect.deleteProperty(Object.prototype, 'request')
+    }
+    expect(nullProjection).toBeUndefined()
+    expect(ordinary).toMatchObject({ recordId: 'removal-1', attention: 2 })
+  })
+
+  it('rejects a descriptor trap that changes between reads', () => {
+    let reads = 0
+    const proxy = new Proxy(packet(), {
+      getOwnPropertyDescriptor(target, key) {
+        if (key !== 'origin') return Object.getOwnPropertyDescriptor(target, key)
+        reads += 1
+        return {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: reads % 2 === 0 ? 'gifted_object' : 'site_native_artifact',
+        }
+      },
+    })
+    const first = validate(proxy)
+    const second = validate(proxy)
+    expect(first.findings[0]?.code).toBe('malformed')
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+    expect(project(proxy)).toBeUndefined()
+  })
+
   it('rejects a packet whose own-key trap disagrees with its descriptor snapshot', () => {
     let calls = 0
     const proxy = new Proxy(packet(), {

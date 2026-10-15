@@ -127,22 +127,41 @@ function finding(
     : { code, severity: 'error', recordId }
 }
 
-function isEnumerableData(
+function hasOwn(record: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key)
+}
+
+function isDataDescriptor(
   descriptor: PropertyDescriptor | undefined
 ): descriptor is PropertyDescriptor & { value: unknown } {
   return (
     descriptor !== undefined &&
-    descriptor.enumerable === true &&
-    descriptor.get === undefined &&
-    descriptor.set === undefined &&
-    Object.prototype.hasOwnProperty.call(descriptor, 'value')
+    hasOwn(descriptor, 'value') &&
+    !hasOwn(descriptor, 'get') &&
+    !hasOwn(descriptor, 'set')
   )
+}
+
+function isEnumerableData(
+  descriptor: PropertyDescriptor | undefined
+): descriptor is PropertyDescriptor & { value: unknown } {
+  return isDataDescriptor(descriptor) && descriptor.enumerable === true
+}
+
+function dataToken(descriptor: PropertyDescriptor | undefined): string | undefined {
+  return isDataDescriptor(descriptor) && isToken(descriptor.value) ? descriptor.value : undefined
 }
 
 function sameKeys(left: readonly PropertyKey[], right: readonly PropertyKey[]): boolean {
   if (left.length !== right.length) return false
   const seen = new Set<PropertyKey>(right)
   return left.every((key) => seen.has(key))
+}
+
+interface PacketSnapshot {
+  readonly recordId: string | undefined
+  readonly ok: boolean
+  readonly values: Record<string, unknown>
 }
 
 function acceptedRequest(values: Record<string, unknown>): SiteNativeObjectRemovalRequest {
@@ -152,69 +171,94 @@ function acceptedRequest(values: Record<string, unknown>): SiteNativeObjectRemov
     provenance: values.provenance,
     phase: values.phase,
   })
-  if (Object.prototype.hasOwnProperty.call(values, 'containmentRole')) {
+  if (hasOwn(values, 'containmentRole')) {
     Object.assign(request, { containmentRole: values.containmentRole })
   }
   return request
 }
 
+function validationResult(
+  findings: readonly SiteNativeRemovalFinding[],
+  request?: SiteNativeObjectRemovalRequest
+): SiteNativeRemovalValidation {
+  return Object.assign(
+    Object.create(null),
+    request === undefined ? { findings } : { findings, request }
+  )
+}
+
+function readSnapshot(input: object): PacketSnapshot {
+  const listed = Reflect.ownKeys(input)
+  const descriptors = Object.getOwnPropertyDescriptors(input)
+  const captured = Reflect.ownKeys(descriptors)
+  const recordId = dataToken(hasOwn(descriptors, 'id') ? descriptors.id : undefined)
+  const ok =
+    sameKeys(listed, captured) &&
+    captured.every((key) => typeof key === 'string' && REQUEST_KEYS.has(key)) &&
+    captured.every((key) => isEnumerableData(descriptors[key as string]))
+  const values: Record<string, unknown> = Object.create(null)
+  if (ok) {
+    for (const key of captured) values[key as string] = descriptors[key as string]?.value
+  }
+  return { recordId, ok, values }
+}
+
+function sameValues(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
+  const leftKeys = Reflect.ownKeys(left)
+  const rightKeys = Reflect.ownKeys(right)
+  if (!sameKeys(leftKeys, rightKeys)) return false
+  return leftKeys.every((key) => Object.is(left[key as string], right[key as string]))
+}
+
 export function validate(input: unknown): SiteNativeRemovalValidation {
   // Inspect descriptors before reading values: getters, hidden properties and
   // inherited optional fields cannot change a caller-owned removal packet.
-  let values: Record<string, unknown>
   try {
-    if (!isPlainRecord(input)) return { findings: [finding('malformed', undefined)] }
-    const listed = Reflect.ownKeys(input)
-    const descriptors = Object.getOwnPropertyDescriptors(input)
-    const captured = Reflect.ownKeys(descriptors)
-    const idDescriptor = Object.prototype.hasOwnProperty.call(descriptors, 'id')
-      ? descriptors.id
-      : undefined
-    const recordId =
-      isEnumerableData(idDescriptor) && isToken(idDescriptor.value) ? idDescriptor.value : undefined
+    if (!isPlainRecord(input)) return validationResult([finding('malformed', undefined)])
+    const first = readSnapshot(input)
+    const second = readSnapshot(input)
     if (
-      !sameKeys(listed, captured) ||
-      captured.some((key) => typeof key !== 'string' || !REQUEST_KEYS.has(key)) ||
-      captured.some((key) => !isEnumerableData(descriptors[key as string]))
+      !first.ok ||
+      !second.ok ||
+      first.recordId !== second.recordId ||
+      !sameValues(first.values, second.values)
     ) {
-      return { findings: [finding('malformed', recordId)] }
+      return validationResult([
+        finding('malformed', first.recordId === second.recordId ? first.recordId : undefined),
+      ])
     }
-    values = Object.create(null) as Record<string, unknown>
-    for (const key of captured) {
-      values[key as string] = descriptors[key as string]?.value
+    const values = first.values
+    const recordId = isToken(values.id) ? values.id : undefined
+    if (!isToken(values.id)) return validationResult([finding('malformed', recordId)])
+
+    const findings: SiteNativeRemovalFinding[] = []
+    if (!includes(SITE_NATIVE_OBJECT_ORIGINS, values.origin)) {
+      findings.push(finding('unknown_origin', recordId))
     }
+    if (
+      !hasOwn(values, 'provenance') ||
+      values.provenance === undefined ||
+      values.provenance === ''
+    ) {
+      findings.push(finding('missing_provenance', recordId))
+    } else if (!includes(SITE_NATIVE_PROVENANCE_CODES, values.provenance)) {
+      findings.push(finding('unknown_provenance', recordId))
+    }
+    if (!includes(SITE_NATIVE_REMOVAL_PHASES, values.phase)) {
+      findings.push(finding('unknown_phase', recordId))
+    }
+    if (
+      hasOwn(values, 'containmentRole') &&
+      !includes(SITE_NATIVE_CONTAINMENT_ROLES, values.containmentRole)
+    ) {
+      findings.push(finding('unknown_containment_role', recordId))
+    }
+    if (findings.length > 0) return validationResult(findings)
+
+    return validationResult([], acceptedRequest(values))
   } catch {
-    return { findings: [finding('malformed', undefined)] }
+    return validationResult([finding('malformed', undefined)])
   }
-
-  const recordId = isToken(values.id) ? values.id : undefined
-  if (!isToken(values.id)) return { findings: [finding('malformed', recordId)] }
-
-  const findings: SiteNativeRemovalFinding[] = []
-  if (!includes(SITE_NATIVE_OBJECT_ORIGINS, values.origin)) {
-    findings.push(finding('unknown_origin', recordId))
-  }
-  if (
-    !Object.prototype.hasOwnProperty.call(values, 'provenance') ||
-    values.provenance === undefined ||
-    values.provenance === ''
-  ) {
-    findings.push(finding('missing_provenance', recordId))
-  } else if (!includes(SITE_NATIVE_PROVENANCE_CODES, values.provenance)) {
-    findings.push(finding('unknown_provenance', recordId))
-  }
-  if (!includes(SITE_NATIVE_REMOVAL_PHASES, values.phase)) {
-    findings.push(finding('unknown_phase', recordId))
-  }
-  if (
-    Object.prototype.hasOwnProperty.call(values, 'containmentRole') &&
-    !includes(SITE_NATIVE_CONTAINMENT_ROLES, values.containmentRole)
-  ) {
-    findings.push(finding('unknown_containment_role', recordId))
-  }
-  if (findings.length > 0) return { findings }
-
-  return { request: acceptedRequest(values), findings: [] }
 }
 
 function isNative(origin: SiteNativeObjectOrigin): boolean {
@@ -223,11 +267,9 @@ function isNative(origin: SiteNativeObjectOrigin): boolean {
 
 export function project(input: unknown): SiteNativeRemovalEscalation | undefined {
   const validation = validate(input)
-  if (!validation.request) return undefined
+  if (!hasOwn(validation, 'request') || validation.request === undefined) return undefined
   const request = validation.request
-  const role = Object.prototype.hasOwnProperty.call(request, 'containmentRole')
-    ? request.containmentRole
-    : undefined
+  const role = hasOwn(request, 'containmentRole') ? request.containmentRole : undefined
   const base = BASE_SEVERITY[request.origin]
   const native = isNative(request.origin)
   const attention =

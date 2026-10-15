@@ -98,8 +98,10 @@ const BASE_SEVERITY: Record<
   protected_relic: { attention: 3, instability: 2, factionResponse: 2, environmentalShift: 2 },
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }
 
 function isToken(value: unknown): value is string {
@@ -126,7 +128,7 @@ function readableId(input: Record<string, unknown>): string | undefined {
 }
 
 export function validate(input: unknown): SiteNativeRemovalValidation {
-  if (!isRecord(input)) {
+  if (!isPlainRecord(input)) {
     return { findings: [finding('malformed', undefined)] }
   }
 
@@ -140,7 +142,11 @@ export function validate(input: unknown): SiteNativeRemovalValidation {
   if (!includes(SITE_NATIVE_OBJECT_ORIGINS, input.origin)) {
     findings.push(finding('unknown_origin', input.id))
   }
-  if (!Object.prototype.hasOwnProperty.call(input, 'provenance') || input.provenance === '') {
+  if (
+    !Object.prototype.hasOwnProperty.call(input, 'provenance') ||
+    input.provenance === undefined ||
+    input.provenance === ''
+  ) {
     findings.push(finding('missing_provenance', input.id))
   } else if (!includes(SITE_NATIVE_PROVENANCE_CODES, input.provenance)) {
     findings.push(finding('unknown_provenance', input.id))

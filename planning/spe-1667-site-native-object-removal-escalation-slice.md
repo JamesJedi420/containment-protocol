@@ -38,14 +38,14 @@ On a native origin, `unrecorded_origin` adds 1 attention and 1 instability. `sec
 
 ## Validation
 
-| Condition                                                                               | Result                                           |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Input is not a plain object, id is blank, id contains NUL, or an unknown key is present | `malformed` error. No escalation.                |
-| Origin is missing or not in the closed set                                              | `unknown_origin` error. No escalation.           |
-| Provenance is missing or `''`                                                           | `missing_provenance` error. No escalation.       |
-| Provenance is any other string                                                          | `unknown_provenance` error. No escalation.       |
-| Phase is missing or not `ingress` / `extraction`                                        | `unknown_phase` error. No escalation.            |
-| `containmentRole` is present and not `secured` / `exposed`                              | `unknown_containment_role` error. No escalation. |
+| Condition                                                                                                              | Result                                           |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Input is not a plain object (including a custom prototype), id is blank, id contains NUL, or an unknown key is present | `malformed` error. No escalation.                |
+| Origin is missing or not in the closed set                                                                             | `unknown_origin` error. No escalation.           |
+| Provenance is absent, `undefined`, or `''`                                                                             | `missing_provenance` error. No escalation.       |
+| Provenance is any other string                                                                                         | `unknown_provenance` error. No escalation.       |
+| Phase is missing or not `ingress` / `extraction`                                                                       | `unknown_phase` error. No escalation.            |
+| `containmentRole` is present and not `secured` / `exposed`                                                             | `unknown_containment_role` error. No escalation. |
 
 Repeated `validate` and `project` calls on the same packet are byte-stable. The input packet is not mutated.
 

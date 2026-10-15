@@ -1,19 +1,19 @@
 # SPE-3040 — Fire historical-route replay search start from site exploration search
 
-| Field                        | Value                                                                                                                                                                              |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                   | **Recently shipped**                                                                                                                                                               |
-| **Linear**                   | [SPE-3040](https://linear.app/spectranoir/issue/SPE-3040/fire-historical-route-replay-search-start-from-site-exploration-search)                                                   |
-| **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                        |
-| **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics                 |
-| **Sibling calendar**         | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy) — Done; do not reopen calendar policy              |
-| **Sibling site-action wire** | [SPE-3034](https://linear.app/spectranoir/issue/SPE-3034/fire-one-historical-route-replay-interaction-start-from-an-existing) — Done; do not reopen `enter_zone` semantics        |
-| **Sibling ask wire**         | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from) — Done; do not reopen `interview_witness` semantics           |
-| **Deferred source**          | SPE-3035 Deferred row 1 (`search` / site-exploration search wire)                                                                                                                  |
-| **Prerequisite create**      | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — unchanged                                           |
-| **Prerequisite persistence** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) — unchanged                                                 |
-| **Branch**                   | `cursor/spe-1605-site-search-replay-start-078b`                                                                                                                                    |
-| **Base `main` SHA**          | `26dc819d0a69f26bf7eb52aeec3d229077fdda37`                                                                                                                                         |
+| Field                        | Value                                                                                                                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                   | **Recently shipped**                                                                                                                                                       |
+| **Linear**                   | [SPE-3040](https://linear.app/spectranoir/issue/SPE-3040/fire-historical-route-replay-search-start-from-site-exploration-search)                                           |
+| **Parent / lineage**         | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605/scenario-event-start-conditions) — remains Backlog                                                                |
+| **Prerequisite activator**   | [SPE-3033](https://linear.app/spectranoir/issue/SPE-3033/activate-one-historical-route-replay-from-an-interaction-start) — Done; do not reopen activator semantics         |
+| **Sibling calendar**         | [SPE-3024](https://linear.app/spectranoir/issue/SPE-3024/activate-historical-route-replays-from-calendarstart-condition-policy) — Done; do not reopen calendar policy      |
+| **Sibling site-action wire** | [SPE-3034](https://linear.app/spectranoir/issue/SPE-3034/fire-one-historical-route-replay-interaction-start-from-an-existing) — Done; do not reopen `enter_zone` semantics |
+| **Sibling ask wire**         | [SPE-3035](https://linear.app/spectranoir/issue/SPE-3035/fire-historical-route-replay-interview-witness-start-from) — Done; do not reopen `interview_witness` semantics    |
+| **Deferred source**          | SPE-3035 Deferred row 1 (`search` / site-exploration search wire)                                                                                                          |
+| **Prerequisite create**      | [SPE-3009](https://linear.app/spectranoir/issue/SPE-3009/replay-one-zone-spanning-event-over-a-reactivated-historical-route) — unchanged                                   |
+| **Prerequisite persistence** | [SPE-3017](https://linear.app/spectranoir/issue/SPE-3017/persist-historical-route-replay-registries-with-fail-closed) — unchanged                                          |
+| **Branch**                   | `cursor/spe-1605-site-search-replay-start-078b`                                                                                                                            |
+| **Base `main` SHA**          | `26dc819d0a69f26bf7eb52aeec3d229077fdda37`                                                                                                                                 |
 
 ## Goal
 
@@ -21,15 +21,15 @@ Wire one existing domain site-exploration action that already matches one SPE-16
 
 ## Ownership audit
 
-| Concern                                   | Existing owner reused by this slice                                               |
-| ----------------------------------------- | --------------------------------------------------------------------------------- |
-| Interaction activator                     | `activateHistoricalRouteReplayRegistryForInteractionStart` / SPE-3033 — unchanged |
-| Calendar `absolute_week` activation       | `activateHistoricalRouteReplayRegistryForCalendarWeek` / SPE-3024 — unchanged     |
-| Week-close advance                        | SPE-3018 — unchanged; mid-week create of approaching only                         |
-| Site exploration search                   | Domain `applySiteExplorationAction(..., 'search')` (SPE-1610)                     |
-| SPE-1605 `search` signal                  | **This slice** — `interactionKind: 'search'`, `interactionId: caseId`             |
-| SPE-1605 `enter_zone` site visit          | SPE-3034 / store `recordSceneVisit` — unchanged                                   |
-| SPE-1605 `interview_witness` ask          | SPE-3035 / store `askInvestigationQuestion` — unchanged                           |
+| Concern                             | Existing owner reused by this slice                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| Interaction activator               | `activateHistoricalRouteReplayRegistryForInteractionStart` / SPE-3033 — unchanged |
+| Calendar `absolute_week` activation | `activateHistoricalRouteReplayRegistryForCalendarWeek` / SPE-3024 — unchanged     |
+| Week-close advance                  | SPE-3018 — unchanged; mid-week create of approaching only                         |
+| Site exploration search             | Domain `applySiteExplorationAction(..., 'search')` (SPE-1610)                     |
+| SPE-1605 `search` signal            | **This slice** — `interactionKind: 'search'`, `interactionId: caseId`             |
+| SPE-1605 `enter_zone` site visit    | SPE-3034 / store `recordSceneVisit` — unchanged                                   |
+| SPE-1605 `interview_witness` ask    | SPE-3035 / store `askInvestigationQuestion` — unchanged                           |
 
 ## Owned store wire
 
@@ -83,8 +83,8 @@ Not implemented here:
 
 ## Deferred
 
-| Item                                                                                         | Suggested owner issue           | Why deferred                                                                 |
-| -------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| Wire remaining SPE-1605 kinds (`make_noise`, `operate_control`, `open_access`, `remove_asset`, `touch_sensitive_object`) | [SPE-3043](https://linear.app/spectranoir/issue/SPE-3043/audit-remaining-spe-1605-historical-route-replay-interaction-wires) (ownership STOP — blocked; no honest seam) | This child owns only `search` / `applySiteExplorationSearch`. SPE-3043 audited all five; resume a store wire only after SPE-71 / SPE-1610 / SPE-1667 ships a matching mid-week seam. |
-| Full SPE-1605 dormant/armed/spent/recurring state machine                                    | Later SPE-1605 child            | Out of this store-wire boundary.                                             |
-| Anniversary / week-of-year / seasonal start conditions                                       | Later SPE-1071 / SPE-1605 child | Outside this interaction wire; calendar absolute week remains SPE-3024.      |
+| Item                                                                                                                     | Suggested owner issue                                                                                                                                                   | Why deferred                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wire remaining SPE-1605 kinds (`make_noise`, `operate_control`, `open_access`, `remove_asset`, `touch_sensitive_object`) | [SPE-3043](https://linear.app/spectranoir/issue/SPE-3043/audit-remaining-spe-1605-historical-route-replay-interaction-wires) (ownership STOP — blocked; no honest seam) | This child owns only `search` / `applySiteExplorationSearch`. SPE-3043 audited all five. SPE-1667's pure projector is not a mid-week remove action. Resume a store wire only after a matching mid-week seam exists. |
+| Full SPE-1605 dormant/armed/spent/recurring state machine                                                                | Later SPE-1605 child                                                                                                                                                    | Out of this store-wire boundary.                                                                                                                                                                                    |
+| Anniversary / week-of-year / seasonal start conditions                                                                   | Later SPE-1071 / SPE-1605 child                                                                                                                                         | Outside this interaction wire; calendar absolute week remains SPE-3024.                                                                                                                                             |

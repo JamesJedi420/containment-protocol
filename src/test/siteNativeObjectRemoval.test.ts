@@ -12,6 +12,41 @@ function packet(overrides: Record<string, unknown> = {}) {
 }
 
 describe('SPE-1667 site-native object removal', () => {
+  it('uses the closed ingress base for every native origin', () => {
+    const bases = [
+      [
+        'gifted_object',
+        { attention: 1, instability: 0, factionResponse: 0, environmentalShift: 0 },
+      ],
+      [
+        'local_evidence',
+        { attention: 1, instability: 1, factionResponse: 0, environmentalShift: 0 },
+      ],
+      [
+        'transformed_personal_item',
+        { attention: 1, instability: 2, factionResponse: 0, environmentalShift: 0 },
+      ],
+      [
+        'site_native_artifact',
+        { attention: 2, instability: 2, factionResponse: 1, environmentalShift: 1 },
+      ],
+      [
+        'protected_relic',
+        { attention: 3, instability: 2, factionResponse: 2, environmentalShift: 2 },
+      ],
+    ] as const
+    for (const [origin, severity] of bases) {
+      expect(project(packet({ origin }))).toMatchObject({
+        origin,
+        phase: 'ingress',
+        escalates: true,
+        routeRisk: 0,
+        pursuitPressure: 0,
+        ...severity,
+      })
+    }
+  })
+
   it('escalates when a site-native artifact is removed', () => {
     const escalation = project(packet())
     expect(escalation).toMatchObject({
@@ -101,6 +136,15 @@ describe('SPE-1667 site-native object removal', () => {
       )
     ).toEqual(['missing_provenance'])
     expect(validate(packet({ provenance: '' })).findings[0]?.code).toBe('missing_provenance')
+    expect(validate(packet({ provenance: undefined })).findings[0]?.code).toBe('missing_provenance')
+    const inherited = Object.create({
+      id: 'inherited',
+      origin: 'authorized_external_tool',
+      phase: 'ingress',
+    }) as Record<string, unknown>
+    inherited.provenance = 'contained_record'
+    expect(validate(inherited).findings).toEqual([{ code: 'malformed', severity: 'error' }])
+    expect(project(inherited)).toBeUndefined()
     expect(validate(packet({ provenance: 'rumor' })).findings[0]?.code).toBe('unknown_provenance')
     expect(validate(packet({ phase: 'chase' })).findings[0]?.code).toBe('unknown_phase')
     expect(validate(packet({ containmentRole: 'cursed' })).findings[0]?.code).toBe(

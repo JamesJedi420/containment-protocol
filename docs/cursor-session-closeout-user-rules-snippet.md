@@ -18,7 +18,7 @@ After babysit → merge → `git checkout main` && `git pull origin main`:
 
 - Do not implement the next issue unless the user explicitly asks.
 - Prepare a next-issue implementation plan **only when an already-approved next Linear issue exists**.
-- If no already-approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. Do not perform candidate reconciliation; that work belongs to ChatGPT. Do not create or select a child.
+- If no already-approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. Do not run delegated selection or set a new issue In Progress in the merge closeout session. If delegated policy is effective on `origin/main`, remind that a **new** agent chat may use it after an explicit continuation request. Candidate reconciliation belongs to ChatGPT. Do not create issues.
 - Use the phase B structure in `docs/agent-session-closeout.md`.
 
 An approved next-issue plan includes: issue ID/title, smallest boundary, files to inspect, systems to reuse, risks/edge cases, required tests/docs, what not to change, and implementation sequence.

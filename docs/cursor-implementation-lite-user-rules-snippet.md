@@ -73,4 +73,4 @@ After implementation evidence exists, update lifecycle/evidence on the already-a
 
 ### Session closeout
 
-Order: review/CI → merge → sync `main` → closeout. Phase A while merge is blocked: no next-issue plan. Phase B after merge: plan only an already-approved next issue; otherwise stop and ask for one. Do not perform candidate reconciliation. Full format: `docs/agent-session-closeout.md`.
+Order: review/CI → merge → sync `main` → closeout. Phase A while merge is blocked: no next-issue plan. Phase B after merge: plan only an already-approved next issue; otherwise stop and ask for one unless delegated approval is effective on `main` (`docs/cursor-delegated-backlog-approval.md`). Full format: `docs/agent-session-closeout.md`.

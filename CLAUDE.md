@@ -31,7 +31,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 
 ## Scope and ship
 
-1. Implement only an **already-approved** Linear slice (`SPE-####`) + `planning/*-slice.md` when present. Unowned review/docs analysis may remain read-only. Do not create an issue to make work actionable.
+1. Implement only an **already-approved** Linear slice (`SPE-####`) + `planning/*-slice.md` when present. Unowned review/docs analysis may remain read-only. Do not create an issue to make work actionable. When no slice is named, bounded delegated selection of an existing issue is allowed only if `docs/cursor-delegated-backlog-approval.md` is on `origin/main`.
 2. Pre-ship audit: `docs/agent-pre-ship-audit.md` (six passes) before commit.
 3. Ship loop: commit → push → PR (`.github/pull_request_template.md`) → babysit (independent review + Greptile/CodeRabbit/Amazon Q/bot triage + CI) → merge → `git checkout main` && `git pull origin main`.
 4. Linear: In Progress before approved owned work; PR URL on slice issue; Done + merge comment only after the full approved slice boundary ships. Evaluate the parent separately and preserve its truthful current status unless full parent completion is proven. Cloud Agents that cannot auth Linear emit a local-agent handoff only after an **already-approved implementation plan** merges (`docs/cloud-agent-linear-handoff.md`).

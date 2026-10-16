@@ -1,0 +1,29 @@
+---
+description: Bounded Cursor delegated backlog selection/approval; effective only on main
+alwaysApply: true
+---
+
+# Cursor delegated backlog approval
+
+Canonical policy: `docs/cursor-delegated-backlog-approval.md`.
+
+## Effectiveness
+
+Exercise delegated selection/approval **only when** that document is on `origin/main` (merged adopting PR).
+
+If the document is missing from `main`, exists only on a branch, or approval state is ambiguous: do **not** self-approve. Obey `.cursor/rules/no-candidate-reconciliation.mdc` and `.cursor/skills/cp-next-implementation-slice/SKILL.md`.
+
+## When effective and no slice is named
+
+1. Confirm clean `main` and no open PR (`.cursor/rules/clean-main-before-next-slice.mdc`).
+2. Follow `docs/cursor-delegated-backlog-approval.md` eligibility, selection order, decision criteria, and audit evidence.
+3. Record Linear + slice-doc delegated approval **before** the first code edit.
+4. Implement one selected existing issue under `.cursor/rules/implementation-lite.mdc`.
+
+## Never
+
+- Select a parent umbrella (including SPE-1052) as the coding slice
+- Create issues, children, parents, relationships, or reparent under this rule
+- Expand durable Goal/Scope/Acceptance
+- Skip independent PR review, contradiction checks, or CI
+- Treat an unmerged amendment PR as effective authority

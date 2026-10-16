@@ -29,7 +29,7 @@ If approval state is missing or ambiguous, fail closed and preserve the finding 
 1. `git checkout main` and `git pull origin main`.
 2. Start a new agent chat before another implementation slice.
 3. If the next task is already approved, first message includes Linear issue URL, `planning/…-slice.md`, branch name, and current `main` SHA.
-4. If no approved next issue exists, do not invent one. Default: stop and ask for the next approved Linear issue, slice doc, and branch (candidate reconciliation belongs to ChatGPT). Exception only when `docs/cursor-delegated-backlog-approval.md` is on `origin/main` — then follow that bounded delegated selection policy.
+4. If no approved next issue exists, do not invent one. Default: stop and ask for the next approved Linear issue, slice doc, and branch (candidate reconciliation belongs to ChatGPT). Do not start delegated selection in the merge closeout session. When `docs/cursor-delegated-backlog-approval.md` is effective on `origin/main`, the required **new** agent chat may follow that policy after an explicit implementation-continuation request.
 
 ## During an open PR
 
@@ -56,7 +56,7 @@ One agent session on the same branch may implement, review, fix CI, and merge th
 
 **Phase A — PR open / merge blocked:** report blocker, PR URL, CI status, and current approved issue state. Do not code or plan another issue.
 
-**Phase B — after merge:** verify the approved slice lifecycle update, then prepare a next-issue plan only when an already-approved next issue exists. Otherwise stop and ask for one, unless delegated backlog approval is effective on `main` (`docs/cursor-delegated-backlog-approval.md`).
+**Phase B — after merge:** verify the approved slice lifecycle update, then prepare a next-issue plan only when an already-approved next issue exists. Otherwise stop and ask for one. Remind that a new agent chat may use delegated selection when that policy is effective on `origin/main` and continuation is requested (`docs/cursor-delegated-backlog-approval.md`).
 
 Use `docs/agent-session-closeout.md` for the detailed response structures.
 
@@ -68,4 +68,4 @@ For an approved next slice:
 PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>.
 ```
 
-For discovered but unapproved work, do not use the implementation template. Default: stop and ask for an already-approved Linear issue. When delegated approval is effective on `main`, follow `docs/cursor-delegated-backlog-approval.md` instead of inventing scope.
+For discovered but unapproved work, do not use the implementation template. Default: stop and ask for an already-approved Linear issue. When delegated approval is effective on `origin/main` and the session has an explicit implementation-continuation request, follow `docs/cursor-delegated-backlog-approval.md` instead of inventing scope — in a fresh agent chat, not inside merge closeout.

@@ -8,7 +8,7 @@
 | --- | --- |
 | **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
 | **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
-| **Linear + `planning/*-slice.md` + first message** | One approved implementation task: issue link, slice doc, branch name, `main` SHA. Unowned review/docs analysis may proceed read-only without creating an issue. When no slice is named, Cursor may use bounded delegated selection only if `docs/cursor-delegated-backlog-approval.md` is on `origin/main`. |
+| **Linear + `planning/*-slice.md` + first message** | One approved implementation task: issue link, slice doc, branch name, `main` SHA. Unowned review/docs analysis may proceed read-only without creating an issue. Bounded delegated selection requires `docs/cursor-delegated-backlog-approval.md` effective on `origin/main` (session copy matches that revision) **and** an explicit implementation-continuation request — not merely an unnamed slice. |
 
 ### After you merge a PR (human)
 
@@ -24,7 +24,7 @@ Agents: when merge is complete, sync `main` in-session, then remind the user to 
 
 Linear is the system of record for approved issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because an owned task feels "metadata only." An unowned review/docs analysis may remain read-only with no Linear mutation; do not manufacture an issue for bookkeeping.
 
-**Scope-mutation guardrail:** direct Linear updates are allowed only for lifecycle/evidence maintenance on an already-approved issue boundary. Do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope because work was discovered. New or changed scope must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4. If approval state is unclear, fail closed and preserve the finding as candidate/deferred evidence. Bounded Cursor selection of an **existing** eligible issue (no issue creation) is defined in `docs/cursor-delegated-backlog-approval.md` and is effective only after that document is on `origin/main`.
+**Scope-mutation guardrail:** direct Linear updates are allowed only for lifecycle/evidence maintenance on an already-approved issue boundary. Do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope because work was discovered. New or changed scope must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4. If approval state is unclear, fail closed and preserve the finding as candidate/deferred evidence. Bounded Cursor selection of an **existing** eligible issue (no issue creation) is defined in `docs/cursor-delegated-backlog-approval.md` and is effective only after that document is on `origin/main` with a matching session revision and an explicit implementation-continuation request.
 
 | When | Action |
 | --- | --- |

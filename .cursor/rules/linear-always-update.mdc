@@ -24,6 +24,8 @@ Agents must **not** create a new issue, child, parent, contradiction issue, rela
 
 When approval state is absent or ambiguous, fail closed: preserve the finding as candidate/deferred evidence and do not mutate backlog shape.
 
+**Narrow exception — delegated backlog approval:** when `docs/cursor-delegated-backlog-approval.md` is effective on `origin/main` (working tree matches that revision) and the session has an explicit implementation-continuation request, agents may (1) post a `Delegated approval (Cursor)` comment on one **existing** eligible issue and (2) set that issue **In Progress**, per that policy’s eligibility and audit evidence. This exception does **not** authorize creating issues, children, parents, relationships, reparenting, or expanding Goal/Scope/Acceptance. See `.cursor/rules/cursor-delegated-backlog-approval.mdc`.
+
 ## When to update
 
 | Phase | Linear action |

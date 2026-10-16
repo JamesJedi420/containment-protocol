@@ -1,115 +1,85 @@
 ---
 name: cp-next-implementation-slice
-description: "Select next eligible Containment Protocol implementation slice using deterministic rules."
-version: 1.0.0
-author: JamesJedi420
-license: MIT
-platforms: [windows]
-category: software-development
+description: >-
+  Selects the next already-approved Containment Protocol Linear issue when
+  nothing is In Progress, sets that issue In Progress, and starts the
+  implementation slice. Use when the backlog handoff says In progress is none,
+  no slice was named, or the user asks what to work on next. Does not reconcile
+  candidates or create issues.
 ---
 
-## When to Use
+# Next implementation slice
 
-Use this skill for routine Containment Protocol implementation selection:
-- No pre-approved Linear issue URL provided by user
-- Need to find next eligible implementation slice from backlog
-- Do NOT perform candidate reconciliation or governance analysis unless `docs/cursor-delegated-backlog-approval.md` is on `origin/main` and that policy's effectiveness gate is satisfied
+Pick one already-approved SPE issue and start it. Candidate reconciliation belongs to ChatGPT. Do not run `cp-candidate-triage-linear`.
 
-**Do NOT use when:**
-- User has explicitly named a next approved Linear issue URL
-- Performing policy amendment (separate, one-time governance change)
-- No eligible issue exists and delegated approval is **not** yet effective on `main` (stop and ask; do not self-approve)
+When `docs/cursor-delegated-backlog-approval.md` is **effective on `origin/main`** and the session has an **explicit** implementation-continuation request with no named slice, follow that policy (eligibility, audit evidence, prohibitions) instead of inventing a pick here. Until that gate passes, this skill only starts an already-approved eligible issue.
 
-## Deterministic Controller Guard
+## When to run
 
-**CRITICAL:** The skill MUST reject parent umbrella issues before entering IMPLEMENT phase.
+Obey `.cursor/rules/clean-main-before-next-slice.mdc` first. If `main` is dirty or any PR is open, babysit and merge that PR, then sync `main`. Do not pick or start a slice until `main` is clean and no PR is open.
 
-**Rule:** Parent umbrella issues (like SPE-1052) that require implementation through bounded child slices are NEVER eligible for direct implementation.
+Run this picker only when no implementation slice is already in progress and the user did not name an issue.
 
-**Before selecting:**
-1. Check Linear issue description for explicit parent/child requirement
-2. If umbrella issue detected, reject it immediately
-3. Select one child slice instead (never the umbrella itself)
+If the user named a Linear issue, implement that issue after `main` is clean. Do not override it with this picker.
 
-**After selection, verify:**
-- Selected child has Backlog/Todo status (not Recently Shipped)
-- Implementation-sized scope (bounded, single-slice satisfiable)
-- Dependencies unblocked
-- Acceptance criteria present OR existing slice documentation exists
-- Issue is not recently shipped
+## Confirm the queue is empty
 
-**If no eligible child exists:** Report `NO_ELIGIBLE_SLICE`. If delegated approval is effective on `main`, continue under `docs/cursor-delegated-backlog-approval.md` (select one existing eligible issue + audit evidence). Otherwise stop and ask for a Linear URL, slice doc, and branch.
+Read `planning/backlog-handoff-manifest.json` (`primary`, `inProgress`, `recentlyShipped`) and the **In progress** line in `planning/backlog.md`.
 
-**Time limit:** 5 minutes for selection. If longer, obtain progress checkpoint identifying actual blocker instead of silently waiting.
+With Linear MCP `list_issues`, team that owns SPE issues, `state` `In Progress`. Discover the team from `get_issue` on `primary` if needed.
 
-## Eligibility Criteria
+- Manifest `inProgress` is non-empty, or Linear has an In Progress slice: **resume that issue**. Do not pick a second one. If more than one In Progress slice exists, stop and ask which to resume.
+- Otherwise the queue is empty. Continue below.
 
-A slice is eligible if ALL of the following are true:
+## Eligible issue
 
-1. **Status:** Backlog/Todo (not Recently Shipped)
-2. **Scope:** Implementation-sized (bounded, single-slice satisfiable)
-3. **Dependencies:** Unblocked
-4. **Acceptance:** AC present OR existing slice doc exists
-5. **Parent check:** Not a primary parent umbrella (must be a child slice)
-6. **Recent shipping:** Not recently shipped
+An issue is eligible only when all of these are true:
 
-## Output Requirements
+- It already exists. Status is Backlog or Todo.
+- It is not listed in `recentlyShipped`.
+- It is a slice, not a parent umbrella. Reject any issue that has open or remaining child issues (`list_issues` with `parentId` set to the candidate), or whose body requires implementation through children. Do not rely on description text alone.
+- `get_issue` shows acceptance criteria a single slice can satisfy. A slice doc alone is not enough unless that document itself states the accepted boundary and the issue body is consistent with it.
+- No `blockedBy` issue is still open. Done and Canceled blockers do not block.
+- A `planning/*-slice.md` for that SPE id exists, or the issue body already names the branch and the acceptance bar.
 
-When a valid selection is made, output MUST include:
-- Exact Linear ID
-- Linear URL
-- Slice doc or acceptance source
-- Branch name
-- Eligibility evidence (for each criterion)
-- Any prerequisite blockers
+Skip Done, Canceled, duplicate, harvest-only, and contradiction-only issues that do not change the game (exception only when the issue body itself is an explicitly approved docs/workflow boundary).
 
-**Format:**
-```
-Selected: SPE-XXXX
-URL: https://linear.app/...
-Source: slice-doc.md or issue AC
-Branch: feature/spe-xxxx
-Eligibility:
-  - Status: Backlog/Todo ✓
-  - Scope: implementation-sized ✓
-  - Dependencies: unblocked ✓
-  - AC: present ✓
-  - Parent check: not umbrella (or: child of SPE-YYYY) ✓
-  - Recent shipping: not recently shipped ✓
-Blockers: [none or list]
-```
+## Choose one
 
-## Selection Order
+Apply in order. Stop at the first eligible issue.
 
-Follow deterministic selection order from backlog:
-1. Read `planning/backlog-handoff-manifest.json`
-2. Read `planning/backlog.md`
-3. Filter by eligibility criteria above
-4. Select first matching issue in manifest order
-5. Report `NO_ELIGIBLE_SLICE` if none match
+1. The next concrete SPE id named in `planning/backlog.md` **Recommended next step** that is not the `primary` parent and is not recently shipped.
+2. An eligible child of `primary` (`list_issues` with `parentId` set to the primary id). Prefer a child that already has a slice doc. If several remain, prefer the higher Linear priority, then the lowest SPE number.
+3. The next other eligible child slice named in the active queue of `planning/backlog.md`.
 
-## Implementation
+Do not select the `primary` parent itself. Do not use JSON key insertion order in the manifest as a backlog ranking; the manifest has no ordered candidate list.
+
+If no eligible issue remains, stop. Ask for a Linear issue URL, slice doc, and branch. Do not create an issue, edit the candidate ledger, or start a governance phase. If delegated approval is effective on `main` and this session has an explicit implementation-continuation request, continue under `docs/cursor-delegated-backlog-approval.md` instead of inventing a pick here.
+
+## Start work
 
 When exactly one issue wins:
-1. Read the Linear issue
-2. Read the slice doc (or use issue AC)
-3. `save_issue` with In Progress status
-4. Create branch from current main SHA
-5. Implement the plan in the SAME session
 
-## Hard Invariants
+1. Read the issue, its comments, its parent, and the slice doc.
+2. From current `main`, create the branch named in the slice doc, otherwise the issue `gitBranchName`, **before** any repository audit or handoff edits.
+3. `save_issue` with `id` and `state` `In Progress` only. Do not change the description, parent, or relations.
+4. Implement that slice under `.cursor/rules/implementation-lite.mdc`, including the ship loop.
 
-- **Never select SPE-1052** (or any primary parent umbrella)
-- **Always select one child slice** when umbrella detected
-- **5-minute limit:** If selection takes longer, obtain checkpoint
-- **Report `NO_ELIGIBLE_SLICE`** if no eligible child exists
-- **Implement in same session** after selection
+Report this before the first code edit:
 
-## References
+```markdown
+## Next slice
+- Issue: SPE-____ — url
+- Why: <which rule above matched>
+- Skipped: <nearer issues and why>
+- Slice doc: planning/....md
+- Branch: <name>
+```
 
-- `docs/cursor-delegated-backlog-approval.md` — Bounded delegated selection/approval (effective only on `main`)
-- `.cursor/rules/cursor-delegated-backlog-approval.mdc` — Always-apply effectiveness gate
-- `.cursor/rules/no-candidate-reconciliation.mdc` — Default ChatGPT ownership until delegation is effective
-- `references/parent-umbrella-detection.md` — How to detect parent/child relationships
-- `references/slice-eligibility-checklist.md` — Full eligibility checklist
-- `references/5-minute-selection-timer.md` — Timer and checkpoint pattern
+## Do not
+
+- Create a Linear issue, child, or parent.
+- Mark a parent Done.
+- Reorder `planning/backlog.md` to justify the pick.
+- Start coding when two issues still tie after the rules above.
+- Select SPE-1052 or any parent umbrella as the coding slice.

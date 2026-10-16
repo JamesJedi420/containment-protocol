@@ -9,21 +9,29 @@ Canonical policy: `docs/cursor-delegated-backlog-approval.md`.
 
 ## Effectiveness
 
-Exercise delegated selection/approval **only when** that document is on `origin/main` (merged adopting PR).
+Exercise delegated selection/approval **only when**:
 
-If the document is missing from `main`, exists only on a branch, or approval state is ambiguous: do **not** self-approve. Obey `.cursor/rules/no-candidate-reconciliation.mdc` and `.cursor/skills/cp-next-implementation-slice/SKILL.md`.
+1. That document exists on `origin/main` (merged adopting PR), **and**
+2. The working-tree / session copy matches the **`origin/main` revision** (same content or same commit blob). If the local file differs from `origin/main`, treat the amendment as **not effective** and do not self-approve.
+3. The user or orchestrator made an **explicit implementation-continuation** request (e.g. continue the ship loop / pick next slice / run autonomous cycle). Absence of a named slice alone is **not** enough — unowned review/docs analysis stays read-only.
 
-## When effective and no slice is named
+If any gate fails: do **not** self-approve. Obey `.cursor/rules/no-candidate-reconciliation.mdc` and `.cursor/skills/cp-next-implementation-slice/SKILL.md`.
+
+## When effective and continuation was requested with no slice named
 
 1. Confirm clean `main` and no open PR (`.cursor/rules/clean-main-before-next-slice.mdc`).
-2. Follow `docs/cursor-delegated-backlog-approval.md` eligibility, selection order, decision criteria, and audit evidence.
-3. Record Linear + slice-doc delegated approval **before** the first code edit.
-4. Implement one selected existing issue under `.cursor/rules/implementation-lite.mdc`.
+2. Confirm the queue is empty (manifest `inProgress`, backlog In progress line, Linear In Progress). Resume a sole In Progress slice; do not pick a second.
+3. Follow `docs/cursor-delegated-backlog-approval.md` eligibility, selection order, decision criteria, and audit evidence.
+4. Derive the branch name from the slice doc or Linear `gitBranchName`. **Create that branch from current `main` before** writing slice-doc, backlog, or manifest audit evidence.
+5. Record Linear + slice-doc delegated approval **before** the first feature code edit. This is the sole narrowly scoped exception to `.cursor/rules/linear-always-update.mdc` for writing a `Delegated approval (Cursor)` comment and setting that existing issue **In Progress** under this policy — still no issue create, reparent, or Goal/Scope/Acceptance expansion.
+6. Implement one selected existing issue under `.cursor/rules/implementation-lite.mdc`.
 
 ## Never
 
+- Activate from an unmerged branch or a working tree that differs from `origin/main`'s policy file
 - Select a parent umbrella (including SPE-1052) as the coding slice
 - Create issues, children, parents, relationships, or reparent under this rule
 - Expand durable Goal/Scope/Acceptance
 - Skip independent PR review, contradiction checks, or CI
-- Treat an unmerged amendment PR as effective authority
+- Run delegated selection inside a merge Phase B closeout session (remind the human to start a **new** agent chat instead)
+- Treat “no named slice” during a read-only review/docs session as permission to mutate Linear

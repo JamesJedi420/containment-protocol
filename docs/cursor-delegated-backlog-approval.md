@@ -6,7 +6,11 @@ Tracked rule: `.cursor/rules/cursor-delegated-backlog-approval.mdc` (`alwaysAppl
 
 ## Effectiveness gate (mandatory)
 
-This policy is **not effective** until this document is present on `origin/main` after an ordinary repository review/merge of the adopting PR.
+This policy is **not effective** until **all** of the following are true:
+
+1. This document is present on `origin/main` after an ordinary repository review/merge of the adopting PR.
+2. The session loads the authoritative policy from **`origin/main`** (or verifies the working-tree file is byte-identical / same blob as `origin/main:docs/cursor-delegated-backlog-approval.md`). A same-path file only on a feature branch, or a local edit that diverges from `origin/main`, does **not** activate authority.
+3. The user or orchestrator made an **explicit implementation-continuation** request. Mere absence of a named slice (including unowned review/docs analysis) does **not** activate delegated selection.
 
 Until then:
 
@@ -22,29 +26,34 @@ ChatGPT remains the default owner of candidate reconciliation until this gate pa
 
 | Role | Authority |
 | --- | --- |
-| **Hermes / orchestrator** | Starts sessions, states standing objectives, may request delegated selection when no slice is named. |
+| **Hermes / orchestrator** | Starts sessions, states standing objectives, may make an **explicit** implementation-continuation request when no slice is named. |
 | **Cursor (after gate)** | Selects one eligible existing issue, records delegated approval evidence, plans, implements, ships under `implementation-lite`. |
 | **Independent PR review + CI** | Remain mandatory. Delegation never replaces Greptile/CodeRabbit/Amazon Q/human review or green CI. |
 | **Human** | May revoke delegation, name a different issue, or reject a recorded decision in Linear/chat. |
 
 ## Bounded approval authority (after gate)
 
-When `planning/backlog-handoff-manifest.json` `inProgress` is empty, backlog handoff shows **In progress: (none)**, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
+When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` `inProgress` is empty, backlog handoff shows **In progress: (none)**, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
 
-1. **Assess** the authoritative queue (`planning/backlog.md`, manifest, Linear primary/children, `recentlyShipped`).
+1. **Assess** the authoritative queue (`planning/backlog.md` Recommended next step and active queue, Linear primary/children, `recentlyShipped`). Do not treat manifest JSON key order as a ranking.
 2. **Select** exactly one **existing** Linear issue that passes eligibility below.
-3. **Record** a delegated approval decision (audit evidence) before coding.
-4. Set that issue **In Progress**, create/update `planning/*-slice.md` when missing, update handoff/manifest for the pick, then implement in the same session under `.cursor/rules/implementation-lite.mdc`.
+3. **Create** the feature branch from current `main` (slice-doc branch name or Linear `gitBranchName`) **before** writing repository audit files.
+4. **Record** a delegated approval decision (audit evidence) before feature coding.
+5. Set that issue **In Progress**, create/update `planning/*-slice.md` when missing, update handoff/manifest for the pick, then implement in the same session under `.cursor/rules/implementation-lite.mdc`.
+
+If a sole In Progress slice already exists in the manifest or Linear, **resume it** — do not select another.
+
+Do **not** exercise this path inside a merge Phase B closeout session. Phase B stays plan/remind-only; the required **new** agent chat may invoke delegated selection when continuation is requested.
 
 ### Eligibility (all required)
 
 - Issue already exists in Linear (and GitHub mirror when present).
 - Status is Backlog or Todo (not Done, Canceled, Duplicate).
 - Not listed in manifest `recentlyShipped`.
-- Not a parent umbrella with remaining children (SPE-1052 and similar are never eligible as the implementation slice).
-- Acceptance criteria fit one coherent coding slice, or the delegated record explicitly narrows to a documented sub-boundary that stays inside the existing issue body (no silent scope expansion).
+- Not a parent umbrella: reject when Linear shows child issues under the candidate (`list_issues` with `parentId`), or when the body requires child-only implementation (SPE-1052 and similar are never eligible as the coding slice).
+- `get_issue` acceptance criteria fit one coherent coding slice. A slice doc may document the boundary but does not replace usable acceptance criteria unless the approved issue body and slice doc both state the same satisfiable bar (or the delegated record explicitly narrows to a documented sub-boundary still inside that body — no silent scope expansion).
 - No open `blockedBy` blockers (Done/Canceled blockers do not block).
-- A `planning/*-slice.md` exists, or the delegated record creates one before the first code edit.
+- A `planning/*-slice.md` exists, or the delegated record creates one on the feature branch before the first feature code edit.
 - Not a harvest-only or contradiction-only issue that changes no game behavior unless the issue body itself is the approved docs/workflow boundary.
 
 ### Selection order
@@ -93,7 +102,7 @@ Record all of:
 1. Linear comment on the selected issue titled `Delegated approval (Cursor)` with the decision criteria block and date/`main` SHA.
 2. Matching section in `planning/<slice>.md` under `## Delegated approval`.
 3. Handoff update: set **In progress** to that SPE in `planning/backlog.md` and `planning/backlog-handoff-manifest.json`; run `npm run verify:backlog-handoff`.
-4. Session report before first code edit using the Next-slice block from `.cursor/skills/cp-next-implementation-slice/SKILL.md`, plus `Authority: delegated (docs/cursor-delegated-backlog-approval.md on main)`.
+4. Session report before first code edit using the mandatory `## Next slice` block from `.cursor/skills/cp-next-implementation-slice/SKILL.md` (Issue / Why / Skipped / Slice doc / Branch), plus `Authority: delegated (origin/main docs/cursor-delegated-backlog-approval.md @ <blob-or-commit>)`.
 
 Idempotent: if the same SPE already has a delegated-approval comment with the same SHA and decision, do not duplicate; resume that issue.
 

@@ -211,11 +211,11 @@ Use only when babysit cannot finish in-session (external blocker, merge policy, 
 After **PR merged**, slice issue **Done** when justified, merge comment on Linear, and **`git checkout main` && `git pull`**:
 
 1. **Do not** implement the next issue unless the user explicitly asks in that session.
-2. Prepare a **next-issue implementation plan** only when an already-approved next issue exists; otherwise stop and ask for one unless `docs/cursor-delegated-backlog-approval.md` is effective on `origin/main`. Do not perform candidate reconciliation unless that delegated policy is effective.
+2. Prepare a **next-issue implementation plan** only when an already-approved next issue exists; otherwise stop and ask for one. Do not perform candidate reconciliation in closeout. Do not exercise delegated selection here; if `docs/cursor-delegated-backlog-approval.md` is effective on `origin/main`, remind that a **new** agent chat may use it after an explicit continuation request.
 3. Return the **phase B** final response structure from that doc.
 
 Next-approved-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
 
 Closeout rules: do not expand the current issue; do not mark Done until merge when the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite).
 
-After **merge** (phase B): remind the human to **start a new agent chat** with the approved Linear URL, slice doc, branch name, and current `main` SHA (agent already synced `main` in-session). If no approved next issue exists, stop and ask for one unless delegated backlog approval is effective on `main`.
+After **merge** (phase B): remind the human to **start a new agent chat** with the approved Linear URL, slice doc, branch name, and current `main` SHA (agent already synced `main` in-session). If no approved next issue exists, stop and ask for one; the new chat may use delegated selection only when that policy is effective on `origin/main` and continuation is requested.

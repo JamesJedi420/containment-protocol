@@ -27,8 +27,8 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - Prefer slice docs and authoritative records over re-explaining finished work in chat.
 - Live web research: prefer repo sources first; use configured read-only research tools only when current external facts are necessary; do not add search APIs to runtime without approved scope.
 - Cursor plugin keep-list: `docs/agent-cursor-plugins.md`; follow dependency-scanning requirements before adding/upgrading packages.
-- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise stop and ask for one. Candidate reconciliation belongs to ChatGPT unless `docs/cursor-delegated-backlog-approval.md` is effective on `main`.
-- Delegated backlog approval: bounded Cursor selection/approval only after that doc merges to `main`; never from an unmerged amendment PR. Details: `docs/cursor-delegated-backlog-approval.md`.
+- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise stop and ask for one. Do not exercise delegated selection in closeout. Candidate reconciliation belongs to ChatGPT.
+- Delegated backlog approval: bounded Cursor selection/approval only when that doc is effective on `origin/main` (matching revision) and the session has an explicit implementation-continuation request; never from an unmerged amendment PR. Details: `docs/cursor-delegated-backlog-approval.md`.
 
 ---
 
@@ -38,4 +38,4 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
 ```
 
-If no approved next issue exists, stop and ask for the Linear issue, slice doc, and branch — unless delegated approval is effective on `main`.
+If no approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. A later new agent chat may use delegated selection when that policy is effective on `origin/main` and continuation is requested.

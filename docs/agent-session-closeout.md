@@ -12,18 +12,18 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 2. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable.
 3. **`git checkout main` && `git pull origin main`** — agent syncs local `main` before closeout.
 4. Linear slice **Done** only when its full approved boundary is satisfied + merge comment.
-5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue, unless `docs/cursor-delegated-backlog-approval.md` is effective on `main`. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation unless that delegated policy is effective.
+5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation in this closeout. If delegated policy is effective on `origin/main`, remind the human that the **new** agent chat may run delegated selection when they request implementation continuation — do not set issues In Progress or implement here.
 
-**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope.
+**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later session may use delegated selection).
 
 ## Two phases (closeout format)
 
 | Phase | When | Agent does | Agent does **not** |
 | ----- | ---- | ---------- | ------------------- |
 | **A — Babysit blocked** | PR open; merge cannot complete in-session | Interim status, PR URL, CI/blocker | Next-issue plan; mark slice **Done** |
-| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one (or follow delegated policy if effective on `main`) | Code the next issue in this closeout; create a new issue/child/parent from follow-up discovery |
+| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one; if delegated policy is on `origin/main`, remind that a **new** agent chat may invoke it | Code the next issue; perform candidate reconciliation; create a new issue/child/parent from follow-up discovery; set a new issue In Progress under delegated authority in this closeout |
 
-Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one unless `docs/cursor-delegated-backlog-approval.md` is on `origin/main`. Candidate reconciliation belongs to ChatGPT until that gate passes.
+Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one. Candidate reconciliation belongs to ChatGPT. Delegated selection, when effective on `origin/main`, starts only in that new chat after an explicit implementation-continuation request.
 
 ---
 

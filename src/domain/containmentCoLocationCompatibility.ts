@@ -186,17 +186,24 @@ function normalizeCandidate(value: unknown): CoLocationPlacementCandidate | unde
   })
 }
 
-/** Undirected hop distance on SPE-2932 spatial adjacency. Same node → 0. */
+/**
+ * Undirected hop distance on SPE-2932 spatial adjacency.
+ * Same known node → 0. Unknown endpoints → undefined. Known but disconnected
+ * components → Number.POSITIVE_INFINITY (sufficient for any finite minSeparation).
+ */
 export function querySpatialGraphSeparation(
   graph: FacilitySectionGraph | undefined,
   leftNodeId: string,
   rightNodeId: string
 ): number | undefined {
-  if (leftNodeId === rightNodeId) return 0
-  if (!lookupSpatialNode(graph, leftNodeId) || !lookupSpatialNode(graph, rightNodeId)) {
+  if (
+    graph === undefined ||
+    !lookupSpatialNode(graph, leftNodeId) ||
+    !lookupSpatialNode(graph, rightNodeId)
+  ) {
     return undefined
   }
-  if (!graph) return undefined
+  if (leftNodeId === rightNodeId) return 0
 
   const queue: Array<{ nodeId: string; distance: number }> = [{ nodeId: leftNodeId, distance: 0 }]
   const visited = new Set<string>([leftNodeId])
@@ -218,7 +225,7 @@ export function querySpatialGraphSeparation(
       queue.push({ nodeId: neighbor, distance: nextDistance })
     }
   }
-  return undefined
+  return Number.POSITIVE_INFINITY
 }
 
 function constraintAppliesToPair(
@@ -274,6 +281,14 @@ function evaluatePairConstraint(
   }
 }
 
+function isMalformedReason(reason: CoLocationReason): boolean {
+  return (
+    reason === 'malformed_spatial_ref' ||
+    reason === 'malformed_classification' ||
+    reason === 'malformed_constraint'
+  )
+}
+
 /**
  * Evaluate whether a proposed containment placement is compatible with
  * authored co-location constraints and current occupants.
@@ -306,18 +321,25 @@ export function evaluateContainmentCoLocationPlacement(
 
   const normalizedConstraints: CoLocationConstraint[] = []
   let hadMalformedConstraint = false
+  const seenConstraintIds = new Set<string>()
   for (const entry of request.constraints) {
     const constraint = normalizeConstraint(entry)
     if (!constraint) {
       hadMalformedConstraint = true
       continue
     }
+    if (seenConstraintIds.has(constraint.id)) {
+      hadMalformedConstraint = true
+      continue
+    }
+    seenConstraintIds.add(constraint.id)
     normalizedConstraints.push(constraint)
   }
   normalizedConstraints.sort((left, right) => compareCodeUnit(left.id, right.id))
 
   const occupants: ContainedSubjectPlacement[] = []
   let hadMalformedOccupant = false
+  let hadUnknownOccupantNode = false
   for (const entry of request.occupants) {
     const occupant = normalizeOccupant(entry)
     if (!occupant) {
@@ -325,6 +347,10 @@ export function evaluateContainmentCoLocationPlacement(
       continue
     }
     if (occupant.subjectId === candidate.subjectId) continue
+    if (!lookupSpatialNode(request.graph, occupant.nodeId)) {
+      hadUnknownOccupantNode = true
+      continue
+    }
     occupants.push(occupant)
   }
   occupants.sort((left, right) => {
@@ -339,16 +365,25 @@ export function evaluateContainmentCoLocationPlacement(
 
   if (hadMalformedConstraint) reasons.push('malformed_constraint')
   if (hadMalformedOccupant) reasons.push('malformed_classification')
+  if (hadUnknownOccupantNode) reasons.push('malformed_spatial_ref')
 
   for (const constraint of normalizedConstraints) {
     const waiverActive =
       Boolean(constraint.waiverId) && activeWaivers.has(constraint.waiverId as string)
 
-    if (
-      constraint.kind === 'required_isolation' &&
-      constraint.subjectClass === candidate.subjectClass
-    ) {
-      const conflict = occupants.some((occupant) => occupant.nodeId === candidate.proposedNodeId)
+    if (constraint.kind === 'required_isolation') {
+      // Isolation protects both directions: candidate of the isolated class must
+      // be alone on the node, and existing isolated occupants reject new neighbors.
+      const candidateIsIsolatedClass = constraint.subjectClass === candidate.subjectClass
+      const isolatedOccupantConflict = occupants.some(
+        (occupant) =>
+          occupant.subjectClass === constraint.subjectClass &&
+          occupant.nodeId === candidate.proposedNodeId
+      )
+      const candidateClassConflict =
+        candidateIsIsolatedClass &&
+        occupants.some((occupant) => occupant.nodeId === candidate.proposedNodeId)
+      const conflict = isolatedOccupantConflict || candidateClassConflict
       if (!conflict) continue
       if (waiverActive) {
         waived.push(constraint.id)
@@ -361,6 +396,7 @@ export function evaluateContainmentCoLocationPlacement(
     }
 
     let pairWouldReject = false
+    let pairHasMalformed = false
     const pairReasons: CoLocationReason[] = []
     for (const occupant of occupants) {
       if (!constraintAppliesToPair(constraint, candidate.subjectClass, occupant.subjectClass)) {
@@ -370,11 +406,13 @@ export function evaluateContainmentCoLocationPlacement(
       if (reason) {
         pairWouldReject = true
         pairReasons.push(reason)
+        if (isMalformedReason(reason)) pairHasMalformed = true
       }
     }
     if (!pairWouldReject) continue
 
-    if (waiverActive) {
+    // Waivers never suppress malformed spatial/classification evaluation.
+    if (waiverActive && !pairHasMalformed) {
       waived.push(constraint.id)
       reasons.push('waiver_applied')
       continue

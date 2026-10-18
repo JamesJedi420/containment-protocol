@@ -328,4 +328,86 @@ describe('SPE-3177 containment co-location compatibility', () => {
     })
     expect(result.decision).toBe('permitted')
   })
+
+  it('does not let a waiver suppress malformed spatial refs on pair constraints', () => {
+    const waivableSameZone: CoLocationConstraint = Object.freeze({
+      id: 'c-waivable-zone',
+      kind: 'prohibit_same_zone',
+      subjectClass: 'volatile_sample',
+      againstClass: 'reactive_catalyst',
+      waiverId: 'waiver:temporary-pairing',
+    })
+    const result = evaluateContainmentCoLocationPlacement({
+      graph,
+      constraints: [waivableSameZone],
+      occupants: [occupant({ nodeId: 'room:med_bay', zoneRef: undefined })],
+      candidate: {
+        subjectId: 'cand-sample',
+        subjectClass: 'volatile_sample',
+        proposedNodeId: 'room:containment_cell',
+        zoneRef: 'zone:medical',
+      },
+      activeWaiverIds: ['waiver:temporary-pairing'],
+    })
+    expect(result.decision).toBe('rejected')
+    expect(result.waivedConstraintIds).toEqual([])
+    expect(result.violatedConstraintIds).toEqual(['c-waivable-zone'])
+    expect(result.reasons).toEqual(['malformed_spatial_ref'])
+  })
+
+  it('rejects placing beside an existing isolated-class occupant', () => {
+    const result = evaluateContainmentCoLocationPlacement({
+      graph,
+      constraints: [ISOLATION],
+      occupants: [
+        occupant({
+          subjectId: 'isolated-sample',
+          subjectClass: 'volatile_sample',
+          nodeId: 'section:clinical',
+        }),
+      ],
+      candidate: {
+        subjectId: 'cand-other',
+        subjectClass: 'reactive_catalyst',
+        proposedNodeId: 'section:clinical',
+      },
+    })
+    expect(result.decision).toBe('rejected')
+    expect(result.reasons).toEqual(['isolation_required'])
+    expect(result.violatedConstraintIds).toEqual(['c-isolation'])
+  })
+
+  it('fails closed when an occupant node is unknown on the graph', () => {
+    const result = evaluateContainmentCoLocationPlacement({
+      graph,
+      constraints: [],
+      occupants: [occupant({ nodeId: 'room:does-not-exist' })],
+      candidate: {
+        subjectId: 'cand-sample',
+        subjectClass: 'volatile_sample',
+        proposedNodeId: 'room:med_bay',
+      },
+    })
+    expect(result.decision).toBe('rejected')
+    expect(result.reasons).toEqual(['malformed_spatial_ref'])
+  })
+
+  it('returns undefined separation for equal but unknown node ids', () => {
+    expect(querySpatialGraphSeparation(graph, 'room:missing', 'room:missing')).toBeUndefined()
+  })
+
+  it('rejects duplicate constraint identifiers as malformed', () => {
+    const result = evaluateContainmentCoLocationPlacement({
+      graph,
+      constraints: [SAME_NODE, { ...SAME_NODE }],
+      occupants: [],
+      candidate: {
+        subjectId: 'cand-sample',
+        subjectClass: 'volatile_sample',
+        proposedNodeId: 'room:med_bay',
+      },
+    })
+    expect(result.decision).toBe('rejected')
+    expect(result.reasons).toEqual(['malformed_constraint'])
+  })
 })

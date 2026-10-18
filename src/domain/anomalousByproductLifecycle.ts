@@ -246,6 +246,8 @@ function parseRecord(value: unknown): ByproductLifecycleRecord | undefined {
     if (!hasOwn(value, key)) return undefined
   }
   if (!isNonEmptyString(value.id)) return undefined
+  // Empty sourceSubjectRef is intentionally allowed here so validateByproductLifecycle
+  // can emit orphan_lot instead of collapsing the case into malformed.
   if (typeof value.sourceSubjectRef !== 'string' || value.sourceSubjectRef.includes('\0')) {
     return undefined
   }

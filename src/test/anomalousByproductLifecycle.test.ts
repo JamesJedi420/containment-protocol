@@ -121,6 +121,19 @@ describe('SPE-2103 anomalous byproduct lifecycle registry', () => {
       warnings: [],
     })
     expect(projectByproductRiskSummary(lot(), 11)?.failureClockDue).toBe(false)
+    // Anchor week is the first due date; the week before stays quiet.
+    expect(projectByproductRiskSummary(lot(), 10)?.failureClockDue).toBe(true)
+    expect(projectByproductRiskSummary(lot(), 9)?.failureClockDue).toBe(false)
+  })
+
+  it('allows quarantined lots without a disposal route (active-only disposal gate)', () => {
+    const withoutRoute = { ...lot(), status: 'quarantined' }
+    delete (withoutRoute as { disposalRoute?: string }).disposalRoute
+    const result = validateByproductLifecycle([withoutRoute])
+    expect(result.findings).toEqual([])
+    expect(result.records).toHaveLength(1)
+    expect(result.records[0]?.status).toBe('quarantined')
+    expect(result.records[0]?.disposalRoute).toBeUndefined()
   })
 
   it('raises critical risk when a due clock has no emergency hook', () => {

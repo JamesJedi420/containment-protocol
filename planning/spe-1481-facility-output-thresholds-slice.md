@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                     |
 | ----------------- | ------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                           |
+| **Status**        | **Recently shipped**                                                      |
 | **Issue**         | [SPE-1481](https://linear.app/spectranoir/issue/SPE-1481)                 |
 | **GitHub**        | [#1495](https://github.com/JamesJedi420/containment-protocol/issues/1495) |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog       |

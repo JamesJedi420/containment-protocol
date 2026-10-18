@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  FACILITY_OUTPUT_SITE_ID,
+  FACILITY_OUTPUT_FACILITY_ID,
   evaluateFacilityOutputThresholds,
   metFacilityOutputReadiness,
   type FacilityOutputReadiness,
@@ -14,14 +14,14 @@ function readiness(overrides: Partial<FacilityOutputReadiness> = {}): FacilityOu
 }
 
 describe('SPE-1481 facility output thresholds', () => {
-  it('keeps the representative site nonproductive under construction even when readiness is met', () => {
+  it('keeps the representative facility nonproductive under construction even when readiness is met', () => {
     const result = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'under_construction',
       readiness: metFacilityOutputReadiness(),
     })
     expect(result).toEqual({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'under_construction',
       productive: false,
       bundle: {
@@ -36,26 +36,30 @@ describe('SPE-1481 facility output thresholds', () => {
 
   it('differs output bundles across construction, initial activation, and stable operation', () => {
     const construction = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'under_construction',
       readiness: metFacilityOutputReadiness(),
     })
     const initial = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'initial_activation',
       readiness: metFacilityOutputReadiness(),
     })
     const stable = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'stable_operation',
       readiness: metFacilityOutputReadiness(),
     })
 
-    expect(construction.bundle).toEqual({
-      intel: 0,
-      containmentCapacity: 0,
-      serviceOutput: 0,
-      revenue: 0,
+    expect(construction).toMatchObject({
+      productive: false,
+      bundle: {
+        intel: 0,
+        containmentCapacity: 0,
+        serviceOutput: 0,
+        revenue: 0,
+      },
+      blockedReasons: ['phase_nonproductive'],
     })
     expect(initial).toMatchObject({
       productive: true,
@@ -83,12 +87,12 @@ describe('SPE-1481 facility output thresholds', () => {
 
   it('blocks productive output with an explicit reason when staffing is unmet', () => {
     const result = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'stable_operation',
       readiness: readiness({ staffing: 'unmet' }),
     })
     expect(result).toEqual({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'stable_operation',
       productive: false,
       bundle: {
@@ -103,11 +107,12 @@ describe('SPE-1481 facility output thresholds', () => {
 
   it('lists every unmet readiness axis as a stable blocked reason', () => {
     const result = evaluateFacilityOutputThresholds({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: 'initial_activation',
       readiness: readiness({
         security: 'unmet',
         power: 'unmet',
+        storage: 'unmet',
         communications: 'unmet',
       }),
     })
@@ -118,21 +123,28 @@ describe('SPE-1481 facility output thresholds', () => {
       serviceOutput: 0,
       revenue: 0,
     })
-    expect(result.blockedReasons).toEqual(['weak_security', 'absent_power', 'broken_comms'])
+    expect(result.blockedReasons).toEqual([
+      'weak_security',
+      'absent_power',
+      'missing_storage',
+      'broken_comms',
+    ])
   })
 
   it('fails closed on malformed readiness packets', () => {
     expect(
       evaluateFacilityOutputThresholds({
-        siteId: FACILITY_OUTPUT_SITE_ID,
+        facilityId: FACILITY_OUTPUT_FACILITY_ID,
         phase: 'stable_operation',
         readiness: { staffing: 'met' },
       }).blockedReasons
     ).toEqual(['malformed_readiness'])
-    expect(evaluateFacilityOutputThresholds(null).productive).toBe(false)
+    const nullResult = evaluateFacilityOutputThresholds(null)
+    expect(nullResult.productive).toBe(false)
+    expect(nullResult.blockedReasons).toEqual(['malformed_readiness'])
     expect(
       evaluateFacilityOutputThresholds({
-        siteId: 'site:other',
+        facilityId: 'facility:other',
         phase: 'stable_operation',
         readiness: metFacilityOutputReadiness(),
       }).blockedReasons

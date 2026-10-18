@@ -1,14 +1,17 @@
 /**
  * SPE-1481 — facility output / productive-readiness thresholds.
  *
- * Caller-owned readiness facts decide whether a representative site may emit
- * intel, containment capacity, service output, or revenue. Lifecycle status,
- * ownership, construction progress, and installed effect fields are not
- * productive proof. This module does not read GameState, grant pools, or
- * mutate week-close.
+ * Caller-owned readiness facts decide whether the representative biohazard
+ * facility may emit intel, containment capacity, service output, or revenue.
+ * Lifecycle status, ownership, construction progress, and installed effect
+ * fields are not productive proof. This module does not read GameState, grant
+ * pools, or mutate week-close.
  */
 
-export const FACILITY_OUTPUT_SITE_ID = 'site:biohazard-response-lab' as const
+import { BIOHAZARD_RESPONSE_FACILITY_ID } from './departmentWorkshopFacilityMapping'
+
+/** Canonical production facility id shared with workshop / unlock owners. */
+export const FACILITY_OUTPUT_FACILITY_ID = BIOHAZARD_RESPONSE_FACILITY_ID
 
 export const FACILITY_OUTPUT_PHASES = [
   'under_construction',
@@ -52,13 +55,13 @@ export type FacilityOutputReadiness = Readonly<
 >
 
 export interface FacilityOutputThresholdRequest {
-  readonly siteId: string
+  readonly facilityId: string
   readonly phase: FacilityOutputPhase
   readonly readiness: FacilityOutputReadiness
 }
 
 export interface FacilityOutputThresholdResult {
-  readonly siteId: typeof FACILITY_OUTPUT_SITE_ID
+  readonly facilityId: typeof FACILITY_OUTPUT_FACILITY_ID
   readonly phase: FacilityOutputPhase
   readonly productive: boolean
   readonly bundle: FacilityOutputBundle
@@ -124,7 +127,7 @@ function freezeBundle(bundle: FacilityOutputBundle): FacilityOutputBundle {
 
 function freezeResult(result: FacilityOutputThresholdResult): FacilityOutputThresholdResult {
   return Object.freeze({
-    siteId: result.siteId,
+    facilityId: result.facilityId,
     phase: result.phase,
     productive: result.productive,
     bundle: freezeBundle(result.bundle),
@@ -134,7 +137,7 @@ function freezeResult(result: FacilityOutputThresholdResult): FacilityOutputThre
 
 function malformed(phase: FacilityOutputPhase | undefined): FacilityOutputThresholdResult {
   return freezeResult({
-    siteId: FACILITY_OUTPUT_SITE_ID,
+    facilityId: FACILITY_OUTPUT_FACILITY_ID,
     phase: phase ?? 'under_construction',
     productive: false,
     bundle: ZERO_BUNDLE,
@@ -166,20 +169,20 @@ function parseReadiness(value: unknown): FacilityOutputReadiness | undefined {
 }
 
 /**
- * Evaluate whether the representative site may produce output for the given
+ * Evaluate whether the representative facility may produce output for the given
  * phase. Fail closed on malformed packets. Construction never produces.
  * Activation and stable operation require every readiness axis to be `met`.
  */
 export function evaluateFacilityOutputThresholds(request: unknown): FacilityOutputThresholdResult {
   if (!isRecord(request)) return malformed(undefined)
-  if (request.siteId !== FACILITY_OUTPUT_SITE_ID) return malformed(undefined)
+  if (request.facilityId !== FACILITY_OUTPUT_FACILITY_ID) return malformed(undefined)
   if (!isPhase(request.phase)) return malformed(undefined)
   const readiness = parseReadiness(request.readiness)
   if (!readiness) return malformed(request.phase)
 
   if (request.phase === 'under_construction') {
     return freezeResult({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: request.phase,
       productive: false,
       bundle: PHASE_BUNDLE.under_construction,
@@ -190,7 +193,7 @@ export function evaluateFacilityOutputThresholds(request: unknown): FacilityOutp
   const unmet = collectUnmetReasons(readiness)
   if (unmet.length > 0) {
     return freezeResult({
-      siteId: FACILITY_OUTPUT_SITE_ID,
+      facilityId: FACILITY_OUTPUT_FACILITY_ID,
       phase: request.phase,
       productive: false,
       bundle: ZERO_BUNDLE,
@@ -199,7 +202,7 @@ export function evaluateFacilityOutputThresholds(request: unknown): FacilityOutp
   }
 
   return freezeResult({
-    siteId: FACILITY_OUTPUT_SITE_ID,
+    facilityId: FACILITY_OUTPUT_FACILITY_ID,
     phase: request.phase,
     productive: true,
     bundle: PHASE_BUNDLE[request.phase],

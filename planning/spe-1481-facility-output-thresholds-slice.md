@@ -61,7 +61,7 @@
 
 ## Approved boundary
 
-Pure caller-owned `evaluateFacilityOutputThresholds` for representative site `site:biohazard-response-lab`.
+Pure caller-owned `evaluateFacilityOutputThresholds` for representative facility `facility:biohazard-response-lab` (`BIOHAZARD_RESPONSE_FACILITY_ID`).
 
 - Phases: `under_construction` | `initial_activation` | `stable_operation`
 - Readiness axes: security, staffing, power, storage, communications (`met` | `unmet`)
@@ -74,10 +74,11 @@ Pure caller-owned `evaluateFacilityOutputThresholds` for representative site `si
 
 `src/domain/facilityOutputThresholds.ts`
 
-| Symbol                             | Behavior                                                 |
-| ---------------------------------- | -------------------------------------------------------- |
-| `evaluateFacilityOutputThresholds` | Pure evaluate → `{ productive, bundle, blockedReasons }` |
-| `metFacilityOutputReadiness`       | All-met readiness helper                                 |
+| Symbol                             | Behavior                                                             |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `FACILITY_OUTPUT_FACILITY_ID`      | Alias of `BIOHAZARD_RESPONSE_FACILITY_ID`                            |
+| `evaluateFacilityOutputThresholds` | Pure evaluate → `{ facilityId, productive, bundle, blockedReasons }` |
+| `metFacilityOutputReadiness`       | All-met readiness helper                                             |
 
 ## Deferred
 

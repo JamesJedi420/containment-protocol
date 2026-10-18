@@ -1,13 +1,13 @@
 # SPE-2103 — Anomalous byproduct lifecycle registry (slice 1)
 
-| Field             | Value                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                           |
-| **Issue**         | [SPE-2103](https://linear.app/spectranoir/issue/SPE-2103)                                 |
-| **GitHub**        | [#2160](https://github.com/JamesJedi420/containment-protocol/issues/2160)                 |
-| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                       |
-| **Branch**        | `jamesdyedbq/spe-2103-anomalous-byproduct-lifecycle-registry-residue-abatement`           |
-| **Base main SHA** | `1f6e09e0c24e20f8022fa1b4f4ccfe74aef13ca2`                                                |
+| Field             | Value                                                                           |
+| ----------------- | ------------------------------------------------------------------------------- |
+| **Status**        | **Recently shipped**                                                            |
+| **Issue**         | [SPE-2103](https://linear.app/spectranoir/issue/SPE-2103)                       |
+| **GitHub**        | [#2160](https://github.com/JamesJedi420/containment-protocol/issues/2160)       |
+| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog             |
+| **Branch**        | `jamesdyedbq/spe-2103-anomalous-byproduct-lifecycle-registry-residue-abatement` |
+| **Base main SHA** | `1f6e09e0c24e20f8022fa1b4f4ccfe74aef13ca2`                                      |
 
 ## Delegated approval
 
@@ -24,15 +24,15 @@
 
 ### Candidates compared
 
-| Candidate                         | Verdict                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| SPE-1052                          | Ineligible parent umbrella                                                                       |
-| SPE-1263                          | High priority; multi-system permeability / impossible-access program — not one coding slice      |
-| SPE-3360 / SPE-3181 / SPE-3406    | Large multi-owner production / requirement / cultivation programs                                |
-| SPE-1564 / SPE-1896 / SPE-3150    | Have Linear children (umbrellas)                                                                 |
-| SPE-3177                          | Coherent co-location evaluator, but lower priority than High children with a pure slice-1 bar    |
-| SPE-1481                          | Just shipped — not a pick                                                                        |
-| **SPE-2103**                      | High priority; explicit pure registry slice 1; AC names module/tests; no GameState/UI; no kids   |
+| Candidate                      | Verdict                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| SPE-1052                       | Ineligible parent umbrella                                                                     |
+| SPE-1263                       | High priority; multi-system permeability / impossible-access program — not one coding slice    |
+| SPE-3360 / SPE-3181 / SPE-3406 | Large multi-owner production / requirement / cultivation programs                              |
+| SPE-1564 / SPE-1896 / SPE-3150 | Have Linear children (umbrellas)                                                               |
+| SPE-3177                       | Coherent co-location evaluator, but lower priority than High children with a pure slice-1 bar  |
+| SPE-1481                       | Just shipped — not a pick                                                                      |
+| **SPE-2103**                   | High priority; explicit pure registry slice 1; AC names module/tests; no GameState/UI; no kids |
 
 ### Decision criteria
 
@@ -69,20 +69,20 @@ Pure caller-owned anomalous-byproduct lifecycle registry in `src/domain/anomalou
 
 `src/domain/anomalousByproductLifecycle.ts`
 
-| Symbol                         | Behavior                                                              |
-| ------------------------------ | --------------------------------------------------------------------- |
-| `validateByproductLifecycle`   | Normalize + lint caller lots; byte-stable findings                    |
-| `projectByproductRiskSummary`  | Risk band / failure-clock due for one accepted lot at a campaign week |
-| `BYPRODUCT_HAZARD_BUILDUP_THRESHOLD` | Cap that requires an incident history ref                       |
+| Symbol                               | Behavior                                                              |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `validateByproductLifecycle`         | Normalize + lint caller lots; byte-stable findings                    |
+| `projectByproductRiskSummary`        | Risk band / failure-clock due for one accepted lot at a campaign week |
+| `BYPRODUCT_HAZARD_BUILDUP_THRESHOLD` | Cap that requires an incident history ref                             |
 
 ## Deferred
 
-| Item                                      | Owner                                                      | Why deferred                          |
-| ----------------------------------------- | ---------------------------------------------------------- | ------------------------------------- |
-| Efficiency / waste ledger alignment       | [SPE-1247](https://linear.app/spectranoir/issue/SPE-1247)  | Separate existing owner               |
-| Power dependency for processing plants    | [SPE-1057](https://linear.app/spectranoir/issue/SPE-1057)  | Separate existing owner               |
-| Zone isolation on processing wing breach  | [SPE-292](https://linear.app/spectranoir/issue/SPE-292)    | Separate existing owner               |
-| GameState persistence and maintenance UI  | none in this child                                         | Explicitly out of slice 1             |
+| Item                                     | Owner                                                     | Why deferred              |
+| ---------------------------------------- | --------------------------------------------------------- | ------------------------- |
+| Efficiency / waste ledger alignment      | [SPE-1247](https://linear.app/spectranoir/issue/SPE-1247) | Separate existing owner   |
+| Power dependency for processing plants   | [SPE-1057](https://linear.app/spectranoir/issue/SPE-1057) | Separate existing owner   |
+| Zone isolation on processing wing breach | [SPE-292](https://linear.app/spectranoir/issue/SPE-292)   | Separate existing owner   |
+| GameState persistence and maintenance UI | none in this child                                        | Explicitly out of slice 1 |
 
 ## Validation
 

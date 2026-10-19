@@ -188,12 +188,6 @@ export interface DisabledDuplicateStackEffectResult {
   readonly outputChangedByDisablement: boolean
 }
 
-const NON_CONTRIBUTING_STATES: ReadonlySet<DuplicateFacilityOperationalState> = new Set([
-  'damaged',
-  'disabled',
-  'seized',
-])
-
 function parseUnits(
   unitsRaw: unknown
 ): readonly DuplicateFacilityUnitInput[] | undefined {

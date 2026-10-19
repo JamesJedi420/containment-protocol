@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                    |
+| **Status**        | **Recently shipped**                                                               |
 | **Issue**         | [SPE-1565](https://linear.app/spectranoir/issue/SPE-1565)                          |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                |
 | **Branch**        | `jamesdyedbq/spe-1565-delegated-facility-management-model`                          |

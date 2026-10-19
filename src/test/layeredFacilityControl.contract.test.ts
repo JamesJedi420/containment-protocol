@@ -45,7 +45,7 @@ describe('SPE-731 layered facility control', () => {
     expect(
       evaluateCrewObedience({
         facilityId: CONTROL_FACILITY_ID,
-        actorId: 'actor:commander',
+        actorId: 'actor:courier',
         actorTitle: 'Courier',
         commandAuthorityId: 'actor:commander',
         holdsCredential: true,
@@ -84,11 +84,36 @@ describe('SPE-731 layered facility control', () => {
     })
     expect(transfer).toMatchObject({
       commandAuthorityId: 'actor:intruder',
-      canSteer: true,
-      canSeal: true,
-      canAdmit: true,
+      holdsCommandArtifact: true,
       priorHolderRetainsCommand: false,
       transferKind: 'stolen',
+    })
+
+    expect(
+      evaluateControlArtifactTransfer({
+        facilityId: CONTROL_FACILITY_ID,
+        artifactId: CONTROL_ARTIFACT_ID,
+        previousHolderId: 'actor:bystander',
+        newHolderId: 'actor:intruder',
+        transferKind: 'stolen',
+        priorCommandAuthorityId: 'actor:commander',
+      })
+    ).toBeUndefined()
+
+    expect(
+      authorizeFacilityAction({
+        facilityId: CONTROL_FACILITY_ID,
+        actorId: 'actor:commander',
+        action: 'admit',
+        accessBand: 'command',
+        powerState: 'online',
+        commandAuthorityId: transfer!.commandAuthorityId,
+        competentForAction: true,
+        informationReadIn: true,
+      })
+    ).toMatchObject({
+      authorized: false,
+      denialReason: 'missing_command_authority',
     })
   })
 

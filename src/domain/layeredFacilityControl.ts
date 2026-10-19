@@ -140,7 +140,8 @@ export function evaluateCrewObedience(
   }
 
   let obedienceSource: CrewObedienceResult['obedienceSource'] = 'none'
-  if (input.holdsCredential && input.actorId === input.commandAuthorityId) {
+  // Credential possession alone can authorize obedience; title never can.
+  if (input.holdsCredential) {
     obedienceSource = 'credential'
   } else if (input.hierarchyRank >= input.requiredHierarchyRank) {
     obedienceSource = 'hierarchy'
@@ -168,9 +169,7 @@ export interface ControlArtifactTransferResult {
   readonly facilityId: string
   readonly artifactId: string
   readonly commandAuthorityId: string
-  readonly canSteer: boolean
-  readonly canSeal: boolean
-  readonly canAdmit: boolean
+  readonly holdsCommandArtifact: true
   readonly priorHolderRetainsCommand: false
   readonly transferKind: 'stolen' | 'transferred'
 }
@@ -187,15 +186,14 @@ export function evaluateControlArtifactTransfer(
   if (!isMember(input.transferKind, ['stolen', 'transferred'] as const)) return undefined
   if (!isNonEmptyString(input.priorCommandAuthorityId)) return undefined
   if (input.previousHolderId === input.newHolderId) return undefined
+  // Fail closed unless the prior holder actually held command authority.
+  if (input.priorCommandAuthorityId !== input.previousHolderId) return undefined
 
-  const commandAuthorityId = input.newHolderId
   return Object.freeze({
     facilityId: input.facilityId,
     artifactId: input.artifactId,
-    commandAuthorityId,
-    canSteer: true,
-    canSeal: true,
-    canAdmit: true,
+    commandAuthorityId: input.newHolderId,
+    holdsCommandArtifact: true as const,
     priorHolderRetainsCommand: false as const,
     transferKind: input.transferKind,
   })
@@ -226,17 +224,22 @@ function minimumAccessForAction(action: FacilityControlAction): FacilityAccessBa
     case 'inspect':
       return 'enter'
     case 'operate':
-    case 'admit':
-    case 'deny':
       return 'operate'
     case 'seal':
     case 'override':
+    case 'admit':
+    case 'deny':
       return 'command'
   }
 }
 
 function actionRequiresCommandAuthority(action: FacilityControlAction): boolean {
-  return action === 'seal' || action === 'override'
+  return (
+    action === 'seal' ||
+    action === 'override' ||
+    action === 'admit' ||
+    action === 'deny'
+  )
 }
 
 /** Authorize a specific facility action without collapsing to enter/deny alone. */

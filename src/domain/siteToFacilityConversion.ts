@@ -231,9 +231,21 @@ export function projectConversionMapOutput(
   if (!isNonEmptyString(conversion.plotId)) return undefined
   if (!isNonEmptyString(conversion.regionId)) return undefined
   if (!isMember(conversion.outcome, SITE_CONVERSION_OUTCOMES)) return undefined
+  if (!isMember(conversion.recipe, SITE_CONVERSION_RECIPES)) return undefined
+
+  if (conversion.outcome === 'approved') {
+    if (!isNonEmptyString(conversion.facilityAssetId)) return undefined
+    return Object.freeze({
+      mapMarkerPresent: true,
+      regionId: conversion.regionId,
+      siteId: conversion.siteId,
+      plotId: conversion.plotId,
+      duplicatesMapOwner: false as const,
+    })
+  }
 
   return Object.freeze({
-    mapMarkerPresent: conversion.outcome === 'approved',
+    mapMarkerPresent: false,
     regionId: conversion.regionId,
     siteId: conversion.siteId,
     plotId: conversion.plotId,

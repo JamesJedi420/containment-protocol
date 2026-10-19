@@ -134,6 +134,12 @@ describe('SPE-3362 site-to-facility conversion', () => {
       regionId: CONVERSION_REGION_ID,
       duplicatesMapOwner: false,
     })
+
+    expect(
+      projectConversionMapOutput({
+        conversion: { ...conversion, facilityAssetId: null },
+      })
+    ).toBeUndefined()
   })
 
   it('keeps site-state history inspectable after conversion', () => {

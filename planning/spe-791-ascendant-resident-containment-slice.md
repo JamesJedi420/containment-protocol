@@ -30,6 +30,27 @@
 | SPE-1020 / SPE-1012 / SPE-1015 | High; higher SPE ids |
 | **SPE-791** | High; lowest eligible SPE id; no open children; ACs fit pure resident packets |
 
+### Decision criteria
+
+1. **Priority:** High (2); lowest SPE id among High children with no open children.
+2. **Dependencies:** no open blockers.
+3. **Feasibility:** pure deterministic resident packets; no GameState.
+4. **Scope:** compact resident-state / access / breach / roster surfaces inside Goal/Scope/AC.
+5. **Architectural readiness:** aligns with prior facility pure-domain packets.
+6. **Duplication:** not in recentlyShipped; distinct from SPE-731 control surfaces and SPE-1263 permeability.
+7. **Contradiction:** no STOP hold; SPE-3043 not implicated.
+8. **Prohibitions:** no new issue; parent stays Backlog; PR review preserved.
+
+### Eligibility checklist
+
+- Exists, Backlog: true
+- Not recentlyShipped: true
+- Not parent / no open children: true
+- One-slice AC: true
+- No open blockers: true
+- Slice doc: this file
+- Not harvest-only: true
+
 ## Approved boundary
 
 Pure `src/domain/ascendantResidentContainment.ts`:

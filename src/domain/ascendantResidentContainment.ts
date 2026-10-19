@@ -114,14 +114,15 @@ function derivePosture(
   if (input.containmentStatus === 'breached' || input.containmentStatus === 'escaped') {
     return input.externalPressureActive ? 'manipulated_asset' : 'threat'
   }
-  if (input.cooperation === 'cooperative' && input.careStatus !== 'crisis') {
-    return 'ally'
-  }
-  if (input.cooperation === 'resistant' || input.escalationPath === 'volatile_spike') {
+  // Volatile escalation wins over cooperative framing.
+  if (input.escalationPath === 'volatile_spike' || input.cooperation === 'resistant') {
     return 'threat'
   }
   if (input.externalPressureActive && input.cooperation === 'guarded') {
     return 'manipulated_asset'
+  }
+  if (input.cooperation === 'cooperative' && input.careStatus !== 'crisis') {
+    return 'ally'
   }
   return 'neutral'
 }
@@ -130,8 +131,8 @@ function deriveStrategicPressure(
   input: AscendantResidentProfileInput
 ): StrategicPressureKind {
   if (!input.beneficialAnomaly || !input.physicalRiskLow) return 'none'
-  if (input.escalationPath === 'strategic_pressure') return 'theft_demand'
   if (input.cooperation === 'guarded') return 'secrecy_burden'
+  if (input.escalationPath === 'strategic_pressure') return 'theft_demand'
   return 'misuse_temptation'
 }
 
@@ -236,8 +237,14 @@ export function evaluateSupervisedResidentAccess(
   if (!input.escortPresent) {
     return deny('escort_required')
   }
-  if (
-    input.requestedZone === 'public' &&
+  // shared + recreation require at least escorted_shared; public needs escorted_public.
+  if (input.requestedZone === 'public') {
+    if (input.movementPermission !== 'escorted_public') {
+      return deny('zone_not_permitted')
+    }
+  } else if (
+    (input.requestedZone === 'shared' || input.requestedZone === 'recreation') &&
+    input.movementPermission !== 'escorted_shared' &&
     input.movementPermission !== 'escorted_public'
   ) {
     return deny('zone_not_permitted')
@@ -320,9 +327,21 @@ export function projectFacilityResidentRoster(
   if (!Array.isArray(input.residents) || input.residents.length === 0) return undefined
 
   const projected = []
+  const seenResidentIds = new Set<string>()
   for (const resident of input.residents) {
+    if (!isRecord(resident)) return undefined
+    if (
+      isNonEmptyString(resident.facilityId) &&
+      resident.facilityId !== input.facilityId
+    ) {
+      return undefined
+    }
+    if (!isNonEmptyString(resident.residentId)) return undefined
+    if (seenResidentIds.has(resident.residentId)) return undefined
+    seenResidentIds.add(resident.residentId)
+
     const profile = projectAscendantResidentProfile({
-      ...(isRecord(resident) ? resident : {}),
+      ...resident,
       facilityId: input.facilityId,
     })
     if (!profile) return undefined

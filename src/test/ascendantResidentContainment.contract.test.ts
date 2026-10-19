@@ -76,15 +76,50 @@ describe('SPE-791 ascendant-resident containment', () => {
     expect(
       projectAscendantResidentProfile({
         ...baseResident,
-        residentId: 'resident:beneficial',
+        residentId: 'resident:secrecy',
+        physicalRiskLow: true,
+        beneficialAnomaly: true,
+        cooperation: 'guarded',
+      })
+    ).toMatchObject({
+      strategicPressure: 'secrecy_burden',
+      posture: 'neutral',
+    })
+
+    expect(
+      projectAscendantResidentProfile({
+        ...baseResident,
+        residentId: 'resident:theft',
         physicalRiskLow: true,
         beneficialAnomaly: true,
         escalationPath: 'strategic_pressure',
-        cooperation: 'guarded',
+        cooperation: 'cooperative',
       })
     ).toMatchObject({
       strategicPressure: 'theft_demand',
     })
+
+    expect(
+      projectAscendantResidentProfile({
+        ...baseResident,
+        residentId: 'resident:misuse',
+        physicalRiskLow: true,
+        beneficialAnomaly: true,
+        escalationPath: 'slow_build',
+        cooperation: 'cooperative',
+      })
+    ).toMatchObject({
+      strategicPressure: 'misuse_temptation',
+    })
+
+    expect(
+      projectAscendantResidentProfile({
+        ...baseResident,
+        residentId: 'resident:volatile-ally-frame',
+        cooperation: 'cooperative',
+        escalationPath: 'volatile_spike',
+      })
+    ).toMatchObject({ posture: 'threat' })
   })
 
   it('enforces supervised zone access with escort rules', () => {
@@ -95,6 +130,17 @@ describe('SPE-791 ascendant-resident containment', () => {
         containmentStatus: 'secured',
         movementPermission: 'escorted_shared',
         requestedZone: 'shared',
+        escortPresent: true,
+      })
+    ).toMatchObject({ accessGranted: true, denialReason: 'none' })
+
+    expect(
+      evaluateSupervisedResidentAccess({
+        facilityId: ASCENDANT_FACILITY_ID,
+        residentId: 'resident:a',
+        containmentStatus: 'secured',
+        movementPermission: 'escorted_shared',
+        requestedZone: 'recreation',
         escortPresent: true,
       })
     ).toMatchObject({ accessGranted: true, denialReason: 'none' })
@@ -126,6 +172,31 @@ describe('SPE-791 ascendant-resident containment', () => {
       accessGranted: false,
       denialReason: 'escort_required',
     })
+  })
+
+  it('rejects roster duplicates and cross-facility residents', () => {
+    expect(
+      projectFacilityResidentRoster({
+        facilityId: ASCENDANT_FACILITY_ID,
+        residents: [
+          { ...baseResident, residentId: 'resident:a' },
+          { ...baseResident, residentId: 'resident:a', manifestationPath: 'emergent' },
+        ],
+      })
+    ).toBeUndefined()
+
+    expect(
+      projectFacilityResidentRoster({
+        facilityId: ASCENDANT_FACILITY_ID,
+        residents: [
+          {
+            ...baseResident,
+            facilityId: 'facility:other',
+            residentId: 'resident:x',
+          },
+        ],
+      })
+    ).toBeUndefined()
   })
 
   it('links breach/escape to an external case rather than local-only escape', () => {

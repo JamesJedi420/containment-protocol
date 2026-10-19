@@ -50,8 +50,8 @@ function isMember<T extends string>(value: unknown, allowed: readonly T[]): valu
   return typeof value === 'string' && allowed.some((item) => item === value)
 }
 
-function isPositiveInt(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 1
+function isNonNegativeInt(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
 /**
@@ -92,8 +92,20 @@ export function projectDuplicateFacilityStack(
 ): DuplicateFacilityStackResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityType)) return undefined
-  if (!isPositiveInt(input.totalCount)) return undefined
+  if (!isNonNegativeInt(input.totalCount)) return undefined
   if (typeof input.compatible !== 'boolean') return undefined
+
+  if (input.totalCount === 0) {
+    return Object.freeze({
+      facilityType: input.facilityType,
+      totalCount: 0,
+      contributingCount: 0,
+      stackBenefitUnits: 0,
+      diminishingReturnsApplied: false,
+      hardCapApplied: false,
+      boundedBenefit: true,
+    })
+  }
 
   if (!input.compatible) {
     return Object.freeze({
@@ -109,14 +121,18 @@ export function projectDuplicateFacilityStack(
 
   const contributingCount = Math.min(input.totalCount, DUPLICATE_STACK_HARD_CAP)
   const stackBenefitUnits = computeBoundedStackBenefitUnits(contributingCount)
-  const linearWouldBe = contributingCount * 100
+  const uncappedLinearWouldBe = input.totalCount * 100
+  const hardCapApplied = input.totalCount > DUPLICATE_STACK_HARD_CAP
+  const diminishingReturnsApplied =
+    contributingCount >= 2 && stackBenefitUnits < uncappedLinearWouldBe
+
   return Object.freeze({
     facilityType: input.facilityType,
     totalCount: input.totalCount,
     contributingCount,
     stackBenefitUnits,
-    diminishingReturnsApplied: contributingCount >= 2 && stackBenefitUnits < linearWouldBe,
-    hardCapApplied: input.totalCount > DUPLICATE_STACK_HARD_CAP,
+    diminishingReturnsApplied,
+    hardCapApplied,
     boundedBenefit: true,
   })
 }
@@ -140,17 +156,19 @@ function burdenBandForCount(count: number): DuplicateBurdenBand {
   return 'severe'
 }
 
-/** Redundant infrastructure increases staffing/upkeep/spatial/maintenance/vulnerability burden. */
+/**
+ * Physical facility count drives burden even when units are incompatible for
+ * stacking benefit (redundant footprint still costs staffing/upkeep/space).
+ */
 export function projectDuplicateFacilityBurden(
   input: unknown
 ): DuplicateFacilityBurdenResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityType)) return undefined
-  if (!isPositiveInt(input.totalCount)) return undefined
+  if (!isNonNegativeInt(input.totalCount)) return undefined
   if (typeof input.compatible !== 'boolean') return undefined
 
-  const effectiveCount = input.compatible ? input.totalCount : 1
-  const band = burdenBandForCount(effectiveCount)
+  const band = burdenBandForCount(input.totalCount)
   const burdenByKind = Object.freeze({
     staffing: band,
     upkeep: band,
@@ -183,7 +201,10 @@ export interface DisabledDuplicateStackEffectResult {
   readonly totalUnits: number
   readonly contributingOperationalCount: number
   readonly effectiveStackBenefitUnits: number
-  readonly disabledOrDamagedCount: number
+  readonly nonContributingCount: number
+  readonly damagedCount: number
+  readonly disabledCount: number
+  readonly seizedCount: number
   readonly outputChangedByDisablement: boolean
 }
 
@@ -203,35 +224,43 @@ export function projectDisabledDuplicateStackEffect(
   if (!Array.isArray(input.units) || input.units.length === 0) return undefined
 
   const units: DuplicateFacilityUnitInput[] = []
+  const seenIds = new Set<string>()
   for (const unit of input.units) {
     if (!isRecord(unit)) return undefined
     if (!isNonEmptyString(unit.unitId)) return undefined
+    if (seenIds.has(unit.unitId)) return undefined
+    seenIds.add(unit.unitId)
     if (!isMember(unit.state, DUPLICATE_FACILITY_OPERATIONAL_STATES)) return undefined
     units.push({ unitId: unit.unitId, state: unit.state })
   }
 
+  const damagedCount = units.filter((u) => u.state === 'damaged').length
+  const disabledCount = units.filter((u) => u.state === 'disabled').length
+  const seizedCount = units.filter((u) => u.state === 'seized').length
+  const nonContributingCount = units.filter((u) =>
+    NON_CONTRIBUTING_STATES.includes(u.state)
+  ).length
+
   if (!input.compatible) {
     const firstOperational = units.find((u) => !NON_CONTRIBUTING_STATES.includes(u.state))
     const contributing = firstOperational ? 1 : 0
-    const allBenefit = computeBoundedStackBenefitUnits(1)
+    const baselineIfAnyPresent = computeBoundedStackBenefitUnits(units.length > 0 ? 1 : 0)
     const effective = computeBoundedStackBenefitUnits(contributing)
     return Object.freeze({
       facilityType: input.facilityType,
       totalUnits: units.length,
       contributingOperationalCount: contributing,
       effectiveStackBenefitUnits: effective,
-      disabledOrDamagedCount: units.filter((u) =>
-        NON_CONTRIBUTING_STATES.includes(u.state)
-      ).length,
-      outputChangedByDisablement: effective !== allBenefit,
+      nonContributingCount,
+      damagedCount,
+      disabledCount,
+      seizedCount,
+      outputChangedByDisablement: effective !== baselineIfAnyPresent || contributing === 0,
     })
   }
 
   const contributingOperationalCount = units.filter(
     (u) => !NON_CONTRIBUTING_STATES.includes(u.state)
-  ).length
-  const disabledOrDamagedCount = units.filter((u) =>
-    NON_CONTRIBUTING_STATES.includes(u.state)
   ).length
   const fullBenefit = computeBoundedStackBenefitUnits(
     Math.min(units.length, DUPLICATE_STACK_HARD_CAP)
@@ -245,7 +274,10 @@ export function projectDisabledDuplicateStackEffect(
     totalUnits: units.length,
     contributingOperationalCount,
     effectiveStackBenefitUnits,
-    disabledOrDamagedCount,
+    nonContributingCount,
+    damagedCount,
+    disabledCount,
+    seizedCount,
     outputChangedByDisablement: effectiveStackBenefitUnits !== fullBenefit,
   })
 }

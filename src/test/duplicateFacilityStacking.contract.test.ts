@@ -15,12 +15,15 @@ describe('SPE-3361 duplicate facility stacking', () => {
       totalCount: 2,
       compatible: true,
     })
-    expect(stack?.boundedBenefit).toBe(true)
-    expect(stack?.stackBenefitUnits).toBe(150)
-    expect(stack?.stackBenefitUnits).toBeLessThan(2 * 100)
+    expect(stack).toMatchObject({
+      boundedBenefit: true,
+      stackBenefitUnits: 150,
+      diminishingReturnsApplied: true,
+      contributingCount: 2,
+    })
   })
 
-  it('increases staffing/upkeep/spatial/maintenance/vulnerability burden with duplicates', () => {
+  it('increases burden with physical facility count even when incompatible for stacking', () => {
     const single = projectDuplicateFacilityBurden({
       facilityType: DUPLICATE_STACK_FACILITY_TYPE,
       totalCount: 1,
@@ -35,8 +38,14 @@ describe('SPE-3361 duplicate facility stacking', () => {
     })
     expect(multi?.burdenIncreased).toBe(true)
     expect(multi?.burdenByKind.staffing).toBe('severe')
-    expect(multi?.burdenByKind.upkeep).toBe('severe')
-    expect(multi?.burdenByKind.vulnerability).toBe('severe')
+
+    const incompatible = projectDuplicateFacilityBurden({
+      facilityType: DUPLICATE_STACK_FACILITY_TYPE,
+      totalCount: 3,
+      compatible: false,
+    })
+    expect(incompatible?.burdenIncreased).toBe(true)
+    expect(incompatible?.burdenByKind.upkeep).toBe('severe')
   })
 
   it('applies diminishing returns and a hard cap rather than unlimited linear growth', () => {
@@ -54,14 +63,15 @@ describe('SPE-3361 duplicate facility stacking', () => {
       compatible: true,
     })
     expect(overCap?.hardCapApplied).toBe(true)
+    expect(overCap?.diminishingReturnsApplied).toBe(true)
     expect(overCap?.contributingCount).toBe(DUPLICATE_STACK_HARD_CAP)
     expect(overCap?.stackBenefitUnits).toBe(
       computeBoundedStackBenefitUnits(DUPLICATE_STACK_HARD_CAP)
     )
   })
 
-  it('changes effective output when a duplicate is damaged or disabled', () => {
-    const effect = projectDisabledDuplicateStackEffect({
+  it('changes effective output when duplicates are damaged, disabled, or seized', () => {
+    const disabled = projectDisabledDuplicateStackEffect({
       facilityType: DUPLICATE_STACK_FACILITY_TYPE,
       compatible: true,
       units: [
@@ -70,20 +80,53 @@ describe('SPE-3361 duplicate facility stacking', () => {
         { unitId: 'unit:c', state: 'operational' },
       ],
     })
-    expect(effect?.disabledOrDamagedCount).toBe(1)
-    expect(effect?.contributingOperationalCount).toBe(2)
-    expect(effect?.effectiveStackBenefitUnits).toBe(150)
-    expect(effect?.outputChangedByDisablement).toBe(true)
+    expect(disabled).toMatchObject({
+      disabledCount: 1,
+      damagedCount: 0,
+      seizedCount: 0,
+      contributingOperationalCount: 2,
+      effectiveStackBenefitUnits: 150,
+      outputChangedByDisablement: true,
+    })
+
+    const damagedAndSeized = projectDisabledDuplicateStackEffect({
+      facilityType: DUPLICATE_STACK_FACILITY_TYPE,
+      compatible: true,
+      units: [
+        { unitId: 'unit:a', state: 'operational' },
+        { unitId: 'unit:b', state: 'damaged' },
+        { unitId: 'unit:c', state: 'seized' },
+      ],
+    })
+    expect(damagedAndSeized).toMatchObject({
+      damagedCount: 1,
+      seizedCount: 1,
+      contributingOperationalCount: 1,
+      effectiveStackBenefitUnits: 100,
+      outputChangedByDisablement: true,
+    })
   })
 
-  it('fails closed on malformed packets', () => {
+  it('fails closed on malformed packets, duplicate unit ids, and supports zero count', () => {
     expect(projectDuplicateFacilityStack(null)).toBeUndefined()
-    expect(projectDuplicateFacilityBurden({ facilityType: '', totalCount: 2, compatible: true })).toBeUndefined()
+    expect(
+      projectDuplicateFacilityStack({
+        facilityType: DUPLICATE_STACK_FACILITY_TYPE,
+        totalCount: 0,
+        compatible: true,
+      })
+    ).toMatchObject({ stackBenefitUnits: 0, contributingCount: 0 })
+    expect(
+      projectDuplicateFacilityBurden({ facilityType: '', totalCount: 2, compatible: true })
+    ).toBeUndefined()
     expect(
       projectDisabledDuplicateStackEffect({
         facilityType: DUPLICATE_STACK_FACILITY_TYPE,
         compatible: true,
-        units: [],
+        units: [
+          { unitId: 'unit:dup', state: 'operational' },
+          { unitId: 'unit:dup', state: 'disabled' },
+        ],
       })
     ).toBeUndefined()
   })

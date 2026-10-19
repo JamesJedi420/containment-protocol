@@ -33,13 +33,23 @@ describe('SPE-1012 degraded-care facility risk', () => {
         facilityId: DEGRADED_CARE_FACILITY_ID,
         zoneId: 'zone:west-wing',
         zoneKind: 'partially_closed',
-        partiallyClosed: true,
+        partiallyClosed: false,
         activatedUse: 'anomaly_habitat',
       })
     ).toMatchObject({
       operationallyImportant: true,
       activatedUse: 'anomaly_habitat',
     })
+
+    expect(
+      projectHiddenZoneActivation({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        zoneId: 'zone:idle',
+        zoneKind: 'partially_closed',
+        partiallyClosed: true,
+        activatedUse: 'none',
+      })
+    ).toMatchObject({ operationallyImportant: false })
   })
 
   it('treats vulnerable residents as meaningful case actors', () => {
@@ -115,6 +125,69 @@ describe('SPE-1012 degraded-care facility risk', () => {
       knowledgeFragmentCount: 1,
       unevenInstitutionalKnowledge: true,
     })
+
+    expect(
+      projectUnevenStaffKnowledge({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        role: 'doctor',
+        knowsOfficialClaim: true,
+        knowsFloorNeglect: true,
+        knowsHiddenZone: true,
+      })
+    ).toMatchObject({
+      knowledgeFragmentCount: 3,
+      unevenInstitutionalKnowledge: false,
+    })
+  })
+
+  it('covers non-amplifying and non-contradiction baselines', () => {
+    expect(
+      projectDegradedCareRisk({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        understaffed: false,
+        deferredMaintenance: false,
+        intermittentMedicalCoverage: false,
+        officialQualityClaim: 'adequate',
+        observedFloorCondition: 'stable',
+        baselineAnomalyRisk: 'baseline',
+      })
+    ).toMatchObject({
+      amplifiesVsBaseline: false,
+      qualityClaimContradiction: false,
+      effectiveAnomalyRisk: 'baseline',
+    })
+
+    expect(
+      projectDegradedCareRisk({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        understaffed: true,
+        deferredMaintenance: false,
+        intermittentMedicalCoverage: false,
+        officialQualityClaim: 'excellent',
+        observedFloorCondition: 'stable',
+        baselineAnomalyRisk: 'baseline',
+      })
+    ).toMatchObject({
+      qualityClaimContradiction: true,
+      amplifiesVsBaseline: true,
+    })
+
+    expect(
+      projectResidentAgency({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        residentId: 'resident:passive',
+        agencyRole: 'passive',
+        hidesSupplies: false,
+        warnsInvestigators: false,
+      })
+    ).toMatchObject({ meaningfulCaseActor: false })
+
+    expect(
+      projectCareScheduleAudit({
+        facilityId: DEGRADED_CARE_FACILITY_ID,
+        failures: [],
+      })
+    ).toMatchObject({ systemicNeglect: false, failureCount: 0 })
   })
 
   it('fails closed on malformed packets', () => {

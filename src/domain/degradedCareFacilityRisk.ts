@@ -135,10 +135,16 @@ export function projectDegradedCareRisk(
 
   const typed = input as DegradedCareRiskInput
   const effectiveAnomalyRisk = deriveEffectiveRisk(typed)
+  const claimsGood =
+    typed.officialQualityClaim === 'excellent' ||
+    typed.officialQualityClaim === 'adequate'
+  const operationalDegradation =
+    typed.understaffed ||
+    typed.deferredMaintenance ||
+    typed.intermittentMedicalCoverage
   const qualityClaimContradiction =
-    (typed.officialQualityClaim === 'excellent' ||
-      typed.officialQualityClaim === 'adequate') &&
-    typed.observedFloorCondition !== 'stable'
+    claimsGood &&
+    (typed.observedFloorCondition !== 'stable' || operationalDegradation)
 
   return Object.freeze({
     facilityId: typed.facilityId,
@@ -181,6 +187,7 @@ export function projectHiddenZoneActivation(
   const operationallyImportant =
     input.activatedUse !== 'none' &&
     (input.partiallyClosed ||
+      input.zoneKind === 'partially_closed' ||
       input.zoneKind === 'inactive_wing' ||
       input.zoneKind === 'basement')
 
@@ -333,7 +340,7 @@ export interface UnevenStaffKnowledgeResult {
   readonly facilityId: string
   readonly role: StaffKnowledgeRole
   readonly knowledgeFragmentCount: number
-  readonly unevenInstitutionalKnowledge: true
+  readonly unevenInstitutionalKnowledge: boolean
 }
 
 /** Role-scoped fragments of site truth (not a shared omniscient staff model). */
@@ -357,6 +364,8 @@ export function projectUnevenStaffKnowledge(
     facilityId: input.facilityId,
     role: input.role,
     knowledgeFragmentCount,
-    unevenInstitutionalKnowledge: true as const,
+    // Partial knowledge is uneven; all-or-nothing is not.
+    unevenInstitutionalKnowledge:
+      knowledgeFragmentCount > 0 && knowledgeFragmentCount < 3,
   })
 }

@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                    |
+| **Status**        | **Recently shipped** (PR #4332 @ `52c33441`)                                        |
 | **Issue**         | [SPE-3362](https://linear.app/spectranoir/issue/SPE-3362)                          |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                |
 | **Branch**        | `jamesdyedbq/spe-3362-site-to-facility-conversion-rules`                            |

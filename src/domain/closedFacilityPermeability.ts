@@ -168,8 +168,19 @@ function permeabilityRank(band: ClosedFacilityPermeabilityBand): number {
 }
 
 /**
+ * Invert permeability onto the same orientation as formal security
+ * (sealed ≈ maximum, porous ≈ low) before comparing ranks.
+ */
+function actualSecurityRankFromPermeability(
+  band: ClosedFacilityPermeabilityBand
+): number {
+  return CLOSED_FACILITY_PERMEABILITY_BANDS.length - 1 - permeabilityRank(band)
+}
+
+/**
  * Meaningful gap: formal posture is high/maximum while actual band is leaky/porous,
- * or formal exceeds actual by at least two authored ranks with at least one leak.
+ * or formal security exceeds security implied by actual permeability by at least two
+ * authored ranks with at least one leak.
  */
 export function isMeaningfulFormalActualPermeabilityGap(
   formalSecurity: ClosedFacilityFormalSecurityLevel,
@@ -180,7 +191,10 @@ export function isMeaningfulFormalActualPermeabilityGap(
   const highFormal = formalSecurity === 'high' || formalSecurity === 'maximum'
   const leakyActual = actualPermeability === 'leaky' || actualPermeability === 'porous'
   if (highFormal && leakyActual) return true
-  return formalSecurityRank(formalSecurity) - permeabilityRank(actualPermeability) >= 2
+  return (
+    formalSecurityRank(formalSecurity) - actualSecurityRankFromPermeability(actualPermeability) >=
+    2
+  )
 }
 
 export interface ClosedFacilityPermeabilityProfileInput {
@@ -250,11 +264,15 @@ export interface ImpossibleAccessSceneResult {
   readonly explanation: ImpossibleAccessExplanation
   readonly observedAccessRouteId: string
   readonly knownControlsExplainAccess: boolean
+  readonly hiddenPermeabilityChannel?: ClosedFacilityLeakChannel
+  readonly staffComplicityRef?: string
 }
 
 /**
  * Reconstruct whether known locks/watch/routes explain observed access.
  * Hidden permeability or staff complicity can resolve an otherwise impossible scene.
+ * Compact packet: known controls explain access only when the observed route is listed
+ * and both lock and watch inventories are authored (non-empty).
  */
 export function reconstructImpossibleAccessScene(
   input: unknown
@@ -284,13 +302,27 @@ export function reconstructImpossibleAccessScene(
     return undefined
   }
 
-  const knownControlsExplainAccess = input.knownRouteIds.includes(input.observedAccessRouteId)
+  const knownControlsExplainAccess =
+    input.knownRouteIds.includes(input.observedAccessRouteId) &&
+    input.knownLockIds.length > 0 &&
+    input.watchCoverageIds.length > 0
+
+  const evidence = Object.freeze({
+    ...(input.hiddenPermeabilityChannel !== undefined
+      ? { hiddenPermeabilityChannel: input.hiddenPermeabilityChannel }
+      : {}),
+    ...(isNonEmptyString(input.staffComplicityRef)
+      ? { staffComplicityRef: input.staffComplicityRef }
+      : {}),
+  })
+
   if (knownControlsExplainAccess) {
     return Object.freeze({
       sceneId: input.sceneId,
       explanation: 'explained_by_known_controls' as const,
       observedAccessRouteId: input.observedAccessRouteId,
       knownControlsExplainAccess: true,
+      ...evidence,
     })
   }
 
@@ -308,6 +340,7 @@ export function reconstructImpossibleAccessScene(
     explanation,
     observedAccessRouteId: input.observedAccessRouteId,
     knownControlsExplainAccess: false,
+    ...evidence,
   })
 }
 
@@ -353,8 +386,12 @@ export function resolveBreachPathContradiction(
   const undocumentedShortcutIds = input.asFoundRouteIds.filter(
     (routeId) => !input.asDesignedRouteIds.includes(routeId)
   )
-  const hasMapContradiction = undocumentedShortcutIds.length > 0
-  const reconstructionChanged = hasMapContradiction && asFoundExplainsAccess && !asDesignedExplainsAccess
+  const removedDesignedRouteIds = input.asDesignedRouteIds.filter(
+    (routeId) => !input.asFoundRouteIds.includes(routeId)
+  )
+  const hasMapContradiction =
+    undocumentedShortcutIds.length > 0 || removedDesignedRouteIds.length > 0
+  const reconstructionChanged = asFoundExplainsAccess !== asDesignedExplainsAccess
 
   return Object.freeze({
     pathId: input.pathId,
@@ -457,7 +494,7 @@ export interface ControlledToolAccountabilityResult {
   readonly riskSurface: boolean
 }
 
-/** Missing or improvised controlled tools become both evidence and risk. */
+/** Missing, unexpected, or improvised controlled tools become both evidence and risk. */
 export function projectControlledToolAccountability(
   input: unknown
 ): ControlledToolAccountabilityResult | undefined {
@@ -468,8 +505,8 @@ export function projectControlledToolAccountability(
   if (typeof input.observedPresent !== 'boolean') return undefined
   if (typeof input.improvised !== 'boolean') return undefined
 
-  const missing = input.expectedPresent && !input.observedPresent
-  const accountabilityDrift = missing || input.improvised
+  const inventoryMismatch = input.expectedPresent !== input.observedPresent
+  const accountabilityDrift = inventoryMismatch || input.improvised
   return Object.freeze({
     toolId: input.toolId,
     channel: input.channel,
@@ -506,9 +543,17 @@ export function discoverInformalRoomUse(input: unknown): InformalRoomUseResult |
   })
 }
 
+const RESTRICTED_STAFF_ENTRY_STUDY_MODES = [
+  'remote_study',
+  'expendable_probe',
+  'indirect_interface',
+] as const
+
 export interface StaffEntryPolicyInput {
   readonly siteId: string
   readonly policy: StaffEntryPolicy
+  /** Optional restricted study mode; only valid when policy forces indirect study. */
+  readonly studyMode?: StaffEntryStudyMode
 }
 
 export interface StaffEntryPolicyResult {
@@ -518,26 +563,41 @@ export interface StaffEntryPolicyResult {
   readonly forcesIndirectStudy: boolean
 }
 
-/** No-staff-entry / hazardous-interior sites force remote or indirect study. */
+/** No-staff-entry / hazardous-interior sites force remote, expendable, or indirect study. */
 export function classifyStaffEntryPolicy(input: unknown): StaffEntryPolicyResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.siteId)) return undefined
   if (!isMember(input.policy, STAFF_ENTRY_POLICIES)) return undefined
-
-  let studyMode: StaffEntryStudyMode
-  if (input.policy === 'normal_entry') {
-    studyMode = 'default_entry'
-  } else if (input.policy === 'no_staff_entry') {
-    studyMode = 'remote_study'
-  } else {
-    studyMode = 'expendable_probe'
+  if (input.studyMode !== undefined && !isMember(input.studyMode, STAFF_ENTRY_STUDY_MODES)) {
+    return undefined
   }
+
+  if (input.policy === 'normal_entry') {
+    if (input.studyMode !== undefined && input.studyMode !== 'default_entry') return undefined
+    return Object.freeze({
+      siteId: input.siteId,
+      policy: input.policy,
+      studyMode: 'default_entry' as const,
+      forcesIndirectStudy: false,
+    })
+  }
+
+  if (
+    input.studyMode !== undefined &&
+    !isMember(input.studyMode, RESTRICTED_STAFF_ENTRY_STUDY_MODES)
+  ) {
+    return undefined
+  }
+
+  const studyMode: StaffEntryStudyMode =
+    input.studyMode ??
+    (input.policy === 'no_staff_entry' ? 'remote_study' : 'expendable_probe')
 
   return Object.freeze({
     siteId: input.siteId,
     policy: input.policy,
     studyMode,
-    forcesIndirectStudy: input.policy !== 'normal_entry',
+    forcesIndirectStudy: true,
   })
 }
 

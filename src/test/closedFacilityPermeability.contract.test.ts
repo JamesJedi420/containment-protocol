@@ -39,6 +39,24 @@ describe('SPE-1263 closed-facility permeability', () => {
     ).toBeUndefined()
   })
 
+  it('does not flag aligned maximum/sealed profiles as a meaningful gap', () => {
+    const aligned = projectClosedFacilityPermeabilityProfile({
+      facilityId: 'facility:aligned-ward',
+      formalSecurity: 'maximum',
+      actualPermeability: 'sealed',
+      leakChannels: ['rumor_leakage'],
+    })
+    expect(aligned?.gapMeaningful).toBe(false)
+
+    const lowSupervised = projectClosedFacilityPermeabilityProfile({
+      facilityId: 'facility:low-supervised',
+      formalSecurity: 'low',
+      actualPermeability: 'supervised',
+      leakChannels: ['blind_spot'],
+    })
+    expect(lowSupervised?.gapMeaningful).toBe(false)
+  })
+
   it('leaves a scene unexplained by known locks, watch, and routes until hidden permeability is considered', () => {
     const unexplained = reconstructImpossibleAccessScene({
       sceneId: 'scene:empty-isolation-egress',
@@ -63,9 +81,10 @@ describe('SPE-1263 closed-facility permeability', () => {
       hiddenPermeabilityChannel: 'hidden_route',
     })
     expect(explained?.explanation).toBe('explained_by_hidden_permeability')
+    expect(explained?.hiddenPermeabilityChannel).toBe('hidden_route')
   })
 
-  it('lets staff complicity resolve an otherwise impossible access scene', () => {
+  it('lets staff complicity resolve an otherwise impossible access scene and preserves channel evidence', () => {
     const result = reconstructImpossibleAccessScene({
       sceneId: 'scene:panic-quiet',
       knownLockIds: ['lock:intake'],
@@ -73,8 +92,23 @@ describe('SPE-1263 closed-facility permeability', () => {
       knownRouteIds: ['route:intake-front'],
       observedAccessRouteId: 'route:staff-only-lift',
       staffComplicityRef: 'staff:warden-aide-3',
+      hiddenPermeabilityChannel: 'undocumented_access',
     })
     expect(result?.explanation).toBe('explained_by_staff_complicity')
+    expect(result?.staffComplicityRef).toBe('staff:warden-aide-3')
+    expect(result?.hiddenPermeabilityChannel).toBe('undocumented_access')
+  })
+
+  it('requires authored lock and watch inventories before known routes explain access', () => {
+    const incomplete = reconstructImpossibleAccessScene({
+      sceneId: 'scene:route-only',
+      knownLockIds: [],
+      watchCoverageIds: ['watch:corridor-a'],
+      knownRouteIds: ['route:main-corridor'],
+      observedAccessRouteId: 'route:main-corridor',
+    })
+    expect(incomplete?.knownControlsExplainAccess).toBe(false)
+    expect(incomplete?.explanation).toBe('unexplained_by_known_controls')
   })
 
   it('changes impossible-access reconstruction when an as-found map contradiction appears', () => {
@@ -90,6 +124,21 @@ describe('SPE-1263 closed-facility permeability', () => {
       asDesignedExplainsAccess: false,
       asFoundExplainsAccess: true,
       undocumentedShortcutIds: ['route:service-void'],
+    })
+  })
+
+  it('detects reconstruction change when an as-designed route is missing as-found', () => {
+    const result = resolveBreachPathContradiction({
+      pathId: 'path:ward-west',
+      asDesignedRouteIds: ['route:main-corridor', 'route:service-void'],
+      asFoundRouteIds: ['route:main-corridor'],
+      impossibleAccessObservedRouteId: 'route:service-void',
+    })
+    expect(result).toMatchObject({
+      hasMapContradiction: true,
+      reconstructionChanged: true,
+      asDesignedExplainsAccess: true,
+      asFoundExplainsAccess: false,
     })
   })
 
@@ -135,7 +184,7 @@ describe('SPE-1263 closed-facility permeability', () => {
     expect(triggered?.materiallyChangesInterpretation).toBe(false)
   })
 
-  it('surfaces missing controlled tools as evidence and risk', () => {
+  it('surfaces missing or unexpected controlled tools as evidence and risk', () => {
     const missing = projectControlledToolAccountability({
       toolId: 'tool:bolt-cutters',
       channel: 'maintenance_cart',
@@ -150,6 +199,15 @@ describe('SPE-1263 closed-facility permeability', () => {
       evidenceSurface: true,
       riskSurface: true,
     })
+
+    const unexpected = projectControlledToolAccountability({
+      toolId: 'tool:key-blank',
+      channel: 'work_detail',
+      expectedPresent: false,
+      observedPresent: true,
+      improvised: false,
+    })
+    expect(unexpected?.accountabilityDrift).toBe(true)
   })
 
   it('discovers informal coercion beneath an officially labeled room', () => {
@@ -166,7 +224,7 @@ describe('SPE-1263 closed-facility permeability', () => {
     })
   })
 
-  it('forces remote study for no-staff-entry sites', () => {
+  it('forces remote study for no-staff-entry sites and allows indirect_interface', () => {
     const result = classifyStaffEntryPolicy({
       siteId: 'site:void-annex',
       policy: 'no_staff_entry',
@@ -177,6 +235,14 @@ describe('SPE-1263 closed-facility permeability', () => {
       studyMode: 'remote_study',
       forcesIndirectStudy: true,
     })
+
+    const indirect = classifyStaffEntryPolicy({
+      siteId: 'site:void-annex',
+      policy: 'hazardous_interior',
+      studyMode: 'indirect_interface',
+    })
+    expect(indirect?.studyMode).toBe('indirect_interface')
+    expect(indirect?.forcesIndirectStudy).toBe(true)
   })
 
   it('advances sealed-facility alert readiness before direct contact', () => {

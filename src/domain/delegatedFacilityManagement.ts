@@ -207,12 +207,13 @@ export function projectDelegatedManagerRiskEffects(
         ? 'elevated'
         : 'baseline'
 
-  const growthRisk: DelegatedRiskBand =
-    bandRank(input.ambition) >= 2 && bandRank(input.autonomy) >= 1
-      ? 'elevated'
-      : bandRank(input.competence) >= 2
-        ? 'reduced'
-        : 'baseline'
+  // Ambition+autonomy elevation wins over competence reduction when both apply.
+  let growthRisk: DelegatedRiskBand = 'baseline'
+  if (bandRank(input.ambition) >= 2 && bandRank(input.autonomy) >= 1) {
+    growthRisk = 'elevated'
+  } else if (bandRank(input.competence) >= 2) {
+    growthRisk = 'reduced'
+  }
 
   const compromiseRisk: DelegatedRiskBand =
     bandRank(input.loyalty) === 0 ||
@@ -347,76 +348,4 @@ export function projectDelegatedMaintenanceRecoveryIntent(
     recalculatesDebtPrivately: false as const,
     refusalReason,
   })
-}
-
-/** Authored acceptance fixture: competent loyal deputy runs annex in player absence. */
-export function authoredDelegatedAnnexManagerFixture(): {
-  readonly assignment: DelegatedManagerAssignmentResult
-  readonly absence: DelegatedAbsenceOperationResult
-  readonly risks: DelegatedManagerRiskEffectsResult
-  readonly tradeoff: DelegationControlBandwidthTradeoffResult
-  readonly recoveryIntent: DelegatedMaintenanceRecoveryIntentResult
-} {
-  const assignment = projectDelegatedManagerAssignment({
-    facilityId: DELEGATED_FACILITY_ID,
-    managerId: DELEGATED_MANAGER_ID,
-    role: 'deputy',
-    competence: 'high',
-    loyalty: 'moderate',
-    ambition: 'moderate',
-    autonomy: 'moderate',
-    legitimacyAuthority: 'owner',
-    serviceNodeFront: true,
-  })
-  if (!assignment) {
-    throw new Error('SPE-1565 fixture: assignment failed closed unexpectedly')
-  }
-
-  const absence = projectDelegatedAbsenceOperation({
-    facilityId: DELEGATED_FACILITY_ID,
-    managerId: DELEGATED_MANAGER_ID,
-    assignmentValid: assignment.assignmentValid,
-    playerAbsent: true,
-    competence: assignment.competence,
-    loyalty: assignment.loyalty,
-    ambition: assignment.ambition,
-  })
-  if (!absence) {
-    throw new Error('SPE-1565 fixture: absence operation failed closed unexpectedly')
-  }
-
-  const risks = projectDelegatedManagerRiskEffects({
-    managerId: DELEGATED_MANAGER_ID,
-    competence: assignment.competence,
-    loyalty: assignment.loyalty,
-    ambition: assignment.ambition,
-    autonomy: assignment.autonomy,
-  })
-  if (!risks) {
-    throw new Error('SPE-1565 fixture: risk projection failed closed unexpectedly')
-  }
-
-  const tradeoff = projectDelegationControlBandwidthTradeoff({
-    facilityId: DELEGATED_FACILITY_ID,
-    assignmentValid: assignment.assignmentValid,
-    playerDirectControl: false,
-    autonomy: assignment.autonomy,
-  })
-  if (!tradeoff) {
-    throw new Error('SPE-1565 fixture: tradeoff projection failed closed unexpectedly')
-  }
-
-  const recoveryIntent = projectDelegatedMaintenanceRecoveryIntent({
-    facilityId: DELEGATED_FACILITY_ID,
-    managerId: DELEGATED_MANAGER_ID,
-    assignmentValid: assignment.assignmentValid,
-    competence: assignment.competence,
-    loyalty: assignment.loyalty,
-    routineMaintenanceAction: true,
-  })
-  if (!recoveryIntent) {
-    throw new Error('SPE-1565 fixture: recovery intent failed closed unexpectedly')
-  }
-
-  return Object.freeze({ assignment, absence, risks, tradeoff, recoveryIntent })
 }

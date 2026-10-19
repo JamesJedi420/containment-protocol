@@ -50,7 +50,7 @@ Pure caller-owned delegated facility management in `src/domain/delegatedFacility
 | `projectDelegatedManagerRiskEffects` | Attribute → maintenance/growth/compromise risk |
 | `projectDelegationControlBandwidthTradeoff` | Direct control vs bandwidth tradeoff |
 | `projectDelegatedMaintenanceRecoveryIntent` | Authorized reuse of existing recovery transaction |
-| `authoredDelegatedAnnexManagerFixture` | Acceptance fixture |
+| Acceptance fixture | Composed in contract tests from the projectors above (not exported from domain) |
 
 ## Deferred
 

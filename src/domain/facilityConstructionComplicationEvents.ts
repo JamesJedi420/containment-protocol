@@ -270,16 +270,20 @@ export function projectConstructionComplicationImpact(
   }
 
   const revealsSiteInformationOrHazard = input.eventType === 'revelation'
-  let scheduleDeltaWeeks = 1
-  let costDeltaBand: ConstructionComplicationImpactResult['costDeltaBand'] = 'moderate'
-  let legitimacyDelta: ConstructionComplicationImpactResult['legitimacyDelta'] = 'none'
+  let scheduleDeltaWeeks: number
+  let costDeltaBand: ConstructionComplicationImpactResult['costDeltaBand']
+  let legitimacyDelta: ConstructionComplicationImpactResult['legitimacyDelta']
 
   switch (input.complicationKind) {
     case 'price_spike':
+      scheduleDeltaWeeks = 1
+      costDeltaBand = 'severe'
+      legitimacyDelta = 'none'
+      break
     case 'contractor_fraud':
       scheduleDeltaWeeks = 1
       costDeltaBand = 'severe'
-      legitimacyDelta = input.complicationKind === 'contractor_fraud' ? 'reduced' : 'none'
+      legitimacyDelta = 'reduced'
       break
     case 'labor_dispute':
     case 'protest':
@@ -293,10 +297,6 @@ export function projectConstructionComplicationImpact(
       legitimacyDelta = 'compromised'
       break
     case 'inspection':
-      scheduleDeltaWeeks = 1
-      costDeltaBand = 'moderate'
-      legitimacyDelta = 'reduced'
-      break
     case 'buried_anomaly_exposure':
     case 'accidental_hazardous_discovery':
       scheduleDeltaWeeks = 1

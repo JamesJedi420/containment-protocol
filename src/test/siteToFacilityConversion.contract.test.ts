@@ -9,19 +9,21 @@ import {
   projectConversionSiteHistory,
 } from '../domain/siteToFacilityConversion'
 
+const base = {
+  siteId: CONVERSION_SITE_ID,
+  plotId: CONVERSION_PLOT_ID,
+  regionId: CONVERSION_REGION_ID,
+  recipe: 'reclaimed_tower' as const,
+  ownershipPermissionGranted: true,
+  hazardConfidence: 'verified_clear' as const,
+  terrainBuildable: true,
+  staffingAndMaterialsReady: true,
+  siteStable: true,
+}
+
 describe('SPE-3362 site-to-facility conversion', () => {
   it('converts a cleared site while preserving site and plot identity', () => {
-    const conversion = evaluateSiteToFacilityConversion({
-      siteId: CONVERSION_SITE_ID,
-      plotId: CONVERSION_PLOT_ID,
-      regionId: CONVERSION_REGION_ID,
-      recipe: 'reclaimed_tower',
-      ownershipPermissionGranted: true,
-      hazardConfidence: 'verified_clear',
-      terrainBuildable: true,
-      staffingAndMaterialsReady: true,
-      siteStable: true,
-    })
+    const conversion = evaluateSiteToFacilityConversion(base)
     expect(conversion).toMatchObject({
       outcome: 'approved',
       preservesSiteIdentity: true,
@@ -32,36 +34,61 @@ describe('SPE-3362 site-to-facility conversion', () => {
     })
   })
 
-  it('blocks or conditions conversion when permission/hazard/resources fail', () => {
+  it('blocks on hard failures and conditions on unresolved hazard only when otherwise clear', () => {
     expect(
       evaluateSiteToFacilityConversion({
-        siteId: CONVERSION_SITE_ID,
-        plotId: CONVERSION_PLOT_ID,
-        regionId: CONVERSION_REGION_ID,
-        recipe: 'secured_lab',
+        ...base,
         ownershipPermissionGranted: false,
-        hazardConfidence: 'verified_clear',
-        terrainBuildable: true,
-        staffingAndMaterialsReady: true,
-        siteStable: true,
       })
     ).toMatchObject({
       outcome: 'blocked',
       blockReason: 'missing_claim_or_permission',
-      facilityAssetId: null,
     })
 
     expect(
       evaluateSiteToFacilityConversion({
-        siteId: CONVERSION_SITE_ID,
-        plotId: CONVERSION_PLOT_ID,
-        regionId: CONVERSION_REGION_ID,
-        recipe: 'secured_lab',
-        ownershipPermissionGranted: true,
+        ...base,
+        hazardConfidence: 'verified_hazard',
+      })
+    ).toMatchObject({
+      outcome: 'blocked',
+      blockReason: 'verified_hazard',
+    })
+
+    expect(
+      evaluateSiteToFacilityConversion({
+        ...base,
+        terrainBuildable: false,
+      })
+    ).toMatchObject({
+      outcome: 'blocked',
+      blockReason: 'terrain_not_buildable',
+    })
+
+    expect(
+      evaluateSiteToFacilityConversion({
+        ...base,
+        staffingAndMaterialsReady: false,
+      })
+    ).toMatchObject({
+      outcome: 'blocked',
+      blockReason: 'insufficient_staffing_or_materials',
+    })
+
+    expect(
+      evaluateSiteToFacilityConversion({
+        ...base,
+        siteStable: false,
+      })
+    ).toMatchObject({
+      outcome: 'blocked',
+      blockReason: 'unstable_site_state',
+    })
+
+    expect(
+      evaluateSiteToFacilityConversion({
+        ...base,
         hazardConfidence: 'unknown',
-        terrainBuildable: true,
-        staffingAndMaterialsReady: true,
-        siteStable: true,
       })
     ).toMatchObject({
       outcome: 'conditional',
@@ -71,41 +98,35 @@ describe('SPE-3362 site-to-facility conversion', () => {
 
     expect(
       evaluateSiteToFacilityConversion({
-        siteId: CONVERSION_SITE_ID,
-        plotId: CONVERSION_PLOT_ID,
-        regionId: CONVERSION_REGION_ID,
-        recipe: 'stabilized_safehouse',
-        ownershipPermissionGranted: true,
-        hazardConfidence: 'verified_clear',
-        terrainBuildable: true,
-        staffingAndMaterialsReady: false,
-        siteStable: true,
+        ...base,
+        hazardConfidence: 'suspected',
+        terrainBuildable: false,
       })
     ).toMatchObject({
       outcome: 'blocked',
-      blockReason: 'insufficient_staffing_or_materials',
+      blockReason: 'terrain_not_buildable',
     })
   })
 
   it('emits register and map packets without duplicating those owners', () => {
     const conversion = evaluateSiteToFacilityConversion({
-      siteId: CONVERSION_SITE_ID,
-      plotId: CONVERSION_PLOT_ID,
-      regionId: CONVERSION_REGION_ID,
+      ...base,
       recipe: 'converted_outpost',
-      ownershipPermissionGranted: true,
-      hazardConfidence: 'verified_clear',
-      terrainBuildable: true,
-      staffingAndMaterialsReady: true,
-      siteStable: true,
     })!
 
     const register = projectConversionRegisterOutput({ conversion })
     expect(register).toMatchObject({
       registerEntryPresent: true,
       facilityAssetId: `facility-from:${CONVERSION_SITE_ID}`,
+      recipe: 'converted_outpost',
       duplicatesFacilityOwner: false,
     })
+
+    expect(
+      projectConversionRegisterOutput({
+        conversion: { ...conversion, facilityAssetId: null },
+      })
+    ).toBeUndefined()
 
     const map = projectConversionMapOutput({ conversion })
     expect(map).toMatchObject({

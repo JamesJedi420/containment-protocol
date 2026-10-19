@@ -37,8 +37,6 @@ export const SITE_CONVERSION_OUTCOMES = [
   'approved',
   'blocked',
   'conditional',
-  'delayed',
-  'failed',
 ] as const
 export type SiteConversionOutcome = (typeof SITE_CONVERSION_OUTCOMES)[number]
 
@@ -116,38 +114,37 @@ export function evaluateSiteToFacilityConversion(
     preservesPlotIdentity: true as const,
   }
 
-  let blockReason: SiteConversionBlockReason = 'none'
+  // Hard blockers win over unresolved hazard (unknown/suspected).
+  let hardBlock: SiteConversionBlockReason = 'none'
   if (!input.ownershipPermissionGranted) {
-    blockReason = 'missing_claim_or_permission'
+    hardBlock = 'missing_claim_or_permission'
   } else if (input.hazardConfidence === 'verified_hazard') {
-    blockReason = 'verified_hazard'
-  } else if (
-    input.hazardConfidence === 'unknown' ||
-    input.hazardConfidence === 'suspected'
-  ) {
-    blockReason = 'unresolved_hazard'
+    hardBlock = 'verified_hazard'
   } else if (!input.terrainBuildable) {
-    blockReason = 'terrain_not_buildable'
+    hardBlock = 'terrain_not_buildable'
   } else if (!input.staffingAndMaterialsReady) {
-    blockReason = 'insufficient_staffing_or_materials'
+    hardBlock = 'insufficient_staffing_or_materials'
   } else if (!input.siteStable) {
-    blockReason = 'unstable_site_state'
+    hardBlock = 'unstable_site_state'
   }
 
-  if (blockReason === 'unresolved_hazard') {
+  if (hardBlock !== 'none') {
     return Object.freeze({
       ...identity,
-      outcome: 'conditional' as const,
-      blockReason,
+      outcome: 'blocked' as const,
+      blockReason: hardBlock,
       facilityAssetId: null,
     })
   }
 
-  if (blockReason !== 'none') {
+  if (
+    input.hazardConfidence === 'unknown' ||
+    input.hazardConfidence === 'suspected'
+  ) {
     return Object.freeze({
       ...identity,
-      outcome: 'blocked' as const,
-      blockReason,
+      outcome: 'conditional' as const,
+      blockReason: 'unresolved_hazard' as const,
       facilityAssetId: null,
     })
   }
@@ -169,6 +166,7 @@ export interface ConversionRegisterProjectionResult {
   readonly facilityAssetId: string | null
   readonly siteId: string
   readonly plotId: string
+  readonly recipe: SiteConversionRecipe
   readonly duplicatesFacilityOwner: false
 }
 
@@ -182,20 +180,30 @@ export function projectConversionRegisterOutput(
   if (!isNonEmptyString(conversion.siteId)) return undefined
   if (!isNonEmptyString(conversion.plotId)) return undefined
   if (!isMember(conversion.outcome, SITE_CONVERSION_OUTCOMES)) return undefined
-  if (
-    conversion.facilityAssetId !== null &&
-    conversion.facilityAssetId !== undefined &&
-    !isNonEmptyString(conversion.facilityAssetId)
-  ) {
+  if (!isMember(conversion.recipe, SITE_CONVERSION_RECIPES)) return undefined
+
+  if (conversion.outcome === 'approved') {
+    if (!isNonEmptyString(conversion.facilityAssetId)) return undefined
+    return Object.freeze({
+      registerEntryPresent: true,
+      facilityAssetId: conversion.facilityAssetId,
+      siteId: conversion.siteId,
+      plotId: conversion.plotId,
+      recipe: conversion.recipe,
+      duplicatesFacilityOwner: false as const,
+    })
+  }
+
+  if (conversion.facilityAssetId !== null && conversion.facilityAssetId !== undefined) {
     return undefined
   }
 
-  const approved = conversion.outcome === 'approved'
   return Object.freeze({
-    registerEntryPresent: approved && typeof conversion.facilityAssetId === 'string',
-    facilityAssetId: approved ? (conversion.facilityAssetId as string) : null,
+    registerEntryPresent: false,
+    facilityAssetId: null,
     siteId: conversion.siteId,
     plotId: conversion.plotId,
+    recipe: conversion.recipe,
     duplicatesFacilityOwner: false as const,
   })
 }

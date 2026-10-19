@@ -160,6 +160,36 @@ const REVELATION_KINDS: readonly ConstructionComplicationKind[] = [
   'inspection',
 ]
 
+function eventTypeForKind(
+  kind: ConstructionComplicationKind
+): ConstructionComplicationEventType {
+  return REVELATION_KINDS.includes(kind) ? 'revelation' : 'delay'
+}
+
+/** Revelation kinds require contaminated/contested/remote site; sabotage requires annex/lab/outpost. */
+function kindCompatibleWithContext(
+  kind: ConstructionComplicationKind,
+  projectType: ConstructionProjectType,
+  siteCondition: ConstructionSiteCondition
+): boolean {
+  if (
+    kind === 'buried_anomaly_exposure' ||
+    kind === 'accidental_hazardous_discovery'
+  ) {
+    return (
+      siteCondition === 'contaminated' ||
+      siteCondition === 'contested' ||
+      siteCondition === 'remote'
+    )
+  }
+  if (kind === 'sabotage') {
+    return (
+      projectType === 'annex' || projectType === 'lab' || projectType === 'outpost'
+    )
+  }
+  return true
+}
+
 /** Select an authored complication when trigger is ready; classify delay vs revelation. */
 export function selectConstructionComplication(
   input: unknown
@@ -171,22 +201,21 @@ export function selectConstructionComplication(
   if (!isMember(input.projectType, CONSTRUCTION_PROJECT_TYPES)) return undefined
   if (!isMember(input.siteCondition, CONSTRUCTION_SITE_CONDITIONS)) return undefined
 
-  if (!input.triggerReady) {
+  const eventType = eventTypeForKind(input.complicationKind)
+  const contextOk = kindCompatibleWithContext(
+    input.complicationKind,
+    input.projectType,
+    input.siteCondition
+  )
+
+  if (!input.triggerReady || !contextOk) {
     return Object.freeze({
       projectId: input.projectId,
       complicationKind: input.complicationKind,
-      eventType: REVELATION_KINDS.includes(input.complicationKind)
-        ? ('revelation' as const)
-        : ('delay' as const),
+      eventType,
       selected: false,
     })
   }
-
-  const eventType: ConstructionComplicationEventType = REVELATION_KINDS.includes(
-    input.complicationKind
-  )
-    ? 'revelation'
-    : 'delay'
 
   return Object.freeze({
     projectId: input.projectId,
@@ -223,6 +252,9 @@ export function projectConstructionComplicationImpact(
   if (!isMember(input.complicationKind, CONSTRUCTION_COMPLICATION_KINDS)) return undefined
   if (!isMember(input.eventType, CONSTRUCTION_COMPLICATION_EVENT_TYPES)) return undefined
   if (typeof input.selected !== 'boolean') return undefined
+
+  const expectedEventType = eventTypeForKind(input.complicationKind)
+  if (input.eventType !== expectedEventType) return undefined
 
   if (!input.selected) {
     return Object.freeze({
@@ -271,6 +303,11 @@ export function projectConstructionComplicationImpact(
       costDeltaBand = 'moderate'
       legitimacyDelta = 'reduced'
       break
+    default: {
+      const _exhaustive: never = input.complicationKind
+      void _exhaustive
+      return undefined
+    }
   }
 
   return Object.freeze({
@@ -299,7 +336,10 @@ export function authoredAnnexBuildComplicationFixture(): {
     staffingBand: 'adequate',
     completed: false,
     weeksElapsed: 2,
-  })!
+  })
+  if (!trigger) {
+    throw new Error('SPE-1562 fixture: trigger evaluation failed closed unexpectedly')
+  }
 
   const selection = selectConstructionComplication({
     projectId: ANNEX_BUILD_PROJECT_ID,
@@ -307,14 +347,20 @@ export function authoredAnnexBuildComplicationFixture(): {
     complicationKind: 'buried_anomaly_exposure',
     projectType: 'annex',
     siteCondition: 'contaminated',
-  })!
+  })
+  if (!selection) {
+    throw new Error('SPE-1562 fixture: selection failed closed unexpectedly')
+  }
 
   const impact = projectConstructionComplicationImpact({
     projectId: ANNEX_BUILD_PROJECT_ID,
     complicationKind: selection.complicationKind,
     eventType: selection.eventType,
     selected: selection.selected,
-  })!
+  })
+  if (!impact) {
+    throw new Error('SPE-1562 fixture: impact projection failed closed unexpectedly')
+  }
 
   return Object.freeze({ trigger, selection, impact })
 }

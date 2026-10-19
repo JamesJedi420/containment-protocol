@@ -72,8 +72,10 @@ describe('SPE-1562 facility construction complication events', () => {
     })
   })
 
-  it('fails closed on malformed trigger packets and stable builds', () => {
+  it('fails closed on malformed packets, stable builds, and mismatched impact types', () => {
     expect(evaluateConstructionComplicationTrigger(null)).toBeUndefined()
+    expect(selectConstructionComplication(null)).toBeUndefined()
+    expect(projectConstructionComplicationImpact(null)).toBeUndefined()
     expect(
       evaluateConstructionComplicationTrigger({
         projectId: ANNEX_BUILD_PROJECT_ID,
@@ -88,5 +90,22 @@ describe('SPE-1562 facility construction complication events', () => {
       triggerReady: false,
       refusalReason: 'stable_site_and_staffing',
     })
+    expect(
+      selectConstructionComplication({
+        projectId: ANNEX_BUILD_PROJECT_ID,
+        triggerReady: true,
+        complicationKind: 'buried_anomaly_exposure',
+        projectType: 'annex',
+        siteCondition: 'cleared',
+      })?.selected
+    ).toBe(false)
+    expect(
+      projectConstructionComplicationImpact({
+        projectId: ANNEX_BUILD_PROJECT_ID,
+        complicationKind: 'labor_dispute',
+        eventType: 'revelation',
+        selected: true,
+      })
+    ).toBeUndefined()
   })
 })

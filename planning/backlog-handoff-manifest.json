@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-3361"],
+  "inProgress": ["SPE-3362"],
   "recentlyShipped": [
+    "SPE-3361",
     "SPE-1565",
     "SPE-1563",
     "SPE-1562",
@@ -35,7 +36,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3361-duplicate-facility-stacking-slice.md": "In progress",
+    "planning/spe-3362-site-to-facility-conversion-slice.md": "In progress",
+    "planning/spe-3361-duplicate-facility-stacking-slice.md": "Recently shipped",
     "planning/spe-1565-delegated-facility-management-slice.md": "Recently shipped",
     "planning/spe-1563-facility-geometry-vulnerability-analysis-slice.md": "Recently shipped",
     "planning/spe-1562-facility-construction-complication-events-slice.md": "Recently shipped",

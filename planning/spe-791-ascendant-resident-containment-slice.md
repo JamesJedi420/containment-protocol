@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                    |
 | ----------------- | ------------------------------------------------------------------------ |
-| **Status**        | **In progress**                                                          |
+| **Status**        | **Recently shipped** (PR #4334 @ `323d8c2f`)                             |
 | **Issue**         | [SPE-791](https://linear.app/spectranoir/issue/SPE-791)                  |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog      |
 | **Branch**        | `jamesdyedbq/spe-791-ascendant-resident-containment-facility`            |

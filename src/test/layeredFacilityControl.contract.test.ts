@@ -117,7 +117,7 @@ describe('SPE-731 layered facility control', () => {
       authorizeFacilityAction({
         ...base,
         actorId: 'actor:operator',
-        accessBand: 'operate',
+        accessBand: 'command',
         action: 'seal',
       })
     ).toMatchObject({

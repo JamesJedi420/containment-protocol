@@ -258,9 +258,9 @@ export interface BranchBorrowingOutcomeDeltaResult {
   readonly resultingStability: 'collapsing' | 'strained' | 'stable'
   readonly outcomeNote:
     | 'stabilized_by_grant'
+    | 'grant_without_support'
     | 'worsened_by_denial'
     | 'concealed_strain_unresolved'
-    | 'no_material_delta'
 }
 
 /** Branch stability outcome differs when the facility is used, denied, or concealed under strain. */
@@ -291,6 +291,16 @@ export function projectBranchBorrowingOutcomeDelta(
     })
   }
 
+  if (input.disposition === 'granted') {
+    return Object.freeze({
+      branchId: input.branchId,
+      disposition: input.disposition,
+      outcomeDiffersBecauseOfFacility: true,
+      resultingStability: input.baselineStability,
+      outcomeNote: 'grant_without_support' as const,
+    })
+  }
+
   if (input.disposition === 'denied') {
     const resultingStability =
       input.baselineStability === 'stable' ? 'strained' : 'collapsing'
@@ -303,22 +313,12 @@ export function projectBranchBorrowingOutcomeDelta(
     })
   }
 
-  if (input.disposition === 'concealed') {
-    return Object.freeze({
-      branchId: input.branchId,
-      disposition: input.disposition,
-      outcomeDiffersBecauseOfFacility: true,
-      resultingStability: input.baselineStability,
-      outcomeNote: 'concealed_strain_unresolved' as const,
-    })
-  }
-
   return Object.freeze({
     branchId: input.branchId,
     disposition: input.disposition,
-    outcomeDiffersBecauseOfFacility: false,
+    outcomeDiffersBecauseOfFacility: true,
     resultingStability: input.baselineStability,
-    outcomeNote: 'no_material_delta' as const,
+    outcomeNote: 'concealed_strain_unresolved' as const,
   })
 }
 

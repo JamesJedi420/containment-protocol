@@ -50,9 +50,11 @@ describe('SPE-1173 emergency branch borrowing facility', () => {
   it('creates later cost through stigma, audit pressure, or tighter supervision after a grant', () => {
     const fixture = authoredStrainedBranchBorrowingFixture()
     expect(fixture.laterCost.laterCostCreated).toBe(true)
-    expect(fixture.laterCost.costKinds).toEqual(
-      expect.arrayContaining(['stigma', 'audit_pressure', 'tighter_supervision'])
-    )
+    expect(fixture.laterCost.costKinds).toEqual([
+      'stigma',
+      'audit_pressure',
+      'tighter_supervision',
+    ])
 
     const deniedCost = projectBorrowingLaterCost({
       eventId: 'borrow:denied',
@@ -104,5 +106,17 @@ describe('SPE-1173 emergency branch borrowing facility', () => {
       accessAllowed: false,
     })
     expect(event?.temporarySupportReceived).toBe(false)
+
+    const outcome = projectBranchBorrowingOutcomeDelta({
+      branchId: STRAINED_BRANCH_ID,
+      disposition: 'granted',
+      temporarySupportReceived: false,
+      baselineStability: 'strained',
+    })
+    expect(outcome).toMatchObject({
+      outcomeDiffersBecauseOfFacility: true,
+      outcomeNote: 'grant_without_support',
+      resultingStability: 'strained',
+    })
   })
 })

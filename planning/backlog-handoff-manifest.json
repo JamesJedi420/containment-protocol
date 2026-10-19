@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-1263"],
+  "inProgress": ["SPE-1173"],
   "recentlyShipped": [
+    "SPE-1263",
     "SPE-3177",
     "SPE-2103",
     "SPE-1481",
@@ -30,7 +31,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-1263-closed-facility-permeability-slice.md": "In progress",
+    "planning/spe-1173-emergency-branch-borrowing-facility-slice.md": "In progress",
+    "planning/spe-1263-closed-facility-permeability-slice.md": "Recently shipped",
     "planning/spe-3177-containment-co-location-compatibility-slice.md": "Recently shipped",
     "planning/spe-2103-anomalous-byproduct-lifecycle-slice.md": "Recently shipped",
     "planning/spe-1481-facility-output-thresholds-slice.md": "Recently shipped",

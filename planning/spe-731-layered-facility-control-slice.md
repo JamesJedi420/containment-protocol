@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped** (PR #4333 @ `cb24e87f`)                                                    |
 | **Issue**         | [SPE-731](https://linear.app/spectranoir/issue/SPE-731)                                        |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                            |
 | **Branch**        | `jamesdyedbq/spe-731-layered-facility-control-ownership-command-power-and-access`               |

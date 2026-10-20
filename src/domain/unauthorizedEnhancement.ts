@@ -242,6 +242,8 @@ export function calculateOverdoseRisk(
 ): number {
   const effectiveLevel = Math.max(tolerance, currentLevel)
   if (effectiveLevel <= threshold) return 0
+  // Fail closed when threshold/tolerance collapse: any excess is full risk.
+  if (threshold <= tolerance) return 1
   const risk = (effectiveLevel - tolerance) / (threshold - tolerance)
   return Math.min(1, Math.max(0, risk))
 }
@@ -276,20 +278,32 @@ export function isDiagnosisIncomplete(patientState: PatientState): boolean {
   return patientState.officialRecord.gaps.length > 0
 }
 
-export function getOfficialExplanation(_enhancement: EnhancementState): string | null {
-  // Official medicine cannot explain parallel hidden enhancement.
+/**
+ * Official medicine never explains parallel hidden enhancement.
+ * Accepts the enhancement record for call-site symmetry; always returns null.
+ */
+export function getOfficialExplanation(
+  enhancement: EnhancementState,
+): string | null {
+  if (typeof enhancement.id !== 'string') {
+    return null
+  }
   return null
 }
 
 export function isSelfDosingDetected(
   supplyState: SupplyState,
-  _consumptionPattern: string,
+  consumptionPattern: string,
 ): boolean {
+  const pattern = consumptionPattern.toLowerCase()
   return (
     supplyState.hiddenUnits > 0 ||
     supplyState.source === 'self_compiled' ||
     supplyState.replenishmentFrequency.toLowerCase().includes('personal') ||
-    supplyState.replenishmentFrequency.toLowerCase().includes('self')
+    supplyState.replenishmentFrequency.toLowerCase().includes('self') ||
+    pattern.includes('personal') ||
+    pattern.includes('self') ||
+    pattern.includes('irregular')
   )
 }
 

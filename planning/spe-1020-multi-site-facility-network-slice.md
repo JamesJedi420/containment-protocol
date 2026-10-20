@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                    |
+| **Status**        | **Recently shipped**                                                               |
 | **Issue**         | [SPE-1020](https://linear.app/spectranoir/issue/SPE-1020)                          |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                 |
 | **Branch**        | `jamesdyedbq/spe-1020-multi-site-facility-network-and-transfer-compatibility`       |

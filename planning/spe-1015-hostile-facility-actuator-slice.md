@@ -2,7 +2,7 @@
 
 | Field             | Value                                                              |
 | ----------------- | ------------------------------------------------------------------ |
-| **Status**        | **In progress**                                                    |
+| **Status**        | **Recently shipped**                                               |
 | **Issue**         | [SPE-1015](https://linear.app/spectranoir/issue/SPE-1015)          |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog |
 | **Branch**        | `jamesdyedbq/spe-1015-hostile-facility-actuator-system`            |

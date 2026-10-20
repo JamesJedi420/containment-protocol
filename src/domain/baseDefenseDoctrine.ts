@@ -278,12 +278,16 @@ export function planThreatClassCoverage(
   const configuredModules = parseModules(packet.configuredModules)
   if (!facilityId || !activeThreatAxes || !configuredModules) return undefined
 
-  const sharedSupport: ReadonlySet<DefenseCoverageModule> = new Set([
+  /** Shared / anomalous modules kept unless explicitly replaced by axis planning. */
+  const retainedSupport: ReadonlySet<DefenseCoverageModule> = new Set([
     'guard_post',
     'sensor_grid',
     'alarm_net',
     'evacuation_corridor',
     'perimeter_module',
+    'signal_fog',
+    'false_hallway',
+    'safe_door',
   ])
 
   const required = new Set<DefenseCoverageModule>()
@@ -291,7 +295,7 @@ export function planThreatClassCoverage(
     required.add(THREAT_AXIS_PRIMARY_MODULE[axis])
   }
   for (const mod of configuredModules) {
-    if (sharedSupport.has(mod)) required.add(mod)
+    if (retainedSupport.has(mod)) required.add(mod)
   }
 
   const configuredSet = new Set(configuredModules)
@@ -414,7 +418,7 @@ export function projectHardenedZoneEffect(
 
 export interface ConcentricRingBreachInput {
   readonly facilityId: string
-  readonly outermostIntactRing: DefenseRing
+  readonly outermostBreachedRing: DefenseRing
   readonly deepestBreachedRing: DefenseRing
 }
 
@@ -427,7 +431,7 @@ export interface ConcentricRingBreachResult {
 
 /**
  * Breach severity scales with how many concentric rings are crossed from the
- * outermost intact ring through the deepest breached ring.
+ * outermost breached ring through the deepest breached ring (inclusive).
  */
 export function evaluateConcentricRingBreach(
   input: unknown
@@ -436,11 +440,14 @@ export function evaluateConcentricRingBreach(
   if (!packet) return undefined
 
   const facilityId = requireTrimmedId(packet.facilityId)
-  const outermostIntactRing = requireEnum(packet.outermostIntactRing, DEFENSE_RINGS)
+  const outermostBreachedRing = requireEnum(
+    packet.outermostBreachedRing,
+    DEFENSE_RINGS
+  )
   const deepestBreachedRing = requireEnum(packet.deepestBreachedRing, DEFENSE_RINGS)
-  if (!facilityId || !outermostIntactRing || !deepestBreachedRing) return undefined
+  if (!facilityId || !outermostBreachedRing || !deepestBreachedRing) return undefined
 
-  const outerDepth = RING_DEPTH[outermostIntactRing]
+  const outerDepth = RING_DEPTH[outermostBreachedRing]
   const deepDepth = RING_DEPTH[deepestBreachedRing]
   if (deepDepth < outerDepth) return undefined
 
@@ -617,24 +624,23 @@ export function projectSecurityPostureCoverage(
     return undefined
   }
 
-  let multiplier = 0
+  let effectiveGuardCoverage = 0
   switch (posture) {
     case 'active':
-      multiplier = 1
+      effectiveGuardCoverage = guardPostsConfigured
       break
     case 'skeleton':
-      multiplier = 1
+      // Skeleton staffing halves posts but keeps at least one when any are configured.
+      effectiveGuardCoverage =
+        guardPostsConfigured === 0
+          ? 0
+          : Math.max(1, Math.floor(guardPostsConfigured / 2))
       break
     case 'unattended':
     case 'quarantined':
-      multiplier = 0
+      effectiveGuardCoverage = 0
       break
   }
-
-  const effectiveGuardCoverage =
-    posture === 'skeleton'
-      ? Math.floor(guardPostsConfigured / 2)
-      : guardPostsConfigured * multiplier
 
   return {
     facilityId,
@@ -653,6 +659,7 @@ export interface ExteriorLaborRiskInput {
     | 'rooftop_servicing'
     | 'contractor_route'
   readonly escortProvided: boolean
+  readonly shieldingProvided: boolean
   readonly remoteAlternative: boolean
 }
 
@@ -684,11 +691,13 @@ export function evaluateExteriorLaborRisk(
   const facilityId = requireTrimmedId(packet.facilityId)
   const laborKind = requireEnum(packet.laborKind, EXTERIOR_LABOR_KINDS)
   const escortProvided = requireBoolean(packet.escortProvided)
+  const shieldingProvided = requireBoolean(packet.shieldingProvided)
   const remoteAlternative = requireBoolean(packet.remoteAlternative)
   if (
     !facilityId ||
     !laborKind ||
     escortProvided === undefined ||
+    shieldingProvided === undefined ||
     remoteAlternative === undefined
   ) {
     return undefined
@@ -698,7 +707,7 @@ export function evaluateExteriorLaborRisk(
     facilityId,
     laborKind,
     exteriorExposure: true,
-    mitigated: escortProvided || remoteAlternative,
+    mitigated: escortProvided || shieldingProvided || remoteAlternative,
   }
 }
 

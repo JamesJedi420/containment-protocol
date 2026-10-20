@@ -124,6 +124,12 @@ describe('Unauthorized Enhancement Layer', () => {
       expect(calculateOverdoseRisk(95, threshold, tolerance)).toBe(1)
     })
 
+    it('should fail closed when overdose threshold equals tolerance', () => {
+      expect(calculateOverdoseRisk(50, 40, 40)).toBe(0)
+      expect(calculateOverdoseRisk(41, 40, 40)).toBe(1)
+      expect(Number.isFinite(calculateOverdoseRisk(41, 40, 40))).toBe(true)
+    })
+
     it('should change capability via initialized hidden treatment', () => {
       const patient = initializePatient(
         'patient-001',

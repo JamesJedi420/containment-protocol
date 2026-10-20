@@ -44,6 +44,21 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
       expect.arrayContaining(['physical_barrier', 'guard_post'])
     )
 
+    const anomalousRetained = planThreatClassCoverage({
+      facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
+      activeThreatAxes: ['dream_intrusion'],
+      configuredModules: ['signal_fog', 'false_hallway', 'safe_door'],
+    })
+    expect(anomalousRetained?.modulesRemoved).toEqual([])
+    expect(anomalousRetained?.resultingModules).toEqual(
+      expect.arrayContaining([
+        'dream_ward',
+        'signal_fog',
+        'false_hallway',
+        'safe_door',
+      ])
+    )
+
     expect(
       planThreatClassCoverage({
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
@@ -127,7 +142,7 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
     expect(
       evaluateConcentricRingBreach({
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
-        outermostIntactRing: 'public_cover',
+        outermostBreachedRing: 'public_cover',
         deepestBreachedRing: 'operations',
       })
     ).toMatchObject({
@@ -139,7 +154,7 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
     expect(
       evaluateConcentricRingBreach({
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
-        outermostIntactRing: 'public_cover',
+        outermostBreachedRing: 'public_cover',
         deepestBreachedRing: 'deep_vault',
       })
     ).toMatchObject({
@@ -151,7 +166,19 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
     expect(
       evaluateConcentricRingBreach({
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
-        outermostIntactRing: 'containment',
+        outermostBreachedRing: 'operations',
+        deepestBreachedRing: 'operations',
+      })
+    ).toMatchObject({
+      ringsCrossed: 1,
+      breachSeverity: 1,
+      reachesDeepVault: false,
+    })
+
+    expect(
+      evaluateConcentricRingBreach({
+        facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
+        outermostBreachedRing: 'containment',
         deepestBreachedRing: 'public_cover',
       })
     ).toBeUndefined()
@@ -274,7 +301,29 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
     expect(
       projectSecurityPostureCoverage({
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
+        posture: 'skeleton',
+        guardPostsConfigured: 1,
+      })
+    ).toMatchObject({
+      effectiveGuardCoverage: 1,
+      attendedDefense: true,
+    })
+
+    expect(
+      projectSecurityPostureCoverage({
+        facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
         posture: 'unattended',
+        guardPostsConfigured: 4,
+      })
+    ).toMatchObject({
+      effectiveGuardCoverage: 0,
+      attendedDefense: false,
+    })
+
+    expect(
+      projectSecurityPostureCoverage({
+        facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
+        posture: 'quarantined',
         guardPostsConfigured: 4,
       })
     ).toMatchObject({
@@ -287,6 +336,7 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
         laborKind: 'rooftop_servicing',
         escortProvided: false,
+        shieldingProvided: false,
         remoteAlternative: false,
       })
     ).toMatchObject({
@@ -299,6 +349,20 @@ describe('SPE-1022 base defense doctrine and threat-class coverage matrix', () =
         facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
         laborKind: 'courier',
         escortProvided: true,
+        shieldingProvided: false,
+        remoteAlternative: false,
+      })
+    ).toMatchObject({
+      exteriorExposure: true,
+      mitigated: true,
+    })
+
+    expect(
+      evaluateExteriorLaborRisk({
+        facilityId: DEFENSE_DOCTRINE_FACILITY_ID,
+        laborKind: 'maintenance_crew',
+        escortProvided: false,
+        shieldingProvided: true,
         remoteAlternative: false,
       })
     ).toMatchObject({

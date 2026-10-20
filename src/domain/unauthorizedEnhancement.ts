@@ -242,6 +242,8 @@ export function calculateOverdoseRisk(
 ): number {
   const effectiveLevel = Math.max(tolerance, currentLevel)
   if (effectiveLevel <= threshold) return 0
+  // Fail closed when threshold/tolerance collapse: any excess is full risk.
+  if (threshold <= tolerance) return 1
   const risk = (effectiveLevel - tolerance) / (threshold - tolerance)
   return Math.min(1, Math.max(0, risk))
 }

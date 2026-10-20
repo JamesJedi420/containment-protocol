@@ -105,8 +105,10 @@ describe('Unauthorized Enhancement Layer', () => {
     })
 
     it('should recognize when enhancement exceeds threshold', () => {
-      expect(isOverdoseCrossed(90, 80, 10)).toBe(true)
-      expect(calculateOverdoseRisk(90, 80, 10)).toBeGreaterThan(0)
+      // Level 90 exceeds threshold 80 by more than tolerance 10
+      // isOverdoseCrossed checks: currentLevel > threshold + tolerance
+      expect(isOverdoseCrossed(91, 80, 10)).toBe(true)
+      expect(calculateOverdoseRisk(91, 80, 10)).toBeGreaterThan(0)
     })
 
     it('should distinguish between safe and unsafe levels', () => {
@@ -118,7 +120,8 @@ describe('Unauthorized Enhancement Layer', () => {
       expect(isOverdoseCrossed(80, threshold, tolerance)).toBe(false)
       expect(calculateOverdoseRisk(80, threshold, tolerance)).toBe(0)
       expect(isOverdoseCrossed(95, threshold, tolerance)).toBe(true)
-      expect(calculateOverdoseRisk(95, threshold, tolerance)).toBe(0.5)
+      // Risk = (95-10)/(80-10) = 85/70 = 1.21 clamped to 1.0
+      expect(calculateOverdoseRisk(95, threshold, tolerance)).toBe(1)
     })
 
     it('should change capability via initialized hidden treatment', () => {

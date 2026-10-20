@@ -303,14 +303,18 @@ export function projectLocalOperationUnderDesync(
     return undefined
   }
 
-  const sharedServiceUsable = sharedServiceStatus === 'live'
+  // Isolated sites do not consume shared services even when the packet reports
+  // a live status; networked sites only treat live status as usable.
+  const sharedServiceUsable =
+    siteMode === 'networked' && sharedServiceStatus === 'live'
+  const desyncActive = sharedServiceStatus !== 'live'
   return {
     siteId,
     sharedServiceKind,
     sharedServiceStatus,
     localOperationContinues: localStaffingIntact && localZoningIntact,
     sharedServiceUsable,
-    desyncActive: !sharedServiceUsable,
+    desyncActive,
     unifiedLiveStateAssumed: false,
   }
 }

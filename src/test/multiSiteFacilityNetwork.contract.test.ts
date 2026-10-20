@@ -107,7 +107,11 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
         requiredSharedService: 'identity' as const,
         sharedServiceStatus: 'degraded' as const,
       },
-      { outcome: 'failed', failureReason: 'service_compatibility_mismatch' },
+      {
+        outcome: 'failed',
+        failureReason: 'service_compatibility_mismatch',
+        transitInstability: true,
+      },
     ],
     [
       'stale service destabilizes',
@@ -193,7 +197,7 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
       { localOperationContinues: false, desyncActive: true },
     ],
     [
-      'live logistics remains usable',
+      'live logistics remains usable when networked',
       {
         siteId: primary,
         siteMode: 'networked' as const,
@@ -204,6 +208,21 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
       {
         localOperationContinues: true,
         sharedServiceUsable: true,
+        desyncActive: false,
+      },
+    ],
+    [
+      'isolated ignores live shared-service status',
+      {
+        siteId: primary,
+        siteMode: 'isolated' as const,
+        sharedServiceKind: 'logistics' as const,
+        sharedServiceStatus: 'live' as const,
+        ...intactLocal,
+      },
+      {
+        localOperationContinues: true,
+        sharedServiceUsable: false,
         desyncActive: false,
       },
     ],

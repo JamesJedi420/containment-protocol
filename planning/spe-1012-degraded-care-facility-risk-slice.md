@@ -2,7 +2,7 @@
 
 | Field             | Value                                                              |
 | ----------------- | ------------------------------------------------------------------ |
-| **Status**        | **In progress**                                                    |
+| **Status**        | **Recently shipped** (PR #4336 @ `0bc5c278`)                       |
 | **Issue**         | [SPE-1012](https://linear.app/spectranoir/issue/SPE-1012)          |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog |
 | **Branch**        | `jamesdyedbq/spe-1012-degraded-care-facility-risk-model`           |

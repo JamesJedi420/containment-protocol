@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-1012"],
+  "inProgress": ["SPE-1015"],
   "recentlyShipped": [
+    "SPE-1012",
     "SPE-791",
     "SPE-731",
     "SPE-3362",
@@ -39,7 +40,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-1012-degraded-care-facility-risk-slice.md": "In progress",
+    "planning/spe-1015-hostile-facility-actuator-slice.md": "In progress",
+    "planning/spe-1012-degraded-care-facility-risk-slice.md": "Recently shipped",
     "planning/spe-791-ascendant-resident-containment-slice.md": "Recently shipped",
     "planning/spe-731-layered-facility-control-slice.md": "Recently shipped",
     "planning/spe-3362-site-to-facility-conversion-slice.md": "Recently shipped",

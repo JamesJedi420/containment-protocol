@@ -1,12 +1,12 @@
 # SPE-1023: Unauthorized Enhancement Lifecycle
 
-**Status:** Implementation in progress
+**Status:** Recently shipped
 
 **Issue:** SPE-1023 - Unauthorized enhancement lifecycle
 
 **Branch:** `jamesdyedbq/spe-1023-unauthorized-enhancement-lifecycle`
 
-**PR:** #4343 (OPEN)
+**PR:** #4343 (merged)
 
 **Linear Issue:** https://linear.app/spectranoir/issue/SPE-1023
 

@@ -276,15 +276,17 @@ export function isDiagnosisIncomplete(patientState: PatientState): boolean {
   return patientState.officialRecord.gaps.length > 0
 }
 
-export function getOfficialExplanation(_enhancement: EnhancementState): string | null {
+export function getOfficialExplanation(enhancement: EnhancementState): string | null {
   // Official medicine cannot explain parallel hidden enhancement.
+  void enhancement
   return null
 }
 
 export function isSelfDosingDetected(
   supplyState: SupplyState,
-  _consumptionPattern: string,
+  consumptionPattern: string,
 ): boolean {
+  void consumptionPattern
   return (
     supplyState.hiddenUnits > 0 ||
     supplyState.source === 'self_compiled' ||

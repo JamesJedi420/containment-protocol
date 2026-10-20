@@ -47,16 +47,29 @@ export const TRANSFER_FAILURE_REASONS = [
 ] as const
 export type TransferFailureReason = (typeof TRANSFER_FAILURE_REASONS)[number]
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function asPacket(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
+function requireTrimmedId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
 }
 
-function isMember<T extends string>(value: unknown, allowed: readonly T[]): value is T {
+function requireEnum<T extends string>(
+  value: unknown,
+  allowed: readonly T[]
+): T | undefined {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined
+}
+
+function requireBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
 }
 
 export interface SiteNetworkModeInput {
@@ -77,6 +90,24 @@ export interface SiteNetworkModeResult {
   readonly networkingStrictlyBetter: false
 }
 
+const ISOLATED_MODE_TRAITS = {
+  localControlGain: true,
+  stabilityGain: true,
+  capabilityReachGain: false,
+  researchSharingGain: false,
+  logisticsReachGain: false,
+  dependencyRisk: false,
+} as const
+
+const NETWORKED_MODE_TRAITS = {
+  localControlGain: false,
+  stabilityGain: false,
+  capabilityReachGain: true,
+  researchSharingGain: true,
+  logisticsReachGain: true,
+  dependencyRisk: true,
+} as const
+
 /**
  * Isolated mode favors control/stability; networked mode favors reach and
  * sharing at the cost of dependency risk. Networking is never strictly better.
@@ -84,36 +115,20 @@ export interface SiteNetworkModeResult {
 export function projectSiteNetworkMode(
   input: unknown
 ): SiteNetworkModeResult | undefined {
-  if (!isRecord(input)) return undefined
-  if (!isNonEmptyString(input.siteId)) return undefined
-  if (!isMember(input.mode, SITE_NETWORK_MODES)) return undefined
-  if (typeof input.sharedServicesEnabled !== 'boolean') return undefined
+  const packet = asPacket(input)
+  if (!packet) return undefined
+  const siteId = requireTrimmedId(packet.siteId)
+  const mode = requireEnum(packet.mode, SITE_NETWORK_MODES)
+  const sharedServicesEnabled = requireBoolean(packet.sharedServicesEnabled)
+  if (!siteId || !mode || sharedServicesEnabled === undefined) return undefined
 
-  if (input.mode === 'isolated') {
-    if (input.sharedServicesEnabled) return undefined
-    return {
-      siteId: input.siteId.trim(),
-      mode: 'isolated',
-      localControlGain: true,
-      stabilityGain: true,
-      capabilityReachGain: false,
-      researchSharingGain: false,
-      logisticsReachGain: false,
-      dependencyRisk: false,
-      networkingStrictlyBetter: false,
-    }
-  }
+  const wantsShared = mode === 'networked'
+  if (sharedServicesEnabled !== wantsShared) return undefined
 
-  if (!input.sharedServicesEnabled) return undefined
   return {
-    siteId: input.siteId.trim(),
-    mode: 'networked',
-    localControlGain: false,
-    stabilityGain: false,
-    capabilityReachGain: true,
-    researchSharingGain: true,
-    logisticsReachGain: true,
-    dependencyRisk: true,
+    siteId,
+    mode,
+    ...(mode === 'isolated' ? ISOLATED_MODE_TRAITS : NETWORKED_MODE_TRAITS),
     networkingStrictlyBetter: false,
   }
 }
@@ -140,6 +155,42 @@ export interface CrossSiteTransferResult {
   readonly seamlessMovement: false
 }
 
+type TransferMismatch = {
+  readonly outcome: Exclude<TransferOutcome, 'allowed'>
+  readonly failureReason: Exclude<TransferFailureReason, 'none'>
+}
+
+function detectTransferMismatch(packet: {
+  readonly sourceSchemaId: string
+  readonly destinationSchemaId: string
+  readonly sourceContainmentClass: string
+  readonly destinationContainmentClass: string
+  readonly sharedServiceStatus: SharedServiceStatus
+}): TransferMismatch | undefined {
+  if (packet.sourceSchemaId !== packet.destinationSchemaId) {
+    return { outcome: 'failed', failureReason: 'schema_mismatch' }
+  }
+  if (packet.sourceContainmentClass !== packet.destinationContainmentClass) {
+    return {
+      outcome: 'destabilized',
+      failureReason: 'containment_assumption_mismatch',
+    }
+  }
+  if (
+    packet.sharedServiceStatus === 'missing' ||
+    packet.sharedServiceStatus === 'degraded'
+  ) {
+    return { outcome: 'failed', failureReason: 'service_compatibility_mismatch' }
+  }
+  if (packet.sharedServiceStatus === 'stale') {
+    return {
+      outcome: 'destabilized',
+      failureReason: 'service_compatibility_mismatch',
+    }
+  }
+  return undefined
+}
+
 /**
  * Cross-site transfer fails or destabilizes when schemas, containment classes,
  * or required shared-service status do not align. Never assumes seamless move.
@@ -147,74 +198,58 @@ export interface CrossSiteTransferResult {
 export function evaluateCrossSiteTransfer(
   input: unknown
 ): CrossSiteTransferResult | undefined {
-  if (!isRecord(input)) return undefined
-  if (!isNonEmptyString(input.sourceSiteId)) return undefined
-  if (!isNonEmptyString(input.destinationSiteId)) return undefined
-  if (input.sourceSiteId.trim() === input.destinationSiteId.trim()) return undefined
-  if (!isMember(input.payloadKind, TRANSFER_PAYLOAD_KINDS)) return undefined
-  if (!isNonEmptyString(input.sourceSchemaId)) return undefined
-  if (!isNonEmptyString(input.destinationSchemaId)) return undefined
-  if (!isNonEmptyString(input.sourceContainmentClass)) return undefined
-  if (!isNonEmptyString(input.destinationContainmentClass)) return undefined
-  if (!isMember(input.requiredSharedService, SHARED_SERVICE_KINDS)) return undefined
-  if (!isMember(input.sharedServiceStatus, SHARED_SERVICE_STATUSES)) return undefined
+  const packet = asPacket(input)
+  if (!packet) return undefined
 
-  const sourceSiteId = input.sourceSiteId.trim()
-  const destinationSiteId = input.destinationSiteId.trim()
-  const payloadKind = input.payloadKind
-  const base = {
+  const sourceSiteId = requireTrimmedId(packet.sourceSiteId)
+  const destinationSiteId = requireTrimmedId(packet.destinationSiteId)
+  const payloadKind = requireEnum(packet.payloadKind, TRANSFER_PAYLOAD_KINDS)
+  const sourceSchemaId = requireTrimmedId(packet.sourceSchemaId)
+  const destinationSchemaId = requireTrimmedId(packet.destinationSchemaId)
+  const sourceContainmentClass = requireTrimmedId(packet.sourceContainmentClass)
+  const destinationContainmentClass = requireTrimmedId(
+    packet.destinationContainmentClass
+  )
+  const requiredSharedService = requireEnum(
+    packet.requiredSharedService,
+    SHARED_SERVICE_KINDS
+  )
+  const sharedServiceStatus = requireEnum(
+    packet.sharedServiceStatus,
+    SHARED_SERVICE_STATUSES
+  )
+
+  if (
+    !sourceSiteId ||
+    !destinationSiteId ||
+    sourceSiteId === destinationSiteId ||
+    !payloadKind ||
+    !sourceSchemaId ||
+    !destinationSchemaId ||
+    !sourceContainmentClass ||
+    !destinationContainmentClass ||
+    !requiredSharedService ||
+    !sharedServiceStatus
+  ) {
+    return undefined
+  }
+
+  const mismatch = detectTransferMismatch({
+    sourceSchemaId,
+    destinationSchemaId,
+    sourceContainmentClass,
+    destinationContainmentClass,
+    sharedServiceStatus,
+  })
+
+  return {
     sourceSiteId,
     destinationSiteId,
     payloadKind,
-    seamlessMovement: false as const,
-  }
-
-  if (input.sourceSchemaId.trim() !== input.destinationSchemaId.trim()) {
-    return {
-      ...base,
-      outcome: 'failed',
-      failureReason: 'schema_mismatch',
-      transitInstability: true,
-    }
-  }
-
-  if (
-    input.sourceContainmentClass.trim() !== input.destinationContainmentClass.trim()
-  ) {
-    return {
-      ...base,
-      outcome: 'destabilized',
-      failureReason: 'containment_assumption_mismatch',
-      transitInstability: true,
-    }
-  }
-
-  if (
-    input.sharedServiceStatus === 'missing' ||
-    input.sharedServiceStatus === 'degraded'
-  ) {
-    return {
-      ...base,
-      outcome: 'failed',
-      failureReason: 'service_compatibility_mismatch',
-      transitInstability: true,
-    }
-  }
-
-  if (input.sharedServiceStatus === 'stale') {
-    return {
-      ...base,
-      outcome: 'destabilized',
-      failureReason: 'service_compatibility_mismatch',
-      transitInstability: true,
-    }
-  }
-
-  return {
-    ...base,
-    outcome: 'allowed',
-    failureReason: 'none',
-    transitInstability: false,
+    outcome: mismatch?.outcome ?? 'allowed',
+    failureReason: mismatch?.failureReason ?? 'none',
+    transitInstability: mismatch !== undefined,
+    seamlessMovement: false,
   }
 }
 
@@ -244,26 +279,38 @@ export interface LocalOperationUnderDesyncResult {
 export function projectLocalOperationUnderDesync(
   input: unknown
 ): LocalOperationUnderDesyncResult | undefined {
-  if (!isRecord(input)) return undefined
-  if (!isNonEmptyString(input.siteId)) return undefined
-  if (!isMember(input.siteMode, SITE_NETWORK_MODES)) return undefined
-  if (!isMember(input.sharedServiceKind, SHARED_SERVICE_KINDS)) return undefined
-  if (!isMember(input.sharedServiceStatus, SHARED_SERVICE_STATUSES)) return undefined
-  if (typeof input.localStaffingIntact !== 'boolean') return undefined
-  if (typeof input.localZoningIntact !== 'boolean') return undefined
+  const packet = asPacket(input)
+  if (!packet) return undefined
 
-  const desyncActive = input.sharedServiceStatus !== 'live'
-  const sharedServiceUsable = input.sharedServiceStatus === 'live'
-  const localOperationContinues =
-    input.localStaffingIntact && input.localZoningIntact
+  const siteId = requireTrimmedId(packet.siteId)
+  const siteMode = requireEnum(packet.siteMode, SITE_NETWORK_MODES)
+  const sharedServiceKind = requireEnum(packet.sharedServiceKind, SHARED_SERVICE_KINDS)
+  const sharedServiceStatus = requireEnum(
+    packet.sharedServiceStatus,
+    SHARED_SERVICE_STATUSES
+  )
+  const localStaffingIntact = requireBoolean(packet.localStaffingIntact)
+  const localZoningIntact = requireBoolean(packet.localZoningIntact)
 
+  if (
+    !siteId ||
+    !siteMode ||
+    !sharedServiceKind ||
+    !sharedServiceStatus ||
+    localStaffingIntact === undefined ||
+    localZoningIntact === undefined
+  ) {
+    return undefined
+  }
+
+  const sharedServiceUsable = sharedServiceStatus === 'live'
   return {
-    siteId: input.siteId.trim(),
-    sharedServiceKind: input.sharedServiceKind,
-    sharedServiceStatus: input.sharedServiceStatus,
-    localOperationContinues,
+    siteId,
+    sharedServiceKind,
+    sharedServiceStatus,
+    localOperationContinues: localStaffingIntact && localZoningIntact,
     sharedServiceUsable,
-    desyncActive,
+    desyncActive: !sharedServiceUsable,
     unifiedLiveStateAssumed: false,
   }
 }

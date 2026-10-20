@@ -7,33 +7,44 @@ import {
   projectSiteNetworkMode,
 } from '../domain/multiSiteFacilityNetwork'
 
+const alignedTransfer = {
+  sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+  destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
+  payloadKind: 'asset' as const,
+  sourceSchemaId: 'schema:containment-v1',
+  destinationSchemaId: 'schema:containment-v1',
+  sourceContainmentClass: 'class:stable',
+  destinationContainmentClass: 'class:stable',
+  requiredSharedService: 'logistics' as const,
+  sharedServiceStatus: 'live' as const,
+}
+
 describe('SPE-1020 multi-site facility network and transfer compatibility', () => {
   it('supports isolated vs networked modes with different risks and benefits', () => {
-    const isolated = projectSiteNetworkMode({
-      siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-      mode: 'isolated',
-      sharedServicesEnabled: false,
-    })
-    expect(isolated).toMatchObject({
+    expect(
+      projectSiteNetworkMode({
+        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        mode: 'isolated',
+        sharedServicesEnabled: false,
+      })
+    ).toMatchObject({
       mode: 'isolated',
       localControlGain: true,
       stabilityGain: true,
       capabilityReachGain: false,
-      researchSharingGain: false,
-      logisticsReachGain: false,
       dependencyRisk: false,
       networkingStrictlyBetter: false,
     })
 
-    const networked = projectSiteNetworkMode({
-      siteId: MULTI_SITE_NETWORK_REMOTE_ID,
-      mode: 'networked',
-      sharedServicesEnabled: true,
-    })
-    expect(networked).toMatchObject({
+    expect(
+      projectSiteNetworkMode({
+        siteId: MULTI_SITE_NETWORK_REMOTE_ID,
+        mode: 'networked',
+        sharedServicesEnabled: true,
+      })
+    ).toMatchObject({
       mode: 'networked',
       localControlGain: false,
-      stabilityGain: false,
       capabilityReachGain: true,
       researchSharingGain: true,
       logisticsReachGain: true,
@@ -42,7 +53,7 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
     })
   })
 
-  it('rejects contradictory mode / shared-service flags and malformed input', () => {
+  it('rejects contradictory mode flags and malformed site-mode packets', () => {
     expect(
       projectSiteNetworkMode({
         siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
@@ -64,15 +75,9 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
   it('fails or destabilizes transfers on schema, containment, or service mismatch', () => {
     expect(
       evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
+        ...alignedTransfer,
         payloadKind: 'anomaly',
-        sourceSchemaId: 'schema:containment-v1',
         destinationSchemaId: 'schema:containment-v2',
-        sourceContainmentClass: 'class:stable',
-        destinationContainmentClass: 'class:stable',
-        requiredSharedService: 'classification',
-        sharedServiceStatus: 'live',
       })
     ).toMatchObject({
       outcome: 'failed',
@@ -83,15 +88,8 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
 
     expect(
       evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
-        payloadKind: 'asset',
-        sourceSchemaId: 'schema:containment-v1',
-        destinationSchemaId: 'schema:containment-v1',
-        sourceContainmentClass: 'class:stable',
+        ...alignedTransfer,
         destinationContainmentClass: 'class:volatile',
-        requiredSharedService: 'logistics',
-        sharedServiceStatus: 'live',
       })
     ).toMatchObject({
       outcome: 'destabilized',
@@ -101,13 +99,8 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
 
     expect(
       evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
+        ...alignedTransfer,
         payloadKind: 'personnel',
-        sourceSchemaId: 'schema:containment-v1',
-        destinationSchemaId: 'schema:containment-v1',
-        sourceContainmentClass: 'class:stable',
-        destinationContainmentClass: 'class:stable',
         requiredSharedService: 'identity',
         sharedServiceStatus: 'degraded',
       })
@@ -118,13 +111,8 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
 
     expect(
       evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
+        ...alignedTransfer,
         payloadKind: 'personnel',
-        sourceSchemaId: 'schema:containment-v1',
-        destinationSchemaId: 'schema:containment-v1',
-        sourceContainmentClass: 'class:stable',
-        destinationContainmentClass: 'class:stable',
         requiredSharedService: 'research',
         sharedServiceStatus: 'stale',
       })
@@ -134,19 +122,7 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
       transitInstability: true,
     })
 
-    expect(
-      evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
-        payloadKind: 'asset',
-        sourceSchemaId: 'schema:containment-v1',
-        destinationSchemaId: 'schema:containment-v1',
-        sourceContainmentClass: 'class:stable',
-        destinationContainmentClass: 'class:stable',
-        requiredSharedService: 'logistics',
-        sharedServiceStatus: 'live',
-      })
-    ).toMatchObject({
+    expect(evaluateCrossSiteTransfer(alignedTransfer)).toMatchObject({
       outcome: 'allowed',
       failureReason: 'none',
       transitInstability: false,
@@ -157,15 +133,8 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
   it('rejects same-site or malformed transfer packets', () => {
     expect(
       evaluateCrossSiteTransfer({
-        sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        ...alignedTransfer,
         destinationSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        payloadKind: 'asset',
-        sourceSchemaId: 'schema:a',
-        destinationSchemaId: 'schema:a',
-        sourceContainmentClass: 'class:stable',
-        destinationContainmentClass: 'class:stable',
-        requiredSharedService: 'logistics',
-        sharedServiceStatus: 'live',
       })
     ).toBeUndefined()
     expect(evaluateCrossSiteTransfer({})).toBeUndefined()

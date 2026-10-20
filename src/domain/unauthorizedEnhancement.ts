@@ -278,9 +278,16 @@ export function isDiagnosisIncomplete(patientState: PatientState): boolean {
   return patientState.officialRecord.gaps.length > 0
 }
 
-export function getOfficialExplanation(enhancement: EnhancementState): string | null {
-  // Official medicine cannot explain parallel hidden enhancement.
-  void enhancement
+/**
+ * Official medicine never explains parallel hidden enhancement.
+ * Accepts the enhancement record for call-site symmetry; always returns null.
+ */
+export function getOfficialExplanation(
+  enhancement: EnhancementState,
+): string | null {
+  if (typeof enhancement.id !== 'string') {
+    return null
+  }
   return null
 }
 
@@ -288,12 +295,15 @@ export function isSelfDosingDetected(
   supplyState: SupplyState,
   consumptionPattern: string,
 ): boolean {
-  void consumptionPattern
+  const pattern = consumptionPattern.toLowerCase()
   return (
     supplyState.hiddenUnits > 0 ||
     supplyState.source === 'self_compiled' ||
     supplyState.replenishmentFrequency.toLowerCase().includes('personal') ||
-    supplyState.replenishmentFrequency.toLowerCase().includes('self')
+    supplyState.replenishmentFrequency.toLowerCase().includes('self') ||
+    pattern.includes('personal') ||
+    pattern.includes('self') ||
+    pattern.includes('irregular')
   )
 }
 

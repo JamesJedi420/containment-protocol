@@ -298,13 +298,16 @@ export function planThreatClassCoverage(
     if (retainedSupport.has(mod)) required.add(mod)
   }
 
+  const byId = (a: string, b: string) => a.localeCompare(b)
   const configuredSet = new Set(configuredModules)
-  const modulesAdded = [...required].filter((m) => !configuredSet.has(m)).sort()
+  const modulesAdded = [...required]
+    .filter((m) => !configuredSet.has(m))
+    .sort(byId)
   const modulesRemoved = configuredModules
     .filter((m) => !required.has(m))
     .slice()
-    .sort()
-  const resultingModules = [...required].sort()
+    .sort(byId)
+  const resultingModules = [...required].sort(byId)
 
   return {
     facilityId,
@@ -624,7 +627,7 @@ export function projectSecurityPostureCoverage(
     return undefined
   }
 
-  let effectiveGuardCoverage = 0
+  let effectiveGuardCoverage: number
   switch (posture) {
     case 'active':
       effectiveGuardCoverage = guardPostsConfigured
@@ -632,9 +635,9 @@ export function projectSecurityPostureCoverage(
     case 'skeleton':
       // Skeleton staffing halves posts but keeps at least one when any are configured.
       effectiveGuardCoverage =
-        guardPostsConfigured === 0
-          ? 0
-          : Math.max(1, Math.floor(guardPostsConfigured / 2))
+        guardPostsConfigured > 0
+          ? Math.max(1, Math.floor(guardPostsConfigured / 2))
+          : 0
       break
     case 'unattended':
     case 'quarantined':

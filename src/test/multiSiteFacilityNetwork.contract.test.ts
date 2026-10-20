@@ -7,9 +7,12 @@ import {
   projectSiteNetworkMode,
 } from '../domain/multiSiteFacilityNetwork'
 
+const primary = MULTI_SITE_NETWORK_PRIMARY_ID
+const remote = MULTI_SITE_NETWORK_REMOTE_ID
+
 const alignedTransfer = {
-  sourceSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-  destinationSiteId: MULTI_SITE_NETWORK_REMOTE_ID,
+  sourceSiteId: primary,
+  destinationSiteId: remote,
   payloadKind: 'asset' as const,
   sourceSchemaId: 'schema:containment-v1',
   destinationSchemaId: 'schema:containment-v1',
@@ -19,11 +22,16 @@ const alignedTransfer = {
   sharedServiceStatus: 'live' as const,
 }
 
+const intactLocal = {
+  localStaffingIntact: true,
+  localZoningIntact: true,
+} as const
+
 describe('SPE-1020 multi-site facility network and transfer compatibility', () => {
   it('supports isolated vs networked modes with different risks and benefits', () => {
     expect(
       projectSiteNetworkMode({
-        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        siteId: primary,
         mode: 'isolated',
         sharedServicesEnabled: false,
       })
@@ -38,7 +46,7 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
 
     expect(
       projectSiteNetworkMode({
-        siteId: MULTI_SITE_NETWORK_REMOTE_ID,
+        siteId: remote,
         mode: 'networked',
         sharedServicesEnabled: true,
       })
@@ -56,14 +64,14 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
   it('rejects contradictory mode flags and malformed site-mode packets', () => {
     expect(
       projectSiteNetworkMode({
-        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        siteId: primary,
         mode: 'isolated',
         sharedServicesEnabled: true,
       })
     ).toBeUndefined()
     expect(
       projectSiteNetworkMode({
-        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        siteId: primary,
         mode: 'networked',
         sharedServicesEnabled: false,
       })
@@ -72,133 +80,134 @@ describe('SPE-1020 multi-site facility network and transfer compatibility', () =
     expect(projectSiteNetworkMode({ siteId: '', mode: 'isolated' })).toBeUndefined()
   })
 
-  it('fails or destabilizes transfers on schema, containment, or service mismatch', () => {
-    expect(
-      evaluateCrossSiteTransfer({
-        ...alignedTransfer,
-        payloadKind: 'anomaly',
-        destinationSchemaId: 'schema:containment-v2',
-      })
-    ).toMatchObject({
-      outcome: 'failed',
-      failureReason: 'schema_mismatch',
-      transitInstability: true,
-      seamlessMovement: false,
-    })
-
-    expect(
-      evaluateCrossSiteTransfer({
-        ...alignedTransfer,
-        destinationContainmentClass: 'class:volatile',
-      })
-    ).toMatchObject({
-      outcome: 'destabilized',
-      failureReason: 'containment_assumption_mismatch',
-      transitInstability: true,
-    })
-
-    expect(
-      evaluateCrossSiteTransfer({
-        ...alignedTransfer,
-        payloadKind: 'personnel',
-        requiredSharedService: 'identity',
-        sharedServiceStatus: 'degraded',
-      })
-    ).toMatchObject({
-      outcome: 'failed',
-      failureReason: 'service_compatibility_mismatch',
-    })
-
-    expect(
-      evaluateCrossSiteTransfer({
-        ...alignedTransfer,
-        payloadKind: 'personnel',
-        requiredSharedService: 'research',
-        sharedServiceStatus: 'stale',
-      })
-    ).toMatchObject({
-      outcome: 'destabilized',
-      failureReason: 'service_compatibility_mismatch',
-      transitInstability: true,
-    })
-
-    expect(evaluateCrossSiteTransfer(alignedTransfer)).toMatchObject({
-      outcome: 'allowed',
-      failureReason: 'none',
-      transitInstability: false,
-      seamlessMovement: false,
-    })
+  it.each([
+    [
+      'schema mismatch fails',
+      { payloadKind: 'anomaly' as const, destinationSchemaId: 'schema:containment-v2' },
+      {
+        outcome: 'failed',
+        failureReason: 'schema_mismatch',
+        transitInstability: true,
+        seamlessMovement: false,
+      },
+    ],
+    [
+      'containment mismatch destabilizes',
+      { destinationContainmentClass: 'class:volatile' },
+      {
+        outcome: 'destabilized',
+        failureReason: 'containment_assumption_mismatch',
+        transitInstability: true,
+      },
+    ],
+    [
+      'degraded service fails',
+      {
+        payloadKind: 'personnel' as const,
+        requiredSharedService: 'identity' as const,
+        sharedServiceStatus: 'degraded' as const,
+      },
+      { outcome: 'failed', failureReason: 'service_compatibility_mismatch' },
+    ],
+    [
+      'stale service destabilizes',
+      {
+        payloadKind: 'personnel' as const,
+        requiredSharedService: 'research' as const,
+        sharedServiceStatus: 'stale' as const,
+      },
+      {
+        outcome: 'destabilized',
+        failureReason: 'service_compatibility_mismatch',
+        transitInstability: true,
+      },
+    ],
+    [
+      'aligned live transfer allows',
+      {},
+      {
+        outcome: 'allowed',
+        failureReason: 'none',
+        transitInstability: false,
+        seamlessMovement: false,
+      },
+    ],
+  ])('%s', (_label, override, expected) => {
+    expect(evaluateCrossSiteTransfer({ ...alignedTransfer, ...override })).toMatchObject(
+      expected
+    )
   })
 
   it('rejects same-site or malformed transfer packets', () => {
     expect(
       evaluateCrossSiteTransfer({
         ...alignedTransfer,
-        destinationSiteId: MULTI_SITE_NETWORK_PRIMARY_ID,
+        destinationSiteId: primary,
       })
     ).toBeUndefined()
     expect(evaluateCrossSiteTransfer({})).toBeUndefined()
   })
 
-  it('continues local operation while a shared service is stale, missing, or degraded', () => {
-    expect(
-      projectLocalOperationUnderDesync({
-        siteId: MULTI_SITE_NETWORK_REMOTE_ID,
-        siteMode: 'networked',
-        sharedServiceKind: 'research',
-        sharedServiceStatus: 'stale',
-        localStaffingIntact: true,
-        localZoningIntact: true,
-      })
-    ).toMatchObject({
-      localOperationContinues: true,
-      sharedServiceUsable: false,
-      desyncActive: true,
-      unifiedLiveStateAssumed: false,
-    })
-
-    expect(
-      projectLocalOperationUnderDesync({
-        siteId: MULTI_SITE_NETWORK_REMOTE_ID,
-        siteMode: 'networked',
-        sharedServiceKind: 'classification',
-        sharedServiceStatus: 'missing',
-        localStaffingIntact: true,
-        localZoningIntact: true,
-      })
-    ).toMatchObject({
-      localOperationContinues: true,
-      sharedServiceUsable: false,
-      desyncActive: true,
-    })
-
-    expect(
-      projectLocalOperationUnderDesync({
-        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        siteMode: 'isolated',
-        sharedServiceKind: 'identity',
-        sharedServiceStatus: 'degraded',
+  it.each([
+    [
+      'stale research continues locally',
+      {
+        siteId: remote,
+        siteMode: 'networked' as const,
+        sharedServiceKind: 'research' as const,
+        sharedServiceStatus: 'stale' as const,
+        ...intactLocal,
+      },
+      {
+        localOperationContinues: true,
+        sharedServiceUsable: false,
+        desyncActive: true,
+        unifiedLiveStateAssumed: false,
+      },
+    ],
+    [
+      'missing classification continues locally',
+      {
+        siteId: remote,
+        siteMode: 'networked' as const,
+        sharedServiceKind: 'classification' as const,
+        sharedServiceStatus: 'missing' as const,
+        ...intactLocal,
+      },
+      {
+        localOperationContinues: true,
+        sharedServiceUsable: false,
+        desyncActive: true,
+      },
+    ],
+    [
+      'degraded identity stops when zoning broken',
+      {
+        siteId: primary,
+        siteMode: 'isolated' as const,
+        sharedServiceKind: 'identity' as const,
+        sharedServiceStatus: 'degraded' as const,
         localStaffingIntact: true,
         localZoningIntact: false,
-      })
-    ).toMatchObject({
-      localOperationContinues: false,
-      desyncActive: true,
-    })
-
-    expect(
-      projectLocalOperationUnderDesync({
-        siteId: MULTI_SITE_NETWORK_PRIMARY_ID,
-        siteMode: 'networked',
-        sharedServiceKind: 'logistics',
-        sharedServiceStatus: 'live',
-        localStaffingIntact: true,
-        localZoningIntact: true,
-      })
-    ).toMatchObject({
-      localOperationContinues: true,
-      sharedServiceUsable: true,
-      desyncActive: false,
-    })
+      },
+      { localOperationContinues: false, desyncActive: true },
+    ],
+    [
+      'live logistics remains usable',
+      {
+        siteId: primary,
+        siteMode: 'networked' as const,
+        sharedServiceKind: 'logistics' as const,
+        sharedServiceStatus: 'live' as const,
+        ...intactLocal,
+      },
+      {
+        localOperationContinues: true,
+        sharedServiceUsable: true,
+        desyncActive: false,
+      },
+    ],
+  ])('%s', (_label, input, expected) => {
+    expect(projectLocalOperationUnderDesync(input)).toMatchObject(expected)
   })
 })

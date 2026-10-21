@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3421](https://linear.app/spectranoir/issue/SPE-3421)                                      |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                            |
 | **Branch**        | `jamesdyedbq/spe-3421-refactor-duplicated-emergency-borrowing-access-condition`                |

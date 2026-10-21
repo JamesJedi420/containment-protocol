@@ -123,7 +123,7 @@ export function validateAuthorityContract(contract) {
 export function inspectGovernanceEvidence(input, contract = readAuthorityContract()) {
   validateAuthorityContract(contract)
   const reasons = []
-  if (!isObject(input)) return Object.freeze({ outcome: 'blocked', reasons: ['invalid-snapshot'] })
+  if (!isObject(input)) return Object.freeze({ outcome: 'blocked', reasons: Object.freeze(['invalid-snapshot']) })
   const mutationClass = input.mutationClass
   if (!CLASSES.includes(mutationClass)) reasons.push('unknown-mutation-class')
   if (input.contractVersion !== contract.policyVersion) reasons.push('version-mismatch')
@@ -146,7 +146,10 @@ export function inspectGovernanceEvidence(input, contract = readAuthorityContrac
   }
   if (mutationClass === 'read-only' && input.mutatesLinear === true) reasons.push('read-only-cannot-write')
   if (mutationClass === 'ambiguous') reasons.push('ambiguous-classification')
-  if (input.reviewRegime !== undefined || input.reviewStatus !== undefined) {
+  const hasReviewRegime = input.reviewRegime !== undefined
+  const hasReviewStatus = input.reviewStatus !== undefined
+  if (hasReviewRegime !== hasReviewStatus) reasons.push('incomplete-review-evidence')
+  if (hasReviewRegime && hasReviewStatus) {
     const regimes = contract.externalReview.regimes.map((r) => r.id)
     if (!regimes.includes(input.reviewRegime)) reasons.push('unknown-review-regime')
     if (!['approved', 'unavailable', 'approved-substitute'].includes(input.reviewStatus)) {

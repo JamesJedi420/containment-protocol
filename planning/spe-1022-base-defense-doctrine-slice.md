@@ -13,7 +13,7 @@
 **Decision:** `delegated_approve` SPE-1022  
 **Authority:** `docs/cursor-delegated-backlog-approval.md` on `origin/main` blob `c88ed2915b1a02d632ce0e9f9a45e0b0b87d1753` (main `ed175cc2`)  
 **Date:** 2026-10-20  
-**Continuation:** Hermes full-task delegation naming SPE-1022 after SPE-1023 merge (PR #4343; Linear Done). Stale handoff In Progress SPE-1021 cleared (Linear Done).
+**Continuation:** Hermes full-task delegation naming SPE-1022 after PR #4343 merged. The historical handoff incorrectly treated that merge as Linear SPE-1023 Done: PR #4343 delivered only the SPE-1013 unauthorized-enhancement domain slice (SPE-1013 remains Backlog; GitHub issue #1023 is its mirror). Linear SPE-1023 is the separate response-doctrine umbrella and remains Backlog. Stale handoff In Progress SPE-1021 cleared (Linear Done).
 
 ### Queue state
 
@@ -28,7 +28,7 @@
 | ----------- | ----------------------------------------------------------------------- |
 | SPE-1052    | Ineligible parent umbrella                                              |
 | SPE-1021    | Already Done / merged — not a pick; handoff stale only                  |
-| SPE-1023    | Already Done / merged (PR #4343)                                        |
+| SPE-1023    | Historical selection record was incorrect: PR #4343 was SPE-1013 domain-only delivery; Linear SPE-1023 response-doctrine remains Backlog and is an ineligible parent umbrella. |
 | **SPE-1022**| Hermes-named; childless; coherent one-slice AC; pure doctrine packets   |
 
 ### Decision criteria

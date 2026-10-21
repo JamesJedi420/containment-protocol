@@ -148,7 +148,13 @@ export function inspectGovernanceEvidence(input, contract = readAuthorityContrac
   if (mutationClass === 'ambiguous') reasons.push('ambiguous-classification')
   const hasReviewRegime = input.reviewRegime !== undefined
   const hasReviewStatus = input.reviewStatus !== undefined
-  if (hasReviewRegime !== hasReviewStatus) reasons.push('incomplete-review-evidence')
+  // Backlog-shape changes cannot evade the required-review default by omitting both fields.
+  // A verified existing-boundary lifecycle update need not carry unrelated PR-review evidence.
+  if (!hasReviewRegime && !hasReviewStatus && mutationClass === 'backlog-shape') {
+    reasons.push('missing-review-configuration')
+  } else if (hasReviewRegime !== hasReviewStatus) {
+    reasons.push('incomplete-review-evidence')
+  }
   if (hasReviewRegime && hasReviewStatus) {
     const regimes = contract.externalReview.regimes.map((r) => r.id)
     if (!regimes.includes(input.reviewRegime)) reasons.push('unknown-review-regime')

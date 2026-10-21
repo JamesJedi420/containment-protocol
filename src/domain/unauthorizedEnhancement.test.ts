@@ -1,11 +1,12 @@
 /**
  * Tests for Unauthorized Enhancement Layer
  *
- * SPE-1013 acceptance criteria:
- * - at least one hidden treatment changes capability/condition/vulnerability
- * - at least one beneficiary conceals, hoards, or self-doses
- * - at least one overdose/instability event emerges
- * - at least one official medical explanation remains incomplete
+ * SPE-1013 domain-behavior coverage only (not full issue acceptance):
+ * - a hidden treatment records enhanced status and active effect state
+ * - beneficiary supply behavior can conceal, hoard, or self-dose
+ * - overdose/instability events can emerge
+ * - official records can omit the parallel treatment
+ * Downstream case/investigation branching is not verified by these tests.
  */
 
 import { describe, it, expect } from 'vitest'

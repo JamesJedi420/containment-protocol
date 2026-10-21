@@ -39,6 +39,9 @@ jobs:
       - name: Verify external theme contracts
         run: npm run verify:theme-contracts
 
+      - name: Verify canonical governance contract
+        run: npm run verify:governance-contract
+
       - name: Run tests (non-watch)
         run: npm run test:run:ci
 

@@ -10,15 +10,6 @@
  * (SPE-292), or wire emergency routing (SPE-36).
  */
 
-/** Representative staff fixture used by acceptance tests. */
-export const PROXIMITY_STAFF_ID = 'staff:proximity-eval' as const
-
-/** Representative anomaly-contact zone fixture. */
-export const ANOMALY_CONTACT_ZONE_ID = 'zone:anomaly-direct-contact' as const
-
-/** Representative secure-briefing zone fixture (information-gated, low proximity). */
-export const BRIEFING_ZONE_ID = 'zone:secure-briefing' as const
-
 export const PROXIMITY_RISK_CLASSES = [
   'operationally_blind',
   'proximity_without_knowledge',
@@ -44,7 +35,6 @@ export const PROXIMITY_GATE_DENIAL_REASONS = [
   'proximity_class_insufficient',
   'strategic_essential_contact_barred',
   'information_clearance_denied',
-  'malformed_input',
 ] as const
 export type ProximityGateDenialReason = (typeof PROXIMITY_GATE_DENIAL_REASONS)[number]
 
@@ -127,6 +117,8 @@ export interface ProximityZoneEntryInput {
   readonly proximityRiskClass: ProximityRiskClass
   readonly zoneContactKind: ZoneContactKind
   readonly informationClearance: InformationClearanceDecisionInput
+  /** Caller-owned explicit information gate; physical proximity alone is sufficient otherwise. */
+  readonly requiresInformationClearance?: boolean
   /**
    * Explicit policy override allowing strategic-essential staff into a
    * direct anomaly-contact zone. Absent/false keeps the strategic bar.
@@ -140,6 +132,7 @@ export interface ProximityZoneEntryResult {
   readonly proximityRiskClass: ProximityRiskClass
   readonly zoneContactKind: ZoneContactKind
   readonly informationAllowed: boolean
+  readonly informationClearanceRequired: boolean
   readonly proximityAllowed: boolean
   readonly entryAllowed: boolean
   readonly denialReason: ProximityGateDenialReason
@@ -151,7 +144,8 @@ export interface ProximityZoneEntryResult {
 
 /**
  * Evaluate physical zone entry from proximity-risk class independently of
- * information clearance. Both surfaces must allow for entryAllowed.
+ * information clearance. Information denial blocks zone entry only when the
+ * caller explicitly requests an information-clearance gate.
  */
 export function evaluateProximityZoneEntry(
   input: unknown
@@ -162,6 +156,12 @@ export function evaluateProximityZoneEntry(
   if (!isMember(input.proximityRiskClass, PROXIMITY_RISK_CLASSES)) return undefined
   if (!isMember(input.zoneContactKind, ZONE_CONTACT_KINDS)) return undefined
   if (input.policyBreachFlag !== undefined && typeof input.policyBreachFlag !== 'boolean') {
+    return undefined
+  }
+  if (
+    input.requiresInformationClearance !== undefined &&
+    typeof input.requiresInformationClearance !== 'boolean'
+  ) {
     return undefined
   }
 
@@ -201,7 +201,8 @@ export function evaluateProximityZoneEntry(
     if (information.reasonCode) reasonCodes.push(information.reasonCode)
   }
 
-  const entryAllowed = proximityAllowed && informationAllowed
+  const informationClearanceRequired = input.requiresInformationClearance === true
+  const entryAllowed = proximityAllowed && (!informationClearanceRequired || informationAllowed)
   if (!entryAllowed && denialReason === 'none' && !informationAllowed) {
     denialReason = 'information_clearance_denied'
   }
@@ -212,6 +213,7 @@ export function evaluateProximityZoneEntry(
     proximityRiskClass: input.proximityRiskClass,
     zoneContactKind: input.zoneContactKind,
     informationAllowed,
+    informationClearanceRequired,
     proximityAllowed,
     entryAllowed,
     denialReason,
@@ -258,6 +260,21 @@ export function evaluateStrategicEssentialZoneAssignment(input: unknown):
       assignmentAllowed: false,
       denialReason: 'strategic_essential_contact_barred' as const,
       reasonCodes: Object.freeze(['strategic_essential_contact_barred'] as const),
+      policyBreachFlag,
+    })
+  }
+
+  const requiredClass = minimumClassForContact(input.zoneContactKind)
+  if (proximityRank(input.proximityRiskClass) < proximityRank(requiredClass)) {
+    return Object.freeze({
+      staffId: input.staffId.trim(),
+      zoneId: input.zoneId.trim(),
+      assignmentAllowed: false,
+      denialReason: 'proximity_class_insufficient' as const,
+      reasonCodes: Object.freeze([
+        'proximity_class_insufficient',
+        `required:${requiredClass}`,
+      ]),
       policyBreachFlag,
     })
   }

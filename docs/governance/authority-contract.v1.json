@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "1.0.0",
+  "contractId": "cp.governance.authority",
+  "status": "policy-projection-not-authority",
+  "provenance": {
+    "ownerIssue": "SPE-3269",
+    "parentIssue": "SPE-3261",
+    "classification": "linear-approved-program",
+    "higherAuthority": "current-user-approved-governance",
+    "sourceReferences": [
+      "project:Containment Protocol governance control plane",
+      "linear:SPE-3261",
+      "linear:SPE-3269"
+    ],
+    "implementationEvidenceClass": "github-implementation-evidence"
+  },
+  "sourceClasses": [
+    "current-user-approved-governance",
+    "linear-approved-boundary",
+    "github-implementation-evidence",
+    "repository-derived-projection",
+    "historical-or-external-reference"
+  ],
+  "authorityOrder": [
+    {
+      "id": "user-governance",
+      "rank": 0,
+      "sourceClass": "current-user-approved-governance",
+      "purpose": "Controls current phase gates and policy; no encoded artifact may override"
+    },
+    {
+      "id": "linear-authority",
+      "rank": 1,
+      "sourceClass": "linear-approved-boundary",
+      "purpose": "Planning, approved issue scope, lifecycle, ownership, reconciliation evidence"
+    },
+    {
+      "id": "github-evidence",
+      "rank": 2,
+      "sourceClass": "github-implementation-evidence",
+      "purpose": "Implementation/PR/test evidence only, not planning approval"
+    },
+    {
+      "id": "repository-projection",
+      "rank": 3,
+      "sourceClass": "repository-derived-projection",
+      "purpose": "Derived transport, docs and projected policies; no independent approval"
+    },
+    {
+      "id": "historical-external",
+      "rank": 4,
+      "sourceClass": "historical-or-external-reference",
+      "purpose": "Reference and candidate input, never approved scope by itself"
+    }
+  ],
+  "mutationClasses": [
+    {
+      "id": "read-only",
+      "mayWriteLinear": false,
+      "requiresPhases": [],
+      "predicate": "Pure retrieval, classification or analysis; no authority or scope mutation"
+    },
+    {
+      "id": "lifecycle-evidence",
+      "mayWriteLinear": true,
+      "requiresPhases": [],
+      "predicate": "Verified status, review or progress evidence strictly inside existing approved boundary"
+    },
+    {
+      "id": "backlog-shape",
+      "mayWriteLinear": true,
+      "requiresPhases": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4"
+      ],
+      "predicate": "New parent/child, relationship, reparent, durable scope or ownership obligation"
+    },
+    {
+      "id": "bounded-maintenance",
+      "mayWriteLinear": false,
+      "requiresPhases": [],
+      "predicate": "Explicitly authorized read-only or docs/repository maintenance with no new durable obligation"
+    },
+    {
+      "id": "ambiguous",
+      "mayWriteLinear": false,
+      "requiresPhases": [],
+      "predicate": "Missing facts or uncertain classification; fail closed and reconcile"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase-1",
+      "ordinal": 1,
+      "name": "Candidate assessment and production decomposition",
+      "approvalMarker": "APPROVE_PHASE_1",
+      "prerequisites": [],
+      "mayChangeDurableScope": false
+    },
+    {
+      "id": "phase-2",
+      "ordinal": 2,
+      "name": "Parent reconciliation",
+      "approvalMarker": "APPROVE_PHASE_2",
+      "prerequisites": [
+        "phase-1"
+      ],
+      "mayChangeDurableScope": false
+    },
+    {
+      "id": "phase-3",
+      "ordinal": 3,
+      "name": "Child/supporting-work reconciliation",
+      "approvalMarker": "APPROVE_PHASE_3",
+      "prerequisites": [
+        "phase-1",
+        "phase-2"
+      ],
+      "mayChangeDurableScope": false
+    },
+    {
+      "id": "phase-4",
+      "ordinal": 4,
+      "name": "Apply only explicitly approved changes",
+      "approvalMarker": "APPROVE_PHASE_4",
+      "prerequisites": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "mayChangeDurableScope": true
+    }
+  ],
+  "candidateDispositions": [
+    "implement",
+    "conditional",
+    "fold",
+    "hold",
+    "reject",
+    "docs-only",
+    "contradiction-check"
+  ],
+  "parentDispositions": [
+    "retain-existing-parent",
+    "select-different-existing-parent",
+    "fold-into-existing-issue",
+    "update-existing-parent",
+    "new-parent-required",
+    "multiple-parents-required",
+    "contradiction-check-first",
+    "hold-or-reject"
+  ],
+  "supportingDispositions": [
+    "already-exists",
+    "fold-verified-parent",
+    "fold-elsewhere",
+    "update-existing-issue",
+    "missing-independent-boundary",
+    "reject",
+    "docs-only",
+    "prerequisite-contradiction-check"
+  ],
+  "approvalEvidence": {
+    "unknown": "deny",
+    "missing": "deny",
+    "stale": "deny",
+    "superseded": "deny",
+    "contradictory": "deny",
+    "incomplete": "deny",
+    "valid": "eligible-for-class-specific-checks",
+    "allowOnlyWhenCurrent": true,
+    "allowScopeMutationOnlyAfter": "phase-4"
+  },
+  "maintenanceException": {
+    "explicitAuthorizationRequired": true,
+    "scopeMustBeBounded": true,
+    "mayCreateIssue": false,
+    "mayCreateChild": false,
+    "mayReparent": false,
+    "mayExpandApprovedScope": false,
+    "mayCreateDurableObligation": false,
+    "disallowedWithoutOwner": "durable-implementation"
+  },
+  "externalReview": {
+    "regimes": [
+      {
+        "id": "required",
+        "requiresIndependentReview": true,
+        "onUnavailable": "hold-or-use-previously-approved-substitute"
+      },
+      {
+        "id": "advisory",
+        "requiresIndependentReview": false,
+        "onUnavailable": "record-unavailable-do-not-infer-approval"
+      },
+      {
+        "id": "unavailable",
+        "requiresIndependentReview": false,
+        "onUnavailable": "record-unavailable-do-not-infer-approval"
+      },
+      {
+        "id": "approved-substitute",
+        "requiresIndependentReview": true,
+        "onUnavailable": "require-explicit-current-governance-evidence"
+      }
+    ],
+    "defaultRegime": "required",
+    "missingConfiguration": "deny-or-hold",
+    "automaticApprovalWhenUnavailable": false
+  },
+  "crossWorkstream": {
+    "workstreams": [
+      "cp",
+      "academy"
+    ],
+    "sharedImplementationOwnerCount": 1,
+    "ownerClasses": [
+      "cp-core-owned",
+      "academy-owned",
+      "shared-system-owned",
+      "cross-project"
+    ],
+    "noParallelImplementations": true
+  },
+  "criticalRules": [
+    {
+      "id": "CP-GOV-001",
+      "sourceClass": "current-user-approved-governance",
+      "sourceRef": "project:Containment Protocol governance control plane",
+      "semantic": "current-user-governance-overrides-encoded-contract"
+    },
+    {
+      "id": "CP-GOV-002",
+      "sourceClass": "linear-approved-boundary",
+      "sourceRef": "linear:SPE-3261",
+      "semantic": "linear-is-canonical-for-planning-lifecycle-and-ownership"
+    },
+    {
+      "id": "CP-GOV-003",
+      "sourceClass": "current-user-approved-governance",
+      "sourceRef": "project:Containment Protocol governance control plane",
+      "semantic": "scope-mutation-requires-ordered-approvals-and-phase-four"
+    },
+    {
+      "id": "CP-GOV-004",
+      "sourceClass": "current-user-approved-governance",
+      "sourceRef": "project:Containment Protocol governance control plane",
+      "semantic": "lifecycle-evidence-may-maintain-existing-approved-boundary"
+    },
+    {
+      "id": "CP-GOV-005",
+      "sourceClass": "linear-approved-boundary",
+      "sourceRef": "linear:SPE-3269",
+      "semantic": "fail-closed-for-missing-stale-superseded-or-contradictory-approvals"
+    },
+    {
+      "id": "CP-GOV-006",
+      "sourceClass": "linear-approved-boundary",
+      "sourceRef": "linear:SPE-3269",
+      "semantic": "degraded-external-review-must-not-mint-approval"
+    },
+    {
+      "id": "CP-GOV-007",
+      "sourceClass": "linear-approved-boundary",
+      "sourceRef": "linear:SPE-3269",
+      "semantic": "bounded-maintenance-cannot-create-durable-scope"
+    },
+    {
+      "id": "CP-GOV-008",
+      "sourceClass": "current-user-approved-governance",
+      "sourceRef": "project:Containment Protocol governance control plane",
+      "semantic": "one-canonical-owner-for-shared-systems"
+    }
+  ]
+}

@@ -14,6 +14,8 @@ const current = {
   approvalState: 'valid',
   approvedPhases: ['phase-1', 'phase-2', 'phase-3', 'phase-4'],
   explicitPhase4Authorization: true,
+  reviewRegime: 'required',
+  reviewStatus: 'approved',
 }
 
 test('canonical contract validates and has immutable rule identities', () => {
@@ -134,8 +136,9 @@ test('reviewer degradation is deterministic and never invents approval', () => {
     currentSubstitutionApproval: true,
   }).outcome, 'eligible-for-phase-four-revalidation')
   assert.equal(inspectGovernanceEvidence({ ...current, reviewRegime: 'random', reviewStatus: 'approved' }).outcome, 'blocked')
-  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewRegime: 'required' }).reasons, ['incomplete-review-evidence'])
-  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewStatus: 'approved' }).reasons, ['incomplete-review-evidence'])
+  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewRegime: 'required', reviewStatus: undefined }).reasons, ['incomplete-review-evidence'])
+  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewRegime: undefined, reviewStatus: 'approved' }).reasons, ['incomplete-review-evidence'])
+  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewRegime: undefined, reviewStatus: undefined }).reasons, ['missing-review-configuration'])
   assert.equal(inspectGovernanceEvidence({ ...current, reviewRegime: 'advisory', reviewStatus: 'unavailable' }).outcome, 'eligible-for-phase-four-revalidation')
 })
 

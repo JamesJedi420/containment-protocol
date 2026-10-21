@@ -1,7 +1,7 @@
 /**
  * Unauthorized Enhancement Layer
  *
- * SPE-1023: Unauthorized enhancement lifecycle
+ * SPE-1013: Unauthorized enhancement lifecycle
  *
  * Bounded unauthorized-enhancement layer so hidden treatments can improve
  * capability, create dependency, produce overdose, and collapse under exposure

@@ -134,7 +134,17 @@ test('reviewer degradation is deterministic and never invents approval', () => {
     currentSubstitutionApproval: true,
   }).outcome, 'eligible-for-phase-four-revalidation')
   assert.equal(inspectGovernanceEvidence({ ...current, reviewRegime: 'random', reviewStatus: 'approved' }).outcome, 'blocked')
+  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewRegime: 'required' }).reasons, ['incomplete-review-evidence'])
+  assert.deepEqual(inspectGovernanceEvidence({ ...current, reviewStatus: 'approved' }).reasons, ['incomplete-review-evidence'])
   assert.equal(inspectGovernanceEvidence({ ...current, reviewRegime: 'advisory', reviewStatus: 'unavailable' }).outcome, 'eligible-for-phase-four-revalidation')
+})
+
+test('invalid evidence diagnostics remain immutable and safely blocked', () => {
+  const diagnostic = inspectGovernanceEvidence(null)
+  assert.equal(diagnostic.outcome, 'blocked')
+  assert.deepEqual(diagnostic.reasons, ['invalid-snapshot'])
+  assert.equal(Object.isFrozen(diagnostic.reasons), true)
+  assert.throws(() => diagnostic.reasons.push('tamper'), TypeError)
 })
 
 test('schema rejects forged current-user policy and duplicate ownership', () => {

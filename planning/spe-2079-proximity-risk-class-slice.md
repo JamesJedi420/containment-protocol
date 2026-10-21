@@ -65,9 +65,9 @@
 Pure caller-owned proximity-risk gate in `src/domain/proximityRiskClearance.ts`:
 
 - Authored proximity-risk classes (operationally blind → strategic-essential-no-entry band)
-- Zone entry evaluated from proximity class **independently** of caller-owned information-clearance outcome
-- Strategic-essential staff cannot enter direct anomaly-contact zones unless an explicit policy-breach flag is set
-- Readable denial reason codes; fail-closed malformed input
+- Zone entry evaluated from proximity class **independently** of caller-owned information-clearance outcome; an optional caller-supplied `requiresInformationClearance` flag gates entry by read-in only for explicitly information-restricted zones
+- Assignment uses the same proximity-class minimum as entry, with strategic-essential staff barred from direct anomaly-contact zones unless an explicit policy-breach flag is set
+- Readable denial reason codes; malformed packets fail closed as `undefined` (not a fabricated denial result); test fixture identifiers remain in tests
 - No GameState, week-close, facility zone packet schema (SPE-292), or emergency routing (SPE-36)
 
 ## Deferred

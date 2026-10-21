@@ -1,7 +1,7 @@
 /**
  * Tests for Unauthorized Enhancement Layer
  *
- * SPE-1023 acceptance criteria:
+ * SPE-1013 acceptance criteria:
  * - at least one hidden treatment changes capability/condition/vulnerability
  * - at least one beneficiary conceals, hoards, or self-doses
  * - at least one overdose/instability event emerges

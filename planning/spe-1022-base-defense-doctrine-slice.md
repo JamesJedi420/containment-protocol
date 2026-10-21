@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                    |
+| **Status**        | **Recently shipped**                                                               |
 | **Issue**         | [SPE-1022](https://linear.app/spectranoir/issue/SPE-1022)                          |
 | **Parent**        | none (related to SPE-1052 facility program; Linear parent unset)                   |
 | **Branch**        | `jamesdyedbq/spe-1022-base-defense-doctrine-and-threat-class-coverage-matrix`       |

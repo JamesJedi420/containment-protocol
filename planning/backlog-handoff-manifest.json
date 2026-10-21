@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-1022"],
+  "inProgress": ["SPE-3421"],
   "recentlyShipped": [
+    "SPE-1022",
     "SPE-1023",
     "SPE-1021",
     "SPE-1020",
@@ -44,7 +45,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-1022-base-defense-doctrine-slice.md": "In progress",
+    "planning/spe-3421-emergency-borrowing-access-dedupe-slice.md": "In progress",
+    "planning/spe-1022-base-defense-doctrine-slice.md": "Recently shipped",
     "planning/spe-1021-facility-automation-reset-slice.md": "Recently shipped",
     "planning/spe-1020-multi-site-facility-network-slice.md": "Recently shipped",
     "planning/spe-1015-hostile-facility-actuator-slice.md": "Recently shipped",

@@ -68,6 +68,22 @@ function freezeStrings(values: readonly string[]): readonly string[] {
   return Object.freeze([...values])
 }
 
+/**
+ * Validate allowlisted access conditions and dedupe while preserving first-seen order.
+ * Returns undefined when any entry is outside the authored allowlist.
+ */
+function parseAccessConditions(
+  value: unknown
+): EmergencyBorrowingAccessCondition[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const accessConditions: EmergencyBorrowingAccessCondition[] = []
+  for (const condition of value) {
+    if (!isMember(condition, EMERGENCY_BORROWING_ACCESS_CONDITIONS)) return undefined
+    if (!accessConditions.includes(condition)) accessConditions.push(condition)
+  }
+  return accessConditions
+}
+
 export interface EmergencyBorrowingAccessInput {
   readonly facilityId: string
   readonly branchId: string
@@ -105,13 +121,9 @@ export function evaluateEmergencyBorrowingAccess(
   if (typeof input.disclosedStrain !== 'boolean') return undefined
   if (!isMember(input.reserveClass, EMERGENCY_RESERVE_CLASSES)) return undefined
   if (typeof input.centerReserveAvailable !== 'boolean') return undefined
-  if (!Array.isArray(input.accessConditions)) return undefined
 
-  const accessConditions: EmergencyBorrowingAccessCondition[] = []
-  for (const condition of input.accessConditions) {
-    if (!isMember(condition, EMERGENCY_BORROWING_ACCESS_CONDITIONS)) return undefined
-    if (!accessConditions.includes(condition)) accessConditions.push(condition)
-  }
+  const accessConditions = parseAccessConditions(input.accessConditions)
+  if (!accessConditions) return undefined
 
   let refusalReason: EmergencyBorrowingAccessResult['refusalReason'] = null
   if (!input.underStrain) {
@@ -204,13 +216,9 @@ export function projectBorrowingLaterCost(
   if (!isNonEmptyString(input.eventId)) return undefined
   if (!isMember(input.disposition, EMERGENCY_BORROWING_DISPOSITIONS)) return undefined
   if (typeof input.temporarySupportReceived !== 'boolean') return undefined
-  if (!Array.isArray(input.accessConditions)) return undefined
 
-  const accessConditions: EmergencyBorrowingAccessCondition[] = []
-  for (const condition of input.accessConditions) {
-    if (!isMember(condition, EMERGENCY_BORROWING_ACCESS_CONDITIONS)) return undefined
-    if (!accessConditions.includes(condition)) accessConditions.push(condition)
-  }
+  const accessConditions = parseAccessConditions(input.accessConditions)
+  if (!accessConditions) return undefined
 
   if (!input.temporarySupportReceived || input.disposition !== 'granted') {
     return Object.freeze({

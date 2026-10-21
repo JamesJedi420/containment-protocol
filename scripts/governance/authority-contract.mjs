@@ -14,6 +14,7 @@ const nonblank = (value) => typeof value === 'string' && value.trim() !== ''
 const assert = (condition, message) => {
   if (!condition) throw new Error('governance-contract: ' + message)
 }
+const sortedKeys = (keys) => [...keys].sort((a, b) => a.localeCompare(b))
 const IDS = ['phase-1', 'phase-2', 'phase-3', 'phase-4']
 const CLASSES = ['read-only', 'lifecycle-evidence', 'backlog-shape', 'bounded-maintenance', 'ambiguous']
 const SOURCE_CLASSES = [
@@ -24,6 +25,7 @@ const SOURCE_CLASSES = [
   'historical-or-external-reference',
 ]
 const STATUS = ['unknown', 'missing', 'stale', 'superseded', 'contradictory', 'incomplete']
+const REVIEW_STATUSES = ['approved', 'unavailable', 'approved-substitute']
 const provenancePrefix = {
   'current-user-approved-governance': 'project:',
   'linear-approved-boundary': 'linear:',
@@ -31,36 +33,35 @@ const provenancePrefix = {
   'repository-derived-projection': 'repository:',
   'historical-or-external-reference': 'reference:',
 }
+const TOP_LEVEL_KEYS = [
+  'schemaVersion', 'policyVersion', 'contractId', 'status', 'provenance',
+  'sourceClasses', 'authorityOrder', 'mutationClasses', 'phases',
+  'candidateDispositions', 'parentDispositions', 'supportingDispositions',
+  'approvalEvidence', 'maintenanceException', 'externalReview',
+  'crossWorkstream', 'criticalRules',
+]
 
 export function readAuthorityContract() {
   return JSON.parse(fs.readFileSync(fileURLToPath(policyUrl), 'utf8'))
 }
 
-/** Reject missing/unknown critical policy semantics before any consumer uses the snapshot. */
-export function validateAuthorityContract(contract) {
-  assert(isObject(contract), 'contract must be an object')
-  const keys = [
-    'schemaVersion', 'policyVersion', 'contractId', 'status', 'provenance',
-    'sourceClasses', 'authorityOrder', 'mutationClasses', 'phases',
-    'candidateDispositions', 'parentDispositions', 'supportingDispositions',
-    'approvalEvidence', 'maintenanceException', 'externalReview',
-    'crossWorkstream', 'criticalRules',
-  ]
-  assert(exact(Object.keys(contract).sort(), [...keys].sort()), 'unknown or missing top-level fields')
-  assert(contract.schemaVersion === 1, 'unsupported schema version')
-  assert(/^1\.0\.\d+$/.test(contract.policyVersion), 'unsupported policy version')
-  assert(contract.contractId === 'cp.governance.authority', 'unknown contract id')
-  assert(contract.status === 'policy-projection-not-authority', 'contract must not claim independent authority')
+function assertProvenance(contract) {
   assert(isObject(contract.provenance), 'missing provenance')
   assert(contract.provenance.classification === 'linear-approved-program', 'unknown provenance classification')
   assert(contract.provenance.higherAuthority === 'current-user-approved-governance', 'user governance must outrank contract')
   assert(contract.provenance.ownerIssue === 'SPE-3269' && contract.provenance.parentIssue === 'SPE-3261', 'canonical implementation owner mismatch')
+}
+
+function assertAuthorityOrder(contract) {
   assert(exact(contract.sourceClasses, SOURCE_CLASSES), 'source classes must retain precedence and identity')
   assert(Array.isArray(contract.authorityOrder) && contract.authorityOrder.length === 5, 'authority order incomplete')
   assert(unique(contract.authorityOrder.map((item) => item.id)), 'duplicate authority id')
   assert(exact(contract.authorityOrder.map((item) => item.rank), [0, 1, 2, 3, 4]), 'authority order reordered or duplicated')
   assert(exact(contract.authorityOrder.map((item) => item.sourceClass), SOURCE_CLASSES), 'authority class precedence invalid')
   assert(contract.authorityOrder.every((item) => nonblank(item.purpose)), 'authority purposes required')
+}
+
+function assertMutationClasses(contract) {
   assert(Array.isArray(contract.mutationClasses), 'missing mutation classes')
   assert(exact(contract.mutationClasses.map((item) => item.id), CLASSES), 'unknown/missing mutation class')
   assert(contract.mutationClasses.every((item) =>
@@ -70,6 +71,9 @@ export function validateAuthorityContract(contract) {
   assert(!readOnly.mayWriteLinear && !maintenance.mayWriteLinear && !ambiguous.mayWriteLinear, 'non-writing classes cannot write')
   assert(lifecycle.mayWriteLinear && lifecycle.requiresPhases.length === 0, 'lifecycle maintenance distinct from scope mutation')
   assert(shape.mayWriteLinear && exact(shape.requiresPhases, IDS), 'scope mutation must require all phases')
+}
+
+function assertPhases(contract) {
   assert(Array.isArray(contract.phases) && exact(contract.phases.map((item) => item.id), IDS), 'invalid phase order')
   contract.phases.forEach((item, index) => {
     assert(item.ordinal === index + 1 && nonblank(item.name), 'invalid phase ordinal/name')
@@ -77,32 +81,50 @@ export function validateAuthorityContract(contract) {
     assert(exact(item.prerequisites, IDS.slice(0, index)), 'phase prerequisites must be sequential')
     assert(item.mayChangeDurableScope === (index === 3), 'only Phase 4 may apply approved scope')
   })
-  for (const field of ['candidateDispositions','parentDispositions','supportingDispositions']) {
+}
+
+function assertDispositions(contract) {
+  for (const field of ['candidateDispositions', 'parentDispositions', 'supportingDispositions']) {
     const items = contract[field]
     assert(Array.isArray(items) && items.length > 0 && items.every(nonblank) && unique(items), field + ' missing/duplicate disposition')
   }
+}
+
+function assertApprovalEvidence(contract) {
   const ae = contract.approvalEvidence
   assert(isObject(ae) && ae.allowOnlyWhenCurrent === true && ae.allowScopeMutationOnlyAfter === 'phase-4', 'approval evidence semantics incomplete')
   for (const state of STATUS) assert(ae[state] === 'deny', 'noncurrent approval must deny: ' + state)
   assert(ae.valid === 'eligible-for-class-specific-checks', 'valid approval cannot imply unconditional allow')
+}
+
+function assertMaintenanceException(contract) {
   const maintenancePolicy = contract.maintenanceException
   assert(isObject(maintenancePolicy) && maintenancePolicy.explicitAuthorizationRequired === true && maintenancePolicy.scopeMustBeBounded === true, 'maintenance needs explicit bounded authority')
-  for (const field of ['mayCreateIssue','mayCreateChild','mayReparent','mayExpandApprovedScope','mayCreateDurableObligation']) {
+  for (const field of ['mayCreateIssue', 'mayCreateChild', 'mayReparent', 'mayExpandApprovedScope', 'mayCreateDurableObligation']) {
     assert(maintenancePolicy[field] === false, 'maintenance cannot create durable scope: ' + field)
   }
   assert(maintenancePolicy.disallowedWithoutOwner === 'durable-implementation', 'unknown maintenance misuse rule')
+}
+
+function assertExternalReview(contract) {
   const review = contract.externalReview
   assert(isObject(review) && review.defaultRegime === 'required' &&
     review.missingConfiguration === 'deny-or-hold' &&
     review.automaticApprovalWhenUnavailable === false, 'external review defaults must fail closed')
   assert(exact(review.regimes.map((item) => item.id),
-    ['required','advisory','unavailable','approved-substitute']), 'review regime incomplete/unknown')
+    ['required', 'advisory', 'unavailable', 'approved-substitute']), 'review regime incomplete/unknown')
   assert(review.regimes.every((item) => typeof item.requiresIndependentReview === 'boolean' && nonblank(item.onUnavailable)), 'review regime semantics missing')
+}
+
+function assertCrossWorkstream(contract) {
   const cross = contract.crossWorkstream
   assert(isObject(cross) && exact(cross.workstreams, ['cp', 'academy']) &&
     cross.sharedImplementationOwnerCount === 1 && cross.noParallelImplementations === true, 'canonical workstream ownership missing')
   assert(exact(cross.ownerClasses,
-    ['cp-core-owned','academy-owned','shared-system-owned','cross-project']), 'workstream classifications incomplete')
+    ['cp-core-owned', 'academy-owned', 'shared-system-owned', 'cross-project']), 'workstream classifications incomplete')
+}
+
+function assertCriticalRules(contract) {
   assert(Array.isArray(contract.criticalRules) && contract.criticalRules.length >= 8, 'critical rules incomplete')
   assert(unique(contract.criticalRules.map((r) => r.id)), 'duplicate critical rule id')
   for (const rule of contract.criticalRules) {
@@ -113,23 +135,32 @@ export function validateAuthorityContract(contract) {
   }
   assert(contract.criticalRules.some((r) => r.semantic === 'current-user-governance-overrides-encoded-contract'),
     'missing critical user authority invariant')
+}
+
+/** Reject missing/unknown critical policy semantics before any consumer uses the snapshot. */
+export function validateAuthorityContract(contract) {
+  assert(isObject(contract), 'contract must be an object')
+  assert(exact(sortedKeys(Object.keys(contract)), sortedKeys(TOP_LEVEL_KEYS)), 'unknown or missing top-level fields')
+  assert(contract.schemaVersion === 1, 'unsupported schema version')
+  assert(/^1\.0\.\d+$/.test(contract.policyVersion), 'unsupported policy version')
+  assert(contract.contractId === 'cp.governance.authority', 'unknown contract id')
+  assert(contract.status === 'policy-projection-not-authority', 'contract must not claim independent authority')
+  assertProvenance(contract)
+  assertAuthorityOrder(contract)
+  assertMutationClasses(contract)
+  assertPhases(contract)
+  assertDispositions(contract)
+  assertApprovalEvidence(contract)
+  assertMaintenanceException(contract)
+  assertExternalReview(contract)
+  assertCrossWorkstream(contract)
+  assertCriticalRules(contract)
   return true
 }
 
-/**
- * Read-only diagnostic for downstream mutation guard (SPE-3272). Not a write token:
- * allow-like outcomes are merely candidate evidence requiring source revalidation.
- */
-export function inspectGovernanceEvidence(input, contract = readAuthorityContract()) {
-  validateAuthorityContract(contract)
-  const reasons = []
-  if (!isObject(input)) return Object.freeze({ outcome: 'blocked', reasons: Object.freeze(['invalid-snapshot']) })
+function collectMutationReasons(input, reasons) {
   const mutationClass = input.mutationClass
   if (!CLASSES.includes(mutationClass)) reasons.push('unknown-mutation-class')
-  if (input.contractVersion !== contract.policyVersion) reasons.push('version-mismatch')
-  if (!['valid', ...STATUS].includes(input.approvalState)) reasons.push('unknown-approval-state')
-  else if (input.approvalState !== 'valid') reasons.push('approval-' + input.approvalState)
-
   if (mutationClass === 'backlog-shape') {
     if (!Array.isArray(input.approvedPhases) || !exact(input.approvedPhases, IDS)) {
       reasons.push('ordered-approval-evidence-required')
@@ -146,33 +177,61 @@ export function inspectGovernanceEvidence(input, contract = readAuthorityContrac
   }
   if (mutationClass === 'read-only' && input.mutatesLinear === true) reasons.push('read-only-cannot-write')
   if (mutationClass === 'ambiguous') reasons.push('ambiguous-classification')
+}
+
+function collectReviewReasons(input, contract, reasons) {
   const hasReviewRegime = input.reviewRegime !== undefined
   const hasReviewStatus = input.reviewStatus !== undefined
   // Backlog-shape changes cannot evade the required-review default by omitting both fields.
   // A verified existing-boundary lifecycle update need not carry unrelated PR-review evidence.
-  if (!hasReviewRegime && !hasReviewStatus && mutationClass === 'backlog-shape') {
+  if (!hasReviewRegime && !hasReviewStatus && input.mutationClass === 'backlog-shape') {
     reasons.push('missing-review-configuration')
-  } else if (hasReviewRegime !== hasReviewStatus) {
+    return
+  }
+  if (hasReviewRegime !== hasReviewStatus) {
     reasons.push('incomplete-review-evidence')
+    return
   }
-  if (hasReviewRegime && hasReviewStatus) {
-    const regimes = contract.externalReview.regimes.map((r) => r.id)
-    if (!regimes.includes(input.reviewRegime)) reasons.push('unknown-review-regime')
-    if (!['approved', 'unavailable', 'approved-substitute'].includes(input.reviewStatus)) {
-      reasons.push('unknown-review-status')
-    } else if (input.reviewRegime === 'required' && input.reviewStatus !== 'approved') {
-      reasons.push('required-review-missing')
-    } else if (input.reviewRegime === 'approved-substitute' &&
-      !(input.reviewStatus === 'approved-substitute' && input.currentSubstitutionApproval === true)) {
-      reasons.push('substitute-review-evidence-missing')
-    }
+  if (!hasReviewRegime || !hasReviewStatus) return
+
+  const regimes = contract.externalReview.regimes.map((r) => r.id)
+  if (!regimes.includes(input.reviewRegime)) reasons.push('unknown-review-regime')
+  if (!REVIEW_STATUSES.includes(input.reviewStatus)) {
+    reasons.push('unknown-review-status')
+    return
   }
-  const outcome = reasons.length
-    ? 'blocked'
-    : mutationClass === 'backlog-shape'
-      ? 'eligible-for-phase-four-revalidation'
-      : mutationClass === 'lifecycle-evidence'
-        ? 'eligible-for-lifecycle-revalidation'
-        : 'read-only-or-maintenance'
-  return Object.freeze({ outcome, reasons: Object.freeze(reasons) })
+  if (input.reviewRegime === 'required' && input.reviewStatus !== 'approved') {
+    reasons.push('required-review-missing')
+    return
+  }
+  if (input.reviewRegime === 'approved-substitute' &&
+    !(input.reviewStatus === 'approved-substitute' && input.currentSubstitutionApproval === true)) {
+    reasons.push('substitute-review-evidence-missing')
+  }
+}
+
+function diagnoseOutcome(mutationClass, reasons) {
+  if (reasons.length) return 'blocked'
+  if (mutationClass === 'backlog-shape') return 'eligible-for-phase-four-revalidation'
+  if (mutationClass === 'lifecycle-evidence') return 'eligible-for-lifecycle-revalidation'
+  return 'read-only-or-maintenance'
+}
+
+/**
+ * Read-only diagnostic for downstream mutation guard (SPE-3272). Not a write token:
+ * allow-like outcomes are merely candidate evidence requiring source revalidation.
+ */
+export function inspectGovernanceEvidence(input, contract = readAuthorityContract()) {
+  validateAuthorityContract(contract)
+  const reasons = []
+  if (!isObject(input)) return Object.freeze({ outcome: 'blocked', reasons: Object.freeze(['invalid-snapshot']) })
+  if (input.contractVersion !== contract.policyVersion) reasons.push('version-mismatch')
+  if (!['valid', ...STATUS].includes(input.approvalState)) reasons.push('unknown-approval-state')
+  else if (input.approvalState !== 'valid') reasons.push('approval-' + input.approvalState)
+  collectMutationReasons(input, reasons)
+  collectReviewReasons(input, contract, reasons)
+  return Object.freeze({
+    outcome: diagnoseOutcome(input.mutationClass, reasons),
+    reasons: Object.freeze(reasons),
+  })
 }

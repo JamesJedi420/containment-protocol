@@ -60,7 +60,7 @@ function classification(mutation) {
     if (mutation.kind === 'issue.comment' &&
         !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.body))) return null
     if (mutation.kind === 'issue.status' &&
-        !(Object.keys(mutation.payload).length === 1 && nonblank(submitted.payload.toStatus))) return null
+        !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.toStatus))) return null
     return 'lifecycle-evidence'
   }
   if (SCOPE.has(mutation.kind)) {
@@ -137,7 +137,7 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
       return blocked('lifecycle-evidence-outside-approved-boundary')
     }
     if (submitted.kind === 'issue.status' &&
-        ((/^(done|completed)$/i).test(mutation.payload.toStatus) && snapshot.fullAcceptanceVerified !== true ||
+        ((/^(done|completed)$/i).test(submitted.payload.toStatus) && snapshot.fullAcceptanceVerified !== true ||
          snapshot.statusTransitionVerified !== true ||
          (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true) ||
          snapshot.reopensTerminalBoundary === true)) {

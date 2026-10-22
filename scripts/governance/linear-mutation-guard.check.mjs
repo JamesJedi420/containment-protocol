@@ -36,6 +36,8 @@ const resolver = (mutation, changes) => async (request) => {
   assert.equal(request.issueId, mutation.issueId ?? null)
   assert.equal(request.projectId, mutation.projectId ?? null)
   assert.equal(request.mutationDigest, linearMutationDigest(mutation))
+  assert.equal(Object.isFrozen(request.payload), true)
+  assert.deepEqual(request.payload, mutation.payload)
   return authority(mutation, changes)
 }
 
@@ -49,6 +51,22 @@ test('canonical digest binds authorization to exact request fields and content',
   assert.notEqual(linearMutationDigest(shape), linearMutationDigest({ ...shape, payload: { description: 'Altered' } }))
   assert.equal((await authorizeLinearMutation(shape, resolver(shape, { approvedMutationDigest: 'wrong' }))).allowed, false)
   assert.equal((await authorizeLinearMutation(shape, resolver(shape, { mutationDigest: 'wrong' }))).allowed, false)
+})
+
+test('trusted resolver sees the exact immutable lifecycle payload, not only a one-way digest', async () => {
+  const proposed = { kind: 'issue.comment', issueId: 'SPE-3272',
+    payload: { body: 'Verified evidence without scope expansion.' } }
+  let checked = false
+  const decision = await authorizeLinearMutation(proposed, async (request) => {
+    checked = true
+    assert.equal(request.kind, 'issue.comment')
+    assert.deepEqual(request.payload, proposed.payload)
+    assert.equal(Object.isFrozen(request.payload), true)
+    assert.equal(request.mutationDigest, linearMutationDigest(proposed))
+    return authority(proposed, { contentReviewedWithinBoundary: request.payload.body.includes('scope expansion.') })
+  })
+  assert.equal(checked, true)
+  assert.equal(decision.allowed, true)
 })
 
 test('lifecycle maintenance passes only for verified current within-boundary work', async () => {

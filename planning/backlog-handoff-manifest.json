@@ -49,6 +49,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-292-facility-zoning-lockdown-slice.md": "In progress",
     "planning/spe-3269-canonical-governance-contract-slice.md": "Recently shipped",
     "planning/spe-2079-proximity-risk-class-slice.md": "Recently shipped",
     "planning/spe-3421-emergency-borrowing-access-dedupe-slice.md": "Recently shipped",

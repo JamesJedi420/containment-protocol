@@ -6,8 +6,8 @@
  * knowledge, and strategic-essential staff may be barred from anomaly zones
  * despite high clearance.
  *
- * This module does not persist GameState, author full facility zone packets
- * (SPE-292), or wire emergency routing (SPE-36).
+ * This module does not persist GameState, author facility zoning / lockdown
+ * packets (SPE-292 `facilityZoningLockdown`), or wire emergency routing (SPE-36).
  */
 
 export const PROXIMITY_RISK_CLASSES = [

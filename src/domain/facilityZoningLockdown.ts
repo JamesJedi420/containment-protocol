@@ -281,6 +281,24 @@ export interface OperationalZonePacket {
   readonly contiguousGroupId: string | undefined
 }
 
+function optionalEnumOrDefault<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T
+): T | undefined {
+  if (value === undefined) return fallback
+  return isMember(value, allowed) ? value : undefined
+}
+
+function optionalTrimmedId(value: unknown): string | undefined | 'invalid' {
+  if (value === undefined) return undefined
+  return isNonEmptyString(value) ? value.trim() : 'invalid'
+}
+
+function defaultHazardIsolated(zoneFunction: OperationalZoneFunction): boolean {
+  return zoneFunction === 'hazard_test' || zoneFunction === 'deep_vault'
+}
+
 /** Normalize one reusable operational zone packet. Malformed input → undefined. */
 export function projectOperationalZonePacket(
   input: unknown
@@ -289,55 +307,45 @@ export function projectOperationalZonePacket(
   if (!isNonEmptyString(input.zoneId)) return undefined
   if (!isMember(input.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return undefined
 
-  const minimumAccessBand =
-    input.minimumAccessBand === undefined
-      ? defaultMinimumAccess(input.zoneFunction)
-      : isMember(input.minimumAccessBand, FACILITY_ACCESS_BANDS)
-        ? input.minimumAccessBand
-        : undefined
-  if (minimumAccessBand === undefined) return undefined
-
-  const riskBand =
-    input.riskBand === undefined
-      ? defaultRisk(input.zoneFunction)
-      : isMember(input.riskBand, ZONE_RISK_BANDS)
-        ? input.riskBand
-        : undefined
-  if (riskBand === undefined) return undefined
+  const minimumAccessBand = optionalEnumOrDefault(
+    input.minimumAccessBand,
+    FACILITY_ACCESS_BANDS,
+    defaultMinimumAccess(input.zoneFunction)
+  )
+  const riskBand = optionalEnumOrDefault(
+    input.riskBand,
+    ZONE_RISK_BANDS,
+    defaultRisk(input.zoneFunction)
+  )
+  const baselineCirculation = optionalEnumOrDefault(
+    input.baselineCirculation,
+    ZONE_CIRCULATION_MODES,
+    defaultCirculation(input.zoneFunction)
+  )
+  const baselineActivityPolicy = optionalEnumOrDefault(
+    input.baselineActivityPolicy,
+    ZONE_ACTIVITY_POLICIES,
+    defaultActivity(input.zoneFunction)
+  )
+  if (
+    minimumAccessBand === undefined ||
+    riskBand === undefined ||
+    baselineCirculation === undefined ||
+    baselineActivityPolicy === undefined
+  ) {
+    return undefined
+  }
 
   if (input.hazardIsolated !== undefined && typeof input.hazardIsolated !== 'boolean') {
     return undefined
   }
   const hazardIsolated =
     input.hazardIsolated === undefined
-      ? input.zoneFunction === 'hazard_test' || input.zoneFunction === 'deep_vault'
+      ? defaultHazardIsolated(input.zoneFunction)
       : input.hazardIsolated
 
-  const baselineCirculation =
-    input.baselineCirculation === undefined
-      ? defaultCirculation(input.zoneFunction)
-      : isMember(input.baselineCirculation, ZONE_CIRCULATION_MODES)
-        ? input.baselineCirculation
-        : undefined
-  if (baselineCirculation === undefined) return undefined
-
-  const baselineActivityPolicy =
-    input.baselineActivityPolicy === undefined
-      ? defaultActivity(input.zoneFunction)
-      : isMember(input.baselineActivityPolicy, ZONE_ACTIVITY_POLICIES)
-        ? input.baselineActivityPolicy
-        : undefined
-  if (baselineActivityPolicy === undefined) return undefined
-
-  const contiguousGroupId =
-    input.contiguousGroupId === undefined
-      ? undefined
-      : isNonEmptyString(input.contiguousGroupId)
-        ? input.contiguousGroupId.trim()
-        : undefined
-  if (input.contiguousGroupId !== undefined && contiguousGroupId === undefined) {
-    return undefined
-  }
+  const contiguousGroupId = optionalTrimmedId(input.contiguousGroupId)
+  if (contiguousGroupId === 'invalid') return undefined
 
   return Object.freeze({
     zoneId: input.zoneId.trim(),
@@ -430,7 +438,9 @@ export function projectFacilityZoningModel(
   })
 
   const distinctFunctions = Object.freeze(
-    [...new Set(zones.map((zone) => zone.zoneFunction))].sort()
+    [...new Set(zones.map((zone) => zone.zoneFunction))].sort((left, right) =>
+      left.localeCompare(right)
+    )
   ) as readonly OperationalZoneFunction[]
 
   const accessBands = new Set(zones.map((zone) => zone.minimumAccessBand))
@@ -491,13 +501,45 @@ export interface ZoneAccessEvaluation {
   readonly hazardIsolated: boolean
 }
 
+function parseEffectiveZoneInput(zone: unknown): EffectiveZoneState | undefined {
+  if (!isRecord(zone)) return undefined
+  if (!isNonEmptyString(zone.zoneId)) return undefined
+  if (!isMember(zone.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return undefined
+  if (!isMember(zone.minimumAccessBand, FACILITY_ACCESS_BANDS)) return undefined
+  if (!isMember(zone.riskBand, ZONE_RISK_BANDS)) return undefined
+  if (typeof zone.hazardIsolated !== 'boolean') return undefined
+  if (!isMember(zone.alarmState, ZONE_ALARM_STATES)) return undefined
+  if (!isMember(zone.circulationMode, ZONE_CIRCULATION_MODES)) return undefined
+  if (!isMember(zone.activityPolicy, ZONE_ACTIVITY_POLICIES)) return undefined
+  return zone as EffectiveZoneState
+}
+
+function accessDenialForActor(
+  actorBand: FacilityAccessBand,
+  zone: EffectiveZoneState
+): { readonly reason: ZoneAccessDenialReason; readonly codes: readonly string[] } | undefined {
+  const actorRank = accessRank(actorBand)
+  if (zone.hazardIsolated && actorRank < accessRank('operate')) {
+    return {
+      reason: 'hazard_isolation_blocks_entry',
+      codes: ['hazard_isolation_blocks_entry'],
+    }
+  }
+  if (actorRank < accessRank(zone.minimumAccessBand)) {
+    return {
+      reason: 'access_band_insufficient',
+      codes: ['access_band_insufficient', `required:${zone.minimumAccessBand}`],
+    }
+  }
+  return undefined
+}
+
 /** Evaluate zone access bands, optional circulation, and optional activity policy. */
 export function evaluateZoneAccess(input: unknown): ZoneAccessEvaluation | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!isNonEmptyString(input.actorId)) return undefined
   if (!isMember(input.actorAccessBand, FACILITY_ACCESS_BANDS)) return undefined
-  if (!isRecord(input.zone)) return undefined
   if (
     input.evaluateCirculation !== undefined &&
     typeof input.evaluateCirculation !== 'boolean'
@@ -508,39 +550,26 @@ export function evaluateZoneAccess(input: unknown): ZoneAccessEvaluation | undef
     return undefined
   }
 
-  const zone = input.zone as Record<string, unknown>
-  if (!isNonEmptyString(zone.zoneId)) return undefined
-  if (!isMember(zone.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return undefined
-  if (!isMember(zone.minimumAccessBand, FACILITY_ACCESS_BANDS)) return undefined
-  if (!isMember(zone.riskBand, ZONE_RISK_BANDS)) return undefined
-  if (typeof zone.hazardIsolated !== 'boolean') return undefined
-  if (!isMember(zone.alarmState, ZONE_ALARM_STATES)) return undefined
-  if (!isMember(zone.circulationMode, ZONE_CIRCULATION_MODES)) return undefined
-  if (!isMember(zone.activityPolicy, ZONE_ACTIVITY_POLICIES)) return undefined
+  const zone = parseEffectiveZoneInput(input.zone)
+  if (!zone) return undefined
 
   const evaluateCirculation = input.evaluateCirculation !== false
   const evaluateActivity = input.evaluateActivity === true
   const reasonCodes: string[] = []
   let denialReason: ZoneAccessDenialReason = 'none'
   let accessAllowed = true
-  const actorRank = accessRank(input.actorAccessBand)
 
-  // Hazard isolation raises the floor to operate even when authored minimum is lower.
-  if (zone.hazardIsolated && actorRank < accessRank('operate')) {
+  const accessDenial = accessDenialForActor(input.actorAccessBand, zone)
+  if (accessDenial) {
     accessAllowed = false
-    denialReason = 'hazard_isolation_blocks_entry'
-    reasonCodes.push('hazard_isolation_blocks_entry')
-  } else if (actorRank < accessRank(zone.minimumAccessBand)) {
-    accessAllowed = false
-    denialReason = 'access_band_insufficient'
-    reasonCodes.push('access_band_insufficient')
-    reasonCodes.push(`required:${zone.minimumAccessBand}`)
+    denialReason = accessDenial.reason
+    reasonCodes.push(...accessDenial.codes)
   }
 
   if (accessAllowed && evaluateCirculation) {
     const circulationDenial = circulationDenialForMode(
       zone.circulationMode,
-      actorRank
+      accessRank(input.actorAccessBand)
     )
     if (circulationDenial) {
       accessAllowed = false

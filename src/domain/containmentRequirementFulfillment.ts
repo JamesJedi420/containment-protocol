@@ -30,7 +30,6 @@ export type InputServiceClass = (typeof INPUT_SERVICE_CLASSES)[number]
 export const REQUIREMENT_STATES = [
   'pending',
   'satisfied',
-  'overdue',
   'deficient',
 ] as const
 export type RequirementState = (typeof REQUIREMENT_STATES)[number]
@@ -145,7 +144,7 @@ function parseConstraints(
   value: unknown
 ): ContainmentRequirementDefinition['constraints'] | 'invalid' {
   if (value === undefined) {
-    return { noveltyRequired: false }
+    return Object.freeze({ noveltyRequired: false })
   }
   if (!isRecord(value)) return 'invalid'
   const quantityMin =
@@ -161,11 +160,11 @@ function parseConstraints(
   if (value.freshnessMaxAgeWeeks !== undefined && freshnessMaxAgeWeeks === undefined) {
     return 'invalid'
   }
-  const noveltyRequired =
-    value.noveltyRequired === undefined ? false : value.noveltyRequired === true
   if (value.noveltyRequired !== undefined && typeof value.noveltyRequired !== 'boolean') {
     return 'invalid'
   }
+  const noveltyRequired =
+    value.noveltyRequired === undefined ? false : value.noveltyRequired === true
   const repetitionMaxPerWindow =
     value.repetitionMaxPerWindow === undefined
       ? undefined
@@ -235,16 +234,16 @@ export function projectContainmentRequirementDefinition(
   if (typeof input.createsWork !== 'boolean') return undefined
   const constraints = parseConstraints(input.constraints)
   if (constraints === 'invalid') return undefined
-  const allowsRecoveryAfterDeficiency =
-    input.allowsRecoveryAfterDeficiency === undefined
-      ? false
-      : input.allowsRecoveryAfterDeficiency === true
   if (
     input.allowsRecoveryAfterDeficiency !== undefined &&
     typeof input.allowsRecoveryAfterDeficiency !== 'boolean'
   ) {
     return undefined
   }
+  const allowsRecoveryAfterDeficiency =
+    input.allowsRecoveryAfterDeficiency === undefined
+      ? false
+      : input.allowsRecoveryAfterDeficiency === true
 
   return Object.freeze({
     requirementId: input.requirementId.trim(),
@@ -310,6 +309,20 @@ export function hydrateContainmentRequirementState(
     if (!isNonEmptyString(input.lastFulfillmentInputRef)) return undefined
     lastFulfillmentInputRef = input.lastFulfillmentInputRef.trim()
   }
+  // Persisted lifecycle, idempotency markers, and fulfillment evidence must
+  // agree; never let a contradictory save replay a completed window.
+  const currentWasFulfilled = fulfilledWindowIds.includes(currentWindow.windowId)
+  if ((input.state === 'satisfied') !== currentWasFulfilled) return undefined
+  const lastMetadataComplete =
+    lastFulfillmentRef !== undefined &&
+    lastFulfillmentWeek !== undefined &&
+    lastFulfillmentInputRef !== undefined
+  const lastMetadataAbsent =
+    lastFulfillmentRef === undefined &&
+    lastFulfillmentWeek === undefined &&
+    lastFulfillmentInputRef === undefined
+  if (!lastMetadataComplete && !lastMetadataAbsent) return undefined
+  if (fulfilledWindowIds.length > 0 && !lastMetadataComplete) return undefined
 
   return Object.freeze({
     definition,
@@ -343,13 +356,38 @@ export function openContainmentRequirementWindow(input: unknown): ContainmentReq
   })
 }
 
+/**
+ * Open a later authoritative cadence window without discarding cross-window
+ * novelty or idempotency history. The previous window must first be resolved
+ * as satisfied or deficient; pending windows cannot silently skip deficiency.
+ */
+export function advanceContainmentRequirementWindow(
+  state: ContainmentRequirementRuntimeState,
+  nextWindow: unknown
+): ContainmentRequirementRuntimeState | undefined {
+  const currentWindow = parseWindow(nextWindow)
+  if (!currentWindow || currentWindow.startWeek <= state.currentWindow.endWeek) return undefined
+  if (currentWindow.windowId === state.currentWindow.windowId) return undefined
+  if (state.fulfilledWindowIds.includes(currentWindow.windowId)) return undefined
+  if (state.activationIntentEmittedForWindowIds.includes(currentWindow.windowId)) return undefined
+  if (state.state !== 'satisfied' && state.state !== 'deficient') return undefined
+  return Object.freeze({
+    ...state,
+    currentWindow,
+    state: 'pending' as const,
+    inputClassCountsInWindow: Object.freeze({}),
+    reasonCodes: Object.freeze(['window_opened'] as const),
+  })
+}
+
 function weekInWindow(week: number, window: CadenceWindowInput): boolean {
   return week >= window.startWeek && week <= window.endWeek
 }
 
 /**
  * Advance window lifecycle from canonical campaign week (SPE-1071).
- * Missed windows become overdue then deficient after the window ends.
+ * A missed window becomes deficient after the deadline; no implicit
+ * grace period or synthetic overdue state is invented.
  */
 export function evaluateRequirementAgainstCampaignWeek(
   state: ContainmentRequirementRuntimeState,
@@ -363,10 +401,9 @@ export function evaluateRequirementAgainstCampaignWeek(
 
   const inWindow = weekInWindow(week, state.currentWindow)
   if (inWindow) {
-    if (state.state === 'overdue') {
+    if (state.reasonCodes.includes('before_window')) {
       return Object.freeze({
         ...state,
-        state: 'pending' as const,
         reasonCodes: Object.freeze(['still_in_window'] as const),
       })
     }
@@ -374,7 +411,7 @@ export function evaluateRequirementAgainstCampaignWeek(
   }
 
   if (week > state.currentWindow.endWeek) {
-    if (state.state === 'pending' || state.state === 'overdue') {
+    if (state.state === 'pending') {
       return Object.freeze({
         ...state,
         state: 'deficient' as const,
@@ -447,7 +484,8 @@ export function attemptContainmentRequirementFulfillment(
 
   const recovering =
     state.state === 'deficient' && state.definition.allowsRecoveryAfterDeficiency
-  if (!recovering && !weekInWindow(campaignWeek, state.currentWindow)) {
+  if ((recovering && campaignWeek <= state.currentWindow.endWeek) ||
+      (!recovering && !weekInWindow(campaignWeek, state.currentWindow))) {
     return Object.freeze({
       outcome: 'rejected' as const,
       state,
@@ -530,9 +568,6 @@ export function attemptContainmentRequirementFulfillment(
   const acceptReasons = recovering
     ? (['fulfillment_accepted', 'recovered_from_deficiency'] as const)
     : (['fulfillment_accepted'] as const)
-  const windowAlreadyMarked = state.fulfilledWindowIds.includes(
-    state.currentWindow.windowId
-  )
   const nextState: ContainmentRequirementRuntimeState = Object.freeze({
     definition: state.definition,
     currentWindow: state.currentWindow,
@@ -540,9 +575,7 @@ export function attemptContainmentRequirementFulfillment(
     lastFulfillmentRef: fulfillmentRef,
     lastFulfillmentWeek: campaignWeek,
     lastFulfillmentInputRef: inputRef,
-    fulfilledWindowIds: windowAlreadyMarked
-      ? state.fulfilledWindowIds
-      : Object.freeze([...state.fulfilledWindowIds, state.currentWindow.windowId]),
+    fulfilledWindowIds: Object.freeze([...state.fulfilledWindowIds, state.currentWindow.windowId]),
     activationIntentEmittedForWindowIds: state.activationIntentEmittedForWindowIds,
     inputClassCountsInWindow: Object.freeze(nextCounts),
     reasonCodes: Object.freeze([...acceptReasons]),
@@ -572,7 +605,7 @@ export function projectSpe3041ActivationIntent(
   state: ContainmentRequirementRuntimeState
 ): Spe3041ActivationIntent | undefined {
   if (!state.definition.createsWork) return undefined
-  if (state.state !== 'pending' && state.state !== 'overdue') return undefined
+  if (state.state !== 'pending') return undefined
   if (state.fulfilledWindowIds.includes(state.currentWindow.windowId)) return undefined
   if (
     state.activationIntentEmittedForWindowIds.includes(state.currentWindow.windowId)
@@ -580,7 +613,12 @@ export function projectSpe3041ActivationIntent(
     return undefined
   }
 
-  const idempotencyKey = `${state.definition.requirementId}:${state.currentWindow.windowId}:spe-3041`
+  const idempotencyKey = JSON.stringify([
+    'spe-3041',
+    state.definition.subjectRef,
+    state.definition.requirementId,
+    state.currentWindow.windowId,
+  ])
   return Object.freeze({
     activationOwner: 'SPE-3041' as const,
     requirementId: state.definition.requirementId,
@@ -620,7 +658,6 @@ export interface DutyConsumptionProjection {
   readonly fulfillmentOutcome:
     | 'satisfied'
     | 'pending'
-    | 'overdue'
     | 'deficient'
     | 'unknown'
   readonly reasonCodes: readonly string[]

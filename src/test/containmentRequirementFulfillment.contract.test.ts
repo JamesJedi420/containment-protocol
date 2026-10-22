@@ -366,10 +366,22 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       inputRef: 'info:late', campaignWeek: 20, quality: 0.9,
     })!
     expect(recovered.outcome).toBe('accepted')
-    expect(advanceContainmentRequirementWindow(recovered.state, {
-      windowId: 'window:stale', startWeek: 13, endWeek: 15,
-    })).toBeUndefined()
-    const next = advanceContainmentRequirementWindow(recovered.state, {
+    const missed2 = advanceContainmentRequirementWindow(recovered.state, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 15,
+    })!
+    expect(missed2.state).toBe('pending')
+    expect(attemptContainmentRequirementFulfillment(missed2, {
+      fulfillmentRef: 'fulfill:stale', inputClass: 'information',
+      inputRef: 'info:stale', campaignWeek: 14, quality: 0.9,
+    })?.reasonCodes).toContain('backdated_fulfillment')
+    const deficient2 = evaluateRequirementAgainstCampaignWeek(missed2, 20)!
+    expect(deficient2.state).toBe('deficient')
+    const missed3 = advanceContainmentRequirementWindow(deficient2, {
+      windowId: 'window:w3', startWeek: 16, endWeek: 18,
+    })!
+    expect(evaluateRequirementAgainstCampaignWeek(missed3, 20)?.state).toBe('deficient')
+    const next = advanceContainmentRequirementWindow(
+      evaluateRequirementAgainstCampaignWeek(missed3, 20)!, {
       windowId: 'window:future', startWeek: 21, endWeek: 24,
     })!
     expect(attemptContainmentRequirementFulfillment(next, {

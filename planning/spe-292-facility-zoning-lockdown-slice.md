@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                    |
+| **Status**        | **Recently shipped** (PR #4353 @ `25e77dde`)                                        |
 | **Issue**         | [SPE-292](https://linear.app/spectranoir/issue/SPE-292)                            |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                 |
 | **Child shipped** | [SPE-2079](https://linear.app/spectranoir/issue/SPE-2079) — Done (proximity-risk)  |

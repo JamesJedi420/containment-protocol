@@ -104,6 +104,52 @@ function circulationRank(mode: ZoneCirculationMode): number {
   return ZONE_CIRCULATION_MODES.indexOf(mode)
 }
 
+function activityRank(policy: ZoneActivityPolicy): number {
+  return ZONE_ACTIVITY_POLICIES.indexOf(policy)
+}
+
+/** Never loosen a stricter baseline when applying posture. */
+function stricterCirculation(
+  baseline: ZoneCirculationMode,
+  target: ZoneCirculationMode
+): ZoneCirculationMode {
+  return circulationRank(baseline) >= circulationRank(target) ? baseline : target
+}
+
+function stricterActivity(
+  baseline: ZoneActivityPolicy,
+  target: ZoneActivityPolicy
+): ZoneActivityPolicy {
+  return activityRank(baseline) >= activityRank(target) ? baseline : target
+}
+
+function lockdownCirculationTarget(
+  zoneFunction: OperationalZoneFunction
+): ZoneCirculationMode {
+  if (zoneFunction === 'public_cover') return 'staff_only'
+  if (zoneFunction === 'administration' || zoneFunction === 'operations') {
+    return 'emergency_only'
+  }
+  return 'sealed'
+}
+
+function containmentAlarmCirculationTarget(
+  zoneFunction: OperationalZoneFunction
+): ZoneCirculationMode | undefined {
+  if (zoneFunction === 'hazard_test' || zoneFunction === 'deep_vault') return 'sealed'
+  if (zoneFunction === 'containment') return 'emergency_only'
+  if (zoneFunction === 'public_cover') return 'staff_only'
+  return undefined
+}
+
+function lockdownActivityTarget(
+  zoneFunction: OperationalZoneFunction
+): ZoneActivityPolicy | undefined {
+  if (zoneFunction === 'hazard_test' || zoneFunction === 'deep_vault') return 'suspended'
+  if (zoneFunction === 'containment') return 'function_restricted'
+  return undefined
+}
+
 function defaultMinimumAccess(fn: OperationalZoneFunction): FacilityAccessBand {
   switch (fn) {
     case 'public_cover':
@@ -179,30 +225,11 @@ export function resolveCirculationUnderPosture(
   zoneFunction: OperationalZoneFunction
 ): ZoneCirculationMode {
   if (posture === 'normal') return baseline
-
-  if (posture === 'containment_alarm') {
-    if (zoneFunction === 'hazard_test' || zoneFunction === 'deep_vault') {
-      return 'sealed'
-    }
-    if (zoneFunction === 'containment') {
-      return circulationRank(baseline) < circulationRank('emergency_only')
-        ? 'emergency_only'
-        : baseline
-    }
-    if (zoneFunction === 'public_cover') {
-      return circulationRank(baseline) < circulationRank('staff_only')
-        ? 'staff_only'
-        : baseline
-    }
-    return baseline
+  if (posture === 'lockdown') {
+    return stricterCirculation(baseline, lockdownCirculationTarget(zoneFunction))
   }
-
-  // lockdown — atomic zone-layer rewrite
-  if (zoneFunction === 'public_cover') return 'staff_only'
-  if (zoneFunction === 'administration' || zoneFunction === 'operations') {
-    return 'emergency_only'
-  }
-  return 'sealed'
+  const alarmTarget = containmentAlarmCirculationTarget(zoneFunction)
+  return alarmTarget === undefined ? baseline : stricterCirculation(baseline, alarmTarget)
 }
 
 function resolveAlarmForPosture(posture: FacilitySecurityPosture): ZoneAlarmState {
@@ -222,13 +249,11 @@ function resolveActivityUnderPosture(
   zoneFunction: OperationalZoneFunction
 ): ZoneActivityPolicy {
   if (posture === 'lockdown') {
-    if (zoneFunction === 'hazard_test' || zoneFunction === 'deep_vault') {
-      return 'suspended'
-    }
-    if (zoneFunction === 'containment') return 'function_restricted'
+    const target = lockdownActivityTarget(zoneFunction)
+    return target === undefined ? baseline : stricterActivity(baseline, target)
   }
   if (posture === 'containment_alarm' && zoneFunction === 'hazard_test') {
-    return 'suspended'
+    return stricterActivity(baseline, 'suspended')
   }
   return baseline
 }
@@ -423,6 +448,25 @@ export function projectFacilityZoningModel(
   })
 }
 
+function circulationDenialForMode(
+  mode: ZoneCirculationMode,
+  actorRank: number
+): { readonly reason: ZoneAccessDenialReason; readonly codes: readonly string[] } | undefined {
+  if (mode === 'sealed') {
+    return { reason: 'circulation_sealed', codes: ['circulation_sealed'] }
+  }
+  if (mode === 'emergency_only' && actorRank < accessRank('command')) {
+    return { reason: 'circulation_emergency_only', codes: ['circulation_emergency_only'] }
+  }
+  if (mode === 'staff_only' && actorRank < accessRank('enter')) {
+    return {
+      reason: 'access_band_insufficient',
+      codes: ['staff_only_requires_enter'],
+    }
+  }
+  return undefined
+}
+
 export interface ZoneAccessEvaluationInput {
   readonly facilityId: string
   readonly actorId: string
@@ -479,43 +523,29 @@ export function evaluateZoneAccess(input: unknown): ZoneAccessEvaluation | undef
   const reasonCodes: string[] = []
   let denialReason: ZoneAccessDenialReason = 'none'
   let accessAllowed = true
+  const actorRank = accessRank(input.actorAccessBand)
 
-  if (accessRank(input.actorAccessBand) < accessRank(zone.minimumAccessBand)) {
+  // Hazard isolation raises the floor to operate even when authored minimum is lower.
+  if (zone.hazardIsolated && actorRank < accessRank('operate')) {
+    accessAllowed = false
+    denialReason = 'hazard_isolation_blocks_entry'
+    reasonCodes.push('hazard_isolation_blocks_entry')
+  } else if (actorRank < accessRank(zone.minimumAccessBand)) {
     accessAllowed = false
     denialReason = 'access_band_insufficient'
     reasonCodes.push('access_band_insufficient')
     reasonCodes.push(`required:${zone.minimumAccessBand}`)
   }
 
-  if (
-    accessAllowed &&
-    zone.hazardIsolated &&
-    accessRank(input.actorAccessBand) < accessRank('operate')
-  ) {
-    accessAllowed = false
-    denialReason = 'hazard_isolation_blocks_entry'
-    reasonCodes.push('hazard_isolation_blocks_entry')
-  }
-
   if (accessAllowed && evaluateCirculation) {
-    if (zone.circulationMode === 'sealed') {
+    const circulationDenial = circulationDenialForMode(
+      zone.circulationMode,
+      actorRank
+    )
+    if (circulationDenial) {
       accessAllowed = false
-      denialReason = 'circulation_sealed'
-      reasonCodes.push('circulation_sealed')
-    } else if (
-      zone.circulationMode === 'emergency_only' &&
-      accessRank(input.actorAccessBand) < accessRank('command')
-    ) {
-      accessAllowed = false
-      denialReason = 'circulation_emergency_only'
-      reasonCodes.push('circulation_emergency_only')
-    } else if (
-      zone.circulationMode === 'staff_only' &&
-      accessRank(input.actorAccessBand) < accessRank('enter')
-    ) {
-      accessAllowed = false
-      denialReason = 'access_band_insufficient'
-      reasonCodes.push('staff_only_requires_enter')
+      denialReason = circulationDenial.reason
+      reasonCodes.push(...circulationDenial.codes)
     }
   }
 

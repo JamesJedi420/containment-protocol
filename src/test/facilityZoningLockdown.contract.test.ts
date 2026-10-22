@@ -162,7 +162,7 @@ describe('SPE-292 facility zoning, access bands, and lockdown response', () => {
     })
     expect(deniedBand).toMatchObject({
       accessAllowed: false,
-      denialReason: 'access_band_insufficient',
+      denialReason: 'hazard_isolation_blocks_entry',
       hazardIsolated: true,
     })
 
@@ -245,6 +245,58 @@ describe('SPE-292 facility zoning, access bands, and lockdown response', () => {
     expect(summary.circulationChanges.some((line) => line.includes('under lockdown'))).toBe(
       true
     )
+  })
+
+  it('does not loosen a stricter caller baseline under lockdown', () => {
+    expect(
+      resolveCirculationUnderPosture('sealed', 'lockdown', 'public_cover')
+    ).toBe('sealed')
+    expect(
+      resolveCirculationUnderPosture('sealed', 'lockdown', 'operations')
+    ).toBe('sealed')
+
+    const model = projectFacilityZoningModel({
+      facilityId: ZONING_FACILITY_ID,
+      posture: 'lockdown',
+      zones: [
+        {
+          zoneId: 'zone:containment-strict',
+          zoneFunction: 'containment',
+          baselineActivityPolicy: 'suspended',
+        },
+      ],
+    })
+    expect(model?.zones[0]).toMatchObject({
+      activityPolicy: 'suspended',
+      circulationMode: 'sealed',
+    })
+  })
+
+  it('blocks enter-band actors on hazard-isolated zones even when minimum is enter', () => {
+    const model = projectFacilityZoningModel({
+      facilityId: ZONING_FACILITY_ID,
+      posture: 'normal',
+      zones: [
+        {
+          zoneId: 'zone:ad-hoc-isolation',
+          zoneFunction: 'public_cover',
+          minimumAccessBand: 'enter',
+          hazardIsolated: true,
+        },
+      ],
+    })
+    const zone = model!.zones[0]
+    expect(
+      evaluateZoneAccess({
+        facilityId: ZONING_FACILITY_ID,
+        actorId: 'actor:visitor',
+        actorAccessBand: 'enter',
+        zone,
+      })
+    ).toMatchObject({
+      accessAllowed: false,
+      denialReason: 'hazard_isolation_blocks_entry',
+    })
   })
 
   it('fails closed on malformed packets and duplicate zone ids', () => {

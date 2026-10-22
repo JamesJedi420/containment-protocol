@@ -94,6 +94,37 @@ test('new issue creation uses the same authority and approval checks', async () 
   assert.equal((await authorizeLinearMutation({ ...create, issueId: 'SPE-1' }, resolver(create))).allowed, false)
 })
 
+test('stand-alone authorization blocks a request changed during authority lookup', async () => {
+  const original = structuredClone(shape)
+  let seen
+  const decision = await authorizeLinearMutation(original, async (request) => {
+    seen = request
+    original.issueId = 'SPE-9999'
+    original.payload.description = 'mutated during approval lookup'
+    return authority(shape)
+  })
+  assert.equal(seen.issueId, shape.issueId)
+  assert.equal(seen.mutationDigest, linearMutationDigest(shape))
+  assert.deepEqual(decision, { allowed: false, reason: 'mutation-changed-during-authorization' })
+
+  const status = { kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'In Progress' } }
+  const statusDecision = await authorizeLinearMutation(status, async () => {
+    status.payload.toStatus = 'Done'
+    return authority({ kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'In Progress' } })
+  })
+  assert.equal(statusDecision.reason, 'mutation-changed-during-authorization')
+})
+
+test('stand-alone authorization rejects getter-backed requests before invoking resolver', async () => {
+  let called = false
+  const malicious = { ...shape, payload: Object.defineProperty({}, 'description', {
+    enumerable: true, get() { throw new Error('getter must not execute') },
+  }) }
+  const result = await authorizeLinearMutation(malicious, async () => { called = true })
+  assert.equal(result.reason, 'invalid-mutation-payload')
+  assert.equal(called, false)
+})
+
 test('writer receives immutable authorized snapshot when caller mutates input during authority read', async () => {
   const input = structuredClone(shape)
   let captured

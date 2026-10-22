@@ -366,6 +366,8 @@ export function openContainmentRequirementWindow(input: unknown): ContainmentReq
  * Open a later authoritative cadence window without discarding cross-window
  * novelty or idempotency history. The previous window must first be resolved
  * as satisfied or deficient; pending windows cannot silently skip deficiency.
+ * The SPE-1071 caller must supply each successive authoritative cadence
+ * window; this pure packet cannot infer missing windows or schedule gaps.
  */
 export function advanceContainmentRequirementWindow(
   state: ContainmentRequirementRuntimeState,
@@ -373,8 +375,9 @@ export function advanceContainmentRequirementWindow(
 ): ContainmentRequirementRuntimeState | undefined {
   const currentWindow = parseWindow(nextWindow)
   if (!currentWindow || currentWindow.startWeek <= state.currentWindow.endWeek) return undefined
-  if (state.lastFulfillmentWeek !== undefined &&
-      currentWindow.startWeek <= state.lastFulfillmentWeek) return undefined
+  // An earlier missed window may still need evaluation after a late recovery.
+  // Preserve the later last-fulfillment timestamp, and forbid backdated
+  // attempts instead of skipping that window and its deficiency consequences.
   if (currentWindow.windowId === state.currentWindow.windowId) return undefined
   if (state.fulfilledWindowIds.includes(currentWindow.windowId)) return undefined
   if (state.activationIntentEmittedForWindowIds.includes(currentWindow.windowId)) return undefined

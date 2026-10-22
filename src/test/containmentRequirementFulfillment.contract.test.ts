@@ -283,6 +283,21 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(hydrateContainmentRequirementState({
       ...open, lastFulfillmentRef: 'fulfill:partial',
     })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open, fulfilledWindowIds: [WINDOW.windowId, WINDOW.windowId],
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open, activationIntentEmittedForWindowIds: ['w1', 'w1'],
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open,
+      lastFulfillmentRef: 'fulfill:orphan',
+      lastFulfillmentWeek: 3,
+      lastFulfillmentInputRef: 'info:orphan',
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...first.state, lastFulfillmentWeek: WINDOW.startWeek - 1,
+    })).toBeUndefined()
     expect(hydrateContainmentRequirementState(JSON.parse(JSON.stringify(first.state)))).toBeDefined()
   })
 

@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3269"
+  ],
   "recentlyShipped": [
     "SPE-2079",
     "SPE-3421",
@@ -46,6 +48,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3269-canonical-governance-contract-slice.md": "In progress",
     "planning/spe-2079-proximity-risk-class-slice.md": "Recently shipped",
     "planning/spe-3421-emergency-borrowing-access-dedupe-slice.md": "Recently shipped",
     "planning/spe-1022-base-defense-doctrine-slice.md": "Recently shipped",

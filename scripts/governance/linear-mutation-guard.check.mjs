@@ -28,7 +28,16 @@ function authority(mutation, changes = {}) {
     ...changes,
   }
 }
-const resolver = (mutation, changes) => async () => authority(mutation, changes)
+const resolver = (mutation, changes) => async (request) => {
+  // Every successful resolver path must receive the exact immutable request
+  // context instead of silently ignoring it in the test fixture.
+  assert.equal(Object.isFrozen(request), true)
+  assert.equal(request.kind, mutation.kind)
+  assert.equal(request.issueId, mutation.issueId ?? null)
+  assert.equal(request.projectId, mutation.projectId ?? null)
+  assert.equal(request.mutationDigest, linearMutationDigest(mutation))
+  return authority(mutation, changes)
+}
 
 test('rejects unknown operations and ambiguous lifecycle content', async () => {
   assert.equal((await authorizeLinearMutation({ kind: 'issue.surprise', issueId: 'SPE-1', payload: {} }, () => {})).allowed, false)
@@ -56,6 +65,16 @@ test('cannot mark terminal status complete without full acceptance', async () =>
   assert.equal((await authorizeLinearMutation(status, resolver(status, { fullAcceptanceRequired: false, fullAcceptanceVerified: false }))).allowed, false)
   assert.equal((await authorizeLinearMutation(status, resolver(status, { fullAcceptanceRequired: true, fullAcceptanceVerified: true }))).allowed, true)
   assert.equal((await authorizeLinearMutation(status, resolver(status, { reopensTerminalBoundary: true }))).allowed, false)
+  const normal = { kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'In Progress' } }
+  assert.equal((await authorizeLinearMutation(normal, resolver(normal, {
+    fullAcceptanceRequired: false, fullAcceptanceVerified: false,
+  }))).allowed, true)
+  assert.equal((await authorizeLinearMutation(normal, resolver(normal, {
+    fullAcceptanceRequired: false, fullAcceptanceVerified: false, statusTransitionVerified: false,
+  }))).reason, 'unverified-status-transition')
+  assert.equal((await authorizeLinearMutation(status, resolver(status, {
+    fullAcceptanceRequired: false, fullAcceptanceVerified: true,
+  }))).allowed, true)
 })
 
 test('scope requires verified ordered approvals, current phase four and matching digest', async () => {
@@ -84,7 +103,9 @@ test('resolver failure and missing resolver block without writing', async () => 
   assert.equal((await executeGuardedLinearMutation(shape, async () => { throw new Error('outage') }, writer)).written, false)
   assert.equal((await executeGuardedLinearMutation(shape, undefined, writer)).written, false)
   assert.equal(writes, 0)
-  assert.equal((await executeGuardedLinearMutation(shape, resolver(shape), writer)).written, true)
+  const success = await executeGuardedLinearMutation(shape, resolver(shape), writer)
+  assert.equal(success.written, true)
+  assert.equal(Object.isFrozen(success), true)
   assert.equal(writes, 1)
 })
 

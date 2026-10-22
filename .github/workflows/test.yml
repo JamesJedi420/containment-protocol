@@ -42,6 +42,9 @@ jobs:
       - name: Verify canonical governance contract
         run: npm run verify:governance-contract
 
+      - name: Verify guarded Linear write seam
+        run: npm run verify:linear-mutation-guard
+
       - name: Run tests (non-watch)
         run: npm run test:run:ci
 

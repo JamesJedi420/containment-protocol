@@ -655,15 +655,13 @@ export function projectSpe3041ActivationIntent(
   })
 }
 
-/** Record that a SPE-3041 intent was handed off for this window (idempotency). */
+/** Record a valid, currently emit-able SPE-3041 intent (idempotency). */
 export function markSpe3041ActivationIntentEmitted(
-  state: ContainmentRequirementRuntimeState
+  state: ContainmentRequirementRuntimeState,
+  campaignWeek: unknown
 ): ContainmentRequirementRuntimeState {
-  if (
-    state.activationIntentEmittedForWindowIds.includes(state.currentWindow.windowId)
-  ) {
-    return state
-  }
+  // A malformed caller must not consume an intent before it could be emitted.
+  if (!projectSpe3041ActivationIntent(state, campaignWeek)) return state
   return Object.freeze({
     ...state,
     activationIntentEmittedForWindowIds: Object.freeze([

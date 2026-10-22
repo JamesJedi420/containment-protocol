@@ -293,4 +293,87 @@ describe('SPE-1060 room quality, zone value, and facility satisfaction', () => {
     expect(preferred!.technicalSuitability).toBe(base!.technicalSuitability - 3)
     expect(preferred!.preferenceApplied).toBe(true)
   })
+
+  it('clamps preference-adjusted scores at the ceiling and rejects unbounded deltas', () => {
+    const nearCeiling = projectRoomQualityScores({
+      roomId: 'room:quarters',
+      useContext: 'domestic',
+      physical: CLEAN_PHYSICAL,
+      preferenceModifier: {
+        preferenceOwner: 'SPE-1066',
+        comfortDelta: 50,
+        technicalSuitabilityDelta: 0,
+      },
+    })
+    expect(nearCeiling!.comfort).toBe(100)
+
+    expect(
+      projectRoomQualityScores({
+        roomId: 'room:quarters',
+        useContext: 'domestic',
+        physical: CLEAN_PHYSICAL,
+        preferenceModifier: {
+          preferenceOwner: 'SPE-1066',
+          comfortDelta: 1000,
+          technicalSuitabilityDelta: 0,
+        },
+      })
+    ).toBeUndefined()
+  })
+
+  it('returns undefined recovery modifier outside recovery/domestic contexts', () => {
+    const clinical = projectRoomQualityScores({
+      roomId: 'room:bay',
+      useContext: 'clinical',
+      physical: CLEAN_PHYSICAL,
+    })
+    expect(evaluateRecoveryModifier(clinical!)).toBeUndefined()
+  })
+
+  it('fails closed on incomplete or non-finite score packets for gates', () => {
+    expect(
+      evaluateTaskQualityGate({
+        scores: {
+          roomId: 'room:surgery',
+          technicalSuitability: 80,
+        },
+        taskId: 'task:surgery',
+        requiredTechnical: 0.5,
+      })
+    ).toBeUndefined()
+
+    expect(
+      evaluateExpectationLegitimacy({
+        scores: {
+          roomId: 'room:front',
+          useContext: 'public_facing',
+          physical: CLEAN_PHYSICAL,
+          comfort: 50,
+          technicalSuitability: 50,
+          prestige: Number.NaN,
+          symbolicFit: 50,
+        },
+        expectedPrestige: 0.5,
+        audience: 'inspector',
+      })
+    ).toBeUndefined()
+  })
+
+  it('marks cultivationApplied only when context-relevant bonuses apply', () => {
+    const clinicalPlants = projectRoomQualityScores({
+      roomId: 'room:lab',
+      useContext: 'clinical',
+      physical: CLEAN_PHYSICAL,
+      cultivation: {
+        contributionId: 'cultivation:ornamental-1',
+        viability: 'viable',
+        comfortBonus: 0.4,
+        prestigeBonus: 0.3,
+        symbolicFitBonus: 0.2,
+        localScopeOnly: true,
+      },
+    })
+    expect(clinicalPlants!.cultivationApplied).toBe(false)
+    expect(clinicalPlants!.reasonCodes).toContain('cultivation_context_irrelevant')
+  })
 })

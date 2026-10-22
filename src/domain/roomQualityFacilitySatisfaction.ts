@@ -84,6 +84,44 @@ function parseUnitScore(value: unknown): number | undefined {
   return value
 }
 
+/** Bounded preference deltas — reject unbounded values that would saturate scores. */
+function parseScoreDelta(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  if (value < -50 || value > 50) return undefined
+  return value
+}
+
+function isClampedScore(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= SCORE_MIN && value <= SCORE_MAX
+}
+
+/** Fail-closed parse of a caller-supplied quality score packet. */
+function parseRoomQualityScores(value: unknown): RoomQualityScores | undefined {
+  if (!isRecord(value)) return undefined
+  if (!isNonEmptyString(value.roomId)) return undefined
+  if (!isMember(value.useContext, ROOM_USE_CONTEXTS)) return undefined
+  const physical = projectRoomPhysicalCondition(value.physical)
+  if (!physical) return undefined
+  if (!isClampedScore(value.comfort)) return undefined
+  if (!isClampedScore(value.technicalSuitability)) return undefined
+  if (!isClampedScore(value.prestige)) return undefined
+  if (!isClampedScore(value.symbolicFit)) return undefined
+  return Object.freeze({
+    roomId: value.roomId.trim(),
+    useContext: value.useContext,
+    physical,
+    comfort: value.comfort,
+    technicalSuitability: value.technicalSuitability,
+    prestige: value.prestige,
+    symbolicFit: value.symbolicFit,
+    dimensionsSeparated: true as const,
+    physicalUnchangedByContext: true as const,
+    reasonCodes: Object.freeze([] as string[]),
+    cultivationApplied: value.cultivationApplied === true,
+    preferenceApplied: value.preferenceApplied === true,
+  })
+}
+
 export interface RoomPhysicalConditionInput {
   readonly cleanliness: number
   readonly clutter: number
@@ -213,12 +251,16 @@ function cultivationBonuses(
   const prestigeRelevant =
     useContext === 'public_facing' || useContext === 'ritual' || useContext === 'domestic'
   const symbolicRelevant = useContext === 'ritual' || useContext === 'public_facing'
+  const comfort = comfortRelevant ? cultivation.comfortBonus * scale : 0
+  const prestige = prestigeRelevant ? cultivation.prestigeBonus * scale : 0
+  const symbolicFit = symbolicRelevant ? cultivation.symbolicFitBonus * scale : 0
+  const applied = comfort !== 0 || prestige !== 0 || symbolicFit !== 0
   return {
-    comfort: comfortRelevant ? cultivation.comfortBonus * scale : 0,
-    prestige: prestigeRelevant ? cultivation.prestigeBonus * scale : 0,
-    symbolicFit: symbolicRelevant ? cultivation.symbolicFitBonus * scale : 0,
-    applied: true,
-    reasons: [`cultivation_${cultivation.viability}`],
+    comfort,
+    prestige,
+    symbolicFit,
+    applied,
+    reasons: applied ? [`cultivation_${cultivation.viability}`] : ['cultivation_context_irrelevant'],
   }
 }
 
@@ -340,19 +382,15 @@ function parsePreference(
   if (value === undefined) return undefined
   if (!isRecord(value)) return 'invalid'
   if (value.preferenceOwner !== 'SPE-1066') return 'invalid'
-  if (typeof value.comfortDelta !== 'number' || !Number.isFinite(value.comfortDelta)) {
-    return 'invalid'
-  }
-  if (
-    typeof value.technicalSuitabilityDelta !== 'number' ||
-    !Number.isFinite(value.technicalSuitabilityDelta)
-  ) {
+  const comfortDelta = parseScoreDelta(value.comfortDelta)
+  const technicalSuitabilityDelta = parseScoreDelta(value.technicalSuitabilityDelta)
+  if (comfortDelta === undefined || technicalSuitabilityDelta === undefined) {
     return 'invalid'
   }
   return Object.freeze({
     preferenceOwner: 'SPE-1066' as const,
-    comfortDelta: value.comfortDelta,
-    technicalSuitabilityDelta: value.technicalSuitabilityDelta,
+    comfortDelta,
+    technicalSuitabilityDelta,
   })
 }
 
@@ -408,8 +446,8 @@ export function projectRoomQualityScores(
 
   let comfort = comfortBase + cult.comfort * 20
   let technicalSuitability = technicalBase
-  let prestige = prestigeBase + cult.prestige * 15
-  let symbolicFit = symbolicBase + cult.symbolicFit * 20
+  const prestige = prestigeBase + cult.prestige * 15
+  const symbolicFit = symbolicBase + cult.symbolicFit * 20
 
   let preferenceApplied = false
   if (preferenceModifier) {
@@ -419,8 +457,13 @@ export function projectRoomQualityScores(
     reasons.push('preference_SPE-1066')
   }
 
+  const comfortScore = clampScore(comfort)
+  const technicalScore = clampScore(technicalSuitability)
+  const prestigeScore = clampScore(prestige)
+  const symbolicScore = clampScore(symbolicFit)
+
   // Luxury/prestige must not auto-lift technical suitability.
-  if (prestige > technicalSuitability) {
+  if (prestigeScore > technicalScore) {
     reasons.push('prestige_does_not_imply_technical')
   }
 
@@ -428,10 +471,10 @@ export function projectRoomQualityScores(
     roomId: input.roomId.trim(),
     useContext: input.useContext,
     physical,
-    comfort: clampScore(comfort),
-    technicalSuitability: clampScore(technicalSuitability),
-    prestige: clampScore(prestige),
-    symbolicFit: clampScore(symbolicFit),
+    comfort: comfortScore,
+    technicalSuitability: technicalScore,
+    prestige: prestigeScore,
+    symbolicFit: symbolicScore,
     dimensionsSeparated: true as const,
     physicalUnchangedByContext: true as const,
     reasonCodes: Object.freeze([...reasons]),
@@ -453,13 +496,7 @@ export function evaluateRecoveryModifier(
   scores: RoomQualityScores
 ): RecoveryModifierResult | undefined {
   if (scores.useContext !== 'recovery' && scores.useContext !== 'domestic') {
-    return Object.freeze({
-      roomId: scores.roomId,
-      recoveryDelta: 0,
-      burnoutRiskDelta: 0,
-      fatigueReliefDelta: 0,
-      reasonCodes: Object.freeze(['not_recovery_context'] as const),
-    })
+    return undefined
   }
   const recoveryDelta = clampScore(scores.comfort) - 50
   return Object.freeze({
@@ -509,15 +546,16 @@ export function evaluateSharedSpacePressure(
   const crowding = scores.physical.crowding
   const privacy = scores.physical.privacy
   const comfort = scores.comfort
-  const cohesionDelta = Math.round((comfort - 50) / 5 + privacy * 10 - crowding * 15)
-  const irritationDelta = Math.round(crowding * 25 - privacy * 10 - (comfort - 50) / 5)
-  const trustDelta = Math.round(privacy * 15 + (comfort - 50) / 6 - crowding * 10)
-  const conflictRiskDelta = Math.round(crowding * 20 + irritationDelta / 2 - trustDelta / 3)
+  const cohesionRaw = (comfort - 50) / 5 + privacy * 10 - crowding * 15
+  const irritationRaw = crowding * 25 - privacy * 10 - (comfort - 50) / 5
+  const trustRaw = privacy * 15 + (comfort - 50) / 6 - crowding * 10
+  // Round once at the end so conflict does not accumulate intermediate quantization.
+  const conflictRiskDelta = Math.round(crowding * 20 + irritationRaw / 2 - trustRaw / 3)
   return Object.freeze({
     roomId: scores.roomId,
-    cohesionDelta,
-    irritationDelta,
-    trustDelta,
+    cohesionDelta: Math.round(cohesionRaw),
+    irritationDelta: Math.round(irritationRaw),
+    trustDelta: Math.round(trustRaw),
     conflictRiskDelta,
     reasonCodes: Object.freeze(['shared_space_pressure'] as const),
   })
@@ -542,16 +580,13 @@ export function evaluateExpectationLegitimacy(
   input: unknown
 ): ExpectationLegitimacyResult | undefined {
   if (!isRecord(input)) return undefined
-  if (!isRecord(input.scores)) return undefined
   if (!isMember(input.audience, ['inspector', 'faction', 'public_cover'] as const)) {
     return undefined
   }
   const expectedPrestige = parseUnitScore(input.expectedPrestige)
   if (expectedPrestige === undefined) return undefined
-  const scores = input.scores as RoomQualityScores
-  if (typeof scores.prestige !== 'number' || !isNonEmptyString(scores.roomId)) {
-    return undefined
-  }
+  const scores = parseRoomQualityScores(input.scores)
+  if (!scores) return undefined
 
   const expected = clampScore(expectedPrestige * 100)
   const gap = scores.prestige - expected
@@ -594,7 +629,6 @@ export function evaluateTaskQualityGate(
 ): TaskQualityGateResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.taskId)) return undefined
-  if (!isRecord(input.scores)) return undefined
   const requiredTechnical = parseUnitScore(input.requiredTechnical)
   if (requiredTechnical === undefined) return undefined
   const requiredComfort =
@@ -605,10 +639,8 @@ export function evaluateTaskQualityGate(
     return undefined
   }
 
-  const scores = input.scores as RoomQualityScores
-  if (typeof scores.technicalSuitability !== 'number' || !isNonEmptyString(scores.roomId)) {
-    return undefined
-  }
+  const scores = parseRoomQualityScores(input.scores)
+  if (!scores) return undefined
 
   const technicalNeed = clampScore(requiredTechnical * 100)
   const comfortNeed =

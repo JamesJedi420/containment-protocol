@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **Recently shipped** |
+| **Status** | **Recently shipped** (PR #4349 @ `7c50767`) |
 | **Issue** | [SPE-3269](https://linear.app/spectranoir/issue/SPE-3269) |
 | **Parent** | [SPE-3261](https://linear.app/spectranoir/issue/SPE-3261) — Backlog |
 | **Branch** | `governance/spe-3269-canonical-authority-contract` |
@@ -22,7 +22,7 @@ No Linear scope or relationship mutation. No GameState, gameplay, balance, conte
 - Contract validation rejects incomplete/unknown critical fields and duplicated IDs, bad authority precedence, invalid rule provenance, phase disorder, and unknown versions.
 - Deterministic read-only evidence diagnostics cover incomplete/stale/superseded/conflicting approvals, lifecycle versus backlog-shape separation, maintenance misuse, and reviewer availability.
 - Contract tests run as part of the repository CI test suite.
-- `npm run verify:backlog-handoff` keeps this in-progress handoff accurate.
+- `npm run verify:backlog-handoff` checks the current repository handoff, including this slice's shipped status.
 
 ## Deferred ownership
 

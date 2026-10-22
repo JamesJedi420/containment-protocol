@@ -334,7 +334,10 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(next.fulfilledWindowIds).toContain(WINDOW.windowId)
     expect(next.activationIntentEmittedForWindowIds).toContain(WINDOW.windowId)
     expect(next.inputClassCountsInWindow).toEqual({})
-    expect(projectSpe3041ActivationIntent(next)).toBeDefined()
+    expect(projectSpe3041ActivationIntent(next, 11)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(next, 12)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(next, 13)).toBeDefined()
+    expect(projectSpe3041ActivationIntent(next, 16)).toBeUndefined()
     const replay = hydrateContainmentRequirementState(JSON.parse(JSON.stringify(next)))!
     expect(replay.lastFulfillmentInputRef).toBe('mat:first')
     expect(advanceContainmentRequirementWindow(next, {
@@ -342,13 +345,51 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     })).toBeUndefined()
   })
 
+  it('does not emit work activation before or after the canonical window', () => {
+    const open = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
+    expect(projectSpe3041ActivationIntent(open, undefined)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(open, 9)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(open, 13)).toBeUndefined()
+    const early = evaluateRequirementAgainstCampaignWeek(open, 9)!
+    expect(projectSpe3041ActivationIntent(early, 9)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(early, 10)).toBeDefined()
+    const marked = markSpe3041ActivationIntentEmitted(early)
+    expect(projectSpe3041ActivationIntent(marked, 11)).toBeUndefined()
+  })
+
+  it('never advances or fulfills backward after a late recovery', () => {
+    const open = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    const deficient = evaluateRequirementAgainstCampaignWeek(open, 13)!
+    const recovered = attemptContainmentRequirementFulfillment(deficient, {
+      fulfillmentRef: 'fulfill:late', inputClass: 'information',
+      inputRef: 'info:late', campaignWeek: 20, quality: 0.9,
+    })!
+    expect(recovered.outcome).toBe('accepted')
+    expect(advanceContainmentRequirementWindow(recovered.state, {
+      windowId: 'window:stale', startWeek: 13, endWeek: 15,
+    })).toBeUndefined()
+    const next = advanceContainmentRequirementWindow(recovered.state, {
+      windowId: 'window:future', startWeek: 21, endWeek: 24,
+    })!
+    expect(attemptContainmentRequirementFulfillment(next, {
+      fulfillmentRef: 'fulfill:backdated', inputClass: 'information',
+      inputRef: 'info:backdated', campaignWeek: 19, quality: 0.9,
+    })?.reasonCodes).toContain('backdated_fulfillment')
+    const accepted = attemptContainmentRequirementFulfillment(next, {
+      fulfillmentRef: 'fulfill:new', inputClass: 'information',
+      inputRef: 'info:new', campaignWeek: 21, quality: 0.9,
+    })!
+    expect(accepted.outcome).toBe('accepted')
+    expect(accepted.state.lastFulfillmentWeek).toBe(21)
+  })
+
   it('distinct subjects have distinct collision-safe activation keys', () => {
     const one = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
     const two = openContainmentRequirementWindow({
       definition: { ...MATERIAL_DEF, subjectRef: 'subject:other' }, currentWindow: WINDOW,
     })!
-    const oneKey = projectSpe3041ActivationIntent(one)!.idempotencyKey
-    const twoKey = projectSpe3041ActivationIntent(two)!.idempotencyKey
+    const oneKey = projectSpe3041ActivationIntent(one, 11)!.idempotencyKey
+    const twoKey = projectSpe3041ActivationIntent(two, 11)!.idempotencyKey
     expect(oneKey).not.toBe(twoKey)
     expect(JSON.parse(oneKey)).toEqual([
       'spe-3041', MATERIAL_DEF.subjectRef, MATERIAL_DEF.requirementId, WINDOW.windowId,
@@ -359,8 +400,8 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     const ambiguousB = openContainmentRequirementWindow({
       definition: { ...MATERIAL_DEF, requirementId: 'b', subjectRef: 'a:c' }, currentWindow: WINDOW,
     })!
-    expect(projectSpe3041ActivationIntent(ambiguousA)!.idempotencyKey).not.toBe(
-      projectSpe3041ActivationIntent(ambiguousB)!.idempotencyKey
+    expect(projectSpe3041ActivationIntent(ambiguousA, 11)!.idempotencyKey).not.toBe(
+      projectSpe3041ActivationIntent(ambiguousB, 11)!.idempotencyKey
     )
   })
 
@@ -407,7 +448,7 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       definition: INFO_DEF,
       currentWindow: WINDOW,
     })!
-    expect(projectSpe3041ActivationIntent(open)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(open, 11)).toBeUndefined()
   })
 
   it('emits a single SPE-3041 activation intent per window for work-producing requirements', () => {
@@ -415,12 +456,12 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       definition: MATERIAL_DEF,
       currentWindow: WINDOW,
     })!
-    const intent1 = projectSpe3041ActivationIntent(open)!
+    const intent1 = projectSpe3041ActivationIntent(open, 11)!
     expect(intent1.activationOwner).toBe('SPE-3041')
     expect(intent1.idempotencyKey).toContain(WINDOW.windowId)
 
     const marked = markSpe3041ActivationIntentEmitted(open)
-    expect(projectSpe3041ActivationIntent(marked)).toBeUndefined()
+    expect(projectSpe3041ActivationIntent(marked, 11)).toBeUndefined()
 
     const markedAgain = markSpe3041ActivationIntentEmitted(marked)
     expect(markedAgain.activationIntentEmittedForWindowIds).toEqual(

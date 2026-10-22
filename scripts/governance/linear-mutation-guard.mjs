@@ -13,6 +13,14 @@ const SCOPE = new Set([
   'issue.relation', 'issue.owner',
 ])
 const PHASES = ['phase-1', 'phase-2', 'phase-3', 'phase-4']
+// Verified SpectraNoir team statuses. Unknown statuses fail closed until a
+// trusted adapter explicitly maps a changed target team's lifecycle vocabulary.
+const STATUS_KINDS = Object.freeze({
+  'Todo': 'nonterminal', 'Backlog': 'nonterminal',
+  'In Progress': 'nonterminal', 'In Review': 'nonterminal',
+  'Done': 'completion', 'Canceled': 'noncompletion-terminal',
+  'Duplicate': 'noncompletion-terminal',
+})
 const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x)
 const isPlainRecord = (x) => isRecord(x) &&
   (Object.getPrototypeOf(x) === Object.prototype || Object.getPrototypeOf(x) === null)
@@ -27,16 +35,35 @@ const nonblank = (x) => typeof x === 'string' && x.trim().length > 0
 const blocked = (reason) => Object.freeze({ allowed: false, reason })
 
 function canonical(value) {
-  if (Array.isArray(value)) return value.map(canonical)
+  if (Array.isArray(value)) {
+    if (Object.getPrototypeOf(value) !== Array.prototype) throw new Error('non-plain-array')
+    const keys = Reflect.ownKeys(value)
+    if (keys.length !== value.length + 1 ||
+        keys.some((key) => key !== 'length' && (typeof key !== 'string' ||
+          !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length))) {
+      throw new Error('sparse-or-extended-array')
+    }
+    const result = []
+    for (let i = 0; i < value.length; i++) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(i))
+      if (!descriptor || !Object.hasOwn(descriptor, 'value')) throw new Error('array-accessor-or-hole')
+      result.push(canonical(descriptor.value))
+    }
+    return result
+  }
   if (isRecord(value)) {
     if (!isPlainRecord(value)) throw new Error('non-plain-object')
     const result = {}
-    for (const key of Object.keys(value).sort()) {
+    const keys = Reflect.ownKeys(value)
+    if (!keys.every((key) => typeof key === 'string')) throw new Error('symbol-key')
+    for (const key of keys.sort()) {
       if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
         throw new Error('unsafe-key')
       }
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
-      if (!descriptor || !Object.hasOwn(descriptor, 'value')) throw new Error('accessor-property')
+      if (!descriptor || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) {
+        throw new Error('accessor-or-hidden-property')
+      }
       result[key] = canonical(descriptor.value)
     }
     return result
@@ -60,7 +87,8 @@ function classification(mutation) {
     if (mutation.kind === 'issue.comment' &&
         !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.body))) return null
     if (mutation.kind === 'issue.status' &&
-        !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.toStatus))) return null
+        !(Object.keys(mutation.payload).length === 1 &&
+          Object.hasOwn(STATUS_KINDS, mutation.payload.toStatus))) return null
     return 'lifecycle-evidence'
   }
   if (SCOPE.has(mutation.kind)) {
@@ -137,10 +165,11 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
       return blocked('lifecycle-evidence-outside-approved-boundary')
     }
     if (submitted.kind === 'issue.status') {
-      const enteringTerminalState = /^(done|completed)$/i.test(submitted.payload.toStatus)
+      const statusKind = STATUS_KINDS[submitted.payload.toStatus]
       const unverifiedTransition = snapshot.statusTransitionVerified !== true ||
         snapshot.reopensTerminalBoundary === true ||
-        (enteringTerminalState && snapshot.fullAcceptanceVerified !== true) ||
+        (statusKind === 'completion' && snapshot.fullAcceptanceVerified !== true) ||
+        (statusKind === 'noncompletion-terminal' && snapshot.terminalDispositionVerified !== true) ||
         (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true)
       if (unverifiedTransition) return blocked('unverified-status-transition')
     }

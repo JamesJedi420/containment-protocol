@@ -373,6 +373,8 @@ export function advanceContainmentRequirementWindow(
 ): ContainmentRequirementRuntimeState | undefined {
   const currentWindow = parseWindow(nextWindow)
   if (!currentWindow || currentWindow.startWeek <= state.currentWindow.endWeek) return undefined
+  if (state.lastFulfillmentWeek !== undefined &&
+      currentWindow.startWeek <= state.lastFulfillmentWeek) return undefined
   if (currentWindow.windowId === state.currentWindow.windowId) return undefined
   if (state.fulfilledWindowIds.includes(currentWindow.windowId)) return undefined
   if (state.activationIntentEmittedForWindowIds.includes(currentWindow.windowId)) return undefined
@@ -467,6 +469,15 @@ export function attemptContainmentRequirementFulfillment(
   if (!isNonEmptyString(attempt.inputRef)) return undefined
   const campaignWeek = parseNonNegInt(attempt.campaignWeek)
   if (campaignWeek === undefined) return undefined
+  // Never overwrite durable fulfillment history with an earlier dated attempt.
+  if (state.lastFulfillmentWeek !== undefined &&
+      campaignWeek < state.lastFulfillmentWeek) {
+    return Object.freeze({
+      outcome: 'rejected' as const,
+      state,
+      reasonCodes: Object.freeze(['backdated_fulfillment'] as const),
+    })
+  }
 
   const fulfillmentRef = attempt.fulfillmentRef.trim()
   const inputRef = attempt.inputRef.trim()
@@ -607,12 +618,18 @@ export interface Spe3041ActivationIntent {
 }
 
 /**
- * Emit a SPE-3041 activation intent only when the requirement creates real work.
- * Passive requirements never mint synthetic tasks. Idempotent per window.
+ * Emit a SPE-3041 activation intent only when real work is due in its active
+ * caller-supplied campaign window. Passive requirements never mint tasks.
+ * Idempotent per window.
  */
 export function projectSpe3041ActivationIntent(
-  state: ContainmentRequirementRuntimeState
+  state: ContainmentRequirementRuntimeState,
+  campaignWeek: unknown
 ): Spe3041ActivationIntent | undefined {
+  const week = parseNonNegInt(campaignWeek)
+  // SPE-1071 is the authority for campaign time. Without a caller-supplied
+  // active week, do not emit an early intent that consumes window idempotency.
+  if (week === undefined || !weekInWindow(week, state.currentWindow)) return undefined
   if (!state.definition.createsWork) return undefined
   if (state.state !== 'pending') return undefined
   if (state.fulfilledWindowIds.includes(state.currentWindow.windowId)) return undefined

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4349 @ `7c50767`) |
 | **Issue** | [SPE-3269](https://linear.app/spectranoir/issue/SPE-3269) |
 | **Parent** | [SPE-3261](https://linear.app/spectranoir/issue/SPE-3261) — Backlog |
 | **Branch** | `governance/spe-3269-canonical-authority-contract` |

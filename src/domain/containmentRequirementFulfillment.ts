@@ -103,7 +103,7 @@ export interface ContainmentRequirementDefinitionInput {
   readonly constraints?: RequirementConstraintsInput
   readonly deficiencySeverity: DeficiencySeverity
   readonly deficiencyConsequenceRef: string
-  /** When true, pending/overdue may emit a SPE-3041 activation intent. */
+  /** When true, a pending requirement may emit a SPE-3041 activation intent. */
   readonly createsWork: boolean
   readonly allowsRecoveryAfterDeficiency?: boolean
 }

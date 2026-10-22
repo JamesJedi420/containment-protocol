@@ -77,6 +77,51 @@ test('cannot mark terminal status complete without full acceptance', async () =>
   }))).allowed, true)
 })
 
+test('terminal dispositions use verified team statuses and cannot impersonate completion', async () => {
+  const done = { kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'Done' } }
+  const canceled = { kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'Canceled' } }
+  const duplicate = { kind: 'issue.status', issueId: 'SPE-3272', payload: { toStatus: 'Duplicate' } }
+  for (const toStatus of ['Done ', 'done', 'Closed', 'Completed', 'Complete', 'Canceled ', 'Archived']) {
+    const unknown = { ...done, payload: { toStatus } }
+    assert.equal((await authorizeLinearMutation(unknown, resolver(unknown))).allowed, false)
+  }
+  assert.equal((await authorizeLinearMutation(done, resolver(done, {
+    fullAcceptanceRequired: false, fullAcceptanceVerified: false,
+  }))).allowed, false)
+  for (const terminal of [canceled, duplicate]) {
+    assert.equal((await authorizeLinearMutation(terminal, resolver(terminal, {
+      fullAcceptanceRequired: false, fullAcceptanceVerified: false,
+    }))).reason, 'unverified-status-transition')
+    assert.equal((await authorizeLinearMutation(terminal, resolver(terminal, {
+      fullAcceptanceRequired: false, fullAcceptanceVerified: false, terminalDispositionVerified: true,
+    }))).allowed, true)
+  }
+})
+
+test('rejects sparse, subclassed, accessor-backed and extended arrays without executing getters', async () => {
+  let getterCalls = 0
+  let resolverCalls = 0
+  const getterArray = []
+  Object.defineProperty(getterArray, '0', {
+    enumerable: true, configurable: true, get() { getterCalls++; throw new Error('array getter') },
+  })
+  const sparse = new Array(2)
+  sparse[1] = 'occupied'
+  const extended = ['safe']
+  extended.extra = 'hidden-from-JSON'
+  class CustomArray extends Array {}
+  const malformed = [getterArray, sparse, extended, new CustomArray('safe')]
+  for (const values of malformed) {
+    const candidate = { ...shape, payload: { description: 'safe', tags: values } }
+    const result = await authorizeLinearMutation(candidate, async () => { resolverCalls++ })
+    assert.equal(result.reason, 'invalid-mutation-payload')
+  }
+  assert.equal(getterCalls, 0)
+  assert.equal(resolverCalls, 0)
+  const accepted = { ...shape, payload: { description: 'safe', tags: ['one', { rank: 2 }] } }
+  assert.equal((await authorizeLinearMutation(accepted, resolver(accepted))).allowed, true)
+})
+
 test('scope requires verified ordered approvals, current phase four and matching digest', async () => {
   assert.equal((await authorizeLinearMutation(shape, resolver(shape))).allowed, true)
   for (const change of [

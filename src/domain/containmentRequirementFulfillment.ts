@@ -289,6 +289,9 @@ export function hydrateContainmentRequirementState(
     input.activationIntentEmittedForWindowIds ?? []
   )
   if (!activationIntentEmittedForWindowIds) return undefined
+  if (new Set(fulfilledWindowIds).size !== fulfilledWindowIds.length) return undefined
+  if (new Set(activationIntentEmittedForWindowIds).size !==
+      activationIntentEmittedForWindowIds.length) return undefined
   const inputClassCountsInWindow = parseCountMap(input.inputClassCountsInWindow)
   if (!inputClassCountsInWindow) return undefined
   const reasonCodes = parseStringList(input.reasonCodes ?? [])
@@ -322,7 +325,10 @@ export function hydrateContainmentRequirementState(
     lastFulfillmentWeek === undefined &&
     lastFulfillmentInputRef === undefined
   if (!lastMetadataComplete && !lastMetadataAbsent) return undefined
-  if (fulfilledWindowIds.length > 0 && !lastMetadataComplete) return undefined
+  if ((fulfilledWindowIds.length > 0) !== lastMetadataComplete) return undefined
+  if (input.state === 'satisfied' &&
+      lastFulfillmentWeek !== undefined &&
+      lastFulfillmentWeek < currentWindow.startWeek) return undefined
 
   return Object.freeze({
     definition,
@@ -550,6 +556,9 @@ export function attemptContainmentRequirementFulfillment(
       reasonCodes: Object.freeze(['novelty_required'] as const),
     })
   }
+  // One accepted fulfillment settles the entire window. A zero limit can
+  // prohibit an attempt; positive repetition limits are nonbinding without
+  // introducing a separately approved multi-contribution fulfillment model.
   if (constraints.repetitionMaxPerWindow !== undefined) {
     const prior = state.inputClassCountsInWindow[inputClass] ?? 0
     if (prior >= constraints.repetitionMaxPerWindow) {

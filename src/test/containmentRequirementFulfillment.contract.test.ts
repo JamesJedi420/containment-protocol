@@ -318,7 +318,7 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
 
   it('preserves cross-window fulfillment and intent history without replay', () => {
     const first = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
-    const emitted = markSpe3041ActivationIntentEmitted(first)
+    const emitted = markSpe3041ActivationIntentEmitted(first, 11)
     const fulfilled = attemptContainmentRequirementFulfillment(emitted, {
       fulfillmentRef: 'fulfill:coolant', inputClass: 'material', inputRef: 'mat:first',
       campaignWeek: 11, quantity: 2, inputAgeWeeks: 0,
@@ -352,8 +352,9 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(projectSpe3041ActivationIntent(open, 13)).toBeUndefined()
     const early = evaluateRequirementAgainstCampaignWeek(open, 9)!
     expect(projectSpe3041ActivationIntent(early, 9)).toBeUndefined()
+    expect(markSpe3041ActivationIntentEmitted(early, 9)).toBe(early)
     expect(projectSpe3041ActivationIntent(early, 10)).toBeDefined()
-    const marked = markSpe3041ActivationIntentEmitted(early)
+    const marked = markSpe3041ActivationIntentEmitted(early, 10)
     expect(projectSpe3041ActivationIntent(marked, 11)).toBeUndefined()
   })
 
@@ -460,10 +461,10 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(intent1.activationOwner).toBe('SPE-3041')
     expect(intent1.idempotencyKey).toContain(WINDOW.windowId)
 
-    const marked = markSpe3041ActivationIntentEmitted(open)
+    const marked = markSpe3041ActivationIntentEmitted(open, 11)
     expect(projectSpe3041ActivationIntent(marked, 11)).toBeUndefined()
 
-    const markedAgain = markSpe3041ActivationIntentEmitted(marked)
+    const markedAgain = markSpe3041ActivationIntentEmitted(marked, 11)
     expect(markedAgain.activationIntentEmittedForWindowIds).toEqual(
       marked.activationIntentEmittedForWindowIds
     )

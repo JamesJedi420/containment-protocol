@@ -136,12 +136,13 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
         snapshot.contentReviewedWithinBoundary !== true) {
       return blocked('lifecycle-evidence-outside-approved-boundary')
     }
-    if (submitted.kind === 'issue.status' &&
-        ((/^(done|completed)$/i).test(submitted.payload.toStatus) && snapshot.fullAcceptanceVerified !== true ||
-         snapshot.statusTransitionVerified !== true ||
-         (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true) ||
-         snapshot.reopensTerminalBoundary === true)) {
-      return blocked('unverified-status-transition')
+    if (submitted.kind === 'issue.status') {
+      const enteringTerminalState = /^(done|completed)$/i.test(submitted.payload.toStatus)
+      const unverifiedTransition = snapshot.statusTransitionVerified !== true ||
+        snapshot.reopensTerminalBoundary === true ||
+        (enteringTerminalState && snapshot.fullAcceptanceVerified !== true) ||
+        (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true)
+      if (unverifiedTransition) return blocked('unverified-status-transition')
     }
   } else if (!consistentReview(snapshot)) {
     // The upstream read-only diagnostic currently accepts contradictory reviewer pairs.
@@ -181,7 +182,7 @@ export async function executeGuardedLinearMutation(mutation, resolveCurrentAutho
   if (typeof writer !== 'function') {
     return Object.freeze({ written: false, decision: blocked('missing-writer') })
   }
-  return { written: true, decision, result: await writer(submitted) }
+  return Object.freeze({ written: true, decision, result: await writer(submitted) })
 }
 
 /**

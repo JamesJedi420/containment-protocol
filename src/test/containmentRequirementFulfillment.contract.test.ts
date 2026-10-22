@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  advanceContainmentRequirementWindow,
   attemptContainmentRequirementFulfillment,
   evaluateRequirementAgainstCampaignWeek,
   hydrateContainmentRequirementState,
@@ -116,15 +117,11 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       campaignWeek: 11,
       quality: 0.9,
     })!
-    const nextWindow = openContainmentRequirementWindow({
-      definition: INFO_DEF,
-      currentWindow: { windowId: 'window:w2', startWeek: 13, endWeek: 15 },
+    const carried = advanceContainmentRequirementWindow(first.state, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 15,
     })!
-    const carried = hydrateContainmentRequirementState({
-      ...nextWindow,
-      lastFulfillmentInputRef: first.state.lastFulfillmentInputRef,
-      fulfilledWindowIds: first.state.fulfilledWindowIds,
-    })!
+    expect(carried.fulfilledWindowIds).toContain(WINDOW.windowId)
+    expect(carried.lastFulfillmentInputRef).toBe('info:same')
     expect(
       attemptContainmentRequirementFulfillment(carried, {
         fulfillmentRef: 'fulfill:b',
@@ -249,6 +246,124 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       JSON.parse(JSON.stringify(deficient))
     )!
     expect(deficientRt.state).toBe('deficient')
+  })
+
+  it('rejects malformed boolean flags and freezes default constraints', () => {
+    expect(projectContainmentRequirementDefinition({
+      ...INFO_DEF, constraints: { noveltyRequired: 'yes' },
+    })).toBeUndefined()
+    expect(projectContainmentRequirementDefinition({
+      ...INFO_DEF, constraints: { noveltyRequired: 1 },
+    })).toBeUndefined()
+    expect(projectContainmentRequirementDefinition({
+      ...INFO_DEF, allowsRecoveryAfterDeficiency: 1,
+    })).toBeUndefined()
+    const withoutConstraints = projectContainmentRequirementDefinition({
+      ...INFO_DEF, constraints: undefined,
+    })!
+    expect(Object.isFrozen(withoutConstraints.constraints)).toBe(true)
+    expect(withoutConstraints.constraints.noveltyRequired).toBe(false)
+  })
+
+  it('fails closed on contradictory hydration lifecycle or missing evidence', () => {
+    const open = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    const first = attemptContainmentRequirementFulfillment(open, {
+      fulfillmentRef: 'fulfill:1', inputClass: 'information', inputRef: 'info:first',
+      campaignWeek: 11, quality: 0.9,
+    })!
+    expect(hydrateContainmentRequirementState({
+      ...first.state, fulfilledWindowIds: [],
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open, fulfilledWindowIds: [WINDOW.windowId],
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...first.state, lastFulfillmentInputRef: undefined,
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open, lastFulfillmentRef: 'fulfill:partial',
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState(JSON.parse(JSON.stringify(first.state)))).toBeDefined()
+  })
+
+  it('rejects backdated deficiency recovery and accepts later authored recovery', () => {
+    const open = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    const deficient = evaluateRequirementAgainstCampaignWeek(open, 13)!
+    for (const week of [0, 10, 11, 12]) {
+      expect(attemptContainmentRequirementFulfillment(deficient, {
+        fulfillmentRef: 'fulfill:backdated', inputClass: 'information',
+        inputRef: 'info:backdated', campaignWeek: week, quality: 0.8,
+      })?.reasonCodes).toContain('outside_fulfillment_window')
+    }
+    expect(attemptContainmentRequirementFulfillment(deficient, {
+      fulfillmentRef: 'fulfill:recovery', inputClass: 'information',
+      inputRef: 'info:recovery', campaignWeek: 13, quality: 0.8,
+    })?.outcome).toBe('accepted')
+  })
+
+  it('preserves cross-window fulfillment and intent history without replay', () => {
+    const first = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
+    const emitted = markSpe3041ActivationIntentEmitted(first)
+    const fulfilled = attemptContainmentRequirementFulfillment(emitted, {
+      fulfillmentRef: 'fulfill:coolant', inputClass: 'material', inputRef: 'mat:first',
+      campaignWeek: 11, quantity: 2, inputAgeWeeks: 0,
+    })!
+    expect(advanceContainmentRequirementWindow(first, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 14,
+    })).toBeUndefined()
+    expect(advanceContainmentRequirementWindow(fulfilled.state, WINDOW)).toBeUndefined()
+    const next = advanceContainmentRequirementWindow(fulfilled.state, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 15,
+    })!
+    expect(next.state).toBe('pending')
+    expect(next.fulfilledWindowIds).toContain(WINDOW.windowId)
+    expect(next.activationIntentEmittedForWindowIds).toContain(WINDOW.windowId)
+    expect(next.inputClassCountsInWindow).toEqual({})
+    expect(projectSpe3041ActivationIntent(next)).toBeDefined()
+    const replay = hydrateContainmentRequirementState(JSON.parse(JSON.stringify(next)))!
+    expect(replay.lastFulfillmentInputRef).toBe('mat:first')
+    expect(advanceContainmentRequirementWindow(next, {
+      windowId: WINDOW.windowId, startWeek: 16, endWeek: 17,
+    })).toBeUndefined()
+  })
+
+  it('distinct subjects have distinct collision-safe activation keys', () => {
+    const one = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
+    const two = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, subjectRef: 'subject:other' }, currentWindow: WINDOW,
+    })!
+    const oneKey = projectSpe3041ActivationIntent(one)!.idempotencyKey
+    const twoKey = projectSpe3041ActivationIntent(two)!.idempotencyKey
+    expect(oneKey).not.toBe(twoKey)
+    expect(JSON.parse(oneKey)).toEqual([
+      'spe-3041', MATERIAL_DEF.subjectRef, MATERIAL_DEF.requirementId, WINDOW.windowId,
+    ])
+    const ambiguousA = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, requirementId: 'a:b', subjectRef: 'c' }, currentWindow: WINDOW,
+    })!
+    const ambiguousB = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, requirementId: 'b', subjectRef: 'a:c' }, currentWindow: WINDOW,
+    })!
+    expect(projectSpe3041ActivationIntent(ambiguousA)!.idempotencyKey).not.toBe(
+      projectSpe3041ActivationIntent(ambiguousB)!.idempotencyKey
+    )
+  })
+
+  it('refreshes active-window explanation and rejects zero-repeat constraints normally', () => {
+    const open = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    const before = evaluateRequirementAgainstCampaignWeek(open, 9)!
+    expect(before.reasonCodes).toContain('before_window')
+    const active = evaluateRequirementAgainstCampaignWeek(before, 10)!
+    expect(active.state).toBe('pending')
+    expect(active.reasonCodes).not.toContain('before_window')
+    const noRepeats = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, constraints: { repetitionMaxPerWindow: 0 } },
+      currentWindow: WINDOW,
+    })!
+    expect(attemptContainmentRequirementFulfillment(noRepeats, {
+      fulfillmentRef: 'fulfill:blocked', inputClass: 'material',
+      inputRef: 'mat:any', campaignWeek: 11,
+    })?.reasonCodes).toContain('repetition_max_exceeded')
   })
 
   it('fails closed on malformed definitions and unknown refs', () => {

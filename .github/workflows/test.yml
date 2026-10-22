@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, governance/spe-3272-guarded-linear-write-seam]
   pull_request:
 
 permissions:

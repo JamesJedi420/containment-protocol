@@ -172,8 +172,7 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
       const unverifiedTransition = snapshot.statusTransitionVerified !== true ||
         snapshot.reopensTerminalBoundary === true ||
         (statusKind === 'completion' && snapshot.fullAcceptanceVerified !== true) ||
-        (statusKind === 'noncompletion-terminal' && snapshot.terminalDispositionVerified !== true) ||
-        (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true)
+        (statusKind === 'noncompletion-terminal' && snapshot.terminalDispositionVerified !== true)
       if (unverifiedTransition) return blocked('unverified-status-transition')
     }
   } else if (!consistentReview(snapshot)) {

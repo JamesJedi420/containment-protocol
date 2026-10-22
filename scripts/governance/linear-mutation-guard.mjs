@@ -14,18 +14,30 @@ const SCOPE = new Set([
 ])
 const PHASES = ['phase-1', 'phase-2', 'phase-3', 'phase-4']
 const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x)
+const isPlainRecord = (x) => isRecord(x) &&
+  (Object.getPrototypeOf(x) === Object.prototype || Object.getPrototypeOf(x) === null)
+const freezeRecursively = (x) => {
+  if (isRecord(x) || Array.isArray(x)) {
+    Object.values(x).forEach(freezeRecursively)
+    Object.freeze(x)
+  }
+  return x
+}
 const nonblank = (x) => typeof x === 'string' && x.trim().length > 0
 const blocked = (reason) => Object.freeze({ allowed: false, reason })
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
   if (isRecord(value)) {
+    if (!isPlainRecord(value)) throw new Error('non-plain-object')
     const result = {}
     for (const key of Object.keys(value).sort()) {
       if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
         throw new Error('unsafe-key')
       }
-      result[key] = canonical(value[key])
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)
+      if (!descriptor || !Object.hasOwn(descriptor, 'value')) throw new Error('accessor-property')
+      result[key] = canonical(descriptor.value)
     }
     return result
   }
@@ -66,7 +78,8 @@ function consistentReview(snapshot) {
   if (snapshot.reviewRegime === 'advisory') {
     return snapshot.reviewStatus === 'approved' || snapshot.reviewStatus === 'unavailable'
   }
-  if (snapshot.reviewRegime === 'unavailable') return snapshot.reviewStatus === 'unavailable'
+  // Unavailable review is not authorization for durable scope mutation.
+  if (snapshot.reviewRegime === 'unavailable') return false
   if (snapshot.reviewRegime === 'approved-substitute') {
     return snapshot.reviewStatus === 'approved-substitute' && snapshot.currentSubstitutionApproval === true
   }
@@ -139,10 +152,37 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
 
 /** The trusted adapter supplies the writer; denial never invokes it. */
 export async function executeGuardedLinearMutation(mutation, resolveCurrentAuthority, writer) {
-  const decision = await authorizeLinearMutation(mutation, resolveCurrentAuthority)
+  // Capture a canonical, immutable request BEFORE an asynchronous authority read.
+  // Never authorize one mutable object and pass a different payload to the writer.
+  let submitted
+  try {
+    submitted = freezeRecursively(canonical(mutation))
+  } catch {
+    return Object.freeze({ written: false, decision: blocked('invalid-mutation-payload') })
+  }
+  const decision = await authorizeLinearMutation(submitted, resolveCurrentAuthority)
   if (!decision.allowed) return Object.freeze({ written: false, decision })
   if (typeof writer !== 'function') {
     return Object.freeze({ written: false, decision: blocked('missing-writer') })
   }
-  return { written: true, decision, result: await writer(mutation) }
+  return { written: true, decision, result: await writer(submitted) }
+}
+
+/**
+ * Construct only in an authenticated, project-controlled adapter with a
+ * non-user-configurable resolver and writer. Calling this factory with
+ * untrusted injected functions does NOT establish authentication.
+ *
+ * A connected writer must re-check revision/approval freshness at its
+ * commit boundary; pre-write evaluation alone cannot eliminate a race.
+ */
+export function createGuardedLinearWriter({ resolveCurrentAuthority, writer } = {}) {
+  if (typeof resolveCurrentAuthority !== 'function' || typeof writer !== 'function') {
+    throw new TypeError('trusted authority resolver and writer required')
+  }
+  return Object.freeze({
+    submit(mutation) {
+      return executeGuardedLinearMutation(mutation, resolveCurrentAuthority, writer)
+    },
+  })
 }

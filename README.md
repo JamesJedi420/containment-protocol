@@ -57,6 +57,8 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
 | `npm run verify:backlog-handoff` | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`. |
 | `npm run verify:theme-contracts` | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`. |
+| `npm run verify:governance-contract` | Verify versioned governance policy projection and fail-closed diagnostics. |
+| `npm run verify:linear-mutation-guard` | Run focused tests of the project-controlled Linear write guard (not live provider authorization). |
 | `npm run build`                  | Run the TypeScript project build and Vite production bundle. See the note below.      |
 
 `npm run build` is a type-contract gate, not the current day-to-day development gate. The app, tests, and dev server use Vite successfully, but strict project build can expose known type-contract drift that should be fixed in scoped follow-up slices before treating build as a deployment blocker.
@@ -77,9 +79,11 @@ Documentation and planning changes may also need:
 npm run verify:audits-index
 npm run verify:backlog-handoff
 npm run verify:theme-contracts
+npm run verify:governance-contract
+npm run verify:linear-mutation-guard
 ```
 
-GitHub Actions on pull requests runs lint, audit verification, theme-contract verification, and tests. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
+GitHub Actions on pull requests runs lint, audit/handoff/theme-contract verification, governance-contract and Linear-mutation-guard verification, and tests. The Linear guard verifier checks the local library boundary only; it does not validate or intercept external provider writes. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 
 ## Architecture
 

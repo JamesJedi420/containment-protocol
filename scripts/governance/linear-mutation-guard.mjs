@@ -138,6 +138,9 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
       issueId: submitted.issueId ?? null,
       projectId: submitted.projectId ?? null,
       mutationDigest: digest,
+      // The resolver must inspect the actual content before asserting
+      // contentReviewedWithinBoundary or a truthful destination status.
+      payload: submitted.payload,
     }))
   } catch {
     return blocked('authority-unavailable-or-invalid')

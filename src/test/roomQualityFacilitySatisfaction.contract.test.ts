@@ -375,5 +375,21 @@ describe('SPE-1060 room quality, zone value, and facility satisfaction', () => {
     })
     expect(clinicalPlants!.cultivationApplied).toBe(false)
     expect(clinicalPlants!.reasonCodes).toContain('cultivation_context_irrelevant')
+
+    const zeroBonusDomestic = projectRoomQualityScores({
+      roomId: 'room:quarters',
+      useContext: 'domestic',
+      physical: CLEAN_PHYSICAL,
+      cultivation: {
+        contributionId: 'cultivation:empty',
+        viability: 'viable',
+        comfortBonus: 0,
+        prestigeBonus: 0,
+        symbolicFitBonus: 0,
+        localScopeOnly: true,
+      },
+    })
+    expect(zeroBonusDomestic!.cultivationApplied).toBe(false)
+    expect(zeroBonusDomestic!.reasonCodes).toContain('cultivation_zero_bonus')
   })
 })

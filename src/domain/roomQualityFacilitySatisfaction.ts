@@ -254,13 +254,16 @@ function cultivationBonuses(
   const comfort = comfortRelevant ? cultivation.comfortBonus * scale : 0
   const prestige = prestigeRelevant ? cultivation.prestigeBonus * scale : 0
   const symbolicFit = symbolicRelevant ? cultivation.symbolicFitBonus * scale : 0
+  const anyRelevant = comfortRelevant || prestigeRelevant || symbolicRelevant
   const applied = comfort !== 0 || prestige !== 0 || symbolicFit !== 0
   return {
     comfort,
     prestige,
     symbolicFit,
     applied,
-    reasons: applied ? [`cultivation_${cultivation.viability}`] : ['cultivation_context_irrelevant'],
+    reasons: applied
+      ? [`cultivation_${cultivation.viability}`]
+      : [anyRelevant ? 'cultivation_zero_bonus' : 'cultivation_context_irrelevant'],
   }
 }
 

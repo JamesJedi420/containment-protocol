@@ -88,6 +88,9 @@ test('cannot mark terminal status complete without full acceptance', async () =>
     fullAcceptanceRequired: false, fullAcceptanceVerified: false,
   }))).allowed, true)
   assert.equal((await authorizeLinearMutation(normal, resolver(normal, {
+    fullAcceptanceRequired: true, fullAcceptanceVerified: false,
+  }))).allowed, true)
+  assert.equal((await authorizeLinearMutation(normal, resolver(normal, {
     fullAcceptanceRequired: false, fullAcceptanceVerified: false, statusTransitionVerified: false,
   }))).reason, 'unverified-status-transition')
   assert.equal((await authorizeLinearMutation(status, resolver(status, {
@@ -112,6 +115,9 @@ test('terminal dispositions use verified team statuses and cannot impersonate co
     }))).reason, 'unverified-status-transition')
     assert.equal((await authorizeLinearMutation(terminal, resolver(terminal, {
       fullAcceptanceRequired: false, fullAcceptanceVerified: false, terminalDispositionVerified: true,
+    }))).allowed, true)
+    assert.equal((await authorizeLinearMutation(terminal, resolver(terminal, {
+      fullAcceptanceRequired: true, fullAcceptanceVerified: false, terminalDispositionVerified: true,
     }))).allowed, true)
   }
 })

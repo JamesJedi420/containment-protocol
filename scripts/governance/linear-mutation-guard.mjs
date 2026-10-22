@@ -60,7 +60,7 @@ function classification(mutation) {
     if (mutation.kind === 'issue.comment' &&
         !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.body))) return null
     if (mutation.kind === 'issue.status' &&
-        !(Object.keys(mutation.payload).length === 1 && nonblank(mutation.payload.toStatus))) return null
+        !(Object.keys(mutation.payload).length === 1 && nonblank(submitted.payload.toStatus))) return null
     return 'lifecycle-evidence'
   }
   if (SCOPE.has(mutation.kind)) {
@@ -88,28 +88,44 @@ function consistentReview(snapshot) {
 
 /** Eligibility is not permission: always resolve the current authority for this exact write. */
 export async function authorizeLinearMutation(mutation, resolveCurrentAuthority) {
-  const kind = classification(mutation)
+  // Even read-only authorization must inspect one canonical request, not
+  // mutable caller fields read again after the asynchronous authority lookup.
+  let submitted
+  try {
+    submitted = freezeRecursively(canonical(mutation))
+  } catch {
+    return blocked('invalid-mutation-payload')
+  }
+  const kind = classification(submitted)
   if (!kind) return blocked('ambiguous-or-unsupported-mutation')
   if (typeof resolveCurrentAuthority !== 'function') return blocked('missing-authority-resolver')
   let digest
   let snapshot
   let contract
   try {
-    digest = linearMutationDigest(mutation)
+    digest = linearMutationDigest(submitted)
     contract = readAuthorityContract()
     snapshot = await resolveCurrentAuthority(Object.freeze({
-      kind: mutation.kind,
-      issueId: mutation.issueId ?? null,
-      projectId: mutation.projectId ?? null,
+      kind: submitted.kind,
+      issueId: submitted.issueId ?? null,
+      projectId: submitted.projectId ?? null,
       mutationDigest: digest,
     }))
   } catch {
     return blocked('authority-unavailable-or-invalid')
   }
+  // A stand-alone caller must not receive a positive decision for an object
+  // changed while evidence was fetched. Actual writes must use the wrapper's
+  // immutable submitted payload; this check alone is not an atomic commit.
+  try {
+    if (linearMutationDigest(mutation) !== digest) return blocked('mutation-changed-during-authorization')
+  } catch {
+    return blocked('mutation-changed-during-authorization')
+  }
   if (!isRecord(snapshot) || snapshot.source !== 'authenticated-linear-and-governance' ||
-      snapshot.mutationDigest !== digest || snapshot.mutationKind !== mutation.kind ||
-      snapshot.issueId !== (mutation.issueId ?? null) ||
-      snapshot.projectId !== (mutation.projectId ?? null) ||
+      snapshot.mutationDigest !== digest || snapshot.mutationKind !== submitted.kind ||
+      snapshot.issueId !== (submitted.issueId ?? null) ||
+      snapshot.projectId !== (submitted.projectId ?? null) ||
       snapshot.mutationClass !== kind || snapshot.classificationVerified !== true ||
       snapshot.approvalState !== 'valid' || snapshot.contractVersion !== contract.policyVersion) {
     return blocked('authority-snapshot-mismatch-or-unverified')
@@ -120,7 +136,7 @@ export async function authorizeLinearMutation(mutation, resolveCurrentAuthority)
         snapshot.contentReviewedWithinBoundary !== true) {
       return blocked('lifecycle-evidence-outside-approved-boundary')
     }
-    if (mutation.kind === 'issue.status' &&
+    if (submitted.kind === 'issue.status' &&
         ((/^(done|completed)$/i).test(mutation.payload.toStatus) && snapshot.fullAcceptanceVerified !== true ||
          snapshot.statusTransitionVerified !== true ||
          (snapshot.fullAcceptanceRequired === true && snapshot.fullAcceptanceVerified !== true) ||

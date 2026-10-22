@@ -2,11 +2,11 @@
 
 | Field             | Value                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                       |
+| **Status**        | **Recently shipped**                                                                  |
 | **Issue**         | [SPE-1060](https://linear.app/spectranoir/issue/SPE-1060)                             |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                    |
 | **Branch**        | `jamesdyedbq/spe-1060-room-quality-zone-value-and-facility-satisfaction`               |
-| **Base main SHA** | `25e77dde544bfc67254bfec68e0f9d7522a4bef4`                                            |
+| **Merged**        | PR [#4354](https://github.com/JamesJedi420/containment-protocol/pull/4354) @ `08e97c42` |
 
 ## Approved boundary
 

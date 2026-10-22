@@ -37,3 +37,36 @@ This is a source-search/inspection inventory, not proof that every local Cursor 
 - Known post-merge contract conformance findings are preserved with SPE-3269. The guard adds local fail-closed checks but does not rewrite its completed contract or solve all upstream provenance problems.
 - The current implementation is a **verified library seam**, not currently enforcing live project-owned writes.
 - No new parent/child, durable obligation, relationship or acceptance expansion is created by this implementation note.
+
+
+## Canonical writer ownership and integration authority — resolved 2026-10-21
+
+**Disposition: retain the existing approved SPE-3272 boundary.** Canonical mutation-authorization logic, the guarded-write interface, and adoption by any actual **project-controlled authenticated Linear mutation adapter** belong to SPE-3272 (Codex), under SPE-3261. This is CP-core-hosted, shared governance tooling for CP and Academy; Academy must consume this one gate instead of implementing another writer or approval classifier. There is no basis for another governance parent/child merely to name the same authorization seam.
+
+Separate the following authorities; none may impersonate another:
+
+| Responsibility | Canonical owner or source |
+| --- | --- |
+| Policy and scope approval | Current user-approved CP/Academy governance and explicit Phase 1–4 approvals |
+| Issue planning, owner, status and relationships | Fresh authoritative Linear records |
+| Implementation/CI/PR validation evidence | GitHub current source and checks |
+| Versioned policy projection and static evidence inspection | Completed SPE-3269; **not** an authorization token |
+| Guard, classification, authorized-operation digest, write-interface contract | **SPE-3272 / Codex** |
+| Active rule projection/conformance and policy bypass detection | SPE-3271 (not a substitute writer) |
+| Candidate-ledger queue and lifecycle outbox | SPE-3274 and SPE-3340 respectively; consumers, not independent authorization owners |
+| Provider authentication and actual Linear mutation execution | Already authenticated Linear connector/provider used by the trusted host session; connector identity does not grant planning authority |
+
+**Integration authorization split.** SPE-3272 already approves *adopting its guard into verified, existing, project-controlled authenticated mutation adapters*, including adapter-specific read/revalidation/testing and in-boundary documentation. It does **not** automatically approve inventing a new standalone service, new credentials, new provider API deployment, new queue, or changing the behavior/permissions of external ChatGPT/Cursor/Linear MCP connectors. The inspected repository does not currently contain a project-controlled authenticated Linear network writer to retrofit. Therefore provider integration is **not implemented**; no writer is nominated by fiction.
+
+**Required execution model where a genuine project-controlled adapter is later verified:**
+
+1. The trusted host/provider authenticates its own session and binds its own Linear read/write client. The caller may submit only a proposed typed mutation, not an approval snapshot, writer callback, credential, or `verified` flags.
+2. The adapter resolves current user/governance approvals, exact Phase-4 change-set authorization where required, current issue/project identity, current boundary and terminal status, and relevant GitHub evidence for lifecycle changes. The candidate ledger, PR body, repository mirror, and caller text are evidence **inputs**, never authority by themselves.
+3. SPE-3272 guards **the exact immutable payload** and denies missing, ambiguous, stale, contradictory, wrong-target, wrong-owner, or changed evidence. It must not equate the upstream `eligible-...` diagnostic with permission.
+4. The provider **must enforce freshness at the actual write** by a supported revision precondition/transaction or genuinely serialized trusted execution with revalidation. The current JavaScript helper cannot provide this property merely by checking earlier. Where no reliable provider commit-time freshness strategy exists, scope writes fail closed instead of claiming race-safe authorization.
+5. The provider owns successful write acknowledgment, audit references and provider-side retry semantics. Do not move SPE-3274 candidate replay or SPE-3340 lifecycle outbox into SPE-3272. Denials must never invoke a writer; a failed/unknown provider result must not be recorded as a successful mutation.
+6. Keep direct external connector/agent writes classified as **outside repository mechanical interception**. Existing workflows must continue the explicit phase-gated policy. SPE-3271 may inventory and detect bypass/conformance drift but cannot truthfully block arbitrary external writes.
+
+**No-new-scope test:** implementing a fresh host service, persistent auth/credential broker, independent provider transport framework, or broad cross-product writer service that did not previously exist is a *new durable implementation boundary*. Its candidate must undergo Phase 1 design, approved Phase 2 parent selection and Phase 3 supporting-work reconciliation, and Phase 4 approval before mutation/implementation. That hypothetical work is **not** silently assigned to this slice. Meanwhile, no separate project-controlled writer should be created solely to make the current guard's test passing look like universal enforcement.
+
+**Completion truth:** SPE-3272 remains In Progress. The present branch offers a validated guard library and CI checks only. The full SPE-3272 completion rule additionally requires verified official automation writer-path coverage (or an explicit approved boundary change) and provider-enforced freshness. Neither is established by source-search absence or by a dependency-injection mock.

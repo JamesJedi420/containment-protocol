@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  linearMutationDigest, authorizeLinearMutation, executeGuardedLinearMutation,
+  linearMutationDigest, authorizeLinearMutation, executeGuardedLinearMutation, createGuardedLinearWriter,
 } from './linear-mutation-guard.mjs'
 import { readAuthorityContract } from './authority-contract.mjs'
 
@@ -73,6 +73,7 @@ test('contradictory reviewer statuses are blocked despite upstream diagnostic el
     { reviewRegime: 'unavailable', reviewStatus: 'approved-substitute' },
     { reviewRegime: 'approved-substitute', reviewStatus: 'approved-substitute', currentSubstitutionApproval: false },
     { reviewRegime: 'required', reviewStatus: 'unavailable' },
+    { reviewRegime: 'unavailable', reviewStatus: 'unavailable' },
     { reviewAuthorityConfirmed: false },
   ]) assert.equal((await authorizeLinearMutation(shape, resolver(shape, change))).reason, 'contradictory-or-unverified-review')
 })
@@ -91,4 +92,46 @@ test('new issue creation uses the same authority and approval checks', async () 
   const create = { kind: 'issue.create', projectId: 'P-SPE-1', payload: { title: 'Approved program' } }
   assert.equal((await authorizeLinearMutation(create, resolver(create))).allowed, true)
   assert.equal((await authorizeLinearMutation({ ...create, issueId: 'SPE-1' }, resolver(create))).allowed, false)
+})
+
+test('writer receives immutable authorized snapshot when caller mutates input during authority read', async () => {
+  const input = structuredClone(shape)
+  let captured
+  const pending = executeGuardedLinearMutation(input, async () => {
+    input.payload.description = 'changed while awaiting authority'
+    return authority(shape)
+  }, async (approved) => {
+    captured = approved
+    assert.equal(Object.isFrozen(approved), true)
+    assert.equal(Object.isFrozen(approved.payload), true)
+    return 'ok'
+  })
+  const result = await pending
+  assert.equal(result.written, true)
+  assert.equal(captured.payload.description, shape.payload.description)
+  assert.notEqual(input.payload.description, captured.payload.description)
+})
+
+test('malformed and accessor-backed mutation objects never reach a writer', async () => {
+  let called = false
+  const writer = async () => { called = true }
+  const invalid = { ...shape, payload: { description: new Date() } }
+  const access = { ...shape, payload: Object.defineProperty({}, 'description', {
+    enumerable: true, get() { throw new Error('caller getter execution') },
+  }) }
+  assert.equal((await executeGuardedLinearMutation(invalid, resolver(shape), writer)).written, false)
+  assert.equal((await executeGuardedLinearMutation(access, resolver(shape), writer)).written, false)
+  assert.equal(called, false)
+})
+
+test('trusted adapter wrapper captures resolver/writer dependencies at construction', async () => {
+  let writes = 0
+  const adapter = createGuardedLinearWriter({
+    resolveCurrentAuthority: resolver(lifecycle),
+    writer: async (request) => { writes++; return request.issueId },
+  })
+  assert.equal(Object.isFrozen(adapter), true)
+  assert.equal((await adapter.submit(lifecycle)).result, 'SPE-3272')
+  assert.equal(writes, 1)
+  assert.throws(() => createGuardedLinearWriter({ writer: () => {} }), /required/)
 })

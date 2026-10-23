@@ -253,6 +253,7 @@ import {
 import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
 import { applyEquipmentAutoScrapAtWeekClose } from '../equipmentAutoScrap'
 import { advanceContainmentClassInspectionsAtWeekClose } from '../containmentClassWeekClose'
+import { advanceContainmentRequirementsAtWeekClose } from '../containmentRequirementFulfillment'
 import { reconcileContainmentBarrierIntegritySources } from '../equipmentInstance'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
@@ -4097,6 +4098,11 @@ function advanceQueues(context: WeeklyExecutionContext) {
   context.eventDrafts.push(...productionResult.eventDrafts)
 
   context.nextState = applyEquipmentAutoScrapAtWeekClose(context.nextState)
+
+  // SPE-3181: settle persisted current windows at the authoritative week
+  // boundary. settleWeekState already advanced nextState.week; do not spawn
+  // work or invent cadence windows on behalf of SPE-3041 or SPE-1071.
+  context.nextState = advanceContainmentRequirementsAtWeekClose(context.nextState)
 
   const containmentInspection = advanceContainmentClassInspectionsAtWeekClose(
     context.nextState,

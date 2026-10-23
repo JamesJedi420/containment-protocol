@@ -372,6 +372,45 @@ export function hydrateContainmentRequirementState(
   })
 }
 
+/**
+ * Canonical SPE-3181 GameState save registry. The compound key makes two
+ * distinct subjects with the same authored requirementId independent.
+ */
+export type ContainmentRequirementRegistry =
+  Readonly<Record<string, ContainmentRequirementRuntimeState>>
+
+export function containmentRequirementRegistryKey(
+  subjectRef: string,
+  requirementId: string
+): string {
+  return JSON.stringify([subjectRef, requirementId])
+}
+
+/**
+ * Fail-closed import of the unshipped SPE-3181 packet registry. A single
+ * malformed sibling invalidates the registry rather than silently erasing
+ * fulfillment/deficiency history. Legacy saves without this optional field
+ * are handled by the authoritative game hydrator, not by guessing history.
+ */
+export function parseContainmentRequirementRegistry(
+  value: unknown
+): ContainmentRequirementRegistry | undefined {
+  if (!isRecord(value) || Object.getPrototypeOf(value) !== Object.prototype) return undefined
+  const entries = Object.entries(value)
+  if (entries.length > 256) return undefined
+  const out: Record<string, ContainmentRequirementRuntimeState> = Object.create(null)
+  for (const [key, raw] of entries) {
+    if (key.length === 0 || key.length > 512 || key === '__proto__') return undefined
+    const packet = hydrateContainmentRequirementState(raw)
+    if (!packet) return undefined
+    if (key !== containmentRequirementRegistryKey(
+      packet.definition.subjectRef, packet.definition.requirementId
+    )) return undefined
+    out[key] = packet
+  }
+  return Object.freeze(out)
+}
+
 /** Open a new pending window for a known definition. */
 export function openContainmentRequirementWindow(input: unknown): ContainmentRequirementRuntimeState | undefined {
   if (!isRecord(input)) return undefined

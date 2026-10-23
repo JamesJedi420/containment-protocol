@@ -294,6 +294,19 @@ export function hydrateContainmentRequirementState(
       activationIntentEmittedForWindowIds.length) return undefined
   const inputClassCountsInWindow = parseCountMap(input.inputClassCountsInWindow)
   if (!inputClassCountsInWindow) return undefined
+  // Each window accepts exactly one complete fulfillment; its counter is
+  // updated atomically with the satisfied state. Do not hydrate fabricated
+  // pending/deficient counts that can block a first legitimate attempt.
+  const countEntries = Object.entries(inputClassCountsInWindow)
+  if (input.state === 'satisfied') {
+    if (countEntries.length !== 1 || countEntries[0][1] !== 1 ||
+        !definition.acceptableInputClasses.includes(countEntries[0][0] as InputServiceClass) ||
+        definition.prohibitedInputClasses.includes(countEntries[0][0] as InputServiceClass)) {
+      return undefined
+    }
+  } else if (countEntries.length !== 0) {
+    return undefined
+  }
   const reasonCodes = parseStringList(input.reasonCodes ?? [])
   if (!reasonCodes) return undefined
 
@@ -472,6 +485,19 @@ export function attemptContainmentRequirementFulfillment(
   if (!isNonEmptyString(attempt.inputRef)) return undefined
   const campaignWeek = parseNonNegInt(attempt.campaignWeek)
   if (campaignWeek === undefined) return undefined
+  const fulfillmentRef = attempt.fulfillmentRef.trim()
+  const inputRef = attempt.inputRef.trim()
+  const inputClass = attempt.inputClass
+
+  // Settled-window deliveries are idempotent even when an older attempt
+  // arrives out of order. Chronology matters only for an unsettled window.
+  if (state.fulfilledWindowIds.includes(state.currentWindow.windowId)) {
+    return Object.freeze({
+      outcome: 'idempotent_noop' as const,
+      state,
+      reasonCodes: Object.freeze(['already_fulfilled_this_window'] as const),
+    })
+  }
   // Never overwrite durable fulfillment history with an earlier dated attempt.
   if (state.lastFulfillmentWeek !== undefined &&
       campaignWeek < state.lastFulfillmentWeek) {
@@ -479,18 +505,6 @@ export function attemptContainmentRequirementFulfillment(
       outcome: 'rejected' as const,
       state,
       reasonCodes: Object.freeze(['backdated_fulfillment'] as const),
-    })
-  }
-
-  const fulfillmentRef = attempt.fulfillmentRef.trim()
-  const inputRef = attempt.inputRef.trim()
-  const inputClass = attempt.inputClass
-
-  if (state.fulfilledWindowIds.includes(state.currentWindow.windowId)) {
-    return Object.freeze({
-      outcome: 'idempotent_noop' as const,
-      state,
-      reasonCodes: Object.freeze(['already_fulfilled_this_window'] as const),
     })
   }
 

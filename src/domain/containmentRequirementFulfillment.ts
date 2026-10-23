@@ -15,7 +15,8 @@ import type { GameState } from './models'
  * - SPE-1135: duty registry (consumes outcomes; not requirement authority)
  * - SPE-874 / SPE-1058: procedure / labor eligibility remain external refs
  *
- * No GameState field, week-close wire, scheduler, or UI subsystem.
+ * The canonical GameState registry and week-close deadline evaluator live
+ * within SPE-3181. No private scheduler, task queue, duty registry, or UI subsystem.
  */
 
 export const REQUIREMENT_CLASSES = ['information_input', 'material_service'] as const

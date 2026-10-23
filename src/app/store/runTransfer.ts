@@ -10969,6 +10969,9 @@ export function hydrateGame(
   // stripUndefinedFields / spreads so per-entry Object.freeze from normalization/sanitize survives.
   hydrated = {
     ...hydrated,
+    // stripUndefinedFields rebuilds objects. Restore the validated frozen
+    // registry so loaded fulfillment/window markers cannot mutate in place.
+    ...(containmentRequirementStates ? { containmentRequirementStates } : {}),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

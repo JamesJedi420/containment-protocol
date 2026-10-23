@@ -1,3 +1,5 @@
+import type { GameState } from './models'
+
 /**
  * SPE-3181 — recurring containment requirement fulfillment and deficiency.
  *
@@ -521,6 +523,39 @@ export function evaluateRequirementAgainstCampaignWeek(
   }
 
   return state
+}
+
+/**
+ * SPE-3181 lifecycle consumption at the existing authoritative weekly boundary.
+ * The GameState calendar week was already advanced by settleWeekState; this
+ * resolves expiration of persisted, explicitly authored current windows only.
+ * It does not create missing cadence windows, a private scheduler, task queue,
+ * duty registry, resource mutations, or synthetic operation events.
+ */
+export function advanceContainmentRequirementsAtWeekClose(state: GameState): GameState {
+  const registry = state.containmentRequirementStates
+  if (!registry) return state
+  if (!Number.isSafeInteger(state.week) || state.week < 0) return state
+
+  let changed = false
+  const next: Record<string, ContainmentRequirementRuntimeState> = Object.assign(
+    Object.create(null),
+    registry
+  )
+  for (const key of Object.keys(registry).sort()) {
+    const previous = registry[key]
+    if (!previous) continue
+    const evaluated = evaluateRequirementAgainstCampaignWeek(previous, state.week)
+    if (evaluated && evaluated !== previous) {
+      next[key] = evaluated
+      changed = true
+    }
+  }
+  if (!changed) return state
+  return {
+    ...state,
+    containmentRequirementStates: Object.freeze(next),
+  }
 }
 
 export interface FulfillmentAttemptInput {

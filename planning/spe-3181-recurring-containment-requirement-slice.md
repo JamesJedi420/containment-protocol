@@ -26,7 +26,7 @@ Caller-owned definition/evaluation packets in `src/domain/containmentRequirement
 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
-| Week-close / authored cadence evaluation | SPE-3181 consuming SPE-1071 / SPE-1052 | No runtime weekly requirement tick yet; do not invent a private clock |
+| Week-close / authored cadence evaluation | SPE-3181 consuming SPE-1071 / SPE-1052 | Current persisted-window expiry now evaluated at authoritative `advanceWeek`; new cadence-window authoring/rollover remains external |
 | Live SPE-3041 activation into SPE-1287 queue | SPE-3041 | Intent seam only |
 | Duty registry implementation | SPE-1135 | Consumption projection only |
 | Procedure/labor eligibility truth | SPE-874 / SPE-1058 | External refs |
@@ -73,4 +73,10 @@ The existing `src/app/store/runTransfer.ts` import/export and `src/app/store/sav
 
 This is an additive optional-field migration for legacy saves: a legacy save without the field continues to load with no synthesized requirement history; the existing save schema wrapper does not require a format-version bump for an optional additive field. It does **not** migrate or reconstruct nonexistent historical requirements, auto-activate work, or implement the shared calendar. The new `saveSystem.test.ts` cases exercise different subject requirement families, a missed-window marker, persisted fulfillment, repeated import/export, malformed registries, and legacy omissions.
 
-This work is unmerged in PR #4356. Although it closes part of SPE-3181's persistence obligation, **live week-close integration, task enqueue via SPE-3041/SPE-1287, SPE-1135 duty consumption and consumer explainability remain incomplete**. Do not merge it as full SPE-3181 completion, or duplicate Backlog-owned queue/duty/calendar implementations inside this issue.
+This work is unmerged in PR #4356. Although it closes part of SPE-3181's persistence obligation, **authoritative generation/rollover of successive cadence windows, task enqueue via SPE-3041/SPE-1287, SPE-1135 duty consumption and consumer explainability remain incomplete**. Do not merge it as full SPE-3181 completion, or duplicate Backlog-owned queue/duty/calendar implementations inside this issue.
+
+## Authoritative week-close expiry consumption — current draft
+
+`src/domain/sim/advanceWeek.ts` now calls `advanceContainmentRequirementsAtWeekClose` in its existing `advanceQueues` stage, **after** `settleWeekState` has advanced the canonical `GameState.week`. That helper reads the existing persisted `GameState.containmentRequirementStates`, evaluates each current window in deterministic key order via `evaluateRequirementAgainstCampaignWeek`, and replaces the frozen registry only when a state actually changes. Expired pending windows become deficient on the first canonical week following their `endWeek`; satisfied or already-deficient requirements are idempotent. A missing/empty registry is a no-op. The caller does not create a new clock, new cadence windows, artificial tasks, duty records, resource settlements or synthetic events. This is **expiry evaluation only**, not full SPE-1071 calendar/cadence support.
+
+New `containmentRequirementFulfillment.contract.test.ts` integration tests exercise an actual `advanceWeek` crossing, multiple subject requirement states, a passive deficiency with no synthesized activation, save/load continuation, idempotence, and legacy no-registry state. Existing SPE-3041/SPE-1287 and SPE-1135 owners still control real activation/obligation consumption; **those integrations and existing consumer explainability remain incomplete**. PR stays Draft. Do not mark SPE-3181 complete until the full acceptance rule has direct evidence.

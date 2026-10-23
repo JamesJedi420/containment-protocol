@@ -346,6 +346,105 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(hydrateContainmentRequirementState(JSON.parse(JSON.stringify(first.state)))).toBeDefined()
   })
 
+  it('rejects persisted satisfaction violating zero repetition and recovery limits', () => {
+    const zeroLimit = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, constraints: { repetitionMaxPerWindow: 0 } },
+      currentWindow: WINDOW,
+    })!
+    const fabricatedSatisfied = {
+      ...zeroLimit,
+      state: 'satisfied',
+      lastFulfillmentRef: 'fulfill:fabricated',
+      lastFulfillmentWeek: 11,
+      lastFulfillmentInputRef: 'mat:fake',
+      fulfilledWindowIds: [WINDOW.windowId],
+      inputClassCountsInWindow: { material: 1 },
+    }
+    expect(hydrateContainmentRequirementState(fabricatedSatisfied)).toBeUndefined()
+
+    const legal = openContainmentRequirementWindow({ definition: MATERIAL_DEF, currentWindow: WINDOW })!
+    const completed = attemptContainmentRequirementFulfillment(legal, {
+      fulfillmentRef: 'fulfill:legal',
+      inputClass: 'material', inputRef: 'mat:legal',
+      campaignWeek: 11, quantity: 2, inputAgeWeeks: 0,
+    })!.state
+    expect(hydrateContainmentRequirementState(completed)).toBeDefined()
+    expect(hydrateContainmentRequirementState({
+      ...completed, lastFulfillmentWeek: 13,
+    })).toBeUndefined()
+    const recoveryAllowed = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, allowsRecoveryAfterDeficiency: true },
+      currentWindow: WINDOW,
+    })!
+    const late = attemptContainmentRequirementFulfillment(
+      evaluateRequirementAgainstCampaignWeek(recoveryAllowed, 13)!, {
+        fulfillmentRef: 'fulfill:late',
+        inputClass: 'material', inputRef: 'mat:late',
+        campaignWeek: 13, quantity: 2, inputAgeWeeks: 0,
+      }
+    )!
+    expect(late.outcome).toBe('accepted')
+    expect(hydrateContainmentRequirementState(late.state)).toBeDefined()
+  })
+
+  it('persists all closed window ids including passive deficiencies', () => {
+    const first = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    expect(hydrateContainmentRequirementState({ ...first, processedWindowIds: undefined }))
+      .toBeUndefined()
+    const missed = evaluateRequirementAgainstCampaignWeek(first, 13)!
+    const second = advanceContainmentRequirementWindow(missed, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 15,
+    })!
+    expect(second.processedWindowIds).toEqual([WINDOW.windowId])
+    const missed2 = evaluateRequirementAgainstCampaignWeek(second, 16)!
+    const third = advanceContainmentRequirementWindow(missed2, {
+      windowId: 'window:w3', startWeek: 16, endWeek: 18,
+    })!
+    expect(third.processedWindowIds).toEqual([WINDOW.windowId, 'window:w2'])
+    const replay = hydrateContainmentRequirementState(JSON.parse(JSON.stringify(third)))!
+    expect(replay.processedWindowIds).toEqual([WINDOW.windowId, 'window:w2'])
+    const settled3 = evaluateRequirementAgainstCampaignWeek(replay, 19)!
+    expect(advanceContainmentRequirementWindow(settled3, {
+      windowId: WINDOW.windowId, startWeek: 19, endWeek: 21,
+    })).toBeUndefined()
+    expect(advanceContainmentRequirementWindow(settled3, {
+      windowId: 'window:w2', startWeek: 19, endWeek: 21,
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...replay, processedWindowIds: [WINDOW.windowId, WINDOW.windowId],
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...replay, processedWindowIds: [...replay.processedWindowIds, 'window:w3'],
+    })).toBeUndefined()
+  })
+
+  it('does not activate historical work before a later recorded fulfillment', () => {
+    const first = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, allowsRecoveryAfterDeficiency: true },
+      currentWindow: WINDOW,
+    })!
+    const recovered = attemptContainmentRequirementFulfillment(
+      evaluateRequirementAgainstCampaignWeek(first, 13)!, {
+        fulfillmentRef: 'fulfill:late', inputClass: 'material',
+        inputRef: 'mat:recovered', campaignWeek: 20,
+        quantity: 2, inputAgeWeeks: 0,
+      }
+    )!.state
+    const historical = advanceContainmentRequirementWindow(recovered, {
+      windowId: 'window:w2', startWeek: 13, endWeek: 15,
+    })!
+    expect(projectSpe3041ActivationIntent(historical, 14)).toBeUndefined()
+    expect(markSpe3041ActivationIntentEmitted(historical, 14)).toBe(historical)
+    const deficient2 = evaluateRequirementAgainstCampaignWeek(historical, 20)!
+    expect(deficient2.state).toBe('deficient')
+    const next = advanceContainmentRequirementWindow(deficient2, {
+      windowId: 'window:future', startWeek: 21, endWeek: 24,
+    })!
+    expect(projectSpe3041ActivationIntent(next, 21)).toBeDefined()
+    const marked = markSpe3041ActivationIntentEmitted(next, 21)
+    expect(marked.activationIntentEmittedForWindowIds).toContain('window:future')
+  })
+
   it('rejects backdated deficiency recovery and accepts later authored recovery', () => {
     const open = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
     const deficient = evaluateRequirementAgainstCampaignWeek(open, 13)!
@@ -377,6 +476,7 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     })!
     expect(next.state).toBe('pending')
     expect(next.fulfilledWindowIds).toContain(WINDOW.windowId)
+    expect(next.processedWindowIds).toContain(WINDOW.windowId)
     expect(next.activationIntentEmittedForWindowIds).toContain(WINDOW.windowId)
     expect(next.inputClassCountsInWindow).toEqual({})
     expect(projectSpe3041ActivationIntent(next, 11)).toBeUndefined()

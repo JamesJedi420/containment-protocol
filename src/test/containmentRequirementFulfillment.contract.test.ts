@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   advanceContainmentRequirementWindow,
+  advanceContainmentRequirementsAtWeekClose,
+  containmentRequirementRegistryKey,
   attemptContainmentRequirementFulfillment,
   evaluateRequirementAgainstCampaignWeek,
   hydrateContainmentRequirementState,
@@ -47,6 +52,74 @@ const MATERIAL_DEF = {
 const WINDOW = { windowId: 'window:w1', startWeek: 10, endWeek: 12 }
 
 describe('SPE-3181 recurring containment requirement fulfillment', () => {
+  it('settles stored deadlines only at canonical week-close and survives save/load', () => {
+    const baseline = createStartingState()
+    baseline.week = 12
+    const expired = openContainmentRequirementWindow({ definition: INFO_DEF, currentWindow: WINDOW })!
+    const satisfiedInput = openContainmentRequirementWindow({
+      definition: MATERIAL_DEF,
+      currentWindow: WINDOW,
+    })!
+    const satisfied = attemptContainmentRequirementFulfillment(satisfiedInput, {
+      fulfillmentRef: 'fulfill:coolant', inputClass: 'material',
+      inputRef: 'material:coolant', campaignWeek: 11,
+      quantity: 2, inputAgeWeeks: 0,
+    })!
+    expect(satisfied.outcome).toBe('accepted')
+    const futureDefinition = { ...INFO_DEF, requirementId: 'req:future' }
+    const future = openContainmentRequirementWindow({
+      definition: futureDefinition,
+      currentWindow: { windowId: 'window:13-15', startWeek: 13, endWeek: 15 },
+    })!
+    const expiredKey = containmentRequirementRegistryKey(
+      INFO_DEF.subjectRef, INFO_DEF.requirementId
+    )
+    const satisfiedKey = containmentRequirementRegistryKey(
+      MATERIAL_DEF.subjectRef, MATERIAL_DEF.requirementId
+    )
+    const futureKey = containmentRequirementRegistryKey(
+      futureDefinition.subjectRef, futureDefinition.requirementId
+    )
+    baseline.containmentRequirementStates = {
+      [expiredKey]: expired,
+      [satisfiedKey]: satisfied.state,
+      [futureKey]: future,
+    }
+    // A domain helper is not a parallel scheduler; it must run only on the
+    // existing week-close orchestration path, after week was advanced.
+    expect(advanceContainmentRequirementsAtWeekClose({
+      ...baseline, week: 12,
+    }).containmentRequirementStates?.[expiredKey].state).toBe('pending')
+
+    const closed = advanceWeek(baseline)
+    expect(closed.week).toBe(13)
+    expect(closed.containmentRequirementStates?.[expiredKey].state).toBe('deficient')
+    expect(closed.containmentRequirementStates?.[expiredKey].reasonCodes)
+      .toContain('missed_window')
+    expect(closed.containmentRequirementStates?.[satisfiedKey].state).toBe('satisfied')
+    expect(closed.containmentRequirementStates?.[futureKey].state).toBe('pending')
+    expect(closed.containmentRequirementStates?.[expiredKey].fulfilledWindowIds)
+      .toEqual([])
+    expect(closed.containmentRequirementStates?.[expiredKey].activationIntentEmittedForWindowIds)
+      .toEqual([])
+
+    const repeated = advanceContainmentRequirementsAtWeekClose(closed)
+    expect(repeated).toBe(closed)
+    const loaded = loadGameSave(serializeGameSave(closed))
+    expect(loaded.containmentRequirementStates?.[expiredKey].state).toBe('deficient')
+    expect(loaded.containmentRequirementStates?.[futureKey].state).toBe('pending')
+    const next = advanceWeek(loaded)
+    expect(next.week).toBe(14)
+    expect(next.containmentRequirementStates?.[expiredKey].state).toBe('deficient')
+  })
+
+  it('preserves legacy GameState identity when no requirements are authored', () => {
+    const state = createStartingState()
+    expect(advanceContainmentRequirementsAtWeekClose(state)).toBe(state)
+    const closed = advanceWeek(state)
+    expect(closed.containmentRequirementStates).toBeUndefined()
+  })
+
   it('supports information and material/service requirement families on one contract', () => {
     const info = projectContainmentRequirementDefinition(INFO_DEF)
     const material = projectContainmentRequirementDefinition(MATERIAL_DEF)

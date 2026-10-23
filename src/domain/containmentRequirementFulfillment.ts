@@ -135,6 +135,8 @@ export interface ContainmentRequirementRuntimeState {
   readonly lastFulfillmentWeek?: number
   readonly lastFulfillmentInputRef?: string
   readonly fulfilledWindowIds: readonly string[]
+  /** Closed windows, including misses without fulfillment or activation. */
+  readonly processedWindowIds: readonly string[]
   readonly activationIntentEmittedForWindowIds: readonly string[]
   readonly inputClassCountsInWindow: Readonly<Record<string, number>>
   readonly reasonCodes: readonly string[]
@@ -285,13 +287,23 @@ export function hydrateContainmentRequirementState(
   if (!isMember(input.state, REQUIREMENT_STATES)) return undefined
   const fulfilledWindowIds = parseStringList(input.fulfilledWindowIds ?? [])
   if (!fulfilledWindowIds) return undefined
+  // This contract is not shipped yet; require the new durable history marker
+  // instead of silently defaulting missing deficient-window history to [].
+  const processedWindowIds = parseStringList(input.processedWindowIds)
+  if (!processedWindowIds) return undefined
   const activationIntentEmittedForWindowIds = parseStringList(
     input.activationIntentEmittedForWindowIds ?? []
   )
   if (!activationIntentEmittedForWindowIds) return undefined
   if (new Set(fulfilledWindowIds).size !== fulfilledWindowIds.length) return undefined
+  if (new Set(processedWindowIds).size !== processedWindowIds.length) return undefined
+  if (processedWindowIds.includes(currentWindow.windowId)) return undefined
   if (new Set(activationIntentEmittedForWindowIds).size !==
       activationIntentEmittedForWindowIds.length) return undefined
+  if (fulfilledWindowIds.some((id) => id !== currentWindow.windowId &&
+      !processedWindowIds.includes(id))) return undefined
+  if (activationIntentEmittedForWindowIds.some((id) => id !== currentWindow.windowId &&
+      !processedWindowIds.includes(id))) return undefined
   const inputClassCountsInWindow = parseCountMap(input.inputClassCountsInWindow)
   if (!inputClassCountsInWindow) return undefined
   // Each window accepts exactly one complete fulfillment; its counter is
@@ -300,6 +312,7 @@ export function hydrateContainmentRequirementState(
   const countEntries = Object.entries(inputClassCountsInWindow)
   if (input.state === 'satisfied') {
     if (countEntries.length !== 1 || countEntries[0][1] !== 1 ||
+        definition.constraints.repetitionMaxPerWindow === 0 ||
         !definition.acceptableInputClasses.includes(countEntries[0][0] as InputServiceClass) ||
         definition.prohibitedInputClasses.includes(countEntries[0][0] as InputServiceClass)) {
       return undefined
@@ -339,9 +352,10 @@ export function hydrateContainmentRequirementState(
     lastFulfillmentInputRef === undefined
   if (!lastMetadataComplete && !lastMetadataAbsent) return undefined
   if ((fulfilledWindowIds.length > 0) !== lastMetadataComplete) return undefined
-  if (input.state === 'satisfied' &&
-      lastFulfillmentWeek !== undefined &&
-      lastFulfillmentWeek < currentWindow.startWeek) return undefined
+  if (input.state === 'satisfied' && lastFulfillmentWeek !== undefined &&
+      (lastFulfillmentWeek < currentWindow.startWeek ||
+       (lastFulfillmentWeek > currentWindow.endWeek &&
+        !definition.allowsRecoveryAfterDeficiency))) return undefined
 
   return Object.freeze({
     definition,
@@ -351,6 +365,7 @@ export function hydrateContainmentRequirementState(
     ...(lastFulfillmentWeek !== undefined ? { lastFulfillmentWeek } : {}),
     ...(lastFulfillmentInputRef !== undefined ? { lastFulfillmentInputRef } : {}),
     fulfilledWindowIds,
+    processedWindowIds,
     activationIntentEmittedForWindowIds,
     inputClassCountsInWindow,
     reasonCodes,
@@ -369,6 +384,7 @@ export function openContainmentRequirementWindow(input: unknown): ContainmentReq
     currentWindow,
     state: 'pending' as const,
     fulfilledWindowIds: Object.freeze([] as string[]),
+    processedWindowIds: Object.freeze([] as string[]),
     activationIntentEmittedForWindowIds: Object.freeze([] as string[]),
     inputClassCountsInWindow: Object.freeze({}),
     reasonCodes: Object.freeze(['window_opened'] as const),
@@ -392,6 +408,7 @@ export function advanceContainmentRequirementWindow(
   // Preserve the later last-fulfillment timestamp, and forbid backdated
   // attempts instead of skipping that window and its deficiency consequences.
   if (currentWindow.windowId === state.currentWindow.windowId) return undefined
+  if (state.processedWindowIds.includes(currentWindow.windowId)) return undefined
   if (state.fulfilledWindowIds.includes(currentWindow.windowId)) return undefined
   if (state.activationIntentEmittedForWindowIds.includes(currentWindow.windowId)) return undefined
   if (state.state !== 'satisfied' && state.state !== 'deficient') return undefined
@@ -399,6 +416,11 @@ export function advanceContainmentRequirementWindow(
     ...state,
     currentWindow,
     state: 'pending' as const,
+    // The outgoing window was settled, even if it was deficient and passive.
+    processedWindowIds: Object.freeze([
+      ...state.processedWindowIds,
+      state.currentWindow.windowId,
+    ]),
     inputClassCountsInWindow: Object.freeze({}),
     reasonCodes: Object.freeze(['window_opened'] as const),
   })
@@ -613,6 +635,7 @@ export function attemptContainmentRequirementFulfillment(
     lastFulfillmentWeek: campaignWeek,
     lastFulfillmentInputRef: inputRef,
     fulfilledWindowIds: Object.freeze([...state.fulfilledWindowIds, state.currentWindow.windowId]),
+    processedWindowIds: state.processedWindowIds,
     activationIntentEmittedForWindowIds: state.activationIntentEmittedForWindowIds,
     inputClassCountsInWindow: Object.freeze(nextCounts),
     reasonCodes: Object.freeze([...acceptReasons]),
@@ -647,6 +670,11 @@ export function projectSpe3041ActivationIntent(
   // SPE-1071 is the authority for campaign time. Without a caller-supplied
   // active week, do not emit an early intent that consumes window idempotency.
   if (week === undefined || !weekInWindow(week, state.currentWindow)) return undefined
+  // A late fulfillment may precede retrospective evaluation of a missed
+  // window. Its historical week must not enqueue new work after that event.
+  if (state.lastFulfillmentWeek !== undefined && week < state.lastFulfillmentWeek) {
+    return undefined
+  }
   if (!state.definition.createsWork) return undefined
   if (state.state !== 'pending') return undefined
   if (state.fulfilledWindowIds.includes(state.currentWindow.windowId)) return undefined

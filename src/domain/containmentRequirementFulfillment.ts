@@ -395,7 +395,11 @@ export function containmentRequirementRegistryKey(
 export function parseContainmentRequirementRegistry(
   value: unknown
 ): ContainmentRequirementRegistry | undefined {
-  if (!isRecord(value) || Object.getPrototypeOf(value) !== Object.prototype) return undefined
+  if (!isRecord(value)) return undefined
+  const prototype = Object.getPrototypeOf(value)
+  // Frozen registries parsed previously use a null prototype. Both JSON
+  // plain records and our own parsed output must survive repeated saves.
+  if (prototype !== Object.prototype && prototype !== null) return undefined
   const entries = Object.entries(value)
   if (entries.length > 256) return undefined
   const out: Record<string, ContainmentRequirementRuntimeState> = Object.create(null)

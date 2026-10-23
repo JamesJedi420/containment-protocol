@@ -4,6 +4,14 @@
 
 Documents versioning strategy for OperationEvent types to ensure backward compatibility and safe migrations.
 
+### Recurring containment requirement history (SPE-3181)
+
+Optional `GameState.containmentRequirementStates` is the canonical persisted map of subject-scoped recurring requirement packets, keyed by `containmentRequirementRegistryKey(subjectRef, requirementId)` (JSON-serialized pair). The key must match each packet's authored `definition.subjectRef` and `definition.requirementId`. The packet retains the current cadence `windowId` and `startWeek`/`endWeek`, lifecycle state, last valid fulfillment reference/week/input, per-window counts and reason codes, fulfilled-window identities, activation-intent identities, and **required `processedWindowIds`** covering every previously closed window (including deficient/passive windows without work or fulfillment). The single-complete-fulfillment invariant and authored recovery/constraint policy are revalidated on import. The registry is bounded to 256 entries; malformed siblings, forged keys, duplicates/inconsistent history, or a present packet lacking required closed-window markers reject the **whole present registry** rather than losing deficiency/idempotency evidence.
+
+**Additive legacy migration:** Saves and run exports that predate this field **omit it** and hydrate with no recurring-requirement registry; import does not infer missing requirement history or inherit a newer fallback registry. A **present invalid** registry raises an import error; canonical export also rejects a malformed present registry. Valid registries are detached, frozen and re-applied after generic GameState hydration so that a loaded game can safely be saved again without losing immutability. This is handled by `src/domain/containmentRequirementFulfillment.ts`, `GameState` in `src/domain/models.ts`, and the existing `src/app/store/runTransfer.ts` import/export path used by `saveSystem.ts`; it is not a second persistence engine.
+
+No `OperationEvent` schema, `GAME_STORE_VERSION` (currently 7), or `GAME_SAVE_VERSION` (currently 1) change is required for this optional field. This unmerged PR supplies **persistence only**, not authoritative SPE-1071 cadence/week-close consumption, SPE-3041/SPE-1287 task enqueue, SPE-1135 duty-registry integration, or player-facing status consumption. Its schema documentation does not assert SPE-3181's complete production acceptance.
+
 ### Facility-supported capability unlock (SPE-3388)
 
 Optional `GameState.facilityCapabilityUnlock` stores one durable record for `capability:alert_timing`: capability id, `dangerous_use` liability, and the integer campaign week the biohazard-response lab upgrade completed at level 2 or higher. Ready, degraded, and suspended use are derived from an SPE-3386 resolution and are not stored.

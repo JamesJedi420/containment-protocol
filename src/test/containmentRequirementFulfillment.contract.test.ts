@@ -145,14 +145,29 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       inputAgeWeeks: 0,
     })!
     expect(m1.outcome).toBe('accepted')
-    // New window with repetition already counted for same class would need prior counts;
-    // verify repetition gate on a pending state with pre-seeded counts.
-    const seeded = hydrateContainmentRequirementState({
-      ...materialOpen,
-      inputClassCountsInWindow: { material: 1 },
+    expect(attemptContainmentRequirementFulfillment(materialOpen, {
+      fulfillmentRef: 'fulfill:under-quantity',
+      inputClass: 'material', inputRef: 'mat:too-little',
+      campaignWeek: 11, quantity: 1, inputAgeWeeks: 0,
+    })?.reasonCodes).toContain('quantity_below_minimum')
+    expect(attemptContainmentRequirementFulfillment(materialOpen, {
+      fulfillmentRef: 'fulfill:stale',
+      inputClass: 'material', inputRef: 'mat:old',
+      campaignWeek: 11, quantity: 2, inputAgeWeeks: 2,
+    })?.reasonCodes).toContain('freshness_exceeded')
+    expect(attemptContainmentRequirementFulfillment(materialOpen, {
+      fulfillmentRef: 'fulfill:valid-edge',
+      inputClass: 'material', inputRef: 'mat:boundary',
+      campaignWeek: 11, quantity: 2, inputAgeWeeks: 1,
+    })?.outcome).toBe('accepted')
+    // One complete accepted fulfillment settles a window. The zero limit
+    // denies even the first contribution without fabricating hydrated counts.
+    const zeroLimit = openContainmentRequirementWindow({
+      definition: { ...MATERIAL_DEF, constraints: { repetitionMaxPerWindow: 0 } },
+      currentWindow: WINDOW,
     })!
     expect(
-      attemptContainmentRequirementFulfillment(seeded, {
+      attemptContainmentRequirementFulfillment(zeroLimit, {
         fulfillmentRef: 'fulfill:coolant-2',
         inputClass: 'material',
         inputRef: 'mat:coolant-b',
@@ -221,6 +236,18 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
       quality: 0.9,
     })!
     expect(second.outcome).toBe('idempotent_noop')
+    // The earlier timestamp is an out-of-order duplicate for an already
+    // settled window, not a new backward-dated fulfillment.
+    const olderReplay = attemptContainmentRequirementFulfillment(first.state, {
+      fulfillmentRef: 'fulfill:old-replay',
+      inputClass: 'information',
+      inputRef: 'info:older',
+      campaignWeek: 10,
+      quality: 0.9,
+    })!
+    expect(olderReplay.outcome).toBe('idempotent_noop')
+    expect(olderReplay.state).toBe(first.state)
+    expect(olderReplay.state.lastFulfillmentWeek).toBe(11)
 
     const roundTrip = hydrateContainmentRequirementState(
       JSON.parse(JSON.stringify(first.state))
@@ -282,6 +309,24 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     })).toBeUndefined()
     expect(hydrateContainmentRequirementState({
       ...open, lastFulfillmentRef: 'fulfill:partial',
+    })).toBeUndefined()
+    // A nonsettled packet never carries contribution counts. Accepting a
+    // fabricated count could incorrectly exhaust a first fulfillment.
+    expect(hydrateContainmentRequirementState({
+      ...open, inputClassCountsInWindow: { information: 1 },
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...open, inputClassCountsInWindow: { information: 0 },
+    })).toBeUndefined()
+    const deficient = evaluateRequirementAgainstCampaignWeek(open, 13)!
+    expect(hydrateContainmentRequirementState({
+      ...deficient, inputClassCountsInWindow: { information: 1 },
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...first.state, inputClassCountsInWindow: {},
+    })).toBeUndefined()
+    expect(hydrateContainmentRequirementState({
+      ...first.state, inputClassCountsInWindow: { material: 1 },
     })).toBeUndefined()
     expect(hydrateContainmentRequirementState({
       ...open, fulfilledWindowIds: [WINDOW.windowId, WINDOW.windowId],

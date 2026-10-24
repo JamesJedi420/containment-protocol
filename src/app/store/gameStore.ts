@@ -140,7 +140,7 @@ import {
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
 import { applySiteExplorationAction } from '../../domain/siteOperationalExploration'
-import { canAskInvestigationQuestionOnCase } from '../../features/cases/investigationCasePrepView'
+import { canAskInvestigationQuestionOnCase } from '../../domain/investigationEconomy'
 import type { InfiltrationProbeAction } from '../../domain/infiltrationProbe'
 import {
   applyInfiltrationWeeklyProbeActionOverride,

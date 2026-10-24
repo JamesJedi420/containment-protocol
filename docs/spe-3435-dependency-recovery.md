@@ -57,6 +57,10 @@ SPE-3437 and SPE-3348 respectively. No new issue scope was created.
   persisted presentation-key scenario does not apply: authored selections are
   derived on demand and are not serialized. General transitive boundary enforcement
   remains SPE-3437; this child's regression explicitly covers its recovered interfaces.
+- The initial Node 22 CI full suite passed: 896 files, 9,738 tests. SonarCloud then
+  flagged repeated presentation object construction (3.5% new-code duplication,
+  3% maximum). A feature-local constructor consolidates that repeated shape while
+  retaining all existing copy, action fields and omission of optional fields.
 - Six pre-ship passes covered scope/integration, edge cases, determinism/state,
   regressions, documentation and cleanup. No unresolved in-boundary finding.
 

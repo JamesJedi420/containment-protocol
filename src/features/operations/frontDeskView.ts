@@ -296,6 +296,22 @@ export interface FrontDeskHubView {
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
+function buildNoticePresentation(
+  title: string,
+  body: string,
+  tone: FrontDeskNoticeTone,
+  actionTarget?: FrontDeskNoticeActionTarget,
+  actionLabel?: string
+): Omit<FrontDeskNoticeView, 'id' | 'choices'> {
+  return {
+    title,
+    body,
+    tone,
+    ...(actionTarget ? { actionTarget } : {}),
+    ...(actionLabel ? { actionLabel } : {}),
+  }
+}
+
 const DIRECTOR_MESSAGES: Record<FrontDeskDirectorRouteId, string> = {
   'hostile-faction-pressure':
     'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
@@ -324,121 +340,120 @@ export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView
     let presentation: Omit<FrontDeskNoticeView, 'id' | 'choices'>
     switch (notice.presentationKey) {
       case 'weekly-report-tutorial':
-        presentation = {
-          title: 'Weekly report orientation',
-          body: 'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
-          tone: 'info',
-          actionTarget: 'report',
-          actionLabel: 'Open report',
-        }
+        presentation = buildNoticePresentation(
+          'Weekly report orientation',
+          'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
+          'info',
+          'report',
+          'Open report'
+        )
         break
       case 'weekly-report-consumed':
-        presentation = {
-          title: 'Weekly report on quiet cadence',
-          body: 'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
-          tone: 'info',
-          actionTarget: 'report',
-          actionLabel: 'Open report',
-        }
+        presentation = buildNoticePresentation(
+          'Weekly report on quiet cadence',
+          'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
+          'info',
+          'report',
+          'Open report'
+        )
         break
       case 'weekly-report-follow-up':
-        presentation = {
-          title: 'Weekly report ready',
-          body: 'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
-          tone: 'info',
-          actionTarget: 'report',
-          actionLabel: 'Review dossier',
-        }
+        presentation = buildNoticePresentation(
+          'Weekly report ready',
+          'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
+          'info',
+          'report',
+          'Review dossier'
+        )
         break
       case 'weekly-report-returning':
-        presentation = {
-          title: 'Weekly report ready',
-          body: "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
-          tone: 'info',
-          actionTarget: 'report',
-          actionLabel: 'Review dossier',
-        }
+        presentation = buildNoticePresentation(
+          'Weekly report ready',
+          "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
+          'info',
+          'report',
+          'Review dossier'
+        )
         break
       case 'weekly-report-fallback':
-        presentation = {
-          title: 'Weekly report ready',
-          body: 'The latest dossier is ready for review.',
-          tone: 'info',
-        }
+        presentation = buildNoticePresentation(
+          'Weekly report ready',
+          'The latest dossier is ready for review.',
+          'info'
+        )
         break
       case 'breach-follow-up-queued':
-        presentation = {
-          title: 'Breach follow-up queued for command review',
-          body: 'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review queued follow-up',
-        }
+        presentation = buildNoticePresentation(
+          'Breach follow-up queued for command review',
+          'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
+          'warning',
+          'cases',
+          'Review queued follow-up'
+        )
         break
       case 'breach-follow-up-cautious':
-        presentation = {
-          title: 'Cautious breach posture logged',
-          body: 'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
-        }
+        presentation = buildNoticePresentation(
+          'Cautious breach posture logged',
+          'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
+          'warning',
+          'cases',
+          'Review cases'
+        )
         break
       case 'breach-follow-up-aggressive':
-        presentation = {
-          title: 'Aggressive breach posture logged',
-          body: 'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
-          tone: 'danger',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
-        }
+        presentation = buildNoticePresentation(
+          'Aggressive breach posture logged',
+          'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
+          'danger',
+          'cases',
+          'Review cases'
+        )
         break
       case 'breach-follow-up-open':
-        presentation = {
-          title: 'Containment breach follow-up available',
-          body: 'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Inspect cases',
-        }
+        presentation = buildNoticePresentation(
+          'Containment breach follow-up available',
+          'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
+          'warning',
+          'cases',
+          'Inspect cases'
+        )
         break
       case 'hostile-faction-response':
-        presentation = {
-          title: `${hostileFaction!.label} response posture set`,
-          body: 'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
-          tone: 'warning',
-          actionTarget: 'factions',
-          actionLabel: 'Review standing',
-        }
+        presentation = buildNoticePresentation(
+          `${hostileFaction!.label} response posture set`,
+          'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
+          'warning',
+          'factions',
+          'Review standing'
+        )
         break
       case 'hostile-faction-alert':
-        presentation = {
-          title: `${hostileFaction!.label} pressure rising`,
-          body: hostileFaction!.feedback,
-          tone: 'warning',
-          actionTarget: 'factions',
-          actionLabel: 'Review standing',
-        }
+        presentation = buildNoticePresentation(
+          `${hostileFaction!.label} pressure rising`,
+          hostileFaction!.feedback,
+          'warning',
+          'factions',
+          'Review standing'
+        )
         break
       case 'special-recruit-opportunity':
-        presentation = {
-          title: `Special recruit opportunity: ${specialRecruit!.name}`,
-          body:
-            specialRecruit!.sourceSummary ??
+        presentation = buildNoticePresentation(
+          `Special recruit opportunity: ${specialRecruit!.name}`,
+          specialRecruit!.sourceSummary ??
             `${specialRecruit!.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
-          tone: 'success',
-          actionTarget: 'recruitment',
-          actionLabel: 'Open recruitment',
-        }
+          'success',
+          'recruitment',
+          'Open recruitment'
+        )
         break
       case 'disclosure-posture':
-        presentation = {
-          title: 'Disclosure posture decision required',
-          body: `${pending!.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
-          tone: 'warning',
-          actionTarget: 'disclosure',
-          actionLabel: 'Open campaign briefing',
-        }
+        presentation = buildNoticePresentation(
+          'Disclosure posture decision required',
+          `${pending!.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
+          'warning',
+          'disclosure',
+          'Open campaign briefing'
+        )
         break
       default:
         throw new Error(`Unknown front-desk authored presentation: ${notice.presentationKey}`)

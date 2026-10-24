@@ -517,6 +517,11 @@ export function evaluateRequirementAgainstCampaignWeek(
   }
 
   if (week < state.currentWindow.startWeek && state.state === 'pending') {
+    // The same future window may be visited at multiple canonical week-closes.
+    // Do not clone its packet or registry when its explanation is unchanged.
+    if (state.reasonCodes.length === 1 && state.reasonCodes[0] === 'before_window') {
+      return state
+    }
     return Object.freeze({
       ...state,
       reasonCodes: Object.freeze(['before_window'] as const),

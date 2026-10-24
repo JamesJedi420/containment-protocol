@@ -137,10 +137,10 @@ import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../../domain/
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import {
   askInvestigationQuestion as applyAskInvestigationQuestion,
+  canAskInvestigationQuestionOnCase,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
 import { applySiteExplorationAction } from '../../domain/siteOperationalExploration'
-import { canAskInvestigationQuestionOnCase } from '../../domain/investigationEconomy'
 import type { InfiltrationProbeAction } from '../../domain/infiltrationProbe'
 import {
   applyInfiltrationWeeklyProbeActionOverride,

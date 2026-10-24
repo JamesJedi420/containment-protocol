@@ -113,6 +113,26 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(next.containmentRequirementStates?.[expiredKey].state).toBe('deficient')
   })
 
+  it('does not rewrite future-window registry on repeated week-close before start', () => {
+    const game = createStartingState()
+    game.week = 12
+    const future = openContainmentRequirementWindow({
+      definition: INFO_DEF,
+      currentWindow: { windowId: 'window:20-22', startWeek: 20, endWeek: 22 },
+    })!
+    const key = containmentRequirementRegistryKey(INFO_DEF.subjectRef, INFO_DEF.requirementId)
+    game.containmentRequirementStates = { [key]: future }
+    const first = advanceWeek(game)
+    expect(first.week).toBe(13)
+    expect(first.containmentRequirementStates?.[key].reasonCodes).toEqual(['before_window'])
+    const stableRegistry = first.containmentRequirementStates
+    const second = advanceWeek(first)
+    expect(second.week).toBe(14)
+    expect(second.containmentRequirementStates).toBe(stableRegistry)
+    expect(second.containmentRequirementStates?.[key]).toBe(stableRegistry?.[key])
+    expect(advanceContainmentRequirementsAtWeekClose(second)).toBe(second)
+  })
+
   it('preserves legacy GameState identity when no requirements are authored', () => {
     const state = createStartingState()
     expect(advanceContainmentRequirementsAtWeekClose(state)).toBe(state)

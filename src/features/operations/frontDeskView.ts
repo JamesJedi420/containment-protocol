@@ -1,3 +1,4 @@
+import { getFrontDeskAuthoredState } from '../../domain/frontDeskAuthored'
 import { APP_ROUTES } from '../../app/routes'
 import {
   buildShellStatusBarView,
@@ -8,12 +9,6 @@ import { assessAttritionPressure } from '../../domain/agent/attrition'
 import { buildCourierNetworkCapacityGapReport } from '../../domain/capabilityGap'
 import type { CapabilityGapReport } from '../../domain/capabilityGap'
 import type { AuthoredChoiceDefinition } from '../../domain/choiceSystem'
-import {
-  buildAuthoredBranchContext,
-  selectAuthoredBranch,
-  type AuthoredBranch,
-  type AuthoredBranchContext,
-} from '../../domain/contentBranching'
 import { buildFactionStates } from '../../domain/factions'
 import {
   assessFundingPressure,
@@ -26,7 +21,6 @@ import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCo
 import type { GameState } from '../../domain/models'
 import { getProcurementListings } from '../../domain/market'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
-import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
 import {
   getDashboardMetrics,
@@ -40,29 +34,16 @@ import {
   type OperationsReportView,
   type WeakestLinkOutcomeReportItemView,
 } from '../report/operationsReportView'
-import {
-  buildBreachFollowUpChoices,
-  buildHostileFactionResponseChoices,
-  buildPublicDisclosurePostureChoices,
-  buildSpecialRecruitOpportunityChoices,
-  buildWeeklyReportTutorialChoices,
-} from './frontDeskChoices'
-import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
 import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
-import { listPendingPublicDisclosurePostureDecisions } from '../../domain/publicDisclosurePostureChoice'
 import { projectConcealmentPendingActivationAttention } from '../../domain/concealmentPendingActivationAttention'
 import { projectInfiltrationPendingEncounterAttention } from '../../domain/infiltrationPendingEncounterAttention'
 import { projectStrategicActionBudget } from '../../domain/strategicActionBudgetProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget =
-  | 'report'
-  | 'cases'
-  | 'recruitment'
-  | 'factions'
-  | 'disclosure'
+  'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
 
 const MAX_QUEUE_DETAILS = 3
 const MAX_RECENT_ITEMS = 3
@@ -312,449 +293,163 @@ export interface FrontDeskHubView {
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
-function buildDirectorMessage(
-  game: GameState,
-  context: AuthoredBranchContext,
-  hasHostileFaction: boolean
-) {
-  const global = getGlobalStateMetrics(game)
-  const recent = game.reports.at(-1)
-
-  const routes: AuthoredBranch<string>[] = [
-    {
-      id: 'hostile-faction-pressure',
-      when: {
-        predicates: [
-          {
-            id: 'hostile-faction-present',
-            test: () => hasHostileFaction,
-          },
-        ],
-      },
-      value:
-        'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
-    },
-    {
-      id: 'breach-posture-escalated',
-      when: {
-        progressClocks: [
-          {
-            clockId: PROGRESS_CLOCK_IDS.breachFollowUpPosture,
-            threshold: 2,
-          },
-        ],
-      },
-      value:
-        'Breach follow-up posture is escalating. Prioritize teams with stable recovery profiles and preserve surge capacity.',
-    },
-    {
-      id: 'critical-pressure',
-      when: {
-        predicates: [
-          {
-            id: 'pressure-critical',
-            test: () => global.pressureLevel === 'critical',
-          },
-        ],
-      },
-      value:
-        'Threat posture is elevated across active incidents. Prioritize rapid containment and keep reserve teams flexible.',
-    },
-    {
-      id: 'clean-resolution-week',
-      when: {
-        predicates: [
-          {
-            id: 'recent-clean-report',
-            test: () =>
-              Boolean(
-                recent && recent.resolvedCases.length >= 2 && recent.failedCases.length === 0
-              ),
-          },
-        ],
-      },
-      value:
-        'Containment tempo is holding. Maintain momentum, but do not overextend fatigued units.',
-    },
-    {
-      id: 'recent-failure-week',
-      when: {
-        predicates: [
-          {
-            id: 'recent-failure-report',
-            test: () => Boolean(recent && recent.failedCases.length > 0),
-          },
-        ],
-      },
-      value:
-        'Recent failures shifted confidence. Tighten assignment discipline and stabilize high-stage operations before expansion.',
-    },
-    {
-      id: 'routine-even-week',
-      when: {
-        predicates: [
-          {
-            id: 'even-week',
-            test: ({ state }) => state.week % 2 === 0,
-          },
-        ],
-      },
-      value:
-        'Routine systems are stable this cycle. Keep recon, training, and fabrication queues synchronized.',
-    },
-    {
-      id: 'routine-odd-week',
-      value:
-        'Signals are mixed this week. Keep eyes on deadline risk and preserve mission-ready reserves.',
-    },
-  ]
-
-  const selection = selectAuthoredBranch(game, routes, context)
-
-  return {
-    routeId: selection?.branchId,
-    message: selection?.value ?? '',
-  }
+const DIRECTOR_MESSAGES: Record<string, string> = {
+  'hostile-faction-pressure':
+    'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
+  'breach-posture-escalated':
+    'Breach follow-up posture is escalating. Prioritize teams with stable recovery profiles and preserve surge capacity.',
+  'critical-pressure':
+    'Threat posture is elevated across active incidents. Prioritize rapid containment and keep reserve teams flexible.',
+  'clean-resolution-week':
+    'Containment tempo is holding. Maintain momentum, but do not overextend fatigued units.',
+  'recent-failure-week':
+    'Recent failures shifted confidence. Tighten assignment discipline and stabilize high-stage operations before expansion.',
+  'routine-even-week':
+    'Routine systems are stable this cycle. Keep recon, training, and fabrication queues synchronized.',
+  'routine-odd-week':
+    'Signals are mixed this week. Keep eyes on deadline risk and preserve mission-ready reserves.',
 }
 
-function buildWeeklyReportNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView {
-  const routes: AuthoredBranch<FrontDeskNoticeView>[] = [
-    {
-      id: 'weekly-report-tutorial',
-      when: {
-        predicates: [
-          {
-            id: 'weekly-report-tutorial-trigger-eligible',
-            test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.weeklyReportTutorial),
-          },
-        ],
-      },
-      value: {
-        id: 'weekly-report-tutorial',
-        title: 'Weekly report orientation',
-        body: 'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Open report',
-        choices: buildWeeklyReportTutorialChoices(),
-      },
-    },
-    {
-      id: 'weekly-report-steady-consumed',
-      when: {
-        flags: {
-          consumedOneShots: ['frontdesk.tutorial.weekly-report'],
-        },
-      },
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report on quiet cadence',
-        body: 'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Open report',
-      },
-    },
-    {
-      id: 'weekly-report-follow-up-priority',
-      when: {
-        followUps: {
-          anyOf: ['recruit.special.frontdesk.review', 'frontdesk.faction.occult_networks.response'],
-        },
-      },
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report ready',
-        body: 'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Review dossier',
-      },
-    },
-    {
-      id: 'weekly-report-returning',
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report ready',
-        body: "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Review dossier',
-      },
-    },
-  ]
-
-  return (
-    selectAuthoredBranch(game, routes, context)?.value ?? {
-      id: 'weekly-report-returning',
-      title: 'Weekly report ready',
-      body: 'The latest dossier is ready for review.',
-      tone: 'info',
-    }
-  )
-}
-
-function buildBreachFollowUpNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(
-      game,
-      [
-        {
-          id: 'breach-follow-up-queued',
-          when: {
-            followUps: {
-              anyOf: [
-                'containment.breach.followup.cautious-brief',
-                'containment.breach.followup.aggressive-brief',
-              ],
-            },
-          },
-          value: {
-            id: 'breach-follow-up-queued',
-            title: 'Breach follow-up queued for command review',
-            body: 'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
-            tone: 'warning',
-            actionTarget: 'cases',
-            actionLabel: 'Review queued follow-up',
-          },
-        },
-        {
-          id: 'breach-follow-up-cautious-brief',
-          when: {
-            predicates: [
-              {
-                id: 'breach-follow-up-cautious-trigger-eligible',
-                test: () =>
-                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpCautiousBrief),
-              },
-            ],
-          },
-          value: {
-            id: 'breach-follow-up-cautious-brief',
-            title: 'Cautious breach posture logged',
-            body: 'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
-            tone: 'warning',
-            actionTarget: 'cases',
-            actionLabel: 'Review cases',
-          },
-        },
-        {
-          id: 'breach-follow-up-aggressive-brief',
-          when: {
-            predicates: [
-              {
-                id: 'breach-follow-up-aggressive-trigger-eligible',
-                test: () =>
-                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpAggressiveBrief),
-              },
-            ],
-          },
-          value: {
-            id: 'breach-follow-up-aggressive-brief',
-            title: 'Aggressive breach posture logged',
-            body: 'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
-            tone: 'danger',
-            actionTarget: 'cases',
-            actionLabel: 'Review cases',
-          },
-        },
-        {
-          id: 'breach-follow-up-open',
-          when: {
-            predicates: [
-              {
-                id: 'breach-follow-up-open-trigger-eligible',
-                test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpOpen),
-              },
-            ],
-          },
-          value: {
-            id: 'breach-follow-up-open',
-            title: 'Containment breach follow-up available',
-            body: 'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
-            tone: 'warning',
-            actionTarget: 'cases',
-            actionLabel: 'Inspect cases',
-            choices: buildBreachFollowUpChoices(),
-          },
-        },
-        {
-          id: 'breach-follow-up-none',
-          value: null,
-        },
-      ],
-      context
-    )?.value ?? null
-  )
-}
-
-function buildHostileFactionNotice(
-  game: GameState,
-  hostileFaction: ReturnType<typeof buildFactionStates>[number] | undefined,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(
-      game,
-      [
-        {
-          id: 'hostile-faction-response',
-          when: {
-            flags: hostileFaction
-              ? {
-                  allFlags: [
-                    {
-                      flagId: `faction.${hostileFaction.id}.frontdesk-response`,
-                      equals: 'containment',
-                    },
-                  ],
-                }
-              : undefined,
-          },
-          value: hostileFaction
-            ? {
-                id: 'hostile-faction-response',
-                title: `${hostileFaction.label} response posture set`,
-                body: 'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
-                tone: 'warning',
-                actionTarget: 'factions',
-                actionLabel: 'Review standing',
-              }
-            : null,
-        },
-        {
-          id: 'hostile-faction-alert',
-          when: {
-            predicates: [
-              {
-                id: 'hostile-faction-present',
-                test: () => Boolean(hostileFaction),
-              },
-            ],
-          },
-          value: hostileFaction
-            ? {
-                id: 'hostile-faction-alert',
-                title: `${hostileFaction.label} pressure rising`,
-                body: hostileFaction.feedback,
-                tone: 'warning',
-                actionTarget: 'factions',
-                actionLabel: 'Review standing',
-                choices: buildHostileFactionResponseChoices(hostileFaction),
-              }
-            : null,
-        },
-        {
-          id: 'hostile-faction-none',
-          value: null,
-        },
-      ],
-      context
-    )?.value ?? null
-  )
-}
-
-function buildSpecialRecruitNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-  const specialRecruit = game.candidates.find(
-    (candidate) =>
-      candidate.hireStatus === 'available' &&
-      candidate.sourceDisposition !== 'adversarial' &&
-      Boolean(candidate.sourceFactionId || candidate.sourceContactId)
-  )
-
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(
-      game,
-      [
-        {
-          id: 'special-recruit-opportunity',
-          when: {
-            predicates: [
-              {
-                id: 'special-recruit-trigger-eligible',
-                test: () =>
-                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity),
-              },
-            ],
-          },
-          value: specialRecruit
-            ? {
-                id: 'special-recruit-opportunity',
-                title: `Special recruit opportunity: ${specialRecruit.name}`,
-                body:
-                  specialRecruit.sourceSummary ??
-                  `${specialRecruit.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
-                tone: 'success',
-                actionTarget: 'recruitment',
-                actionLabel: 'Open recruitment',
-                choices: buildSpecialRecruitOpportunityChoices(specialRecruit),
-              }
-            : null,
-        },
-        {
-          id: 'special-recruit-none',
-          value: null,
-        },
-      ],
-      context
-    )?.value ?? null
-  )
-}
-
-function buildPublicDisclosurePostureNotices(game: GameState): FrontDeskNoticeView[] {
-  return listPendingPublicDisclosurePostureDecisions(game).map((pending) => ({
-    id: `disclosure-posture-${pending.recordId}`,
-    title: 'Disclosure posture decision required',
-    body: `${pending.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
-    tone: 'warning',
-    actionTarget: 'disclosure',
-    actionLabel: 'Open campaign briefing',
-    choices: buildPublicDisclosurePostureChoices(pending.recordId, pending.label),
-  }))
-}
-
-/**
- * Author-facing front-desk example surface for conditional content selection.
- * Add new notices here instead of scattering one-off `if/else` branches across
- * UI components when the decision is based on shared game state.
- */
+/** Project canonical authored selections into operations notice copy and navigation. */
 export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView {
-  const eligibleTriggerIds = getEligibleFrontDeskSceneTriggerIdSet(game)
-  const branchContext = buildAuthoredBranchContext(game, {
-    activeContextId: 'frontdesk.dashboard',
+  const authored = getFrontDeskAuthoredState(game)
+  const { hostileFaction, specialRecruit } = authored
+  const notices = authored.notices.map((notice): FrontDeskNoticeView => {
+    const pending = authored.pendingDisclosure.find(
+      (item) => notice.id === `disclosure-posture-${item.recordId}`
+    )
+    let presentation: Omit<FrontDeskNoticeView, 'id' | 'choices'>
+    switch (notice.presentationKey) {
+      case 'weekly-report-tutorial':
+        presentation = {
+          title: 'Weekly report orientation',
+          body: 'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
+          tone: 'info',
+          actionTarget: 'report',
+          actionLabel: 'Open report',
+        }
+        break
+      case 'weekly-report-consumed':
+        presentation = {
+          title: 'Weekly report on quiet cadence',
+          body: 'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
+          tone: 'info',
+          actionTarget: 'report',
+          actionLabel: 'Open report',
+        }
+        break
+      case 'weekly-report-follow-up':
+        presentation = {
+          title: 'Weekly report ready',
+          body: 'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
+          tone: 'info',
+          actionTarget: 'report',
+          actionLabel: 'Review dossier',
+        }
+        break
+      case 'weekly-report-returning':
+        presentation = {
+          title: 'Weekly report ready',
+          body: "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
+          tone: 'info',
+          actionTarget: 'report',
+          actionLabel: 'Review dossier',
+        }
+        break
+      case 'weekly-report-fallback':
+        presentation = {
+          title: 'Weekly report ready',
+          body: 'The latest dossier is ready for review.',
+          tone: 'info',
+        }
+        break
+      case 'breach-follow-up-queued':
+        presentation = {
+          title: 'Breach follow-up queued for command review',
+          body: 'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
+          tone: 'warning',
+          actionTarget: 'cases',
+          actionLabel: 'Review queued follow-up',
+        }
+        break
+      case 'breach-follow-up-cautious':
+        presentation = {
+          title: 'Cautious breach posture logged',
+          body: 'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
+          tone: 'warning',
+          actionTarget: 'cases',
+          actionLabel: 'Review cases',
+        }
+        break
+      case 'breach-follow-up-aggressive':
+        presentation = {
+          title: 'Aggressive breach posture logged',
+          body: 'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
+          tone: 'danger',
+          actionTarget: 'cases',
+          actionLabel: 'Review cases',
+        }
+        break
+      case 'breach-follow-up-open':
+        presentation = {
+          title: 'Containment breach follow-up available',
+          body: 'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
+          tone: 'warning',
+          actionTarget: 'cases',
+          actionLabel: 'Inspect cases',
+        }
+        break
+      case 'hostile-faction-response':
+        presentation = {
+          title: `${hostileFaction!.label} response posture set`,
+          body: 'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
+          tone: 'warning',
+          actionTarget: 'factions',
+          actionLabel: 'Review standing',
+        }
+        break
+      case 'hostile-faction-alert':
+        presentation = {
+          title: `${hostileFaction!.label} pressure rising`,
+          body: hostileFaction!.feedback,
+          tone: 'warning',
+          actionTarget: 'factions',
+          actionLabel: 'Review standing',
+        }
+        break
+      case 'special-recruit-opportunity':
+        presentation = {
+          title: `Special recruit opportunity: ${specialRecruit!.name}`,
+          body:
+            specialRecruit!.sourceSummary ??
+            `${specialRecruit!.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
+          tone: 'success',
+          actionTarget: 'recruitment',
+          actionLabel: 'Open recruitment',
+        }
+        break
+      case 'disclosure-posture':
+        presentation = {
+          title: 'Disclosure posture decision required',
+          body: `${pending!.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
+          tone: 'warning',
+          actionTarget: 'disclosure',
+          actionLabel: 'Open campaign briefing',
+        }
+        break
+      default:
+        throw new Error(`Unknown front-desk authored presentation: ${notice.presentationKey}`)
+    }
+    return {
+      id: notice.id,
+      ...presentation,
+      ...(notice.choices ? { choices: notice.choices } : {}),
+    }
   })
-  const hostileFaction = buildFactionStates(game).find(
-    (faction) => faction.stance === 'hostile' || faction.reputationTier === 'hostile'
-  )
-  const director = buildDirectorMessage(game, branchContext, Boolean(hostileFaction))
-  const notices = [
-    buildWeeklyReportNotice(game, eligibleTriggerIds, branchContext),
-    buildBreachFollowUpNotice(game, eligibleTriggerIds, branchContext),
-    buildHostileFactionNotice(game, hostileFaction, branchContext),
-    buildSpecialRecruitNotice(game, eligibleTriggerIds, branchContext),
-    ...buildPublicDisclosurePostureNotices(game),
-  ].filter((notice): notice is FrontDeskNoticeView => Boolean(notice))
-
   return {
-    directorMessage: director.message,
+    directorMessage: DIRECTOR_MESSAGES[authored.directorRouteId] ?? '',
     notices,
-    debug: {
-      ...(director.routeId ? { directorMessageRouteId: director.routeId } : {}),
-      noticeRouteIds: notices.map((notice) => notice.id),
-      choiceIds: notices.flatMap((notice) => notice.choices?.map((choice) => choice.id) ?? []),
-    },
+    debug: authored.debug,
   }
 }
 

@@ -1,3 +1,4 @@
+import { parseContainmentRequirementRegistry } from '../../domain/containmentRequirementFulfillment'
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeFacilityLifecycleHistory } from '../../domain/facilityLifecycle'
 import { sanitizeFacilityCapabilityUnlock } from '../../domain/facilityCapabilityUnlock'
@@ -2295,11 +2296,20 @@ export function getFatigueBand(value: number): FatigueBand {
   return 'steady'
 }
 
+function requireContainmentRequirementRegistry(value: unknown) {
+  const parsed = parseContainmentRequirementRegistry(value)
+  if (!parsed) throw new Error('Invalid persisted containment requirement registry.')
+  return parsed
+}
+
 export function stripGameTemplates(game: GameState): PersistedGame {
   const { templates, ...persistedGame } = game
   void templates
   return stripUndefinedFields({
     ...persistedGame,
+    ...(game.containmentRequirementStates !== undefined
+      ? { containmentRequirementStates: requireContainmentRequirementRegistry(game.containmentRequirementStates) }
+      : {}),
     facilityState: game.facilityState
       ? {
           ...game.facilityState,
@@ -10641,6 +10651,12 @@ export function hydrateGame(
   const facilityInventoryMismatch = parseFacilityInventoryMismatch(game.facilityInventoryMismatch)
   const facilityStorageCapacity = parseFacilityStorageCapacity(game.facilityStorageCapacity)
   const volatileActionHoldRecords = parseVolatileActionHoldRecords(game.volatileActionHoldRecords)
+  // Optional additive save field: old saves intentionally have no registry.
+  // Do not borrow a newer fallback registry or silently discard bad history.
+  const containmentRequirementStates =
+    game.containmentRequirementStates === undefined
+      ? undefined
+      : requireContainmentRequirementRegistry(game.containmentRequirementStates)
 
   const hydratedBase = stripUndefinedFields({
     ...fallback,
@@ -10769,6 +10785,7 @@ export function hydrateGame(
     facilityInventoryMismatch,
     facilityStorageCapacity,
     volatileActionHoldRecords,
+    containmentRequirementStates,
     equipmentInstances,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,
@@ -10952,6 +10969,9 @@ export function hydrateGame(
   // stripUndefinedFields / spreads so per-entry Object.freeze from normalization/sanitize survives.
   hydrated = {
     ...hydrated,
+    // stripUndefinedFields rebuilds objects. Restore the validated frozen
+    // registry so loaded fulfillment/window markers cannot mutate in place.
+    ...(containmentRequirementStates ? { containmentRequirementStates } : {}),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

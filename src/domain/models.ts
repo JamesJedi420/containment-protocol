@@ -1,3 +1,4 @@
+import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
 import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
@@ -2749,6 +2750,8 @@ export interface CampaignLedgerState {
 }
 
 export interface GameState {
+  /** SPE-3181: authoritative saved recurring containment requirements by subject + requirement. */
+  containmentRequirementStates?: ContainmentRequirementRegistry
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
   legitimacy?: LegitimacyState
   /**

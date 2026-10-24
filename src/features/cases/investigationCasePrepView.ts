@@ -2,6 +2,7 @@ import { readPersistentFlag } from '../../domain/flagSystem'
 import { listInvestigationCustodyLossMarkers } from '../../domain/investigationCustodyLoss'
 import {
   buildInvestigationAskedFlagId,
+  canAskInvestigationQuestionOnCase as canAskInvestigationQuestionOnCaseDomain,
   listInvestigationQuestionSet,
   readInvestigationBudget,
   type InvestigationQuestionDomain,
@@ -71,7 +72,7 @@ export function hasInvestigationForensicStrain(investigation: InvestigationCaseP
 }
 
 export function canAskInvestigationQuestionOnCase(caseData: CaseInstance | undefined) {
-  return caseData !== undefined && canShowInvestigationCasePrepOnCase(caseData)
+  return canAskInvestigationQuestionOnCaseDomain(caseData)
 }
 
 function buildDomainPrepView(

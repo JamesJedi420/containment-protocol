@@ -1,7 +1,12 @@
 import { countInvestigationCustodyLossRefs } from './investigationCustodyLoss'
 import { setPersistentFlag, readPersistentFlag } from './flagSystem'
 import { advanceDefinedProgressClock, readProgressClock } from './progressClocks'
-import type { GameState } from './models'
+import type { CaseInstance, GameState } from './models'
+
+/** Canonical case-status eligibility shared by the store and case-prep projection. */
+export function canAskInvestigationQuestionOnCase(caseData: CaseInstance | undefined): boolean {
+  return caseData !== undefined && caseData.status === 'in_progress'
+}
 
 export type InvestigationQuestionDomain = 'forensic' | 'tactical'
 

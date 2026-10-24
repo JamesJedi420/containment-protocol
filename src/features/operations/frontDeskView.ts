@@ -1,4 +1,7 @@
-import { getFrontDeskAuthoredState } from '../../domain/frontDeskAuthored'
+import {
+  getFrontDeskAuthoredState,
+  type FrontDeskDirectorRouteId,
+} from '../../domain/frontDeskAuthored'
 import { APP_ROUTES } from '../../app/routes'
 import {
   buildShellStatusBarView,
@@ -293,7 +296,7 @@ export interface FrontDeskHubView {
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
-const DIRECTOR_MESSAGES: Record<string, string> = {
+const DIRECTOR_MESSAGES: Record<FrontDeskDirectorRouteId, string> = {
   'hostile-faction-pressure':
     'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
   'breach-posture-escalated':
@@ -447,7 +450,7 @@ export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView
     }
   })
   return {
-    directorMessage: DIRECTOR_MESSAGES[authored.directorRouteId] ?? '',
+    directorMessage: authored.directorRouteId ? DIRECTOR_MESSAGES[authored.directorRouteId] : '',
     notices,
     debug: authored.debug,
   }

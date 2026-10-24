@@ -19,6 +19,15 @@ import {
 import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
 import { listPendingPublicDisclosurePostureDecisions } from './publicDisclosurePostureChoice'
 
+export type FrontDeskDirectorRouteId =
+  | 'hostile-faction-pressure'
+  | 'breach-posture-escalated'
+  | 'critical-pressure'
+  | 'clean-resolution-week'
+  | 'recent-failure-week'
+  | 'routine-even-week'
+  | 'routine-odd-week'
+
 /** Canonical authored selection metadata; presentation is owned by the operations feature. */
 export interface FrontDeskAuthoredNotice {
   id: string
@@ -55,7 +64,7 @@ function buildDirectorMessage(
   const agency = buildAgencySummary(game)
   const recent = game.reports.at(-1)
 
-  const routes: AuthoredBranch<string>[] = [
+  const routes: AuthoredBranch<FrontDeskDirectorRouteId>[] = [
     {
       id: 'hostile-faction-pressure',
       when: {
@@ -141,7 +150,7 @@ function buildDirectorMessage(
 
   return {
     routeId: selection?.branchId,
-    message: selection?.value ?? '',
+    message: selection?.value ?? null,
   }
 }
 
@@ -404,7 +413,7 @@ export function getFrontDeskAuthoredState(game: GameState) {
   ].filter((notice): notice is FrontDeskAuthoredNotice => Boolean(notice))
 
   return {
-    directorRouteId: director.routeId ?? '',
+    directorRouteId: director.message,
     hostileFaction,
     specialRecruit: findSpecialRecruit(game),
     pendingDisclosure: listPendingPublicDisclosurePostureDecisions(game),

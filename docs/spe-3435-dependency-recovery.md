@@ -52,6 +52,11 @@ SPE-3437 and SPE-3348 respectively. No new issue scope was created.
   actionable P0/P1 findings. Trigger/choice definitions were checked as AST-identical
   after import relocation; branch order, copy, routing and canonical pressure
   interpretation were checked against main.
+- External review prompted an exhaustive typed director-route/message map, so new
+  route variants require corresponding presentation copy at compile time. A stale
+  persisted presentation-key scenario does not apply: authored selections are
+  derived on demand and are not serialized. General transitive boundary enforcement
+  remains SPE-3437; this child's regression explicitly covers its recovered interfaces.
 - Six pre-ship passes covered scope/integration, edge cases, determinism/state,
   regressions, documentation and cleanup. No unresolved in-boundary finding.
 

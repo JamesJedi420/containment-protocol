@@ -32,6 +32,21 @@
 
 ## Guardrails
 
+### Front-desk authored contract (SPE-3435)
+
+`src/domain/frontDeskTriggers.ts` and `frontDeskChoices.ts` own the authored trigger
+and consequence definitions. `frontDeskAuthored.ts` selects notice variants, route
+IDs, and choices using those definitions and existing domain helpers. Stability
+analysis consumes this metadata directly. `src/features/operations/frontDeskView.ts`
+owns briefing copy, tones, action links, and hub projections. The feature trigger
+and choice modules are compatibility re-exports of the canonical domain definitions.
+No domain module calls the feature projection or registers a React component.
+
+The unused `appRoutes` example was removed from `screenRouting.ts`. The incident
+mock remains dormant, as documented in `src/features/incidents/README.md`;
+`src/app/App.tsx` remains the active React routing owner. Domain routing retains
+only deterministic condition evaluation and branch selection.
+
 - Lint rule: Disallow `../<feature>` imports in `src/features/**` except for explicitly allowed shared selectors.
 - Test: Add a boundary test to fail if any disallowed import is present.
 

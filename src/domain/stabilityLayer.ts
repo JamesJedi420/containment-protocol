@@ -1,11 +1,11 @@
-import { FRONT_DESK_SCENE_TRIGGERS } from '../features/operations/frontDeskTriggers'
-import { getFrontDeskBriefingView } from '../features/operations/frontDeskView'
+import { FRONT_DESK_SCENE_TRIGGERS } from './frontDeskTriggers'
+import { getFrontDeskAuthoredState } from './frontDeskAuthored'
 import {
   buildBreachFollowUpChoices,
   buildHostileFactionResponseChoices,
   buildSpecialRecruitOpportunityChoices,
   buildWeeklyReportTutorialChoices,
-} from '../features/operations/frontDeskChoices'
+} from './frontDeskChoices'
 import {
   EQUIPMENT_SLOT_KINDS,
   getAgentLoadoutConflicts,
@@ -225,7 +225,7 @@ function buildKnownAuthoredTargetCatalog(state: GameState) {
     .map((choice) => normalizeString(choice.nextTargetId))
     .filter((targetId) => targetId.length > 0)
 
-  const frontDeskView = getFrontDeskBriefingView(state)
+  const frontDeskView = getFrontDeskAuthoredState(state)
   const activeNoticeIds = frontDeskView.notices.map((notice) => notice.id)
   const activeChoiceTargetIds = frontDeskView.notices.flatMap((notice) =>
     (notice.choices ?? []).map((choice) => normalizeString(choice.nextTargetId)).filter((targetId) => targetId.length > 0)
@@ -257,7 +257,7 @@ export function hasSafeFrontDeskFallback(state: GameState) {
   const { frontDeskView } = buildKnownAuthoredTargetCatalog(state)
   const reasons: string[] = []
 
-  if (normalizeString(frontDeskView.directorMessage).length === 0) {
+  if (normalizeString(frontDeskView.directorRouteId).length === 0) {
     reasons.push('missing-director-message')
   }
 

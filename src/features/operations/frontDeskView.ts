@@ -312,6 +312,19 @@ function buildNoticePresentation(
   }
 }
 
+function buildReportNotice(title: string, body: string, actionLabel: string) {
+  return buildNoticePresentation(title, body, 'info', 'report', actionLabel)
+}
+
+function buildCaseNotice(
+  title: string,
+  body: string,
+  tone: FrontDeskNoticeTone,
+  actionLabel: string
+) {
+  return buildNoticePresentation(title, body, tone, 'cases', actionLabel)
+}
+
 const DIRECTOR_MESSAGES: Record<FrontDeskDirectorRouteId, string> = {
   'hostile-faction-pressure':
     'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
@@ -340,38 +353,30 @@ export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView
     let presentation: Omit<FrontDeskNoticeView, 'id' | 'choices'>
     switch (notice.presentationKey) {
       case 'weekly-report-tutorial':
-        presentation = buildNoticePresentation(
+        presentation = buildReportNotice(
           'Weekly report orientation',
           'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
-          'info',
-          'report',
           'Open report'
         )
         break
       case 'weekly-report-consumed':
-        presentation = buildNoticePresentation(
+        presentation = buildReportNotice(
           'Weekly report on quiet cadence',
           'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
-          'info',
-          'report',
           'Open report'
         )
         break
       case 'weekly-report-follow-up':
-        presentation = buildNoticePresentation(
+        presentation = buildReportNotice(
           'Weekly report ready',
           'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
-          'info',
-          'report',
           'Review dossier'
         )
         break
       case 'weekly-report-returning':
-        presentation = buildNoticePresentation(
+        presentation = buildReportNotice(
           'Weekly report ready',
           "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
-          'info',
-          'report',
           'Review dossier'
         )
         break
@@ -383,38 +388,34 @@ export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView
         )
         break
       case 'breach-follow-up-queued':
-        presentation = buildNoticePresentation(
+        presentation = buildCaseNotice(
           'Breach follow-up queued for command review',
           'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
           'warning',
-          'cases',
           'Review queued follow-up'
         )
         break
       case 'breach-follow-up-cautious':
-        presentation = buildNoticePresentation(
+        presentation = buildCaseNotice(
           'Cautious breach posture logged',
           'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
           'warning',
-          'cases',
           'Review cases'
         )
         break
       case 'breach-follow-up-aggressive':
-        presentation = buildNoticePresentation(
+        presentation = buildCaseNotice(
           'Aggressive breach posture logged',
           'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
           'danger',
-          'cases',
           'Review cases'
         )
         break
       case 'breach-follow-up-open':
-        presentation = buildNoticePresentation(
+        presentation = buildCaseNotice(
           'Containment breach follow-up available',
           'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
           'warning',
-          'cases',
           'Inspect cases'
         )
         break

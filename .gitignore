@@ -15,6 +15,8 @@ dist-ssr
 *.local
 *test-results*.json
 *test-results*.txt
+*test_results*.txt
+final_test_results.txt
 test_output.txt
 vitest-output.txt
 agents-test-output.txt

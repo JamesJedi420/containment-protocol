@@ -1,16 +1,3 @@
-// ...existing code...
-import MajorIncidentPage from '../features/incidents/MajorIncidentPage';
-// ...existing code...
-
-// Add to exported routes array/object below (example shown, adjust as needed):
-export const appRoutes = [
-  // ...existing routes...
-  {
-    path: '/incidents/major',
-    element: MajorIncidentPage,
-  },
-  // ...existing routes...
-];
 import {
   evaluateFlagConditions,
   type FlagConditionEvaluation,

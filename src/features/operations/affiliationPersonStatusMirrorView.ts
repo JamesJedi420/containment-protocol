@@ -1,34 +1,11 @@
 import type { GameState } from '../../domain/models'
-import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
 import {
-  buildAffiliationFileWorkQueueEvidenceRepairCandidates,
-  buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
-} from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
-import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
-import {
-  buildAffiliationFileWorkQueueReleaseActionRecordId,
-  getAffiliationFileWorkQueueReleaseActionForBucket,
-  type AffiliationFileWorkQueueReleaseActionKind,
-} from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
-import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
-import {
-  buildAffiliationFileWorkQueueReleaseFulfillmentRecordId,
-  getAffiliationFileWorkQueueReleaseFulfillmentForOutcome,
-  type AffiliationFileWorkQueueReleaseFulfillmentKind,
-} from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
-import {
-  buildAffiliationFileWorkQueueReleasePackageRecordId,
-  type AffiliationFileWorkQueueReleasePackageKind,
-} from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
-import {
-  buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId,
-  type AffiliationFileWorkQueueFileReleaseDeliveryRecord,
-} from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
-import {
-  buildAffiliationFileWorkQueueNonMissionEnforcementRecordId,
-  getAffiliationFileWorkQueueNonMissionEnforcementForBucket,
-} from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
-import { buildAffiliationFileWorkQueueEvidenceRepairWorkflowId } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
+  getAffiliationFileWorkQueueRecommendedAction,
+  resolveAffiliationFileWorkQueueEntry,
+} from '../../domain/affiliationFileWorkQueueDecisions'
+import type { AffiliationFileWorkQueueReleaseActionKind } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import type { AffiliationFileWorkQueueReleaseFulfillmentKind } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import type { AffiliationFileWorkQueueReleasePackageKind } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
@@ -69,10 +46,7 @@ export interface AffiliationPersonStatusMirrorSummaryView {
 }
 
 export type AffiliationFileAccessWorkQueueBucket =
-  | 'blocked'
-  | 'restricted'
-  | 'missing_review'
-  | 'allowed'
+  'blocked' | 'restricted' | 'missing_review' | 'allowed'
 
 export type AffiliationFileAccessRecommendedActionKind =
   | 'resolve_missing_review'
@@ -341,29 +315,25 @@ export function getFileAccessWorkQueueRecommendedAction(
   switch (bucket) {
     case 'missing_review':
       return Object.freeze({
-        recommendedActionKind: 'resolve_missing_review',
-        recommendedActionLabel: 'Resolve missing review',
+        ...getAffiliationFileWorkQueueRecommendedAction(bucket),
         recommendedActionDetail:
           'Attach missing candidate, welfare, onboarding, file, or site evidence before evaluating access.',
       })
     case 'blocked':
       return Object.freeze({
-        recommendedActionKind: 'hold_blocked_access',
-        recommendedActionLabel: 'Hold access',
+        ...getAffiliationFileWorkQueueRecommendedAction(bucket),
         recommendedActionDetail:
           'Resolve blocked file, site, or facility reason before moving this file workflow forward.',
       })
     case 'restricted':
       return Object.freeze({
-        recommendedActionKind: 'route_restricted_review',
-        recommendedActionLabel: 'Route restricted review',
+        ...getAffiliationFileWorkQueueRecommendedAction(bucket),
         recommendedActionDetail:
           'Supervisor or review-gate handling is required before any file release.',
       })
     case 'allowed':
       return Object.freeze({
-        recommendedActionKind: 'monitor_allowed_access',
-        recommendedActionLabel: 'Monitor allowed access',
+        ...getAffiliationFileWorkQueueRecommendedAction(bucket),
         recommendedActionDetail: 'Audit visibility only; no intervention is required.',
       })
   }
@@ -378,170 +348,52 @@ function toFileAccessWorkQueueEntry(
   snapshot: AffiliationPersonStatusSnapshot,
   game: GameState
 ): AffiliationFileAccessWorkQueueEntryView {
+  const {
+    entry: operational,
+    recordedAction,
+    evidenceResolution,
+    evidenceRepairCandidates: repairCandidates,
+    releaseAction,
+    releaseActionRecord,
+    releaseOutcomeRecord,
+    releaseFulfillment,
+    durableReleaseFulfillmentRecord,
+    releasePackageRecord,
+    fileReleaseDeliveryRecord,
+    hasMetadataFileReleaseDelivery,
+    nonMissionEnforcement,
+    nonMissionEnforcementRecord,
+    evidenceRepairWorkflow,
+  } = resolveAffiliationFileWorkQueueEntry(snapshot, game)
   const decision = snapshot.facilityFileAccessDecision
-  const bucket: AffiliationFileAccessWorkQueueBucket = decision?.outcome ?? 'missing_review'
-  const reasonCodes = decision
-    ? decision.reasonCodes
-    : snapshot.reasonCodes.filter((reasonCode) => reasonCode.startsWith('missing_'))
-  const reasonCodeLabels =
-    reasonCodes.length > 0 ? reasonCodes : ['missing_facility_file_access_decision']
+  const bucket = operational.bucket
+  const { reasonCodes: reasonCodeLabels, ...operationalFields } = operational
   const recommendedAction = getFileAccessWorkQueueRecommendedAction(bucket)
-  const recordedActionId = buildAffiliationFileWorkQueueActionRecordId({
-    workQueueEntryId: snapshot.recordId,
-    actionKind: recommendedAction.recommendedActionKind,
-  })
-  const recordedAction = game.affiliationFileWorkQueueActionRecords?.[recordedActionId]
-  const missingReasonCodes = reasonCodeLabels.filter((reasonCode) =>
-    reasonCode.startsWith('missing_')
+  const evidenceRepairCandidates = repairCandidates.map(
+    ({ reasonCode, repairLabel, isRepairActionRecorded, record }) =>
+      Object.freeze({
+        reasonCode,
+        repairLabel,
+        isRepairActionRecorded,
+        ...(record ? { repairActionLabel: `Repair recorded W${record.recordedWeek}` } : {}),
+      })
   )
-  const evidenceResolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
-    workQueueEntryId: snapshot.recordId,
-    missingReasonCodes,
-  })
-  const evidenceResolution =
-    game.affiliationFileWorkQueueEvidenceResolutionRecords?.[evidenceResolutionId]
-  const evidenceRepairCandidates = evidenceResolution
-    ? buildAffiliationFileWorkQueueEvidenceRepairCandidates(
-        evidenceResolution.missingReasonCodes
-      ).map((candidate): AffiliationFileAccessRepairCandidateView => {
-        const recordId = buildAffiliationFileWorkQueueRepairActionRecordId({
-          workQueueEntryId: snapshot.recordId,
-          reasonCode: candidate.reasonCode,
-        })
-        const record = game.affiliationFileWorkQueueRepairActionRecords?.[recordId]
-
-        return Object.freeze({
-          reasonCode: candidate.reasonCode,
-          repairLabel: candidate.repairLabel,
-          isRepairActionRecorded: Boolean(record),
-          ...(record ? { repairActionLabel: `Repair recorded W${record.recordedWeek}` } : {}),
-        })
-      })
-    : []
-  const releaseAction = getAffiliationFileWorkQueueReleaseActionForBucket(bucket)
-  const releaseActionRecordId = releaseAction
-    ? buildAffiliationFileWorkQueueReleaseActionRecordId({
-        workQueueEntryId: snapshot.recordId,
-        actionKind: releaseAction.actionKind,
-      })
-    : ''
-  const releaseActionRecord = releaseAction
-    ? game.affiliationFileWorkQueueReleaseActionRecords?.[releaseActionRecordId]
-    : undefined
-  const releaseOutcomeRecordId = releaseActionRecord
-    ? buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
-        workQueueEntryId: snapshot.recordId,
-        sourceActionKind: releaseActionRecord.actionKind,
-      })
-    : ''
-  const releaseOutcomeRecord = releaseActionRecord
-    ? game.affiliationFileWorkQueueReleaseOutcomeRecords?.[releaseOutcomeRecordId]
-    : undefined
-  const releaseFulfillment =
-    bucket === 'allowed' && releaseOutcomeRecord?.sourceBucket === 'allowed'
-      ? getAffiliationFileWorkQueueReleaseFulfillmentForOutcome(releaseOutcomeRecord.outcomeKind)
-      : null
-  const releaseFulfillmentRecordId =
-    releaseOutcomeRecord && releaseFulfillment
-      ? buildAffiliationFileWorkQueueReleaseFulfillmentRecordId({
-          workQueueEntryId: snapshot.recordId,
-          sourceOutcomeKind: releaseOutcomeRecord.outcomeKind,
-        })
-      : ''
-  const releaseFulfillmentRecord =
-    releaseOutcomeRecord && releaseFulfillment
-      ? game.affiliationFileWorkQueueReleaseFulfillmentRecords?.[releaseFulfillmentRecordId]
-      : undefined
-  const durableReleaseFulfillmentRecord =
-    releaseFulfillmentRecord ??
-    Object.values(game.affiliationFileWorkQueueReleaseFulfillmentRecords ?? {}).find(
-      (record) => record.workQueueEntryId === snapshot.recordId
-    )
-  const releasePackageRecordId = durableReleaseFulfillmentRecord
-    ? buildAffiliationFileWorkQueueReleasePackageRecordId({
-        workQueueEntryId: snapshot.recordId,
-        sourceFulfillmentKind: durableReleaseFulfillmentRecord.fulfillmentKind,
-      })
-    : ''
-  const releasePackageRecord = durableReleaseFulfillmentRecord
-    ? game.affiliationFileWorkQueueReleasePackageRecords?.[releasePackageRecordId]
-    : undefined
-  const fileReleaseDeliveryRecordId = releasePackageRecord
-    ? buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
-        workQueueEntryId: snapshot.recordId,
-        sourcePackageKind: releasePackageRecord.packageKind,
-      })
-    : ''
-  const metadataFileReleaseDeliveryRecord = releasePackageRecord
-    ? game.affiliationFileWorkQueueFileReleaseDeliveryRecords?.[fileReleaseDeliveryRecordId]
-    : undefined
-  const relatedFileReleaseDeliveries: readonly AffiliationFileWorkQueueFileReleaseDeliveryRecord[] =
-    releasePackageRecord
-      ? Object.values(game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}).filter(
-          (record) =>
-            record &&
-            record.workQueueEntryId === snapshot.recordId &&
-            record.sourcePackageKind === releasePackageRecord.packageKind &&
-            record.sourcePackageRef === releasePackageRecord.packageRef
-        )
-      : []
-  const fileReleaseDeliveryRecord =
-    relatedFileReleaseDeliveries.find(
-      (record) => record.deliveryKind === 'actual_file_content_release_delivered'
-    ) ??
-    relatedFileReleaseDeliveries.find(
-      (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
-    ) ??
-    metadataFileReleaseDeliveryRecord
-  const hasMetadataFileReleaseDelivery = relatedFileReleaseDeliveries.some(
-    (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
-  )
-  const hasActualFileReleaseDelivery = relatedFileReleaseDeliveries.some(
-    (record) => record.deliveryKind === 'actual_file_content_release_delivered'
-  )
-  const nonMissionEnforcement = getAffiliationFileWorkQueueNonMissionEnforcementForBucket(bucket)
-  const nonMissionEnforcementRecordId = nonMissionEnforcement
-    ? buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
-        workQueueEntryId: snapshot.recordId,
-        sourceBucket: bucket,
-      })
-    : ''
-  const nonMissionEnforcementRecord = nonMissionEnforcement
-    ? game.affiliationFileWorkQueueNonMissionEnforcementRecords?.[nonMissionEnforcementRecordId]
-    : undefined
-
-  const evidenceRepairWorkflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
-    workQueueEntryId: snapshot.recordId,
-    evidenceType: 'missing_entity_welfare_reclassification_ref',
-  })
-  const evidenceRepairWorkflow =
-    game.affiliationFileWorkQueueEvidenceRepairWorkflows?.[evidenceRepairWorkflowId]
 
   return Object.freeze({
-    id: snapshot.recordId,
-    subjectLabel: snapshot.subjectLabel,
-    subjectId: snapshot.subjectId,
-    bucket,
+    ...operationalFields,
     bucketLabel: formatFileAccessWorkQueueBucketLabel(bucket),
     fileAccessLabel: fileAccessDecisionLabel(snapshot),
     facilityFileAccessLabel: decision?.decisionLabel ?? 'Facility file access: -',
     siteLabel: decision ? `Site: ${decision.siteLabel}` : 'Site: -',
     facilityLabel: decision ? `Facility: ${decision.facilityLabel}` : 'Facility: -',
-    ...recommendedAction,
-    isRecommendedActionRecorded: Boolean(recordedAction),
+    recommendedActionDetail: recommendedAction.recommendedActionDetail,
     ...(recordedAction ? { recordedActionLabel: `Recorded W${recordedAction.recordedWeek}` } : {}),
-    canRecordEvidenceResolution:
-      bucket === 'missing_review' && missingReasonCodes.length > 0 && !evidenceResolution,
-    isEvidenceResolutionRecorded: Boolean(evidenceResolution),
     ...(evidenceResolution
       ? {
           evidenceResolutionLabel: `Evidence resolution recorded W${evidenceResolution.recordedWeek}`,
         }
       : {}),
     evidenceRepairCandidates: Object.freeze(evidenceRepairCandidates),
-    canRecordReleaseAction: Boolean(releaseAction && !releaseActionRecord),
-    isReleaseActionRecorded: Boolean(releaseActionRecord),
-    ...(releaseAction ? { releaseActionKind: releaseAction.actionKind } : {}),
     ...(releaseAction ? { releaseActionLabel: releaseAction.actionLabel } : {}),
     ...(releaseAction
       ? {
@@ -556,9 +408,6 @@ function toFileAccessWorkQueueEntry(
           releaseActionStatusLabel: `${releaseActionRecord.actionLabel} W${releaseActionRecord.recordedWeek}`,
         }
       : {}),
-    canRecordReleaseOutcome: Boolean(releaseActionRecord && !releaseOutcomeRecord),
-    isReleaseOutcomeRecorded: Boolean(releaseOutcomeRecord),
-    ...(releaseOutcomeRecord ? { releaseOutcomeKind: releaseOutcomeRecord.outcomeKind } : {}),
     ...(releaseAction
       ? {
           releaseOutcomeButtonLabel:
@@ -572,27 +421,11 @@ function toFileAccessWorkQueueEntry(
           releaseOutcomeStatusLabel: `${releaseOutcomeRecord.outcomeLabel} W${releaseOutcomeRecord.recordedWeek}`,
         }
       : {}),
-    canRecordReleaseFulfillment: Boolean(releaseFulfillment && !releaseFulfillmentRecord),
-    isReleaseFulfillmentRecorded: Boolean(durableReleaseFulfillmentRecord),
-    ...(durableReleaseFulfillmentRecord
-      ? {
-          releaseOutcomeKind: durableReleaseFulfillmentRecord.sourceOutcomeKind,
-          releaseFulfillmentKind: durableReleaseFulfillmentRecord.fulfillmentKind,
-          releaseFulfillmentSourceReasonCodes: durableReleaseFulfillmentRecord.sourceReasonCodes,
-        }
-      : {}),
     ...(releaseFulfillment ? { releaseFulfillmentButtonLabel: 'Record fulfillment' } : {}),
     ...(durableReleaseFulfillmentRecord
       ? {
           releaseFulfillmentStatusLabel: `${durableReleaseFulfillmentRecord.fulfillmentLabel} W${durableReleaseFulfillmentRecord.recordedWeek}`,
         }
-      : {}),
-    canRecordReleasePackage: Boolean(durableReleaseFulfillmentRecord && !releasePackageRecord),
-    isReleasePackageRecorded: Boolean(releasePackageRecord),
-    ...(releasePackageRecord ? { releasePackageKind: releasePackageRecord.packageKind } : {}),
-    ...(releasePackageRecord ? { releasePackageRef: releasePackageRecord.packageRef } : {}),
-    ...(releasePackageRecord
-      ? { releasePackageSourceReasonCodes: releasePackageRecord.sourceReasonCodes }
       : {}),
     ...(durableReleaseFulfillmentRecord
       ? { releasePackageButtonLabel: 'Prepare handoff package' }
@@ -602,8 +435,6 @@ function toFileAccessWorkQueueEntry(
           releasePackageStatusLabel: `${releasePackageRecord.packageLabel} W${releasePackageRecord.recordedWeek} (${releasePackageRecord.packageRef})`,
         }
       : {}),
-    canRecordFileReleaseDelivery: Boolean(releasePackageRecord && !hasActualFileReleaseDelivery),
-    isFileReleaseDeliveryRecorded: Boolean(fileReleaseDeliveryRecord),
     ...(releasePackageRecord
       ? {
           fileReleaseDeliveryButtonLabel: hasMetadataFileReleaseDelivery
@@ -616,8 +447,6 @@ function toFileAccessWorkQueueEntry(
           fileReleaseDeliveryStatusLabel: `${fileReleaseDeliveryRecord.deliveryLabel} W${fileReleaseDeliveryRecord.recordedWeek} (${fileReleaseDeliveryRecord.deliveryRef})`,
         }
       : {}),
-    canRecordNonMissionEnforcement: Boolean(nonMissionEnforcement && !nonMissionEnforcementRecord),
-    isNonMissionEnforcementRecorded: Boolean(nonMissionEnforcementRecord),
     ...(nonMissionEnforcement
       ? {
           nonMissionEnforcementButtonLabel: `Record ${bucket} non-mission enforcement`,
@@ -628,11 +457,6 @@ function toFileAccessWorkQueueEntry(
           nonMissionEnforcementStatusLabel: `${nonMissionEnforcementRecord.enforcementLabel} W${nonMissionEnforcementRecord.recordedWeek} (${nonMissionEnforcementRecord.id})`,
         }
       : {}),
-    canRecordEvidenceRepairWorkflow:
-      bucket === 'missing_review' &&
-      (missingReasonCodes ?? []).includes('missing_entity_welfare_reclassification_ref') &&
-      !evidenceRepairWorkflow,
-    isEvidenceRepairWorkflowRecorded: Boolean(evidenceRepairWorkflow),
     ...(evidenceRepairWorkflow
       ? {
           evidenceRepairWorkflowStatusLabel: `Repair candidate: welfare evidence (${evidenceRepairWorkflow.repairRef})`,

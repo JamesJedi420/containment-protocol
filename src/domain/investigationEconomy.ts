@@ -78,7 +78,8 @@ const FORENSIC_QUESTIONS: readonly InvestigationQuestionDefinition[] = [
       type: 'next_step',
       id: 'secure-evidence-chain',
       label: 'Secure evidence chain',
-      description: 'Route the next action through chain-of-custody stabilization before escalation.',
+      description:
+        'Route the next action through chain-of-custody stabilization before escalation.',
     },
   },
   {
@@ -104,7 +105,8 @@ const FORENSIC_QUESTIONS: readonly InvestigationQuestionDefinition[] = [
       type: 'temporary_advantage',
       id: 'narrowed-window',
       label: 'Narrowed manipulation window',
-      description: 'Gain short-lived planning clarity on where to deploy limited follow-up capacity.',
+      description:
+        'Gain short-lived planning clarity on where to deploy limited follow-up capacity.',
       durationWeeks: 1,
     },
   },
@@ -142,8 +144,7 @@ const TACTICAL_READ_QUESTIONS: readonly InvestigationQuestionDefinition[] = [
     id: 'tactical.counter-read',
     domain: 'tactical',
     prompt: 'Where is counter-detection most likely to trigger first?',
-    answer:
-      'Counter-detection risk peaks at transition thresholds, not deep interior positions.',
+    answer: 'Counter-detection risk peaks at transition thresholds, not deep interior positions.',
     leverage: {
       type: 'temporary_advantage',
       id: 'threshold-awareness',
@@ -322,9 +323,7 @@ export function askInvestigationQuestion(
     }
   }
 
-  const question = getQuestionCatalog(input.domain).find(
-    (entry) => entry.id === input.questionId
-  )
+  const question = getQuestionCatalog(input.domain).find((entry) => entry.id === input.questionId)
 
   const budget = readInvestigationBudget(state, normalizedCaseId, input.domain)
 
@@ -383,7 +382,11 @@ export function askInvestigationQuestion(
     )
   }
 
-  const remainingBudget = readInvestigationBudget(nextState, normalizedCaseId, input.domain).remaining
+  const remainingBudget = readInvestigationBudget(
+    nextState,
+    normalizedCaseId,
+    input.domain
+  ).remaining
 
   return {
     state: nextState,

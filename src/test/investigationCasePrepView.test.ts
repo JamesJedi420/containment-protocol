@@ -35,7 +35,10 @@ describe('investigationCasePrepView', () => {
     expect(canShowInvestigationCasePrepOnCase({ ...inProgress, status: 'open' })).toBe(false)
     expect(canShowInvestigationCasePrepOnCase({ ...inProgress, status: 'resolved' })).toBe(false)
 
-    const hidden = buildInvestigationCasePrepView({ ...inProgress, status: 'open' }, createStartingState())
+    const hidden = buildInvestigationCasePrepView(
+      { ...inProgress, status: 'open' },
+      createStartingState()
+    )
     expect(hidden.visible).toBe(false)
   })
 
@@ -44,7 +47,12 @@ describe('investigationCasePrepView', () => {
     expect(canAskInvestigationQuestionOnCase(inProgress)).toBe(true)
     expect(canAskInvestigationQuestionOnCase(undefined)).toBe(false)
     expect(canAskInvestigationQuestionOnCase({ ...inProgress, status: 'resolved' })).toBe(false)
-    for (const caseData of [undefined, inProgress, { ...inProgress, status: 'open' as const }, { ...inProgress, status: 'resolved' as const }]) {
+    for (const caseData of [
+      undefined,
+      inProgress,
+      { ...inProgress, status: 'open' as const },
+      { ...inProgress, status: 'resolved' as const },
+    ]) {
       expect(canAskInvestigationQuestionOnCaseDomain(caseData)).toBe(
         canAskInvestigationQuestionOnCase(caseData)
       )

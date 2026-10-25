@@ -66,8 +66,7 @@ export function hasInvestigationForensicStrain(investigation: InvestigationCaseP
 
   const forensic = investigation.forensic.budget
   return (
-    investigation.custodyMarkers.length > 0 ||
-    (forensic.granted > 0 && forensic.remaining === 0)
+    investigation.custodyMarkers.length > 0 || (forensic.granted > 0 && forensic.remaining === 0)
   )
 }
 
@@ -82,7 +81,9 @@ function buildDomainPrepView(
 ): InvestigationDomainPrepView {
   const budget = readInvestigationBudget(game, caseId, domain)
   const questions = listInvestigationQuestionSet(domain).map((question) => {
-    const asked = Boolean(readPersistentFlag(game, buildInvestigationAskedFlagId(caseId, question.id)))
+    const asked = Boolean(
+      readPersistentFlag(game, buildInvestigationAskedFlagId(caseId, question.id))
+    )
 
     return {
       id: question.id,

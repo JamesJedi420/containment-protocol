@@ -56,6 +56,7 @@ import { assignSquadKit } from '../../domain/squadKitAssignment'
 import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { recomputeMissionRouting } from '../../domain/missionIntakeRouting'
 import { COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE } from '../../domain/affiliationPersonStatusRecords'
+import * as affiliationPersonStatusRecords from '../../domain/affiliationPersonStatusRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -4545,6 +4546,332 @@ describe('affiliation file work queue repair action store action', () => {
     expect(useGameStore.getState().game.entityWelfareReclassificationRecords).toBe(
       beforeWelfarePresent.entityWelfareReclassificationRecords
     )
+  })
+})
+
+describe('affiliation file work queue command persistence (SPE-3436)', () => {
+  it('preserves allowed release command records and separate delivery steps across save/load', () => {
+    const game = createStartingState()
+    game.week = 18
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [...game.candidates]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    const status = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      permissionSurface: 'file' as const,
+    }
+    game.affiliationPersonStatusRecords = { [status.id]: status }
+    const [snapshot] = affiliationPersonStatusRecords.projectAffiliationPersonStatusSnapshots({
+      records: game.affiliationPersonStatusRecords,
+      candidates: game.candidates,
+      entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
+    })
+    if (!snapshot?.facilityFileAccessDecision) {
+      throw new Error('Expected a concrete facility file-access decision for the command fixture')
+    }
+
+    // Current welfare policy restricts file access. Exercise the retained allowed
+    // command contract with an authored snapshot without changing that policy.
+    const sourceReasonCodes = ['file_permission_allowed', 'site_clearance_allowed']
+    const snapshotSpy = vi
+      .spyOn(affiliationPersonStatusRecords, 'projectAffiliationPersonStatusSnapshots')
+      .mockReturnValue([
+        {
+          ...snapshot,
+          facilityFileAccessDecision: {
+            ...snapshot.facilityFileAccessDecision,
+            outcome: 'allowed',
+            outcomeLabel: 'Allowed',
+            decisionLabel: 'Facility file access: Allowed',
+            reasonCodes: sourceReasonCodes,
+          },
+        },
+      ])
+
+    try {
+      useGameStore.setState({ game })
+      const entryId = status.id
+      for (const action of [
+        'recordAffiliationFileWorkQueueReleaseOutcome',
+        'recordAffiliationFileWorkQueueReleaseFulfillment',
+        'recordAffiliationFileWorkQueueReleasePackage',
+        'recordAffiliationFileWorkQueueFileReleaseDelivery',
+      ] as const) {
+        useGameStore.getState()[action](entryId)
+        expect(useGameStore.getState().game).toBe(game)
+      }
+
+      for (const action of [
+        'recordAffiliationFileWorkQueueReleaseAction',
+        'recordAffiliationFileWorkQueueReleaseOutcome',
+        'recordAffiliationFileWorkQueueReleaseFulfillment',
+        'recordAffiliationFileWorkQueueReleasePackage',
+      ] as const) {
+        useGameStore.getState()[action](entryId)
+        const afterFirstRecord = useGameStore.getState().game
+        expect(afterFirstRecord).not.toBe(game)
+        useGameStore.getState()[action](entryId)
+        expect(useGameStore.getState().game).toBe(afterFirstRecord)
+      }
+
+      const source = {
+        workQueueEntryId: entryId,
+        subjectId: status.subjectId,
+        subjectLabel: status.subjectLabel,
+        sourceReasonCodes,
+        recordedWeek: 18,
+      }
+      const actionId = `affiliation-file-release-action:${entryId}:file_release_authorized`
+      const outcomeId = `affiliation-file-release-outcome:${entryId}:file_release_authorized`
+      const fulfillmentId = `affiliation-file-release-fulfillment:${entryId}:file_released`
+      const packageId = `affiliation-file-release-package:${entryId}:file_release_fulfilled`
+      const packageRef = `release-package:${entryId}:file_release_fulfilled`
+      const deliveryId = `affiliation-file-release-delivery:${entryId}:safe_file_handoff_package`
+      const deliveryRef = `file-release-delivery:${entryId}:safe_file_handoff_package`
+      const expectedLedgers = {
+        affiliationFileWorkQueueReleaseActionRecords: {
+          [actionId]: {
+            ...source,
+            id: actionId,
+            actionKind: 'file_release_authorized',
+            actionLabel: 'File release authorized',
+            sourceBucket: 'allowed',
+          },
+        },
+        affiliationFileWorkQueueReleaseOutcomeRecords: {
+          [outcomeId]: {
+            ...source,
+            id: outcomeId,
+            sourceActionKind: 'file_release_authorized',
+            sourceBucket: 'allowed',
+            outcomeKind: 'file_released',
+            outcomeLabel: 'File released',
+          },
+        },
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          [fulfillmentId]: {
+            ...source,
+            id: fulfillmentId,
+            sourceOutcomeKind: 'file_released',
+            sourceBucket: 'allowed',
+            fulfillmentKind: 'file_release_fulfilled',
+            fulfillmentLabel: 'File release fulfilled',
+          },
+        },
+        affiliationFileWorkQueueReleasePackageRecords: {
+          [packageId]: {
+            ...source,
+            id: packageId,
+            sourceOutcomeKind: 'file_released',
+            sourceFulfillmentKind: 'file_release_fulfilled',
+            packageKind: 'safe_file_handoff_package',
+            packageLabel: 'Safe file handoff package',
+            packageRef,
+          },
+        },
+      }
+      const beforeDelivery = useGameStore.getState().game
+      expect(beforeDelivery).toMatchObject(expectedLedgers)
+      expect(beforeDelivery.affiliationPersonStatusRecords).toBe(
+        game.affiliationPersonStatusRecords
+      )
+      expect(beforeDelivery.entityWelfareReclassificationRecords).toBe(
+        game.entityWelfareReclassificationRecords
+      )
+      expect(beforeDelivery.candidates).toBe(game.candidates)
+      expect(beforeDelivery.recruitmentPool).toBe(game.recruitmentPool)
+
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      const metadataDelivery = {
+        ...source,
+        id: deliveryId,
+        sourcePackageKind: 'safe_file_handoff_package',
+        sourcePackageRef: packageRef,
+        deliveryKind: 'metadata_only_file_release_delivered',
+        deliveryLabel: 'Metadata-only file release delivered',
+        deliveryRef,
+      }
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+      expect(
+        getPersistedState()?.state.game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+
+      const exported = useGameStore.getState().exportSave()
+      useGameStore.getState().reset()
+      useGameStore.getState().importSave(exported)
+      expect(useGameStore.getState().game).toMatchObject(expectedLedgers)
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      const actualDeliveryId = `${deliveryId}:actual_file_content_release_delivered`
+      const expectedDeliveries = {
+        [deliveryId]: metadataDelivery,
+        [actualDeliveryId]: {
+          ...metadataDelivery,
+          id: actualDeliveryId,
+          deliveryKind: 'actual_file_content_release_delivered',
+          deliveryLabel: 'Actual file content release delivered',
+          deliveryRef: `${deliveryRef}:actual_file_content_release_delivered`,
+        },
+      }
+      const afterActualDelivery = useGameStore.getState().game
+      expect(afterActualDelivery.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+        expectedDeliveries
+      )
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      expect(useGameStore.getState().game).toBe(afterActualDelivery)
+
+      const completedSave = loadGameSave(useGameStore.getState().exportSave())
+      expect(completedSave).toMatchObject(expectedLedgers)
+      expect(completedSave.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+        expectedDeliveries
+      )
+    } finally {
+      snapshotSpy.mockRestore()
+    }
+  })
+
+  it('preserves repaired evidence, receipts, and unrelated records across save/load', () => {
+    const game = createStartingState()
+    game.week = 19
+    const unrelatedCandidate = makeCooperativeContractorCandidate()
+    game.candidates = [unrelatedCandidate]
+    game.recruitmentPool = [unrelatedCandidate]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    const entryId = 'person-status:repair-round-trip'
+    const status = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      id: entryId,
+      subjectId: 'subject:repair-round-trip',
+      subjectLabel: 'Repair Round Trip Subject',
+      candidateRef: undefined,
+      entityWelfareReclassificationRef: 'reclass:repair-round-trip',
+      backgroundCleared: undefined,
+      trainingCompleted: undefined,
+      oathContractSigned: undefined,
+    }
+    const candidateStatus = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      id: `${entryId}:candidate`,
+      subjectId: 'subject:repair-round-trip-candidate',
+      subjectLabel: 'Candidate Repair Subject',
+      candidateRef: 'candidate:repair-round-trip',
+      entityWelfareReclassificationRef: status.entityWelfareReclassificationRef,
+    }
+    const repairedCandidateId = 'candidate:subject:repair-round-trip:onboarding-repair'
+    game.affiliationPersonStatusRecords = {
+      [entryId]: status,
+      [candidateStatus.id]: candidateStatus,
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]:
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+    }
+    useGameStore.setState({ game })
+    useGameStore.getState().recordAffiliationFileWorkQueueAction(entryId)
+    useGameStore.getState().recordAffiliationFileWorkQueueEvidenceRepairWorkflow(entryId)
+
+    for (const [repairEntryId, reasonCode] of [
+      [candidateStatus.id, 'missing_candidate_ref'],
+      [entryId, 'missing_onboarding_clearance'],
+      [entryId, 'missing_entity_welfare_reclassification_ref'],
+    ]) {
+      useGameStore.getState().recordAffiliationFileWorkQueueEvidenceResolution(repairEntryId)
+      useGameStore.getState().recordAffiliationFileWorkQueueRepairAction(repairEntryId, reasonCode)
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords?.[
+          buildAffiliationFileWorkQueueRepairActionRecordId({
+            workQueueEntryId: repairEntryId,
+            reasonCode,
+          })
+        ]
+      ).toMatchObject({ reasonCode, recordedWeek: 19 })
+    }
+
+    const repaired = useGameStore.getState().game
+    expect(repaired.candidates.find((candidate) => candidate.id === unrelatedCandidate.id)).toBe(
+      unrelatedCandidate
+    )
+    expect(
+      repaired.affiliationPersonStatusRecords?.[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]
+    ).toBe(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE)
+    expect(repaired.entityWelfareReclassificationRecords?.[PENDING_TO_APPROVED_FIXTURE.id]).toBe(
+      PENDING_TO_APPROVED_FIXTURE
+    )
+    expect(repaired.affiliationPersonStatusRecords?.[entryId]).toMatchObject({
+      candidateRef: repairedCandidateId,
+      backgroundCleared: true,
+      trainingCompleted: true,
+      oathContractSigned: true,
+    })
+    expect(
+      repaired.candidates.find((candidate) => candidate.id === repairedCandidateId)
+    ).toMatchObject({
+      name: status.subjectLabel,
+      funnelStage: 'hired',
+    })
+    const restoredWelfare =
+      repaired.entityWelfareReclassificationRecords?.[status.entityWelfareReclassificationRef]
+    expect(
+      restoredWelfare && validateEntityWelfareReclassificationRecord(restoredWelfare).valid
+    ).toBe(true)
+    const repairedReasonCodes = getAffiliationPersonStatusMirrorView(repaired).records.find(
+      (record) => record.id === entryId
+    )?.reasonCodeLabels
+    for (const reasonCode of [
+      'missing_candidate_ref',
+      'missing_onboarding_clearance',
+      'missing_entity_welfare_reclassification_ref',
+    ]) {
+      expect(repairedReasonCodes).not.toContain(reasonCode)
+    }
+
+    const exported = useGameStore.getState().exportSave()
+    useGameStore.getState().reset()
+    useGameStore.getState().importSave(exported)
+    const loaded = useGameStore.getState().game
+    for (const field of [
+      'affiliationPersonStatusRecords',
+      'entityWelfareReclassificationRecords',
+      'affiliationFileWorkQueueActionRecords',
+      'affiliationFileWorkQueueEvidenceRepairWorkflows',
+      'affiliationFileWorkQueueEvidenceResolutionRecords',
+      'affiliationFileWorkQueueRepairActionRecords',
+    ] as const) {
+      expect(loaded[field]).toEqual(repaired[field])
+    }
+    const loadedCandidate = loaded.candidates.find(
+      (candidate) => candidate.id === repairedCandidateId
+    )
+    expect(loadedCandidate).toMatchObject({
+      id: repairedCandidateId,
+      name: status.subjectLabel,
+      category: 'agent',
+      hireStatus: 'available',
+      funnelStage: 'hired',
+      origin: 'affiliation-file-work-queue-repair',
+      skills: ['affiliation-evidence-repaired'],
+      createdWeek: 19,
+      lastUpdatedWeek: 19,
+      agentData: repaired.candidates.find((candidate) => candidate.id === repairedCandidateId)
+        ?.agentData,
+    })
+    expect(
+      loaded.recruitmentPool?.find((candidate) => candidate.id === repairedCandidateId)
+    ).toEqual(loadedCandidate)
   })
 })
 

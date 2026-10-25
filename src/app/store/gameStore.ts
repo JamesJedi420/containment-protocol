@@ -258,7 +258,7 @@ import {
   getAffiliationFileWorkQueueNonMissionEnforcementForBucket,
 } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
-import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
+import { getAffiliationFileWorkQueueEntry } from '../../domain/affiliationFileWorkQueueDecisions'
 import {
   clearContractNextIntent,
   launchContract as launchContractDomain,
@@ -2564,8 +2564,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueAction: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (!entry) {
             return { game: s.game }
@@ -2578,7 +2577,7 @@ export const useGameStore = create<GameStore>()(
             actionKind: entry.recommendedActionKind,
             actionLabel: entry.recommendedActionLabel,
             sourceBucket: entry.bucket,
-            sourceReasonCodes: entry.reasonCodeLabels,
+            sourceReasonCodes: entry.reasonCodes,
             recordedWeek: s.game.week,
           })
 
@@ -2595,14 +2594,13 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueEvidenceResolution: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (!entry || entry.bucket !== 'missing_review') {
             return { game: s.game }
           }
 
-          const missingReasonCodes = entry.reasonCodeLabels.filter((reasonCode) =>
+          const missingReasonCodes = entry.reasonCodes.filter((reasonCode) =>
             reasonCode.startsWith('missing_')
           )
 
@@ -2632,8 +2630,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueRepairAction: (entryId, reasonCode) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
           const repairCandidate = entry?.evidenceRepairCandidates.find(
             (candidate) => candidate.reasonCode === reasonCode
           )
@@ -2680,8 +2677,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueReleaseAction: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
           const releaseAction = entry
             ? getAffiliationFileWorkQueueReleaseActionForBucket(entry.bucket)
             : null
@@ -2698,7 +2694,7 @@ export const useGameStore = create<GameStore>()(
             actionKind: releaseAction.actionKind,
             actionLabel: releaseAction.actionLabel,
             sourceBucket,
-            sourceReasonCodes: entry.reasonCodeLabels,
+            sourceReasonCodes: entry.reasonCodes,
             recordedWeek: s.game.week,
           })
 
@@ -2715,8 +2711,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueReleaseOutcome: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (
             !entry ||
@@ -2737,7 +2732,7 @@ export const useGameStore = create<GameStore>()(
             subjectLabel: entry.subjectLabel,
             sourceActionKind: entry.releaseActionKind,
             sourceBucket,
-            sourceReasonCodes: entry.reasonCodeLabels,
+            sourceReasonCodes: entry.reasonCodes,
             outcomeKind: outcome.outcomeKind,
             outcomeLabel: outcome.outcomeLabel,
             recordedWeek: s.game.week,
@@ -2756,8 +2751,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueReleaseFulfillment: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (
             !entry ||
@@ -2784,7 +2778,7 @@ export const useGameStore = create<GameStore>()(
             subjectLabel: entry.subjectLabel,
             sourceOutcomeKind: entry.releaseOutcomeKind,
             sourceBucket: 'allowed',
-            sourceReasonCodes: entry.reasonCodeLabels,
+            sourceReasonCodes: entry.reasonCodes,
             fulfillmentKind: fulfillment.fulfillmentKind,
             fulfillmentLabel: fulfillment.fulfillmentLabel,
             recordedWeek: s.game.week,
@@ -2803,8 +2797,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueReleasePackage: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (
             !entry ||
@@ -2844,8 +2837,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueFileReleaseDelivery: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (
             !entry ||
@@ -2906,8 +2898,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           if (!entry) {
             return { game: s.game }
@@ -2935,7 +2926,7 @@ export const useGameStore = create<GameStore>()(
             subjectId: entry.subjectId,
             subjectLabel: entry.subjectLabel,
             sourceBucket: entry.bucket,
-            sourceReasonCodes: entry.reasonCodeLabels,
+            sourceReasonCodes: entry.reasonCodes,
             enforcementKind: enforcement.enforcementKind,
             enforcementLabel: enforcement.enforcementLabel,
             recordedWeek: s.game.week,
@@ -2954,8 +2945,7 @@ export const useGameStore = create<GameStore>()(
 
       recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId) =>
         set((s) => {
-          const view = getAffiliationPersonStatusMirrorView(s.game)
-          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
 
           // No-op: missing entry, not missing_review, or already recorded
           if (!entry || entry.bucket !== 'missing_review') {
@@ -2963,7 +2953,7 @@ export const useGameStore = create<GameStore>()(
           }
 
           // Check if missing_entity_welfare_reclassification_ref is in the missing codes
-          const hasMissingWelfareRef = entry.reasonCodeLabels.includes(
+          const hasMissingWelfareRef = entry.reasonCodes.includes(
             'missing_entity_welfare_reclassification_ref'
           )
           if (!hasMissingWelfareRef) {

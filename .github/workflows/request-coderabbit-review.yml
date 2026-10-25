@@ -20,9 +20,12 @@ permissions: {}
 
 jobs:
   request-review:
+    # Dependabot-triggered pull_request runs do not receive Actions secrets, so
+    # skip those PRs rather than failing the "Require maintainer review token" step.
     if: >-
       !github.event.pull_request.draft &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.CODERABBIT_REVIEW_TOKEN }}
@@ -40,8 +43,9 @@ jobs:
       - name: Request one full review only below ten stars
         shell: bash
         run: |
-          stars=$(gh api "repos/$GH_REPO" --jq '.stargazers_count')
-          if (( stars >= 10 )); then
+          # If the star-count API call fails, treat as 0 so we still post the review.
+          stars=$(gh api "repos/$GH_REPO" --jq '.stargazers_count' 2>/dev/null || echo "0")
+          if [[ "$stars" =~ ^[0-9]+$ ]] && (( stars >= 10 )); then
             echo "Repository has $stars stars; let CodeRabbit's automatic reviews handle this PR."
             exit 0
           fi

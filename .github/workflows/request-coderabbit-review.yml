@@ -1,0 +1,82 @@
+# Automatically request a manual CodeRabbit review for eligible PRs.
+# CodeRabbit does not auto-review public repositories with fewer than 10 stars.
+#
+# One-time setup:
+#   Create a fine-grained GitHub PAT for this repository, owned by a maintainer,
+#   with Issues: Read and write. Store it as the Actions repository secret
+#   CODERABBIT_REVIEW_TOKEN. The ordinary GITHUB_TOKEN posts as github-actions[bot],
+#   whose command handling is not a reliable substitute for a maintainer comment.
+#
+# Deliberately no checkout, third-party actions, or execution of PR content.
+# This uses pull_request (not pull_request_target) and only same-repo branches,
+# so secrets are not exposed to fork pull requests.
+name: Request CodeRabbit review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+# Read-only for star count / existing-comment checks via github.token.
+# Comment posting uses CODERABBIT_REVIEW_TOKEN, not GITHUB_TOKEN.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  request-review:
+    # Dependabot-triggered pull_request runs do not receive Actions secrets, so
+    # skip those PRs rather than failing when the maintainer token is required.
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Decide whether a manual review request is needed
+        id: decide
+        env:
+          # Read-only: star count and existing comments do not need the PAT.
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          # If the star-count API call fails, treat as 0 so we still consider posting.
+          stars=$(gh api "repos/$GH_REPO" --jq '.stargazers_count' 2>/dev/null || echo "0")
+          if [[ "$stars" =~ ^[0-9]+$ ]] && (( stars >= 10 )); then
+            echo "Repository has $stars stars; let CodeRabbit's automatic reviews handle this PR."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ready_for_review can re-fire after draft conversion; do not re-request.
+          if gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[].body' 2>/dev/null | grep -Fqx '@coderabbitai full review'; then
+            echo "A prior @coderabbitai full review request already exists on this PR."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Require maintainer review token
+        if: steps.decide.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.CODERABBIT_REVIEW_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Configure CODERABBIT_REVIEW_TOKEN under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Request one full review
+        if: steps.decide.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.CODERABBIT_REVIEW_TOKEN }}
+        shell: bash
+        run: |
+          gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            -f body='@coderabbitai full review'

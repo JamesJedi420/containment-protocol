@@ -1,0 +1,49 @@
+# Automatically request a manual CodeRabbit review for eligible PRs.
+# CodeRabbit does not auto-review public repositories with fewer than 10 stars.
+#
+# One-time setup:
+#   Create a fine-grained GitHub PAT for this repository, owned by a maintainer,
+#   with Issues: Read and write. Store it as the Actions repository secret
+#   CODERABBIT_REVIEW_TOKEN. The ordinary GITHUB_TOKEN posts as github-actions[bot],
+#   whose command handling is not a reliable substitute for a maintainer comment.
+#
+# Deliberately no checkout, third-party actions, or execution of PR content.
+# This uses pull_request (not pull_request_target) and only same-repo branches,
+# so secrets are not exposed to fork pull requests.
+name: Request CodeRabbit review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  request-review:
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.CODERABBIT_REVIEW_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Require maintainer review token
+        shell: bash
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Configure CODERABBIT_REVIEW_TOKEN under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Request one full review only below ten stars
+        shell: bash
+        run: |
+          stars=$(gh api "repos/$GH_REPO" --jq '.stargazers_count')
+          if (( stars >= 10 )); then
+            echo "Repository has $stars stars; let CodeRabbit's automatic reviews handle this PR."
+            exit 0
+          fi
+          gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            -f body='@coderabbitai full review'

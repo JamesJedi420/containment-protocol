@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3181"
+  ],
   "recentlyShipped": [
     "SPE-3436",
     "SPE-1060",
@@ -50,6 +52,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3181-recurring-containment-requirement-slice.md": "In progress",
     "planning/spe-1060-room-quality-facility-satisfaction-slice.md": "Recently shipped",
     "planning/spe-292-facility-zoning-lockdown-slice.md": "Recently shipped",
     "planning/spe-3269-canonical-governance-contract-slice.md": "Recently shipped",

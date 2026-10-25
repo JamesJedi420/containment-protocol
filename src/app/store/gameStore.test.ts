@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import { createStartingState } from '../../data/startingState'
 import {
+  attemptContainmentRequirementFulfillment,
+  containmentRequirementRegistryKey,
+  openContainmentRequirementWindow,
+} from '../../domain/containmentRequirementFulfillment'
+import {
   applySuccessfulInvestigation,
   buildInvestigationAskedFlagId,
 } from '../../domain/investigationEconomy'
@@ -2639,6 +2644,80 @@ describe('gameStore persistence', () => {
         },
       },
     })
+  })
+
+  it('persists recurring requirement deficiency through real weekly store write and restart', async () => {
+    const game = createStartingState()
+    game.week = 12
+    const window = { windowId: 'window:10-12', startWeek: 10, endWeek: 12 }
+    const information = {
+      requirementId: 'req:intake', subjectRef: 'subject:anomaly',
+      requirementClass: 'information_input' as const,
+      acceptableInputClasses: ['information' as const],
+      deficiencySeverity: 'major' as const,
+      deficiencyConsequenceRef: 'consequence:information-gap',
+      createsWork: false,
+    }
+    const material = {
+      requirementId: 'req:coolant', subjectRef: 'subject:entity',
+      requirementClass: 'material_service' as const,
+      acceptableInputClasses: ['material' as const],
+      constraints: { quantityMin: 2 },
+      deficiencySeverity: 'critical' as const,
+      deficiencyConsequenceRef: 'consequence:thermal-risk',
+      createsWork: true,
+    }
+    const passiveKey = containmentRequirementRegistryKey(
+      information.subjectRef, information.requirementId
+    )
+    const materialKey = containmentRequirementRegistryKey(
+      material.subjectRef, material.requirementId
+    )
+    const acceptedMaterial = attemptContainmentRequirementFulfillment(
+      openContainmentRequirementWindow({ definition: material, currentWindow: window })!,
+      {
+        fulfillmentRef: 'fulfill:coolant', inputRef: 'inventory:coolant',
+        inputClass: 'material', campaignWeek: 11, quantity: 2,
+      }
+    )!
+    expect(acceptedMaterial.outcome).toBe('accepted')
+    game.containmentRequirementStates = {
+      [passiveKey]: openContainmentRequirementWindow({
+        definition: information, currentWindow: window,
+      })!,
+      [materialKey]: acceptedMaterial.state,
+    }
+
+    useGameStore.setState({ game })
+    expect(getPersistedState()?.state.game.containmentRequirementStates).toBeDefined()
+
+    useGameStore.getState().advanceWeek()
+    const after = useGameStore.getState().game
+    expect(after.week).toBe(13)
+    expect(after.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(after.containmentRequirementStates?.[materialKey]?.state).toBe('satisfied')
+    const stored = getPersistedState()
+    expect(stored?.version).toBe(GAME_STORE_VERSION)
+    expect(stored?.state.game.containmentRequirementStates).toMatchObject({
+      [passiveKey]: { state: 'deficient' },
+      [materialKey]: { state: 'satisfied' },
+    })
+
+    await useGameStore.persist.rehydrate()
+    const restored = useGameStore.getState().game
+    expect(restored.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(restored.containmentRequirementStates?.[materialKey]?.lastFulfillmentRef)
+      .toBe('fulfill:coolant')
+    expect(Object.isFrozen(restored.containmentRequirementStates)).toBe(true)
+
+    useGameStore.getState().advanceWeek()
+    const repeated = useGameStore.getState().game
+    expect(repeated.week).toBe(14)
+    expect(repeated.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(repeated.containmentRequirementStates?.[materialKey]?.state).toBe('satisfied')
+    expect(repeated.containmentRequirementStates?.[passiveKey]?.fulfilledWindowIds)
+      .toEqual([])
+    expect(getPersistedState()?.state.game.containmentRequirementStates).toBeDefined()
   })
 
   it('does not persist templates - they are static and always reloaded from source', () => {

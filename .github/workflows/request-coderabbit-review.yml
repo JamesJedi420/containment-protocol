@@ -16,7 +16,12 @@ on:
   pull_request:
     types: [opened, ready_for_review]
 
-permissions: {}
+# Read-only for star count / existing-comment checks via github.token.
+# Comment posting uses CODERABBIT_REVIEW_TOKEN, not GITHUB_TOKEN.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   request-review:

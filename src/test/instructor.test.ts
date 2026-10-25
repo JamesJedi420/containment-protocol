@@ -67,6 +67,11 @@ function withInstructor(
   return { ...state, staff: { ...state.staff, [id]: record } }
 }
 
+/** Test-only: simulates corrupt persisted staff values without weakening production types. */
+function withRawStaff(state: GameState, staff: Record<string, unknown>): GameState {
+  return { ...state, staff: staff as unknown as GameState['staff'] }
+}
+
 // ── getInstructorBonus ────────────────────────────────────────────────────────
 
 describe('getInstructorBonus', () => {
@@ -329,6 +334,144 @@ describe('buildAcademyOverview instructors', () => {
   it('returns empty instructors list when no instructors are hired', () => {
     const overview = buildAcademyOverview(createStartingState())
     expect(overview.instructors).toEqual([])
+  })
+
+  it('ignores null staff entries without throwing', () => {
+    const state = withRawStaff(createStartingState(), { 'staff-null': null })
+
+    expect(() => buildAcademyOverview(state)).not.toThrow()
+    expect(buildAcademyOverview(state).instructors).toEqual([])
+  })
+
+  it('ignores undefined, primitive, array, and incomplete staff entries', () => {
+    const state = withRawStaff(createStartingState(), {
+      'staff-undefined': undefined,
+      'staff-string': 'instructor',
+      'staff-number': 42,
+      'staff-array': [],
+      'staff-missing-role': { name: 'Missing Role', efficiency: 80, instructorSpecialty: 'combat' },
+      'staff-missing-name': { role: 'instructor', efficiency: 80, instructorSpecialty: 'combat' },
+      'staff-missing-efficiency': {
+        role: 'instructor',
+        name: 'Missing Efficiency',
+        instructorSpecialty: 'combat',
+      },
+      'staff-non-finite-efficiency': {
+        role: 'instructor',
+        name: 'Non-Finite Efficiency',
+        efficiency: Number.NaN,
+        instructorSpecialty: 'combat',
+      },
+      'staff-unknown-specialty': {
+        role: 'instructor',
+        name: 'Unknown Specialty',
+        efficiency: 80,
+        instructorSpecialty: 'arcane',
+      },
+      'staff-non-string-agent': {
+        role: 'instructor',
+        name: 'Non-String Assignment',
+        efficiency: 80,
+        instructorSpecialty: 'combat',
+        assignedAgentId: 7,
+      },
+    })
+
+    expect(() => buildAcademyOverview(state)).not.toThrow()
+    expect(buildAcademyOverview(state).instructors).toEqual([])
+  })
+
+  it('projects only the valid instructor from a mixed staff map', () => {
+    const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
+    const withIns = withInstructor(queued, {
+      id: 'ins-valid',
+      name: 'Prof. Valid',
+      efficiency: 75,
+      instructorSpecialty: 'utility',
+    })
+    const assigned = assignInstructor(withIns, 'ins-valid', 'a_ava')
+    const state = withRawStaff(assigned, {
+      ...assigned.staff,
+      'staff-valid': { specialty: 'analysis', efficiency: 90 },
+      'staff-null': null,
+      'staff-missing-role': { name: 'Missing Role', efficiency: 80, instructorSpecialty: 'combat' },
+      'staff-incomplete': { role: 'instructor', name: 'Incomplete' },
+    })
+
+    const overview = buildAcademyOverview(state)
+
+    expect(overview.instructors.map((instructor) => instructor.staffId)).toEqual(['ins-valid'])
+    expect(overview.instructors[0]?.assignedAgentName).toBe(assigned.agents['a_ava'].name)
+  })
+
+  it('preserves valid instructor fields and ordering unchanged', () => {
+    const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
+    const withFirst = withInstructor(queued, {
+      id: 'ins-first',
+      name: 'Prof. First',
+      efficiency: 92,
+      instructorSpecialty: 'social',
+    })
+    const withSecond = withInstructor(withFirst, {
+      id: 'ins-second',
+      name: 'Prof. Second',
+      efficiency: 82,
+      instructorSpecialty: 'combat',
+    })
+    const assigned = assignInstructor(withSecond, 'ins-first', 'a_ava')
+
+    const overview = buildAcademyOverview(assigned)
+
+    expect(overview.instructors).toEqual([
+      {
+        staffId: 'ins-first',
+        name: 'Prof. First',
+        instructorSpecialty: 'social',
+        efficiency: 92,
+        bonus: 2,
+        assignedAgentId: 'a_ava',
+        assignedAgentName: assigned.agents['a_ava'].name,
+      },
+      {
+        staffId: 'ins-second',
+        name: 'Prof. Second',
+        instructorSpecialty: 'combat',
+        efficiency: 82,
+        bonus: 1,
+        assignedAgentId: undefined,
+        assignedAgentName: undefined,
+      },
+    ])
+  })
+
+  it('returns an empty instructor list for a valid staff map without instructors', () => {
+    const state = withRawStaff(createStartingState(), {
+      'staff-01': { specialty: 'analysis', efficiency: 70 },
+      'staff-02': { specialty: 'logistics' },
+    })
+
+    expect(buildAcademyOverview(state).instructors).toEqual([])
+  })
+
+  it('does not mutate source staff records while building the overview', () => {
+    const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      name: 'Prof. Stable',
+      efficiency: 80,
+      instructorSpecialty: 'combat',
+    })
+    const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
+    const state = withRawStaff(assigned, {
+      ...assigned.staff,
+      'staff-null': null,
+      'staff-incomplete': { role: 'instructor', name: 'Incomplete' },
+    })
+    const before = structuredClone(state.staff)
+
+    buildAcademyOverview(state)
+
+    expect(state.staff).toEqual(before)
   })
 })
 

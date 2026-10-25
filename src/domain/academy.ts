@@ -2,10 +2,7 @@ import { trainingCatalog } from '../data/training'
 import { getAgentStatCap } from './agentPotential'
 import { evaluateAgentBreakdown } from './evaluateAgent'
 import { clamp } from './math'
-import {
-  applyAgentNicheUnlocks,
-  getAgentTrainingNicheAptitude,
-} from './nicheIdentity'
+import { applyAgentNicheUnlocks, getAgentTrainingNicheAptitude } from './nicheIdentity'
 import { applyBoundedDelta } from './shared/modifiers'
 import { computeTeamScore } from './sim/scoring'
 import { deriveDomainStatsFromBase, cloneDomainStats } from './statDomains'
@@ -17,7 +14,7 @@ import {
   TRAINING_FATIGUE_GATE,
 } from './sim/training'
 import { getAcademyStatBonus, getAcademyUpgradeCost } from './sim/academyUpgrade'
-import { getInstructorBonus } from './sim/instructorAssignment'
+import { getInstructorBonus, INSTRUCTOR_SPECIALTY_KEYS } from './sim/instructorAssignment'
 import {
   BASE_STAT_MAX,
   type Agent,
@@ -105,7 +102,10 @@ export function checkAndUnlockContainmentSpecialist(agent: Agent): [Agent, strin
 }
 
 function getTrainingIdentityAptitudeBonus(agent: Agent, targetStat: StatKey) {
-  return getTrainingAptitudeBonus(agent.role, targetStat) + getAgentTrainingNicheAptitude(agent, targetStat).bonus
+  return (
+    getTrainingAptitudeBonus(agent.role, targetStat) +
+    getAgentTrainingNicheAptitude(agent, targetStat).bonus
+  )
 }
 
 function applyProgram(
@@ -448,6 +448,28 @@ function buildTeamDrillRecommendationReason(
   return reasons.join(' ')
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Legacy overview projection guard: runtime staff maps are not statically guaranteed,
+ * so only instructor records whose consumed fields satisfy `InstructorData` are projected.
+ * Invalid entries are skipped without mutating canonical staff state.
+ */
+function isInstructorRecord(value: unknown): value is InstructorData {
+  return (
+    isRecord(value) &&
+    value.role === 'instructor' &&
+    typeof value.name === 'string' &&
+    typeof value.efficiency === 'number' &&
+    Number.isFinite(value.efficiency) &&
+    typeof value.instructorSpecialty === 'string' &&
+    (INSTRUCTOR_SPECIALTY_KEYS as readonly string[]).includes(value.instructorSpecialty) &&
+    (value.assignedAgentId === undefined || typeof value.assignedAgentId === 'string')
+  )
+}
+
 export function buildAcademyOverview(game: GameState): AcademyOverview {
   const groupedQueue = new Map<string, GameState['trainingQueue'][number]>()
 
@@ -516,7 +538,7 @@ export function buildAcademyOverview(game: GameState): AcademyOverview {
     .slice(0, 5)
 
   const instructors = Object.entries(game.staff)
-    .filter((entry): entry is [string, InstructorData] => entry[1].role === 'instructor')
+    .filter((entry): entry is [string, InstructorData] => isInstructorRecord(entry[1]))
     .map(([staffId, record]) => ({
       staffId,
       name: record.name,

@@ -32,6 +32,17 @@
 
 ## Guardrails
 
+### Affiliation work-queue operational decisions (SPE-3436)
+
+`src/domain/affiliationFileWorkQueueDecisions.ts` resolves the operational queue
+entry from canonical person-status snapshots and existing workflow records.
+The store uses its entry lookup for the ten existing affiliation commands;
+record builders, mutation guards and persistence ownership stay unchanged.
+`src/features/operations/affiliationPersonStatusMirrorView.ts` adds display copy,
+status labels and queue ordering to those decisions. Neither domain nor store
+imports that feature projection. The SPE-3436 contract test covers these recovered
+imports; repository-wide boundary enforcement remains SPE-3437.
+
 ### Front-desk authored contract (SPE-3435)
 
 `src/domain/frontDeskTriggers.ts` and `frontDeskChoices.ts` own the authored trigger

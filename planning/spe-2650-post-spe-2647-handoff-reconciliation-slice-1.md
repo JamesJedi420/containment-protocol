@@ -5,7 +5,7 @@ One-page hygiene plan. Linear: [SPE-2650](https://linear.app/spectranoir/issue/S
 | Field                | Value                                                                                          |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
 | **Linear**           | [SPE-2650 — Post-SPE-2647 handoff reconciliation (docs)](https://linear.app/spectranoir/issue/SPE-2650) |
-| **Status**           | **In progress**                                                                                |
+| **Status**           | **Done (historical handoff; PR #3210 merged)**                                                                                |
 | **Parent / related** | [SPE-956](https://linear.app/spectranoir/issue/SPE-956) remains **Done**; no named next primary |
 | **Branch**           | `spe-2650-post-spe-2647-handoff-reconciliation`                                                 |
 | **Base `main` SHA**  | `2640db8c`                                                                                     |
@@ -29,7 +29,7 @@ Mark SPE-2647 and SPE-2649 **Shipped** in backlog/manifest and set **primary** /
 - [x] Primary is (none); In progress is (none)
 - [x] `npm run verify:backlog-handoff` green
 - [x] No `src/` changes
-- [ ] Child Done only after merge
+- [x] Child Done only after merge
 
 ## Status finding (binding)
 

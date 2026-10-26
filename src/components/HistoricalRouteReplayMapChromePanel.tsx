@@ -1,4 +1,4 @@
-import type { HistoricalRouteReplayMapChromeView } from './historicalRouteReplayMapChromeAdapter'
+import type { HistoricalRouteReplayMapChromeView } from '../features/operations/historicalRouteReplayView'
 
 function formatRoles(roles: readonly string[]): string {
   return roles.join(' · ')

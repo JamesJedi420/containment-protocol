@@ -5,13 +5,14 @@
 - **Domain** (`src/domain/**`): Core simulation logic, rules, math, state transitions, persistence. No imports from orchestration, projections, or UI.
 - **Orchestration/Store** (`src/app/store/**`): State management, selectors, and orchestration. May import from domain, but not from projections or UI.
 - **Projection/View-Model** (`src/features/*View.ts`, `src/features/*Selectors.ts`): Pure selectors and view-models. May import from domain and store, but not from UI components or other features' projections.
-- **UI/Components** (`src/features/**`, `src/styles/**`): Presentational React components, layout, Tailwind, static content. Prefer projection/selectors. A narrow exception is allowed for canonical domain summary/formatter helpers when they are the single owner of explanatory output and prevent duplicate truth in UI.
+- **UI/Components** (`src/features/**`, `src/components/**`, `src/styles/**`): Presentational React components, layout, Tailwind, static content. Prefer projection/selectors. A narrow exception is allowed for canonical domain summary/formatter helpers when they are the single owner of explanatory output and prevent duplicate truth in UI.
 
 ## Allowed Dependency Directions
 
 - Domain → (none)
 - Store/Orchestration → Domain
 - Projection/View-Model → Domain, Store
+- Feature projections → Canonical shared projections in `src/features/shared`
 - UI/Components → Projection/View-Model
 - UI/Components → Stable canonical domain summarizers/formatters for deterministic surfacing only
   - Examples: report note formatting, typed outcome/consequence summaries, distortion summaries, cadence/threshold summaries
@@ -21,7 +22,7 @@
 
 - Feature-to-feature direct imports (e.g., `src/features/teams` importing from `src/features/cases`)
 - UI importing from broad domain internals when a projection or canonical summary helper is not the intent
-- Projections importing from other projections
+- Projections importing sibling feature projections (use canonical shared ownership)
 - UI re-deriving distortion summaries, consequence ladders, countermeasure/resistance explanations, or outcome-band text from raw state when a canonical helper already exists
 
 ## Interface Extraction Guidance
@@ -31,6 +32,31 @@
 - Do not move large blocks of code; prefer narrow, stable interfaces.
 
 ## Guardrails
+
+### Audited cross-feature UI interfaces (SPE-3438)
+
+UI consumers may use a sibling feature's stable canonical `*View`,
+`*IntelProjection`, or `*Projection` interface, as recognized by the existing
+boundary test. This does not permit projections to import sibling projections.
+`operations/historicalRouteReplayView.ts` exposes the owning feature's existing
+pure replay adapters and knowledge visibility gate without duplicating them.
+The reusable replay, trend-summary, and operations-left panels live in
+`src/components`; feature UI components
+must not import sibling UI components directly.
+
+`features/shared` owns the common case-row calculations and filter contract,
+team view, template-family helper, and event-feed filter codec/labels. Dashboard
+aggregation imports these shared owners rather than sibling feature projections.
+Case-specific triage augmentation stays in `cases/caseView.ts`; the team, report,
+and intel interfaces retain their existing public paths through shared delegation.
+Shared projections must not import back into a feature.
+
+`features/shared/operationsRouteDrillDown.ts` owns shared UI navigation and consumes
+the shared feed codec, preserving canonical filter and return-link semantics.
+It is a UI navigation helper, not a simulation or store dependency.
+The bounded dependency inventory and retained UI-interface exceptions
+are in `planning/spe-3438-cross-feature-import-slice.md`. Repository-wide deep
+import enforcement remains SPE-3437.
 
 ### Affiliation work-queue operational decisions (SPE-3436)
 
@@ -58,8 +84,12 @@ mock remains dormant, as documented in `src/features/incidents/README.md`;
 `src/app/App.tsx` remains the active React routing owner. Domain routing retains
 only deterministic condition evaluation and branch selection.
 
-- Lint rule: Disallow `../<feature>` imports in `src/features/**` except for explicitly allowed shared selectors.
-- Test: Add a boundary test to fail if any disallowed import is present.
+- `eslint.config.js` currently has no dedicated dependency-import restriction.
+- `test/boundary-enforcement.test.ts` checks bare sibling imports and recognizes
+  stable projection-interface names; it does not comprehensively inspect deep imports.
+- `src/test/crossFeatureImportRecovery.contract.test.ts` protects the bounded
+  SPE-3438 consumers and verifies shared projection ownership has no back-imports.
+  Repository-wide deep-import and layer enforcement remains SPE-3437.
 
 ---
 
@@ -67,4 +97,5 @@ only deterministic condition evaluation and branch selection.
 
 Knowledge-heavy, exploration-heavy, and hub-facing features must route derived state through **centralized projections / view-model builders** (`src/features/*View.ts`, shared selectors) instead of recomputing ad hoc logic inside routes or leaf components. Hub projections should expose **bounded actionable summaries** — enough to decide — not raw simulation noise that couples unrelated screens.
 
-This document is enforced by lint and test guardrails. See `eslint.config.js` and `test/boundary-enforcement.test.ts`.
+Use the checks above as the current enforcement evidence; the written contract is
+broader than the legacy boundary test.

@@ -4,11 +4,13 @@ import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { projectOperationalExplanation } from '../../domain/operationalExplanation'
-import { HistoricalRouteReplayExplanationPanel } from '../operations/HistoricalRouteReplayExplanationPanel'
-import { HistoricalRouteReplayMapChromePanel } from '../operations/HistoricalRouteReplayMapChromePanel'
-import { getHistoricalRouteReplayOperationalExplanations } from '../operations/historicalRouteReplayExplanationAdapter'
-import { getHistoricalRouteReplayMapChromeViews } from '../operations/historicalRouteReplayMapChromeAdapter'
-import { createHistoricalRouteReplayVisibilityForFromKnowledge } from '../operations/historicalRouteReplayVisibilityFromKnowledge'
+import { HistoricalRouteReplayExplanationPanel } from '../../components/HistoricalRouteReplayExplanationPanel'
+import { HistoricalRouteReplayMapChromePanel } from '../../components/HistoricalRouteReplayMapChromePanel'
+import {
+  getHistoricalRouteReplayOperationalExplanations,
+  getHistoricalRouteReplayMapChromeViews,
+  createHistoricalRouteReplayVisibilityForFromKnowledge,
+} from '../operations/historicalRouteReplayView'
 import { getOperationsReportView } from '../report/operationsReportView'
 
 export function OperationsReportPanel() {

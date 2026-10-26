@@ -13,7 +13,7 @@ import { resolveAssignedCaseForWeek } from '../../domain/caseResolutionOrchestra
 import { createInitialFundingState, normalizeFundingState } from '../../domain/funding'
 import { triageMission, recomputeMissionRouting } from '../../domain/missionIntakeRouting'
 import type { GameState, ReportNote, WeeklyReport, WeeklyReportCaseSnapshot } from '../../domain/models'
-import { getCaseWeeklyReportWeeks } from '../../features/operations/operationsRouteDrillDown'
+import { getCaseWeeklyReportWeeks } from '../../features/shared/operationsRouteDrillDown'
 import {
   filterReportNotesByCategory,
   getAvailableReportNoteCategories,

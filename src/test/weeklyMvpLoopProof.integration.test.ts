@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { APP_ROUTES } from '../app/routes'
 import { buildEventFeedView, refineEventFeedDrillDownHref } from '../features/dashboard/eventFeedView'
-import { getCaseWeeklyReportWeeks } from '../features/operations/operationsRouteDrillDown'
+import { getCaseWeeklyReportWeeks } from '../features/shared/operationsRouteDrillDown'
 import { buildReportWeekNavigation } from '../features/report/reportWeekNavigation'
 import { readPersistentFlag } from '../domain/flagSystem'
 import {

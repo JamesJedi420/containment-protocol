@@ -16,7 +16,7 @@ import {
   writeEventFeedFilters,
   type EventFeedTone,
 } from './eventFeedView'
-import { buildDrillDownHrefWithFeedContext } from '../operations/operationsRouteDrillDown'
+import { buildDrillDownHrefWithFeedContext } from '../shared/operationsRouteDrillDown'
 
 export function EventFeedPanel() {
   const { game } = useGameStore()

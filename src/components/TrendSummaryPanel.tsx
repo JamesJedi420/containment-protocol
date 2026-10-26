@@ -1,9 +1,9 @@
 
-import { buildAgencyOverview } from '../../domain/strategicState'
+import { buildAgencyOverview } from '../domain/strategicState'
 import { Link } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
-import { useGameStore } from '../../app/store/gameStore'
-import { type RunTrendSummary, type TrendCaseRef } from './reportTrendView'
+import { APP_ROUTES } from '../app/routes'
+import { useGameStore } from '../app/store/gameStore'
+import type { RunTrendSummary, TrendCaseRef } from '../features/report/reportTrendView'
 
 export function TrendSummaryPanel({
   title,
@@ -120,18 +120,7 @@ function TrendBucket({
                 </span>
               </div>
 
-              <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                {item.caseRefs.map((ref) => renderCaseRef(ref))}
-                {item.templateIds.map((templateId) => (
-                  <Link
-                    key={templateId}
-                    to={APP_ROUTES.intelDetail(templateId)}
-                    className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-0.5 text-fuchsia-100 hover:underline"
-                  >
-                    intel {templateId}
-                  </Link>
-                ))}
-              </div>
+              <TrendReferences caseRefs={item.caseRefs} templateIds={item.templateIds} />
             </li>
           ))}
         </ul>
@@ -177,18 +166,7 @@ function TrendTagBucket({
                 </span>
               </div>
 
-              <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                {item.caseRefs.map((ref) => renderCaseRef(ref))}
-                {item.templateIds.map((templateId) => (
-                  <Link
-                    key={templateId}
-                    to={APP_ROUTES.intelDetail(templateId)}
-                    className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-0.5 text-fuchsia-100 hover:underline"
-                  >
-                    intel {templateId}
-                  </Link>
-                ))}
-              </div>
+              <TrendReferences caseRefs={item.caseRefs} templateIds={item.templateIds} />
             </li>
           ))}
         </ul>
@@ -196,6 +174,29 @@ function TrendTagBucket({
         <p className="mt-2 text-sm opacity-50">{emptyLabel}</p>
       )}
     </section>
+  )
+}
+
+function TrendReferences({
+  caseRefs,
+  templateIds,
+}: {
+  caseRefs: TrendCaseRef[]
+  templateIds: string[]
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+      {caseRefs.map((ref) => renderCaseRef(ref))}
+      {templateIds.map((templateId) => (
+        <Link
+          key={templateId}
+          to={APP_ROUTES.intelDetail(templateId)}
+          className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-0.5 text-fuchsia-100 hover:underline"
+        >
+          intel {templateId}
+        </Link>
+      ))}
+    </div>
   )
 }
 

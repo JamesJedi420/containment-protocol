@@ -13,7 +13,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
 import { calcWeekScore } from '../../domain/sim/scoring'
-import { TrendSummaryPanel } from './TrendSummaryPanel'
+import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
 import { getCaseTemplateFamily } from './reportIntelProjection'
 import { getRunTrendSummary } from './reportTrendView'
@@ -26,7 +26,7 @@ import {
 import {
   buildDrillDownHrefWithFeedContext,
   resolveOperationsBackTarget,
-} from '../operations/operationsRouteDrillDown'
+} from '../shared/operationsRouteDrillDown'
 import { buildReportWeekNavigation } from './reportWeekNavigation'
 import { buildOperationalCertaintyView } from '../../domain/operationalCertainty'
 

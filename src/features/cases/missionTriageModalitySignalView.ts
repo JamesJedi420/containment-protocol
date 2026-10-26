@@ -1,3 +1,11 @@
+import type {
+  MissionTriageModalitySignalMarker,
+  MissionTriageModalitySignals,
+} from '../shared/caseListSignalTypes'
+export type {
+  MissionTriageModalitySignalMarker,
+  MissionTriageModalitySignals,
+} from '../shared/caseListSignalTypes'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../../domain/disguiseValidation'
 import {
   formatModalityTellReadout,
@@ -25,18 +33,6 @@ const MARKER_STYLES = {
   illusionActive: 'border-rose-500/40 bg-rose-500/10 text-rose-100',
   illusionDisproved: 'border-rose-400/30 bg-rose-400/5 text-rose-200',
 } as const
-
-export interface MissionTriageModalitySignalMarker {
-  readonly id: string
-  readonly label: string
-  readonly className: string
-  readonly title?: string
-}
-
-export interface MissionTriageModalitySignals {
-  readonly visible: boolean
-  readonly markers: readonly MissionTriageModalitySignalMarker[]
-}
 
 function pushMarker(
   markers: MissionTriageModalitySignalMarker[],
@@ -69,9 +65,7 @@ function caseTagSet(caseData: CaseInstance): Set<string> {
   ])
 }
 
-function tellKindForAuthoredTags(
-  caseData: CaseInstance
-): HiddenStateTellKind | null {
+function tellKindForAuthoredTags(caseData: CaseInstance): HiddenStateTellKind | null {
   const modality = resolveHiddenStateModality(caseData)
   const tags = caseTagSet(caseData)
 
@@ -119,10 +113,7 @@ function tellChipLabel(kind: HiddenStateTellKind): string {
   }
 }
 
-function illusionChipLabel(
-  kind: HiddenStateIllusionKind,
-  phase: HiddenStateIllusionPhase
-): string {
+function illusionChipLabel(kind: HiddenStateIllusionKind, phase: HiddenStateIllusionPhase): string {
   if (phase === 'disproved') {
     return 'Illusion disproved'
   }

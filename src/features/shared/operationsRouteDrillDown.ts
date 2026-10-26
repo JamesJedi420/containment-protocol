@@ -3,7 +3,7 @@ import {
   EVENT_FEED_PARAM_KEYS,
   readEventFeedFilters,
   writeEventFeedFilters,
-} from '../dashboard/eventFeedView'
+} from './eventFeedFilters'
 import type { ReportNote, WeeklyReport } from '../../domain/models'
 
 function reportListsCase(report: WeeklyReport, caseId: string): boolean {
@@ -78,7 +78,10 @@ export function resolveOperationsBackTarget(
     const feedSearch = writeEventFeedFilters(readEventFeedFilters(searchParams)).toString()
 
     return {
-      href: feedSearch.length > 0 ? `${APP_ROUTES.operationsDesk}?${feedSearch}` : APP_ROUTES.operationsDesk,
+      href:
+        feedSearch.length > 0
+          ? `${APP_ROUTES.operationsDesk}?${feedSearch}`
+          : APP_ROUTES.operationsDesk,
       label: 'Back to operations desk',
     }
   }

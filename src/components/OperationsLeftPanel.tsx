@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
-import { useGameStore } from '../../app/store/gameStore'
-import { OPERATIONS_DESK_TEXT } from '../../data/copy'
-import { getOperationsLeftPanelView } from './operationsLeftView'
+import { APP_ROUTES } from '../app/routes'
+import { useGameStore } from '../app/store/gameStore'
+import { OPERATIONS_DESK_TEXT } from '../data/copy'
+import { getOperationsLeftPanelView } from '../features/operations/operationsLeftView'
 
 const DIRECTOR_TRAITS = ['Risk-Aware', 'Logistics Hawk', 'Signal-Focused']
 

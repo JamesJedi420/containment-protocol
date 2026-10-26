@@ -1,3 +1,5 @@
+import { getTemplateFamily } from '../shared/templateFamilyView'
+export { getTemplateFamily } from '../shared/templateFamilyView'
 import {
   readEnumParam,
   readStringParam,
@@ -224,11 +226,6 @@ export function writeIntelFilters(filters: IntelFilters, baseSearchParams?: URLS
   }
 
   return nextSearchParams
-}
-
-export function getTemplateFamily(templateId: string) {
-  const [family] = templateId.split(/[-_]/)
-  return family
 }
 
 function createIntelStartingGame(): GameState {

@@ -46,6 +46,7 @@ import { parseFacilityStockOverflow } from '../../domain/facilityStockOverflow'
 import { parseFacilityStockPreparedness } from '../../domain/facilityStockPreparedness'
 import { parseFacilityProtectionGoods } from '../../domain/facilityProtectionGoods'
 import { parseFacilityRestrictedObjectRelease } from '../../domain/facilityRestrictedObjectRelease'
+import { parseFacilityRestrictedAssetCheckouts } from '../../domain/restrictedAssetFieldCheckout'
 import { parseFacilitySecuredNodes } from '../../domain/facilitySecuredNodes'
 import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuarantine'
 import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
@@ -10643,6 +10644,9 @@ export function hydrateGame(
   const facilityRestrictedObjectRelease = parseFacilityRestrictedObjectRelease(
     game.facilityRestrictedObjectRelease
   )
+  const facilityRestrictedAssetCheckouts = parseFacilityRestrictedAssetCheckouts(
+    game.facilityRestrictedAssetCheckouts
+  )
   const facilitySecuredNodes = parseFacilitySecuredNodes(game.facilitySecuredNodes)
   const facilityStockQuarantine = parseFacilityStockQuarantine(game.facilityStockQuarantine)
   const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
@@ -10777,6 +10781,7 @@ export function hydrateGame(
     facilityStockPreparedness,
     facilityProtectionGoods,
     facilityRestrictedObjectRelease,
+    facilityRestrictedAssetCheckouts,
     facilitySecuredNodes,
     facilityStockQuarantine,
     facilityHaulingLabor,

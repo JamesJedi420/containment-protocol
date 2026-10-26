@@ -7,6 +7,7 @@ import {
   RELIQUARY_KEY_SET_COMPONENT_IDS,
   RELIQUARY_KEY_SET_ID,
   resolveRestrictedObjectRelease,
+  restoreRestrictedObjectToStored,
   transitionRestrictedObjectRelease,
 } from '../domain/facilityRestrictedObjectRelease'
 import { COUNTERFEIT_PROTECTION_GOOD_STATUS } from '../domain/facilityProtectionGoods'
@@ -183,6 +184,35 @@ describe('facility restricted-object component-set release', () => {
     expect(state.facilityRestrictedObjectRelease).toBeUndefined()
     expect(state.facilityStockpile).toEqual(unrelated.facilityStockpile)
     expect(state.facilityProtectionGoods).toEqual(unrelated.facilityProtectionGoods)
+  })
+
+  it('restores inspection → stored for SPE-3188 verified return and rejects other modes', () => {
+    const state = createStartingState()
+    const stored = recordRestrictedObjectStored(state, COMPLETE)
+    expect(stored.ok).toBe(true)
+    if (!stored.ok) throw new Error(stored.code)
+    const inspected = transitionRestrictedObjectRelease(stored.state, {
+      ...COMPLETE,
+      mode: 'inspection',
+    })
+    expect(inspected.ok).toBe(true)
+    if (!inspected.ok) throw new Error(inspected.code)
+
+    const restored = restoreRestrictedObjectToStored(inspected.state, COMPLETE)
+    expect(restored).toMatchObject({
+      ok: true,
+      setId: RELIQUARY_KEY_SET_ID,
+      mode: 'stored',
+      components: [...RELIQUARY_KEY_SET_COMPONENT_IDS],
+    })
+    if (!restored.ok) throw new Error(restored.code)
+    expect(resolveRestrictedObjectRelease(restored.state, { setId: RELIQUARY_KEY_SET_ID })).toMatchObject({
+      ok: true,
+      mode: 'stored',
+    })
+
+    const fromStored = restoreRestrictedObjectToStored(stored.state, COMPLETE)
+    expect(fromStored).toEqual({ ok: false, state: stored.state, code: 'illegal_transition' })
   })
 
   it('resolves unknown from omitted or empty state without writing', () => {

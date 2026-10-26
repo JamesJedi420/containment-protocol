@@ -1,6 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": [
+    "SPE-3188"
+  ],
   "recentlyShipped": [
     "SPE-3438",
     "SPE-3436",
@@ -51,6 +53,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3188-restricted-asset-field-checkout-slice.md": "In Progress",
     "planning/spe-3181-recurring-containment-requirement-slice.md": "Parked (bounded #4356 shipped; remaining completion deferred — Backlog)",
     "planning/spe-1060-room-quality-facility-satisfaction-slice.md": "Recently shipped",
     "planning/spe-292-facility-zoning-lockdown-slice.md": "Recently shipped",

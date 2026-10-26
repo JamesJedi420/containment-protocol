@@ -26,7 +26,8 @@ test('dependencies, blockers and SPE-3276 drift prevent running',()=>{
 test('one shared identity, independent workstream filtered views, empty queue',()=>{
   const p=projectApprovedWork(snapshot([issue('SPE-1',{workstream:'shared-system'}),issue('SPE-2',{workstream:'Academy',dependsOn:['SPE-1']}),issue('SPE-3',{workstream:'cross-project'}),issue('SPE-4')]))
   assert.equal(p.active.length,4)
-  assert.deepEqual(filterWorkstream(p,'Academy').runnable.map(x=>x.id),['SPE-2'])
+  assert.deepEqual(filterWorkstream(p,'Academy').runnable.map(x=>x.id),[])
+  assert.ok(filterWorkstream(p,'Academy').active[0].reasons.includes('dependency-not-completed:SPE-1'))
   assert.equal(filterWorkstream(p,'CP-core').active.length,1)
   assert.deepEqual(projectApprovedWork(snapshot([])).runnable,[])
 })

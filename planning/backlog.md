@@ -1,12 +1,12 @@
 # Near-term backlog
 
-This file is the **canonical ordered queue** for concrete engineering and design follow-ups that were previously split across `README.md` and high-level hints in `planning/roadmap.md`. **Edit order here when priorities change**; avoid duplicating long tactical lists elsewhere.
+This file is a **historical and operational repository view**, not an authoritative queue. Linear controls approved issue lifecycle, priority, blockers, and relationships. The SPE-3338 approved-work projection is regenerated from a complete Linear authority snapshot; do not reorder this file to change priorities. Preserve historical implementation evidence here without treating shipped slices as Linear completion.
 
 ## Governance guardrail (current)
 
 Only already-approved Linear boundaries are actionable from this queue. Legacy text such as `create`, `create/claim`, `create on start`, `create on merge`, `owner creates Linear child`, or `pending create` is retained only as historical planning evidence and **does not authorize issue creation now**. Any unresolved/new durable boundary must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before Linear backlog mutation. If approval state is unclear, fail closed and preserve the item as candidate evidence.
 
-**How to use:** Pick from the active queue unless a dependency blocks it. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
+**How to use:** Consult the verified Linear-derived approved-work projection before selecting executable work; this document alone does not authorize or rank execution. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
 
 ## Context (not always a single task)
 
@@ -18,7 +18,7 @@ From `README.md` **Current design notes**:
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
-## Active queue (highest leverage first — reorder as needed)
+## Historical handoff ledger (not priority order)
 
 **Recently shipped:** [SPE-2747](https://linear.app/spectranoir/issue/SPE-2747/durable-department-workshop-state-and-hydration) durable department workshop state and hydration — optional canonical work-order/snapshot registries, deterministic fail-closed legacy hydration, save round-trip, store reset, and an SPE-2084-compatible read seam without processing or week-close changes; see `planning/spe-1028-department-workshop-persistence-slice.md`. Parent [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028) was **Backlog** at ship; now **In Progress**.
 

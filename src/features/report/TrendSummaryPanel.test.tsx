@@ -5,7 +5,7 @@ import * as gameStoreModule from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
 import * as strategicStateModule from '../../domain/strategicState'
 import { buildAgencyOverview } from '../../domain/strategicState'
-import { TrendSummaryPanel } from '../report/TrendSummaryPanel'
+import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 
 describe('TrendSummaryPanel cadence/extra check surfacing', () => {
   it('renders escalation/pressure cadence and extra checks', () => {

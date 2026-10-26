@@ -5,7 +5,7 @@ import { CASE_UI_LABELS } from '../../data/copy'
 import {
   buildDrillDownHrefWithFeedContext,
   getCaseWeeklyReportWeeks,
-} from '../operations/operationsRouteDrillDown'
+} from '../shared/operationsRouteDrillDown'
 
 interface CaseWeeklyReportsPanelProps {
   caseId: string

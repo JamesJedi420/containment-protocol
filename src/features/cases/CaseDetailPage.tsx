@@ -24,7 +24,7 @@ import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
 import { CaseWeeklyReportsPanel } from './CaseWeeklyReportsPanel'
 import { WeeklyCasePrepPanel } from './WeeklyCasePrepPanel'
-import { resolveOperationsBackTarget } from '../operations/operationsRouteDrillDown'
+import { resolveOperationsBackTarget } from '../shared/operationsRouteDrillDown'
 
 export default function CaseDetailPage() {
   const { caseId } = useParams()

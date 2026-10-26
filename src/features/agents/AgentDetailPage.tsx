@@ -12,7 +12,7 @@ import { useGameStore } from '../../app/store/gameStore'
 import { NAVIGATION_ROUTES, SHELL_UI_TEXT } from '../../data/copy'
 import { AgentEntityPanel } from './AgentEntityPanel'
 import { AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB, type TabType } from './agentTabsModel'
-import { resolveOperationsBackTarget } from '../operations/operationsRouteDrillDown'
+import { resolveOperationsBackTarget } from '../shared/operationsRouteDrillDown'
 import { getAgentView } from './agentView'
 
 interface AgentDetailLocationState {

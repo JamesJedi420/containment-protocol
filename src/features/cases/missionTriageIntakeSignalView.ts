@@ -1,3 +1,11 @@
+import type {
+  MissionTriageIntakeSignalMarker,
+  MissionTriageIntakeSignals,
+} from '../shared/caseListSignalTypes'
+export type {
+  MissionTriageIntakeSignalMarker,
+  MissionTriageIntakeSignals,
+} from '../shared/caseListSignalTypes'
 import { listMissionIntakeExtranormalCrossLinkSummaries } from '../../domain/informationIntakeExtranormalCrossLinkSurfacing'
 import { listMissionIntakeMinorAnomalyCrossLinkSummaries } from '../../domain/informationIntakeMinorAnomalyCrossLinkSurfacing'
 import { listMissionIntakeUnexplainedLocationCrossLinkSummaries } from '../../domain/informationIntakeUnexplainedLocationCrossLinkSurfacing'
@@ -34,18 +42,6 @@ const INTAKE_REASON_PRIORITY: readonly string[] = [
 const INTAKE_REASON_PRIORITY_INDEX = new Map(
   INTAKE_REASON_PRIORITY.map((code, index) => [code, index])
 )
-
-export interface MissionTriageIntakeSignalMarker {
-  readonly id: string
-  readonly label: string
-  readonly className: string
-  readonly title?: string
-}
-
-export interface MissionTriageIntakeSignals {
-  readonly visible: boolean
-  readonly markers: readonly MissionTriageIntakeSignalMarker[]
-}
 
 function pushMarker(
   markers: MissionTriageIntakeSignalMarker[],
@@ -188,11 +184,12 @@ export function buildMissionTriageIntakeSignals(
     items: game.minorAnomalyItemRecords,
     currentCase: resolvedCase,
   })
-  const unexplainedLocationCrossLinkSummaries = listMissionIntakeUnexplainedLocationCrossLinkSummaries({
-    reports: game.informationIntakeReports,
-    locations: game.unexplainedLocationRecords,
-    currentCase: resolvedCase,
-  })
+  const unexplainedLocationCrossLinkSummaries =
+    listMissionIntakeUnexplainedLocationCrossLinkSummaries({
+      reports: game.informationIntakeReports,
+      locations: game.unexplainedLocationRecords,
+      currentCase: resolvedCase,
+    })
   const reasonCodes = [...signals.reasonCodes]
   if (namingHazardCrossLinkSummaries.length > 0) {
     reasonCodes.push('intake-naming-hazard-cross-link')
@@ -221,15 +218,24 @@ export function buildMissionTriageIntakeSignals(
     const title =
       reasonCode === 'intake-naming-hazard-cross-link'
         ? namingHazardCrossLinkSummaries
-            .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedDescriptorCount})`)
+            .map(
+              (summary) =>
+                `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedDescriptorCount})`
+            )
             .join('; ')
         : reasonCode === 'intake-extranormal-cross-link'
           ? extranormalCrossLinkSummaries
-              .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedEventCount})`)
+              .map(
+                (summary) =>
+                  `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedEventCount})`
+              )
               .join('; ')
           : reasonCode === 'intake-minor-anomaly-cross-link'
             ? minorAnomalyCrossLinkSummaries
-                .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedItemCount})`)
+                .map(
+                  (summary) =>
+                    `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedItemCount})`
+                )
                 .join('; ')
             : reasonCode === 'intake-unexplained-location-cross-link'
               ? unexplainedLocationCrossLinkSummaries

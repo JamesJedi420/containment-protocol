@@ -1,9 +1,9 @@
 
-import { buildAgencyOverview } from '../../domain/strategicState'
+import { buildAgencyOverview } from '../domain/strategicState'
 import { Link } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
-import { useGameStore } from '../../app/store/gameStore'
-import { type RunTrendSummary, type TrendCaseRef } from './reportTrendView'
+import { APP_ROUTES } from '../app/routes'
+import { useGameStore } from '../app/store/gameStore'
+import type { RunTrendSummary, TrendCaseRef } from '../features/report/reportTrendView'
 
 export function TrendSummaryPanel({
   title,

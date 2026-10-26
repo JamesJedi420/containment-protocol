@@ -5,7 +5,7 @@ import {
   getCaseWeeklyReportWeeks,
   hasEventFeedFilterParams,
   resolveOperationsBackTarget,
-} from '../features/operations/operationsRouteDrillDown'
+} from '../features/shared/operationsRouteDrillDown'
 import type { WeeklyReport } from '../domain/models'
 
 function emptyReport(week: number): WeeklyReport {

@@ -1,5 +1,5 @@
 import type { GameState } from '../../domain/models'
-import { getCaseTemplateFamily } from '../report/reportIntelProjection'
+import { getCaseTemplateFamily } from '../shared/templateFamilyView'
 
 // Re-export the stable projection interface for dashboard use
 export { getCaseTemplateFamily }

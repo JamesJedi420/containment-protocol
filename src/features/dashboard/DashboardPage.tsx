@@ -31,9 +31,9 @@ import {
   getPriorityCaseViews,
   getAtRiskTeamViews,
 } from './dashboardView'
-import { TrendSummaryPanel } from './TrendSummaryPanelProjection'
+import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 import { getDashboardRunTrendSummary } from './dashboardReportProjection'
-import { OperationsLeftPanel } from './OperationsLeftPanelProjection'
+import { OperationsLeftPanel } from '../../components/OperationsLeftPanel'
 
 const presetConfigs = {
   forgiving: {

@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { REPORT_LABELS, EMPTY_STATES, REPORT_UI_TEXT, TOOLTIPS } from '../../data/copy'
-import { TrendSummaryPanel } from './TrendSummaryPanel'
+import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 import { getRunTrendSummary } from './reportTrendView'
 import { getReportPageView } from './reportView'
 

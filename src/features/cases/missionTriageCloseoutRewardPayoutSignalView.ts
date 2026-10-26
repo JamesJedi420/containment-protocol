@@ -1,3 +1,11 @@
+import type {
+  MissionTriageCloseoutRewardPayoutSignalMarker,
+  MissionTriageCloseoutRewardPayoutSignals,
+} from '../shared/caseListSignalTypes'
+export type {
+  MissionTriageCloseoutRewardPayoutSignalMarker,
+  MissionTriageCloseoutRewardPayoutSignals,
+} from '../shared/caseListSignalTypes'
 import {
   deriveCloseoutRewardPayoutLineLabelsForReview,
   formatCloseoutRewardPayoutLineLabel,
@@ -18,18 +26,6 @@ const PAYOUT_LINE_KIND_ORDER: readonly CloseoutRewardPayoutLineKind[] = [
   'funding_credit',
   'training_credit',
 ]
-
-export interface MissionTriageCloseoutRewardPayoutSignalMarker {
-  readonly id: string
-  readonly label: string
-  readonly className: string
-  readonly title?: string
-}
-
-export interface MissionTriageCloseoutRewardPayoutSignals {
-  readonly visible: boolean
-  readonly markers: readonly MissionTriageCloseoutRewardPayoutSignalMarker[]
-}
 
 function normalizeCaseId(caseId: string): string {
   return caseId.trim()
@@ -94,10 +90,7 @@ function payoutLabelsFromReportNote(note: ReportNote): readonly string[] {
   return orderedKinds.map((kind) => formatCloseoutRewardPayoutLineLabel(kind, branch))
 }
 
-function collectPayoutLabelsFromReportNotes(
-  caseId: string,
-  game: GameState
-): readonly string[] {
+function collectPayoutLabelsFromReportNotes(caseId: string, game: GameState): readonly string[] {
   const normalizedCaseId = normalizeCaseId(caseId)
   const labels: string[] = []
   const seen = new Set<string>()

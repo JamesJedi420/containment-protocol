@@ -1,4 +1,4 @@
-import type { OperationalExplanationProjection } from '../../domain/operationalExplanation'
+import type { OperationalExplanationProjection } from '../domain/operationalExplanation'
 
 export interface HistoricalRouteReplayExplanationView {
   readonly summary: OperationalExplanationProjection

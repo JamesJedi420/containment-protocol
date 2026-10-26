@@ -95,7 +95,7 @@ across sibling features.
   type-contract recovery/triage rerun passes **8 files / 63 tests**.
 - Documentation: inventory, clarified shared ownership, real enforcement limits,
   backlog and manifest agree. Parent remains open; other approved owners stay separate.
-- Cleanup: no debug artifacts, duplicated calculations, or rule suppressions. Four
+- Cleanup: no debug artifacts, duplicated calculations, or rule suppressions. The initial four
   relocated component bodies, the team projection body, and 15 extracted functions
   have unchanged syntax trees apart from imports/formatting.
 - Lint, audit index, backlog handoff, theme contracts, governance contract, and diff
@@ -104,3 +104,24 @@ across sibling features.
 
 All six passes were repeated after the default-field, public-type, and component
 formatting corrections. Independent post-PR review and Linux CI remain merge gates.
+
+## PR review and quality-gate follow-up
+
+The independent full-branch review found 180 unchanged/relocated top-level
+functions and 52 unchanged top-level variable declarations. The four intentional
+function changes implement the shared case-row split and its two dashboard
+consumers; no critical or warning findings remained at that review.
+
+SonarCloud then identified an existing duplicate case/intel link footer in the
+relocated trend panel as new-code duplication (3.6%, gate 3%). Replace only that
+repeated footer with the local TrendReferences renderer; retain the same DOM,
+links, keys, and historical text. The new two-bucket link regression plus dashboard,
+app-route, and ownership checks pass **4 files / 81 tests**. Repeated all six audit
+passes for this bounded correction; no additional product scope or gate weakening.
+
+Amazon Q's blanket app-import findings were rejected with checked-in rule and
+source evidence on the PR: the app-prefix prohibition applies to domain, while
+projections prohibit UI and sibling-feature imports. Existing app/searchParams is
+an import-free pure URL utility; preserving it introduces no application-state
+inversion. Its repeated triage-read finding also preserves unchanged deterministic
+main behavior, not a new defect. Global enforcement remains the sibling owner.

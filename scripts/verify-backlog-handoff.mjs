@@ -1,6 +1,8 @@
 /**
  * Verifies planning/backlog.md handoff text and slice-doc status rows match
- * planning/backlog-handoff-manifest.json (git-visible handoff source of truth).
+ * planning/backlog-handoff-manifest.json (legacy repository evidence only).
+ * This verifier does NOT establish Linear lifecycle/priority authority.
+ * For authoritative projection verification run project:approved-work -- <snapshot> --check.
  *
  * Update the manifest whenever you change backlog handoff or slice-doc status.
  *

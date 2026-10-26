@@ -33,6 +33,9 @@ jobs:
       - name: Verify design audits index
         run: npm run verify:audits-index
 
+      - name: Verify SPE-3338 projection semantics
+        run: npm run test:approved-work
+
       - name: Verify backlog handoff
         run: npm run verify:backlog-handoff
 

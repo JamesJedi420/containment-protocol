@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3188](https://linear.app/spectranoir/issue/SPE-3188)                                      |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                            |
 | **Branch**        | `jamesdyedbq/spe-3188-restricted-asset-field-checkout-and-verified-return`                      |

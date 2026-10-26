@@ -25,7 +25,6 @@ export const RESTRICTED_ASSET_CHECKOUT_STATES = [
   'authorized',
   'checked_out',
   'return_presented',
-  'return_verified',
   'closed',
   'overdue',
   'lost',
@@ -80,18 +79,22 @@ export type RestrictedAssetCheckoutResult =
       reason?: string
     }
 
-const ACTIVE_FIELD_STATES: ReadonlySet<RestrictedAssetCheckoutState> = new Set([
+/** States that keep the restricted set reserved (blocks a second active checkout). */
+const SET_RESERVING_STATES: ReadonlySet<RestrictedAssetCheckoutState> = new Set([
   'authorized',
   'checked_out',
   'return_presented',
   'overdue',
+  'lost',
+  'compromised',
+  'return_rejected',
 ])
 
+/** Truly final outcomes — only `closed` frees the set for a later checkout. */
 const TERMINAL_STATES: ReadonlySet<RestrictedAssetCheckoutState> = new Set([
   'closed',
   'lost',
   'compromised',
-  'return_rejected',
 ])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -261,7 +264,7 @@ function activeCheckoutForSet(
   setId: RestrictedObjectSetId
 ): RestrictedAssetCheckoutRecord | undefined {
   for (const record of Object.values(registry)) {
-    if (record.setId === setId && ACTIVE_FIELD_STATES.has(record.state)) return record
+    if (record.setId === setId && SET_RESERVING_STATES.has(record.state)) return record
   }
   return undefined
 }
@@ -393,7 +396,6 @@ export function startRestrictedAssetCheckout(
   const checkout = freezeCheckout({
     ...current,
     state: 'checked_out',
-    checkoutWeek: releaseResult.state.week,
   })
   registry[checkout.checkoutId] = checkout
   return { ok: true, state: writeRegistry(releaseResult.state, registry), checkout }

@@ -63,9 +63,9 @@ Deterministic restricted-asset field checkout lifecycle in `src/domain/restricte
 
 - Optional `GameState.facilityRestrictedAssetCheckouts` keyed by stable checkout id
 - Authorize → check out (SPE-2911 `stored` → `inspection`) → present return → independent verify → closed (SPE-2911 restore to `stored`)
-- Overdue, lost, compromised, and return-rejected terminal/failure branches
+- Overdue, lost, compromised, and return-rejected failure branches; non-`closed` outcomes keep the set reserved
 - Unauthorized / incomplete set / ineligible verifier fail closed with no partial mutation
-- Idempotent repeated present/verify/fail processing
+- Idempotent repeated present/verify/reject/fail processing
 - Save/load via existing hydrate path; SPE-2911 regression remains green
 - Read-only outbound authorization projection for SPE-3189 consumers (no screening implementation here)
 

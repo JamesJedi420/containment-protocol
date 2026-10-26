@@ -13,6 +13,7 @@ import {
   evaluateRestrictedAssetCheckoutOverdue,
   parseFacilityRestrictedAssetCheckouts,
   presentRestrictedAssetReturn,
+  rejectRestrictedAssetReturn,
   resolveRestrictedAssetCheckoutAuthorization,
   resolveRestrictedAssetCheckoutFailure,
   startRestrictedAssetCheckout,
@@ -163,6 +164,77 @@ describe('SPE-3188 restricted-asset field checkout', () => {
     if (!lost.ok) return
     expect(lost.checkout.state).toBe('lost')
     expect(lost.state.inventory).toEqual(inventoryBefore)
+  })
+
+  it('rejects presented returns, marks compromised idempotently, and keeps the set reserved', () => {
+    const baseline = withStoredSet()
+    const authorized = authorizeRestrictedAssetCheckout(baseline, {
+      ...FIXTURE,
+      authorized: true,
+    })
+    expect(authorized.ok).toBe(true)
+    if (!authorized.ok) return
+    const started = startRestrictedAssetCheckout(authorized.state, {
+      checkoutId: FIXTURE.checkoutId,
+    })
+    expect(started.ok).toBe(true)
+    if (!started.ok) return
+    const presented = presentRestrictedAssetReturn(started.state, {
+      checkoutId: FIXTURE.checkoutId,
+    })
+    expect(presented.ok).toBe(true)
+    if (!presented.ok) return
+
+    const againPresent = presentRestrictedAssetReturn(presented.state, {
+      checkoutId: FIXTURE.checkoutId,
+    })
+    expect(againPresent.ok).toBe(true)
+    if (!againPresent.ok) return
+    expect(againPresent.state).toBe(presented.state)
+
+    const rejected = rejectRestrictedAssetReturn(presented.state, {
+      checkoutId: FIXTURE.checkoutId,
+    })
+    expect(rejected.ok).toBe(true)
+    if (!rejected.ok) return
+    expect(rejected.checkout.state).toBe('return_rejected')
+    expect(resolveRestrictedObjectRelease(rejected.state, { setId: RELIQUARY_KEY_SET_ID })).toMatchObject({
+      ok: true,
+      mode: 'inspection',
+    })
+
+    const againReject = rejectRestrictedAssetReturn(rejected.state, {
+      checkoutId: FIXTURE.checkoutId,
+    })
+    expect(againReject.ok).toBe(true)
+    if (!againReject.ok) return
+    expect(againReject.state).toBe(rejected.state)
+
+    const compromised = resolveRestrictedAssetCheckoutFailure(rejected.state, {
+      checkoutId: FIXTURE.checkoutId,
+      outcome: 'compromised',
+    })
+    expect(compromised.ok).toBe(true)
+    if (!compromised.ok) return
+    expect(compromised.checkout.state).toBe('compromised')
+
+    const againFail = resolveRestrictedAssetCheckoutFailure(compromised.state, {
+      checkoutId: FIXTURE.checkoutId,
+      outcome: 'compromised',
+    })
+    expect(againFail.ok).toBe(true)
+    if (!againFail.ok) return
+    expect(againFail.state).toBe(compromised.state)
+
+    const blocked = authorizeRestrictedAssetCheckout(compromised.state, {
+      ...FIXTURE,
+      checkoutId: 'checkout:reliquary:field-2',
+      authorized: true,
+    })
+    expect(blocked.ok).toBe(false)
+    if (blocked.ok) return
+    // Still in SPE-2911 `inspection` and reserved by the compromised checkout.
+    expect(['release_blocked', 'illegal_transition']).toContain(blocked.code)
   })
 
   it('round-trips checkout registry through hydrate without duplication', () => {

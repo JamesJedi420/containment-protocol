@@ -317,6 +317,50 @@ export function transitionRestrictedObjectRelease(
 }
 
 /**
+ * Restore one authored restricted component set from `inspection` to `stored`.
+ * SPE-3188 field-checkout verified return consumes this seam; it does not invent a
+ * second custody ledger. Incomplete membership and non-inspection modes fail closed.
+ * Failures keep the original state reference.
+ */
+export function restoreRestrictedObjectToStored(
+  state: GameState,
+  input: unknown
+): FacilityRestrictedObjectStoredResult {
+  const setId = readSetId(input)
+  if (!setId) {
+    return { ok: false, state, code: 'invalid_set' }
+  }
+
+  const components = readComponents(input, setId)
+  if (!components) {
+    return { ok: false, state, code: 'incomplete_set' }
+  }
+
+  const from = parseFacilityRestrictedObjectRelease(state.facilityRestrictedObjectRelease)?.[setId]
+    ?.mode
+  if (from !== 'inspection') {
+    return { ok: false, state, code: 'illegal_transition' }
+  }
+
+  const snapshot = Object.freeze({
+    mode: 'stored' as const,
+    components,
+  })
+  const nextState = writeRelease(state, setId, snapshot)
+  if (!nextState) {
+    return { ok: false, state, code: 'invalid_set' }
+  }
+
+  return {
+    ok: true,
+    state: nextState,
+    setId,
+    mode: 'stored',
+    components,
+  }
+}
+
+/**
  * Resolve the current custody/release mode for one authored restricted component set.
  * Unknown or malformed set input fail-closes `invalid_set`. Omit or absent resolves
  * `mode: 'unknown'`. Read-only: returns the same state reference and does not stamp.

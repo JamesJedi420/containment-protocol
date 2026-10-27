@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3471"
+    "SPE-3359"
   ],
   "recentlyShipped": [
+    "SPE-3471",
     "SPE-3415",
     "SPE-3390",
     "SPE-2273",
@@ -61,7 +62,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3471-information-source-access-projection-slice.md": "In progress",
+    "planning/spe-3359-facility-register-ui-slice.md": "In progress",
+    "planning/spe-3471-information-source-access-projection-slice.md": "Recently shipped",
     "planning/spe-3415-facility-env-dependency-projection-slice.md": "Recently shipped",
     "planning/spe-3390-environmental-operational-context-slice.md": "Recently shipped",
     "planning/spe-2273-cross-system-transformation-registry-slice.md": "Recently shipped",

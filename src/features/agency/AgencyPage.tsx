@@ -3,6 +3,8 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
+import { FacilityRegisterPanel } from './FacilityRegisterPanel'
+import { projectFacilityRegisterView } from './facilityRegisterView'
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 import { OperationalStaffingPanel } from './OperationalStaffingPanel'
 import { projectOperationalStaffingView } from './operationalStaffingView'
@@ -17,6 +19,7 @@ export default function AgencyPage() {
   } = useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const staffing = projectOperationalStaffingView(game)
+  const facilityRegister = projectFacilityRegisterView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -74,6 +77,8 @@ export default function AgencyPage() {
       </article>
 
       <OperationalStaffingPanel staffing={staffing} />
+
+      <FacilityRegisterPanel register={facilityRegister} />
 
       <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">
         <h3 id="facility-maintenance-heading" className="text-base font-semibold">

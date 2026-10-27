@@ -48,6 +48,7 @@ import type { FacilityStockPreparedness } from './facilityStockPreparedness'
 import type { FacilityProtectionGoods } from './facilityProtectionGoods'
 import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
 import type { FacilityRestrictedAssetCheckouts } from './restrictedAssetFieldCheckout'
+import type { FacilityOutboundScreenHolds } from './containmentZoneOutboundScreening'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
@@ -2938,6 +2939,12 @@ export interface GameState {
    * or SPE-2911 custody/release mode ownership. Omit hydrates omitted.
    */
   facilityRestrictedAssetCheckouts?: FacilityRestrictedAssetCheckouts
+  /**
+   * SPE-3189: durable outbound screen hold / secondary-screen transactions.
+   * Sibling of zoning (SPE-292) and restricted-asset checkout (SPE-3188); does not
+   * mutate inventory, quarantine storage, or exposure-duty state. Omit hydrates omitted.
+   */
+  facilityOutboundScreenHolds?: FacilityOutboundScreenHolds
   /**
    * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
    * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and

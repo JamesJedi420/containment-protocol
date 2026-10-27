@@ -214,9 +214,9 @@ export function analyzeResearchProjectSolvability(
     }
   }
 
-  let runtimeDependent = false
   const reachableMilestoneIds = new Set<string>()
   const visiting = new Set<string>()
+  const runtimeBlockedMilestoneIds = new Set<string>()
 
   const tryReach = (milestoneId: string): boolean => {
     if (reachableMilestoneIds.has(milestoneId)) return true
@@ -226,7 +226,7 @@ export function analyzeResearchProjectSolvability(
     visiting.add(milestoneId)
 
     if (milestone.eligibility.requiresRuntimeConditions) {
-      runtimeDependent = true
+      runtimeBlockedMilestoneIds.add(milestoneId)
       visiting.delete(milestoneId)
       return false
     }
@@ -240,6 +240,9 @@ export function analyzeResearchProjectSolvability(
 
     for (const prerequisiteId of milestone.eligibility.prerequisiteMilestoneIds ?? []) {
       if (!tryReach(prerequisiteId)) {
+        if (runtimeBlockedMilestoneIds.has(prerequisiteId)) {
+          runtimeBlockedMilestoneIds.add(milestoneId)
+        }
         visiting.delete(milestoneId)
         return false
       }
@@ -255,11 +258,16 @@ export function analyzeResearchProjectSolvability(
   }
 
   const mandatoryMilestones = collectMandatoryMilestones(definition)
+  const runtimeDependent = mandatoryMilestones.some((milestone) =>
+    runtimeBlockedMilestoneIds.has(milestone.milestoneId),
+  )
   const unreachableMandatory = mandatoryMilestones.filter(
-    (milestone) => !reachableMilestoneIds.has(milestone.milestoneId),
+    (milestone) =>
+      !reachableMilestoneIds.has(milestone.milestoneId) &&
+      !runtimeBlockedMilestoneIds.has(milestone.milestoneId),
   )
 
-  if (unreachableMandatory.length > 0 && !runtimeDependent) {
+  if (unreachableMandatory.length > 0) {
     for (const milestone of unreachableMandatory) {
       diagnostics.push(
         diagnostic(

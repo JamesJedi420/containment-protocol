@@ -225,6 +225,30 @@ describe('validateResearchProjectDefinition', () => {
     expect(result.diagnostics.some((d) => d.code === 'runtime_dependent')).toBe(true)
   })
 
+  it('keeps feasible when only an optional milestone is runtime-dependent', () => {
+    const result = validateResearchProjectDefinition(
+      cloneFixture({
+        milestones: [
+          ARCHIVE_LEAD_RESEARCH_PROJECT.milestones[0]!,
+          ARCHIVE_LEAD_RESEARCH_PROJECT.milestones[1]!,
+          {
+            milestoneId: 'milestone.optional-runtime',
+            findingId: 'finding.optional-runtime',
+            findingKind: 'optional',
+            eligibility: {
+              requiredSourceIds: ['source.field-notes'],
+              requiresRuntimeConditions: true,
+            },
+            outputs: [{ kind: 'reveal_finding', targetRef: 'finding.optional-runtime' }],
+          },
+        ],
+      }),
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.solvability).toBe('feasible')
+  })
+
   it('accepts unreachable optional findings when mandatory routes remain feasible', () => {
     const result = validateResearchProjectDefinition(
       cloneFixture({

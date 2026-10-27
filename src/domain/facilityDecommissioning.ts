@@ -13,11 +13,7 @@ import {
   type FacilityLifecycleResult,
 } from './facilityLifecycle'
 
-export const FACILITY_DECOMMISSION_PHASES = [
-  'intake_stopped',
-  'drawdown',
-  'closed',
-] as const
+export const FACILITY_DECOMMISSION_PHASES = ['intake_stopped', 'drawdown', 'closed'] as const
 export type FacilityDecommissionPhase = (typeof FACILITY_DECOMMISSION_PHASES)[number]
 
 export const FACILITY_CLOSURE_OBLIGATION_KINDS = [
@@ -193,17 +189,11 @@ function parseObligations(
   return { ok: true, attestations: Object.freeze(attestations) }
 }
 
-/**
- * Read-only closure blockers from caller-owned obligation attestations.
- * Does not mutate facility or source authorities.
- */
-export function assessFacilityClosureObligations(
-  obligations: unknown
+function blockersForObligations(
+  attestations: readonly FacilityClosureObligationAttestation[]
 ): readonly FacilityClosureBlockerReason[] {
-  const parsed = parseObligations(obligations)
-  if (!parsed.ok) return parsed.blockers
   const blockers: FacilityClosureBlockerReason[] = []
-  for (const attestation of parsed.attestations) {
+  for (const attestation of attestations) {
     if (attestation.disposition === 'clear') continue
     if (attestation.disposition === 'pending') {
       blockers.push(`${attestation.kind}_pending` as FacilityClosureBlockerReason)
@@ -216,6 +206,30 @@ export function assessFacilityClosureObligations(
     blockers.push(`${attestation.kind}_missing_authority` as FacilityClosureBlockerReason)
   }
   return Object.freeze(blockers)
+}
+
+function closureObligationSourceRef(
+  attestations: readonly FacilityClosureObligationAttestation[]
+): string {
+  return `closure-obligations:${attestations
+    .map((attestation) =>
+      [attestation.kind, attestation.authority, attestation.sourceRef]
+        .map((field) => encodeURIComponent(field))
+        .join(':')
+    )
+    .join('|')}`
+}
+
+/**
+ * Read-only closure blockers from caller-owned obligation attestations.
+ * Does not mutate facility or source authorities.
+ */
+export function assessFacilityClosureObligations(
+  obligations: unknown
+): readonly FacilityClosureBlockerReason[] {
+  const parsed = parseObligations(obligations)
+  if (!parsed.ok) return parsed.blockers
+  return blockersForObligations(parsed.attestations)
 }
 
 /**
@@ -381,7 +395,11 @@ export function finalizeFacilityClosure(
   if (phaseOf(facility) !== 'drawdown' || facility.status !== 'locked') {
     return { ...reject(facility, ['wrong_phase']), game: source }
   }
-  const blockers = assessFacilityClosureObligations(obligations)
+  const parsed = parseObligations(obligations)
+  if (!parsed.ok) {
+    return { ...reject(facility, parsed.blockers), game: source }
+  }
+  const blockers = blockersForObligations(parsed.attestations)
   if (blockers.length > 0) {
     return { ...reject(facility, blockers), game: source }
   }
@@ -390,6 +408,17 @@ export function finalizeFacilityClosure(
     expectedStatus: 'locked',
     transition,
     action: 'finalize_closure',
+    prerequisites: [
+      {
+        kind: 'closure_obligations',
+        authority: 'SPE-3381',
+        sourceRef: closureObligationSourceRef(parsed.attestations),
+        facilityId,
+        transition,
+        week: source.week,
+        verified: true,
+      },
+    ],
   })
   if (lifecycle.outcome !== 'applied' || !lifecycle.facility) {
     return {

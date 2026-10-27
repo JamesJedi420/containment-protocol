@@ -26,8 +26,9 @@ export type FacilityLifecycleCause =
   (typeof FACILITY_LIFECYCLE_TRANSITIONS)[FacilityLifecycleAction]['cause']
 
 export interface FacilityLifecyclePrerequisite {
-  readonly kind: 'construction_complete' | 'startup_readiness' | 'restart_readiness'
-  readonly authority: 'SPE-110' | 'SPE-876'
+  readonly kind:
+    'construction_complete' | 'startup_readiness' | 'restart_readiness' | 'closure_obligations'
+  readonly authority: 'SPE-110' | 'SPE-876' | 'SPE-3381'
   readonly sourceRef: string
   readonly facilityId: string
   /** Evidence is verified by the caller's owner, for this exact transition and week. */
@@ -105,7 +106,16 @@ function requiredKind(
   if (value === 'submit_construction') return 'construction_complete'
   if (value === 'activate') return 'startup_readiness'
   if (value === 'reactivate') return 'restart_readiness'
+  if (value === 'finalize_closure') return 'closure_obligations'
   return undefined
+}
+
+function requiredAuthority(
+  value: FacilityLifecyclePrerequisite['kind']
+): FacilityLifecyclePrerequisite['authority'] {
+  if (value === 'construction_complete') return 'SPE-110'
+  if (value === 'closure_obligations') return 'SPE-3381'
+  return 'SPE-876'
 }
 
 function inspectionMatches(
@@ -132,7 +142,7 @@ function parsePrerequisites(
   if (!kind) return []
   if (!Object.hasOwn(value, 0)) return undefined
   const fact: unknown = value[0]
-  const authority = kind === 'construction_complete' ? 'SPE-110' : 'SPE-876'
+  const authority = requiredAuthority(kind)
   const fields = ['kind', 'authority', 'sourceRef', 'facilityId', 'transition', 'week', 'verified']
   if (
     !record(fact) ||
@@ -194,9 +204,12 @@ export function normalizeFacilityLifecycleHistory(
     const previous = transitions.at(-1)
     if (
       (!previous &&
-        !['begin_construction', 'restrict', 'submit_restart', 'begin_decommission_drawdown'].includes(
-          entry.action
-        )) ||
+        ![
+          'begin_construction',
+          'restrict',
+          'submit_restart',
+          'begin_decommission_drawdown',
+        ].includes(entry.action)) ||
       entry.transition !== index + 1 ||
       !positiveInteger(entry.week) ||
       entry.week > campaignWeek ||
@@ -274,6 +287,13 @@ export function resolveFacilityLifecycleTransition(
   // Classify old/non-next requests before interpreting their historical evidence as current.
   const replay = previous?.transition === request.transition ? previous : undefined
   if (!replay && request.transition !== transitions.length + 1) return reject('stale_transition')
+  if (
+    !replay &&
+    request.action === 'finalize_closure' &&
+    !inspectionMatches(request.action, previous)
+  ) {
+    return reject('inspection_provenance_required')
+  }
   const kind = requiredKind(request.action)
   if (
     kind &&

@@ -20,7 +20,7 @@ Missing legacy state stays absent. A duplicate list, unknown capability, wrong o
 
 ### Whole-facility lifecycle history (SPE-3380)
 
-`FacilityInstance.status` adds `constructing` and `inspecting`. Optional `lifecycleHistory` is a version-1 ordered causal receipt packet, not a second current-status field. Receipts contain sequential transition number, canonical campaign week, authored action, from/to status, cause code, and owner-verified prerequisite references tied to the facility and transition. Construction completion is attested by SPE-110; startup/restart readiness is attested by SPE-876. Lifecycle validation does not calculate their facts.
+`FacilityInstance.status` adds `constructing` and `inspecting`. Optional `lifecycleHistory` is a version-1 ordered causal receipt packet, not a second current-status field. Receipts contain sequential transition number, canonical campaign week, authored action, from/to status, cause code, and owner-verified prerequisite references tied to the facility and transition. Construction completion is attested by SPE-110; startup/restart readiness is attested by SPE-876; closure-obligation discharge is attested by the SPE-3381 coordinator. Lifecycle validation does not calculate their facts.
 
 Missing legacy history stays absent. Invalid present metadata becomes `{ version: 1, unavailable: true }` and blocks lifecycle commands. New constructing/inspecting states without valid provenance normalize to inactive. Receipt chronology, legal edges, inspection provenance, prerequisites and final status are validated without manufacturing history. Pre-serialization normalization preserves malformed/unavailable authority through manual saves, run exports and store migration.
 
@@ -36,7 +36,7 @@ Pure domain module `src/domain/environmentalOperationalContext.ts` composes call
 
 ### Facility phased decommissioning coordinator (SPE-3381)
 
-Optional `FacilityInstance.decommissioning` is a version-1 coordinator packet separate from `lifecycleHistory`. Valid packets store `phase` (`intake_stopped` | `drawdown` | `closed`), matching `facilityId`, and positive integer campaign `week`. SPE-3380 owns status transitions (`begin_decommission_drawdown`: active→locked; `finalize_closure`: locked→inactive after drawdown provenance). This field does not store custody/transfer/staffing/dependency source authorities; callers pass obligation attestations at final-closure assessment time.
+Optional `FacilityInstance.decommissioning` is a version-1 coordinator packet separate from `lifecycleHistory`. Valid packets store `phase` (`intake_stopped` | `drawdown` | `closed`), matching `facilityId`, and positive integer campaign `week`. SPE-3380 owns status transitions (`begin_decommission_drawdown`: active→locked; `finalize_closure`: locked→inactive after drawdown provenance plus SPE-3381 closure-obligation proof). This field does not store custody/transfer/staffing/dependency source authorities; callers pass obligation attestations at final-closure assessment time.
 
 Missing legacy decommissioning stays absent. Invalid present metadata becomes `{ version: 1, unavailable: true }` and blocks coordinator commands (fail closed; hydration must not erase malformed authority into a fresh usable packet). Field-level hydration in `runTransfer` / save paths is the additive migration. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 

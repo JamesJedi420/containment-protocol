@@ -196,6 +196,9 @@ describe('SPE-3440 construction-stage accessibility', () => {
       'malformed_request'
     )
     expect(
+      evaluateConstructionStageAccessibility(baseRequest({ accessRootNodeIds: [] })).reasons
+    ).toContain('malformed_request')
+    expect(
       evaluateConstructionStageAccessibility(
         baseRequest({
           steps: [{ stepId: 'x', workLocationNodeId: 'missing' }],
@@ -214,12 +217,73 @@ describe('SPE-3440 construction-stage accessibility', () => {
       evaluateConstructionStageAccessibility(
         baseRequest({
           steps: [
+            {
+              stepId: 'bad-remove',
+              workLocationNodeId: 'a',
+              removesEdges: [{ fromNodeId: 'a', toNodeId: 'ghost' }],
+            },
+          ],
+        })
+      ).reasons
+    ).toContain('unknown_edge')
+    expect(
+      evaluateConstructionStageAccessibility(
+        baseRequest({
+          steps: [
+            {
+              stepId: 'bad-node-remove',
+              workLocationNodeId: 'a',
+              removesNodeIds: ['ghost'],
+            },
+          ],
+        })
+      ).reasons
+    ).toContain('unknown_node')
+    expect(
+      evaluateConstructionStageAccessibility(
+        baseRequest({
+          steps: [
             { stepId: 'dup', workLocationNodeId: 'a' },
             { stepId: 'dup', workLocationNodeId: 'b' },
           ],
         })
       ).reasons
     ).toContain('duplicate_step_id')
+  })
+
+  it('rechecks occupant egress after temporary access ends', () => {
+    const result = evaluateConstructionStageAccessibility(
+      baseRequest({
+        occupants: [
+          {
+            occupantId: 'worker-1',
+            nodeId: 'c',
+            egressTargetNodeId: 'exit',
+          },
+        ],
+        temporaryAccess: [
+          {
+            accessId: 'temp-c-exit',
+            addsEdges: [{ fromNodeId: 'c', toNodeId: 'exit' }],
+            activeThroughStepIndex: 0,
+          },
+        ],
+        steps: [
+          {
+            stepId: 'seal-permanent-c-exit',
+            workLocationNodeId: 'c',
+            removesEdges: [{ fromNodeId: 'c', toNodeId: 'exit' }],
+          },
+        ],
+      })
+    )
+    expect(result.outcome).toBe('unsafe')
+    expect(result.reasons).toContain('occupant_egress_lost')
+    expect(result.steps.at(-1)).toMatchObject({
+      stepId: '__post_temporary_occupant_check__',
+      outcome: 'unsafe',
+      affectedOccupantId: 'worker-1',
+    })
   })
 
   it('is deterministic across repeated evaluation of unchanged state', () => {

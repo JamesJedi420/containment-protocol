@@ -85,6 +85,6 @@ Deterministic construction-stage accessibility in `src/domain/constructionStageA
 
 ## Validation
 
-- `npm exec vitest run -- src/test/constructionStageAccessibility.contract.test.ts` (10 passed)
+- `npm exec vitest run -- src/test/constructionStageAccessibility.contract.test.ts` (11 passed)
 - `npm exec eslint --` on touched TS files
 - `npm run verify:backlog-handoff` (OK)

@@ -68,7 +68,8 @@ export interface ConstructionStageAccessibilityRequest {
   readonly personnelAllowedNodeIds?: readonly string[]
   /**
    * Permanent routes that must remain after all temporary access is removed.
-   * Each route is a required undirected adjacency that finished layout needs.
+   * Each entry is a required from→to reachability pair in finished layout
+   * (path connectivity over remaining permanent edges, not a single-edge demand).
    */
   readonly requiredPermanentEdges?: readonly ConstructionAdjacencyEdge[]
 }
@@ -286,6 +287,9 @@ export function evaluateConstructionStageAccessibility(
     nodeIds.add(nodeId)
   }
 
+  if (request.accessRootNodeIds.length === 0) {
+    return malformedResult('malformed_request')
+  }
   for (const root of request.accessRootNodeIds) {
     if (!isNonEmptyString(root)) return malformedResult('malformed_request')
     if (!nodeIds.has(root)) return malformedResult('unknown_node')
@@ -307,6 +311,17 @@ export function evaluateConstructionStageAccessibility(
     if (seenStepIds.has(step.stepId)) return malformedResult('duplicate_step_id')
     seenStepIds.add(step.stepId)
     if (!nodeIds.has(step.workLocationNodeId)) return malformedResult('unknown_node')
+    for (const raw of step.removesEdges ?? []) {
+      const edge = parseEdge(raw)
+      if (!edge) return malformedResult('malformed_request')
+      if (!nodeIds.has(edge.fromNodeId) || !nodeIds.has(edge.toNodeId)) {
+        return malformedResult('unknown_edge')
+      }
+    }
+    for (const removeNodeId of step.removesNodeIds ?? []) {
+      if (!isNonEmptyString(removeNodeId)) return malformedResult('malformed_request')
+      if (!nodeIds.has(removeNodeId)) return malformedResult('unknown_node')
+    }
   }
 
   const occupants = request.occupants ?? []
@@ -443,25 +458,44 @@ export function evaluateConstructionStageAccessibility(
     }
   }
 
-  // After the sequence, temporary access is gone — permanent required routes must remain.
-  if (requiredPermanent.length > 0) {
-    const finished = cloneAdjacency(working)
-    for (const raw of requiredPermanent) {
-      const edge = parseEdge(raw)!
-      if (!isReachable(finished, [edge.fromNodeId], edge.toNodeId)) {
-        overall = worstOutcome(overall, 'blocked')
-        if (!overallReasons.includes('required_permanent_route_missing')) {
-          overallReasons.push('required_permanent_route_missing')
-        }
-        stepResults.push({
-          stepId: '__permanent_route_check__',
-          stepIndex: request.steps.length,
-          outcome: 'blocked',
-          reasons: Object.freeze(['required_permanent_route_missing']),
-          affectedRoute: edge,
-        })
-        break
+  // After the sequence, temporary access is gone — recheck occupants and permanent routes.
+  const finished = cloneAdjacency(working)
+  for (const occupant of occupants) {
+    if (!finished.has(occupant.nodeId) || !isReachable(finished, [occupant.nodeId], occupant.egressTargetNodeId)) {
+      overall = worstOutcome(overall, 'unsafe')
+      if (!overallReasons.includes('occupant_egress_lost')) {
+        overallReasons.push('occupant_egress_lost')
       }
+      stepResults.push({
+        stepId: '__post_temporary_occupant_check__',
+        stepIndex: request.steps.length,
+        outcome: 'unsafe',
+        reasons: Object.freeze(['occupant_egress_lost']),
+        affectedOccupantId: occupant.occupantId,
+        affectedRoute: {
+          fromNodeId: occupant.nodeId,
+          toNodeId: occupant.egressTargetNodeId,
+        },
+      })
+      break
+    }
+  }
+
+  for (const raw of requiredPermanent) {
+    const edge = parseEdge(raw)!
+    if (!isReachable(finished, [edge.fromNodeId], edge.toNodeId)) {
+      overall = worstOutcome(overall, 'blocked')
+      if (!overallReasons.includes('required_permanent_route_missing')) {
+        overallReasons.push('required_permanent_route_missing')
+      }
+      stepResults.push({
+        stepId: '__permanent_route_check__',
+        stepIndex: request.steps.length,
+        outcome: 'blocked',
+        reasons: Object.freeze(['required_permanent_route_missing']),
+        affectedRoute: edge,
+      })
+      break
     }
   }
 

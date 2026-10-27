@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                       |
+| **Status**        | **Recently shipped**                                                                  |
 | **Issue**         | [SPE-3417](https://linear.app/spectranoir/issue/SPE-3417)                             |
 | **Parent**        | [SPE-1090](https://linear.app/spectranoir/issue/SPE-1090) — Backlog                    |
 | **Branch**        | `jamesdyedbq/spe-3417-contradiction-check-regional-cross-register-event`              |

@@ -17,6 +17,14 @@ import {
 import type { EquipmentGradeVisibility } from './equipmentGrade'
 import { assessResearchRequirements } from './research'
 import { cloneDomainStats } from './statDomains'
+import {
+  formatWearableConflictDiagnostic,
+  resolveWearableCompatibility,
+  validateWearableOccupancyAuthoring,
+  type WearableConflictReason,
+  type WearableOccupancy,
+  type WearableOccupiedItem,
+} from './wearableCompatibility'
 
 export type EquipmentSlotKind =
   | 'primary'
@@ -125,6 +133,11 @@ export interface EquipmentDefinition {
   contextModifiers?: EquipmentContextModifier[]
   rarity?: EquipmentRarity
   enchantmentIds?: string[]
+  /**
+   * SPE-3394 optional wearable occupancy. Absent → legacy compatibility only.
+   * Layers are SPE-3394; covered regions consume SPE-120 IDs / coverage groups.
+   */
+  wearableOccupancy?: WearableOccupancy
 }
 
 export interface EquipmentItem {
@@ -165,6 +178,8 @@ export interface LoadoutAssignmentValidationResult {
   blockingIssues: string[]
   warnings: string[]
   conflicts: string[]
+  /** SPE-3394 typed wearable layer×region conflicts (empty when none / legacy). */
+  wearableConflicts: WearableConflictReason[]
   readinessSummary: {
     current: AgentLoadoutReadinessSummary
     projected: AgentLoadoutReadinessSummary
@@ -383,6 +398,7 @@ const EQUIPMENT_DEFINITION_KEYS = new Set<keyof EquipmentDefinition>([
   'contextModifiers',
   'rarity',
   'enchantmentIds',
+  'wearableOccupancy',
 ])
 
 const EQUIPMENT_CONTEXT_MODIFIER_KEYS = new Set<keyof EquipmentContextModifier>([
@@ -1307,6 +1323,163 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
       },
     ],
   },
+  // SPE-3394 representative wearable occupancy fixtures (not catalog balance).
+  fixture_wearable_mid_torso_vest: {
+    id: 'fixture_wearable_mid_torso_vest',
+    name: 'Fixture Mid-Torso Vest',
+    slot: 'armor',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_torso_vest',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['armor'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_mid_torso_overlay: {
+    id: 'fixture_wearable_mid_torso_overlay',
+    name: 'Fixture Mid-Torso Overlay',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_torso_overlay',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_mid_greaves: {
+    id: 'fixture_wearable_mid_greaves',
+    name: 'Fixture Mid-Layer Greaves',
+    slot: 'utility2',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_greaves',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['leg_left', 'leg_right'],
+    },
+  },
+  fixture_wearable_under_torso: {
+    id: 'fixture_wearable_under_torso',
+    name: 'Fixture Under-Layer Undersuit',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_under_torso',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 0, tolerance: 1 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['under'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_under_mid_torso_suit: {
+    id: 'fixture_wearable_under_mid_torso_suit',
+    name: 'Fixture Under+Mid Torso Suit',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_under_mid_torso_suit',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 1 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['under', 'mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_shell_helm: {
+    id: 'fixture_wearable_shell_helm',
+    name: 'Fixture Shell Helm',
+    slot: 'headgear',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_shell_helm',
+    },
+    tags: ['headgear', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['headgear'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['shell'],
+      coveredRegions: ['head'],
+    },
+  },
 } as const
 
 const EMPTY_EQUIPMENT_LOADOUT_SUMMARY: EquipmentLoadoutSummary = {
@@ -1501,6 +1674,15 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
       throw new Error(
         `Invalid equipment definition at equipment.${itemId}: primary slot "${definition.slot}" must be allowed.`
       )
+    }
+
+    if (definition.wearableOccupancy !== undefined) {
+      const occupancyValidation = validateWearableOccupancyAuthoring(definition.wearableOccupancy)
+      if (!occupancyValidation.valid || !occupancyValidation.occupancy) {
+        throw new Error(
+          `Invalid equipment definition at equipment.${itemId}.wearableOccupancy: ${occupancyValidation.issues.join(',')}.`
+        )
+      }
     }
 
     assertFiniteStatModifiers(definition.statModifiers, `equipment.${itemId}.statModifiers`)
@@ -1705,6 +1887,7 @@ export function validateAgentLoadoutAssignment(
       blockingIssues,
       warnings,
       conflicts,
+      wearableConflicts: [],
       readinessSummary: {
         current: currentReadiness,
         projected: buildEmptyReadinessSummary(agent),
@@ -1775,6 +1958,50 @@ export function validateAgentLoadoutAssignment(
     }
   }
 
+  // Same-agent move: when no spare stock exists, clear other slots already holding
+  // this definition so occupancy does not treat the transfer as dual wear.
+  let wearableProjectionSlots = projectedSlots
+  const sameAgentSourceSlots = EQUIPMENT_SLOT_KINDS.filter(
+    (sourceSlot) =>
+      sourceSlot !== slot && getEquipmentSlotItemId(agent.equipmentSlots, sourceSlot) === itemId
+  )
+  if (sameAgentSourceSlots.length > 0) {
+    const stockForMove = options?.state
+      ? Math.max(0, Math.trunc(options.state.inventory[itemId] ?? 0))
+      : 0
+    if (stockForMove === 0) {
+      wearableProjectionSlots = { ...projectedSlots }
+      for (const sourceSlot of sameAgentSourceSlots) {
+        for (const alias of EQUIPMENT_SLOT_ALIASES[sourceSlot]) {
+          delete wearableProjectionSlots[alias]
+        }
+      }
+    }
+  }
+
+  const wearableWorn: WearableOccupiedItem[] = []
+  for (const projectedSlot of EQUIPMENT_SLOT_KINDS) {
+    const projectedItemId = getEquipmentSlotItemId(wearableProjectionSlots, projectedSlot)
+    if (!projectedItemId) {
+      continue
+    }
+    const projectedDefinition = getEquipmentDefinition(projectedItemId)
+    if (projectedDefinition?.wearableOccupancy) {
+      wearableWorn.push({
+        itemId: projectedItemId,
+        occupancy: projectedDefinition.wearableOccupancy,
+      })
+    }
+  }
+  const wearableCompatibility = resolveWearableCompatibility(wearableWorn)
+  const wearableConflicts = wearableCompatibility.conflicts
+  if (!wearableCompatibility.compatible) {
+    blockingIssues.push('wearable-layer-region-overlap')
+    for (const conflict of wearableConflicts) {
+      conflicts.push(formatWearableConflictDiagnostic(conflict))
+    }
+  }
+
   try {
     projectedReadiness = buildAgentLoadoutReadinessSummary(
       {
@@ -1840,6 +2067,7 @@ export function validateAgentLoadoutAssignment(
     blockingIssues,
     warnings,
     conflicts,
+    wearableConflicts,
     readinessSummary: {
       current: currentReadiness,
       projected: projectedReadiness,

@@ -29,6 +29,27 @@ Tables map **threat tags** (acid, psi, blunt, blessed) to **modifier channels** 
 
 Compatibility hooks for **region hits** (helm bypass, greave weak) without a full anatomy sim — use bounded region tags.
 
+Canonical region identifiers live in `src/domain/bodyRegion.ts` (**SPE-120** vocabulary ownership: IDs and coverage-group expansion only). Localized hit selection, layered protection resolution, and injury aftermath remain SPE-120 follow-on work.
+
+## Wearable layer × region compatibility (SPE-3394)
+
+Simultaneous worn protective equipment is legal when occupied wearable layers and covered body regions do not both overlap.
+
+| Concept | Owner | Module |
+| --- | --- | --- |
+| Wearable layer IDs (`skin` / `under` / `mid` / `shell` / `outer`) | SPE-3394 | `src/domain/wearableCompatibility.ts` |
+| Covered body/exposure region IDs + coverage groups | SPE-120 | `src/domain/bodyRegion.ts` |
+| Occupancy authoring on definitions | SPE-3394 (optional field) | `EquipmentDefinition.wearableOccupancy` |
+| Assignment rejection | SPE-2828 / SPE-2840 path | `validateAgentLoadoutAssignment` |
+
+Rules:
+
+- Conflict when occupied-layer sets intersect **and** covered-region sets intersect.
+- Multi-layer items reserve every declared layer across every declared covered region for the check.
+- Same-layer disjoint regions remain compatible; same-region different layers remain compatible.
+- Definitions without `wearableOccupancy` keep legacy assignment behavior.
+- Preset application (SPE-3078) and UI consume typed `wearableConflicts` from canonical validation — they must not recompute overlap locally.
+
 ## Integration
 
 - **SPE-113 mutation stations** — alter material or reinforcement while preserving identity.

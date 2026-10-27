@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3360"
+    "SPE-3394"
   ],
   "recentlyShipped": [
+    "SPE-3360",
     "SPE-3406",
     "SPE-3417",
     "SPE-3384",
@@ -67,7 +68,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3360-facility-production-chain-slice.md": "In progress",
+    "planning/spe-3394-wearable-compatibility-slice.md": "In progress",
+    "planning/spe-3360-facility-production-chain-slice.md": "Recently shipped",
     "planning/spe-3406-managed-cultivation-lifecycle-slice.md": "Recently shipped",
     "planning/spe-3417-regional-cross-register-event-authority-slice.md": "Recently shipped",
     "planning/spe-3384-elapsed-time-invariant-simulation-updates-slice.md": "Recently shipped",

@@ -123,6 +123,12 @@ export const EQUIPMENT_DECONSTRUCTION_PROFILES = Object.freeze([
     'field_plate',
     'containment_staff',
     'hazmat_suit',
+    'fixture_wearable_mid_torso_vest',
+    'fixture_wearable_mid_torso_overlay',
+    'fixture_wearable_mid_greaves',
+    'fixture_wearable_under_torso',
+    'fixture_wearable_under_mid_torso_suit',
+    'fixture_wearable_shell_helm',
   ].map(deferred),
 ] as const satisfies readonly EquipmentDeconstructionProfile[])
 

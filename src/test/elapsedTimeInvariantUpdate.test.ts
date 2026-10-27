@@ -83,6 +83,72 @@ describe('applyElapsedTimeUpdate rate cadence equivalence', () => {
     expect(result.remainderMilli).toBe(0)
   })
 
+  it('discards outward remainder at max so fine and coarse stay equivalent', () => {
+    const rate = 750
+    const coarse = applyElapsedTimeUpdate({
+      kind: 'rate',
+      elapsedUnits: 4,
+      rateMilliPerUnit: rate,
+      value: 0,
+      remainderMilli: 0,
+      maxValue: 1,
+    })
+    const fine = applyRateAcrossCadence({
+      totalElapsed: 4,
+      sliceElapsedUnits: [1, 1, 1, 1],
+      rateMilliPerUnit: rate,
+      value: 0,
+      maxValue: 1,
+    })
+    expect(fine.value).toBe(coarse.value)
+    expect(fine.remainderMilli).toBe(coarse.remainderMilli)
+    expect(fine.value).toBe(1)
+    expect(fine.remainderMilli).toBe(0)
+
+    const afterCoarse = applyElapsedTimeUpdate({
+      kind: 'rate',
+      elapsedUnits: 2,
+      rateMilliPerUnit: -rate,
+      value: coarse.value,
+      remainderMilli: coarse.remainderMilli,
+      minValue: 0,
+    })
+    const afterFine = applyElapsedTimeUpdate({
+      kind: 'rate',
+      elapsedUnits: 2,
+      rateMilliPerUnit: -rate,
+      value: fine.value,
+      remainderMilli: fine.remainderMilli,
+      minValue: 0,
+    })
+    expect(afterFine).toEqual(afterCoarse)
+  })
+
+  it('throws on inverted min/max bounds', () => {
+    expect(() =>
+      applyElapsedTimeUpdate({
+        kind: 'rate',
+        elapsedUnits: 1,
+        rateMilliPerUnit: ELAPSED_TIME_RATE_SCALE,
+        value: 0,
+        remainderMilli: 0,
+        minValue: 5,
+        maxValue: 1,
+      }),
+    ).toThrow(/inverted bounds/)
+  })
+
+  it('throws when cadence slices are non-integer', () => {
+    expect(() =>
+      applyRateAcrossCadence({
+        totalElapsed: 1,
+        sliceElapsedUnits: [0.5, 0.5],
+        rateMilliPerUnit: ELAPSED_TIME_RATE_SCALE,
+        value: 0,
+      }),
+    ).toThrow(/non-negative integer/)
+  })
+
   it('replays identically for the same inputs', () => {
     const a = applyFixtureRepairAccumulation({ elapsedUnits: 7, value: 1 })
     const b = applyFixtureRepairAccumulation({ elapsedUnits: 7, value: 1 })

@@ -56,6 +56,15 @@ function clampValue(
   minValue: number | undefined,
   maxValue: number | undefined,
 ): { value: number; clamped: boolean } {
+  if (
+    minValue !== undefined &&
+    maxValue !== undefined &&
+    minValue > maxValue
+  ) {
+    throw new Error(
+      `elapsedTimeInvariantUpdate: inverted bounds minValue ${minValue} > maxValue ${maxValue}`,
+    )
+  }
   let next = value
   let clamped = false
   if (minValue !== undefined && next < minValue) {
@@ -67,6 +76,25 @@ function clampValue(
     clamped = true
   }
   return { value: next, clamped }
+}
+
+/**
+ * Drop fractional progress that points past a terminal bound so fine vs coarse
+ * cadences cannot reopen drift after the value has reached that bound.
+ */
+function discardOutwardRemainder(
+  value: number,
+  remainderMilli: number,
+  minValue: number | undefined,
+  maxValue: number | undefined,
+): number {
+  if (maxValue !== undefined && value >= maxValue && remainderMilli > 0) {
+    return 0
+  }
+  if (minValue !== undefined && value <= minValue && remainderMilli < 0) {
+    return 0
+  }
+  return remainderMilli
 }
 
 function normalizeRemainder(remainderMilli: number): number {
@@ -124,7 +152,12 @@ export function applyElapsedTimeUpdate(
     return {
       kind: 'rate',
       value: clamped.value,
-      remainderMilli: startRemainder,
+      remainderMilli: discardOutwardRemainder(
+        clamped.value,
+        startRemainder,
+        input.minValue,
+        input.maxValue,
+      ),
       appliedElapsedUnits: elapsed,
       appliedEvents: 0,
       clamped: clamped.clamped,
@@ -137,9 +170,16 @@ export function applyElapsedTimeUpdate(
   const raw = startValue + deltaWhole
   const clamped = clampValue(raw, input.minValue, input.maxValue)
 
-  // When clamped to a terminal bound, drop remainder so coarse/fine paths
-  // cannot reopen progress past the terminal from leftover milli-units.
-  const remainderMilli = clamped.clamped ? 0 : normalizeRemainder(nextRemainder)
+  // Clear remainder on clamp, and also discard outward fractional progress
+  // when the value sits on a terminal bound without a whole-unit overshoot.
+  const remainderMilli = clamped.clamped
+    ? 0
+    : discardOutwardRemainder(
+        clamped.value,
+        normalizeRemainder(nextRemainder),
+        input.minValue,
+        input.maxValue,
+      )
 
   return {
     kind: 'rate',
@@ -169,6 +209,18 @@ export function applyRateAcrossCadence(args: {
   if (sum !== args.totalElapsed) {
     throw new Error(
       `elapsedTimeInvariantUpdate: cadence slices sum ${sum} !== totalElapsed ${args.totalElapsed}`,
+    )
+  }
+  for (const elapsedUnits of args.sliceElapsedUnits) {
+    if (!Number.isFinite(elapsedUnits) || !Number.isInteger(elapsedUnits) || elapsedUnits < 0) {
+      throw new Error(
+        `elapsedTimeInvariantUpdate: cadence slice must be a non-negative integer, got ${elapsedUnits}`,
+      )
+    }
+  }
+  if (!Number.isFinite(args.totalElapsed) || !Number.isInteger(args.totalElapsed) || args.totalElapsed < 0) {
+    throw new Error(
+      `elapsedTimeInvariantUpdate: totalElapsed must be a non-negative integer, got ${args.totalElapsed}`,
     )
   }
 

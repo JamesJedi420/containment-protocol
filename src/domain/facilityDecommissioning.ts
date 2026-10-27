@@ -212,7 +212,11 @@ function closureObligationSourceRef(
   attestations: readonly FacilityClosureObligationAttestation[]
 ): string {
   return `closure-obligations:${attestations
-    .map((attestation) => `${attestation.kind}:${attestation.authority}:${attestation.sourceRef}`)
+    .map((attestation) =>
+      [attestation.kind, attestation.authority, attestation.sourceRef]
+        .map((field) => encodeURIComponent(field))
+        .join(':')
+    )
     .join('|')}`
 }
 

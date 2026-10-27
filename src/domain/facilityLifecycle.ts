@@ -287,7 +287,11 @@ export function resolveFacilityLifecycleTransition(
   // Classify old/non-next requests before interpreting their historical evidence as current.
   const replay = previous?.transition === request.transition ? previous : undefined
   if (!replay && request.transition !== transitions.length + 1) return reject('stale_transition')
-  if (request.action === 'finalize_closure' && !inspectionMatches(request.action, previous)) {
+  if (
+    !replay &&
+    request.action === 'finalize_closure' &&
+    !inspectionMatches(request.action, previous)
+  ) {
     return reject('inspection_provenance_required')
   }
   const kind = requiredKind(request.action)

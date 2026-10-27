@@ -194,14 +194,48 @@ describe('SPE-3381 facility phased decommissioning', () => {
         kind: 'closure_obligations',
         authority: 'SPE-3381',
         sourceRef:
-          'closure-obligations:custody:SPE-3378:custody:cleared:1|transfer:SPE-1020:transfer:cleared:1|staffing:SPE-731:staffing:cleared:1|dependency:SPE-792:dependency:cleared:1',
+          'closure-obligations:custody:SPE-3378:custody%3Acleared%3A1|transfer:SPE-1020:transfer%3Acleared%3A1|staffing:SPE-731:staffing%3Acleared%3A1|dependency:SPE-792:dependency%3Acleared%3A1',
         facilityId: ID,
         transition: 5,
         week: 2,
         verified: true,
       },
     ])
+    const replay = applyFacilityLifecycleTransition(closed.game, {
+      facilityId: ID,
+      expectedStatus: 'locked',
+      transition: 5,
+      action: 'finalize_closure',
+      prerequisites: closed.lifecycle!.receipt!.prerequisites,
+    })
+    expect(replay.outcome).toBe('unchanged')
+    expect(replay.game).toBe(closed.game)
     expect(closed.blockers).toEqual([])
+  })
+
+  it('encodes delimiter-bearing obligation fields into closure proof receipts', () => {
+    const base = activateFacility(game(activeFacility({ status: 'available' }), 2))
+    const stopped = stopFacilityIntake(base.facilityState!.facilities[ID], ID, 2)
+    const drawdown = enterFacilityDecommissionDrawdown(
+      {
+        ...base,
+        facilityState: { facilities: { [ID]: stopped.facility! } },
+      },
+      ID,
+      4
+    )
+    const obligations = clearObligations().map((obligation, index) => ({
+      ...obligation,
+      authority: `${obligation.authority}:owner|${index}`,
+      sourceRef: `${obligation.sourceRef}:with|delimiter`,
+    }))
+
+    const closed = finalizeFacilityClosure(drawdown.game, ID, 5, obligations)
+
+    expect(closed.outcome).toBe('applied')
+    expect(closed.lifecycle?.receipt?.prerequisites[0]?.sourceRef).toBe(
+      'closure-obligations:custody:SPE-3378%3Aowner%7C0:custody%3Acleared%3A1%3Awith%7Cdelimiter|transfer:SPE-1020%3Aowner%7C1:transfer%3Acleared%3A1%3Awith%7Cdelimiter|staffing:SPE-731%3Aowner%7C2:staffing%3Acleared%3A1%3Awith%7Cdelimiter|dependency:SPE-792%3Aowner%7C3:dependency%3Acleared%3A1%3Awith%7Cdelimiter'
+    )
   })
 
   it('is idempotent on repeated stop/drawdown/closure and rejects failed attempts without mutation', () => {

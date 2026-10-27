@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3394"
+    "SPE-3441"
   ],
   "recentlyShipped": [
+    "SPE-3394",
     "SPE-3360",
     "SPE-3406",
     "SPE-3417",
@@ -68,7 +69,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3394-wearable-compatibility-slice.md": "In progress",
+    "planning/spe-3441-personnel-ppe-replacement-demand-slice.md": "In progress",
+    "planning/spe-3394-wearable-compatibility-slice.md": "Recently shipped",
     "planning/spe-3360-facility-production-chain-slice.md": "Recently shipped",
     "planning/spe-3406-managed-cultivation-lifecycle-slice.md": "Recently shipped",
     "planning/spe-3417-regional-cross-register-event-authority-slice.md": "Recently shipped",

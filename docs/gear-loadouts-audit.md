@@ -75,6 +75,7 @@ Define deterministic rule layers:
 - Prerequisites satisfied (academy tier, unlock flag, certification).
 - Mutually exclusive tags cannot coexist in same loadout.
 - Wearable occupancy (SPE-3394): when definitions declare `wearableOccupancy`, the projected loadout must not place two items whose occupied-layer sets and covered-region sets both intersect. Covered regions consume SPE-120 IDs (`src/domain/bodyRegion.ts`). Definitions without occupancy keep legacy behavior. Typed reasons are returned on `LoadoutAssignmentValidationResult.wearableConflicts`.
+- Personnel PPE replacement demand (SPE-3441): authored role PPE requirements (fixture: medic armor → `hazmat_suit`) derive unmet demand from missing/unserviceable/wrong/incapable assignment plus stock. Authorized fulfillment revalidates via `validateAgentLoadoutAssignment` (including SPE-3394) and mutates only through `equipAgentItem` / `equipStoredEquipmentInstance`. Surface: Equipment loadout panel (`ppeDemands` + Authorize replacement). No auto-procurement, no parallel readiness formula, no standalone PPE screen.
 
 ### B. Soft preferences (should guide, not block)
 

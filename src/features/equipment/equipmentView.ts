@@ -65,6 +65,13 @@ import {
   createDefaultResponderEnergyBudget,
   normalizeEnergyBudget,
 } from '../../domain/responderEnergyBudget'
+import {
+  getPpeDeficitReasonLabel,
+  listPersonnelPpeDemandsForAgent,
+  projectPersonnelPpeDemandViews,
+  type PersonnelPpeDemandViewRow,
+  type PpeDeficitReason,
+} from '../../domain/personnelPpeReplacementDemand'
 
 export interface GearRecommendation {
   caseId: string
@@ -184,6 +191,19 @@ export interface EquipmentLoadoutSlotView {
   stockOptions: EquipmentLoadoutOptionView[]
 }
 
+export interface AgentPpeDemandView {
+  demandId: string
+  requirementId: string
+  slot: EquipmentSlotKind
+  requiredDefinitionId: string
+  requiredItemName: string
+  unmet: boolean
+  fulfillable: boolean
+  reasons: readonly PpeDeficitReason[]
+  reasonLabels: string[]
+  reasonSummary: string
+}
+
 export interface AgentEquipmentLoadoutView {
   agentId: string
   agentName: string
@@ -193,6 +213,7 @@ export interface AgentEquipmentLoadoutView {
   blockedReason?: string
   summary: EquipmentLoadoutSummary
   readiness: AgentLoadoutReadinessSummary
+  ppeDemands: AgentPpeDemandView[]
   slots: EquipmentLoadoutSlotView[]
 }
 
@@ -613,6 +634,21 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
                 ? 'Unavailable for loadout changes.'
                 : 'Locked.'
 
+      const ppeDemands: AgentPpeDemandView[] = listPersonnelPpeDemandsForAgent(game, agent.id)
+        .filter((packet) => packet.unmet)
+        .map((packet) => ({
+          demandId: packet.demandId,
+          requirementId: packet.requirementId,
+          slot: packet.slot,
+          requiredDefinitionId: packet.requiredDefinitionId,
+          requiredItemName: getEquipmentLabel(packet.requiredDefinitionId),
+          unmet: packet.unmet,
+          fulfillable: packet.fulfillable,
+          reasons: packet.reasons,
+          reasonLabels: packet.reasons.map((reason) => getPpeDeficitReasonLabel(reason)),
+          reasonSummary: packet.reasons.map((reason) => getPpeDeficitReasonLabel(reason)).join('; '),
+        }))
+
       return {
         agentId: agent.id,
         agentName: agent.name,
@@ -622,6 +658,7 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
         blockedReason,
         summary: buildAgentEquipmentSummary(agent),
         readiness: buildAgentLoadoutReadinessSummary(agent, { state: game }),
+        ppeDemands,
         slots: EQUIPMENT_SLOT_KINDS.map((slot) => {
           const itemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
           const equippedInstance = getEquipmentInstanceAtAgentSlot(game, agent.id, slot)
@@ -710,6 +747,10 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
         }),
       } satisfies AgentEquipmentLoadoutView
     })
+}
+
+export function getPersonnelPpeDemandBoardViews(game: GameState): PersonnelPpeDemandViewRow[] {
+  return projectPersonnelPpeDemandViews(game)
 }
 
 export function getEquipmentInstanceMaterializationViews(

@@ -1959,7 +1959,11 @@ export function validateAgentLoadoutAssignment(
   }
 
   const wearableWorn: WearableOccupiedItem[] = []
-  for (const projectedItemId of listSlottedItemIds(projectedSlots)) {
+  for (const projectedSlot of EQUIPMENT_SLOT_KINDS) {
+    const projectedItemId = getEquipmentSlotItemId(projectedSlots, projectedSlot)
+    if (!projectedItemId) {
+      continue
+    }
     const projectedDefinition = getEquipmentDefinition(projectedItemId)
     if (projectedDefinition?.wearableOccupancy) {
       wearableWorn.push({

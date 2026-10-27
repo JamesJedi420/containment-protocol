@@ -732,7 +732,10 @@ function getListingDefinitions() {
   )
 
   const directEquipmentDefinitions: ProcurementListingDefinition[] = getEquipmentCatalogEntries()
-    .filter((definition) => !recipeOutputItemIds.has(definition.id))
+    .filter(
+      (definition) =>
+        !recipeOutputItemIds.has(definition.id) && !definition.tags.includes('fixture-wearable')
+    )
     .map((definition) => ({
       id: `gear:${definition.id}`,
       source: 'direct_equipment',

@@ -7,11 +7,7 @@
  * inventory, instance location, damage mitigation, or a second slot authority.
  */
 
-import {
-  expandCoveredRegionRefs,
-  isBodyRegionId,
-  type BodyRegionId,
-} from './bodyRegion'
+import { expandCoveredRegionRefs, type BodyRegionId } from './bodyRegion'
 
 export const WEARABLE_COMPATIBILITY_OWNER = 'SPE-3394' as const
 
@@ -157,9 +153,24 @@ export function validateWearableOccupancyAuthoring(
     layers.push(value)
   }
 
-  const regionExpansion = expandCoveredRegionRefs(
-    rawRegions.map((raw) => (typeof raw === 'string' ? raw : String(raw)))
+  const normalizedRegionRefs = rawRegions.map((raw) =>
+    typeof raw === 'string' ? raw.trim() : String(raw)
   )
+  const regionRefSeen = new Set<string>()
+  for (const ref of normalizedRegionRefs) {
+    if (!ref) {
+      continue
+    }
+    if (regionRefSeen.has(ref)) {
+      if (!issues.includes('duplicate-region')) {
+        issues.push('duplicate-region')
+      }
+      break
+    }
+    regionRefSeen.add(ref)
+  }
+
+  const regionExpansion = expandCoveredRegionRefs(normalizedRegionRefs)
   if (!regionExpansion.ok) {
     unknownRegions.push(...regionExpansion.unknownRefs)
     if (!issues.includes('unknown-region')) {
@@ -171,20 +182,6 @@ export function validateWearableOccupancyAuthoring(
     regionExpansion.ok && regionExpansion.regions.length > 0
       ? uniqueSortedRegions(regionExpansion.regions)
       : []
-
-  if (regionExpansion.ok) {
-    const expandedCount = regionExpansion.regions.length
-    const uniqueCount = new Set(regionExpansion.regions).size
-    if (expandedCount !== uniqueCount && !issues.includes('duplicate-region')) {
-      // Expansion already dedupes; duplicates in raw canonical lists still flagged.
-      const canonicalRaw = rawRegions.filter(
-        (raw): raw is string => typeof raw === 'string' && isBodyRegionId(raw.trim())
-      )
-      if (canonicalRaw.length !== new Set(canonicalRaw.map((r) => r.trim())).size) {
-        issues.push('duplicate-region')
-      }
-    }
-  }
 
   if (issues.length > 0 || layers.length === 0 || regions.length === 0) {
     return {
@@ -237,9 +234,10 @@ export function resolveWearableCompatibility(
         continue
       }
 
-      const [blockingItemId, conflictingItemId] = [left.itemId, right.itemId].sort((a, b) =>
-        a.localeCompare(b)
-      )
+      const [blockingItemId, conflictingItemId] =
+        left.itemId < right.itemId
+          ? [left.itemId, right.itemId]
+          : [right.itemId, left.itemId]
       conflicts.push({
         code: 'layer_region_overlap',
         blockingItemId,
@@ -251,11 +249,19 @@ export function resolveWearableCompatibility(
   }
 
   conflicts.sort((a, b) => {
-    const byBlock = a.blockingItemId.localeCompare(b.blockingItemId)
-    if (byBlock !== 0) {
-      return byBlock
+    if (a.blockingItemId < b.blockingItemId) {
+      return -1
     }
-    return a.conflictingItemId.localeCompare(b.conflictingItemId)
+    if (a.blockingItemId > b.blockingItemId) {
+      return 1
+    }
+    if (a.conflictingItemId < b.conflictingItemId) {
+      return -1
+    }
+    if (a.conflictingItemId > b.conflictingItemId) {
+      return 1
+    }
+    return 0
   })
 
   return {

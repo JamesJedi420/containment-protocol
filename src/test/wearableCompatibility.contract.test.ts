@@ -15,6 +15,7 @@ import {
   type EquipmentSlotKind,
 } from '../domain/equipment'
 import type { Agent, EquipmentSlots } from '../domain/models'
+import { getProcurementListings } from '../domain/market'
 import { equipAgentItem } from '../domain/sim/equipment'
 import {
   formatWearableConflictDiagnostic,
@@ -95,6 +96,12 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
         coveredRegions: ['abdomen'],
       }).unknownRegions
     ).toEqual(['abdomen'])
+    expect(
+      validateWearableOccupancyAuthoring({
+        occupiedLayers: ['mid'],
+        coveredRegions: ['torso', 'torso'],
+      }).issues
+    ).toContain('duplicate-region')
   })
 
   it('conflicts when layer sets and region sets both intersect', () => {
@@ -183,6 +190,10 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
       occupiedLayers: ['mid'],
       coveredRegions: ['torso'],
     })
+    const procurementIds = getProcurementListings(createStartingState()).map(
+      (listing) => listing.itemId
+    )
+    expect(procurementIds.some((itemId) => itemId.startsWith('fixture_wearable_'))).toBe(false)
   })
 
   it('rejects illegal wearable overlap through canonical assignment validation', () => {
@@ -289,5 +300,18 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
       overlappingLayers: ['mid'],
       overlappingRegions: ['torso'],
     })
+  })
+
+  it('rejects two slotted copies of the same wearable occupancy definition', () => {
+    const agent = hunterWithSlots({
+      utility1: 'fixture_wearable_mid_torso_overlay',
+    })
+    const result = validateAgentLoadoutAssignment(
+      agent,
+      'utility2',
+      'fixture_wearable_mid_torso_overlay'
+    )
+    expect(result.valid).toBe(false)
+    expect(result.blockingIssues).toContain('wearable-layer-region-overlap')
   })
 })

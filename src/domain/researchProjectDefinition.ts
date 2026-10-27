@@ -24,11 +24,7 @@ export type MilestoneOutputKind = (typeof MILESTONE_OUTPUT_KINDS)[number]
 export const FINDING_KINDS = ['mandatory', 'optional'] as const
 export type FindingKind = (typeof FINDING_KINDS)[number]
 
-export const SOLVABILITY_STATUSES = [
-  'feasible',
-  'infeasible',
-  'runtime_dependent',
-] as const
+export const SOLVABILITY_STATUSES = ['feasible', 'infeasible', 'runtime_dependent'] as const
 export type SolvabilityStatus = (typeof SOLVABILITY_STATUSES)[number]
 
 export const RESEARCH_PROJECT_DEFINITION_DIAGNOSTICS = [
@@ -136,7 +132,7 @@ const OUTPUT_KIND_SET: ReadonlySet<string> = new Set(MILESTONE_OUTPUT_KINDS)
 function diagnostic(
   code: ResearchProjectDefinitionDiagnostic,
   field: string,
-  message: string,
+  message: string
 ): ResearchProjectDefinitionDiagnosticRecord {
   return { code, field, message }
 }
@@ -155,18 +151,17 @@ function sourceSpend(source: ResearchSourceCapacityRef): number {
 }
 
 function collectMandatoryMilestones(
-  definition: ResearchProjectDefinition,
+  definition: ResearchProjectDefinition
 ): ResearchMilestoneDefinition[] {
   const mandatoryIds = new Set(definition.closureRequirement.mandatoryFindingIds)
   return definition.milestones.filter(
-    (milestone) =>
-      milestone.findingKind === 'mandatory' || mandatoryIds.has(milestone.findingId),
+    (milestone) => milestone.findingKind === 'mandatory' || mandatoryIds.has(milestone.findingId)
   )
 }
 
 function milestoneSpend(
   milestone: ResearchMilestoneDefinition,
-  sourcesById: ReadonlyMap<string, ResearchSourceCapacityRef>,
+  sourcesById: ReadonlyMap<string, ResearchSourceCapacityRef>
 ): number {
   if (milestone.eligibility.minAnalyticalSpend !== undefined) {
     return milestone.eligibility.minAnalyticalSpend
@@ -184,21 +179,19 @@ function milestoneSpend(
  * Static solvability over authored sources, milestone DAG, and hard bounds.
  * Does not simulate campaign runtime or invent opportunity points.
  */
-export function analyzeResearchProjectSolvability(
-  definition: ResearchProjectDefinition,
-): {
+export function analyzeResearchProjectSolvability(definition: ResearchProjectDefinition): {
   readonly status: SolvabilityStatus
   readonly diagnostics: readonly ResearchProjectDefinitionDiagnosticRecord[]
 } {
   const diagnostics: ResearchProjectDefinitionDiagnosticRecord[] = []
   const sourcesById = new Map(
-    definition.sources.map((source) => [source.sourceId, source] as const),
+    definition.sources.map((source) => [source.sourceId, source] as const)
   )
   const milestonesById = new Map(
-    definition.milestones.map((milestone) => [milestone.milestoneId, milestone] as const),
+    definition.milestones.map((milestone) => [milestone.milestoneId, milestone] as const)
   )
   const findingToMilestone = new Map(
-    definition.milestones.map((milestone) => [milestone.findingId, milestone] as const),
+    definition.milestones.map((milestone) => [milestone.findingId, milestone] as const)
   )
 
   const mandatoryFindings = [...new Set(definition.closureRequirement.mandatoryFindingIds)]
@@ -208,8 +201,8 @@ export function analyzeResearchProjectSolvability(
         diagnostic(
           'invalid_finding_reference',
           'closureRequirement.mandatoryFindingIds',
-          `Mandatory finding ${findingId} has no milestone.`,
-        ),
+          `Mandatory finding ${findingId} has no milestone.`
+        )
       )
     }
   }
@@ -217,40 +210,49 @@ export function analyzeResearchProjectSolvability(
   const reachableMilestoneIds = new Set<string>()
   const visiting = new Set<string>()
   const runtimeBlockedMilestoneIds = new Set<string>()
+  const staticallyBlockedMilestoneIds = new Set<string>()
 
-  const tryReach = (milestoneId: string): boolean => {
-    if (reachableMilestoneIds.has(milestoneId)) return true
-    if (visiting.has(milestoneId)) return false
+  const tryReach = (milestoneId: string): 'reachable' | 'runtime_blocked' | 'static_blocked' => {
+    if (reachableMilestoneIds.has(milestoneId)) return 'reachable'
+    if (staticallyBlockedMilestoneIds.has(milestoneId)) return 'static_blocked'
+    if (runtimeBlockedMilestoneIds.has(milestoneId)) return 'runtime_blocked'
+    if (visiting.has(milestoneId)) {
+      staticallyBlockedMilestoneIds.add(milestoneId)
+      return 'static_blocked'
+    }
     const milestone = milestonesById.get(milestoneId)
-    if (!milestone) return false
+    if (!milestone) return 'static_blocked'
     visiting.add(milestoneId)
 
-    if (milestone.eligibility.requiresRuntimeConditions) {
-      runtimeBlockedMilestoneIds.add(milestoneId)
-      visiting.delete(milestoneId)
-      return false
-    }
+    let hasStaticBlock = false
+    let hasRuntimeBlock = milestone.eligibility.requiresRuntimeConditions === true
 
     for (const sourceId of milestone.eligibility.requiredSourceIds ?? []) {
       if (!sourcesById.has(sourceId)) {
-        visiting.delete(milestoneId)
-        return false
+        hasStaticBlock = true
       }
     }
 
     for (const prerequisiteId of milestone.eligibility.prerequisiteMilestoneIds ?? []) {
-      if (!tryReach(prerequisiteId)) {
-        if (runtimeBlockedMilestoneIds.has(prerequisiteId)) {
-          runtimeBlockedMilestoneIds.add(milestoneId)
-        }
-        visiting.delete(milestoneId)
-        return false
+      const prerequisiteReach = tryReach(prerequisiteId)
+      if (prerequisiteReach === 'static_blocked') {
+        hasStaticBlock = true
+      } else if (prerequisiteReach === 'runtime_blocked') {
+        hasRuntimeBlock = true
       }
     }
 
     visiting.delete(milestoneId)
+    if (hasStaticBlock) {
+      staticallyBlockedMilestoneIds.add(milestoneId)
+      return 'static_blocked'
+    }
+    if (hasRuntimeBlock) {
+      runtimeBlockedMilestoneIds.add(milestoneId)
+      return 'runtime_blocked'
+    }
     reachableMilestoneIds.add(milestoneId)
-    return true
+    return 'reachable'
   }
 
   for (const milestone of definition.milestones) {
@@ -259,12 +261,12 @@ export function analyzeResearchProjectSolvability(
 
   const mandatoryMilestones = collectMandatoryMilestones(definition)
   const runtimeDependent = mandatoryMilestones.some((milestone) =>
-    runtimeBlockedMilestoneIds.has(milestone.milestoneId),
+    runtimeBlockedMilestoneIds.has(milestone.milestoneId)
   )
   const unreachableMandatory = mandatoryMilestones.filter(
     (milestone) =>
       !reachableMilestoneIds.has(milestone.milestoneId) &&
-      !runtimeBlockedMilestoneIds.has(milestone.milestoneId),
+      !runtimeBlockedMilestoneIds.has(milestone.milestoneId)
   )
 
   if (unreachableMandatory.length > 0) {
@@ -273,20 +275,20 @@ export function analyzeResearchProjectSolvability(
         diagnostic(
           'unreachable_mandatory',
           `milestones.${milestone.milestoneId}`,
-          `Mandatory finding ${milestone.findingId} is unreachable from authored sources/prerequisites.`,
-        ),
+          `Mandatory finding ${milestone.findingId} is unreachable from authored sources/prerequisites.`
+        )
       )
     }
   }
 
   const mandatorySpend = mandatoryMilestones.reduce(
     (sum, milestone) => sum + milestoneSpend(milestone, sourcesById),
-    0,
+    0
   )
 
   const totalCapacity = definition.sources.reduce(
     (sum, source) => sum + source.analyticalCapacity,
-    0,
+    0
   )
 
   if (mandatorySpend > totalCapacity) {
@@ -294,8 +296,8 @@ export function analyzeResearchProjectSolvability(
       diagnostic(
         'unreachable_mandatory',
         'sources',
-        'Mandatory analytical spend exceeds total authored source capacity.',
-      ),
+        'Mandatory analytical spend exceeds total authored source capacity.'
+      )
     )
   }
 
@@ -305,8 +307,8 @@ export function analyzeResearchProjectSolvability(
       diagnostic(
         'hard_bounds_infeasible',
         'hardOpportunityBounds.maxAnalyticalCapacityTotal',
-        `Mandatory spend ${mandatorySpend} exceeds hard capacity bound ${hardCap}.`,
-      ),
+        `Mandatory spend ${mandatorySpend} exceeds hard capacity bound ${hardCap}.`
+      )
     )
   }
 
@@ -322,23 +324,21 @@ export function analyzeResearchProjectSolvability(
         diagnostic(
           'hard_window_infeasible',
           'hardOpportunityBounds.availabilityWindow',
-          'At least one mandatory milestone orderIndex falls outside the authored availability window.',
-        ),
+          'At least one mandatory milestone orderIndex falls outside the authored availability window.'
+        )
       )
     }
   }
 
-  const hasStaticInfeasibility = diagnostics.some(
-    (entry) => entry.code !== 'runtime_dependent',
-  )
+  const hasStaticInfeasibility = diagnostics.some((entry) => entry.code !== 'runtime_dependent')
 
   if (runtimeDependent && !hasStaticInfeasibility) {
     diagnostics.push(
       diagnostic(
         'runtime_dependent',
         'milestones.eligibility.requiresRuntimeConditions',
-        'Mandatory completion depends on mutable runtime conditions not fixed by the authored definition.',
-      ),
+        'Mandatory completion depends on mutable runtime conditions not fixed by the authored definition.'
+      )
     )
     return { status: 'runtime_dependent', diagnostics }
   }
@@ -351,7 +351,7 @@ export function analyzeResearchProjectSolvability(
 }
 
 export function validateResearchProjectDefinition(
-  input: ResearchProjectDefinition,
+  input: ResearchProjectDefinition
 ): ResearchProjectDefinitionValidationResult {
   const diagnostics: ResearchProjectDefinitionDiagnosticRecord[] = []
 
@@ -371,15 +371,19 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_source_reference',
           `sources[${index}].sourceId`,
-          'sourceId must be a non-empty string.',
-        ),
+          'sourceId must be a non-empty string.'
+        )
       )
       continue
     }
     const sourceId = normalizeId(source.sourceId)
     if (sourceIds.has(sourceId)) {
       diagnostics.push(
-        diagnostic('duplicate_source_id', `sources[${index}].sourceId`, `Duplicate sourceId ${sourceId}.`),
+        diagnostic(
+          'duplicate_source_id',
+          `sources[${index}].sourceId`,
+          `Duplicate sourceId ${sourceId}.`
+        )
       )
     }
     sourceIds.add(sourceId)
@@ -392,8 +396,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_source_capacity',
           `sources[${index}].analyticalCapacity`,
-          'analyticalCapacity must be a non-negative integer.',
-        ),
+          'analyticalCapacity must be a non-negative integer.'
+        )
       )
     }
     if (
@@ -406,8 +410,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_source_capacity',
           `sources[${index}].analysisCost`,
-          'analysisCost must be a non-negative integer when present.',
-        ),
+          'analysisCost must be a non-negative integer when present.'
+        )
       )
     }
   }
@@ -420,8 +424,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_milestone_reference',
           `milestones[${index}].milestoneId`,
-          'milestoneId must be a non-empty string.',
-        ),
+          'milestoneId must be a non-empty string.'
+        )
       )
       continue
     }
@@ -431,8 +435,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'duplicate_milestone_id',
           `milestones[${index}].milestoneId`,
-          `Duplicate milestoneId ${milestoneId}.`,
-        ),
+          `Duplicate milestoneId ${milestoneId}.`
+        )
       )
     }
     milestoneIds.add(milestoneId)
@@ -442,8 +446,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_finding_reference',
           `milestones[${index}].findingId`,
-          'findingId must be a non-empty string.',
-        ),
+          'findingId must be a non-empty string.'
+        )
       )
     } else {
       const findingId = normalizeId(milestone.findingId)
@@ -452,8 +456,8 @@ export function validateResearchProjectDefinition(
           diagnostic(
             'duplicate_finding_id',
             `milestones[${index}].findingId`,
-            `Duplicate findingId ${findingId}.`,
-          ),
+            `Duplicate findingId ${findingId}.`
+          )
         )
       }
       findingIds.add(findingId)
@@ -465,8 +469,8 @@ export function validateResearchProjectDefinition(
           diagnostic(
             'invalid_source_reference',
             `milestones[${index}].eligibility.requiredSourceIds`,
-            `Unknown sourceId ${sourceId}.`,
-          ),
+            `Unknown sourceId ${sourceId}.`
+          )
         )
       }
     }
@@ -476,8 +480,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_output_kind',
           `milestones[${index}].outputs`,
-          'At least one typed milestone output is required.',
-        ),
+          'At least one typed milestone output is required.'
+        )
       )
     }
     for (const [outputIndex, output] of milestone.outputs.entries()) {
@@ -486,8 +490,8 @@ export function validateResearchProjectDefinition(
           diagnostic(
             'invalid_output_kind',
             `milestones[${index}].outputs[${outputIndex}].kind`,
-            `Unknown output kind ${String(output.kind)}.`,
-          ),
+            `Unknown output kind ${String(output.kind)}.`
+          )
         )
       }
       if (!isNonEmptyId(output.targetRef)) {
@@ -495,8 +499,8 @@ export function validateResearchProjectDefinition(
           diagnostic(
             'invalid_output_kind',
             `milestones[${index}].outputs[${outputIndex}].targetRef`,
-            'targetRef must be a non-empty string.',
-          ),
+            'targetRef must be a non-empty string.'
+          )
         )
       }
     }
@@ -510,8 +514,8 @@ export function validateResearchProjectDefinition(
           diagnostic(
             'invalid_milestone_reference',
             `milestones[${index}].eligibility.prerequisiteMilestoneIds`,
-            `Unknown prerequisite milestone ${prerequisiteId}.`,
-          ),
+            `Unknown prerequisite milestone ${prerequisiteId}.`
+          )
         )
       }
     }
@@ -523,8 +527,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_timed_event_binding',
           'timedEventBindingIds',
-          'Timed-event binding ids must be non-empty strings.',
-        ),
+          'Timed-event binding ids must be non-empty strings.'
+        )
       )
     }
   }
@@ -534,8 +538,8 @@ export function validateResearchProjectDefinition(
         diagnostic(
           'invalid_timed_event_binding',
           'hardOpportunityBounds.timedEventBindingIds',
-          'Hard-bound timed-event binding ids must be non-empty strings.',
-        ),
+          'Hard-bound timed-event binding ids must be non-empty strings.'
+        )
       )
     }
   }
@@ -546,8 +550,8 @@ export function validateResearchProjectDefinition(
       diagnostic(
         'invalid_hard_window',
         'hardOpportunityBounds.availabilityWindow',
-        'availabilityWindow.startOrder must be <= endOrder.',
-      ),
+        'availabilityWindow.startOrder must be <= endOrder.'
+      )
     )
   }
 
@@ -556,7 +560,7 @@ export function validateResearchProjectDefinition(
       entry.code !== 'unreachable_mandatory' &&
       entry.code !== 'hard_bounds_infeasible' &&
       entry.code !== 'hard_window_infeasible' &&
-      entry.code !== 'runtime_dependent',
+      entry.code !== 'runtime_dependent'
   )
 
   if (schemaDiagnostics.length > 0) {
@@ -583,8 +587,7 @@ export function validateResearchProjectDefinition(
       eligibility: {
         ...milestone.eligibility,
         requiredSourceIds: milestone.eligibility.requiredSourceIds?.map(normalizeId),
-        prerequisiteMilestoneIds:
-          milestone.eligibility.prerequisiteMilestoneIds?.map(normalizeId),
+        prerequisiteMilestoneIds: milestone.eligibility.prerequisiteMilestoneIds?.map(normalizeId),
       },
       outputs: milestone.outputs.map((output) => ({
         ...output,

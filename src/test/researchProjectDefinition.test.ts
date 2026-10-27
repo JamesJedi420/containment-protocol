@@ -8,7 +8,7 @@ import {
 } from '../domain/researchProjectDefinition'
 
 function cloneFixture(
-  overrides: Partial<ResearchProjectDefinition> = {},
+  overrides: Partial<ResearchProjectDefinition> = {}
 ): ResearchProjectDefinition {
   return {
     ...ARCHIVE_LEAD_RESEARCH_PROJECT,
@@ -65,8 +65,8 @@ describe('validateResearchProjectDefinition', () => {
     if (!result.ok) return
     expect(
       result.definition.milestones.some((m) =>
-        m.outputs.some((o) => o.kind === 'request_owner_routed_state_change'),
-      ),
+        m.outputs.some((o) => o.kind === 'request_owner_routed_state_change')
+      )
     ).toBe(true)
   })
 
@@ -77,7 +77,7 @@ describe('validateResearchProjectDefinition', () => {
           { sourceId: 'source.archive-index', analyticalCapacity: 2 },
           { sourceId: 'source.archive-index', analyticalCapacity: 1 },
         ],
-      }),
+      })
     )
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -95,7 +95,7 @@ describe('validateResearchProjectDefinition', () => {
             findingId: 'finding.other',
           },
         ],
-      }),
+      })
     )
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -112,7 +112,7 @@ describe('validateResearchProjectDefinition', () => {
           },
         ],
         closureRequirement: { mandatoryFindingIds: ['finding.catalog-hit'] },
-      }),
+      })
     )
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -135,14 +135,14 @@ describe('validateResearchProjectDefinition', () => {
           },
         ],
         closureRequirement: { mandatoryFindingIds: ['finding.orphan'] },
-      }),
+      })
     )
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(
       result.diagnostics.some(
-        (d) => d.code === 'invalid_milestone_reference' || d.code === 'unreachable_mandatory',
-      ),
+        (d) => d.code === 'invalid_milestone_reference' || d.code === 'unreachable_mandatory'
+      )
     ).toBe(true)
   })
 
@@ -150,7 +150,7 @@ describe('validateResearchProjectDefinition', () => {
     const result = validateResearchProjectDefinition(
       cloneFixture({
         hardOpportunityBounds: { maxAnalyticalCapacityTotal: 1 },
-      }),
+      })
     )
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -163,7 +163,7 @@ describe('validateResearchProjectDefinition', () => {
         hardOpportunityBounds: {
           availabilityWindow: { startOrder: 10, endOrder: 12 },
         },
-      }),
+      })
     )
     expect(allOutside.ok).toBe(false)
     if (allOutside.ok) return
@@ -174,7 +174,7 @@ describe('validateResearchProjectDefinition', () => {
         hardOpportunityBounds: {
           availabilityWindow: { startOrder: 1, endOrder: 1 },
         },
-      }),
+      })
     )
     expect(oneOutside.ok).toBe(false)
     if (oneOutside.ok) return
@@ -205,7 +205,7 @@ describe('validateResearchProjectDefinition', () => {
           },
         ],
         closureRequirement: { mandatoryFindingIds: ['finding.required'] },
-      }),
+      })
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -228,7 +228,7 @@ describe('validateResearchProjectDefinition', () => {
           },
         ],
         closureRequirement: { mandatoryFindingIds: ['finding.staffed'] },
-      }),
+      })
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -253,11 +253,64 @@ describe('validateResearchProjectDefinition', () => {
             outputs: [{ kind: 'reveal_finding', targetRef: 'finding.optional-runtime' }],
           },
         ],
-      }),
+      })
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.solvability).toBe('feasible')
+  })
+
+  it('rejects static mandatory blockers even when runtime-dependent prerequisites are listed first', () => {
+    const validateWithPrerequisites = (prerequisiteMilestoneIds: readonly string[]) =>
+      validateResearchProjectDefinition(
+        cloneFixture({
+          sources: [{ sourceId: 'source.valid', analyticalCapacity: 4 }],
+          milestones: [
+            {
+              milestoneId: 'milestone.runtime-gate',
+              findingId: 'finding.runtime-gate',
+              findingKind: 'optional',
+              eligibility: { requiresRuntimeConditions: true },
+              outputs: [{ kind: 'reveal_finding', targetRef: 'finding.runtime-gate' }],
+            },
+            {
+              milestoneId: 'milestone.cycle-a',
+              findingId: 'finding.cycle-a',
+              findingKind: 'optional',
+              eligibility: { prerequisiteMilestoneIds: ['milestone.cycle-b'] },
+              outputs: [{ kind: 'reveal_finding', targetRef: 'finding.cycle-a' }],
+            },
+            {
+              milestoneId: 'milestone.cycle-b',
+              findingId: 'finding.cycle-b',
+              findingKind: 'optional',
+              eligibility: { prerequisiteMilestoneIds: ['milestone.cycle-a'] },
+              outputs: [{ kind: 'reveal_finding', targetRef: 'finding.cycle-b' }],
+            },
+            {
+              milestoneId: 'milestone.required',
+              findingId: 'finding.required',
+              findingKind: 'mandatory',
+              eligibility: {
+                requiredSourceIds: ['source.valid'],
+                prerequisiteMilestoneIds,
+              },
+              outputs: [{ kind: 'reveal_finding', targetRef: 'finding.required' }],
+            },
+          ],
+          closureRequirement: { mandatoryFindingIds: ['finding.required'] },
+        })
+      )
+
+    for (const result of [
+      validateWithPrerequisites(['milestone.runtime-gate', 'milestone.cycle-a']),
+      validateWithPrerequisites(['milestone.cycle-a', 'milestone.runtime-gate']),
+    ]) {
+      expect(result.ok).toBe(false)
+      if (result.ok) continue
+      expect(result.solvability).toBe('infeasible')
+      expect(result.diagnostics.some((d) => d.code === 'unreachable_mandatory')).toBe(true)
+    }
   })
 
   it('accepts unreachable optional findings when mandatory routes remain feasible', () => {
@@ -277,7 +330,7 @@ describe('validateResearchProjectDefinition', () => {
             outputs: [{ kind: 'reveal_finding', targetRef: 'finding.optional-blocked' }],
           },
         ],
-      }),
+      })
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -299,9 +352,7 @@ describe('validateResearchProjectDefinition', () => {
     if (!result.ok) return
     expect(result.definition.timedEventBindingIds).toEqual(['timed.research-archive-window'])
 
-    const bad = validateResearchProjectDefinition(
-      cloneFixture({ timedEventBindingIds: ['  '] }),
-    )
+    const bad = validateResearchProjectDefinition(cloneFixture({ timedEventBindingIds: ['  '] }))
     expect(bad.ok).toBe(false)
     if (bad.ok) return
     expect(bad.diagnostics.some((d) => d.code === 'invalid_timed_event_binding')).toBe(true)
@@ -309,10 +360,10 @@ describe('validateResearchProjectDefinition', () => {
 
   it('produces byte-stable diagnostics for identical authored inputs', () => {
     const a = validateResearchProjectDefinition(
-      cloneFixture({ hardOpportunityBounds: { maxAnalyticalCapacityTotal: 0 } }),
+      cloneFixture({ hardOpportunityBounds: { maxAnalyticalCapacityTotal: 0 } })
     )
     const b = validateResearchProjectDefinition(
-      cloneFixture({ hardOpportunityBounds: { maxAnalyticalCapacityTotal: 0 } }),
+      cloneFixture({ hardOpportunityBounds: { maxAnalyticalCapacityTotal: 0 } })
     )
     expect(JSON.stringify(a)).toBe(JSON.stringify(b))
   })
@@ -336,7 +387,7 @@ describe('analyzeResearchProjectSolvability', () => {
           },
         ],
         closureRequirement: { mandatoryFindingIds: ['finding.only'] },
-      }),
+      })
     )
     expect(analysis.status).toBe('infeasible')
     expect(analysis.diagnostics.some((d) => d.code === 'unreachable_mandatory')).toBe(true)

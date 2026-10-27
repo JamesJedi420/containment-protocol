@@ -1,5 +1,6 @@
 import { parseContainmentRequirementRegistry } from '../../domain/containmentRequirementFulfillment'
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
+import { normalizeFacilityDecommissioning } from '../../domain/facilityDecommissioning'
 import { normalizeFacilityLifecycleHistory } from '../../domain/facilityLifecycle'
 import { sanitizeFacilityCapabilityUnlock } from '../../domain/facilityCapabilityUnlock'
 import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
@@ -2325,6 +2326,10 @@ export function stripGameTemplates(game: GameState): PersistedGame {
                   facility.facilityId,
                   facility.status,
                   game.week
+                ),
+                decommissioning: normalizeFacilityDecommissioning(
+                  facility.decommissioning,
+                  facility.facilityId
                 ),
               },
             ])
@@ -7500,6 +7505,8 @@ function sanitizeFacilityInstance(
       ? 'inactive'
       : normalizedStatus
 
+  const decommissioning = normalizeFacilityDecommissioning(value.decommissioning, facilityId)
+
   return stripUndefinedFields({
     facilityId,
     category:
@@ -7510,6 +7517,7 @@ function sanitizeFacilityInstance(
     maxLevel,
     status: lifecycleStatus,
     ...(lifecycleHistory !== undefined ? { lifecycleHistory } : {}),
+    ...(decommissioning !== undefined ? { decommissioning } : {}),
     effects: sanitizeFacilityEffect(value.effects),
     ...(normalizedUpgradeInProgress
       ? {

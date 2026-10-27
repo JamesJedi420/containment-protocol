@@ -6,8 +6,16 @@ export const FACILITY_LIFECYCLE_TRANSITIONS = {
   submit_construction: { from: 'constructing', to: 'inspecting', cause: 'construction_verified' },
   activate: { from: 'inspecting', to: 'active', cause: 'startup_readiness_verified' },
   restrict: { from: 'active', to: 'locked', cause: 'operation_restricted' },
+  /** SPE-3381: drawdown locks the facility while closure obligations remain live. */
+  begin_decommission_drawdown: {
+    from: 'active',
+    to: 'locked',
+    cause: 'decommission_drawdown_begun',
+  },
   submit_restart: { from: 'locked', to: 'inspecting', cause: 'restart_inspection_requested' },
   reactivate: { from: 'inspecting', to: 'active', cause: 'restart_readiness_verified' },
+  /** SPE-3381: terminal closure after coordinator-verified obligation discharge. */
+  finalize_closure: { from: 'locked', to: 'inactive', cause: 'closure_obligations_discharged' },
 } as const satisfies Record<string, { from: FacilityStatus; to: FacilityStatus; cause: string }>
 
 Object.values(FACILITY_LIFECYCLE_TRANSITIONS).forEach(Object.freeze)
@@ -181,7 +189,10 @@ export function normalizeFacilityLifecycleHistory(
     const edge = FACILITY_LIFECYCLE_TRANSITIONS[entry.action]
     const previous = transitions.at(-1)
     if (
-      (!previous && !['begin_construction', 'restrict', 'submit_restart'].includes(entry.action)) ||
+      (!previous &&
+        !['begin_construction', 'restrict', 'submit_restart', 'begin_decommission_drawdown'].includes(
+          entry.action
+        )) ||
       entry.transition !== index + 1 ||
       !positiveInteger(entry.week) ||
       entry.week > campaignWeek ||

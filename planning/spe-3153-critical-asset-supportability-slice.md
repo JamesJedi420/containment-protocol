@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3153](https://linear.app/spectranoir/issue/SPE-3153)                                      |
 | **Parent**        | [SPE-3150](https://linear.app/spectranoir/issue/SPE-3150) — Backlog (under SPE-1052)            |
 | **Branch**        | `jamesdyedbq/spe-3153-critical-asset-supportability-state-resolver-slice-1`                      |

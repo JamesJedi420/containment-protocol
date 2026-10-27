@@ -2124,6 +2124,8 @@ export interface FacilityInstance {
   upgradeCompleteWeek?: number
   pendingEffectDeltas?: FacilityEffect
   lifecycleHistory?: import('./facilityLifecycle').FacilityLifecycleHistory
+  /** SPE-3381: phased decommissioning coordinator state (optional). */
+  decommissioning?: import('./facilityDecommissioning').FacilityDecommissioningState
 }
 
 export interface FacilityUpgradeMetadata {

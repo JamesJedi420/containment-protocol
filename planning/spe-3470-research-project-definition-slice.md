@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3470](https://linear.app/spectranoir/issue/SPE-3470)                                      |
 | **Parent**        | [SPE-3342](https://linear.app/spectranoir/issue/SPE-3342) — Backlog                             |
 | **Branch**        | `jamesdyedbq/spe-3470-research-project-definition-source-capacity-milestones-and`              |

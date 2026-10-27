@@ -54,6 +54,7 @@ No new Linear issue/relationship; parent umbrellas not coding slice; PR review/C
 | --- | --- | --- |
 | Additional department operational mappings | Future authored ownership | Only biohazard production mapping in this slice |
 | Affiliation site-clearance grants as dualAuth source | SPE-1046 / clearance owners | Agency clearance is the shipped authoritative numeric gate |
+| Richer workshop staff assignment than `workshop_ops` tag | Staffing / SPE-1058 adjacent | Tag is the explicit production assignment signal this slice; roster auto-count rejected |
 | Broader equipment axes beyond PPE demand | SPE-877 / SPE-1028 | Integrity quality already separate |
 
 ## Implementation

@@ -30,8 +30,9 @@ import {
 } from './departmentWorkshopIntegrityQualityMapping'
 import type { GameState } from './models'
 
+/** Live safety reads facility axes plus operational staff/clearance/PPE facts. */
 export type DepartmentWorkshopLiveFacilitySafetySource = DepartmentWorkshopStateSource &
-  Pick<GameState, 'facilityState'>
+  Pick<GameState, 'facilityState' | 'agents' | 'agency' | 'clearanceLevel' | 'equipmentInstances'>
 
 function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
@@ -110,7 +111,7 @@ export function composeDepartmentWorkshopQualityConditionsWithEquipmentCondition
  * facility value for that axis. Unmapped operational axes keep facility/legacy.
  */
 export function composeDepartmentWorkshopLiveSafetyConditions(
-  source: GameState,
+  source: DepartmentWorkshopLiveFacilitySafetySource,
   departmentId: string,
   facilityMappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
   operationalMappings: readonly DepartmentWorkshopOperationalSafetyMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS
@@ -119,12 +120,12 @@ export function composeDepartmentWorkshopLiveSafetyConditions(
   readonly operational: DepartmentWorkshopOperationalSafetyProjection
 } {
   const facility = deriveDepartmentWorkshopSafetyFromFacilities(
-    source,
+    source as GameState,
     departmentId,
     facilityMappings
   )
   const operational = projectDepartmentWorkshopOperationalSafety(
-    source,
+    source as GameState,
     departmentId,
     operationalMappings
   )
@@ -168,7 +169,7 @@ export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
         [
           workOrderId,
           composeDepartmentWorkshopLiveSafetyConditions(
-            source as GameState,
+            source,
             workOrder.departmentId,
             mappings,
             operationalMappings

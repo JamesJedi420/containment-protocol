@@ -246,6 +246,34 @@ describe('canonical week-close live facility safety integration', () => {
     })
   })
 
+  it('registers inadequate_ppe at week-close when workshop-ops medic lacks hazmat', () => {
+    const base = makeWorkshopState('active')
+    const medic = {
+      ...createStarterAgent({
+        id: 'agent-week-close-medic',
+        name: 'Week Close Medic',
+        role: 'medic',
+      }),
+      tags: [WORKSHOP_OPERATIONAL_ASSIGNMENT_TAG],
+    } as Agent
+    const next = advanceWeek({
+      ...base,
+      clearanceLevel: 3,
+      agency: base.agency ? { ...base.agency, clearanceLevel: 3 } : base.agency,
+      agents: { ...base.agents, [medic.id]: medic },
+    })
+
+    expect(next.departmentWorkshopCompletionOutcomes?.[BIO_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      safety: 'unsafe',
+      safetyReason: 'inadequate_ppe',
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.[RECORDS_WORK_ORDER_ID]).toMatchObject({
+      outcome: 'completed',
+      safety: 'safe',
+    })
+  })
+
   it('registers mapped poor conditions as unsafe without affecting an unmapped sibling', () => {
     const next = advanceWeek(makeWorkshopState('inactive'))
 

@@ -95,10 +95,7 @@ describe('condition groups', () => {
       ],
     })
     expect(partial.result).toBe('skipped_conditions')
-    expect(partial.conditionDiagnostics.map((d) => d.outcome)).toEqual([
-      'passed',
-      'failed',
-    ])
+    expect(partial.conditionDiagnostics.map((d) => d.outcome)).toEqual(['passed', 'failed'])
 
     const full = evaluateConditionalRecurringActivation({
       definition,
@@ -392,6 +389,61 @@ describe('two producer subsystems', () => {
       sources: [{ sourceRef, value: true, available: true }],
     })
     expect(second.result).toBe('idempotent_noop')
+  })
+
+  it('keeps activation identities distinct for different subjects in the same window', () => {
+    const cellA: Spe3041ActivationIntent = Object.freeze({
+      activationOwner: 'SPE-3041',
+      requirementId: 'req-1',
+      subjectRef: 'subject:cell-a',
+      windowId: 'win-q1',
+      idempotencyKey: '["spe-3041","subject:cell-a","req-1","win-q1"]',
+      reasonCodes: Object.freeze(['work_activation_required'] as const),
+    })
+    const cellB: Spe3041ActivationIntent = Object.freeze({
+      activationOwner: 'SPE-3041',
+      requirementId: 'req-1',
+      subjectRef: 'subject:cell-b',
+      windowId: 'win-q1',
+      idempotencyKey: '["spe-3041","subject:cell-b","req-1","win-q1"]',
+      reasonCodes: Object.freeze(['work_activation_required'] as const),
+    })
+
+    const definitionA = recurrenceDefinitionFromSpe3181Intent(cellA)
+    const definitionB = recurrenceDefinitionFromSpe3181Intent(cellB)
+    expect(buildActivationIdentity(definitionA)).not.toBe(buildActivationIdentity(definitionB))
+
+    const activatedA = evaluateConditionalRecurringActivation({
+      definition: definitionA,
+      markers: emptyMarkers,
+      campaignWeek: 10,
+      sources: [
+        { sourceRef: `spe-3181:intent:${cellA.idempotencyKey}`, value: true, available: true },
+      ],
+    })
+    const activatedB = evaluateConditionalRecurringActivation({
+      definition: definitionB,
+      markers: emptyMarkers,
+      campaignWeek: 10,
+      sources: [
+        { sourceRef: `spe-3181:intent:${cellB.idempotencyKey}`, value: true, available: true },
+      ],
+    })
+    expect(activatedA.envelope?.envelopeId).not.toBe(activatedB.envelope?.envelopeId)
+
+    const obligationA = buildObligationRecurrenceDefinition({
+      obligationId: 'obl-work',
+      windowId: 'period-1',
+      createsWork: true,
+      subjectRef: 'site:alpha',
+    })
+    const obligationB = buildObligationRecurrenceDefinition({
+      obligationId: 'obl-work',
+      windowId: 'period-1',
+      createsWork: true,
+      subjectRef: 'site:beta',
+    })
+    expect(buildActivationIdentity(obligationA)).not.toBe(buildActivationIdentity(obligationB))
   })
 
   it('obligation producer activates once for work-required periods and skips action-only', () => {

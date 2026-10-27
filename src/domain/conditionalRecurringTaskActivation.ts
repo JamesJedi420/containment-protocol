@@ -486,13 +486,18 @@ export function buildActivationIdentity(
   definition: RecurrenceDefinition,
   activationGeneration = 0
 ): string {
+  const producerRefs = [
+    ...(definition.subjectRef !== undefined ? ['subject', definition.subjectRef] : []),
+    ...(definition.requirementId !== undefined ? ['requirement', definition.requirementId] : []),
+    ...(definition.obligationId !== undefined ? ['obligation', definition.obligationId] : []),
+  ]
   return JSON.stringify([
     'spe-3041',
     definition.producerId,
     definition.templateId,
     definition.windowId,
     definition.taskKind,
-    definition.subjectRef ?? null,
+    ...producerRefs,
     activationGeneration,
   ])
 }
@@ -507,8 +512,7 @@ function markersWithCompletion(
     ...(markers.lastActivatedWeek !== undefined
       ? { lastActivatedWeek: markers.lastActivatedWeek }
       : {}),
-    lastCompletedWeek:
-      markers.lastCompletedWeek ?? markers.lastActivatedWeek ?? campaignWeek,
+    lastCompletedWeek: markers.lastCompletedWeek ?? markers.lastActivatedWeek ?? campaignWeek,
     // activeEnvelopeId cleared — prior instance is complete.
   })
 }
@@ -624,11 +628,14 @@ export function evaluateConditionalRecurringActivation(
     if (typeof source.available !== 'boolean') {
       return rejected(markers, ['malformed_source_entry'])
     }
-    sourceByRef.set(source.sourceRef.trim(), Object.freeze({
-      sourceRef: source.sourceRef.trim(),
-      value: source.value,
-      available: source.available,
-    }))
+    sourceByRef.set(
+      source.sourceRef.trim(),
+      Object.freeze({
+        sourceRef: source.sourceRef.trim(),
+        value: source.value,
+        available: source.available,
+      })
+    )
   }
 
   const diagnostics = definition.conditionGroup.conditions.map((c) =>
@@ -648,9 +655,7 @@ export function evaluateConditionalRecurringActivation(
 
   const priorCompleted = input.priorInstanceCompleted === true
   // Apply completion to markers even when recurrence later blocks (e.g. cooldown).
-  const effectiveMarkers = priorCompleted
-    ? markersWithCompletion(markers, campaignWeek)
-    : markers
+  const effectiveMarkers = priorCompleted ? markersWithCompletion(markers, campaignWeek) : markers
 
   const recurrence = recurrenceAllowsActivation(
     definition,
@@ -699,9 +704,7 @@ export function evaluateConditionalRecurringActivation(
     campaignWeek,
     ...(definition.subjectRef !== undefined ? { subjectRef: definition.subjectRef } : {}),
     ...(definition.obligationId !== undefined ? { obligationId: definition.obligationId } : {}),
-    ...(definition.requirementId !== undefined
-      ? { requirementId: definition.requirementId }
-      : {}),
+    ...(definition.requirementId !== undefined ? { requirementId: definition.requirementId } : {}),
     reasonCodes: Object.freeze(['activated', recurrence.reasonCode]),
   })
 

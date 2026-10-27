@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3471](https://linear.app/spectranoir/issue/SPE-3471)                                      |
 | **Parent**        | [SPE-1090](https://linear.app/spectranoir/issue/SPE-1090) — Backlog                             |
 | **Branch**        | `jamesdyedbq/spe-3471-information-source-access-projection-and-handoff-contract`               |

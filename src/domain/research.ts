@@ -104,6 +104,7 @@ export interface AdvanceResearchProgressWithThroughputInput {
   readonly definition: ResearchProjectDefinition
   readonly capability: ResearchCapabilityPacket
   readonly executionRuntime?: ResearchExecutionRuntime | null
+  readonly runtimeConditionsSatisfied?: Readonly<Record<string, boolean>>
 }
 
 export interface AdvanceResearchProgressWithThroughputResult {
@@ -146,6 +147,59 @@ export function advanceResearchProgressWithThroughput(
     }
   }
 
+  if (definition.projectId !== projectId) {
+    const emptyTick: ResearchExecutionTickResult = {
+      outcome: 'rejected_malformed',
+      progressDelta: 0,
+      reasonCodes: ['definition_project_mismatch'],
+      explanationSummary: 'Definition projectId does not match advance projectId.',
+      updatedRuntime: input.executionRuntime ?? null,
+      milestoneOutputs: [],
+      throughput: {
+        progressDelta: 0,
+        outcome: 'rejected_malformed',
+        reasonCodes: ['definition_project_mismatch'],
+        effectiveCapability: 0,
+        baseThroughput: 0,
+        throughputMultiplier: 0,
+        explanationSummary: 'Definition projectId does not match advance projectId.',
+      },
+    }
+    return {
+      state,
+      tick: emptyTick,
+      executionRuntime: input.executionRuntime ?? null,
+    }
+  }
+
+  if (
+    input.executionRuntime &&
+    input.executionRuntime.projectId !== projectId
+  ) {
+    const emptyTick: ResearchExecutionTickResult = {
+      outcome: 'rejected_malformed',
+      progressDelta: 0,
+      reasonCodes: ['runtime_project_mismatch'],
+      explanationSummary: 'Execution runtime projectId does not match advance projectId.',
+      updatedRuntime: input.executionRuntime,
+      milestoneOutputs: [],
+      throughput: {
+        progressDelta: 0,
+        outcome: 'rejected_malformed',
+        reasonCodes: ['runtime_project_mismatch'],
+        effectiveCapability: 0,
+        baseThroughput: 0,
+        throughputMultiplier: 0,
+        explanationSummary: 'Execution runtime projectId does not match advance projectId.',
+      },
+    }
+    return {
+      state,
+      tick: emptyTick,
+      executionRuntime: input.executionRuntime,
+    }
+  }
+
   const entry = classifyResearchExecutionEntry({
     definition,
     capability,
@@ -155,16 +209,30 @@ export function advanceResearchProgressWithThroughput(
   if (entry.kind === 'trivial_information') {
     const throughputOnly = applyResearchExecutionTick({
       definition,
-      runtime: createEmptyResearchExecutionRuntime(projectId),
+      runtime: createEmptyResearchExecutionRuntime(projectId, definition),
       capability,
+      runtimeConditionsSatisfied: input.runtimeConditionsSatisfied,
     })
+    const completed = throughputOnly.outcome === 'completed'
     return {
       state: {
         ...state,
         projects: {
           ...state.projects,
-          [projectId]: { ...project, lastUpdatedWeek: week },
+          [projectId]: {
+            ...project,
+            lastUpdatedWeek: week,
+            ...(completed
+              ? { status: 'completed' as const, completedWeek: week }
+              : {}),
+          },
         },
+        activeProjectIds: completed
+          ? state.activeProjectIds.filter((id) => id !== projectId)
+          : state.activeProjectIds,
+        completedProjectIds: completed
+          ? [...state.completedProjectIds, projectId]
+          : state.completedProjectIds,
       },
       tick: { ...throughputOnly, updatedRuntime: null },
       executionRuntime: null,
@@ -179,6 +247,7 @@ export function advanceResearchProgressWithThroughput(
     definition,
     runtime,
     capability,
+    runtimeConditionsSatisfied: input.runtimeConditionsSatisfied,
   })
 
   const nextStatus =

@@ -161,16 +161,13 @@ function meanDomainScores(
       : Object.keys(domainScores)
   if (ids.length === 0) return 0
   let sum = 0
-  let count = 0
   for (const id of ids) {
     const score = domainScores[id]
-    if (typeof score === 'number' && Number.isFinite(score)) {
-      sum += clamp01(score)
-      count += 1
-    }
+    // Missing required domains count as 0 (fail closed), not omitted from the mean.
+    sum +=
+      typeof score === 'number' && Number.isFinite(score) ? clamp01(score) : 0
   }
-  if (count === 0) return 0
-  return round4(sum / count)
+  return round4(sum / ids.length)
 }
 
 function validateCapabilityPacket(
@@ -357,6 +354,9 @@ export function parseResearchExecutionRuntime(
   if (record.commitmentId !== null && typeof record.commitmentId !== 'string') return null
   if (typeof record.interrupted !== 'boolean') return null
   if (!Array.isArray(record.lastReasonCodes)) return null
+  for (const code of record.lastReasonCodes) {
+    if (typeof code !== 'string' || code.trim() === '') return null
+  }
 
   return freezeRuntime({
     schemaVersion: RESEARCH_EXECUTION_RUNTIME_SCHEMA_VERSION,
@@ -553,17 +553,17 @@ function milestoneEligible(
 
   const requiredSources = milestone.eligibility.requiredSourceIds ?? []
   if (requiredSources.length > 0) {
-    let requiredSpend = milestone.eligibility.minAnalyticalSpend
-    if (requiredSpend === undefined) {
-      requiredSpend = 0
-      for (const sourceId of requiredSources) {
-        const authored = definition.sources.find((s) => s.sourceId === sourceId)
-        requiredSpend += authored?.analysisCost ?? authored?.analyticalCapacity ?? 1
+    if (milestone.eligibility.minAnalyticalSpend !== undefined) {
+      if (runtime.analyticalSpend + 1e-6 < milestone.eligibility.minAnalyticalSpend) {
+        return false
       }
     }
-    if (runtime.analyticalSpend + 1e-6 < requiredSpend) return false
     for (const sourceId of requiredSources) {
-      if (sourceYieldConsumed(definition, runtime, sourceId) <= 0) return false
+      const authored = definition.sources.find((s) => s.sourceId === sourceId)
+      const needed = authored?.analysisCost ?? Math.min(1, authored?.analyticalCapacity ?? 1)
+      if (sourceYieldConsumed(definition, runtime, sourceId) + 1e-6 < needed) {
+        return false
+      }
     }
   }
 
@@ -580,7 +580,13 @@ function mandatoryFindingsComplete(
       firedFindings.add(milestone.findingId)
     }
   }
-  return definition.closureRequirement.mandatoryFindingIds.every((id) => firedFindings.has(id))
+  const mandatoryIds = new Set(definition.closureRequirement.mandatoryFindingIds)
+  for (const milestone of definition.milestones) {
+    if (milestone.findingKind === 'mandatory') {
+      mandatoryIds.add(milestone.findingId)
+    }
+  }
+  return [...mandatoryIds].every((id) => firedFindings.has(id))
 }
 
 function consumeSourceYield(
@@ -610,7 +616,7 @@ function emitMilestoneOutputKind(kind: MilestoneOutputKind): void {
       return
     default: {
       const _exhaustive: never = kind
-      void _exhaustive
+      throw new Error(`Unhandled milestone output kind: ${String(_exhaustive)}`)
     }
   }
 }
@@ -656,15 +662,54 @@ export function applyResearchExecutionTick(
     })
   }
 
-  const spendIncrement = round4(Math.max(0.01, throughput.progressDelta))
   const activeSourceIds =
     capability.sourceInputRefs.length > 0
       ? capability.sourceInputRefs.map((ref) => ref.sourceId)
       : definition.sources.map((s) => s.sourceId)
 
+  const remainingYield = activeSourceIds.reduce(
+    (sum, id) => sum + (runtime.sourceYieldRemaining[id] ?? 0),
+    0,
+  )
+  if (activeSourceIds.length > 0 && remainingYield <= 1e-9) {
+    return Object.freeze({
+      outcome: 'blocked' as const,
+      progressDelta: 0,
+      reasonCodes: sortedUnique(['source_yield_exhausted', ...throughput.reasonCodes]),
+      explanationSummary: 'Project-specific source analytical yield is exhausted.',
+      updatedRuntime: freezeRuntime({
+        ...runtime,
+        lastReasonCodes: sortedUnique(['source_yield_exhausted', ...throughput.reasonCodes]),
+      }),
+      milestoneOutputs: [],
+      throughput,
+    })
+  }
+
+  const spendIncrement = round4(
+    Math.min(
+      throughput.progressDelta,
+      remainingYield > 0 ? remainingYield : throughput.progressDelta,
+    ),
+  )
+  if (spendIncrement <= 0) {
+    return Object.freeze({
+      outcome: 'blocked' as const,
+      progressDelta: 0,
+      reasonCodes: sortedUnique(['zero_progress_delta', ...throughput.reasonCodes]),
+      explanationSummary: 'Throughput produced no spendable progress this tick.',
+      updatedRuntime: freezeRuntime({
+        ...runtime,
+        lastReasonCodes: sortedUnique(['zero_progress_delta', ...throughput.reasonCodes]),
+      }),
+      milestoneOutputs: [],
+      throughput,
+    })
+  }
+
   let nextRuntime = freezeRuntime({
     ...runtime,
-    progressUnits: round4(runtime.progressUnits + throughput.progressDelta),
+    progressUnits: round4(runtime.progressUnits + spendIncrement),
     analyticalSpend: round4(runtime.analyticalSpend + spendIncrement),
     sourceYieldRemaining: consumeSourceYield(runtime, spendIncrement, activeSourceIds),
     commitmentId: capability.staffTimeCommitmentId ?? runtime.commitmentId,

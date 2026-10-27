@@ -132,6 +132,12 @@ describe('equipment-grade recovery contract', () => {
       'field_plate',
       'containment_staff',
       'hazmat_suit',
+      'fixture_wearable_mid_torso_vest',
+      'fixture_wearable_mid_torso_overlay',
+      'fixture_wearable_mid_greaves',
+      'fixture_wearable_under_torso',
+      'fixture_wearable_under_mid_torso_suit',
+      'fixture_wearable_shell_helm',
     ])
     for (const itemId of technologicalProfileIds) {
       expect(getEquipmentDeconstructionProfile(itemId)).toEqual({

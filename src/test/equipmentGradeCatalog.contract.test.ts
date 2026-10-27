@@ -39,6 +39,12 @@ const EXPECTED_GRADE_IDS = {
   encrypted_field_tablet: 'grade_2',
   environmental_sampler: 'grade_2',
   field_plate: 'grade_1',
+  fixture_wearable_mid_greaves: 'grade_1',
+  fixture_wearable_mid_torso_overlay: 'grade_1',
+  fixture_wearable_mid_torso_vest: 'grade_1',
+  fixture_wearable_shell_helm: 'grade_1',
+  fixture_wearable_under_mid_torso_suit: 'grade_1',
+  fixture_wearable_under_torso: 'grade_1',
   anomaly_scanner: 'grade_2',
   hazmat_suit: 'grade_2',
   occult_detection_array: 'grade_3',
@@ -82,7 +88,7 @@ describe('equipment catalog canonical-grade migration', () => {
     )
 
     expect(assignments).toEqual(EXPECTED_GRADE_IDS)
-    expect(definitions).toHaveLength(23)
+    expect(definitions).toHaveLength(29)
     for (const definition of definitions) {
       expect(validateEquipmentGradeCatalogProfile(definition.gradeProfile)).toMatchObject({
         valid: true,
@@ -330,10 +336,10 @@ describe('equipment catalog canonical-grade migration', () => {
     expect(second).toEqual(first)
     expect(reversed).toEqual(first)
     expect(first).toMatchObject({
-      totalDefinitions: 23,
-      byState: { graded: 23 },
-      byGrade: { grade_1: 9, grade_2: 11, grade_3: 3, grade_4: 0, grade_5: 0 },
-      totalsByOrigin: { ordinary: 6, magical: 4, technological: 9, hybrid: 4 },
+      totalDefinitions: 29,
+      byState: { graded: 29 },
+      byGrade: { grade_1: 15, grade_2: 11, grade_3: 3, grade_4: 0, grade_5: 0 },
+      totalsByOrigin: { ordinary: 12, magical: 4, technological: 9, hybrid: 4 },
       totalsByFunctionalClass: {
         combat: 1,
         communications: 4,
@@ -341,15 +347,15 @@ describe('equipment catalog canonical-grade migration', () => {
         detection: 8,
         diplomacy: 1,
         medical: 3,
-        protection: 2,
+        protection: 8,
       },
       totalsByCatalogSegment: {
         craftable: 7,
-        direct_procurement: 14,
+        direct_procurement: 20,
         licensed_procurement: 2,
       },
       byOrigin: {
-        ordinary: { grade_1: 5, grade_2: 1 },
+        ordinary: { grade_1: 11, grade_2: 1 },
         magical: { grade_1: 2, grade_2: 2 },
         technological: { grade_1: 1, grade_2: 6, grade_3: 2 },
         hybrid: { grade_1: 1, grade_2: 2, grade_3: 1 },
@@ -360,7 +366,7 @@ describe('equipment catalog canonical-grade migration', () => {
       },
       byCatalogSegment: {
         craftable: { grade_1: 4, grade_2: 3, grade_3: 0 },
-        direct_procurement: { grade_1: 4, grade_2: 7, grade_3: 3 },
+        direct_procurement: { grade_1: 10, grade_2: 7, grade_3: 3 },
         licensed_procurement: { grade_1: 1, grade_2: 1, grade_3: 0 },
       },
     })

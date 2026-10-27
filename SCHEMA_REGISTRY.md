@@ -30,6 +30,10 @@ SPE-2549 upgrade normalization retains precedence: coherent timing owns upgradin
 
 Pure domain module `src/domain/crossSystemTransformationRegistry.ts` defines `SimulationObjectRef`, `TransformationMorphism` (`identity` | `compose` | `map` | `translate`), and append-only `CompositionTrace`. Slice 1 is schema + `validateMorphismChain` / `composeMorphisms` / `buildCompositionTrace` plus the evidence→interpretation→policy fixture chain. Derived traces are not persisted on `GameState`. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Environmental operational-context composition (SPE-3390)
+
+Pure domain module `src/domain/environmentalOperationalContext.ts` composes caller-owned environmental dimension packets (terrain/climate/ecology/feature/hazard owners) into a derived operational context with scope precedence and a SPE-2273 translation trace. Derived context is not persisted on `GameState`. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Facility phased decommissioning coordinator (SPE-3381)
 
 Optional `FacilityInstance.decommissioning` is a version-1 coordinator packet separate from `lifecycleHistory`. Valid packets store `phase` (`intake_stopped` | `drawdown` | `closed`), matching `facilityId`, and positive integer campaign `week`. SPE-3380 owns status transitions (`begin_decommission_drawdown`: active→locked; `finalize_closure`: locked→inactive after drawdown provenance). This field does not store custody/transfer/staffing/dependency source authorities; callers pass obligation attestations at final-closure assessment time.

@@ -481,18 +481,9 @@ export function advanceCultivationGrowth(input: {
   if (laborCode) reasons.push(laborCode)
 
   if (
-    viabilityResult.viability === 'nonviable' ||
-    labor.gateOutcome === 'stalled'
+    input.instance.lifecycleState === 'mature' ||
+    input.instance.progress >= CULTIVATION_PROGRESS_MAX
   ) {
-    return freezeInstance({
-      ...input.instance,
-      lifecycleState: 'blocked',
-      viability: viabilityResult.viability === 'nonviable' ? 'nonviable' : 'degraded',
-      reasonCodes: Object.freeze(reasons),
-    })
-  }
-
-  if (input.instance.lifecycleState === 'mature') {
     const elapsed =
       (Number.isFinite(input.elapsedUnits) && input.elapsedUnits > 0
         ? Math.floor(input.elapsedUnits)
@@ -515,6 +506,18 @@ export function advanceCultivationGrowth(input: {
       lifecycleState: 'mature',
       viability: viabilityResult.viability,
       elapsedSinceMaturity: elapsed,
+      reasonCodes: Object.freeze(reasons),
+    })
+  }
+
+  if (
+    viabilityResult.viability === 'nonviable' ||
+    labor.gateOutcome === 'stalled'
+  ) {
+    return freezeInstance({
+      ...input.instance,
+      lifecycleState: 'blocked',
+      viability: viabilityResult.viability === 'nonviable' ? 'nonviable' : 'degraded',
       reasonCodes: Object.freeze(reasons),
     })
   }

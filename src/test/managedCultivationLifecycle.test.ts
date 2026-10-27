@@ -185,6 +185,65 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
     expect(handoff.propagation?.propaguleMaterialId).toBe('material:herb_seed')
   })
 
+  it('keeps mature plots harvestable through blocked inputs without resetting lifespan', () => {
+    const profile = getCultivationProfile('cultivation:fast-herb')!
+    let harvestable = createCultivationInstance({
+      instanceId: 'plot:harvestable',
+      profileId: profile.profileId,
+      environment: CLEAN_SOIL,
+      operators: [FIT_REFINER],
+    })!
+    harvestable = advanceCultivationGrowth({
+      instance: harvestable,
+      environment: CLEAN_SOIL,
+      elapsedUnits: 2,
+      operators: [FIT_REFINER],
+    })!
+    const stalledMature = advanceCultivationGrowth({
+      instance: harvestable,
+      environment: CLEAN_SOIL,
+      elapsedUnits: 1,
+      operators: [FIT_WARD],
+    })!
+    expect(stalledMature.lifecycleState).toBe('mature')
+    expect(stalledMature.reasonCodes).toContain('labor_stalled')
+    expect(harvestCultivation({ instance: stalledMature })?.lifecycleState).toBe('harvested')
+
+    const fern = getCultivationProfile('cultivation:ornamental-fern')!
+    let ornamental = createCultivationInstance({
+      instanceId: 'plot:ornamental-pulse',
+      profileId: fern.profileId,
+      environment: CLEAN_SOIL,
+      operators: [FIT_WARD],
+    })!
+    ornamental = advanceCultivationGrowth({
+      instance: ornamental,
+      environment: CLEAN_SOIL,
+      elapsedUnits: 10,
+      operators: [FIT_WARD],
+    })!
+    const stalledOrnamental = advanceCultivationGrowth({
+      instance: ornamental,
+      environment: CLEAN_SOIL,
+      elapsedUnits: 3,
+      operators: [FIT_REFINER],
+    })!
+    expect(stalledOrnamental.lifecycleState).toBe('mature')
+    expect(stalledOrnamental.elapsedSinceMaturity).toBe(3)
+
+    const recoveredOrnamental = advanceCultivationGrowth({
+      instance: {
+        ...stalledOrnamental,
+        lifecycleState: 'blocked',
+      },
+      environment: CLEAN_SOIL,
+      elapsedUnits: 4,
+      operators: [FIT_WARD],
+    })!
+    expect(recoveredOrnamental.lifecycleState).toBe('mature')
+    expect(recoveredOrnamental.elapsedSinceMaturity).toBe(7)
+  })
+
   it('projects ornamental contribution into SPE-1060 and expires lifespan', () => {
     const fern = getCultivationProfile('cultivation:ornamental-fern')!
     let instance = createCultivationInstance({

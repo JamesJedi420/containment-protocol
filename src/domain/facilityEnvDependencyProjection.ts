@@ -112,7 +112,7 @@ function availabilityRank(value: FacilityDependencyAvailability): number {
       return 2
     default: {
       const exhaustive: never = value
-      return exhaustive
+      throw new Error(`unexpected facility dependency availability: ${String(exhaustive)}`)
     }
   }
 }

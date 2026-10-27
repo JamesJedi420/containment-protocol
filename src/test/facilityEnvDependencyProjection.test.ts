@@ -189,6 +189,17 @@ describe('SPE-3415 facility env dependency projection', () => {
       }),
     ])
     expect(conflict.ok).toBe(false)
+    // Conflicting SPE-3390 resolution yields no context object — projectors must
+    // reject non-context inputs rather than invent ready support.
+    expect(
+      projectEnvironmentalContextToFacilityDependencyPacket(
+        conflict.ok ? conflict.context : ({ components: [], compositionTrace: null } as never),
+        graph,
+        bindings,
+        readyBaseline(),
+        true
+      )
+    ).toEqual({ ok: false, rejection: 'invalid_context' })
 
     const withoutHazard = resolveEnvironmentalOperationalContext([
       packet({

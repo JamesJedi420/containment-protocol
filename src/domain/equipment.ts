@@ -1958,9 +1958,30 @@ export function validateAgentLoadoutAssignment(
     }
   }
 
+  // Same-agent move: when no spare stock exists, clear other slots already holding
+  // this definition so occupancy does not treat the transfer as dual wear.
+  let wearableProjectionSlots = projectedSlots
+  const sameAgentSourceSlots = EQUIPMENT_SLOT_KINDS.filter(
+    (sourceSlot) =>
+      sourceSlot !== slot && getEquipmentSlotItemId(agent.equipmentSlots, sourceSlot) === itemId
+  )
+  if (sameAgentSourceSlots.length > 0) {
+    const stockForMove = options?.state
+      ? Math.max(0, Math.trunc(options.state.inventory[itemId] ?? 0))
+      : 0
+    if (stockForMove === 0) {
+      wearableProjectionSlots = { ...projectedSlots }
+      for (const sourceSlot of sameAgentSourceSlots) {
+        for (const alias of EQUIPMENT_SLOT_ALIASES[sourceSlot]) {
+          delete wearableProjectionSlots[alias]
+        }
+      }
+    }
+  }
+
   const wearableWorn: WearableOccupiedItem[] = []
   for (const projectedSlot of EQUIPMENT_SLOT_KINDS) {
-    const projectedItemId = getEquipmentSlotItemId(projectedSlots, projectedSlot)
+    const projectedItemId = getEquipmentSlotItemId(wearableProjectionSlots, projectedSlot)
     if (!projectedItemId) {
       continue
     }

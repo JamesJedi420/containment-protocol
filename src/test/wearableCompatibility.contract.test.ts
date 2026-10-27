@@ -349,15 +349,68 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
   })
 
   it('rejects two slotted copies of the same wearable occupancy definition', () => {
-    const agent = hunterWithSlots({
-      utility1: 'fixture_wearable_mid_torso_overlay',
-    })
+    const state = createStartingState()
+    const hunter = Object.values(state.agents).find((entry) => entry.role === 'hunter')
+    if (!hunter) {
+      throw new Error('expected hunter')
+    }
+    const agent = {
+      ...hunter,
+      equipmentSlots: {
+        utility1: 'fixture_wearable_mid_torso_overlay',
+      },
+    }
+    const withStock = {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        fixture_wearable_mid_torso_overlay: 1,
+      },
+      agents: {
+        ...state.agents,
+        [hunter.id]: agent,
+      },
+    }
     const result = validateAgentLoadoutAssignment(
       agent,
       'utility2',
-      'fixture_wearable_mid_torso_overlay'
+      'fixture_wearable_mid_torso_overlay',
+      { state: withStock }
     )
     expect(result.valid).toBe(false)
     expect(result.blockingIssues).toContain('wearable-layer-region-overlap')
+  })
+
+  it('allows same-agent transfer of one wearable copy when stock is empty', () => {
+    const state = createStartingState()
+    const hunter = Object.values(state.agents).find((entry) => entry.role === 'hunter')
+    if (!hunter) {
+      throw new Error('expected hunter')
+    }
+    const agent = {
+      ...hunter,
+      equipmentSlots: {
+        utility1: 'fixture_wearable_mid_torso_overlay',
+      },
+    }
+    const noStock = {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        fixture_wearable_mid_torso_overlay: 0,
+      },
+      agents: {
+        ...state.agents,
+        [hunter.id]: agent,
+      },
+    }
+    const result = validateAgentLoadoutAssignment(
+      agent,
+      'utility2',
+      'fixture_wearable_mid_torso_overlay',
+      { state: noStock }
+    )
+    expect(result.blockingIssues).not.toContain('wearable-layer-region-overlap')
+    expect(result.wearableConflicts).toEqual([])
   })
 })

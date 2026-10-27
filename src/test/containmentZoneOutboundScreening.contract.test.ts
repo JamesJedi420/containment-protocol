@@ -2,15 +2,36 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import {
-  authoredContainmentEgressScreenPolicy,
   CONTAINMENT_EGRESS_BOUNDARY_ZONE_ID,
   CONTAINMENT_EGRESS_SCREEN_CAPABILITY,
   openOutboundScreenHold,
   parseFacilityOutboundScreenHolds,
+  projectOutboundScreenPolicy,
   RESTRICTED_ASSET_CARRIED_CLASS,
   resolveOutboundScreening,
   resolveOutboundSecondaryScreen,
+  type OutboundScreenPolicy,
 } from '../domain/containmentZoneOutboundScreening'
+
+function authoredContainmentEgressScreenPolicy(
+  overrides?: Partial<OutboundScreenPolicy>
+): OutboundScreenPolicy {
+  const policy = projectOutboundScreenPolicy({
+    policyId: overrides?.policyId ?? 'policy:containment-egress-screen',
+    boundaryZoneId: overrides?.boundaryZoneId ?? CONTAINMENT_EGRESS_BOUNDARY_ZONE_ID,
+    requiredScreeningCapability:
+      overrides?.requiredScreeningCapability ?? CONTAINMENT_EGRESS_SCREEN_CAPABILITY,
+    holdCarriedClasses: overrides?.holdCarriedClasses ?? ['contraband_sample'],
+    secondaryScreenCarriedClasses:
+      overrides?.secondaryScreenCarriedClasses ?? ['controlled_tool'],
+    quarantineCarriedClasses: overrides?.quarantineCarriedClasses ?? ['cursed_residue'],
+    custodyTransferCarriedClasses:
+      overrides?.custodyTransferCarriedClasses ?? ['custody_parcel'],
+    restrictedAssetClass: overrides?.restrictedAssetClass ?? RESTRICTED_ASSET_CARRIED_CLASS,
+  })
+  if (!policy) throw new Error('expected authored egress policy')
+  return policy
+}
 
 const POLICY = authoredContainmentEgressScreenPolicy()
 
@@ -110,6 +131,22 @@ describe('SPE-3189 containment-zone outbound screening', () => {
     expect(clearedAgain.ok).toBe(true)
     if (!clearedAgain.ok) return
     expect(clearedAgain.hold).toEqual(cleared.hold)
+
+    const activeHold = openOutboundScreenHold(createStartingState(), {
+      holdId: 'hold:active-1',
+      idempotencyKey: 'idem:active-1',
+      screening: baseRequest({ carriedClasses: ['contraband_sample'] }),
+    })
+    expect(activeHold.ok).toBe(true)
+    if (!activeHold.ok) return
+    expect(activeHold.hold.state).toBe('active')
+    const cannotClearActive = resolveOutboundSecondaryScreen(activeHold.state, {
+      holdId: 'hold:active-1',
+      outcome: 'clear',
+    })
+    expect(cannotClearActive.ok).toBe(false)
+    if (cannotClearActive.ok) return
+    expect(cannotClearActive.code).toBe('illegal_transition')
   })
 
   it('quarantine and custody-transfer decisions do not claim inventory mutation', () => {

@@ -524,6 +524,11 @@ export function openOutboundScreenHold(
   if (!isNonEmptyString(input.holdId) || !isNonEmptyString(input.idempotencyKey)) {
     return { ok: false, state, code: 'invalid_input' }
   }
+  const holdId = input.holdId.trim()
+  const idempotencyKey = input.idempotencyKey.trim()
+  if (!isNonEmptyString(holdId) || !isNonEmptyString(idempotencyKey)) {
+    return { ok: false, state, code: 'invalid_input' }
+  }
   const screening = resolveOutboundScreening(input.screening)
   if (screening === undefined) return { ok: false, state, code: 'invalid_input' }
   if (
@@ -538,19 +543,17 @@ export function openOutboundScreenHold(
   }
 
   const holds = { ...readHolds(state) }
-  const existingByKey = Object.values(holds).find(
-    (hold) => hold.idempotencyKey === input.idempotencyKey
-  )
+  const existingByKey = Object.values(holds).find((hold) => hold.idempotencyKey === idempotencyKey)
   if (existingByKey) {
     return { ok: true, state, hold: existingByKey }
   }
-  if (holds[input.holdId]) {
+  if (holds[holdId]) {
     return { ok: false, state, code: 'illegal_transition' }
   }
 
   const hold = freezeHold({
-    holdId: input.holdId.trim(),
-    idempotencyKey: input.idempotencyKey.trim(),
+    holdId,
+    idempotencyKey,
     state: initialHoldState(screening.decision),
     boundaryZoneId: screening.boundaryZoneId,
     actorId: screening.actorId,
@@ -576,9 +579,13 @@ export function resolveOutboundSecondaryScreen(
   if (input.outcome !== 'clear' && input.outcome !== 'escalate') {
     return { ok: false, state, code: 'invalid_input' }
   }
+  const holdId = input.holdId.trim()
+  if (!isNonEmptyString(holdId)) {
+    return { ok: false, state, code: 'invalid_input' }
+  }
 
   const holds = { ...readHolds(state) }
-  const current = holds[input.holdId]
+  const current = holds[holdId]
   if (!current) return { ok: false, state, code: 'not_found' }
 
   if (input.outcome === 'clear' && current.state === 'cleared') {
@@ -587,7 +594,8 @@ export function resolveOutboundSecondaryScreen(
   if (input.outcome === 'escalate' && current.state === 'escalated') {
     return { ok: true, state, hold: current }
   }
-  if (current.state !== 'secondary_pending' && current.state !== 'active') {
+  // Only secondary_screen opens secondary_pending; do not clear/escalate unrelated active holds.
+  if (current.state !== 'secondary_pending') {
     return { ok: false, state, code: 'illegal_transition' }
   }
 
@@ -608,24 +616,4 @@ export function resolveOutboundSecondaryScreen(
         })
   holds[hold.holdId] = hold
   return { ok: true, state: writeHolds(state, Object.freeze(holds)), hold }
-}
-
-/** Representative acceptance fixture for a containment egress boundary. */
-export function authoredContainmentEgressScreenPolicy(
-  overrides?: Partial<OutboundScreenPolicy>
-): OutboundScreenPolicy {
-  return Object.freeze({
-    policyId: overrides?.policyId ?? 'policy:containment-egress-screen',
-    boundaryZoneId: overrides?.boundaryZoneId ?? CONTAINMENT_EGRESS_BOUNDARY_ZONE_ID,
-    requiredScreeningCapability:
-      overrides?.requiredScreeningCapability ?? CONTAINMENT_EGRESS_SCREEN_CAPABILITY,
-    holdCarriedClasses: overrides?.holdCarriedClasses ?? Object.freeze(['contraband_sample']),
-    secondaryScreenCarriedClasses:
-      overrides?.secondaryScreenCarriedClasses ?? Object.freeze(['controlled_tool']),
-    quarantineCarriedClasses:
-      overrides?.quarantineCarriedClasses ?? Object.freeze(['cursed_residue']),
-    custodyTransferCarriedClasses:
-      overrides?.custodyTransferCarriedClasses ?? Object.freeze(['custody_parcel']),
-    restrictedAssetClass: overrides?.restrictedAssetClass ?? RESTRICTED_ASSET_CARRIED_CLASS,
-  })
 }

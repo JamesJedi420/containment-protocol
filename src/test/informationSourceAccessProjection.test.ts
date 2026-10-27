@@ -175,6 +175,69 @@ describe('SPE-3471 information-source access projection', () => {
         })
       )
     ).toEqual({ ok: false, rejection: 'detect_implies_mitigated', detail: 'r1' })
+    expect(
+      projectInformationSourceAccess(
+        baseSnapshot({
+          routes: [
+            {
+              routeId: 'r1',
+              mode: 'digital',
+              state: 'open',
+              availability: 'usable',
+              countermeasureMitigated: true,
+            },
+          ],
+        })
+      )
+    ).toEqual({ ok: false, rejection: 'detect_implies_mitigated', detail: 'r1' })
+  })
+
+  it('clears usable routes when the source is destroyed and excludes compromised routes', () => {
+    const destroyed = projectInformationSourceAccess(
+      baseSnapshot({
+        sourceDestroyed: true,
+      })
+    )
+    expect(destroyed.ok).toBe(true)
+    if (!destroyed.ok) return
+    expect(destroyed.handoff.overallAvailability).toBe('unavailable')
+    expect(destroyed.handoff.usableRouteIds).toEqual([])
+    expect(destroyed.handoff.alternateRouteIds).toEqual([])
+
+    const compromised = projectInformationSourceAccess(
+      baseSnapshot({
+        routes: [
+          {
+            routeId: 'r1',
+            mode: 'digital',
+            state: 'compromised',
+            availability: 'usable',
+          },
+        ],
+      })
+    )
+    expect(compromised.ok).toBe(true)
+    if (!compromised.ok) return
+    expect(compromised.handoff.usableRouteIds).toEqual([])
+    expect(compromised.handoff.overallAvailability).toBe('unavailable')
+  })
+
+  it('fails closed on blank reason codes', () => {
+    expect(
+      projectInformationSourceAccess(
+        baseSnapshot({
+          routes: [
+            {
+              routeId: 'r1',
+              mode: 'physical',
+              state: 'open',
+              availability: 'usable',
+              reasonCode: '   ',
+            },
+          ],
+        })
+      )
+    ).toEqual({ ok: false, rejection: 'malformed_input', detail: 'r1' })
   })
 
   it('recomposes deterministically after a producer mutation with SPE-2273 trace', () => {
@@ -254,8 +317,8 @@ describe('SPE-3471 information-source access projection', () => {
           {
             routeId: 'route:hidden',
             mode: 'anomalous',
-            state: 'open',
-            availability: 'usable',
+            state: 'revoked',
+            availability: 'unavailable',
             hiddenFromPlayer: true,
             countermeasureDetected: true,
             countermeasureMitigated: false,
@@ -263,7 +326,7 @@ describe('SPE-3471 information-source access projection', () => {
             reasonCode: 'secret_tunnel',
           },
           {
-            routeId: 'route:public',
+            routeId: 'route:h',
             mode: 'archive',
             state: 'open',
             availability: 'usable',
@@ -275,12 +338,18 @@ describe('SPE-3471 information-source access projection', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.handoff.authoritativeReasonCodes).toEqual(
-      expect.arrayContaining(['secret_tunnel', 'cm_detected:route:hidden', 'catalog_open'])
+      expect.arrayContaining([
+        'secret_tunnel',
+        'cm_detected:route:hidden',
+        'revoked:route:hidden',
+        'catalog_open',
+      ])
     )
     expect(result.handoff.playerFacingReasonCodes).toContain('catalog_open')
     expect(result.handoff.playerFacingReasonCodes).toContain('scan_complete')
     expect(result.handoff.playerFacingReasonCodes).not.toContain('secret_tunnel')
     expect(result.handoff.playerFacingReasonCodes).not.toContain('cm_detected:route:hidden')
+    expect(result.handoff.playerFacingReasonCodes).not.toContain('revoked:route:hidden')
     expect(result.handoff.playerFacingReasonCodes.join(',')).not.toMatch(/hidden-sensor/)
   })
 

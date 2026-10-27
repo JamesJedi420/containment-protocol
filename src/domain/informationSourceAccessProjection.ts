@@ -181,9 +181,41 @@ function bestAvailability(values: readonly AccessAvailability[]): AccessAvailabi
   return best
 }
 
-function routeIsUsable(route: ProducerAccessRoute): boolean {
-  if (route.state === 'revoked' || route.state === 'blocked') return false
-  return route.availability === 'usable' || route.availability === 'partial' || route.availability === 'conditional'
+function routeIsTerminal(state: RouteState): boolean {
+  return state === 'revoked' || state === 'blocked' || state === 'compromised'
+}
+
+function routeIsUsable(route: Pick<ProjectedAccessRoute, 'state' | 'availability'>): boolean {
+  if (routeIsTerminal(route.state)) return false
+  return (
+    route.availability === 'usable' ||
+    route.availability === 'partial' ||
+    route.availability === 'conditional'
+  )
+}
+
+function normalizeReasonCode(value: string | undefined, fallback: string): string | AccessProjectionRejection {
+  if (value === undefined) return fallback
+  if (!isNonEmptyString(value)) return 'malformed_input'
+  return value
+}
+
+function routeIdFromPrefixedCode(code: string, prefix: string): string | null {
+  if (!code.startsWith(prefix)) return null
+  return code.slice(prefix.length)
+}
+
+function owningRouteForReasonCode(
+  code: string,
+  projected: readonly ProjectedAccessRoute[]
+): ProjectedAccessRoute | undefined {
+  const revokedId = routeIdFromPrefixedCode(code, 'revoked:')
+  if (revokedId !== null) return projected.find((entry) => entry.routeId === revokedId)
+  const detectedId = routeIdFromPrefixedCode(code, 'cm_detected:')
+  if (detectedId !== null) return projected.find((entry) => entry.routeId === detectedId)
+  const mitigatedId = routeIdFromPrefixedCode(code, 'cm_mitigated:')
+  if (mitigatedId !== null) return projected.find((entry) => entry.routeId === mitigatedId)
+  return projected.find((entry) => entry.reasonCode !== undefined && entry.reasonCode === code)
 }
 
 function reject(
@@ -209,12 +241,11 @@ function validateRoute(route: ProducerAccessRoute): AccessProjectionRejection | 
   ) {
     return 'unknown_completeness'
   }
-  if (route.countermeasureDetected === true && route.countermeasureMitigated === true) {
-    // Detection must not auto-mitigate; producers may set both only when both are true facts.
-    // Allow both true when producer explicitly owns mitigation after detection — still distinct fields.
-  }
-  if (route.countermeasureDetected === false && route.countermeasureMitigated === true) {
+  if (route.countermeasureMitigated === true && route.countermeasureDetected !== true) {
     return 'detect_implies_mitigated'
+  }
+  if (route.reasonCode !== undefined && !isNonEmptyString(route.reasonCode)) {
+    return 'malformed_input'
   }
   if (route.accessBreadth !== undefined && typeof route.accessBreadth !== 'number') {
     return 'malformed_input'
@@ -259,7 +290,9 @@ function projectRoute(route: ProducerAccessRoute): ProjectedAccessRoute {
 
 function buildHandoffTrace(
   snapshot: ProducerAccessSnapshot,
-  accessPointId: string
+  accessPointId: string,
+  sourceReason: string,
+  routeReasons: ReadonlyMap<string, string>
 ): CompositionTrace {
   const morphisms: TransformationMorphism[] = [
     Object.freeze({
@@ -273,7 +306,7 @@ function buildHandoffTrace(
       provenance: Object.freeze({
         sourceFamily: snapshot.producerFamily,
         sourceRef: freezeRef(snapshot.sourceRef),
-        reasonCode: snapshot.mutationReasonCode ?? 'project_access_handoff',
+        reasonCode: sourceReason,
       }),
     }),
   ]
@@ -290,7 +323,7 @@ function buildHandoffTrace(
         provenance: Object.freeze({
           sourceFamily: snapshot.producerFamily,
           sourceRef: freezeRef(snapshot.sourceRef),
-          reasonCode: route.reasonCode ?? `route_${route.state}`,
+          reasonCode: routeReasons.get(route.routeId) ?? `route_${route.state}`,
         }),
       })
     )
@@ -321,25 +354,35 @@ export function projectInformationSourceAccess(
   ) {
     return reject('unknown_confidence')
   }
+  if (
+    snapshot.mutationReasonCode !== undefined &&
+    !isNonEmptyString(snapshot.mutationReasonCode)
+  ) {
+    return reject('malformed_input', 'mutationReasonCode')
+  }
 
   const seen = new Set<string>()
   const projected: ProjectedAccessRoute[] = []
+  const routeReasons = new Map<string, string>()
   for (const route of snapshot.routes) {
     const issue = validateRoute(route)
     if (issue) return reject(issue, route?.routeId)
     if (seen.has(route.routeId)) return reject('duplicate_route', route.routeId)
     seen.add(route.routeId)
+    const reason = normalizeReasonCode(route.reasonCode, `route_${route.state}`)
+    if (typeof reason !== 'string') return reject(reason, route.routeId)
+    routeReasons.set(route.routeId, reason)
     projected.push(projectRoute(route))
   }
 
   projected.sort((left, right) => compareCodeUnit(left.routeId, right.routeId))
 
   const sourceDestroyed = snapshot.sourceDestroyed === true
-  const liveRoutes = projected.filter(
-    (route) => route.state !== 'revoked' && route.state !== 'blocked'
-  )
+  const liveRoutes = projected.filter((route) => !routeIsTerminal(route.state))
   const usableRouteIds = Object.freeze(
-    liveRoutes.filter((route) => routeIsUsable(route)).map((route) => route.routeId)
+    sourceDestroyed
+      ? []
+      : liveRoutes.filter((route) => routeIsUsable(route)).map((route) => route.routeId)
   )
   const overallAvailability = sourceDestroyed
     ? 'unavailable'
@@ -350,7 +393,12 @@ export function projectInformationSourceAccess(
   )
 
   const accessPointId = `access:${snapshot.sourceRef.family}/${snapshot.sourceRef.id}`
-  const compositionTrace = buildHandoffTrace(snapshot, accessPointId)
+  const sourceReason = normalizeReasonCode(
+    snapshot.mutationReasonCode,
+    'project_access_handoff'
+  )
+  if (typeof sourceReason !== 'string') return reject(sourceReason, 'mutationReasonCode')
+  const compositionTrace = buildHandoffTrace(snapshot, accessPointId, sourceReason, routeReasons)
 
   const authoritativeReasonCodes: string[] = []
   if (snapshot.mutationReasonCode) authoritativeReasonCodes.push(snapshot.mutationReasonCode)
@@ -365,31 +413,25 @@ export function projectInformationSourceAccess(
     }
     if (route.constraintRefs) {
       for (const ref of route.constraintRefs) {
-        authoritativeReasonCodes.push(`constraint:${ref.family}/${ref.id}`)
+        authoritativeReasonCodes.push(`constraint:${route.routeId}:${ref.family}/${ref.id}`)
       }
     }
   }
 
   const playerFacingReasonCodes = Object.freeze(
     authoritativeReasonCodes.filter((code) => {
-      const route = projected.find(
-        (entry) =>
-          code.includes(entry.routeId) ||
-          (entry.reasonCode !== undefined && code === entry.reasonCode)
-      )
-      if (route?.hiddenFromPlayer) return false
-      if (code.startsWith('cm_detected:') || code.startsWith('cm_mitigated:')) {
-        const routeId = code.slice(code.indexOf(':') + 1)
-        const match = projected.find((entry) => entry.routeId === routeId)
-        if (match?.hiddenFromPlayer) return false
-      }
       if (code.startsWith('constraint:')) {
-        // Constraint refs may encode monitoring/hazards — omit from player face when any
-        // contributing route is hidden.
-        if (projected.some((entry) => entry.hiddenFromPlayer && entry.constraintRefs?.length)) {
-          return false
-        }
+        const ownedByHidden = projected.some(
+          (entry) =>
+            entry.hiddenFromPlayer &&
+            entry.constraintRefs?.some(
+              (ref) => code === `constraint:${entry.routeId}:${ref.family}/${ref.id}`
+            )
+        )
+        return !ownedByHidden
       }
+      const owner = owningRouteForReasonCode(code, projected)
+      if (owner?.hiddenFromPlayer) return false
       return true
     })
   )

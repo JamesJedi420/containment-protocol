@@ -96,12 +96,12 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
         coveredRegions: ['abdomen'],
       }).unknownRegions
     ).toEqual(['abdomen'])
-    expect(
-      validateWearableOccupancyAuthoring({
-        occupiedLayers: ['mid'],
-        coveredRegions: ['torso', 'torso'],
-      }).issues
-    ).toContain('duplicate-region')
+    const duplicateRegion = validateWearableOccupancyAuthoring({
+      occupiedLayers: ['mid'],
+      coveredRegions: ['torso', 'torso'],
+    })
+    expect(duplicateRegion.valid).toBe(false)
+    expect(duplicateRegion.issues).toContain('duplicate-region')
   })
 
   it('conflicts when layer sets and region sets both intersect', () => {
@@ -171,6 +171,29 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
     expect(result.conflicts[0]?.overlappingLayers).toEqual(['mid'])
   })
 
+  it('orders conflict item IDs and conflict lists by stable code-unit order', () => {
+    const result = resolveWearableCompatibility([
+      {
+        itemId: 'item_B',
+        occupancy: { occupiedLayers: ['mid'], coveredRegions: ['torso'] },
+      },
+      {
+        itemId: 'item-a',
+        occupancy: { occupiedLayers: ['mid'], coveredRegions: ['torso'] },
+      },
+      {
+        itemId: 'item_A',
+        occupancy: { occupiedLayers: ['mid'], coveredRegions: ['torso'] },
+      },
+    ])
+
+    expect(result.conflicts.map(formatWearableConflictDiagnostic)).toEqual([
+      'wearable-overlap:item-a+item_A:layers=mid:regions=torso',
+      'wearable-overlap:item-a+item_B:layers=mid:regions=torso',
+      'wearable-overlap:item_A+item_B:layers=mid:regions=torso',
+    ])
+  })
+
   it('formats stable accessible conflict diagnostics', () => {
     expect(
       formatWearableConflictDiagnostic({
@@ -209,6 +232,29 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
     expect(result.blockingIssues).toContain('wearable-layer-region-overlap')
     expect(result.wearableConflicts).toHaveLength(1)
     expect(result.conflicts[0]).toContain('wearable-overlap:')
+  })
+
+  it('rejects duplicate wearable definitions when two slots overlap physically', () => {
+    const agent = hunterWithSlots({
+      utility1: 'fixture_wearable_mid_torso_overlay',
+    })
+    const result = validateAgentLoadoutAssignment(
+      agent,
+      'utility2',
+      'fixture_wearable_mid_torso_overlay'
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.blockingIssues).toContain('wearable-layer-region-overlap')
+    expect(result.wearableConflicts).toEqual([
+      {
+        code: 'layer_region_overlap',
+        blockingItemId: 'fixture_wearable_mid_torso_overlay',
+        conflictingItemId: 'fixture_wearable_mid_torso_overlay',
+        overlappingLayers: ['mid'],
+        overlappingRegions: ['torso'],
+      },
+    ])
   })
 
   it('allows same-layer disjoint-region and same-region different-layer assignments', () => {

@@ -6,7 +6,7 @@ import {
 } from './facilityRegisterView'
 
 type FacilityRegisterPanelProps = {
-  register: FacilityRegisterView
+  readonly register: FacilityRegisterView
 }
 
 export function FacilityRegisterPanel({ register }: FacilityRegisterPanelProps) {
@@ -61,9 +61,9 @@ export function FacilityRegisterPanel({ register }: FacilityRegisterPanelProps) 
                 </li>
               </ul>
               {row.attentionReason ? (
-                <p className="mt-2 text-sm opacity-90" role="status">
+                <output className="mt-2 block text-sm opacity-90">
                   Needs attention: {row.attentionReason}
-                </p>
+                </output>
               ) : null}
             </li>
           ))}

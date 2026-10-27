@@ -69,7 +69,7 @@ function summarizeEffects(effects: FacilityEffect): string | null {
   }
   const extras = Object.keys(effects)
     .filter((key) => !(NAMED_EFFECT_KEYS as readonly string[]).includes(key))
-    .sort()
+    .sort((left, right) => left.localeCompare(right))
   for (const key of extras) {
     const value = effects[key]
     if (typeof value === 'number' && Number.isFinite(value)) {

@@ -321,17 +321,10 @@ export function authorizePersonnelPpeFulfillment(
     }
   }
 
-  let nextState = state
-  if (stored && deps.equipStoredEquipmentInstance) {
-    nextState = deps.equipStoredEquipmentInstance(
-      state,
-      stored.instanceId,
-      input.agentId,
-      demand.slot
-    )
-  } else {
-    nextState = deps.equipAgentItem(state, input.agentId, demand.slot, itemId)
-  }
+  const nextState =
+    stored && deps.equipStoredEquipmentInstance
+      ? deps.equipStoredEquipmentInstance(state, stored.instanceId, input.agentId, demand.slot)
+      : deps.equipAgentItem(state, input.agentId, demand.slot, itemId)
 
   const after = resolvePersonnelPpeDemand(nextState, input)
   const equipped = getEquipmentSlotItemId(

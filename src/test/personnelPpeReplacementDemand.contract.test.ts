@@ -167,6 +167,40 @@ describe('SPE-3441 personnel PPE replacement demand', () => {
     expect(readiness.equippedItemCount).toBeGreaterThan(0)
   })
 
+  it('replaces a damaged required PPE instance from catalog stock', () => {
+    const base = createStartingState()
+    const { state: withAgent, medicId } = withMedic(base)
+    const stocked: GameState = {
+      ...withAgent,
+      inventory: { ...withAgent.inventory, hazmat_suit: 2 },
+    }
+    const created = instantiateEquipmentInstance(stocked, 'hazmat_suit', {
+      condition: 'damaged',
+      location: { state: 'equipped', agentId: medicId, slot: 'armor' },
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+    expect(created.state.inventory.hazmat_suit ?? 0).toBe(1)
+
+    const result = authorizePersonnelPpeFulfillment(
+      created.state,
+      { agentId: medicId, requirementId: MEDIC_PPE_REQUIREMENT },
+      fulfillmentDeps
+    )
+
+    expect(result.ok).toBe(true)
+    expect(result.state.inventory.hazmat_suit ?? 0).toBe(0)
+    expect(getEquipmentSlotItemId(result.state.agents[medicId]?.equipmentSlots, 'armor')).toBe(
+      'hazmat_suit'
+    )
+    expect(
+      resolvePersonnelPpeDemand(result.state, {
+        agentId: medicId,
+        requirementId: MEDIC_PPE_REQUIREMENT,
+      })?.unmet
+    ).toBe(false)
+  })
+
   it('fulfills from stored operational instance when catalog stock is empty', () => {
     const base = createStartingState()
     const { state: seeded, medicId } = withMedic(base)

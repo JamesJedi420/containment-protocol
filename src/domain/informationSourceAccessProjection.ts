@@ -15,12 +15,7 @@ import {
   type TransformationMorphism,
 } from './crossSystemTransformationRegistry'
 
-export const ACCESS_AVAILABILITIES = [
-  'unavailable',
-  'conditional',
-  'partial',
-  'usable',
-] as const
+export const ACCESS_AVAILABILITIES = ['unavailable', 'conditional', 'partial', 'usable'] as const
 export type AccessAvailability = (typeof ACCESS_AVAILABILITIES)[number]
 
 export const RETRIEVAL_COMPLETENESS = [
@@ -194,28 +189,13 @@ function routeIsUsable(route: Pick<ProjectedAccessRoute, 'state' | 'availability
   )
 }
 
-function normalizeReasonCode(value: string | undefined, fallback: string): string | AccessProjectionRejection {
+function normalizeReasonCode(
+  value: string | undefined,
+  fallback: string
+): string | AccessProjectionRejection {
   if (value === undefined) return fallback
   if (!isNonEmptyString(value)) return 'malformed_input'
   return value
-}
-
-function routeIdFromPrefixedCode(code: string, prefix: string): string | null {
-  if (!code.startsWith(prefix)) return null
-  return code.slice(prefix.length)
-}
-
-function owningRouteForReasonCode(
-  code: string,
-  projected: readonly ProjectedAccessRoute[]
-): ProjectedAccessRoute | undefined {
-  const revokedId = routeIdFromPrefixedCode(code, 'revoked:')
-  if (revokedId !== null) return projected.find((entry) => entry.routeId === revokedId)
-  const detectedId = routeIdFromPrefixedCode(code, 'cm_detected:')
-  if (detectedId !== null) return projected.find((entry) => entry.routeId === detectedId)
-  const mitigatedId = routeIdFromPrefixedCode(code, 'cm_mitigated:')
-  if (mitigatedId !== null) return projected.find((entry) => entry.routeId === mitigatedId)
-  return projected.find((entry) => entry.reasonCode !== undefined && entry.reasonCode === code)
 }
 
 function reject(
@@ -354,10 +334,7 @@ export function projectInformationSourceAccess(
   ) {
     return reject('unknown_confidence')
   }
-  if (
-    snapshot.mutationReasonCode !== undefined &&
-    !isNonEmptyString(snapshot.mutationReasonCode)
-  ) {
+  if (snapshot.mutationReasonCode !== undefined && !isNonEmptyString(snapshot.mutationReasonCode)) {
     return reject('malformed_input', 'mutationReasonCode')
   }
 
@@ -393,48 +370,36 @@ export function projectInformationSourceAccess(
   )
 
   const accessPointId = `access:${snapshot.sourceRef.family}/${snapshot.sourceRef.id}`
-  const sourceReason = normalizeReasonCode(
-    snapshot.mutationReasonCode,
-    'project_access_handoff'
-  )
+  const sourceReason = normalizeReasonCode(snapshot.mutationReasonCode, 'project_access_handoff')
   if (typeof sourceReason !== 'string') return reject(sourceReason, 'mutationReasonCode')
   const compositionTrace = buildHandoffTrace(snapshot, accessPointId, sourceReason, routeReasons)
 
   const authoritativeReasonCodes: string[] = []
-  if (snapshot.mutationReasonCode) authoritativeReasonCodes.push(snapshot.mutationReasonCode)
+  const playerFacingReasonCodeBuffer: string[] = []
+  const addReasonCode = (code: string, route?: ProjectedAccessRoute): void => {
+    authoritativeReasonCodes.push(code)
+    if (route?.hiddenFromPlayer === true) return
+    playerFacingReasonCodeBuffer.push(code)
+  }
+
+  if (snapshot.mutationReasonCode) addReasonCode(snapshot.mutationReasonCode)
   for (const route of projected) {
-    if (route.reasonCode) authoritativeReasonCodes.push(route.reasonCode)
-    if (route.state === 'revoked') authoritativeReasonCodes.push(`revoked:${route.routeId}`)
+    if (route.reasonCode) addReasonCode(route.reasonCode, route)
+    if (route.state === 'revoked') addReasonCode(`revoked:${route.routeId}`, route)
     if (route.countermeasureDetected === true) {
-      authoritativeReasonCodes.push(`cm_detected:${route.routeId}`)
+      addReasonCode(`cm_detected:${route.routeId}`, route)
     }
     if (route.countermeasureMitigated === true) {
-      authoritativeReasonCodes.push(`cm_mitigated:${route.routeId}`)
+      addReasonCode(`cm_mitigated:${route.routeId}`, route)
     }
     if (route.constraintRefs) {
       for (const ref of route.constraintRefs) {
-        authoritativeReasonCodes.push(`constraint:${route.routeId}:${ref.family}/${ref.id}`)
+        addReasonCode(`constraint:${route.routeId}:${ref.family}/${ref.id}`, route)
       }
     }
   }
 
-  const playerFacingReasonCodes = Object.freeze(
-    authoritativeReasonCodes.filter((code) => {
-      if (code.startsWith('constraint:')) {
-        const ownedByHidden = projected.some(
-          (entry) =>
-            entry.hiddenFromPlayer &&
-            entry.constraintRefs?.some(
-              (ref) => code === `constraint:${entry.routeId}:${ref.family}/${ref.id}`
-            )
-        )
-        return !ownedByHidden
-      }
-      const owner = owningRouteForReasonCode(code, projected)
-      if (owner?.hiddenFromPlayer) return false
-      return true
-    })
-  )
+  const playerFacingReasonCodes = Object.freeze(playerFacingReasonCodeBuffer)
 
   return Object.freeze({
     ok: true as const,

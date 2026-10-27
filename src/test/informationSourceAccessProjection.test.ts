@@ -5,9 +5,7 @@ import {
   type ProducerAccessSnapshot,
 } from '../domain/informationSourceAccessProjection'
 
-function baseSnapshot(
-  overrides: Partial<ProducerAccessSnapshot> = {}
-): ProducerAccessSnapshot {
+function baseSnapshot(overrides: Partial<ProducerAccessSnapshot> = {}): ProducerAccessSnapshot {
   return {
     sourceRef: { family: 'archive', id: 'vault:alpha' },
     producerFamily: 'lightweight_archive',
@@ -64,9 +62,7 @@ describe('SPE-3471 information-source access projection', () => {
     expect(result.handoff.sourceDestroyed).toBe(false)
     expect(result.handoff.usableRouteIds).toEqual(['route:remote'])
     expect(result.handoff.overallAvailability).toBe('usable')
-    expect(result.handoff.routes.find((r) => r.routeId === 'route:physical')?.state).toBe(
-      'revoked'
-    )
+    expect(result.handoff.routes.find((r) => r.routeId === 'route:physical')?.state).toBe('revoked')
   })
 
   it('distinguishes unavailable, conditional/partial, and usable availability', () => {
@@ -130,7 +126,9 @@ describe('SPE-3471 information-source access projection', () => {
     if (!result.ok) return
     expect(result.handoff.routes[0]?.accessBreadth).toBe(2)
     expect(result.handoff.routes[0]?.accessDepth).toBe(1)
-    expect(JSON.stringify(result.handoff)).not.toMatch(/analytical|researchCapacity|sourceCapacity/i)
+    expect(JSON.stringify(result.handoff)).not.toMatch(
+      /analytical|researchCapacity|sourceCapacity/i
+    )
   })
 
   it('does not auto-mitigate when a countermeasure is only detected', () => {
@@ -351,6 +349,99 @@ describe('SPE-3471 information-source access projection', () => {
     expect(result.handoff.playerFacingReasonCodes).not.toContain('cm_detected:route:hidden')
     expect(result.handoff.playerFacingReasonCodes).not.toContain('revoked:route:hidden')
     expect(result.handoff.playerFacingReasonCodes.join(',')).not.toMatch(/hidden-sensor/)
+  })
+
+  it('attributes player-facing reasons without substring leakage from hidden routes', () => {
+    const result = projectInformationSourceAccess(
+      baseSnapshot({
+        mutationReasonCode: 'scan_complete',
+        routes: [
+          {
+            routeId: 'open',
+            mode: 'archive',
+            state: 'open',
+            availability: 'usable',
+            constraintRefs: [{ family: 'public', id: 'catalog' }],
+            reasonCode: 'catalog_open',
+          },
+          {
+            routeId: 'r1',
+            mode: 'physical',
+            state: 'open',
+            availability: 'usable',
+            reasonCode: 'public_route',
+          },
+          {
+            routeId: 'r10',
+            mode: 'digital',
+            state: 'revoked',
+            availability: 'unavailable',
+            hiddenFromPlayer: true,
+            countermeasureDetected: true,
+            constraintRefs: [{ family: 'monitor', id: 'hidden-sensor' }],
+            reasonCode: 'door_open',
+          },
+        ],
+      })
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.handoff.playerFacingReasonCodes).toEqual(
+      expect.arrayContaining([
+        'scan_complete',
+        'catalog_open',
+        'public_route',
+        'constraint:open:public/catalog',
+      ])
+    )
+    expect(result.handoff.playerFacingReasonCodes).not.toContain('door_open')
+    expect(result.handoff.playerFacingReasonCodes).not.toContain('revoked:r10')
+    expect(result.handoff.playerFacingReasonCodes).not.toContain('cm_detected:r10')
+    expect(result.handoff.playerFacingReasonCodes).not.toContain(
+      'constraint:r10:monitor/hidden-sensor'
+    )
+  })
+
+  it('rejects empty provenance reason codes instead of throwing', () => {
+    expect(() =>
+      projectInformationSourceAccess(baseSnapshot({ mutationReasonCode: '   ' }))
+    ).not.toThrow()
+    expect(projectInformationSourceAccess(baseSnapshot({ mutationReasonCode: '   ' }))).toEqual({
+      ok: false,
+      rejection: 'malformed_input',
+      detail: 'mutationReasonCode',
+    })
+
+    expect(() =>
+      projectInformationSourceAccess(
+        baseSnapshot({
+          routes: [
+            {
+              routeId: 'r1',
+              mode: 'archive',
+              state: 'open',
+              availability: 'usable',
+              reasonCode: '',
+            },
+          ],
+        })
+      )
+    ).not.toThrow()
+    expect(
+      projectInformationSourceAccess(
+        baseSnapshot({
+          routes: [
+            {
+              routeId: 'r1',
+              mode: 'archive',
+              state: 'open',
+              availability: 'usable',
+              reasonCode: '',
+            },
+          ],
+        })
+      )
+    ).toEqual({ ok: false, rejection: 'malformed_input', detail: 'r1' })
   })
 
   it('is byte-stable under route input reordering', () => {

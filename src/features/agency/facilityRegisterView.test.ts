@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import type { FacilityInstance, GameState } from '../../domain/models'
-import { APP_ROUTES } from '../../app/routes'
 import { projectFacilityRegisterView } from './facilityRegisterView'
 
 function facility(overrides: Partial<FacilityInstance> & Pick<FacilityInstance, 'facilityId'>): FacilityInstance {
@@ -50,7 +49,6 @@ describe('projectFacilityRegisterView', () => {
       siteContext: {
         kind: 'base',
         label: 'Base / containment site',
-        href: APP_ROUTES.containmentSite,
       },
     })
     expect(prior.facilityState?.facilities['facility:alpha']?.status).toBe('active')
@@ -75,6 +73,60 @@ describe('projectFacilityRegisterView', () => {
       conditionLabel: 'Restricted / locked',
     })
     expect(view.rows.every((row) => row.attentionReason)).toBe(true)
+  })
+
+  it('flags decommissioning, upgrading, constructing, and malformed instances', () => {
+    const view = projectFacilityRegisterView(
+      gameWithFacilities({
+        'facility:drawdown': facility({
+          facilityId: 'facility:drawdown',
+          status: 'locked',
+          decommissioning: {
+            version: 1,
+            phase: 'drawdown',
+            facilityId: 'facility:drawdown',
+            week: 3,
+          },
+        }),
+        'facility:upgrade': facility({
+          facilityId: 'facility:upgrade',
+          status: 'upgrading',
+          upgradeInProgress: false,
+        }),
+        'facility:build': facility({
+          facilityId: 'facility:build',
+          status: 'constructing',
+        }),
+        'facility:bad-decom': facility({
+          facilityId: 'facility:bad-decom',
+          decommissioning: { version: 1, unavailable: true },
+        }),
+        'facility:null': null,
+      })
+    )
+
+    expect(view.rows.find((row) => row.facilityId === 'facility:drawdown')).toMatchObject({
+      attention: 'needs_attention',
+      conditionLabel: 'Decommissioning (drawdown)',
+      decommissionPhase: 'drawdown',
+    })
+    expect(view.rows.find((row) => row.facilityId === 'facility:upgrade')).toMatchObject({
+      attention: 'needs_attention',
+      conditionLabel: 'Upgrading',
+    })
+    expect(view.rows.find((row) => row.facilityId === 'facility:build')).toMatchObject({
+      attention: 'needs_attention',
+      conditionLabel: 'In progress (constructing)',
+    })
+    expect(view.rows.find((row) => row.facilityId === 'facility:bad-decom')).toMatchObject({
+      attention: 'needs_attention',
+      conditionLabel: 'Decommissioning state unavailable',
+      decommissionPhase: 'unavailable',
+    })
+    expect(view.rows.find((row) => row.facilityId === 'facility:null')).toMatchObject({
+      attention: 'needs_attention',
+      conditionLabel: 'Malformed instance',
+    })
   })
 
   it('keeps separate rows for the same type and handles missing facility state', () => {

@@ -1,4 +1,3 @@
-import { APP_ROUTES } from '../../app/routes'
 import type { FacilityEffect, FacilityInstance, FacilityStatus, GameState } from '../../domain/models'
 
 /**
@@ -25,7 +24,6 @@ export type FacilityRegisterUnavailable = 'unavailable'
 export interface FacilityRegisterSiteContext {
   readonly kind: 'base'
   readonly label: string
-  readonly href: string
 }
 
 export interface FacilityRegisterRow {
@@ -97,6 +95,13 @@ function projectCondition(facility: FacilityInstance): {
   attentionReason: string | null
 } {
   const phase = decommissionPhaseOf(facility)
+  if (phase === 'unavailable') {
+    return {
+      conditionLabel: 'Decommissioning state unavailable',
+      attention: 'needs_attention',
+      attentionReason: 'Facility decommissioning record is unavailable or malformed.',
+    }
+  }
   if (phase === 'drawdown' || phase === 'closed' || phase === 'intake_stopped') {
     return {
       conditionLabel: `Decommissioning (${phase})`,
@@ -125,14 +130,7 @@ function projectCondition(facility: FacilityInstance): {
       attentionReason: `Facility is ${facility.status} and is not fully operational.`,
     }
   }
-  if (facility.upgradeInProgress) {
-    return {
-      conditionLabel: 'Upgrading',
-      attention: 'needs_attention',
-      attentionReason: 'Facility upgrade is in progress.',
-    }
-  }
-  if (facility.status === 'upgrading') {
+  if (facility.upgradeInProgress || facility.status === 'upgrading') {
     return {
       conditionLabel: 'Upgrading',
       attention: 'needs_attention',
@@ -170,7 +168,6 @@ function projectRow(facility: FacilityInstance): FacilityRegisterRow {
     siteContext: {
       kind: 'base',
       label: FACILITY_REGISTER_COPY.baseContextLabel,
-      href: APP_ROUTES.containmentSite,
     },
     decommissionPhase: decommissionPhaseOf(facility),
   }
@@ -206,7 +203,6 @@ export function projectFacilityRegisterView(game: GameState): FacilityRegisterVi
           siteContext: {
             kind: 'base',
             label: FACILITY_REGISTER_COPY.baseContextLabel,
-            href: APP_ROUTES.containmentSite,
           },
           decommissionPhase: null,
         }

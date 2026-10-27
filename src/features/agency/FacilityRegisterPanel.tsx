@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { APP_ROUTES } from '../../app/routes'
 import {
   FACILITY_REGISTER_COPY,
   type FacilityRegisterView,
@@ -47,7 +48,14 @@ export function FacilityRegisterPanel({ register }: FacilityRegisterPanelProps) 
                 </li>
                 <li>
                   Site context:{' '}
-                  <Link to={row.siteContext.href} className="btn btn-sm btn-ghost px-0">
+                  <Link
+                    to={
+                      row.siteContext.kind === 'base'
+                        ? APP_ROUTES.containmentSite
+                        : APP_ROUTES.agency
+                    }
+                    className="btn btn-sm btn-ghost px-0"
+                  >
                     {row.siteContext.label}
                   </Link>
                 </li>

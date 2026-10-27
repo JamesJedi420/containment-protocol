@@ -67,8 +67,10 @@ function request(
     submit_construction: 'constructing',
     activate: 'inspecting',
     restrict: 'active',
+    begin_decommission_drawdown: 'active',
     submit_restart: 'locked',
     reactivate: 'inspecting',
+    finalize_closure: 'locked',
   }
   const kinds: Partial<Record<FacilityLifecycleAction, FacilityLifecyclePrerequisite['kind']>> = {
     submit_construction: 'construction_complete',

@@ -169,8 +169,10 @@ function validateSingleMorphism(
     const left = byId.get(morphism.leftMorphismId!)!
     const right = byId.get(morphism.rightMorphismId!)!
     if (
+      !isValidObjectRef(left.input) ||
       !isValidObjectRef(left.output) ||
       !isValidObjectRef(right.input) ||
+      !isValidObjectRef(right.output) ||
       !refsEqual(left.output, right.input) ||
       !refsEqual(morphism.input, left.input) ||
       !refsEqual(morphism.output, right.output)
@@ -196,7 +198,6 @@ function detectCircularComposeWithoutIdentityEscape(
   if (composeChildren.size === 0) return null
 
   const visiting = new Set<string>()
-  const visited = new Set<string>()
 
   const visit = (id: string, path: string[]): ValidateMorphismChainResult | null => {
     if (visiting.has(id)) {
@@ -212,17 +213,18 @@ function detectCircularComposeWithoutIdentityEscape(
       }
       return null
     }
-    if (visited.has(id)) return null
     visiting.add(id)
     const children = composeChildren.get(id)
     if (children) {
       for (const childId of children) {
         const nested = visit(childId, path.concat(id))
-        if (nested) return nested
+        if (nested) {
+          visiting.delete(id)
+          return nested
+        }
       }
     }
     visiting.delete(id)
-    visited.add(id)
     return null
   }
 

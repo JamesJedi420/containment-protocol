@@ -93,6 +93,66 @@ describe('validateMorphismChain', () => {
     })
   })
 
+  it('fail-closes compose validation when a child endpoint is sparse', () => {
+    const sparseChild = {
+      id: 'morph:sparse-child',
+      kind: 'map' as const,
+      input: { family: 'evidence_record', id: 'evidence:a' },
+      output: undefined as unknown as { family: string; id: string },
+    }
+    const result = validateMorphismChain([
+      sparseChild,
+      {
+        id: 'morph:compose-over-sparse',
+        kind: 'compose',
+        input: { family: 'evidence_record', id: 'evidence:a' },
+        output: { family: 'evidence_record', id: 'evidence:b' },
+        leftMorphismId: 'morph:sparse-child',
+        rightMorphismId: 'morph:sparse-child',
+      },
+    ])
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(['dangling_object_ref', 'illegal_compose_endpoints']).toContain(result.code)
+  })
+
+  it('rejects overlapping compose cycles that lack an identity escape', () => {
+    const identity: TransformationMorphism = {
+      id: 'morph:identity',
+      kind: 'identity',
+      input: { family: 'evidence_record', id: 'evidence:a' },
+      output: { family: 'evidence_record', id: 'evidence:a' },
+    }
+    const cycleA: TransformationMorphism = {
+      id: 'morph:cycle-a',
+      kind: 'compose',
+      input: { family: 'evidence_record', id: 'evidence:a' },
+      output: { family: 'evidence_record', id: 'evidence:a' },
+      leftMorphismId: 'morph:identity',
+      rightMorphismId: 'morph:cycle-c',
+    }
+    const cycleB: TransformationMorphism = {
+      id: 'morph:cycle-b',
+      kind: 'compose',
+      input: { family: 'evidence_record', id: 'evidence:a' },
+      output: { family: 'evidence_record', id: 'evidence:a' },
+      leftMorphismId: 'morph:cycle-a',
+      rightMorphismId: 'morph:cycle-c',
+    }
+    const cycleC: TransformationMorphism = {
+      id: 'morph:cycle-c',
+      kind: 'compose',
+      input: { family: 'evidence_record', id: 'evidence:a' },
+      output: { family: 'evidence_record', id: 'evidence:a' },
+      leftMorphismId: 'morph:cycle-b',
+      rightMorphismId: 'morph:cycle-b',
+    }
+    const result = validateMorphismChain([cycleB, cycleA, cycleC, identity])
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('circular_compose_without_identity_escape')
+  })
+
   it('rejects compose morphisms whose endpoints do not match children', () => {
     const left = mapMorphism({
       id: 'morph:left',

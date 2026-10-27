@@ -129,11 +129,16 @@ export interface RecurrenceDefinition {
 export interface ActivationMarkers {
   /** Windows that already produced an active envelope (once_per_window / persists). */
   readonly activatedWindowIds: readonly string[]
+  /**
+   * Monotonic instance counter. Each successful activation consumes the current
+   * generation for envelope identity, then increments so the next instance is distinct.
+   */
+  readonly activationGeneration: number
   /** Last campaign week an activation was emitted. */
   readonly lastActivatedWeek?: number
   /** Last campaign week the producer reported completion of the prior instance. */
   readonly lastCompletedWeek?: number
-  /** Stable identity of the currently active envelope, if any. */
+  /** Envelope id of the currently active instance, if any. */
   readonly activeEnvelopeId?: string
 }
 
@@ -183,7 +188,10 @@ export interface ActivationEvaluationInput {
 }
 
 function emptyMarkers(): ActivationMarkers {
-  return Object.freeze({ activatedWindowIds: Object.freeze([] as string[]) })
+  return Object.freeze({
+    activatedWindowIds: Object.freeze([] as string[]),
+    activationGeneration: 0,
+  })
 }
 
 function parseMarkers(raw: unknown): ActivationMarkers | undefined {
@@ -197,6 +205,12 @@ function parseMarkers(raw: unknown): ActivationMarkers | undefined {
       if (!isNonEmptyString(id)) return undefined
       activatedWindowIds.push(id.trim())
     }
+  }
+  let activationGeneration = 0
+  if (raw.activationGeneration !== undefined) {
+    const parsed = parseNonNegInt(raw.activationGeneration)
+    if (parsed === undefined) return undefined
+    activationGeneration = parsed
   }
   const lastActivatedWeek =
     raw.lastActivatedWeek === undefined ? undefined : parseNonNegInt(raw.lastActivatedWeek)
@@ -213,6 +227,7 @@ function parseMarkers(raw: unknown): ActivationMarkers | undefined {
   if (raw.activeEnvelopeId !== undefined && activeEnvelopeId === undefined) return undefined
   return Object.freeze({
     activatedWindowIds: Object.freeze(activatedWindowIds),
+    activationGeneration,
     ...(lastActivatedWeek !== undefined ? { lastActivatedWeek } : {}),
     ...(lastCompletedWeek !== undefined ? { lastCompletedWeek } : {}),
     ...(activeEnvelopeId !== undefined ? { activeEnvelopeId } : {}),
@@ -321,7 +336,7 @@ export function recurrenceDefinitionFromSpe3181Intent(
 ): RecurrenceDefinition {
   const sourceRef = `spe-3181:intent:${intent.idempotencyKey}`
   return Object.freeze({
-    templateId: `spe-3181:${intent.requirementId}:${intent.windowId}`,
+    templateId: `spe-3181:${intent.subjectRef}:${intent.requirementId}:${intent.windowId}`,
     producerId: 'SPE-3181',
     producerKind: 'containment_requirement',
     taskKind: 'containment_requirement_fulfillment',
@@ -355,17 +370,25 @@ export function buildObligationRecurrenceDefinition(input: {
   readonly createsWork: boolean
   readonly subjectRef?: string
   readonly recurrencePolicy?: RecurrencePolicy
+  readonly cooldownWeeks?: number
   readonly conditionSourceRef?: string
 }): RecurrenceDefinition {
   const sourceRef = input.conditionSourceRef ?? `obligation:${input.obligationId}:requires_work`
+  const recurrencePolicy = input.recurrencePolicy ?? 'once_per_window'
+  const cooldownWeeks =
+    input.cooldownWeeks !== undefined
+      ? input.cooldownWeeks
+      : recurrencePolicy === 'repeat_after_cooldown'
+        ? 1
+        : 0
   return Object.freeze({
     templateId: `obligation:${input.obligationId}:${input.windowId}`,
     producerId: 'obligation_fixture',
     producerKind: 'period_bound_obligation',
     taskKind: 'obligation_recurring_work',
     windowId: input.windowId,
-    recurrencePolicy: input.recurrencePolicy ?? 'once_per_window',
-    cooldownWeeks: 0,
+    recurrencePolicy,
+    cooldownWeeks,
     createsWork: input.createsWork,
     conditionGroup: Object.freeze({
       kind: 'all' as const,
@@ -454,15 +477,40 @@ function groupSatisfied(
   return diagnostics.some((d) => d.outcome === 'passed')
 }
 
-/** Stable activation identity — must not change across re-evaluation of same qualifying state. */
-export function buildActivationIdentity(definition: RecurrenceDefinition): string {
+/**
+ * Stable activation / envelope identity for one instance generation.
+ * Same generation + definition must not mint duplicates; the next generation
+ * after completion gets a distinct envelope id.
+ */
+export function buildActivationIdentity(
+  definition: RecurrenceDefinition,
+  activationGeneration = 0
+): string {
   return JSON.stringify([
     'spe-3041',
     definition.producerId,
     definition.templateId,
     definition.windowId,
     definition.taskKind,
+    definition.subjectRef ?? null,
+    activationGeneration,
   ])
+}
+
+function markersWithCompletion(
+  markers: ActivationMarkers,
+  campaignWeek: number
+): ActivationMarkers {
+  return Object.freeze({
+    activatedWindowIds: markers.activatedWindowIds,
+    activationGeneration: markers.activationGeneration,
+    ...(markers.lastActivatedWeek !== undefined
+      ? { lastActivatedWeek: markers.lastActivatedWeek }
+      : {}),
+    lastCompletedWeek:
+      markers.lastCompletedWeek ?? markers.lastActivatedWeek ?? campaignWeek,
+    // activeEnvelopeId cleared — prior instance is complete.
+  })
 }
 
 function recurrenceAllowsActivation(
@@ -599,9 +647,14 @@ export function evaluateConditionalRecurringActivation(
   }
 
   const priorCompleted = input.priorInstanceCompleted === true
+  // Apply completion to markers even when recurrence later blocks (e.g. cooldown).
+  const effectiveMarkers = priorCompleted
+    ? markersWithCompletion(markers, campaignWeek)
+    : markers
+
   const recurrence = recurrenceAllowsActivation(
     definition,
-    markers,
+    effectiveMarkers,
     campaignWeek,
     priorCompleted
   )
@@ -612,22 +665,22 @@ export function evaluateConditionalRecurringActivation(
     return Object.freeze({
       result: isIdempotent ? ('idempotent_noop' as const) : ('skipped_recurrence' as const),
       definition,
-      markers,
+      markers: effectiveMarkers,
       conditionDiagnostics: frozenDiagnostics,
       reasonCodes: Object.freeze([recurrence.reasonCode]),
     })
   }
 
-  const activationIdentity = buildActivationIdentity(definition)
+  const generation = effectiveMarkers.activationGeneration
+  const activationIdentity = buildActivationIdentity(definition, generation)
   if (
-    markers.activeEnvelopeId !== undefined &&
-    markers.activeEnvelopeId === activationIdentity &&
-    !priorCompleted
+    effectiveMarkers.activeEnvelopeId !== undefined &&
+    effectiveMarkers.activeEnvelopeId === activationIdentity
   ) {
     return Object.freeze({
       result: 'idempotent_noop' as const,
       definition,
-      markers,
+      markers: effectiveMarkers,
       conditionDiagnostics: frozenDiagnostics,
       reasonCodes: Object.freeze(['duplicate_activation_identity']),
     })
@@ -652,19 +705,16 @@ export function evaluateConditionalRecurringActivation(
     reasonCodes: Object.freeze(['activated', recurrence.reasonCode]),
   })
 
-  const nextWindowIds = markers.activatedWindowIds.includes(definition.windowId)
-    ? markers.activatedWindowIds
-    : Object.freeze([...markers.activatedWindowIds, definition.windowId])
+  const nextWindowIds = effectiveMarkers.activatedWindowIds.includes(definition.windowId)
+    ? effectiveMarkers.activatedWindowIds
+    : Object.freeze([...effectiveMarkers.activatedWindowIds, definition.windowId])
 
   const nextMarkers: ActivationMarkers = Object.freeze({
     activatedWindowIds: nextWindowIds,
+    activationGeneration: generation + 1,
     lastActivatedWeek: campaignWeek,
-    ...(priorCompleted || markers.lastCompletedWeek !== undefined
-      ? {
-          lastCompletedWeek: priorCompleted
-            ? campaignWeek
-            : markers.lastCompletedWeek,
-        }
+    ...(effectiveMarkers.lastCompletedWeek !== undefined
+      ? { lastCompletedWeek: effectiveMarkers.lastCompletedWeek }
       : {}),
     activeEnvelopeId: activationIdentity,
   })
@@ -689,6 +739,7 @@ export function markActivationCompleted(
   if (!parsed || week === undefined) return undefined
   return Object.freeze({
     activatedWindowIds: parsed.activatedWindowIds,
+    activationGeneration: parsed.activationGeneration,
     ...(parsed.lastActivatedWeek !== undefined
       ? { lastActivatedWeek: parsed.lastActivatedWeek }
       : {}),
@@ -701,6 +752,7 @@ export function markActivationCompleted(
 export function serializeActivationMarkers(markers: ActivationMarkers): ActivationMarkers {
   return Object.freeze({
     activatedWindowIds: Object.freeze([...markers.activatedWindowIds]),
+    activationGeneration: markers.activationGeneration,
     ...(markers.lastActivatedWeek !== undefined
       ? { lastActivatedWeek: markers.lastActivatedWeek }
       : {}),

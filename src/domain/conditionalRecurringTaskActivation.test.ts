@@ -41,7 +41,10 @@ function baseDefinition(
   }
 }
 
-const emptyMarkers: ActivationMarkers = { activatedWindowIds: [] }
+const emptyMarkers: ActivationMarkers = {
+  activatedWindowIds: [],
+  activationGeneration: 0,
+}
 
 describe('parseRecurrenceDefinition', () => {
   it('accepts a valid definition and rejects malformed input', () => {
@@ -271,6 +274,8 @@ describe('recurrence policies', () => {
       sources: [{ sourceRef: 'facility:stock', value: 20, available: true }],
     })
     expect(ready.result).toBe('activated')
+    expect(ready.markers.lastActivatedWeek).toBe(7)
+    expect(ready.envelope?.envelopeId).not.toBe(first.envelope?.envelopeId)
   })
 
   it('repeat_while_condition_persists activates once while an envelope is active', () => {
@@ -323,7 +328,29 @@ describe('save/load idempotency', () => {
       sources: [{ sourceRef: 'facility:stock', value: 15, available: true }],
     })
     expect(again.result).toBe('idempotent_noop')
-    expect(buildActivationIdentity(definition)).toBe(activated.envelope?.activationIdentity)
+    expect(buildActivationIdentity(definition, 0)).toBe(activated.envelope?.activationIdentity)
+  })
+
+  it('successive repeat instances get distinct envelope ids', () => {
+    const definition = baseDefinition({
+      recurrencePolicy: 'repeat_after_completion',
+    })
+    const first = evaluateConditionalRecurringActivation({
+      definition,
+      markers: emptyMarkers,
+      campaignWeek: 1,
+      sources: [{ sourceRef: 'facility:stock', value: 20, available: true }],
+    })
+    const completed = markActivationCompleted(first.markers, 2)
+    const second = evaluateConditionalRecurringActivation({
+      definition,
+      markers: completed,
+      campaignWeek: 3,
+      sources: [{ sourceRef: 'facility:stock', value: 20, available: true }],
+      priorInstanceCompleted: true,
+    })
+    expect(second.result).toBe('activated')
+    expect(second.envelope?.envelopeId).not.toBe(first.envelope?.envelopeId)
   })
 })
 

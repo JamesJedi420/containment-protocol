@@ -119,6 +119,10 @@ describe('SPE-3153 critical asset supportability', () => {
   })
 
   it('fail-closes malformed requests without claiming source authority mutation', () => {
+    expect(
+      // @ts-expect-error intentional null request
+      resolveCriticalAssetSupportability(null).reasons
+    ).toContain('malformed_request')
     expect(resolveCriticalAssetSupportability(baseRequest({ assetId: '' })).reasons).toContain(
       'malformed_request'
     )

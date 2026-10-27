@@ -26,6 +26,10 @@ Missing legacy history stays absent. Invalid present metadata becomes `{ version
 
 SPE-2549 upgrade normalization retains precedence: coherent timing owns upgrading, and invalid/orphaned timing loses pending effects. Valid history ending at active remains compatible with temporary upgrading and its existing completion back to active. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required; field-level hydration is the additive migration. Installed effects and facility/site identities are unchanged.
 
+### Elapsed-time invariant updates (SPE-3384)
+
+Pure domain module `src/domain/elapsedTimeInvariantUpdate.ts` provides a reusable rate-based elapsed-time update contract with milli-unit remainder carry so fine and coarse cadences yield identical discrete values for equal authoritative elapsed time. Representative fixtures cover accumulation/repair and decay/exposure; discrete/event-counted producers remain non-rate. Remainders are returned on the update result and are not a GameState field. SPE-1071 remains campaign-time owner; SPE-3180 remains the subjective-time contradiction boundary. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Cross-system transformation registry (SPE-2273)
 
 Pure domain module `src/domain/crossSystemTransformationRegistry.ts` defines `SimulationObjectRef`, `TransformationMorphism` (`identity` | `compose` | `map` | `translate`), and append-only `CompositionTrace`. Slice 1 is schema + `validateMorphismChain` / `composeMorphisms` / `buildCompositionTrace` plus the evidence→interpretation→policy fixture chain. Derived traces are not persisted on `GameState`. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.

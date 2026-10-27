@@ -76,7 +76,7 @@ Pure deterministic adapter in `src/domain/facilityEnvDependencyProjection.ts`:
 | `projectEnvironmentalContextToFacilityDependencyPacket` | Map bindings + baseline non-env sources into a complete SPE-3386 packet with env provenance; echo `facilityPermissionPresent` unchanged |
 | `resolveFacilityDependencyFromEnvironmentalContext` | Project, then `resolveExplicitFacilityDependencyAvailability` |
 
-Caller-owned dimension values may carry `facilitySupport: ready\|degraded\|unavailable`. Absent `facilitySupport` fails closed to `unavailable`. Malformed support words reject. Missing bound dimensions write `unavailable` with `missingDimension: true` provenance — never silent `ready`.
+Caller-owned dimension values may carry `facilitySupport: ready|degraded|unavailable`. Absent `facilitySupport` fails closed to `unavailable`. Malformed support words reject. Missing bound dimensions write `unavailable` with `missingDimension: true` provenance — never silent `ready`. When a bound node also has a baseline source, availability is worst-of (env constrains, never elevates).
 
 ### Upstream / authority (no duplicate persistence)
 

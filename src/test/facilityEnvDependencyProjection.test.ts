@@ -257,10 +257,33 @@ describe('SPE-3415 facility env dependency projection', () => {
   })
 
   it('is byte-stable under binding and baseline key reordering', () => {
-    const env = threeOwnerContext('degraded')
+    const env = resolveEnvironmentalOperationalContext([
+      packet({
+        ownerId: 'SPE-3354',
+        dimensionId: 'terrain_buildability',
+        sourceRef: { family: 'terrain', id: 'plot:alpha' },
+        value: { facilitySupport: 'degraded' },
+      }),
+      packet({
+        ownerId: 'SPE-1221',
+        dimensionId: 'climate_atmosphere',
+        sourceRef: { family: 'climate', id: 'baseline:temperate' },
+        value: { band: 'temperate' },
+      }),
+      packet({
+        ownerId: 'SPE-1075',
+        dimensionId: 'hazard_exposure',
+        sourceRef: { family: 'hazard', id: 'zone:flood-margin' },
+        value: { facilitySupport: 'unavailable', class: 'flood' },
+      }),
+    ])
     expect(env.ok).toBe(true)
     if (!env.ok) return
 
+    const multiBindings = [
+      { dimensionId: 'hazard_exposure' as const, nodeId: ROUTING },
+      { dimensionId: 'terrain_buildability' as const, nodeId: HUB },
+    ]
     const baseline = readyBaseline()
     const reversedBaseline: Record<string, { availability: 'ready'; sourceRef: string }> = {}
     for (const id of [...NODE_IDS].reverse()) {
@@ -269,18 +292,48 @@ describe('SPE-3415 facility env dependency projection', () => {
     const forward = resolveFacilityDependencyFromEnvironmentalContext(
       env.context,
       graph,
-      bindings,
+      multiBindings,
       baseline,
       true
     )
     const reversed = resolveFacilityDependencyFromEnvironmentalContext(
       env.context,
       graph,
-      [...bindings].reverse(),
+      [...multiBindings].reverse(),
       reversedBaseline,
       true
     )
     expect(forward).toEqual(reversed)
+    expect(forward.ok && forward.envProvenance.map((row) => row.nodeId)).toEqual([HUB, ROUTING])
+  })
+
+  it('never elevates a bound node above a worse non-env baseline', () => {
+    const env = threeOwnerContext('ready')
+    expect(env.ok).toBe(true)
+    if (!env.ok) return
+
+    const baseline = readyBaseline()
+    baseline[ROUTING] = {
+      availability: 'unavailable',
+      sourceRef: 'baseline:routing-outage',
+    }
+
+    const resolved = resolveFacilityDependencyFromEnvironmentalContext(
+      env.context,
+      graph,
+      bindings,
+      baseline,
+      true
+    )
+    expect(resolved.ok).toBe(true)
+    if (!resolved.ok) return
+    expect(resolved.inputs[ROUTING]).toEqual({
+      availability: 'unavailable',
+      sourceRef: 'baseline:routing-outage',
+    })
+    expect(resolved.results.find((result) => result.nodeId === ALERT)?.availability).toBe(
+      'unavailable'
+    )
   })
 
   it('does not invent lifecycle, permission, or unlock authority fields', () => {

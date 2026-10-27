@@ -102,8 +102,48 @@ function isAvailability(value: unknown): value is FacilityDependencyAvailability
   return FACILITY_DEPENDENCY_AVAILABILITIES.some((availability) => availability === value)
 }
 
+function availabilityRank(value: FacilityDependencyAvailability): number {
+  switch (value) {
+    case 'unavailable':
+      return 0
+    case 'degraded':
+      return 1
+    case 'ready':
+      return 2
+    default: {
+      const exhaustive: never = value
+      return exhaustive
+    }
+  }
+}
+
+/** Lower availability wins — environmental support constrains, never elevates. */
+function worseAvailability(
+  left: FacilityDependencyAvailability,
+  right: FacilityDependencyAvailability
+): FacilityDependencyAvailability {
+  return availabilityRank(left) <= availabilityRank(right) ? left : right
+}
+
 function isSupportDimension(value: string): value is FacilityEnvSupportDimensionId {
   return (FACILITY_ENV_SUPPORT_DIMENSIONS as readonly string[]).includes(value)
+}
+
+function parseBaselineEntry(
+  entry: unknown
+): FacilityDependencySourceInput | FacilityEnvProjectionRejection {
+  if (!isRecord(entry)) return 'malformed_binding'
+  if (!isAvailability(entry.availability)) return 'malformed_support_value'
+  if (typeof entry.sourceRef !== 'string' || entry.sourceRef.trim().length === 0) {
+    return 'missing_baseline_source'
+  }
+  for (const key of Object.keys(entry)) {
+    if (key !== 'availability' && key !== 'sourceRef') return 'malformed_binding'
+  }
+  return Object.freeze({
+    availability: entry.availability,
+    sourceRef: entry.sourceRef,
+  })
 }
 
 function reject(rejection: FacilityEnvProjectionRejection): {
@@ -211,22 +251,34 @@ export function projectEnvironmentalContextToFacilityDependencyPacket(
   const envProvenance: FacilityEnvProjectionProvenance[] = []
 
   for (const binding of normalizedBindings) {
+    const hasBaseline = Object.prototype.hasOwnProperty.call(baselineSources, binding.nodeId)
+    const baseline = hasBaseline ? parseBaselineEntry(baselineSources[binding.nodeId]) : undefined
+    if (typeof baseline === 'string') return reject(baseline)
+
     const component = byDimension.get(binding.dimensionId)
     if (!component) {
       const missingRef = Object.freeze({
         family: 'environmental_operational_context',
         id: `missing:${binding.dimensionId}`,
       })
+      const envAvailability = 'unavailable' as const
+      const envSourceRef = `${missingRef.family}/${missingRef.id}`
+      const availability = baseline
+        ? worseAvailability(envAvailability, baseline.availability)
+        : envAvailability
+      const baselineStrictlyWorse = Boolean(
+        baseline && availabilityRank(baseline.availability) < availabilityRank(envAvailability)
+      )
       packet[binding.nodeId] = Object.freeze({
-        availability: 'unavailable' as const,
-        sourceRef: `${missingRef.family}/${missingRef.id}`,
+        availability,
+        sourceRef: baselineStrictlyWorse ? baseline!.sourceRef : envSourceRef,
       })
       envProvenance.push(
         Object.freeze({
           dimensionId: binding.dimensionId,
           sourceRef: missingRef,
           nodeId: binding.nodeId,
-          availability: 'unavailable' as const,
+          availability,
           missingDimension: true,
         })
       )
@@ -236,9 +288,16 @@ export function projectEnvironmentalContextToFacilityDependencyPacket(
     const support = parseFacilitySupport(component.value)
     if (support === 'malformed_support_value') return reject('malformed_support_value')
 
+    const envSourceRef = `${component.sourceRef.family}/${component.sourceRef.id}`
+    const availability = baseline ? worseAvailability(support, baseline.availability) : support
+    const baselineStrictlyWorse = Boolean(
+      baseline && availabilityRank(baseline.availability) < availabilityRank(support)
+    )
+
     packet[binding.nodeId] = Object.freeze({
-      availability: support,
-      sourceRef: `${component.sourceRef.family}/${component.sourceRef.id}`,
+      availability,
+      // Baseline may only constrain further; when it is strictly worse, keep its sourceRef.
+      sourceRef: baselineStrictlyWorse ? baseline!.sourceRef : envSourceRef,
     })
     envProvenance.push(
       Object.freeze({
@@ -247,7 +306,7 @@ export function projectEnvironmentalContextToFacilityDependencyPacket(
         scope: component.scope,
         sourceRef: freezeRef(component.sourceRef),
         nodeId: binding.nodeId,
-        availability: support,
+        availability,
         missingDimension: false,
       })
     )
@@ -258,19 +317,9 @@ export function projectEnvironmentalContextToFacilityDependencyPacket(
     if (!Object.prototype.hasOwnProperty.call(baselineSources, node.id)) {
       return reject('missing_baseline_source')
     }
-    const entry = baselineSources[node.id]
-    if (!isRecord(entry)) return reject('malformed_binding')
-    if (!isAvailability(entry.availability)) return reject('malformed_support_value')
-    if (typeof entry.sourceRef !== 'string' || entry.sourceRef.trim().length === 0) {
-      return reject('missing_baseline_source')
-    }
-    for (const key of Object.keys(entry)) {
-      if (key !== 'availability' && key !== 'sourceRef') return reject('malformed_binding')
-    }
-    packet[node.id] = Object.freeze({
-      availability: entry.availability,
-      sourceRef: entry.sourceRef,
-    })
+    const entry = parseBaselineEntry(baselineSources[node.id])
+    if (typeof entry === 'string') return reject(entry)
+    packet[node.id] = entry
   }
 
   const orderedProvenance = [...envProvenance].sort((left, right) =>

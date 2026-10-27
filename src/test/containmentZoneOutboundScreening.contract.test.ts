@@ -8,6 +8,7 @@ import {
   parseFacilityOutboundScreenHolds,
   projectOutboundScreenPolicy,
   RESTRICTED_ASSET_CARRIED_CLASS,
+  routeOutboundScreenHold,
   resolveOutboundScreening,
   resolveOutboundSecondaryScreen,
   type OutboundScreenPolicy,
@@ -164,6 +165,36 @@ describe('SPE-3189 containment-zone outbound screening', () => {
       followUpOwner: 'custody',
       inventoryUnchanged: true,
     })
+  })
+
+  it('routes active non-secondary holds to a supported terminal state', () => {
+    const opened = openOutboundScreenHold(createStartingState(), {
+      holdId: 'hold:quarantine-1',
+      idempotencyKey: 'idem:quarantine-1',
+      screening: baseRequest({ carriedClasses: ['cursed_residue'] }),
+    })
+    expect(opened.ok).toBe(true)
+    if (!opened.ok) return
+    expect(opened.hold.state).toBe('active')
+
+    const routed = routeOutboundScreenHold(opened.state, {
+      holdId: 'hold:quarantine-1',
+    })
+    expect(routed.ok).toBe(true)
+    if (!routed.ok) return
+    expect(routed.hold).toMatchObject({
+      holdId: 'hold:quarantine-1',
+      state: 'routed',
+      decision: 'quarantine',
+      followUpOwner: 'SPE-2934',
+    })
+
+    const routedAgain = routeOutboundScreenHold(routed.state, {
+      holdId: 'hold:quarantine-1',
+    })
+    expect(routedAgain.ok).toBe(true)
+    if (!routedAgain.ok) return
+    expect(routedAgain.hold).toEqual(routed.hold)
   })
 
   it('repeated screening of unchanged state is byte-stable / idempotent', () => {

@@ -567,6 +567,40 @@ export function openOutboundScreenHold(
 }
 
 /**
+ * Mark an active non-secondary hold as routed to its follow-up owner.
+ * Does not mutate inventory, custody, quarantine, exposure, or checkout state.
+ */
+export function routeOutboundScreenHold(
+  state: GameState,
+  input: unknown
+): OutboundScreenHoldResult {
+  if (!isRecord(input) || !isNonEmptyString(input.holdId)) {
+    return { ok: false, state, code: 'invalid_input' }
+  }
+  const holdId = input.holdId.trim()
+  if (!isNonEmptyString(holdId)) {
+    return { ok: false, state, code: 'invalid_input' }
+  }
+
+  const holds = { ...readHolds(state) }
+  const current = holds[holdId]
+  if (!current) return { ok: false, state, code: 'not_found' }
+  if (current.state === 'routed') {
+    return { ok: true, state, hold: current }
+  }
+  if (current.state !== 'active') {
+    return { ok: false, state, code: 'illegal_transition' }
+  }
+
+  const hold = freezeHold({
+    ...current,
+    state: 'routed',
+  })
+  holds[hold.holdId] = hold
+  return { ok: true, state: writeHolds(state, Object.freeze(holds)), hold }
+}
+
+/**
  * Resolve a secondary-screen hold to clear or escalate. Idempotent on terminal states.
  */
 export function resolveOutboundSecondaryScreen(

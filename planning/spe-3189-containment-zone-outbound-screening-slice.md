@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3189](https://linear.app/spectranoir/issue/SPE-3189)                                      |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                            |
 | **Branch**        | `jamesdyedbq/spe-3189-containment-zone-outbound-screening-and-hold-routing`                     |

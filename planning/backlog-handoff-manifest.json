@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3189"
+    "SPE-3440"
   ],
   "recentlyShipped": [
+    "SPE-3189",
     "SPE-3188",
     "SPE-3438",
     "SPE-3436",
@@ -54,7 +55,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3189-containment-zone-outbound-screening-slice.md": "In progress",
+    "planning/spe-3440-construction-stage-accessibility-slice.md": "In progress",
+    "planning/spe-3189-containment-zone-outbound-screening-slice.md": "Recently shipped",
     "planning/spe-3188-restricted-asset-field-checkout-slice.md": "Recently shipped",
     "planning/spe-3181-recurring-containment-requirement-slice.md": "Parked (bounded #4356 shipped; remaining completion deferred — Backlog)",
     "planning/spe-1060-room-quality-facility-satisfaction-slice.md": "Recently shipped",

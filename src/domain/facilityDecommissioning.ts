@@ -123,7 +123,6 @@ export function normalizeFacilityDecommissioning(
   const unavailable = { version: 1, unavailable: true } as const
   if (!record(value) || value.version !== 1) return unavailable
   if (value.unavailable === true) {
-    if (Object.keys(value).length === 2) return unavailable
     return unavailable
   }
   if (
@@ -442,7 +441,11 @@ export function resolveFacilityDecommissionDrawdown(
   if (!facility || facility.facilityId !== facilityId) {
     return reject(facility, ['missing_facility'])
   }
-  if (phaseOf(facility) !== 'intake_stopped' || facility.status !== 'active') {
+  const decommissioning = normalizeFacilityDecommissioning(facility.decommissioning, facilityId)
+  if (decommissioning && 'unavailable' in decommissioning) {
+    return reject(facility, ['invalid_request'])
+  }
+  if (decommissioning?.phase !== 'intake_stopped' || facility.status !== 'active') {
     return reject(facility, ['wrong_phase'])
   }
   const lifecycle = resolveFacilityLifecycleTransition(

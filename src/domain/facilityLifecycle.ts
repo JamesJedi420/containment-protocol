@@ -114,6 +114,10 @@ function inspectionMatches(
 ): boolean {
   if (value === 'activate') return previous?.action === 'submit_construction'
   if (value === 'reactivate') return previous?.action === 'submit_restart'
+  // SPE-3381: terminal closure must follow decommission drawdown provenance;
+  // restart must not escape an in-progress drawdown lock.
+  if (value === 'finalize_closure') return previous?.action === 'begin_decommission_drawdown'
+  if (value === 'submit_restart') return previous?.action !== 'begin_decommission_drawdown'
   return true
 }
 

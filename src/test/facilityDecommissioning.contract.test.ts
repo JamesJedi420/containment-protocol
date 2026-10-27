@@ -5,6 +5,7 @@ import {
   enterFacilityDecommissionDrawdown,
   finalizeFacilityClosure,
   normalizeFacilityDecommissioning,
+  resolveFacilityDecommissionDrawdown,
   stopFacilityIntake,
   type FacilityClosureObligationAttestation,
 } from '../domain/facilityDecommissioning'
@@ -269,5 +270,50 @@ describe('SPE-3381 facility phased decommissioning', () => {
       1
     )
     expect(drawdown.lifecycle?.receipt?.cause).toBe('decommission_drawdown_begun')
+  })
+
+  it('rejects pure drawdown resolve when coordinator metadata is malformed', () => {
+    const facility = activeFacility({
+      decommissioning: {
+        version: 2,
+        phase: 'intake_stopped',
+        facilityId: ID,
+        week: 2,
+      } as unknown as FacilityInstance['decommissioning'],
+    })
+    const result = resolveFacilityDecommissionDrawdown(facility, ID, 1, 2)
+    expect(result.outcome).toBe('rejected')
+    expect(result.blockers).toEqual(['invalid_request'])
+    expect(result.facility).toBe(facility)
+  })
+
+  it('rejects finalize_closure without drawdown provenance and blocks restart out of drawdown', () => {
+    const restricted = applyFacilityLifecycleTransition(game(activeFacility(), 2), {
+      facilityId: ID,
+      expectedStatus: 'active',
+      transition: 1,
+      action: 'restrict',
+    })
+    const bypass = applyFacilityLifecycleTransition(restricted.game, {
+      facilityId: ID,
+      expectedStatus: 'locked',
+      transition: 2,
+      action: 'finalize_closure',
+    })
+    expect(bypass.outcome).toBe('rejected')
+    expect(bypass.reason).toBe('inspection_provenance_required')
+    expect(bypass.game).toBe(restricted.game)
+
+    const stopped = stopFacilityIntake(activeFacility(), ID, 2)
+    const drawdown = enterFacilityDecommissionDrawdown(game(stopped.facility!, 2), ID, 1)
+    const restartEscape = applyFacilityLifecycleTransition(drawdown.game, {
+      facilityId: ID,
+      expectedStatus: 'locked',
+      transition: 2,
+      action: 'submit_restart',
+    })
+    expect(restartEscape.outcome).toBe('rejected')
+    expect(restartEscape.reason).toBe('inspection_provenance_required')
+    expect(restartEscape.game).toBe(drawdown.game)
   })
 })

@@ -26,6 +26,12 @@ Missing legacy history stays absent. Invalid present metadata becomes `{ version
 
 SPE-2549 upgrade normalization retains precedence: coherent timing owns upgrading, and invalid/orphaned timing loses pending effects. Valid history ending at active remains compatible with temporary upgrading and its existing completion back to active. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required; field-level hydration is the additive migration. Installed effects and facility/site identities are unchanged.
 
+### Facility phased decommissioning coordinator (SPE-3381)
+
+Optional `FacilityInstance.decommissioning` is a version-1 coordinator packet separate from `lifecycleHistory`. Valid packets store `phase` (`intake_stopped` | `drawdown` | `closed`), matching `facilityId`, and positive integer campaign `week`. SPE-3380 owns status transitions (`begin_decommission_drawdown`: active→locked; `finalize_closure`: locked→inactive after drawdown provenance). This field does not store custody/transfer/staffing/dependency source authorities; callers pass obligation attestations at final-closure assessment time.
+
+Missing legacy decommissioning stays absent. Invalid present metadata becomes `{ version: 1, unavailable: true }` and blocks coordinator commands (fail closed; hydration must not erase malformed authority into a fresh usable packet). Field-level hydration in `runTransfer` / save paths is the additive migration. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Weekly maintenance conversion receipts (SPE-3292)
 
 Optional `GameState.facilityMaintenanceConversionReceipts` uses `version: 1` with sorted `{ staffId, week, revision }` receipts. The staff/week pair is unique; the successful request revision distinguishes equivalent replay from a fresh exhausted attempt. Revisions are bounded `maintenance-v1:` plus 16 hex digits (FNV-1a/64 over the deterministic authority snapshot), rather than saved snapshots of retained allocation history. Only an atomic successful conversion writes a receipt. The receipt gates this recipe alone, independently of the immediately released SPE-3291 commitment.

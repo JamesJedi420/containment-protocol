@@ -26,6 +26,10 @@ Missing legacy history stays absent. Invalid present metadata becomes `{ version
 
 SPE-2549 upgrade normalization retains precedence: coherent timing owns upgrading, and invalid/orphaned timing loses pending effects. Valid history ending at active remains compatible with temporary upgrading and its existing completion back to active. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required; field-level hydration is the additive migration. Installed effects and facility/site identities are unchanged.
 
+### Cross-system transformation registry (SPE-2273)
+
+Pure domain module `src/domain/crossSystemTransformationRegistry.ts` defines `SimulationObjectRef`, `TransformationMorphism` (`identity` | `compose` | `map` | `translate`), and append-only `CompositionTrace`. Slice 1 is schema + `validateMorphismChain` / `composeMorphisms` / `buildCompositionTrace` plus the evidence→interpretation→policy fixture chain. Derived traces are not persisted on `GameState`. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Facility phased decommissioning coordinator (SPE-3381)
 
 Optional `FacilityInstance.decommissioning` is a version-1 coordinator packet separate from `lifecycleHistory`. Valid packets store `phase` (`intake_stopped` | `drawdown` | `closed`), matching `facilityId`, and positive integer campaign `week`. SPE-3380 owns status transitions (`begin_decommission_drawdown`: active→locked; `finalize_closure`: locked→inactive after drawdown provenance). This field does not store custody/transfer/staffing/dependency source authorities; callers pass obligation attestations at final-closure assessment time.

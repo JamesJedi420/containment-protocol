@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3381](https://linear.app/spectranoir/issue/SPE-3381)                                      |
 | **Parent**        | [SPE-1564](https://linear.app/spectranoir/issue/SPE-1564) — Backlog (under SPE-1052)            |
 | **Branch**        | `jamesdyedbq/spe-3381-facility-phased-decommissioning-and-closure-obligation`                   |

@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3381"
+    "SPE-2273"
   ],
   "recentlyShipped": [
+    "SPE-3381",
     "SPE-3153",
     "SPE-3440",
     "SPE-3189",
@@ -57,7 +58,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-3381-facility-phased-decommissioning-slice.md": "In progress",
+    "planning/spe-2273-cross-system-transformation-registry-slice.md": "In progress",
+    "planning/spe-3381-facility-phased-decommissioning-slice.md": "Recently shipped",
     "planning/spe-3153-critical-asset-supportability-slice.md": "Recently shipped",
     "planning/spe-3440-construction-stage-accessibility-slice.md": "Recently shipped",
     "planning/spe-3189-containment-zone-outbound-screening-slice.md": "Recently shipped",

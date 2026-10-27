@@ -1237,7 +1237,7 @@ function EquipmentPage() {
                               PPE unmet: {demand.requiredItemName} ({demand.slot})
                             </span>
                             <span className="opacity-70"> — {demand.reasonSummary}</span>
-                            {demand.fulfillable ? (
+                            {demand.fulfillable && view.editable ? (
                               <button
                                 type="button"
                                 className="btn btn-xs btn-ghost ml-2"

@@ -159,21 +159,20 @@ export function resolvePersonnelPpeDemand(
 
   const candidateDefinitionId = requirement.requiredDefinitionId
   const candidateStock = catalogStock(state, candidateDefinitionId)
-  if (candidateStock <= 0) {
-    const hasStoredOperational = listStoredEquipmentInstances(state).some(
-      (entry) =>
-        entry.definitionId === candidateDefinitionId && entry.condition === 'operational'
-    )
-    if (!hasStoredOperational) {
-      reasons.push('stock_unavailable')
-    }
-  }
+  const hasStoredOperational = listStoredEquipmentInstances(state).some(
+    (entry) =>
+      entry.definitionId === candidateDefinitionId && entry.condition === 'operational'
+  )
 
   const unmet =
     reasons.includes('missing_assignment') ||
     reasons.includes('unserviceable') ||
     reasons.includes('wrong_definition') ||
     reasons.includes('insufficient_capability')
+
+  if (unmet && candidateStock <= 0 && !hasStoredOperational) {
+    reasons.push('stock_unavailable')
+  }
 
   const uniqueReasons = [...new Set(reasons)]
   const fulfillable =

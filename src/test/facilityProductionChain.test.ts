@@ -25,6 +25,12 @@ const FIT_ARCHIVIST: SpecialistOperatorSlot = {
   availabilityBand: 'fit',
 }
 
+const MALFORMED_OPERATOR: SpecialistOperatorSlot = {
+  roleFamily: 'generic_tech' as never,
+  skillBand: 'competent',
+  availabilityBand: 'fit',
+}
+
 const BASE_FACILITY: ProductionFacilitySnapshot = {
   rolesPresent: ['stockpile', 'processor', 'source', 'lab', 'workshop', 'deployment'],
   stockByMaterialId: {
@@ -127,6 +133,24 @@ describe('SPE-3360 facility production chain', () => {
     if (!staffing.ok) {
       expect(staffing.reasonCodes).toContain('staffing_shortage')
     }
+
+    const malformedLabor = resolveProductionChainStage({
+      run: { ...run, currentStageIndex: 1 },
+      facility: BASE_FACILITY,
+      operators: [MALFORMED_OPERATOR],
+    })
+    expect(malformedLabor.ok).toBe(false)
+    if (!malformedLabor.ok) {
+      expect(malformedLabor.reasonCodes).toContain('staffing_shortage')
+    }
+
+    const malformedAdvance = advanceProductionChain({
+      run: { ...run, currentStageIndex: 1 },
+      facility: BASE_FACILITY,
+      operators: [MALFORMED_OPERATOR],
+    })!
+    expect(malformedAdvance.run.state).toBe('blocked')
+    expect(malformedAdvance.handoff).toBeNull()
 
     const damaged = resolveProductionChainStage({
       run: { ...run, currentStageIndex: 1 },

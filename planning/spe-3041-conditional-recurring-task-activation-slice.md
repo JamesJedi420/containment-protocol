@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **Ready for PR** |
+| **Status** | **In progress** |
 | **Issue** | [SPE-3041](https://linear.app/spectranoir/issue/SPE-3041) |
 | **Parent** | [SPE-1287](https://linear.app/spectranoir/issue/SPE-1287) — Backlog |
 | **Branch** | `jamesdyedbq/spe-3041-conditional-recurring-task-activation-contract` |

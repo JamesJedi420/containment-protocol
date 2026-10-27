@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3440](https://linear.app/spectranoir/issue/SPE-3440)                                      |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                            |
 | **Branch**        | `jamesdyedbq/spe-3440-construction-stage-accessibility-and-worksite-isolation`                  |

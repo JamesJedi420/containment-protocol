@@ -370,13 +370,34 @@ export function buildCultivationLaborGateInput(
   }
 }
 
+function stalledCultivationLaborProjection(
+  profile: ManagedCultivationProfile,
+): SpecialistLaborGateProjection {
+  return Object.freeze({
+    taskId: profile.laborDemand.taskId,
+    requiredRoleFamily: profile.laborDemand.requiredRoleFamily,
+    gateOutcome: 'stalled' as const,
+    matchedOperator: null,
+    adjacentRejected: false,
+    stallReason: 'missing_specialist' as const,
+    outputQuality: Object.freeze({
+      successRate: 0,
+      throughputMultiplier: 0,
+      contaminationRisk: 100,
+      latentDefectRisk: 100,
+      materialPurity: 0,
+    }),
+    infrastructurePresent: true,
+  })
+}
+
 export function projectCultivationLaborGate(
   profile: ManagedCultivationProfile,
   operators: readonly SpecialistOperatorSlot[],
 ): SpecialistLaborGateProjection {
-  const projection = projectSpecialistLaborGate(
-    buildCultivationLaborGateInput(profile, operators),
-  )
+  const projection =
+    projectSpecialistLaborGate(buildCultivationLaborGateInput(profile, operators)) ??
+    stalledCultivationLaborProjection(profile)
   const matched = projection.matchedOperator
   if (
     matched &&
@@ -420,14 +441,12 @@ export function createCultivationInstance(input: {
     reasons.push('ornamental_only')
   }
 
+  const viability = effectiveCultivationViability(viabilityResult.viability, labor)
   let lifecycleState: CultivationLifecycleState
-  let viability = viabilityResult.viability
   if (viability === 'nonviable' || labor.gateOutcome === 'stalled') {
     lifecycleState = 'blocked'
-    viability = viability === 'nonviable' ? 'nonviable' : 'degraded'
-  } else if (viability === 'degraded' || labor.gateOutcome === 'degraded') {
+  } else if (viability === 'degraded') {
     lifecycleState = 'degraded'
-    viability = 'degraded'
   } else {
     lifecycleState = 'viable'
   }
@@ -459,6 +478,65 @@ function growthRateMilliForViability(
   return progressPerUnit * ELAPSED_TIME_RATE_SCALE
 }
 
+function effectiveCultivationViability(
+  environmentViability: CultivationViability,
+  labor: SpecialistLaborGateProjection,
+): CultivationViability {
+  if (environmentViability === 'nonviable') return 'nonviable'
+  if (labor.gateOutcome === 'stalled') return 'degraded'
+  if (environmentViability === 'degraded' || labor.gateOutcome === 'degraded') {
+    return 'degraded'
+  }
+  return 'viable'
+}
+
+/** Elapsed units required to first reach maturity from the current progress/remainder. */
+function elapsedUnitsToReachMaturity(
+  progress: number,
+  remainderMilli: number,
+  rateMilliPerUnit: number,
+): number {
+  const need = CULTIVATION_PROGRESS_MAX - progress
+  if (need <= 0) return 0
+  if (rateMilliPerUnit <= 0) return Number.POSITIVE_INFINITY
+  const milliNeeded = need * ELAPSED_TIME_RATE_SCALE - remainderMilli
+  if (milliNeeded <= 0) return 0
+  return Math.ceil(milliNeeded / rateMilliPerUnit)
+}
+
+function resolveMatureOrExpired(input: {
+  readonly instance: ManagedCultivationInstance
+  readonly profile: ManagedCultivationProfile
+  readonly elapsedSinceMaturity: number
+  readonly viability: CultivationViability
+  readonly reasons: CultivationReasonCode[]
+}): ManagedCultivationInstance {
+  const reasons = [...input.reasons]
+  const lifespan = input.profile.lifespanElapsedUnitsAfterMaturity
+  if (lifespan !== undefined && input.elapsedSinceMaturity >= lifespan) {
+    reasons.push('expired')
+    return freezeInstance({
+      ...input.instance,
+      lifecycleState: 'expired',
+      viability: 'nonviable',
+      progress: CULTIVATION_PROGRESS_MAX,
+      remainderMilli: 0,
+      elapsedSinceMaturity: input.elapsedSinceMaturity,
+      reasonCodes: Object.freeze(reasons),
+    })
+  }
+  reasons.push('mature')
+  return freezeInstance({
+    ...input.instance,
+    lifecycleState: 'mature',
+    viability: input.viability,
+    progress: CULTIVATION_PROGRESS_MAX,
+    remainderMilli: 0,
+    elapsedSinceMaturity: input.elapsedSinceMaturity,
+    reasonCodes: Object.freeze(reasons),
+  })
+}
+
 export function advanceCultivationGrowth(input: {
   readonly instance: ManagedCultivationInstance
   readonly environment: CultivationEnvironmentInput
@@ -479,41 +557,28 @@ export function advanceCultivationGrowth(input: {
   const reasons: CultivationReasonCode[] = [...viabilityResult.reasonCodes]
   const laborCode = laborReason(labor)
   if (laborCode) reasons.push(laborCode)
+  const viability = effectiveCultivationViability(viabilityResult.viability, labor)
+  const elapsedFloor =
+    Number.isFinite(input.elapsedUnits) && input.elapsedUnits > 0
+      ? Math.floor(input.elapsedUnits)
+      : 0
 
+  // Mature (or progress-capped) plots stay harvestable / age by lifespan even when
+  // labor stalls or the environment is temporarily nonviable.
   if (
     input.instance.lifecycleState === 'mature' ||
     input.instance.progress >= CULTIVATION_PROGRESS_MAX
   ) {
-    const elapsed =
-      (Number.isFinite(input.elapsedUnits) && input.elapsedUnits > 0
-        ? Math.floor(input.elapsedUnits)
-        : 0) + input.instance.elapsedSinceMaturity
-    const lifespan = profile.lifespanElapsedUnitsAfterMaturity
-    if (lifespan !== undefined && elapsed >= lifespan) {
-      reasons.push('expired')
-      return freezeInstance({
-        ...input.instance,
-        lifecycleState: 'expired',
-        viability: 'nonviable',
-        elapsedSinceMaturity: elapsed,
-        reasonCodes: Object.freeze(reasons),
-        // Ornamental contribution stops after expiry.
-      })
-    }
-    reasons.push('mature')
-    return freezeInstance({
-      ...input.instance,
-      lifecycleState: 'mature',
-      viability: viabilityResult.viability,
-      elapsedSinceMaturity: elapsed,
-      reasonCodes: Object.freeze(reasons),
+    return resolveMatureOrExpired({
+      instance: input.instance,
+      profile,
+      elapsedSinceMaturity: elapsedFloor + input.instance.elapsedSinceMaturity,
+      viability,
+      reasons,
     })
   }
 
-  if (
-    viabilityResult.viability === 'nonviable' ||
-    labor.gateOutcome === 'stalled'
-  ) {
+  if (viabilityResult.viability === 'nonviable' || labor.gateOutcome === 'stalled') {
     return freezeInstance({
       ...input.instance,
       lifecycleState: 'blocked',
@@ -525,10 +590,7 @@ export function advanceCultivationGrowth(input: {
   const rate = growthRateMilliForViability(profile, viabilityResult.viability, labor)
   const update = applyElapsedTimeUpdate({
     kind: 'rate',
-    elapsedUnits:
-      Number.isFinite(input.elapsedUnits) && input.elapsedUnits > 0
-        ? Math.floor(input.elapsedUnits)
-        : 0,
+    elapsedUnits: elapsedFloor,
     rateMilliPerUnit: rate,
     value: input.instance.progress,
     remainderMilli: input.instance.remainderMilli,
@@ -536,17 +598,32 @@ export function advanceCultivationGrowth(input: {
     maxValue: CULTIVATION_PROGRESS_MAX,
   })
 
-  let lifecycleState: CultivationLifecycleState
-  let viability = viabilityResult.viability
   if (update.value >= CULTIVATION_PROGRESS_MAX) {
-    lifecycleState = 'mature'
-    reasons.push('mature')
-  } else if (update.value > 0) {
+    const unitsToMature = elapsedUnitsToReachMaturity(
+      input.instance.progress,
+      input.instance.remainderMilli,
+      rate,
+    )
+    const postMaturity = Math.max(0, elapsedFloor - unitsToMature)
+    return resolveMatureOrExpired({
+      instance: {
+        ...input.instance,
+        progress: CULTIVATION_PROGRESS_MAX,
+        remainderMilli: 0,
+      },
+      profile,
+      elapsedSinceMaturity: postMaturity,
+      viability,
+      reasons,
+    })
+  }
+
+  let lifecycleState: CultivationLifecycleState
+  if (update.value > 0) {
     lifecycleState = 'growing'
     reasons.push('growing')
-  } else if (viability === 'degraded' || labor.gateOutcome === 'degraded') {
+  } else if (viability === 'degraded') {
     lifecycleState = 'degraded'
-    viability = 'degraded'
   } else {
     lifecycleState = 'viable'
   }
@@ -604,15 +681,8 @@ export function harvestCultivation(input: {
   const profile = getCultivationProfile(input.instance.profileId)
   if (!profile) return undefined
   if (input.instance.lifecycleState !== 'mature') return undefined
-  if (profile.harvestOutput === null) {
-    return freezeInstance({
-      ...input.instance,
-      lifecycleState: 'harvested',
-      reasonCodes: Object.freeze(['harvested', 'ornamental_only'] as CultivationReasonCode[]),
-      harvestedOutput: null,
-      propagationOutput: null,
-    })
-  }
+  // Ornamental-only profiles have no harvest output; do not terminalize them.
+  if (profile.harvestOutput === null) return undefined
   const reasons: CultivationReasonCode[] = ['harvested']
   if (profile.propagation) reasons.push('propagation_ready')
   return freezeInstance({
@@ -758,7 +828,12 @@ function sanitizeInstance(value: unknown): ManagedCultivationInstance | undefine
   ) {
     return undefined
   }
-  if (typeof value.remainderMilli !== 'number' || !Number.isInteger(value.remainderMilli)) {
+  if (
+    typeof value.remainderMilli !== 'number' ||
+    !Number.isInteger(value.remainderMilli) ||
+    value.remainderMilli < 0 ||
+    value.remainderMilli >= ELAPSED_TIME_RATE_SCALE
+  ) {
     return undefined
   }
   if (

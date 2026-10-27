@@ -29,6 +29,13 @@ const FIT_WARD: SpecialistOperatorSlot = {
   availabilityBand: 'fit',
 }
 
+/** Competent ward avoids SPE-1058 novice→degraded gate for full-rate growth. */
+const FIT_WARD_COMPETENT: SpecialistOperatorSlot = {
+  roleFamily: 'ward_technician',
+  skillBand: 'competent',
+  availabilityBand: 'fit',
+}
+
 const CLEAN_SOIL = {
   medium: 'soil_bed' as const,
   lightBand: 'standard' as const,
@@ -78,6 +85,15 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
     })
     expect(sensitive.viability).toBe('nonviable')
     expect(sensitive.reasonCodes).toContain('contamination_intolerant')
+
+    // Critical contamination blocks even hardy/tolerant profiles.
+    const criticalMoss = evaluateCultivationViability(moss, {
+      medium: 'soil_bed',
+      lightBand: 'dim',
+      contaminationBand: 'critical',
+    })
+    expect(criticalMoss.viability).toBe('nonviable')
+    expect(criticalMoss.reasonCodes).toContain('contamination_intolerant')
   })
 
   it('declares SPE-1058 labor demand without inventing a parallel workforce', () => {
@@ -214,13 +230,13 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
       instanceId: 'plot:ornamental-pulse',
       profileId: fern.profileId,
       environment: CLEAN_SOIL,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     ornamental = advanceCultivationGrowth({
       instance: ornamental,
       environment: CLEAN_SOIL,
       elapsedUnits: 10,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     const stalledOrnamental = advanceCultivationGrowth({
       instance: ornamental,
@@ -228,8 +244,10 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
       elapsedUnits: 3,
       operators: [FIT_REFINER],
     })!
+    // Fern matures at 4 units (250 progress/unit); remaining 6 of the first
+    // 10-unit tick are credited as post-maturity elapsed; +3 stall → 9.
     expect(stalledOrnamental.lifecycleState).toBe('mature')
-    expect(stalledOrnamental.elapsedSinceMaturity).toBe(3)
+    expect(stalledOrnamental.elapsedSinceMaturity).toBe(9)
 
     const recoveredOrnamental = advanceCultivationGrowth({
       instance: {
@@ -238,10 +256,10 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
       },
       environment: CLEAN_SOIL,
       elapsedUnits: 4,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     expect(recoveredOrnamental.lifecycleState).toBe('mature')
-    expect(recoveredOrnamental.elapsedSinceMaturity).toBe(7)
+    expect(recoveredOrnamental.elapsedSinceMaturity).toBe(13)
   })
 
   it('projects ornamental contribution into SPE-1060 and expires lifespan', () => {
@@ -250,15 +268,17 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
       instanceId: 'plot:fern',
       profileId: fern.profileId,
       environment: CLEAN_SOIL,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     instance = advanceCultivationGrowth({
       instance,
       environment: CLEAN_SOIL,
       elapsedUnits: 10,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     expect(instance.lifecycleState).toBe('mature')
+    expect(instance.elapsedSinceMaturity).toBe(6)
+    expect(harvestCultivation({ instance })).toBeUndefined()
 
     const contribution = projectCultivationRoomContribution(instance)!
     expect(contribution.viability).toBe('viable')
@@ -285,11 +305,46 @@ describe('SPE-3406 managed cultivation lifecycle', () => {
       instance,
       environment: CLEAN_SOIL,
       elapsedUnits: 20,
-      operators: [FIT_WARD],
+      operators: [FIT_WARD_COMPETENT],
     })!
     expect(expired.lifecycleState).toBe('expired')
     const dead = projectCultivationRoomContribution(expired)!
     expect(dead.viability).toBe('nonviable')
+  })
+
+  it('retains degraded labor viability while growing and rejects bad remainder', () => {
+    const profile = getCultivationProfile('cultivation:fast-herb')!
+    const noviceRefiner: SpecialistOperatorSlot = {
+      roleFamily: 'refinement_technician',
+      skillBand: 'novice',
+      availabilityBand: 'fit',
+    }
+    const created = createCultivationInstance({
+      instanceId: 'plot:degraded-labor',
+      profileId: profile.profileId,
+      environment: CLEAN_SOIL,
+      operators: [noviceRefiner],
+    })!
+    expect(created.lifecycleState).toBe('degraded')
+    expect(created.viability).toBe('degraded')
+    expect(created.reasonCodes).toContain('labor_degraded')
+
+    const growing = advanceCultivationGrowth({
+      instance: created,
+      environment: CLEAN_SOIL,
+      elapsedUnits: 1,
+      operators: [noviceRefiner],
+    })!
+    expect(growing.lifecycleState).toBe('growing')
+    expect(growing.viability).toBe('degraded')
+    expect(growing.reasonCodes).toContain('labor_degraded')
+
+    expect(
+      sanitizeManagedCultivationRegistry({
+        version: 1,
+        instances: [{ ...created, remainderMilli: -1 }],
+      }),
+    ).toBeUndefined()
   })
 
   it('sanitizes registry round-trips and rejects malformed state', () => {

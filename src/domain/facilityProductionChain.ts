@@ -251,6 +251,13 @@ export const REPRESENTATIVE_PRODUCTION_CHAINS: readonly ProductionChainVariant[]
       recirculationLossPerCycle: 1,
       stages: Object.freeze([
         Object.freeze({
+          stageId: 'loop:store',
+          stage: 'storage' as const,
+          requiredRole: 'stockpile' as const,
+          input: Object.freeze({ materialId: 'material:process_solvent', quantity: 1 }),
+          output: Object.freeze({ materialId: 'material:process_solvent', quantity: 1 }),
+        }),
+        Object.freeze({
           stageId: 'loop:process',
           stage: 'processing' as const,
           requiredRole: 'processor' as const,
@@ -392,7 +399,7 @@ export function resolveProductionChainStage(input: {
   ) {
     reasons.push('missing_auxiliary')
   }
-  if (chain.externalCatalyst) {
+  if (stage.recirculates === true && chain.externalCatalyst) {
     const catalystStock = stockOf(input.facility, chain.externalCatalyst.materialId)
     if (catalystStock < chain.externalCatalyst.quantity) {
       reasons.push('self_generation_blocked')
@@ -408,10 +415,13 @@ export function resolveProductionChainStage(input: {
     }
   }
 
-  const labor = projectLabor(stage.laborTaskId, input.operators ?? [])
-  if (labor) {
-    if (labor.gateOutcome === 'stalled') reasons.push('staffing_shortage')
-    if (labor.gateOutcome === 'degraded') reasons.push('labor_degraded')
+  if (stage.laborTaskId) {
+    const labor = projectLabor(stage.laborTaskId, input.operators ?? [])
+    if (!labor || labor.gateOutcome === 'stalled') {
+      reasons.push('staffing_shortage')
+    } else if (labor.gateOutcome === 'degraded') {
+      reasons.push('labor_degraded')
+    }
   }
 
   if (reasons.includes('missing_facility_role') ||
@@ -493,7 +503,9 @@ export function advanceProductionChain(input: {
   const stage = resolved.stage
   const consumed: ProductionMaterialRef[] = []
   if (stage.input) consumed.push({ ...stage.input })
-  if (chain.externalCatalyst) consumed.push({ ...chain.externalCatalyst })
+  if (stage.recirculates === true && chain.externalCatalyst) {
+    consumed.push({ ...chain.externalCatalyst })
+  }
 
   const isLast = input.run.currentStageIndex >= chain.stages.length - 1
   const reasons: ProductionReasonCode[] = [...resolved.reasonCodes, 'stage_completed']
@@ -616,10 +628,13 @@ function sanitizeRun(value: unknown): ProductionChainRun | undefined {
   if (typeof value.runId !== 'string' || value.runId.trim().length === 0) return undefined
   if (typeof value.chainId !== 'string' || !CHAIN_BY_ID.has(value.chainId)) return undefined
   if (!isMember(value.state, PRODUCTION_RUN_STATES)) return undefined
+  const chain = CHAIN_BY_ID.get(value.chainId as string)
+  if (!chain) return undefined
   if (
     typeof value.currentStageIndex !== 'number' ||
     !Number.isInteger(value.currentStageIndex) ||
-    value.currentStageIndex < 0
+    value.currentStageIndex < 0 ||
+    value.currentStageIndex > chain.stages.length
   ) {
     return undefined
   }

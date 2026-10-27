@@ -184,8 +184,23 @@ describe('SPE-3360 facility production chain', () => {
       chainId: 'chain:catalyst-recirculation',
     })!
 
-    const blocked = resolveProductionChainStage({
+    // Prep/storage stage does not require catalyst even when the chain carries one.
+    const prep = resolveProductionChainStage({
       run,
+      facility: {
+        ...BASE_FACILITY,
+        stockByMaterialId: {
+          ...BASE_FACILITY.stockByMaterialId,
+          'material:catalyst_charge': 0,
+        },
+      },
+      operators: [FIT_REFINER],
+    })
+    expect(prep.ok).toBe(true)
+
+    const recirculating = { ...run, currentStageIndex: 1 }
+    const blocked = resolveProductionChainStage({
+      run: recirculating,
       facility: {
         ...BASE_FACILITY,
         stockByMaterialId: {
@@ -201,7 +216,7 @@ describe('SPE-3360 facility production chain', () => {
     }
 
     const advanced = advanceProductionChain({
-      run,
+      run: recirculating,
       facility: BASE_FACILITY,
       operators: [FIT_REFINER],
     })!
@@ -211,7 +226,36 @@ describe('SPE-3360 facility production chain', () => {
     expect(advanced.consumedPreview.some((c) => c.materialId === 'material:catalyst_charge')).toBe(
       true,
     )
-    expect(advanced.run.currentStageIndex).toBe(0)
+    expect(advanced.run.currentStageIndex).toBe(1)
+  })
+
+  it('rejects out-of-range stage indices and malformed labor as staffing shortage', () => {
+    const run = createProductionChainRun({
+      runId: 'run:sanitize',
+      chainId: 'chain:compact-smelter',
+    })!
+    expect(
+      sanitizeFacilityProductionChainRegistry({
+        version: 1,
+        runs: [{ ...run, currentStageIndex: 999 }],
+      }),
+    ).toBeUndefined()
+
+    const malformed = resolveProductionChainStage({
+      run: { ...run, currentStageIndex: 1 },
+      facility: BASE_FACILITY,
+      operators: [
+        {
+          roleFamily: 'refinement_technician',
+          skillBand: 'not-a-band' as SpecialistOperatorSlot['skillBand'],
+          availabilityBand: 'fit',
+        },
+      ],
+    })
+    expect(malformed.ok).toBe(false)
+    if (!malformed.ok) {
+      expect(malformed.reasonCodes).toContain('staffing_shortage')
+    }
   })
 
   it('sanitizes registry round-trips and rejects malformed runs', () => {

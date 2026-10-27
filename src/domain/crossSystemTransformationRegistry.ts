@@ -51,6 +51,7 @@ export const MORPHISM_CHAIN_ERROR_CODES = [
   'dangling_object_ref',
   'dangling_morphism_ref',
   'illegal_compose_arity',
+  'illegal_compose_endpoints',
   'translate_missing_provenance',
   'map_family_mismatch',
   'circular_compose_without_identity_escape',
@@ -132,6 +133,10 @@ function validateSingleMorphism(
     return fail('dangling_object_ref', morphism.id)
   }
 
+  if (morphism.kind === 'identity' && !refsEqual(morphism.input, morphism.output)) {
+    return fail('malformed_morphism', morphism.id, 'identity_endpoints')
+  }
+
   if (morphism.kind === 'map' && morphism.input.family !== morphism.output.family) {
     return fail('map_family_mismatch', morphism.id)
   }
@@ -160,6 +165,17 @@ function validateSingleMorphism(
         morphism.id,
         `${morphism.leftMorphismId}->${morphism.rightMorphismId}`,
       )
+    }
+    const left = byId.get(morphism.leftMorphismId!)!
+    const right = byId.get(morphism.rightMorphismId!)!
+    if (
+      !isValidObjectRef(left.output) ||
+      !isValidObjectRef(right.input) ||
+      !refsEqual(left.output, right.input) ||
+      !refsEqual(morphism.input, left.input) ||
+      !refsEqual(morphism.output, right.output)
+    ) {
+      return fail('illegal_compose_endpoints', morphism.id)
     }
   } else if (morphism.leftMorphismId !== undefined || morphism.rightMorphismId !== undefined) {
     return fail('illegal_compose_arity', morphism.id, 'non_compose_child_ids')

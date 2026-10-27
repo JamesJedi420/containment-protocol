@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-3415](https://linear.app/spectranoir/issue/SPE-3415)                                      |
 | **Parent**        | [SPE-792](https://linear.app/spectranoir/issue/SPE-792) — Backlog                             |
 | **Umbrella**      | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                           |

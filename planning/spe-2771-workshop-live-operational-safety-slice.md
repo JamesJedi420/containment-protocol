@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2771](https://linear.app/spectranoir/issue/SPE-2771) |
 | **Parent** | [SPE-1896](https://linear.app/spectranoir/issue/SPE-1896) — Backlog |
 | **Branch** | `jamesdyedbq/spe-2771-project-live-operational-state-into-workshop-safety` |

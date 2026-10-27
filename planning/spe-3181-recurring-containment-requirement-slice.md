@@ -32,7 +32,7 @@ Caller-owned definition/evaluation packets in `src/domain/containmentRequirement
 | Item | Owner | Why deferred |
 | --- | --- | --- |
 | Week-close / authored cadence evaluation | SPE-3181 consuming SPE-1071 / SPE-1052 | Current persisted-window expiry now evaluated at authoritative `advanceWeek`; new cadence-window authoring/rollover remains external |
-| Live SPE-3041 activation into SPE-1287 queue | SPE-3041 | Intent seam only |
+| Live SPE-3041 activation into SPE-1287 queue | SPE-3041 | Intent seam shipped; SPE-3041 contract + SPE-1287 envelope handoff on `planning/spe-3041-conditional-recurring-task-activation-slice.md`; full queue runtime remains SPE-1287 |
 | Duty registry implementation | SPE-1135 | Consumption projection only |
 | Procedure/labor eligibility truth | SPE-874 / SPE-1058 | External refs |
 | Facility register UI | SPE-3359 | No UI |

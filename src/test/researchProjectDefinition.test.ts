@@ -157,17 +157,28 @@ describe('validateResearchProjectDefinition', () => {
     expect(result.diagnostics.some((d) => d.code === 'hard_bounds_infeasible')).toBe(true)
   })
 
-  it('rejects hard availability windows that make every mandatory route impossible', () => {
-    const result = validateResearchProjectDefinition(
+  it('rejects hard availability windows that put any mandatory milestone outside', () => {
+    const allOutside = validateResearchProjectDefinition(
       cloneFixture({
         hardOpportunityBounds: {
           availabilityWindow: { startOrder: 10, endOrder: 12 },
         },
       }),
     )
-    expect(result.ok).toBe(false)
-    if (result.ok) return
-    expect(result.diagnostics.some((d) => d.code === 'hard_window_infeasible')).toBe(true)
+    expect(allOutside.ok).toBe(false)
+    if (allOutside.ok) return
+    expect(allOutside.diagnostics.some((d) => d.code === 'hard_window_infeasible')).toBe(true)
+
+    const oneOutside = validateResearchProjectDefinition(
+      cloneFixture({
+        hardOpportunityBounds: {
+          availabilityWindow: { startOrder: 1, endOrder: 1 },
+        },
+      }),
+    )
+    expect(oneOutside.ok).toBe(false)
+    if (oneOutside.ok) return
+    expect(oneOutside.diagnostics.some((d) => d.code === 'hard_window_infeasible')).toBe(true)
   })
 
   it('accepts an alternate authored route when another route is unavailable', () => {

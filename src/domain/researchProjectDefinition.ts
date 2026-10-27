@@ -279,16 +279,17 @@ export function analyzeResearchProjectSolvability(
     }
   }
 
-  const mandatorySpend = mandatoryMilestones
-    .filter((milestone) => reachableMilestoneIds.has(milestone.milestoneId))
-    .reduce((sum, milestone) => sum + milestoneSpend(milestone, sourcesById), 0)
+  const mandatorySpend = mandatoryMilestones.reduce(
+    (sum, milestone) => sum + milestoneSpend(milestone, sourcesById),
+    0,
+  )
 
   const totalCapacity = definition.sources.reduce(
     (sum, source) => sum + source.analyticalCapacity,
     0,
   )
 
-  if (mandatorySpend > totalCapacity && unreachableMandatory.length === 0) {
+  if (mandatorySpend > totalCapacity) {
     diagnostics.push(
       diagnostic(
         'unreachable_mandatory',
@@ -316,21 +317,22 @@ export function analyzeResearchProjectSolvability(
       if (order === undefined) return false
       return order < window.startOrder || order > window.endOrder
     })
-    if (
-      mandatoryOutsideWindow.length > 0 &&
-      mandatoryOutsideWindow.length === mandatoryMilestones.length
-    ) {
+    if (mandatoryOutsideWindow.length > 0) {
       diagnostics.push(
         diagnostic(
           'hard_window_infeasible',
           'hardOpportunityBounds.availabilityWindow',
-          'Every mandatory milestone orderIndex falls outside the authored availability window.',
+          'At least one mandatory milestone orderIndex falls outside the authored availability window.',
         ),
       )
     }
   }
 
-  if (runtimeDependent && diagnostics.length === 0) {
+  const hasStaticInfeasibility = diagnostics.some(
+    (entry) => entry.code !== 'runtime_dependent',
+  )
+
+  if (runtimeDependent && !hasStaticInfeasibility) {
     diagnostics.push(
       diagnostic(
         'runtime_dependent',
@@ -341,7 +343,7 @@ export function analyzeResearchProjectSolvability(
     return { status: 'runtime_dependent', diagnostics }
   }
 
-  if (diagnostics.some((entry) => entry.code !== 'runtime_dependent')) {
+  if (hasStaticInfeasibility) {
     return { status: 'infeasible', diagnostics }
   }
 

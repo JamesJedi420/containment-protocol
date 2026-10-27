@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                                |
+| **Status**        | **Recently shipped**                                                                           |
 | **Issue**         | [SPE-2273](https://linear.app/spectranoir/issue/SPE-2273)                                      |
 | **Parent**        | [SPE-1090](https://linear.app/spectranoir/issue/SPE-1090) — Backlog                             |
 | **Branch**        | `jamesdyedbq/spe-2273-cross-system-transformation-registry-object-refs-morphism`               |

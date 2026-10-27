@@ -54,7 +54,7 @@ describe('SPE-3360 facility production chain', () => {
   })
 
   it('advances a compact chain from storage input to facility-produced alloy', () => {
-    let run = createProductionChainRun({
+    const run = createProductionChainRun({
       runId: 'run:compact-1',
       chainId: 'chain:compact-smelter',
     })!

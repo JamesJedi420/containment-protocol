@@ -496,15 +496,14 @@ export function advanceProductionChain(input: {
   if (chain.externalCatalyst) consumed.push({ ...chain.externalCatalyst })
 
   const isLast = input.run.currentStageIndex >= chain.stages.length - 1
-  const nextIndex = input.run.currentStageIndex + 1
   const reasons: ProductionReasonCode[] = [...resolved.reasonCodes, 'stage_completed']
 
   let recirculationBuffer = input.run.recirculationBuffer
   let cyclesCompleted = input.run.cyclesCompleted
-  let producedOutput: ProductionMaterialRef | null = null
-  let handoff: ProductionMaterialHandoff | null = null
-  let state: ProductionRunState = 'producing'
-  let currentStageIndex = nextIndex
+  let producedOutput: ProductionMaterialRef
+  let handoff: ProductionMaterialHandoff
+  let state: ProductionRunState
+  let currentStageIndex: number
 
   if (stage.recirculates) {
     const loss = chain.recirculationLossPerCycle ?? 0
@@ -543,6 +542,7 @@ export function advanceProductionChain(input: {
     })
     reasons.push('facility_produced')
   } else {
+    currentStageIndex = input.run.currentStageIndex + 1
     state = resolved.state === 'degraded' ? 'degraded' : 'producing'
     producedOutput = Object.freeze({ ...stage.output })
     handoff = Object.freeze({

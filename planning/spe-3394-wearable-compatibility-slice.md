@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------ |
-| **Status**        | **In progress**                                                                            |
+| **Status**        | **Recently shipped**                                                                       |
 | **Issue**         | [SPE-3394](https://linear.app/spectranoir/issue/SPE-3394)                                  |
 | **Parent**        | [SPE-145](https://linear.app/spectranoir/issue/SPE-145) — Backlog                          |
 | **Branch**        | `jamesdyedbq/spe-3394-wearable-layer-and-body-region-compatibility-resolver`               |

@@ -446,7 +446,10 @@ export function equipAgentItem(
   const currentInstance = getEquipmentInstanceAtAgentSlot(state, agentId, slot)
   const currentItemId =
     currentInstance?.definitionId ?? getEquipmentSlotItemId(agent.equipmentSlots, slot)
-  if (currentItemId === itemId) {
+  const catalogStock = getCatalogEquipmentStock(state, itemId)
+  const replacingDamagedInstance =
+    currentItemId === itemId && currentInstance?.condition === 'damaged' && catalogStock > 0
+  if (currentItemId === itemId && !replacingDamagedInstance) {
     return ensureNormalizedGameState(state)
   }
 
@@ -464,7 +467,6 @@ export function equipAgentItem(
   let transferredInstance: EquipmentInstance | undefined
 
   const availableStock = getInventoryStock(nextState, itemId)
-  const catalogStock = getCatalogEquipmentStock(nextState, itemId)
   if (catalogStock > 0) {
     nextInventory[itemId] = availableStock - 1
   } else {

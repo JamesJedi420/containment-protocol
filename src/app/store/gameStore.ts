@@ -183,6 +183,7 @@ import {
   returnFabricatedOrdinaryEquipmentInstanceToLot,
   unequipAgentItem,
 } from '../../domain/sim/equipment'
+import { authorizePersonnelPpeFulfillment } from '../../domain/personnelPpeReplacementDemand'
 import {
   activateCombatStim,
   destroyStoredCombatStimInstance,
@@ -490,6 +491,7 @@ interface GameStore {
   equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
   activateCombatStim: (instanceId: string) => void
+  authorizePersonnelPpeFulfillment: (agentId: Id, requirementId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
   queueEquipmentDeconstruction: (itemId: string, source?: EquipmentDeconstructionSourceRef) => void
@@ -2379,6 +2381,16 @@ export const useGameStore = create<GameStore>()(
 
       activateCombatStim: (instanceId) =>
         set((s) => ({ game: activateCombatStim(s.game, instanceId).state })),
+
+      authorizePersonnelPpeFulfillment: (agentId, requirementId) =>
+        set((s) => {
+          const result = authorizePersonnelPpeFulfillment(
+            s.game,
+            { agentId, requirementId },
+            { equipAgentItem, equipStoredEquipmentInstance }
+          )
+          return { game: result.state }
+        }),
 
       unequipAgentItem: (agentId, slot) =>
         set((s) => ({ game: unequipAgentItem(s.game, agentId, slot) })),

@@ -37,13 +37,14 @@ function EquipmentPage() {
     returnFabricatedStoredCombatStimInstanceToLot,
     equipAgentItem,
     equipStoredEquipmentInstance,
+    authorizePersonnelPpeFulfillment,
     activateCombatStim,
     unequipAgentItem,
     queueEquipmentDeconstruction,
     enableEquipmentAutoScrap,
     disableEquipmentAutoScrap,
   } = useGameStore()
-  const loadoutViews = getAgentEquipmentLoadoutViews(game)
+  const loadoutViews = useMemo(() => getAgentEquipmentLoadoutViews(game), [game])
   const instanceMaterializationViews = useMemo(
     () => getEquipmentInstanceMaterializationViews(game),
     [game]
@@ -1227,6 +1228,35 @@ function EquipmentPage() {
                     </p>
                     {view.blockedReason ? (
                       <p className="mt-1 text-xs text-amber-200/80">{view.blockedReason}</p>
+                    ) : null}
+                    {view.ppeDemands.length > 0 ? (
+                      <ul className="mt-2 space-y-1" aria-label={`PPE replacement demand for ${view.agentName}`}>
+                        {view.ppeDemands.map((demand) => (
+                          <li key={demand.demandId} className="text-xs">
+                            <span className="text-amber-100">
+                              PPE unmet: {demand.requiredItemName} ({demand.slot})
+                            </span>
+                            <span className="opacity-70"> — {demand.reasonSummary}</span>
+                            {demand.fulfillable && view.editable ? (
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost ml-2"
+                                onClick={() =>
+                                  authorizePersonnelPpeFulfillment(
+                                    view.agentId,
+                                    demand.requirementId
+                                  )
+                                }
+                                aria-label={`Authorize PPE replacement of ${demand.requiredItemName} for ${view.agentName}`}
+                              >
+                                Authorize replacement
+                              </button>
+                            ) : (
+                              <span className="ml-2 opacity-50">Blocked</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     ) : null}
                   </div>
                 </div>

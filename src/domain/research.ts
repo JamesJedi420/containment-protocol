@@ -6,6 +6,17 @@ import type {
   ResearchUnlock,
   ResearchUnlockCategory,
 } from './models'
+import type { ResearchProjectDefinition } from './researchProjectDefinition'
+import type {
+  ResearchCapabilityPacket,
+  ResearchExecutionRuntime,
+  ResearchExecutionTickResult,
+} from './researchThroughputExecution'
+import {
+  applyResearchExecutionTick,
+  classifyResearchExecutionEntry,
+  createEmptyResearchExecutionRuntime,
+} from './researchThroughputExecution'
 import { INTEL_CALIBRATION } from './sim/calibration'
 
 export const INTEL_DEGRADATION_REDUCTION_PER_INTEL_TOOL =
@@ -83,6 +94,121 @@ export function activateResearchProjects(state: ResearchState, week: number, fac
     projects,
     researchSlots: slots,
     researchSpeedMultiplier: speed,
+  }
+}
+
+export interface AdvanceResearchProgressWithThroughputInput {
+  readonly state: ResearchState
+  readonly week: number
+  readonly projectId: string
+  readonly definition: ResearchProjectDefinition
+  readonly capability: ResearchCapabilityPacket
+  readonly executionRuntime?: ResearchExecutionRuntime | null
+}
+
+export interface AdvanceResearchProgressWithThroughputResult {
+  readonly state: ResearchState
+  readonly tick: ResearchExecutionTickResult
+  readonly executionRuntime: ResearchExecutionRuntime | null
+}
+
+/**
+ * Parallel advance path using SPE-3343 throughput execution.
+ * Does not mutate legacy time/data/material progress fields.
+ */
+export function advanceResearchProgressWithThroughput(
+  input: AdvanceResearchProgressWithThroughputInput,
+): AdvanceResearchProgressWithThroughputResult {
+  const { state, week, projectId, definition, capability } = input
+  const project = state.projects[projectId]
+  if (!project || project.status !== 'active') {
+    const emptyTick: ResearchExecutionTickResult = {
+      outcome: 'blocked',
+      progressDelta: 0,
+      reasonCodes: ['project_not_active'],
+      explanationSummary: 'Project is not active.',
+      updatedRuntime: input.executionRuntime ?? null,
+      milestoneOutputs: [],
+      throughput: {
+        progressDelta: 0,
+        outcome: 'blocked',
+        reasonCodes: ['project_not_active'],
+        effectiveCapability: 0,
+        baseThroughput: 0,
+        throughputMultiplier: 0,
+        explanationSummary: 'Project is not active.',
+      },
+    }
+    return {
+      state,
+      tick: emptyTick,
+      executionRuntime: input.executionRuntime ?? null,
+    }
+  }
+
+  const entry = classifyResearchExecutionEntry({
+    definition,
+    capability,
+    hasExistingPartialProgress: (input.executionRuntime?.progressUnits ?? 0) > 0,
+  })
+
+  if (entry.kind === 'trivial_information') {
+    const throughputOnly = applyResearchExecutionTick({
+      definition,
+      runtime: createEmptyResearchExecutionRuntime(projectId),
+      capability,
+    })
+    return {
+      state: {
+        ...state,
+        projects: {
+          ...state.projects,
+          [projectId]: { ...project, lastUpdatedWeek: week },
+        },
+      },
+      tick: { ...throughputOnly, updatedRuntime: null },
+      executionRuntime: null,
+    }
+  }
+
+  const runtime =
+    input.executionRuntime ??
+    createEmptyResearchExecutionRuntime(projectId, definition)
+
+  const tick = applyResearchExecutionTick({
+    definition,
+    runtime,
+    capability,
+  })
+
+  const nextStatus =
+    tick.outcome === 'completed' ? ('completed' as const) : project.status
+
+  const nextState: ResearchState = {
+    ...state,
+    projects: {
+      ...state.projects,
+      [projectId]: {
+        ...project,
+        status: nextStatus,
+        lastUpdatedWeek: week,
+        ...(tick.outcome === 'completed' ? { completedWeek: week } : {}),
+      },
+    },
+    activeProjectIds:
+      tick.outcome === 'completed'
+        ? state.activeProjectIds.filter((id) => id !== projectId)
+        : state.activeProjectIds,
+    completedProjectIds:
+      tick.outcome === 'completed'
+        ? [...state.completedProjectIds, projectId]
+        : state.completedProjectIds,
+  }
+
+  return {
+    state: nextState,
+    tick,
+    executionRuntime: tick.updatedRuntime,
   }
 }
 

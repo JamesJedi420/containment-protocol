@@ -54,15 +54,11 @@ export interface ElapsedTimeUpdateResult {
 function clampValue(
   value: number,
   minValue: number | undefined,
-  maxValue: number | undefined,
+  maxValue: number | undefined
 ): { value: number; clamped: boolean } {
-  if (
-    minValue !== undefined &&
-    maxValue !== undefined &&
-    minValue > maxValue
-  ) {
+  if (minValue !== undefined && maxValue !== undefined && minValue > maxValue) {
     throw new Error(
-      `elapsedTimeInvariantUpdate: inverted bounds minValue ${minValue} > maxValue ${maxValue}`,
+      `elapsedTimeInvariantUpdate: inverted bounds minValue ${minValue} > maxValue ${maxValue}`
     )
   }
   let next = value
@@ -86,7 +82,7 @@ function discardOutwardRemainder(
   value: number,
   remainderMilli: number,
   minValue: number | undefined,
-  maxValue: number | undefined,
+  maxValue: number | undefined
 ): number {
   if (maxValue !== undefined && value >= maxValue && remainderMilli > 0) {
     return 0
@@ -110,9 +106,7 @@ function normalizeRemainder(remainderMilli: number): number {
  * discrete producers advance only by eventCount (scheduler cadence must not
  * invent events).
  */
-export function applyElapsedTimeUpdate(
-  input: ElapsedTimeUpdateInput,
-): ElapsedTimeUpdateResult {
+export function applyElapsedTimeUpdate(input: ElapsedTimeUpdateInput): ElapsedTimeUpdateResult {
   if (input.kind === 'discrete_event') {
     const events =
       Number.isFinite(input.eventCount) && Number.isInteger(input.eventCount)
@@ -143,31 +137,29 @@ export function applyElapsedTimeUpdate(
       ? input.rateMilliPerUnit
       : 0
   const startValue = Number.isFinite(input.value) ? input.value : 0
-  const startRemainder = normalizeRemainder(
-    Number.isFinite(input.remainderMilli) ? input.remainderMilli : 0,
+  const clampedStart = clampValue(startValue, input.minValue, input.maxValue)
+  const startRemainder = discardOutwardRemainder(
+    clampedStart.value,
+    normalizeRemainder(Number.isFinite(input.remainderMilli) ? input.remainderMilli : 0),
+    input.minValue,
+    input.maxValue
   )
 
   if (elapsed === 0 || rate === 0) {
-    const clamped = clampValue(startValue, input.minValue, input.maxValue)
     return {
       kind: 'rate',
-      value: clamped.value,
-      remainderMilli: discardOutwardRemainder(
-        clamped.value,
-        startRemainder,
-        input.minValue,
-        input.maxValue,
-      ),
+      value: clampedStart.value,
+      remainderMilli: startRemainder,
       appliedElapsedUnits: elapsed,
       appliedEvents: 0,
-      clamped: clamped.clamped,
+      clamped: clampedStart.clamped,
     }
   }
 
   const totalMilli = startRemainder + rate * elapsed
   const deltaWhole = Math.trunc(totalMilli / ELAPSED_TIME_RATE_SCALE)
   const nextRemainder = totalMilli - deltaWhole * ELAPSED_TIME_RATE_SCALE
-  const raw = startValue + deltaWhole
+  const raw = clampedStart.value + deltaWhole
   const clamped = clampValue(raw, input.minValue, input.maxValue)
 
   // Clear remainder on clamp, and also discard outward fractional progress
@@ -178,7 +170,7 @@ export function applyElapsedTimeUpdate(
         clamped.value,
         normalizeRemainder(nextRemainder),
         input.minValue,
-        input.maxValue,
+        input.maxValue
       )
 
   return {
@@ -187,7 +179,7 @@ export function applyElapsedTimeUpdate(
     remainderMilli,
     appliedElapsedUnits: elapsed,
     appliedEvents: 0,
-    clamped: clamped.clamped,
+    clamped: clampedStart.clamped || clamped.clamped,
   }
 }
 
@@ -208,19 +200,23 @@ export function applyRateAcrossCadence(args: {
   const sum = args.sliceElapsedUnits.reduce((acc, n) => acc + n, 0)
   if (sum !== args.totalElapsed) {
     throw new Error(
-      `elapsedTimeInvariantUpdate: cadence slices sum ${sum} !== totalElapsed ${args.totalElapsed}`,
+      `elapsedTimeInvariantUpdate: cadence slices sum ${sum} !== totalElapsed ${args.totalElapsed}`
     )
   }
   for (const elapsedUnits of args.sliceElapsedUnits) {
     if (!Number.isFinite(elapsedUnits) || !Number.isInteger(elapsedUnits) || elapsedUnits < 0) {
       throw new Error(
-        `elapsedTimeInvariantUpdate: cadence slice must be a non-negative integer, got ${elapsedUnits}`,
+        `elapsedTimeInvariantUpdate: cadence slice must be a non-negative integer, got ${elapsedUnits}`
       )
     }
   }
-  if (!Number.isFinite(args.totalElapsed) || !Number.isInteger(args.totalElapsed) || args.totalElapsed < 0) {
+  if (
+    !Number.isFinite(args.totalElapsed) ||
+    !Number.isInteger(args.totalElapsed) ||
+    args.totalElapsed < 0
+  ) {
     throw new Error(
-      `elapsedTimeInvariantUpdate: totalElapsed must be a non-negative integer, got ${args.totalElapsed}`,
+      `elapsedTimeInvariantUpdate: totalElapsed must be a non-negative integer, got ${args.totalElapsed}`
     )
   }
 

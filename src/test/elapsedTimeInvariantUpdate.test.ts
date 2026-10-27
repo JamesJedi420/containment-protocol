@@ -124,6 +124,31 @@ describe('applyElapsedTimeUpdate rate cadence equivalence', () => {
     expect(afterFine).toEqual(afterCoarse)
   })
 
+  it('clamps out-of-range rate starts before applying elapsed progress', () => {
+    const rate = -750
+    const coarse = applyElapsedTimeUpdate({
+      kind: 'rate',
+      elapsedUnits: 4,
+      rateMilliPerUnit: rate,
+      value: 12,
+      remainderMilli: 0,
+      minValue: 0,
+      maxValue: 10,
+    })
+    const fine = applyRateAcrossCadence({
+      totalElapsed: 4,
+      sliceElapsedUnits: [1, 1, 1, 1],
+      rateMilliPerUnit: rate,
+      value: 12,
+      minValue: 0,
+      maxValue: 10,
+    })
+
+    expect(fine).toEqual(coarse)
+    expect(coarse.value).toBe(7)
+    expect(coarse.remainderMilli).toBe(0)
+  })
+
   it('throws on inverted min/max bounds', () => {
     expect(() =>
       applyElapsedTimeUpdate({
@@ -134,7 +159,7 @@ describe('applyElapsedTimeUpdate rate cadence equivalence', () => {
         remainderMilli: 0,
         minValue: 5,
         maxValue: 1,
-      }),
+      })
     ).toThrow(/inverted bounds/)
   })
 
@@ -145,7 +170,7 @@ describe('applyElapsedTimeUpdate rate cadence equivalence', () => {
         sliceElapsedUnits: [0.5, 0.5],
         rateMilliPerUnit: ELAPSED_TIME_RATE_SCALE,
         value: 0,
-      }),
+      })
     ).toThrow(/non-negative integer/)
   })
 

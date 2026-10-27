@@ -236,7 +236,7 @@ export function resolveEnvironmentalOperationalContext(
     const ranked = [...candidates].sort((a, b) => {
       const scopeDelta = scopeRank(b.scope) - scopeRank(a.scope)
       if (scopeDelta !== 0) return scopeDelta
-      return a.ownerId.localeCompare(b.ownerId)
+      return a.ownerId < b.ownerId ? -1 : a.ownerId > b.ownerId ? 1 : 0
     })
 
     const winner = ranked[0]!

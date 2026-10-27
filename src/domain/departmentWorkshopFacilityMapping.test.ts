@@ -166,7 +166,7 @@ describe('deriveAllDepartmentWorkshopSafetyFromFacilities', () => {
     expect(result['department:biohazard-response']).toEqual({
       isolation: 'poor',
       ventilation: 'poor',
-      ppe: 'poor',
+      ppe: 'good',
       dualAuth: 'good',
     })
     expect(result['department:records-analysis']).toEqual({

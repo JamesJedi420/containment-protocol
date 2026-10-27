@@ -7,10 +7,13 @@ import {
   deriveDepartmentWorkshopSafetyFromFacilities,
 } from '../domain/departmentWorkshopFacilityMapping'
 import {
+  composeDepartmentWorkshopLiveSafetyConditions,
   deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities,
   registerDepartmentWorkshopCompletionOutcomes,
 } from '../domain/departmentWorkshopLiveFacilitySafety'
-import type { FacilityStatus, GameState } from '../domain/models'
+import { WORKSHOP_OPERATIONAL_ASSIGNMENT_TAG } from '../domain/departmentWorkshopOperationalSafety'
+import { createStarterAgent } from '../domain/templates/classTables'
+import type { Agent, FacilityStatus, GameState } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 const BIO_DEPARTMENT_ID = 'department:biohazard-response'
@@ -90,14 +93,13 @@ function makeWorkshopState(status?: FacilityStatus) {
 }
 
 describe('authored department workshop facility safety mapping', () => {
-  it('maps the production biohazard department to the authored facility axes', () => {
+  it('maps the production biohazard department to isolation and ventilation facility axes', () => {
     expect(DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS).toEqual([
       {
         departmentId: BIO_DEPARTMENT_ID,
         axisBindings: [
           { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'isolation' },
           { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'ventilation' },
-          { facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'ppe' },
         ],
       },
     ])
@@ -117,7 +119,7 @@ describe('authored department workshop facility safety mapping', () => {
     ).toEqual({
       isolation: 'poor',
       ventilation: 'poor',
-      ppe: 'poor',
+      ppe: 'good',
       dualAuth: 'good',
     })
     expect(
@@ -125,7 +127,7 @@ describe('authored department workshop facility safety mapping', () => {
     ).toEqual({
       isolation: 'poor',
       ventilation: 'poor',
-      ppe: 'poor',
+      ppe: 'good',
       dualAuth: 'good',
     })
     expect(
@@ -156,7 +158,7 @@ describe('live facility completion registration', () => {
     expect(conditions[BIO_WORK_ORDER_ID]).toEqual({
       isolation: 'poor',
       ventilation: 'poor',
-      ppe: 'poor',
+      ppe: 'good',
       dualAuth: 'good',
     })
     expect(conditions[RECORDS_WORK_ORDER_ID]).toEqual({
@@ -180,6 +182,53 @@ describe('live facility completion registration', () => {
       safetyReason: 'inadequate_isolation',
     })
     expect(result.outcomes[RECORDS_WORK_ORDER_ID]).toMatchObject({ safety: 'safe' })
+  })
+
+  it('composes staff PPE and clearance dualAuth onto facility isolation/ventilation', () => {
+    const base = makeWorkshopState('active')
+    const medic = {
+      ...createStarterAgent({
+        id: 'agent-live-medic',
+        name: 'Live Medic',
+        role: 'medic',
+      }),
+      tags: [WORKSHOP_OPERATIONAL_ASSIGNMENT_TAG],
+    } as Agent
+    const unmet: GameState = {
+      ...base,
+      clearanceLevel: 1,
+      agency: base.agency ? { ...base.agency, clearanceLevel: 1 } : base.agency,
+      agents: { ...base.agents, [medic.id]: medic },
+    }
+    const unmetProjection = composeDepartmentWorkshopLiveSafetyConditions(
+      unmet,
+      BIO_DEPARTMENT_ID
+    )
+    expect(unmetProjection.conditions).toEqual({
+      isolation: 'good',
+      ventilation: 'good',
+      ppe: 'poor',
+      dualAuth: 'poor',
+    })
+    expect(unmetProjection.operational.ppeDeficitReasons).toContain('missing_assignment')
+
+    const met: GameState = {
+      ...unmet,
+      clearanceLevel: 3,
+      agency: unmet.agency ? { ...unmet.agency, clearanceLevel: 3 } : unmet.agency,
+      agents: {
+        ...unmet.agents,
+        [medic.id]: { ...medic, equipmentSlots: { armor: 'hazmat_suit' } },
+      },
+    }
+    expect(composeDepartmentWorkshopLiveSafetyConditions(met, BIO_DEPARTMENT_ID).conditions).toEqual(
+      {
+        isolation: 'good',
+        ventilation: 'good',
+        ppe: 'good',
+        dualAuth: 'good',
+      }
+    )
   })
 })
 

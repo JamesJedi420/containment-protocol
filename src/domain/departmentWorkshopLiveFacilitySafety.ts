@@ -13,6 +13,12 @@ import {
   type DepartmentWorkshopFacilityMapping,
 } from './departmentWorkshopFacilityMapping'
 import {
+  DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS,
+  projectDepartmentWorkshopOperationalSafety,
+  type DepartmentWorkshopOperationalSafetyMapping,
+  type DepartmentWorkshopOperationalSafetyProjection,
+} from './departmentWorkshopOperationalSafety'
+import {
   DEFAULT_DEPARTMENT_WORKSHOP_ROOM_QUALITY_MAPPINGS,
   deriveDepartmentWorkshopRoomContaminationFromFacilities,
   type DepartmentWorkshopRoomQualityFacilityMapping,
@@ -99,14 +105,51 @@ export function composeDepartmentWorkshopQualityConditionsWithEquipmentCondition
 }
 
 /**
- * Projects current authoritative facility state to exact completed work-order
- * IDs. Missing work orders are ignored; missing department mappings keep the
- * existing all-good fallback owned by the facility projector.
+ * Composes SPE-2772 facility isolation/ventilation with SPE-2771 operational
+ * PPE / dualAuth. When operational mapping owns an axis, it replaces the
+ * facility value for that axis. Unmapped operational axes keep facility/legacy.
+ */
+export function composeDepartmentWorkshopLiveSafetyConditions(
+  source: GameState,
+  departmentId: string,
+  facilityMappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
+  operationalMappings: readonly DepartmentWorkshopOperationalSafetyMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS
+): {
+  readonly conditions: DepartmentWorkshopSafetyConditions
+  readonly operational: DepartmentWorkshopOperationalSafetyProjection
+} {
+  const facility = deriveDepartmentWorkshopSafetyFromFacilities(
+    source,
+    departmentId,
+    facilityMappings
+  )
+  const operational = projectDepartmentWorkshopOperationalSafety(
+    source,
+    departmentId,
+    operationalMappings
+  )
+
+  return Object.freeze({
+    conditions: Object.freeze({
+      isolation: facility.isolation,
+      ventilation: facility.ventilation,
+      ppe: operational.ownsPpe ? operational.ppe : facility.ppe,
+      dualAuth: operational.ownsDualAuth ? operational.dualAuth : facility.dualAuth,
+    }),
+    operational,
+  })
+}
+
+/**
+ * Projects current authoritative facility + operational state to exact
+ * completed work-order IDs. Missing work orders are ignored; missing
+ * department mappings keep the existing all-good fallback.
  */
 export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
   source: DepartmentWorkshopLiveFacilitySafetySource,
   workOrderIds: readonly string[],
-  mappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS
+  mappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
+  operationalMappings: readonly DepartmentWorkshopOperationalSafetyMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS
 ): Readonly<Record<string, DepartmentWorkshopSafetyConditions | undefined>> {
   if (!Array.isArray(workOrderIds) || workOrderIds.length === 0) {
     return Object.freeze({})
@@ -124,11 +167,12 @@ export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
       return [
         [
           workOrderId,
-          deriveDepartmentWorkshopSafetyFromFacilities(
+          composeDepartmentWorkshopLiveSafetyConditions(
             source as GameState,
             workOrder.departmentId,
-            mappings
-          ),
+            mappings,
+            operationalMappings
+          ).conditions,
         ] as const,
       ]
     })

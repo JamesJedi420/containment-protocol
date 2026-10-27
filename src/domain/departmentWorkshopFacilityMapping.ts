@@ -27,6 +27,8 @@ export const DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS: readonly DepartmentW
   Object.freeze([
     Object.freeze({
       departmentId: 'department:biohazard-response',
+      // SPE-2771: PPE + dualAuth come from operational staff/clearance projection.
+      // Facility mapping retains isolation + ventilation only.
       axisBindings: Object.freeze([
         Object.freeze({
           facilityId: BIOHAZARD_RESPONSE_FACILITY_ID,
@@ -36,7 +38,6 @@ export const DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS: readonly DepartmentW
           facilityId: BIOHAZARD_RESPONSE_FACILITY_ID,
           axis: 'ventilation' as const,
         }),
-        Object.freeze({ facilityId: BIOHAZARD_RESPONSE_FACILITY_ID, axis: 'ppe' as const }),
       ]),
     }),
   ])

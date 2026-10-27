@@ -29,7 +29,7 @@ the boundaries that later workshop slices must preserve.
 | Completion outcome receipt                    | `registerDepartmentWorkshopCompletionOutcomes` (SPE-2754)                                             |
 | Completion output quality grade               | `resolveDepartmentWorkshopCompletionQuality` (SPE-2768)                                               |
 | Completion unsafe-processing safety           | `resolveDepartmentWorkshopCompletionSafety` (#3411)                                                   |
-| Live facility safety projection               | `departmentWorkshopFacilityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2772)         |
+| Live facility safety projection               | `departmentWorkshopFacilityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2772 isolation/ventilation; SPE-2771 PPE/dualAuth via `departmentWorkshopOperationalSafety.ts`) |
 | Live facility room-quality projection         | `departmentWorkshopFacilityQualityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2792)  |
 | Live integrity equipment-quality projection   | `departmentWorkshopIntegrityQualityMapping.ts` + `departmentWorkshopLiveFacilitySafety.ts` (SPE-2866) |
 | Player-facing workshop surface                | `departmentWorkshopSurfacing.ts` + mirror view/page (SPE-2773)                                        |

@@ -13,6 +13,12 @@ import {
   type DepartmentWorkshopFacilityMapping,
 } from './departmentWorkshopFacilityMapping'
 import {
+  DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS,
+  projectDepartmentWorkshopOperationalSafety,
+  type DepartmentWorkshopOperationalSafetyMapping,
+  type DepartmentWorkshopOperationalSafetyProjection,
+} from './departmentWorkshopOperationalSafety'
+import {
   DEFAULT_DEPARTMENT_WORKSHOP_ROOM_QUALITY_MAPPINGS,
   deriveDepartmentWorkshopRoomContaminationFromFacilities,
   type DepartmentWorkshopRoomQualityFacilityMapping,
@@ -24,8 +30,9 @@ import {
 } from './departmentWorkshopIntegrityQualityMapping'
 import type { GameState } from './models'
 
+/** Live safety reads facility axes plus operational staff/clearance/PPE facts. */
 export type DepartmentWorkshopLiveFacilitySafetySource = DepartmentWorkshopStateSource &
-  Pick<GameState, 'facilityState'>
+  Pick<GameState, 'facilityState' | 'agents' | 'agency' | 'clearanceLevel' | 'equipmentInstances'>
 
 function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
@@ -99,14 +106,51 @@ export function composeDepartmentWorkshopQualityConditionsWithEquipmentCondition
 }
 
 /**
- * Projects current authoritative facility state to exact completed work-order
- * IDs. Missing work orders are ignored; missing department mappings keep the
- * existing all-good fallback owned by the facility projector.
+ * Composes SPE-2772 facility isolation/ventilation with SPE-2771 operational
+ * PPE / dualAuth. When operational mapping owns an axis, it replaces the
+ * facility value for that axis. Unmapped operational axes keep facility/legacy.
+ */
+export function composeDepartmentWorkshopLiveSafetyConditions(
+  source: DepartmentWorkshopLiveFacilitySafetySource,
+  departmentId: string,
+  facilityMappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
+  operationalMappings: readonly DepartmentWorkshopOperationalSafetyMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS
+): {
+  readonly conditions: DepartmentWorkshopSafetyConditions
+  readonly operational: DepartmentWorkshopOperationalSafetyProjection
+} {
+  const facility = deriveDepartmentWorkshopSafetyFromFacilities(
+    source as GameState,
+    departmentId,
+    facilityMappings
+  )
+  const operational = projectDepartmentWorkshopOperationalSafety(
+    source as GameState,
+    departmentId,
+    operationalMappings
+  )
+
+  return Object.freeze({
+    conditions: Object.freeze({
+      isolation: facility.isolation,
+      ventilation: facility.ventilation,
+      ppe: operational.ownsPpe ? operational.ppe : facility.ppe,
+      dualAuth: operational.ownsDualAuth ? operational.dualAuth : facility.dualAuth,
+    }),
+    operational,
+  })
+}
+
+/**
+ * Projects current authoritative facility + operational state to exact
+ * completed work-order IDs. Missing work orders are ignored; missing
+ * department mappings keep the existing all-good fallback.
  */
 export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
   source: DepartmentWorkshopLiveFacilitySafetySource,
   workOrderIds: readonly string[],
-  mappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS
+  mappings: readonly DepartmentWorkshopFacilityMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_FACILITY_MAPPINGS,
+  operationalMappings: readonly DepartmentWorkshopOperationalSafetyMapping[] = DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS
 ): Readonly<Record<string, DepartmentWorkshopSafetyConditions | undefined>> {
   if (!Array.isArray(workOrderIds) || workOrderIds.length === 0) {
     return Object.freeze({})
@@ -124,11 +168,12 @@ export function deriveDepartmentWorkshopSafetyByWorkOrderIdFromFacilities(
       return [
         [
           workOrderId,
-          deriveDepartmentWorkshopSafetyFromFacilities(
-            source as GameState,
+          composeDepartmentWorkshopLiveSafetyConditions(
+            source,
             workOrder.departmentId,
-            mappings
-          ),
+            mappings,
+            operationalMappings
+          ).conditions,
         ] as const,
       ]
     })

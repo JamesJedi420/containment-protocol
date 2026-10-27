@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------ |
-| **Status**        | **In progress**                                                                            |
+| **Status**        | **Recently shipped**                                                                       |
 | **Issue**         | [SPE-3441](https://linear.app/spectranoir/issue/SPE-3441)                                  |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Backlog                          |
 | **Branch**        | `jamesdyedbq/spe-3441-personnel-ppe-replacement-demand-and-authorized-fulfillment`         |

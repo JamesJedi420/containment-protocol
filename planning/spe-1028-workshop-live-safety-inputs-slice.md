@@ -39,7 +39,7 @@ Targeted tests cover authored mapping, active and non-active behavior, absent fa
 
 ## Deferred
 
-- Broader live staff, equipment, clearance, and authorization projection remains with SPE-2771.
+- Broader live staff, equipment, clearance, and authorization projection: owned by SPE-2771 (implements staff PPE + dualAuth; facility PPE binding retired for biohazard).
 - Additional authored department mappings require explicit production ownership evidence.
 - Live completion-quality projection remains a separate SPE-1028 follow-up.
 

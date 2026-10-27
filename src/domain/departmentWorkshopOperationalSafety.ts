@@ -1,15 +1,15 @@
 /**
  * SPE-2771 — live operational PPE and dual-authorization projection for
  * department workshop safety. Composes with SPE-2772 facility isolation /
- * ventilation. Consumes SPE-3441 PPE demand packets. Does not grade safety
- * (SPE-2769 / `resolveDepartmentWorkshopCompletionSafety` remains sole grader).
+ * ventilation. Mirrors the SPE-3441 medic hazmat PPE requirement by stable
+ * requirement id + slot/definition facts without importing the PPE-demand or
+ * equipment catalog modules (those sit on a production↔equipment init cycle
+ * that must stay off the week-close live-safety import graph).
+ * Does not grade safety (`resolveDepartmentWorkshopCompletionSafety` remains
+ * the sole grader).
  */
 
-import type { AgentRole, GameState } from './models'
-import {
-  resolvePersonnelPpeDemand,
-  type PpeDeficitReason,
-} from './personnelPpeReplacementDemand'
+import type { Agent, AgentRole, GameState } from './models'
 import type { DepartmentWorkshopConditionLevel } from './departmentWorkshopQueue'
 
 export const DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_OWNER = 'SPE-2771' as const
@@ -21,6 +21,11 @@ export const DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_OWNER = 'SPE-2771' as const
  */
 export const WORKSHOP_OPERATIONAL_ASSIGNMENT_TAG = 'workshop_ops' as const
 
+/** Stable SPE-3441 fixture id mirrored for workshop PPE projection. */
+export const BIOHAZARD_WORKSHOP_PPE_REQUIREMENT_ID = 'ppe:medic:armor:hazmat_suit' as const
+const BIOHAZARD_WORKSHOP_PPE_SLOT = 'armor' as const
+const BIOHAZARD_WORKSHOP_PPE_DEFINITION_ID = 'hazmat_suit' as const
+
 export const DEPARTMENT_WORKSHOP_OPERATIONAL_FALLBACK_REASONS = [
   'ppe_unmapped_department',
   'ppe_no_assigned_staff',
@@ -30,9 +35,17 @@ export const DEPARTMENT_WORKSHOP_OPERATIONAL_FALLBACK_REASONS = [
 export type DepartmentWorkshopOperationalFallbackReason =
   (typeof DEPARTMENT_WORKSHOP_OPERATIONAL_FALLBACK_REASONS)[number]
 
+export const DEPARTMENT_WORKSHOP_PPE_DEFICIT_REASONS = [
+  'missing_assignment',
+  'unserviceable',
+  'wrong_definition',
+] as const
+export type DepartmentWorkshopPpeDeficitReason =
+  (typeof DEPARTMENT_WORKSHOP_PPE_DEFICIT_REASONS)[number]
+
 export interface DepartmentWorkshopOperationalSafetyMapping {
   readonly departmentId: string
-  /** SPE-3441 requirement IDs that assigned staff must satisfy for PPE good. */
+  /** SPE-3441-aligned requirement IDs that assigned staff must satisfy for PPE good. */
   readonly ppeRequirementIds: readonly string[]
   /** Active agent roles eligible for workshop ops assignment (with tag). */
   readonly assignedRoles: readonly AgentRole[]
@@ -48,7 +61,7 @@ export const DEFAULT_DEPARTMENT_WORKSHOP_OPERATIONAL_SAFETY_MAPPINGS: readonly D
   Object.freeze([
     Object.freeze({
       departmentId: 'department:biohazard-response',
-      ppeRequirementIds: Object.freeze(['ppe:medic:armor:hazmat_suit'] as const),
+      ppeRequirementIds: Object.freeze([BIOHAZARD_WORKSHOP_PPE_REQUIREMENT_ID] as const),
       assignedRoles: Object.freeze(['medic'] as const satisfies readonly AgentRole[]),
       dualAuthMinClearanceLevel: 2,
     }),
@@ -61,7 +74,7 @@ export interface DepartmentWorkshopOperationalSafetyProjection {
   readonly ownsDualAuth: boolean
   readonly assignedAgentIds: readonly string[]
   readonly fallbackReasons: readonly DepartmentWorkshopOperationalFallbackReason[]
-  readonly ppeDeficitReasons: readonly PpeDeficitReason[]
+  readonly ppeDeficitReasons: readonly DepartmentWorkshopPpeDeficitReason[]
 }
 
 const EMPTY_PROJECTION: DepartmentWorkshopOperationalSafetyProjection = Object.freeze({
@@ -71,7 +84,7 @@ const EMPTY_PROJECTION: DepartmentWorkshopOperationalSafetyProjection = Object.f
   ownsDualAuth: false,
   assignedAgentIds: Object.freeze([] as string[]),
   fallbackReasons: Object.freeze([] as DepartmentWorkshopOperationalFallbackReason[]),
-  ppeDeficitReasons: Object.freeze([] as PpeDeficitReason[]),
+  ppeDeficitReasons: Object.freeze([] as DepartmentWorkshopPpeDeficitReason[]),
 })
 
 function compareCodeUnits(left: string, right: string) {
@@ -87,6 +100,78 @@ function resolveAgencyClearanceLevel(source: GameState): number {
     return Math.max(1, Math.trunc(source.clearanceLevel))
   }
   return 1
+}
+
+function readArmorDefinitionId(agent: Agent): string | undefined {
+  const slots = agent.equipmentSlots as Record<string, unknown> | undefined
+  if (!slots) {
+    return undefined
+  }
+  const aliases = [BIOHAZARD_WORKSHOP_PPE_SLOT, 'protectiveGear'] as const
+  for (const alias of aliases) {
+    const value = slots[alias]
+    if (typeof value === 'string' && value.length > 0) {
+      return value
+    }
+  }
+  return undefined
+}
+
+function isEquippedArmorDamaged(source: GameState, agentId: string): boolean {
+  const instances = source.equipmentInstances
+  if (!instances || typeof instances !== 'object') {
+    return false
+  }
+  for (const instance of Object.values(instances)) {
+    if (!instance || typeof instance !== 'object') {
+      continue
+    }
+    const location = (instance as { location?: unknown }).location
+    if (!location || typeof location !== 'object') {
+      continue
+    }
+    const loc = location as { state?: unknown; agentId?: unknown; slot?: unknown }
+    if (
+      loc.state === 'equipped' &&
+      loc.agentId === agentId &&
+      loc.slot === BIOHAZARD_WORKSHOP_PPE_SLOT &&
+      (instance as { condition?: unknown }).condition === 'damaged'
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Resolve PPE deficit reasons for one agent against a mirrored SPE-3441
+ * requirement id. Unknown requirement ids yield no deficit (caller skip).
+ */
+function resolveMirroredPpeDeficit(
+  source: GameState,
+  agent: Agent,
+  requirementId: string
+): readonly DepartmentWorkshopPpeDeficitReason[] | undefined {
+  if (requirementId !== BIOHAZARD_WORKSHOP_PPE_REQUIREMENT_ID) {
+    return undefined
+  }
+  if (agent.role !== 'medic') {
+    return undefined
+  }
+
+  const reasons: DepartmentWorkshopPpeDeficitReason[] = []
+  const definitionId = readArmorDefinitionId(agent)
+  if (!definitionId) {
+    reasons.push('missing_assignment')
+  } else {
+    if (isEquippedArmorDamaged(source, agent.id)) {
+      reasons.push('unserviceable')
+    }
+    if (definitionId !== BIOHAZARD_WORKSHOP_PPE_DEFINITION_ID) {
+      reasons.push('wrong_definition')
+    }
+  }
+  return Object.freeze(reasons)
 }
 
 /**
@@ -138,30 +223,25 @@ export function projectDepartmentWorkshopOperationalSafety(
 
   const assignedAgentIds = listAssignedWorkshopOperationalAgents(source, mapping)
   const fallbackReasons: DepartmentWorkshopOperationalFallbackReason[] = []
-  const ppeDeficitReasons: PpeDeficitReason[] = []
+  const ppeDeficitReasons: DepartmentWorkshopPpeDeficitReason[] = []
 
   let ppe: DepartmentWorkshopConditionLevel = 'good'
   if (assignedAgentIds.length === 0) {
     fallbackReasons.push('ppe_no_assigned_staff')
   } else {
     for (const agentId of assignedAgentIds) {
+      const agent = source.agents?.[agentId]
+      if (!agent) {
+        continue
+      }
       for (const requirementId of mapping.ppeRequirementIds) {
-        const demand = resolvePersonnelPpeDemand(source, { agentId, requirementId })
-        if (!demand) {
+        const deficit = resolveMirroredPpeDeficit(source, agent, requirementId)
+        if (!deficit) {
           continue
         }
-        if (demand.unmet) {
+        if (deficit.length > 0) {
           ppe = 'poor'
-          for (const reason of demand.reasons) {
-            if (
-              reason === 'missing_assignment' ||
-              reason === 'unserviceable' ||
-              reason === 'wrong_definition' ||
-              reason === 'insufficient_capability'
-            ) {
-              ppeDeficitReasons.push(reason)
-            }
-          }
+          ppeDeficitReasons.push(...deficit)
         }
       }
     }

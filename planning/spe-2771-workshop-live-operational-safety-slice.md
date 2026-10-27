@@ -60,6 +60,7 @@ No new Linear issue/relationship; parent umbrellas not coding slice; PR review/C
 
 - Domain: `src/domain/departmentWorkshopOperationalSafety.ts`
 - Assigned staff = active + authored role + `workshop_ops` tag (avoids auto-counting roster medics)
+- PPE check mirrors SPE-3441 medic/`hazmat_suit` fixture without importing equipment catalog (avoids week-close circular init)
 - Compose in: `src/domain/departmentWorkshopLiveFacilitySafety.ts`
 - Facility mapping: drop provisional PPE axis binding for biohazard (isolation + ventilation only)
 - Docs: `docs/department-workshop-queue-audit.md`

@@ -30,6 +30,10 @@ SPE-2549 upgrade normalization retains precedence: coherent timing owns upgradin
 
 Pure domain module `src/domain/elapsedTimeInvariantUpdate.ts` provides a reusable rate-based elapsed-time update contract with milli-unit remainder carry so fine and coarse cadences yield identical discrete values for equal authoritative elapsed time. Representative fixtures cover accumulation/repair and decay/exposure; discrete/event-counted producers remain non-rate. Remainders are returned on the update result and are not a GameState field. SPE-1071 remains campaign-time owner; SPE-3180 remains the subjective-time contradiction boundary. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Managed cultivation lifecycle (SPE-3406)
+
+Pure domain module `src/domain/managedCultivationLifecycle.ts` owns authored cultivation profiles, instance lifecycle/progress (including SPE-3384 remainder), viability reasons, SPE-1058 labor-demand declaration, harvest handoff envelopes, and SPE-1060 ornamental contribution projection. Persistence is proved via `sanitizeManagedCultivationRegistry` (version 1; max 64 instances; fail-closed malformed). Optional GameState wiring and week-close growth remain deferred orchestration. SPE-1027 / SPE-3360 remain harvest consumers; SPE-118 / SPE-182 remain wild ecology owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Regional cross-register event authority (SPE-3417)
 
 Evidence-only catalog `src/domain/regionalCrossRegisterEventAuthority.ts` records owner dispositions for hypothetical multi-family regional event application. It does not mutate GameState, persist registers, or authorize a cross-register event engine. SPE-1090 / SPE-2273 remain translation/trace owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.

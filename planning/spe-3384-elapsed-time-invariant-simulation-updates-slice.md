@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| **Status**        | **In progress**                                                                       |
+| **Status**        | **Recently shipped**                                                                  |
 | **Issue**         | [SPE-3384](https://linear.app/spectranoir/issue/SPE-3384)                             |
 | **Parent**        | [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071) — Backlog                    |
 | **Branch**        | `jamesdyedbq/spe-3384-elapsed-time-invariant-simulation-updates`                      |

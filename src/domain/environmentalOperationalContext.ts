@@ -33,17 +33,12 @@ export const ENV_DIMENSION_IDS = [
 ] as const
 export type EnvDimensionId = (typeof ENV_DIMENSION_IDS)[number]
 
+/** Higher index wins when multiple valid packets share a dimension. */
 export const ENV_SCOPES = ['baseline', 'regional', 'local', 'exceptional', 'temporary'] as const
 export type EnvScope = (typeof ENV_SCOPES)[number]
 
-/** Higher index wins when multiple valid packets share a dimension. */
-export const ENV_SCOPE_PRECEDENCE: readonly EnvScope[] = [
-  'baseline',
-  'regional',
-  'local',
-  'exceptional',
-  'temporary',
-] as const
+/** Alias of ENV_SCOPES — single source of truth for validation and ranking. */
+export const ENV_SCOPE_PRECEDENCE: readonly EnvScope[] = ENV_SCOPES
 
 export const ENV_CONTEXT_ERROR_CODES = [
   'malformed_input',
@@ -107,6 +102,27 @@ function scopeRank(scope: EnvScope): number {
   return ENV_SCOPE_PRECEDENCE.indexOf(scope)
 }
 
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value)
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`
+  }
+  const record = value as Record<string, unknown>
+  const keys = Object.keys(record).sort()
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`
+}
+
+function valuesConflict(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return false
+  try {
+    return stableStringify(left) !== stableStringify(right)
+  } catch {
+    return true
+  }
+}
+
 function freezeRef(ref: SimulationObjectRef): SimulationObjectRef {
   return Object.freeze({ family: ref.family, id: ref.id })
 }
@@ -160,9 +176,9 @@ function validatePacket(packet: EnvironmentalDimensionPacket): EnvContextFinding
 function buildTraceForComponents(
   components: readonly ResolvedEnvironmentalComponent[],
 ): CompositionTrace {
-  const morphisms: TransformationMorphism[] = components.map((component, index) =>
+  const morphisms: TransformationMorphism[] = components.map((component) =>
     Object.freeze({
-      id: `morph:env-${index}-${component.dimensionId}`,
+      id: `morph:env-${component.dimensionId}`,
       kind: 'translate' as const,
       input: component.sourceRef,
       output: Object.freeze({
@@ -236,14 +252,17 @@ export function resolveEnvironmentalOperationalContext(
     const ranked = [...candidates].sort((a, b) => {
       const scopeDelta = scopeRank(b.scope) - scopeRank(a.scope)
       if (scopeDelta !== 0) return scopeDelta
-      return a.ownerId.localeCompare(b.ownerId)
+      // ASCII ordinal compare — avoid localeCompare locale instability.
+      if (a.ownerId < b.ownerId) return -1
+      if (a.ownerId > b.ownerId) return 1
+      return 0
     })
 
     const winner = ranked[0]!
     const sameScope = ranked.filter((packet) => packet.scope === winner.scope)
     if (sameScope.length > 1) {
-      const distinctValues = new Set(sameScope.map((packet) => JSON.stringify(packet.value)))
-      if (distinctValues.size > 1) {
+      const conflict = sameScope.some((packet) => valuesConflict(packet.value, winner.value))
+      if (conflict) {
         findings.push(
           finding('conflicting_same_scope', 'error', {
             dimensionId,
@@ -271,6 +290,13 @@ export function resolveEnvironmentalOperationalContext(
     )
   }
 
+  if (findings.some((item) => item.severity === 'error' && item.code === 'conflicting_same_scope')) {
+    return Object.freeze({
+      ok: false as const,
+      findings: Object.freeze(findings),
+    })
+  }
+
   const owners = new Set(components.map((component) => component.ownerId))
   if (owners.size < 3) {
     findings.push(
@@ -278,13 +304,6 @@ export function resolveEnvironmentalOperationalContext(
         detail: `owners=${owners.size}`,
       }),
     )
-    return Object.freeze({
-      ok: false as const,
-      findings: Object.freeze(findings),
-    })
-  }
-
-  if (findings.some((item) => item.severity === 'error' && item.code === 'conflicting_same_scope')) {
     return Object.freeze({
       ok: false as const,
       findings: Object.freeze(findings),

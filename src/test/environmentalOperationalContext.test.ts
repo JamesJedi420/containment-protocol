@@ -104,7 +104,13 @@ describe('resolveEnvironmentalOperationalContext', () => {
     ).toEqual({ band: 'arid' })
   })
 
-  it('fails closed on same-scope conflicting values', () => {
+  it('fails closed on same-scope conflicting values with remaining owners', () => {
+    const hazard = packet({
+      ownerId: 'SPE-1075',
+      dimensionId: 'hazard_exposure',
+      sourceRef: { family: 'hazard', id: 'exposure:alpha' },
+      value: { class: 'chemical' },
+    })
     const conflict = packet({
       ownerId: 'SPE-3356',
       dimensionId: 'terrain_buildability',
@@ -112,10 +118,68 @@ describe('resolveEnvironmentalOperationalContext', () => {
       sourceRef: { family: 'terrain', id: 'plot:beta' },
       value: { buildable: false },
     })
-    const result = resolveEnvironmentalOperationalContext([TERRAIN, CLIMATE, ECOLOGY, conflict])
+    const result = resolveEnvironmentalOperationalContext([
+      TERRAIN,
+      CLIMATE,
+      ECOLOGY,
+      hazard,
+      conflict,
+    ])
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.findings.some((f) => f.code === 'conflicting_same_scope')).toBe(true)
+    expect(result.findings.some((f) => f.code === 'insufficient_owners')).toBe(false)
+  })
+
+  it('treats key-order-equivalent object payloads as non-conflicting', () => {
+    const alt = packet({
+      ownerId: 'SPE-3356',
+      dimensionId: 'terrain_buildability',
+      scope: 'baseline',
+      sourceRef: { family: 'terrain', id: 'plot:alpha-dup' },
+      value: { grade: 1, buildable: true },
+    })
+    const terrainOrdered = packet({
+      ...TERRAIN,
+      value: { buildable: true, grade: 1 },
+    })
+    const result = resolveEnvironmentalOperationalContext([
+      terrainOrdered,
+      alt,
+      CLIMATE,
+      ECOLOGY,
+    ])
+    expect(result.ok).toBe(true)
+  })
+
+  it('degrades invalid packets to warnings without blocking valid composition', () => {
+    const invalid = packet({
+      ownerId: 'SPE-1596',
+      dimensionId: 'environment_feature',
+      sourceRef: { family: 'feature', id: 'feat:broken' },
+      valid: false,
+      reasonCode: 'stale_feature',
+    })
+    const result = resolveEnvironmentalOperationalContext([TERRAIN, CLIMATE, ECOLOGY, invalid])
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.context.findings.some((f) => f.code === 'invalid_packet')).toBe(true)
+  })
+
+  it('applies temporary scope over baseline', () => {
+    const temporary = packet({
+      ownerId: 'SPE-1221',
+      dimensionId: 'climate_atmosphere',
+      scope: 'temporary',
+      sourceRef: { family: 'climate', id: 'temp:front' },
+      value: { band: 'front' },
+    })
+    const result = resolveEnvironmentalOperationalContext([TERRAIN, CLIMATE, ECOLOGY, temporary])
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(
+      result.context.components.find((c) => c.dimensionId === 'climate_atmosphere')?.scope,
+    ).toBe('temporary')
   })
 
   it('is byte-stable for identical inputs', () => {

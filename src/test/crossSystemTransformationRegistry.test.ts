@@ -183,6 +183,36 @@ describe('validateMorphismChain', () => {
     })
   })
 
+  it('rejects compose morphisms with sparse children without throwing', () => {
+    const composeFirst: readonly TransformationMorphism[] = [
+      {
+        id: 'morph:sparse-compose',
+        kind: 'compose',
+        input: { family: 'evidence_record', id: 'evidence:a' },
+        output: { family: 'evidence_record', id: 'evidence:b' },
+        leftMorphismId: 'morph:sparse-left',
+        rightMorphismId: 'morph:sparse-right',
+      },
+      {
+        id: 'morph:sparse-left',
+        kind: 'map',
+        output: { family: 'evidence_record', id: 'evidence:mid' },
+      } as TransformationMorphism,
+      {
+        id: 'morph:sparse-right',
+        kind: 'map',
+        input: { family: 'evidence_record', id: 'evidence:mid' },
+      } as TransformationMorphism,
+    ]
+    const result = validateMorphismChain(composeFirst)
+    expect(result).toEqual({
+      ok: false,
+      code: 'illegal_compose_endpoints',
+      morphismId: 'morph:sparse-compose',
+    })
+    expect(() => buildCompositionTrace(composeFirst)).toThrow(/illegal_compose_endpoints/)
+  })
+
   it('rejects circular compose without identity escape', () => {
     const leaf = mapMorphism({
       id: 'morph:cycle-leaf',

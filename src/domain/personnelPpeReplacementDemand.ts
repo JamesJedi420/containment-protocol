@@ -110,6 +110,10 @@ function itemCoversRequirement(
 }
 
 function catalogStock(state: GameState, itemId: string): number {
+  // Damaged aggregate lots are not eligible replacement stock (SPE-877 queue).
+  if ((state.damagedEquipmentQueue ?? []).includes(itemId)) {
+    return 0
+  }
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
 

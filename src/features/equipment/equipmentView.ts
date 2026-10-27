@@ -69,8 +69,10 @@ import {
   getPpeDeficitReasonLabel,
   listPersonnelPpeDemandsForAgent,
   projectPersonnelPpeDemandViews,
-  type PersonnelPpeDemandViewRow,
-  type PpeDeficitReason,
+} from '../../domain/personnelPpeReplacementDemand'
+import type {
+  PersonnelPpeDemandViewRow,
+  PpeDeficitReason,
 } from '../../domain/personnelPpeReplacementDemand'
 
 export interface GearRecommendation {

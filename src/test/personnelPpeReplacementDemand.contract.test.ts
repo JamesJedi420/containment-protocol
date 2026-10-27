@@ -346,4 +346,27 @@ describe('SPE-3441 personnel PPE replacement demand', () => {
     )
     expect(result.ok).toBe(false)
   })
+
+  it('excludes damaged aggregate queue stock from fulfillment candidates', () => {
+    const base = createStartingState()
+    const { state: seeded, medicId } = withMedic(base)
+    const withDamagedLot: GameState = {
+      ...seeded,
+      inventory: { ...seeded.inventory, hazmat_suit: 1 },
+      damagedEquipmentQueue: [...(seeded.damagedEquipmentQueue ?? []), 'hazmat_suit'],
+    }
+    const demand = resolvePersonnelPpeDemand(withDamagedLot, {
+      agentId: medicId,
+      requirementId: MEDIC_PPE_REQUIREMENT,
+    })
+    expect(demand?.fulfillable).toBe(false)
+    expect(demand?.reasons).toContain('stock_unavailable')
+    const result = authorizePersonnelPpeFulfillment(
+      withDamagedLot,
+      { agentId: medicId, requirementId: MEDIC_PPE_REQUIREMENT },
+      fulfillmentDeps
+    )
+    expect(result.ok).toBe(false)
+    expect(result.state).toBe(withDamagedLot)
+  })
 })

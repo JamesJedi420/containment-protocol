@@ -44,7 +44,7 @@ function EquipmentPage() {
     enableEquipmentAutoScrap,
     disableEquipmentAutoScrap,
   } = useGameStore()
-  const loadoutViews = getAgentEquipmentLoadoutViews(game)
+  const loadoutViews = useMemo(() => getAgentEquipmentLoadoutViews(game), [game])
   const instanceMaterializationViews = useMemo(
     () => getEquipmentInstanceMaterializationViews(game),
     [game]

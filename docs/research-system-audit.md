@@ -9,6 +9,15 @@ Research is the **canonical unlock path**, not a flat tech tree checkbox.
 - **Bounded dissemination:** evidence, lab type, source quality, secrecy tradeoffs, and **non-standard acquisition edges** all influence whether a finding can propagate to teams, manufacturing, or sponsors.
 - **Outputs route to work:** finished projects should land as **procedures, tools, treatments, engineering upgrades, or manufacturing recipes** — not as abstract “+1 tech” counters.
 
+## 0b. Authored project definition & static solvability (SPE-3470)
+
+Canonical authored definitions live in `src/domain/researchProjectDefinition.ts` (schema `spe-3470.v1`).
+
+- **Owns:** project identity/version, source refs with **project-specific analytical capacity**, milestone/finding grammar (mandatory vs optional), typed owner-routed outputs, and **static** solvability diagnostics (`feasible` / `infeasible` / `runtime_dependent`).
+- **Does not own:** mutable execution, yield consumption, milestone firing, or save/load — those remain [SPE-3343](https://linear.app/spectranoir/issue/SPE-3343). Hazardous posture remains [SPE-3344](https://linear.app/spectranoir/issue/SPE-3344). Access routes remain [SPE-3471](https://linear.app/spectranoir/issue/SPE-3471).
+- **Capacity semantics:** exhausting a project's authored analytical yield for a source does **not** destroy, uncustody, or invalidate the underlying canonical source.
+- **No pressure scalar:** opportunity feasibility is a bounded authoring check only; no generic research-opportunity points or campaign simulation inside this contract.
+
 ## 1. Research Categories
 - **Occult Research:** Anomalous phenomena, rituals, psionics, artifacts, containment protocols, and supernatural threats.
 - **Technical Research:** Equipment, weapons, vehicles, surveillance, cybernetics, medical, and operational technology.

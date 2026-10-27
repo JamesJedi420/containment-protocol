@@ -189,6 +189,18 @@ describe('SPE-3381 facility phased decommissioning', () => {
     expect(closed.phase).toBe('closed')
     expect(closed.lifecycle?.receipt?.action).toBe('finalize_closure')
     expect(closed.lifecycle?.receipt?.cause).toBe('closure_obligations_discharged')
+    expect(closed.lifecycle?.receipt?.prerequisites).toEqual([
+      {
+        kind: 'closure_obligations',
+        authority: 'SPE-3381',
+        sourceRef:
+          'closure-obligations:custody:SPE-3378:custody:cleared:1|transfer:SPE-1020:transfer:cleared:1|staffing:SPE-731:staffing:cleared:1|dependency:SPE-792:dependency:cleared:1',
+        facilityId: ID,
+        transition: 5,
+        week: 2,
+        verified: true,
+      },
+    ])
     expect(closed.blockers).toEqual([])
   })
 
@@ -252,23 +264,16 @@ describe('SPE-3381 facility phased decommissioning', () => {
   })
 
   it('keeps independent lifecycle restart path distinct from decommission drawdown', () => {
-    const restricted = applyFacilityLifecycleTransition(
-      game(activeFacility(), 2),
-      {
-        facilityId: ID,
-        expectedStatus: 'active',
-        transition: 1,
-        action: 'restrict',
-      }
-    )
+    const restricted = applyFacilityLifecycleTransition(game(activeFacility(), 2), {
+      facilityId: ID,
+      expectedStatus: 'active',
+      transition: 1,
+      action: 'restrict',
+    })
     expect(restricted.facility?.status).toBe('locked')
     expect(restricted.receipt?.cause).toBe('operation_restricted')
     const stopped = stopFacilityIntake(activeFacility(), ID, 2)
-    const drawdown = enterFacilityDecommissionDrawdown(
-      game(stopped.facility!, 2),
-      ID,
-      1
-    )
+    const drawdown = enterFacilityDecommissionDrawdown(game(stopped.facility!, 2), ID, 1)
     expect(drawdown.lifecycle?.receipt?.cause).toBe('decommission_drawdown_begun')
   })
 
@@ -315,5 +320,26 @@ describe('SPE-3381 facility phased decommissioning', () => {
     expect(restartEscape.outcome).toBe('rejected')
     expect(restartEscape.reason).toBe('inspection_provenance_required')
     expect(restartEscape.game).toBe(drawdown.game)
+  })
+
+  it('rejects raw lifecycle closure after drawdown without coordinator obligation proof', () => {
+    const stopped = stopFacilityIntake(activeFacility(), ID, 2)
+    const drawdown = enterFacilityDecommissionDrawdown(game(stopped.facility!, 2), ID, 1)
+    expect(drawdown.outcome).toBe('applied')
+
+    const bypass = applyFacilityLifecycleTransition(drawdown.game, {
+      facilityId: ID,
+      expectedStatus: 'locked',
+      transition: 2,
+      action: 'finalize_closure',
+    })
+
+    expect(bypass.outcome).toBe('rejected')
+    expect(bypass.reason).toBe('missing_prerequisite')
+    expect(bypass.game).toBe(drawdown.game)
+    expect(bypass.game.facilityState!.facilities[ID].status).toBe('locked')
+    expect(bypass.game.facilityState!.facilities[ID].decommissioning).toMatchObject({
+      phase: 'drawdown',
+    })
   })
 })

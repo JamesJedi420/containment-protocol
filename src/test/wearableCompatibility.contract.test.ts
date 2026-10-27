@@ -235,13 +235,33 @@ describe('SPE-3394 wearable layer × region compatibility', () => {
   })
 
   it('rejects duplicate wearable definitions when two slots overlap physically', () => {
-    const agent = hunterWithSlots({
-      utility1: 'fixture_wearable_mid_torso_overlay',
-    })
+    const state = createStartingState()
+    const hunter = Object.values(state.agents).find((entry) => entry.role === 'hunter')
+    if (!hunter) {
+      throw new Error('expected hunter')
+    }
+    const agent = {
+      ...hunter,
+      equipmentSlots: {
+        utility1: 'fixture_wearable_mid_torso_overlay',
+      },
+    }
+    const withSpareStock = {
+      ...state,
+      inventory: {
+        ...state.inventory,
+        fixture_wearable_mid_torso_overlay: 1,
+      },
+      agents: {
+        ...state.agents,
+        [hunter.id]: agent,
+      },
+    }
     const result = validateAgentLoadoutAssignment(
       agent,
       'utility2',
-      'fixture_wearable_mid_torso_overlay'
+      'fixture_wearable_mid_torso_overlay',
+      { state: withSpareStock }
     )
 
     expect(result.valid).toBe(false)

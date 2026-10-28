@@ -195,7 +195,10 @@ export function restoreIsolatedScenario(
 }
 
 /** Isolated runs never write campaign progression/economy/unlocks/history. */
-export function isolatedRunCommitsToCampaign(_run: IsolatedScenarioRunState): false {
+export function isolatedRunCommitsToCampaign(
+  run: IsolatedScenarioRunState
+): false {
+  void run
   return false
 }
 

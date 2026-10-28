@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2099](https://linear.app/spectranoir/issue/SPE-2099/historical-continuity-board-records-chronology-validation-and-layered) |
 | **Parent** | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2099-historical-continuity-board-records-chronology-validation` |

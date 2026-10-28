@@ -1,3 +1,4 @@
+import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
 import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
@@ -2751,6 +2752,12 @@ export interface CampaignLedgerState {
   moduleToggles: CampaignModuleToggle[]
   settingHistory: CampaignSettingHistoryEntry[]
   compatibility: CampaignLedgerCompatibilitySnapshot
+  /**
+   * SPE-3172: optional managerial persona (presentation only).
+   * Kept separate from CampaignOperationalProfile organization fields.
+   * Absent/malformed hydrates to anonymous via `sanitizeCampaignCommandIdentity`.
+   */
+  commandIdentity?: CampaignCommandIdentityState
 }
 
 export interface GameState {

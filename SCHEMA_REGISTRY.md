@@ -58,6 +58,10 @@ Pure domain module `src/domain/dutyObligationRegistry.ts` defines compact role-s
 
 Pure domain module `src/domain/interAgencyOwnershipTransfer.ts` governs inter-agency ownership transfers via request → authorize → complete/reject with append-only provenance and a temporary anti-cycling lock whose duration is data-driven by asset class (`personnel`, `equipment`, `artifact`, `vehicle`). Campaign time uses SPE-1071 authoritative integer weeks only. Internal reassignment within one agency updates assignment refs without provenance or locks. Forced/admin transfers route through the same `completeOwnershipTransfer` mutation path. Parse/hydrate uses null-prototype maps and rejects prototype ids. No GameState field or custody UI. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Campaign command identity (SPE-3172)
+
+Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
+
 ### Scene difficulty and mitigation resolver (SPE-3186)
 
 Pure domain module `src/domain/sceneDifficultyMitigationResolver.ts` owns canonical scene-level difficulty drivers, mitigation sources, provenance/confidence handoff, and a deterministic difficulty-band projection for phase/action/encounter consumers under SPE-3186. No-stakes scenes may bypass projection. Does not replace SPE-62 / SPE-2217 / SPE-1489 / SPE-1910 / SPE-3044 / SPE-1366 / SPE-3107. No GameState field, week-close hook, or OperationEvent kind. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.

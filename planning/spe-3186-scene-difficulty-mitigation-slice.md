@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3186](https://linear.app/spectranoir/issue/SPE-3186/scene-difficulty-and-mitigation-resolver) |
 | **Parent** | none (approved parent with zero children; implement in-boundary) |
 | **Branch** | `jamesdyedbq/spe-3186-scene-difficulty-and-mitigation-resolver` |

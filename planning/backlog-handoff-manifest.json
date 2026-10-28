@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3186"
+    "SPE-3172"
   ],
   "recentlyShipped": [
+    "SPE-3186",
     "SPE-2898",
     "SPE-2186",
     "SPE-2157",
@@ -98,7 +99,8 @@
     "planning/spe-1135-duty-and-obligation-registry-slice.md": "Recently shipped",
     "planning/spe-2738-inter-agency-ownership-transfer-slice.md": "Recently shipped",
     "planning/spe-3124-sponsored-training-completion-slice.md": "Recently shipped",
-    "planning/spe-3186-scene-difficulty-mitigation-slice.md": "In progress",
+    "planning/spe-3172-campaign-command-identity-slice.md": "In progress",
+    "planning/spe-3186-scene-difficulty-mitigation-slice.md": "Recently shipped",
     "planning/spe-2898-rule-change-transition-slice.md": "Recently shipped",
     "planning/spe-2186-defensive-control-staff-action-slice.md": "Recently shipped",
     "planning/spe-2157-action-consequence-router-slice.md": "Recently shipped",

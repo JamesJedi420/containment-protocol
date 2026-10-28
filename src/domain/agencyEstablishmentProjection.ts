@@ -81,6 +81,14 @@ export interface AgencyEstablishmentCommandIdentityProjection {
   readonly organizationName: string
   readonly doctrineLabel: string
   readonly roleFramingToken: typeof AGENCY_ESTABLISHMENT_ROLE_FRAMING_TOKEN
+  /** SPE-3172: managerial persona mode (separate from organization identity). */
+  readonly mode: 'anonymous' | 'preset' | 'custom'
+  readonly presetId: string | null
+  readonly displayName: string | null
+  readonly title: string | null
+  readonly pronouns: string | null
+  readonly biography: string | null
+  readonly isAnonymous: boolean
 }
 
 export interface AgencyEstablishmentRoutingExplanation {
@@ -268,10 +276,18 @@ export function buildAgencyEstablishmentProjection(
     queuedProductionOrders: logistics.queuedOrders,
   })
 
+  const persona = campaign.commandIdentity
   const commandIdentity = Object.freeze({
     organizationName: campaign.profile.organizationName,
     doctrineLabel: campaign.profile.doctrineLabel,
     roleFramingToken: AGENCY_ESTABLISHMENT_ROLE_FRAMING_TOKEN,
+    mode: persona?.mode ?? 'anonymous',
+    presetId: persona?.presetId ?? null,
+    displayName: persona?.displayName ?? null,
+    title: persona?.title ?? null,
+    pronouns: persona?.pronouns ?? null,
+    biography: persona?.biography ?? null,
+    isAnonymous: (persona?.mode ?? 'anonymous') === 'anonymous',
   })
 
   const briefing = Object.freeze({

@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-700"],
+  "inProgress": ["SPE-699"],
   "recentlyShipped": [
+    "SPE-700",
     "SPE-1290",
     "SPE-3076",
     "SPE-3164",
@@ -106,7 +107,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-700-institution-calendars-slice.md": "In progress",
+    "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",
+    "planning/spe-700-institution-calendars-slice.md": "Recently shipped",
     "planning/spe-1290-bounded-squad-composition-slice.md": "Recently shipped",
     "planning/spe-3076-major-incident-terminal-settlement-slice.md": "Recently shipped",
     "planning/spe-3164-party-card-draw-scoped-identity-slice.md": "Recently shipped",

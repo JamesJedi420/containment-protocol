@@ -86,6 +86,10 @@ Pure domain module `src/domain/sharedUniverseCanonReleaseCatalog.ts` owns immuta
 
 Pure domain `src/domain/sharedUniverseCanonReleaseBinding.ts` plus optional `CampaignLedgerState.sharedUniverseCanonRelease` under SPE-1734. New-campaign bind consumes SPE-3300 default/eligibility; absent/malformed hydrates to explicit `legacy_unbound` (never latest). Explicit adoption is atomic via SPE-2898 transition + domain precommits + adoption receipt; entity/relation materialization receipts are idempotent identity glue only. No week-close hook or OperationEvent kind. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
 
+### Canon rule registry (SPE-2263)
+
+Pure domain module `src/domain/canonRuleRegistry.ts` owns supernatural consistency rule tokens, exception refs, supersession refs, deterministic resolution (same rule → same outcome unless exception), and SPE-3300 release-scoped eligibility for shared-universe-derived tokens. No GameState field, week-close hook, or OperationEvent kind. SPE-151 / SPE-2098 remain world-law owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

@@ -49,7 +49,7 @@ export function projectApprovedWork(snapshot) {
       if (!reasons.length) runnable.push(record)
     } else history.push({id:row.id,workstream:row.workstream,statusType:row.statusType,implementationEvidence:row.implementationEvidence})
   }
-  runnable.sort((a,b)=>(a.priority||5)-(b.priority||5)||ordered(a.id,b.id))
+  runnable.sort((a,b)=>(a.priority===0?5:a.priority)-(b.priority===0?5:b.priority)||ordered(a.id,b.id))
   return {schemaVersion:1,source:'Linear',asOf:snapshot.asOf,workstreamCoverage:snapshot.workstreamCoverage,active,history,runnable}
 }
 export const serializeProjection = projection => JSON.stringify(projection,null,2)+'\n'

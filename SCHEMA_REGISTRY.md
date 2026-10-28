@@ -74,6 +74,10 @@ Pure domain `src/domain/scenarioDefinitionResolver.ts` owns the versioned scenar
 
 Pure domain `src/domain/isolatedScenarioRunner.ts` launches validated SPE-3397 scenario bindings into an isolated run packet under SPE-77 (`isolatesFromCampaign: true`). Finish/abort are idempotent; restore re-resolves the bound definition/version and fails closed on mismatch. Optional `GameState.isolatedScenarioRun` hydrates via `sanitizeIsolatedScenarioRun`. Does not broaden SPE-3091 Event Sandbox or Academy SPE-3286. Isolated outcomes never commit to campaign progression. No OperationEvent kind; no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
 
+### Cross-property canon handoff (SPE-3282)
+
+Pure domain module `src/domain/crossPropertyCanonHandoff.ts` owns the Dead Air → shared-universe handoff packet, promotion dispositions, deterministic validation/diagnostics, release-membership construction inputs, and consumer seams for SPE-3175 transport, SPE-2099/SPE-1032 historical projection, SPE-2264 institutional interpretation, SPE-2263 canon-rule token refs, and SPE-3139 reference-integrity handoff. Unresolved/disputed/negative-space/non-promotable material remains representable without collapsing to established truth. No GameState field, week-close hook, parallel lore database, or OperationEvent kind. Persistent release catalog remains a separate SPE-1085 child. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

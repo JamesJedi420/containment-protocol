@@ -3,13 +3,26 @@
  *
  * Role obligations support act/omission evaluation, period-bound qualification
  * (SPE-1071 integer weeks only), and downstream consumption of SPE-3181 requirement
- * outcome projections. Terminal decision provenance follows the SPE-2805 input shape;
- * this module does not implement expiring-decision lifecycle resolution.
+ * outcome projections. Terminal decision provenance types are owned by SPE-2805
+ * (`expiringDecisionLifecycle.ts`) and re-exported here for consumers.
  *
  * No GameState field, universal moral-code sandbox, or contractual conflict engine.
  */
 
 import type { DutyConsumptionProjection } from './containmentRequirementFulfillment'
+import {
+  TERMINAL_DECISION_PROVENANCE_KINDS,
+  parseSpe2805TerminalDecisionProvenance,
+  type Spe2805TerminalDecisionProvenance,
+  type TerminalDecisionProvenanceKind,
+} from './expiringDecisionLifecycle'
+
+export {
+  TERMINAL_DECISION_PROVENANCE_KINDS,
+  parseSpe2805TerminalDecisionProvenance,
+  type Spe2805TerminalDecisionProvenance,
+  type TerminalDecisionProvenanceKind,
+}
 
 export const DUTY_OBLIGATION_REGISTRY_OWNER = 'SPE-1135' as const
 export const DUTY_OBLIGATION_REGISTRY_SCHEMA_VERSION = 'spe-1135.v1' as const
@@ -47,24 +60,6 @@ export type ObligationMode = (typeof OBLIGATION_MODES)[number]
 export interface AuthoritativePeriodWindow {
   readonly startWeek: number
   readonly endWeek: number
-}
-
-/**
- * SPE-2805-shaped terminal provenance (consumer ref only — lifecycle owner is SPE-2805).
- */
-export const TERMINAL_DECISION_PROVENANCE_KINDS = [
-  'actionable',
-  'expired',
-  'explicit_refusal',
-  'superseded',
-  'canceled',
-] as const
-export type TerminalDecisionProvenanceKind = (typeof TERMINAL_DECISION_PROVENANCE_KINDS)[number]
-
-export interface Spe2805TerminalDecisionProvenance {
-  readonly decisionRef: string
-  readonly kind: TerminalDecisionProvenanceKind
-  readonly terminalReason?: string
 }
 
 export interface DutyObligationRecord {
@@ -170,13 +165,6 @@ function isObligationMode(value: unknown): value is ObligationMode {
   return typeof value === 'string' && (OBLIGATION_MODES as readonly string[]).includes(value)
 }
 
-function isTerminalKind(value: unknown): value is TerminalDecisionProvenanceKind {
-  return (
-    typeof value === 'string' &&
-    (TERMINAL_DECISION_PROVENANCE_KINDS as readonly string[]).includes(value)
-  )
-}
-
 function createObligationsBag(): Record<string, DutyObligationRecord> {
   return Object.create(null) as Record<string, DutyObligationRecord>
 }
@@ -208,25 +196,6 @@ function freezeObligationRecord(record: DutyObligationRecord): DutyObligationRec
     ...(record.qualifyingActionRef !== undefined
       ? { qualifyingActionRef: record.qualifyingActionRef }
       : {}),
-  })
-}
-
-export function parseSpe2805TerminalDecisionProvenance(
-  raw: unknown
-): Spe2805TerminalDecisionProvenance | undefined {
-  if (!isRecord(raw)) return undefined
-  if (!isNonEmptyString(raw.decisionRef) || !isTerminalKind(raw.kind)) return undefined
-  const terminalReason =
-    raw.terminalReason === undefined
-      ? undefined
-      : isNonEmptyString(raw.terminalReason)
-        ? raw.terminalReason.trim()
-        : undefined
-  if (raw.terminalReason !== undefined && terminalReason === undefined) return undefined
-  return Object.freeze({
-    decisionRef: raw.decisionRef.trim(),
-    kind: raw.kind,
-    ...(terminalReason !== undefined ? { terminalReason } : {}),
   })
 }
 

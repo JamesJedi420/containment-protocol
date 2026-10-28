@@ -104,6 +104,43 @@ describe('SPE-870 threshold-triggered process safety coverage', () => {
       }),
     ).toThrow(/requires hazardClasses and\/or quantityThreshold/)
 
+    expect(() =>
+      createProcessSafetyCoverageRule({
+        ruleId: 'rule-nan-threshold',
+        label: 'Bad threshold',
+        hazardClasses: ['x'],
+        quantityThreshold: Number.NaN,
+      }),
+    ).toThrow(/quantityThreshold must be a finite number/)
+
+    expect(() =>
+      evaluateProcessSafetyCoverage({
+        process: {
+          processId: 'proc-bad-qty',
+          hazardClass: 'industrial-solvent',
+          quantity: Number.POSITIVE_INFINITY,
+        },
+        rules: [quantityRule],
+      }),
+    ).toThrow(/quantity must be a finite number/)
+
+    const fractionalRule = createProcessSafetyCoverageRule({
+      ruleId: 'rule-fractional',
+      label: 'Fractional threshold',
+      hazardClasses: [],
+      quantityThreshold: 0.5,
+    })
+    const fractional = evaluateProcessSafetyCoverage({
+      process: {
+        processId: 'proc-fractional',
+        hazardClass: 'industrial-solvent',
+        quantity: 0.75,
+      },
+      rules: [fractionalRule],
+    })
+    expect(fractional.covered).toBe(true)
+    expect(fractional.triggerBasis).toBe('quantity_threshold')
+
     const both = evaluateProcessSafetyCoverage({
       process: {
         processId: 'proc-mixed',

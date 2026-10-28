@@ -43,9 +43,20 @@ function requireNonEmpty(value: string, label: string): string {
   return trimmed
 }
 
-function normalizeQuantity(value: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
-  return Math.max(0, Math.trunc(value))
+function compareAscii(a: string, b: string): number {
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
+}
+
+function requireFiniteNonNegative(value: number, label: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`process safety ${label} must be a finite number`)
+  }
+  if (value < 0) {
+    throw new Error(`process safety ${label} must be >= 0`)
+  }
+  return value
 }
 
 /**
@@ -62,10 +73,13 @@ export function createProcessSafetyCoverageRule(
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0),
     ),
-  ].sort((a, b) => a.localeCompare(b))
+  ].sort(compareAscii)
 
-  const hasThreshold =
-    input.quantityThreshold !== undefined && Number.isFinite(input.quantityThreshold)
+  if (input.quantityThreshold !== undefined) {
+    requireFiniteNonNegative(input.quantityThreshold, 'quantityThreshold')
+  }
+
+  const hasThreshold = input.quantityThreshold !== undefined
   if (hazardClasses.length === 0 && !hasThreshold) {
     throw new Error('process safety rule requires hazardClasses and/or quantityThreshold')
   }
@@ -75,7 +89,7 @@ export function createProcessSafetyCoverageRule(
     label,
     hazardClasses: Object.freeze(hazardClasses),
     ...(hasThreshold
-      ? { quantityThreshold: Math.max(0, Math.trunc(input.quantityThreshold as number)) }
+      ? { quantityThreshold: input.quantityThreshold as number }
       : {}),
   })
 }
@@ -90,7 +104,7 @@ export function evaluateProcessSafetyCoverage(args: {
 }): ProcessSafetyCoverageState {
   const processId = requireNonEmpty(args.process.processId, 'processId')
   const hazardClass = requireNonEmpty(args.process.hazardClass, 'hazardClass')
-  const quantity = normalizeQuantity(args.process.quantity)
+  const quantity = requireFiniteNonNegative(args.process.quantity, 'quantity')
 
   const matchedRuleIds: string[] = []
   const reasons: string[] = []
@@ -98,7 +112,7 @@ export function evaluateProcessSafetyCoverage(args: {
   let quantityHit = false
   let nearestProximity: number | null = null
 
-  const sortedRules = [...args.rules].sort((a, b) => a.ruleId.localeCompare(b.ruleId))
+  const sortedRules = [...args.rules].sort((a, b) => compareAscii(a.ruleId, b.ruleId))
   for (const rule of sortedRules) {
     const classMatch = rule.hazardClasses.includes(hazardClass)
     const quantityMatch =
@@ -140,6 +154,6 @@ export function evaluateProcessSafetyCoverage(args: {
     quantity,
     hazardClass,
     quantityThresholdProximity: nearestProximity,
-    reasons: Object.freeze(reasons.sort((a, b) => a.localeCompare(b))),
+    reasons: Object.freeze([...reasons].sort(compareAscii)),
   })
 }

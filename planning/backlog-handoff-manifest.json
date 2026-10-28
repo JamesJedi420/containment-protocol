@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-699"],
+  "inProgress": ["SPE-2211"],
   "recentlyShipped": [
+    "SPE-699",
     "SPE-700",
     "SPE-1290",
     "SPE-3076",
@@ -107,6 +108,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-2211-scene-geometry-registry-slice.md": "In progress",
     "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",
     "planning/spe-700-institution-calendars-slice.md": "Recently shipped",
     "planning/spe-1290-bounded-squad-composition-slice.md": "Recently shipped",

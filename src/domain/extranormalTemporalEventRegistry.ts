@@ -80,6 +80,20 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+const FORBIDDEN_EVENT_IDS = new Set(['__proto__', 'constructor', 'prototype', 'toString', 'valueOf'])
+
+function isSafeEventId(value: unknown): value is string {
+  if (!isNonEmptyString(value)) return false
+  const id = value.trim()
+  if (FORBIDDEN_EVENT_IDS.has(id)) return false
+  if (id.includes('\0')) return false
+  return true
+}
+
+function createEventsBag(): Record<string, TemporalEventRecord> {
+  return Object.create(null) as Record<string, TemporalEventRecord>
+}
+
 function isNonNegativeInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
@@ -137,12 +151,15 @@ function freezeTemporalEventRecord(record: TemporalEventRecord): TemporalEventRe
 
 export function parseTemporalEventRecord(raw: unknown): TemporalEventRecord | null {
   if (!isRecord(raw)) return null
-  if (!isNonEmptyString(raw.id) || !isNonEmptyString(raw.zoneId)) return null
+  if (!isSafeEventId(raw.id) || !isNonEmptyString(raw.zoneId)) return null
   if (!isExtranormalTemporalEventType(raw.type)) return null
   if (!isNonEmptyString(raw.apparentSource) || !isNonEmptyString(raw.triggerNote)) return null
   const predictedWindow = parseAuthoritativeWeekWindow(raw.predictedWindow)
   if (!predictedWindow) return null
   if (!Number.isInteger(raw.scheduleDriftWeeks)) return null
+  const scheduleDriftWeeks = raw.scheduleDriftWeeks as number
+  if (predictedWindow.startWeek + scheduleDriftWeeks < 0) return null
+  if (predictedWindow.endWeek + scheduleDriftWeeks < 0) return null
   if (!isRiskScore(raw.researchValue) || !isRiskScore(raw.publicRisk) || !isRiskScore(raw.residualRisk)) {
     return null
   }
@@ -163,7 +180,7 @@ export function parseTemporalEventRecord(raw: unknown): TemporalEventRecord | nu
     apparentSource: raw.apparentSource.trim(),
     triggerNote: raw.triggerNote.trim(),
     predictedWindow,
-    scheduleDriftWeeks: raw.scheduleDriftWeeks,
+    scheduleDriftWeeks,
     researchValue: raw.researchValue,
     publicRisk: raw.publicRisk,
     residualRisk: raw.residualRisk,
@@ -174,8 +191,9 @@ export function parseTemporalEventRecord(raw: unknown): TemporalEventRecord | nu
 }
 
 function freezeRegistry(registry: ExtranormalTemporalEventRegistry): ExtranormalTemporalEventRegistry {
-  const events: Record<string, TemporalEventRecord> = {}
+  const events = createEventsBag()
   for (const [key, record] of Object.entries(registry.events)) {
+    if (!isSafeEventId(key)) continue
     events[key] = freezeTemporalEventRecord(record)
   }
   return Object.freeze({
@@ -206,15 +224,17 @@ export function parseExtranormalTemporalEventRegistry(
   if (parsed.schemaVersion !== EXTRANORMAL_TEMPORAL_EVENT_REGISTRY_SCHEMA_VERSION) return null
   if (!isRecord(parsed.events)) return null
 
-  const events: Record<string, TemporalEventRecord> = {}
+  const events = createEventsBag()
   const ids = Object.keys(parsed.events).sort((a, b) => a.localeCompare(b))
   if (ids.length > EXTRANORMAL_TEMPORAL_EVENT_REGISTRY_MAX_EVENTS) return null
 
   for (const key of ids) {
+    if (!isSafeEventId(key)) return null
+    if (!Object.prototype.hasOwnProperty.call(parsed.events, key)) return null
     const record = parseTemporalEventRecord(parsed.events[key])
     if (!record) return null
     if (record.id !== key) return null
-    if (events[key] !== undefined) return null
+    if (Object.prototype.hasOwnProperty.call(events, key)) return null
     events[key] = record
   }
 
@@ -233,16 +253,19 @@ export function upsertEvent(
 ): ExtranormalTemporalEventRegistry | null {
   const parsed = parseTemporalEventRecord(record)
   if (!parsed) return null
-  const isNew = registry.events[parsed.id] === undefined
+  const isNew = !Object.prototype.hasOwnProperty.call(registry.events, parsed.id)
   const nextCount = Object.keys(registry.events).length + (isNew ? 1 : 0)
   if (nextCount > EXTRANORMAL_TEMPORAL_EVENT_REGISTRY_MAX_EVENTS) return null
 
+  const nextEvents = createEventsBag()
+  for (const [key, existing] of Object.entries(registry.events)) {
+    nextEvents[key] = existing
+  }
+  nextEvents[parsed.id] = parsed
+
   return freezeRegistry({
     schemaVersion: EXTRANORMAL_TEMPORAL_EVENT_REGISTRY_SCHEMA_VERSION,
-    events: Object.freeze({
-      ...registry.events,
-      [parsed.id]: parsed,
-    }),
+    events: Object.freeze(nextEvents),
   })
 }
 

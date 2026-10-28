@@ -43,9 +43,7 @@ describe('SPE-1757 extranormal temporal event registry', () => {
     const serialized = JSON.stringify(DEMO_EXTRANORMAL_TEMPORAL_EVENT_REGISTRY)
     const reparsed = parseExtranormalTemporalEventRegistry(serialized)
     expect(reparsed).not.toBeNull()
-    expect(Object.keys(reparsed!.events).sort()).toEqual(
-      Object.keys(DEMO_EXTRANORMAL_TEMPORAL_EVENT_REGISTRY.events).sort(),
-    )
+    expect(reparsed).toEqual(DEMO_EXTRANORMAL_TEMPORAL_EVENT_REGISTRY)
     expect(parseTemporalEventRecord(TEMPORAL_EVENT_ARRIVAL_FIXTURE)?.type).toBe('arrivals')
   })
 
@@ -63,6 +61,30 @@ describe('SPE-1757 extranormal temporal event registry', () => {
         schemaVersion: EXTRANORMAL_TEMPORAL_EVENT_REGISTRY_SCHEMA_VERSION,
         events: { 'temporal:bad': { type: 'not-a-type' } },
       }),
+    ).toBeNull()
+    expect(parseTemporalEventRecord({ ...TEMPORAL_EVENT_ARRIVAL_FIXTURE, id: '__proto__' })).toBeNull()
+    expect(parseTemporalEventRecord({ ...TEMPORAL_EVENT_ARRIVAL_FIXTURE, scheduleDriftWeeks: -99 })).toBeNull()
+  })
+
+  it('rejects over-capacity upsert and negative projected windows from drift', () => {
+    let registry = createEmptyExtranormalTemporalEventRegistry()
+    for (let i = 0; i < 128; i += 1) {
+      const next = upsertEvent(registry, {
+        ...TEMPORAL_EVENT_ARRIVAL_FIXTURE,
+        id: `temporal:cap-${String(i).padStart(3, '0')}`,
+      })
+      expect(next).not.toBeNull()
+      registry = next!
+    }
+    expect(
+      upsertEvent(registry, {
+        ...TEMPORAL_EVENT_ARRIVAL_FIXTURE,
+        id: 'temporal:cap-overflow',
+      }),
+    ).toBeNull()
+
+    expect(
+      applyScheduleDrift(DEMO_EXTRANORMAL_TEMPORAL_EVENT_REGISTRY, TEMPORAL_EVENT_ARRIVAL_FIXTURE.id, -50),
     ).toBeNull()
   })
 

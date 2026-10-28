@@ -7,6 +7,7 @@ import { normalizeStaffTimeLedger } from '../../domain/staffTimeAllocation'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
 import { createSeedCampaignLedger, sanitizeCampaignLedger } from '../../domain/campaignLedger'
+import { sanitizeIsolatedScenarioRun } from '../../domain/isolatedScenarioRunner'
 import {
   getProductionRecipe,
   getRecipeFundingCost,
@@ -10868,6 +10869,7 @@ export function hydrateGame(
       fallback.campaignLedger ?? createSeedCampaignLedger(),
       week
     ),
+    isolatedScenarioRun: sanitizeIsolatedScenarioRun(game.isolatedScenarioRun),
     contracts,
     factions,
     externalSupportAssets,

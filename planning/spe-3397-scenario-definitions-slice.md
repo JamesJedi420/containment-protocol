@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3397](https://linear.app/spectranoir/issue/SPE-3397/versioned-scenario-definitions-and-resolved-initialization) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3397-versioned-scenario-definitions-and-resolved-initialization` |

@@ -70,6 +70,10 @@ Pure domain module `src/domain/scenarioConfigurationViabilityContradiction.ts` r
 
 Pure domain `src/domain/scenarioDefinitionResolver.ts` owns the versioned scenario-definition schema, typed component registry, deterministic resolver, SPE-3396 viability gates, identity-keyed stochastic init slots (SPE-3162-compatible), and SPE-2898 version-transition assessment. Optional `CampaignLedgerState.scenarioDefinition` binding; absent legacy stays unbound (no silent default preset). No OperationEvent kind; no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
 
+### Configurable isolated scenario runner (SPE-3459)
+
+Pure domain `src/domain/isolatedScenarioRunner.ts` launches validated SPE-3397 scenario bindings into an isolated run packet under SPE-77 (`isolatesFromCampaign: true`). Finish/abort are idempotent; restore re-resolves the bound definition/version and fails closed on mismatch. Optional `GameState.isolatedScenarioRun` hydrates via `sanitizeIsolatedScenarioRun`. Does not broaden SPE-3091 Event Sandbox or Academy SPE-3286. Isolated outcomes never commit to campaign progression. No OperationEvent kind; no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

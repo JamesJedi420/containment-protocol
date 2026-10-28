@@ -177,9 +177,13 @@ function resolveCoverBand(
   if (!key) {
     return { coverBand: feature.coverBand }
   }
-  const mapped = feature.coverByCondition?.[key]
-  if (mapped === undefined) {
-    return { coverBand: feature.coverBand, conditionStateApplied: key }
+  const mapping = feature.coverByCondition
+  if (!mapping || !Object.prototype.hasOwnProperty.call(mapping, key)) {
+    return { coverBand: feature.coverBand }
+  }
+  const mapped = mapping[key]
+  if (!isGeometryBand(mapped)) {
+    return { coverBand: feature.coverBand }
   }
   return { coverBand: mapped, conditionStateApplied: key }
 }

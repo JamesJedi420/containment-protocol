@@ -79,6 +79,21 @@ describe('SPE-2211 scene geometry registry', () => {
     ).toEqual(
       resolveSceneGeometryFacts({ feature: barricade, conditionState: 'burned' }),
     )
+
+    const unknown = resolveSceneGeometryFacts({
+      feature: barricade,
+      conditionState: 'unknown-condition',
+    })
+    expect(unknown.coverBand).toBe('heavy')
+    expect(unknown.conditionStateApplied).toBeUndefined()
+
+    // Prototype keys must not leak inherited Object members into coverBand.
+    const protoKey = resolveSceneGeometryFacts({
+      feature: barricade,
+      conditionState: 'toString',
+    })
+    expect(protoKey.coverBand).toBe('heavy')
+    expect(protoKey.conditionStateApplied).toBeUndefined()
   })
 
   it('emits observation/occlusion geometry and relative exposure without owning sensing', () => {

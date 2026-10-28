@@ -92,7 +92,27 @@ export interface PostCutoverDecisionRequest {
 }
 
 function isFiniteInt(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
+  return typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value)
+}
+
+function dispositionForPolicy(policy: TransitionPolicy): TransitionDisposition {
+  switch (policy) {
+    case 'prospective_only':
+      return 'apply_new_rule'
+    case 'grandfather_existing':
+      return 'unchanged_prior_semantics'
+    case 'migrate_existing':
+      return 'migrate_once'
+    case 'revalidate_at_boundary':
+      return 'await_boundary'
+    case 'invalidate_or_reissue':
+      return 'invalidate'
+    default: {
+      const _exhaustive: never = policy
+      void _exhaustive
+      return 'migrate_once'
+    }
+  }
 }
 
 /**
@@ -171,12 +191,28 @@ export function applyStochasticCutover(args: {
       disposition: 'already_migrated',
     }
   }
-  if (args.hydration.cutoverMarkerId && args.hydration.cutoverMarkerId !== markerId) {
-    return {
-      ok: false,
-      reasonCode: 'incompatible_marker',
-      message: 'hydration already carries a different cutover marker',
+  if (args.hydration.cutoverMarkerId) {
+    if (args.hydration.cutoverMarkerId !== markerId) {
+      return {
+        ok: false,
+        reasonCode: 'incompatible_marker',
+        message: 'hydration already carries a different cutover marker',
+      }
     }
+    // Reloaded save already carries this cutover — reconstruct marker idempotently.
+    const policy = args.policy ?? 'migrate_existing'
+    const restored: StochasticCutoverMarker = Object.freeze({
+      schemaVersion: LEGACY_RNG_CUTOVER_SCHEMA_VERSION,
+      markerId,
+      stateFamily: LEGACY_RNG_STATE_FAMILY,
+      policy,
+      disposition: dispositionForPolicy(policy),
+      appliedAtWeek: Math.trunc(args.appliedAtWeek),
+      legacyRngSeed: args.hydration.rngSeed,
+      legacyRngStateAtCutover: args.hydration.rngState,
+      defaultSelectorVersion: (args.defaultSelectorVersion ?? 'spe-3162.v1').trim(),
+    })
+    return { ok: true, marker: restored, disposition: 'already_migrated' }
   }
   const policy = args.policy ?? 'migrate_existing'
   const marker: StochasticCutoverMarker = Object.freeze({
@@ -184,13 +220,13 @@ export function applyStochasticCutover(args: {
     markerId,
     stateFamily: LEGACY_RNG_STATE_FAMILY,
     policy,
-    disposition: 'migrate_once',
+    disposition: dispositionForPolicy(policy),
     appliedAtWeek: Math.trunc(args.appliedAtWeek),
     legacyRngSeed: args.hydration.rngSeed,
     legacyRngStateAtCutover: args.hydration.rngState,
     defaultSelectorVersion: (args.defaultSelectorVersion ?? 'spe-3162.v1').trim(),
   })
-  return { ok: true, marker, disposition: 'migrate_once' }
+  return { ok: true, marker, disposition: dispositionForPolicy(policy) }
 }
 
 /**
@@ -236,6 +272,17 @@ export function continueInFlightLegacySequence(
       reasonCode: 'boundary_reached',
     }
   }
+  // Only grandfather_existing / revalidate_at_boundary keep legacy draws mid-flight.
+  if (
+    cutover.policy !== 'grandfather_existing' &&
+    cutover.policy !== 'revalidate_at_boundary'
+  ) {
+    return {
+      continueLegacy: false,
+      disposition: dispositionForPolicy(cutover.policy),
+      reasonCode: cutover.policy,
+    }
+  }
   return {
     continueLegacy: true,
     disposition: 'unchanged_prior_semantics',
@@ -264,26 +311,37 @@ export function resolvePostCutoverDecision(request: PostCutoverDecisionRequest):
       message: 'post-cutover decisions require an applied cutover marker',
     }
   }
-  const identity = createStochasticDecisionIdentity({
-    runSeed: request.identity.runSeed ?? request.cutover.legacyRngSeed,
-    domain: request.identity.domain,
-    semanticEntityOrEventId: request.identity.semanticEntityOrEventId,
-    decisionKind: request.identity.decisionKind,
-    phaseOrAttemptOrIndex: request.identity.phaseOrAttemptOrIndex,
-    selectorVersion:
-      request.identity.selectorVersion || request.cutover.defaultSelectorVersion,
-  })
-  const scoped = createScopedStochasticRng(identity)
-  return {
-    ok: true,
-    provenance: 'scoped_stochastic_identity',
-    identity,
-    derivedSeed: scoped.derivedSeed,
-    sample: scoped.next(),
+  try {
+    const identity = createStochasticDecisionIdentity({
+      runSeed: request.identity.runSeed ?? request.cutover.legacyRngSeed,
+      domain: request.identity.domain,
+      semanticEntityOrEventId: request.identity.semanticEntityOrEventId,
+      decisionKind: request.identity.decisionKind,
+      phaseOrAttemptOrIndex: request.identity.phaseOrAttemptOrIndex,
+      selectorVersion:
+        request.identity.selectorVersion || request.cutover.defaultSelectorVersion,
+    })
+    const scoped = createScopedStochasticRng(identity)
+    return {
+      ok: true,
+      provenance: 'scoped_stochastic_identity',
+      identity,
+      derivedSeed: scoped.derivedSeed,
+      sample: scoped.next(),
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      reasonCode: 'malformed_input',
+      message: error instanceof Error ? error.message : 'malformed stochastic identity',
+    }
   }
 }
 
-/** Prove legacy stream position is not the default identity after cutover. */
+/**
+ * Prove scoped identity samples are unchanged when only the legacy stream
+ * position is perturbed (stream is not part of decision identity).
+ */
 export function assertScopedIndependentOfLegacyStream(args: {
   readonly cutover: StochasticCutoverMarker
   readonly identity: Omit<StochasticDecisionIdentity, 'schemaVersion' | 'runSeed'> & {
@@ -296,10 +354,20 @@ export function assertScopedIndependentOfLegacyStream(args: {
     identity: args.identity,
   })
   if (!base.ok) return false
-  void args.legacyStreamPerturbation
-  const derivedA = deriveStochasticSeed(base.identity)
-  const derivedB = deriveStochasticSeed(
-    createStochasticDecisionIdentity({ ...base.identity }),
+  const perturbedCutover: StochasticCutoverMarker = Object.freeze({
+    ...args.cutover,
+    legacyRngStateAtCutover: nextSeed(
+      args.cutover.legacyRngStateAtCutover + Math.trunc(args.legacyStreamPerturbation),
+    ),
+  })
+  const perturbed = resolvePostCutoverDecision({
+    cutover: perturbedCutover,
+    identity: args.identity,
+  })
+  if (!perturbed.ok) return false
+  return (
+    base.derivedSeed === perturbed.derivedSeed &&
+    base.sample === perturbed.sample &&
+    deriveStochasticSeed(base.identity) === base.derivedSeed
   )
-  return derivedA === derivedB && derivedA === base.derivedSeed
 }

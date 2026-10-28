@@ -87,14 +87,16 @@ export function serializeStochasticDecisionIdentity(
 }
 
 /**
- * FNV-1a 32-bit hash over the serialized identity → derived seed.
- * Isolated from campaign `rngState` stream position.
+ * FNV-1a 32-bit hash over UTF-8 bytes of the serialized identity → derived seed.
+ * Isolated from campaign `rngState` stream position. Uses byte encoding so
+ * non-BMP code points do not depend on UTF-16 code-unit splitting.
  */
 export function deriveStochasticSeed(identity: StochasticDecisionIdentity): number {
   const key = serializeStochasticDecisionIdentity(identity)
+  const bytes = new TextEncoder().encode(key)
   let hash = 0x811c9dc5
-  for (let i = 0; i < key.length; i += 1) {
-    hash ^= key.charCodeAt(i)
+  for (let i = 0; i < bytes.length; i += 1) {
+    hash ^= bytes[i]!
     hash = Math.imul(hash, 0x01000193)
   }
   return normalizeSeed(hash >>> 0)

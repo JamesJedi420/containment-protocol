@@ -131,6 +131,66 @@ describe('SPE-3163 legacy rngState cutover', () => {
     expect(second.marker).toEqual(first.marker)
   })
 
+  it('treats hydrated matching cutoverMarkerId as already_migrated', () => {
+    const hydrated = hydrateLegacyRngState({
+      rngSeed: 7,
+      rngState: 9,
+      resolvedHistoryFingerprint: 'h1',
+      cutoverMarkerId: 'cutover:spe-3163:v1',
+    })
+    expect(hydrated.ok).toBe(true)
+    if (!hydrated.ok) return
+    const result = applyStochasticCutover({
+      hydration: hydrated,
+      markerId: 'cutover:spe-3163:v1',
+      appliedAtWeek: 12,
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.disposition).toBe('already_migrated')
+  })
+
+  it('rejects non-integer rngSeed/rngState', () => {
+    const result = hydrateLegacyRngState({
+      rngSeed: 1.5,
+      rngState: 2,
+      resolvedHistoryFingerprint: 'h',
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  it('does not grandfather in-flight under migrate_existing policy', () => {
+    const hydrated = hydrateLegacyRngState({
+      rngSeed: 3,
+      rngState: 11,
+      resolvedHistoryFingerprint: 'h',
+    })
+    expect(hydrated.ok).toBe(true)
+    if (!hydrated.ok) return
+    const cutover = applyStochasticCutover({
+      hydration: hydrated,
+      markerId: 'm-migrate',
+      appliedAtWeek: 4,
+      policy: 'migrate_existing',
+    })
+    expect(cutover.ok).toBe(true)
+    if (!cutover.ok) return
+    const mid = continueInFlightLegacySequence(
+      {
+        sequenceId: 'raid:2',
+        stateFamily: 'raid_resolution',
+        originatingSelector: 'legacy_global_stream',
+        legacyStreamState: 11,
+        declaredBoundary: 'mission_terminal',
+        currentBoundary: 'mission_active',
+        cutoverMarkerId: 'm-migrate',
+      },
+      cutover.marker,
+    )
+    expect(mid.continueLegacy).toBe(false)
+    expect(mid.disposition).toBe('migrate_once')
+  })
+
   it('grandfathers in-flight legacy sequences until the declared boundary', () => {
     const hydrated = hydrateLegacyRngState({
       rngSeed: 3,

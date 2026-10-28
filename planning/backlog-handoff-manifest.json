@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3180"
+    "SPE-1896"
   ],
   "recentlyShipped": [
+    "SPE-3180",
     "SPE-862",
     "SPE-3363",
     "SPE-3344",
@@ -78,7 +79,8 @@
   "sliceDocStatus": {
     "planning/spe-3363-public-service-degradation-slice.md": "Recently shipped",
     "planning/spe-862-message-to-service-availability-slice.md": "Recently shipped",
-    "planning/spe-3180-subjective-vs-authoritative-time-slice.md": "In progress",
+    "planning/spe-3180-subjective-vs-authoritative-time-slice.md": "Recently shipped",
+    "planning/spe-1896-procedure-room-state-preconditions-slice.md": "In progress",
     "planning/spe-3344-hazardous-research-risk-posture-slice.md": "Recently shipped",
     "planning/spe-3343-research-throughput-execution-slice.md": "Recently shipped",
     "planning/spe-3041-conditional-recurring-task-activation-slice.md": "Recently shipped",

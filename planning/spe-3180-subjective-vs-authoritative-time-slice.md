@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3180](https://linear.app/spectranoir/issue/SPE-3180) |
 | **Parent** | [SPE-1071](https://linear.app/spectranoir/issue/SPE-1071) — authoritative clock owner |
 | **Branch** | `jamesdyedbq/spe-3180-contradiction-check-subjective-time-versus-authoritative` |

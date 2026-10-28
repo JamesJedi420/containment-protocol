@@ -708,7 +708,7 @@ export function generateAmbientCases(
         enabledPowerFamilies: state.clearanceLevel >= 2 ? ['alchemy', 'folk_rite', 'miracle'] : ['folk_rite'],
         suppressedPowerFamilies: state.market.pressure === 'tight' ? ['arcane'] : [],
         moneyModel: state.market.pressure === 'tight' ? 'mercantile_credit' : 'coinage',
-        prevalentMonsterFamilies: ['urban_anomaly'],
+        prevalentThreatFamilies: ['urban_anomaly'],
         settlementStyleHints: ['fortified_market_town'],
         suppressedInteractionSurfaces: state.market.pressure === 'tight'
           ? ['wizard_colleges']

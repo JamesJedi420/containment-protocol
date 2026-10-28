@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4482 @ `1dbc2230`) |
 | **Issue** | [SPE-870](https://linear.app/spectranoir/issue/SPE-870/threshold-triggered-process-safety-coverage) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-870-threshold-triggered-process-safety-coverage` |

@@ -19,7 +19,9 @@
     "verify:audits-index": "node scripts/verify-design-audits-index.mjs",
     "verify:backlog-handoff": "node scripts/verify-backlog-handoff.mjs",
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs",
-    "verify:governance-contract": "node --test scripts/governance/authority-contract.check.mjs"
+    "verify:governance-contract": "node --test scripts/governance/authority-contract.check.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --reporter=list,html"
   },
   "dependencies": {
     "lucide-react": "^1.61.0",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

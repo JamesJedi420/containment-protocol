@@ -15,6 +15,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 | **Modern Web Guidance** | HTML/CSS/client JS patterns before inventing UI | Cursor skill `modern-web-guidance` (`npx modern-web-guidance search "..."`) |
 | **Cursor Team Kit** + **CLI for Agents** | CI/PR/review/shell agent skills | Plugin-local skills (not duplicated here) |
 | **browse** | Agent browser sandbox / Browserbase demos | Tooling only — not the game SPA |
+| **Playwright** (Test + optional MCP) | Shared Chromium E2E harness; optional local browser inspection | `docs/playwright-e2e-harness.md`, `playwright.config.ts`, `npm run test:e2e` |
 
 ## PR review configs (already in repo)
 

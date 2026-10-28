@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (local slice; Linear lifecycle separate) |
 | **Issue** | [SPE-1757](https://linear.app/spectranoir/issue/SPE-1757) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Backlog |
 | **Branch** | `jamesdyedbq/spe-1757-extranormal-temporal-event-registry` |

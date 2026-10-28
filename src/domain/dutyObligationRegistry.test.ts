@@ -147,6 +147,78 @@ describe('SPE-1135 duty and obligation registry', () => {
     expect(terminalDuty?.compliance).toBe('terminal_no_breach')
   })
 
+  it('preserves act-observed compliance and classifies refusal distinctly', () => {
+    const projection: DutyConsumptionProjection = Object.freeze({
+      dutyOwner: 'SPE-1135',
+      requirementId: 'req:containment-info',
+      subjectRef: 'subject:anomaly-alpha',
+      windowId: 'win:1',
+      requirementState: 'deficient',
+      requirementRemainsAuthority: true,
+      fulfillmentOutcome: 'deficient',
+      reasonCodes: Object.freeze(['duty_consumes_requirement_outcome']),
+    })
+
+    const acted = evaluateDutyAgainstRequirementOutcome(
+      DEMO_DUTY_OBLIGATION_REGISTRY,
+      'field_lead',
+      projection,
+      {
+        provenance: { decisionRef: 'dec:open', kind: 'actionable' },
+        actObserved: true,
+      }
+    )
+    expect(acted?.compliance).toBe('compliant')
+
+    const refused = evaluateDutyAgainstRequirementOutcome(
+      DEMO_DUTY_OBLIGATION_REGISTRY,
+      'field_lead',
+      projection,
+      {
+        provenance: { decisionRef: 'dec:refused', kind: 'explicit_refusal' },
+        actObserved: false,
+      }
+    )
+    expect(refused?.compliance).toBe('refused')
+  })
+
+  it('keeps period-bound duties pending while the window is open', () => {
+    const projection: DutyConsumptionProjection = Object.freeze({
+      dutyOwner: 'SPE-1135',
+      requirementId: 'req:archive-period',
+      subjectRef: 'subject:archive-alpha',
+      windowId: 'win:period',
+      requirementState: 'deficient',
+      requirementRemainsAuthority: true,
+      fulfillmentOutcome: 'deficient',
+      reasonCodes: Object.freeze(['duty_consumes_requirement_outcome']),
+    })
+
+    const pending = evaluateDutyAgainstRequirementOutcome(
+      DEMO_DUTY_OBLIGATION_REGISTRY,
+      'archivist',
+      projection,
+      { campaignWeek: 11 }
+    )
+    expect(pending?.compliance).toBe('pending')
+
+    expect(
+      evaluatePeriodBoundObligation({
+        obligation: ARCHIVIST_RECORD_UPKEEP_PERIOD_OBLIGATION,
+        campaignWeek: 11,
+        qualifyingActionWeek: 10.5,
+      }).result
+    ).not.toBe('period_satisfied')
+
+    expect(
+      evaluatePeriodBoundObligation({
+        obligation: ARCHIVIST_RECORD_UPKEEP_PERIOD_OBLIGATION,
+        campaignWeek: 11,
+        qualifyingActionWeek: 12,
+      }).result
+    ).not.toBe('period_satisfied')
+  })
+
   it('parses registry fail-closed and rejects prototype ids', () => {
     const serialized = JSON.stringify(DEMO_DUTY_OBLIGATION_REGISTRY)
     const reparsed = parseDutyObligationRegistry(JSON.parse(serialized))

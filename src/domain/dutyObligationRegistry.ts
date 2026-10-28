@@ -116,6 +116,7 @@ export type DutyCompliance =
   | 'compliant'
   | 'breach'
   | 'pending'
+  | 'refused'
   | 'not_applicable'
   | 'terminal_no_breach'
 
@@ -448,7 +449,13 @@ export function evaluatePeriodBoundObligation(input: {
     })
   }
 
-  if (qualifyingActionWeek !== undefined && weekInPeriod(qualifyingActionWeek, window)) {
+  if (
+    qualifyingActionWeek !== undefined &&
+    isNonNegativeInt(qualifyingActionWeek) &&
+    isNonNegativeInt(campaignWeek) &&
+    qualifyingActionWeek <= campaignWeek &&
+    weekInPeriod(qualifyingActionWeek, window)
+  ) {
     return Object.freeze({
       obligationId: obligation.id,
       periodKey: key,
@@ -509,18 +516,25 @@ export function evaluateDutyAgainstRequirementOutcome(
   if (requirementOutcome.dutyOwner !== DUTY_OBLIGATION_REGISTRY_OWNER) return undefined
   if (!requirementOutcome.requirementRemainsAuthority) return undefined
 
-  const candidates = lookupObligationsForRole(registry, roleId).filter(
-    (obligation) =>
-      obligationAppliesToRequirement(obligation, requirementOutcome) &&
-      subjectMatches(obligation, requirementOutcome)
-  )
+  const candidates = lookupObligationsForRole(registry, roleId)
+    .filter(
+      (obligation) =>
+        obligationAppliesToRequirement(obligation, requirementOutcome) &&
+        subjectMatches(obligation, requirementOutcome)
+    )
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
   if (candidates.length === 0) return undefined
 
+  // Deterministic first-match: lowest obligation id among bindings for this requirement/subject.
   const obligation = candidates[0]!
   const reasonBase = Object.freeze([
     'duty:consumes_requirement_outcome',
     `requirement:${requirementOutcome.requirementId}`,
     `state:${requirementOutcome.fulfillmentOutcome}`,
+    ...(candidates.length > 1
+      ? ([`duty:first_match_of_${candidates.length}`] as const)
+      : ([] as const)),
   ])
 
   if (obligation.periodWindow !== undefined && context.campaignWeek !== undefined) {
@@ -560,6 +574,16 @@ export function evaluateDutyAgainstRequirementOutcome(
         reasonCodes: Object.freeze([...reasonBase, ...period.reasonCodes]),
       })
     }
+    if (period.result === 'period_pending') {
+      return Object.freeze({
+        obligationId: obligation.id,
+        roleId: obligation.roleId,
+        compliance: 'pending',
+        requirementRemainsAuthority: true,
+        fulfillmentOutcome: requirementOutcome.fulfillmentOutcome,
+        reasonCodes: Object.freeze([...reasonBase, ...period.reasonCodes]),
+      })
+    }
   }
 
   if (obligation.mode === 'omission_watch' && context.provenance !== undefined) {
@@ -588,11 +612,25 @@ export function evaluateDutyAgainstRequirementOutcome(
         reasonCodes: Object.freeze([...reasonBase, ...omission.reasonCodes]),
       })
     }
-    if (omission.result === 'explicit_refusal_recorded') {
+    if (omission.result === 'act_observed_compliant') {
       return Object.freeze({
         obligationId: obligation.id,
         roleId: obligation.roleId,
         compliance: 'compliant',
+        requirementRemainsAuthority: true,
+        fulfillmentOutcome: requirementOutcome.fulfillmentOutcome,
+        reasonCodes: Object.freeze([
+          ...reasonBase,
+          ...omission.reasonCodes,
+          'duty:act_observed_preserves_compliance',
+        ]),
+      })
+    }
+    if (omission.result === 'explicit_refusal_recorded') {
+      return Object.freeze({
+        obligationId: obligation.id,
+        roleId: obligation.roleId,
+        compliance: 'refused',
         requirementRemainsAuthority: true,
         fulfillmentOutcome: requirementOutcome.fulfillmentOutcome,
         reasonCodes: Object.freeze([...reasonBase, ...omission.reasonCodes]),

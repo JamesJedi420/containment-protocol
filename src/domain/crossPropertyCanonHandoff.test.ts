@@ -189,4 +189,136 @@ describe('SPE-3282 cross-property canon handoff', () => {
     if (result.ok) return
     expect(result.diagnostics.some((d) => d.code === 'missing_release_member')).toBe(true)
   })
+
+  it('rejects self-supersession', () => {
+    const packet = {
+      ...FIXTURE_ESTABLISHED_FACT,
+      records: [
+        {
+          ...FIXTURE_ESTABLISHED_FACT.records[0]!,
+          revision: { supersedesRecordId: 'rec.established.1' },
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'supersession_missing_prior')).toBe(true)
+  })
+
+  it('rejects supersession when prior is missing', () => {
+    const packet = {
+      ...FIXTURE_ESTABLISHED_FACT,
+      records: [
+        {
+          ...FIXTURE_ESTABLISHED_FACT.records[0]!,
+          recordId: 'rec.replacement.missing',
+          revision: { supersedesRecordId: 'rec.does-not-exist' },
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'supersession_missing_prior')).toBe(true)
+  })
+
+  it('rejects rename that changes shared entity identity', () => {
+    const packet = {
+      ...FIXTURE_SUPERSESSION,
+      records: [
+        {
+          ...FIXTURE_SUPERSESSION.records[0]!,
+          entity: {
+            ...FIXTURE_SUPERSESSION.records[0]!.entity!,
+            sharedEntityId: 'su.entity.different',
+          },
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'rename_identity_mismatch')).toBe(true)
+  })
+
+  it('rejects duplicate record ids', () => {
+    const packet = {
+      ...FIXTURE_ESTABLISHED_FACT,
+      records: [
+        FIXTURE_ESTABLISHED_FACT.records[0]!,
+        { ...FIXTURE_ESTABLISHED_FACT.records[0]! },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'duplicate_record_id')).toBe(true)
+  })
+
+  it('rejects unknown permitted use classes via governed_reference_seam', () => {
+    const packet = {
+      ...FIXTURE_ESTABLISHED_FACT,
+      records: [
+        {
+          ...FIXTURE_ESTABLISHED_FACT.records[0]!,
+          permittedUseClasses: ['not_a_real_use_class' as never],
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'governed_reference_seam')).toBe(true)
+  })
+
+  it('rejects established supersession without canon admission', () => {
+    const packet = {
+      ...FIXTURE_SUPERSESSION,
+      records: [
+        {
+          ...FIXTURE_SUPERSESSION.records[0]!,
+          source: {
+            ...FIXTURE_SUPERSESSION.records[0]!.source,
+            canonAdmissionAuthorized: false,
+          },
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(
+      result.diagnostics.some((d) => d.code === 'research_artifact_lacks_canon_admission'),
+    ).toBe(true)
+    expect(result.dispositions['rec.replacement.1']).toBe('reject_non_promotable')
+  })
+
+  it('rejects publication timing equal to occurrence timing', () => {
+    const packet = {
+      ...FIXTURE_ESTABLISHED_FACT,
+      records: [
+        {
+          ...FIXTURE_ESTABLISHED_FACT.records[0]!,
+          chronology: {
+            occurrenceRef: 'same-stamp',
+            sharedUniversePromotionRef: 'same-stamp',
+          },
+        },
+      ],
+    }
+    const result = validateCrossPropertyCanonHandoff(packet)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'publication_time_is_not_occurrence')).toBe(
+      true,
+    )
+  })
+
+  it('routes agency-archive-only records to SPE-1032 historical seam', () => {
+    const projection = projectHandoffToHistoricalContinuity(
+      FIXTURE_SAME_NAME_DIFFERENT_ENTITIES.records[0]!,
+    )
+    expect(projection.projectionOwner).toBe('SPE-1032')
+  })
 })

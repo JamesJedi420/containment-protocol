@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3282](https://linear.app/spectranoir/issue/SPE-3282/cross-property-canon-handoff-contract-and-promotion-validation) |
 | **Parent** | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085/canon-rules-continuity-and-universe-consistency) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3282-cross-property-canon-handoff-contract-and-promotion` |

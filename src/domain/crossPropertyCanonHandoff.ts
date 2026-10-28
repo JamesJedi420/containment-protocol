@@ -263,15 +263,22 @@ function normalizeId(value: string): string {
   return value.trim()
 }
 
+/** Locale-independent code-unit ordering for deterministic diagnostics/releases. */
+function compareStrings(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}
+
 function compareDiagnostics(
   left: CrossPropertyCanonHandoffDiagnosticRecord,
   right: CrossPropertyCanonHandoffDiagnosticRecord,
 ): number {
-  const byCode = left.code.localeCompare(right.code)
+  const byCode = compareStrings(left.code, right.code)
   if (byCode !== 0) return byCode
-  const byField = left.field.localeCompare(right.field)
+  const byField = compareStrings(left.field, right.field)
   if (byField !== 0) return byField
-  return (left.sourceItemId ?? '').localeCompare(right.sourceItemId ?? '')
+  return compareStrings(left.sourceItemId ?? '', right.sourceItemId ?? '')
 }
 
 function freezeDiagnostics(
@@ -293,11 +300,33 @@ function relationKey(relation: CanonRelationAssertion): string {
 }
 
 function digestRecord(record: CrossPropertyCanonRecord): string {
+  const relationDigest = [...(record.relations ?? [])]
+    .map((relation) => relationKey(relation))
+    .sort(compareStrings)
+    .join(',')
+  const namingDigest = record.entity
+    ? [
+        record.entity.naming.namingState,
+        record.entity.naming.approvedName ?? '',
+        [...(record.entity.naming.aliases ?? [])].sort(compareStrings).join(','),
+      ].join('|')
+    : ''
+  const chronologyDigest = [
+    record.chronology.occurrenceRef ?? '',
+    record.chronology.deadAirEstablishmentRef ?? '',
+    record.chronology.sharedUniversePromotionRef ?? '',
+    record.chronology.transportImportRef ?? '',
+  ].join('|')
+  const useDigest = [...record.permittedUseClasses].sort(compareStrings).join(',')
   return [
     normalizeId(record.recordId),
     record.claimStatus,
     record.source.caseOrArtifactId,
     record.entity?.sharedEntityId ?? '',
+    namingDigest,
+    chronologyDigest,
+    relationDigest,
+    useDigest,
     record.summary,
   ].join('#')
 }
@@ -456,7 +485,7 @@ export function validateCrossPropertyCanonHandoff(
       ) {
         diagnostics.push(
           diagnostic(
-            'unresolved_cannot_promote_established',
+            'established_requires_established_status',
             `${fieldPrefix}.entity.naming.approvedName`,
             'Locked naming requires approvedName',
             { sourceItemId: recordId },
@@ -559,20 +588,27 @@ export function validateCrossPropertyCanonHandoff(
     const revision = record.revision
     if (revision?.supersedesRecordId !== undefined) {
       const priorId = normalizeId(revision.supersedesRecordId)
-      if (!retainedById.has(priorId) && !recordIds.has(priorId)) {
+      const selfSupersession = priorId === recordId
+      const priorInPacket = packet.records.find(
+        (entry) => normalizeId(entry.recordId) === priorId && normalizeId(entry.recordId) !== recordId,
+      )
+      const prior = retainedById.get(priorId) ?? priorInPacket
+      if (selfSupersession || prior === undefined) {
         diagnostics.push(
           diagnostic(
             'supersession_missing_prior',
             `${fieldPrefix}.revision.supersedesRecordId`,
-            `Prior promoted record ${priorId} must be retained for traceability`,
+            selfSupersession
+              ? 'Record cannot supersede itself'
+              : `Prior promoted record ${priorId} must be retained for traceability`,
             { sourceItemId: recordId },
           ),
         )
+        dispositions[recordId] = dispositionForStatus(record.claimStatus)
       } else {
         dispositions[recordId] = 'supersede_prior'
-        const prior = retainedById.get(priorId)
         if (
-          prior?.entity &&
+          prior.entity &&
           record.entity &&
           prior.entity.sharedEntityId !== record.entity.sharedEntityId
         ) {
@@ -597,14 +633,10 @@ export function validateCrossPropertyCanonHandoff(
 
     // Established members eligible for release membership (including supersessions)
     const disposition = dispositions[recordId]
-    const establishedEligible =
-      record.claimStatus === 'established' &&
-      record.source.canonAdmissionAuthorized === true &&
-      (disposition === 'promote_established' || disposition === 'supersede_prior')
-    if (establishedEligible) {
-      promotableEstablishedIds.push(recordId)
-    } else if (
-      disposition === 'promote_established' &&
+    const wantsEstablishedMembership =
+      disposition === 'promote_established' || disposition === 'supersede_prior'
+    if (
+      wantsEstablishedMembership &&
       record.source.canonAdmissionAuthorized !== true
     ) {
       diagnostics.push(
@@ -615,6 +647,13 @@ export function validateCrossPropertyCanonHandoff(
           { sourceItemId: recordId },
         ),
       )
+      dispositions[recordId] = 'reject_non_promotable'
+    } else if (
+      record.claimStatus === 'established' &&
+      record.source.canonAdmissionAuthorized === true &&
+      wantsEstablishedMembership
+    ) {
+      promotableEstablishedIds.push(recordId)
     }
   }
 
@@ -638,6 +677,8 @@ export function validateCrossPropertyCanonHandoff(
       'research_artifact_lacks_canon_admission',
       'disputed_cannot_promote_established',
       'unresolved_cannot_promote_established',
+      'established_requires_established_status',
+      'governed_reference_seam',
     ].includes(entry.code),
   )
 
@@ -654,7 +695,7 @@ export function validateCrossPropertyCanonHandoff(
 
   let release: SharedUniverseReleaseManifest | undefined
   if (options?.buildRelease === true) {
-    const ordered = [...promotableEstablishedIds].sort((a, b) => a.localeCompare(b))
+    const ordered = [...promotableEstablishedIds].sort(compareStrings)
     if (ordered.length === 0) {
       return {
         ok: false,
@@ -809,7 +850,7 @@ export function projectHandoffToNonCampaignTransport(
     transportOwner: 'SPE-3175' as const,
     packetId: packet.packetId,
     recordIds: Object.freeze(
-      packet.records.map((record) => normalizeId(record.recordId)).sort((a, b) => a.localeCompare(b)),
+      packet.records.map((record) => normalizeId(record.recordId)).sort(compareStrings),
     ),
     campaignGameStateOwned: false as const,
   })
@@ -817,6 +858,7 @@ export function projectHandoffToNonCampaignTransport(
 
 /**
  * SPE-2099 / SPE-1032 seam: historical projection retains source authority + uncertainty.
+ * Routes by permitted use class; default SPE-2099 when both/neither are declared.
  */
 export function projectHandoffToHistoricalContinuity(
   record: CrossPropertyCanonRecord,
@@ -827,8 +869,11 @@ export function projectHandoffToHistoricalContinuity(
   readonly sourceAuthority: string
   readonly uncertaintyPreserved: true
 } {
+  const prefersArchive =
+    record.permittedUseClasses.includes('agency_archive') &&
+    !record.permittedUseClasses.includes('historical_continuity')
   return Object.freeze({
-    projectionOwner: 'SPE-2099' as const,
+    projectionOwner: (prefersArchive ? 'SPE-1032' : 'SPE-2099') as 'SPE-2099' | 'SPE-1032',
     recordId: normalizeId(record.recordId),
     claimStatus: record.claimStatus,
     sourceAuthority: record.source.caseOrArtifactId,
@@ -877,8 +922,8 @@ export function handGovernedReferencesToIntegrityBoundary(
     integrityOwner: 'SPE-3139' as const,
     recordId: normalizeId(record.recordId),
     refs: Object.freeze(
-      [...new Set(refs.map((ref) => ref.trim()).filter((ref) => ref.length > 0))].sort((a, b) =>
-        a.localeCompare(b),
+      [...new Set(refs.map((ref) => ref.trim()).filter((ref) => ref.length > 0))].sort(
+        compareStrings,
       ),
     ),
   })
@@ -891,12 +936,9 @@ function baseSource(
 ): DeadAirSourceIdentity {
   return Object.freeze({
     caseOrArtifactId: 'DA-CASE-001',
-    stableSourceRefs: Object.freeze(['src:da:001']),
     canonAdmissionAuthorized: true,
     ...overrides,
-    stableSourceRefs: Object.freeze(
-      overrides?.stableSourceRefs ?? ['src:da:001'],
-    ),
+    stableSourceRefs: Object.freeze(overrides?.stableSourceRefs ?? ['src:da:001']),
   })
 }
 

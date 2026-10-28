@@ -469,16 +469,38 @@ function sanitizeDifficultyProfileBinding(
   const profileId = typeof raw.profileId === 'string' ? raw.profileId : ''
   const profileVersion =
     typeof raw.profileVersion === 'string' ? raw.profileVersion : '1'
+  const customInput = isRecord(raw.custom)
+    ? {
+        multipliers: isRecord(raw.custom.multipliers)
+          ? (raw.custom.multipliers as never)
+          : undefined,
+        runOptions: isRecord(raw.custom.runOptions)
+          ? (raw.custom.runOptions as never)
+          : undefined,
+        hasAlternateProgressionResourceRoute:
+          raw.custom.hasAlternateProgressionResourceRoute === true,
+      }
+    : null
   const resolved = resolveDifficultyRunConfiguration({
     profileId,
     profileVersion,
-    custom: isRecord(raw.custom) ? (raw.custom as never) : null,
+    custom: customInput,
   })
   if (!resolved.ok) return undefined
   return {
     profileId: resolved.configuration.profileId,
     profileVersion: resolved.configuration.profileVersion,
-    custom: isRecord(raw.custom) ? (raw.custom as never) : null,
+    ...(resolved.configuration.profileId === 'custom'
+      ? {
+          custom: {
+            multipliers: { ...resolved.configuration.multipliers },
+            runOptions: { ...resolved.configuration.runOptions },
+            ...(customInput?.hasAlternateProgressionResourceRoute
+              ? { hasAlternateProgressionResourceRoute: true as const }
+              : {}),
+          },
+        }
+      : {}),
   }
 }
 

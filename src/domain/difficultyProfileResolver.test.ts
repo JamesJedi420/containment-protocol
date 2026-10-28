@@ -147,6 +147,12 @@ describe('difficultyProfileResolver (SPE-3044)', () => {
     })
     expect(award.award).toBe(20)
     expect(award.remainingCap).toBe(0)
+    const negative = resolveLowTierGraduateBountyAward({
+      configuration: custom.configuration,
+      campaignBountyAwardedSoFar: -50,
+    })
+    expect(negative.award).toBe(40)
+    expect(negative.remainingCap).toBe(460)
   })
 
   it('keeps legacy baseline on Cozy 1.0× without silent Normal adoption', () => {

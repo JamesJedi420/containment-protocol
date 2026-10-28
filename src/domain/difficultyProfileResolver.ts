@@ -278,9 +278,6 @@ export function resolveDifficultyRunConfiguration(
     return { ok: false, reason: 'unknown difficulty profile id' }
   }
   const def = DIFFICULTY_PROFILE_REGISTRY[input.profileId]
-  if (!Object.prototype.hasOwnProperty.call(DIFFICULTY_PROFILE_REGISTRY, input.profileId)) {
-    return { ok: false, reason: 'unknown difficulty profile id' }
-  }
   if (input.profileVersion != null && input.profileVersion !== def.version) {
     return { ok: false, reason: 'unknown difficulty profile version' }
   }
@@ -368,11 +365,11 @@ export function resolveLowTierGraduateBountyAward(input: {
   readonly configuration: ResolvedDifficultyRunConfiguration
   readonly campaignBountyAwardedSoFar: number
 }): { readonly award: number; readonly remainingCap: number } {
+  const awardedSoFar = Number.isFinite(input.campaignBountyAwardedSoFar)
+    ? Math.max(0, input.campaignBountyAwardedSoFar)
+    : 0
   const perSemester = input.configuration.runOptions.lowTierGraduateBounty
-  const remaining = Math.max(
-    0,
-    LOW_TIER_GRADUATE_BOUNTY_CAMPAIGN_CAP - input.campaignBountyAwardedSoFar
-  )
+  const remaining = Math.max(0, LOW_TIER_GRADUATE_BOUNTY_CAMPAIGN_CAP - awardedSoFar)
   const award = Math.min(perSemester, remaining)
   return Object.freeze({ award, remainingCap: remaining - award })
 }

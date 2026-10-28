@@ -358,6 +358,25 @@ describe('SPE-3124 sponsored training completion and personnel transfer', () => 
     expect(parseSponsoredTrainingCompletionState(drifted)).toBeNull()
   })
 
+  it('rejects hydration when closeout conflicts with assignment lifecycle', () => {
+    let training = registerRetainAssignment()
+    const ownership = createEmptyInterAgencyOwnershipTransferState()
+    training = applySponsoredTrainingCloseout(training, ownership, {
+      kind: 'complete_success',
+      closeoutId: 'closeout:hydrate-conflict',
+      assignmentId: DEMO_SPONSORED_ASSIGNMENT_ID,
+      authoritativeWeek: 12,
+    }).trainingState
+
+    const raw = JSON.parse(JSON.stringify(training)) as {
+      assignments: Record<string, { lifecycleState: string }>
+      activeTraineePersonIds: Record<string, string>
+    }
+    raw.assignments[DEMO_SPONSORED_ASSIGNMENT_ID]!.lifecycleState = 'active'
+    raw.activeTraineePersonIds[DEMO_TRAINEE_PERSON_ID] = DEMO_SPONSORED_ASSIGNMENT_ID
+    expect(parseSponsoredTrainingCompletionState(raw)).toBeNull()
+  })
+
   it('rejects closeoutId reuse with conflicting assignment or kind', () => {
     let training = registerRetainAssignment()
     const ownership = createEmptyInterAgencyOwnershipTransferState()

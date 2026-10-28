@@ -468,6 +468,26 @@ export function parseSponsoredTrainingCompletionState(
     })
   }
 
+  // Closeouts must reconcile with assignment lifecycle (exactly one terminal closeout each).
+  const closeoutByAssignment = createCloseoutsBag() as Record<string, SponsoredTrainingOutcomeRecord>
+  for (const record of Object.values(appliedCloseouts)) {
+    const assignment = assignments[record.assignmentId]
+    if (!assignment) return null
+    if (Object.prototype.hasOwnProperty.call(closeoutByAssignment, record.assignmentId)) {
+      return null
+    }
+    if (assignment.lifecycleState !== record.lifecycleTerminal) return null
+    closeoutByAssignment[record.assignmentId] = record
+  }
+  for (const assignment of Object.values(assignments)) {
+    if (
+      (assignment.lifecycleState === 'completed' || assignment.lifecycleState === 'canceled') &&
+      !Object.prototype.hasOwnProperty.call(closeoutByAssignment, assignment.id)
+    ) {
+      return null
+    }
+  }
+
   // Rebuild trainee occupancy from assignments — refuse stale/empty index drift.
   const activeTraineePersonIds = createTraineeBag()
   const assignmentEntries = Object.entries(assignments).sort(([a], [b]) => a.localeCompare(b))

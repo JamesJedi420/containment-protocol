@@ -31,7 +31,10 @@ export interface RosterCompositionEntry {
   operative: Id | null
 }
 
-export type AssignOperativeFailureCode = 'slot_occupied' | 'role_mismatch'
+export type AssignOperativeFailureCode =
+  | 'slot_occupied'
+  | 'role_mismatch'
+  | 'operative_already_seated'
 
 export type AssignOperativeToSlotResult =
   | {
@@ -63,6 +66,14 @@ export function createSquadRoster(
   name: string,
   slotDefinitions: readonly SquadRoleSlotDefinition[]
 ): SquadRoster {
+  const seenSlotIds = new Set<Id>()
+  for (const slot of slotDefinitions) {
+    if (seenSlotIds.has(slot.slotId)) {
+      throw new Error(`Duplicate squad roster slotId: ${slot.slotId}`)
+    }
+    seenSlotIds.add(slot.slotId)
+  }
+
   return {
     id,
     name,
@@ -103,6 +114,15 @@ export function assignOperativeToSlot(
     }
   }
 
+  if (roster.slots.some((slot) => slot.operativeId === operative.id)) {
+    return {
+      ok: false,
+      code: 'operative_already_seated',
+      roster,
+      slotId,
+    }
+  }
+
   return {
     ok: true,
     roster: {
@@ -120,6 +140,11 @@ export function assignOperativeToSlot(
 }
 
 export function removeOperativeFromSlot(roster: SquadRoster, slotId: Id): SquadRoster {
+  const targetSlot = roster.slots.find((slot) => slot.slotId === slotId)
+  if (!targetSlot) {
+    throw new Error(`Unknown squad roster slot: ${slotId}`)
+  }
+
   return {
     ...roster,
     slots: roster.slots.map((slot) =>

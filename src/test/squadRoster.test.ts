@@ -107,6 +107,50 @@ describe('squadRoster', () => {
     ])
   })
 
+  it('throws when removing from an unknown slotId', () => {
+    const roster = createRosterFixture()
+    expect(() => removeOperativeFromSlot(roster, 'slot-missing')).toThrow(
+      /Unknown squad roster slot: slot-missing/,
+    )
+  })
+
+  it('rejects seating the same operative in a second slot', () => {
+    const roster = createRosterFixture()
+    const first = assignOperativeToSlot(roster, 'slot-leader', {
+      id: 'a_ava',
+      role: 'hunter',
+    })
+    expect(first.ok).toBe(true)
+    if (!first.ok) return
+
+    const second = assignOperativeToSlot(first.roster, 'slot-field-1', {
+      id: 'a_ava',
+      role: 'hunter',
+    })
+    expect(second).toMatchObject({
+      ok: false,
+      code: 'operative_already_seated',
+      slotId: 'slot-field-1',
+    })
+  })
+
+  it('throws when creating a roster with duplicate slotIds', () => {
+    expect(() =>
+      createSquadRoster('squad-dup', 'Dup', [
+        {
+          slotId: 'slot-a',
+          role: 'leader',
+          allowedAgentRoles: ['hunter'],
+        },
+        {
+          slotId: 'slot-a',
+          role: 'field_operative',
+          allowedAgentRoles: ['hunter'],
+        },
+      ]),
+    ).toThrow(/Duplicate squad roster slotId: slot-a/)
+  })
+
   it('returns ordered composition readback in stable slot order', () => {
     const roster = createRosterFixture()
     const withLeader = assignOperativeToSlot(roster, 'slot-leader', {

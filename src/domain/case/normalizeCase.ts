@@ -69,6 +69,7 @@ import type {
 import { normalizeSpawnRule } from '../spawnRules'
 import { getTeamMemberIds } from '../teamSimulation'
 import { PRESSURE_CALIBRATION } from '../sim/calibration'
+import { isValidMajorIncidentSettlementReceipt } from '../majorIncidentTerminalSettlement'
 
 const CASE_MODES = [
   'threshold',
@@ -749,6 +750,27 @@ function sanitizeMajorIncidentRuntime(
       : fallback?.rumor
         ? { rumor: fallback.rumor }
         : {}),
+  }
+
+  const rawReceipt = isValidMajorIncidentSettlementReceipt(value.settlementReceipt)
+    ? value.settlementReceipt
+    : isValidMajorIncidentSettlementReceipt(fallback?.settlementReceipt)
+      ? fallback.settlementReceipt
+      : undefined
+  const rawReceiptId =
+    typeof value.settlementReceiptId === 'string' && value.settlementReceiptId.trim().length > 0
+      ? value.settlementReceiptId.trim()
+      : typeof fallback?.settlementReceiptId === 'string'
+        ? fallback.settlementReceiptId
+        : undefined
+  // Fail closed: keep id+receipt only when both present and ids match.
+  if (
+    rawReceipt &&
+    rawReceiptId &&
+    rawReceipt.receiptId === rawReceiptId
+  ) {
+    runtime.settlementReceiptId = rawReceiptId
+    runtime.settlementReceipt = rawReceipt
   }
 
   return runtime

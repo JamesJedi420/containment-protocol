@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3164](https://linear.app/spectranoir/issue/SPE-3164/party-card-draw-scoped-identity-and-deck-state-migration) |
 | **Parent** | [SPE-3162](https://linear.app/spectranoir/issue/SPE-3162) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3164-party-card-draw-scoped-identity-and-deck-state-migration` |

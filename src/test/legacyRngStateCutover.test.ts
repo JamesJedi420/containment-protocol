@@ -131,7 +131,7 @@ describe('SPE-3163 legacy rngState cutover', () => {
     expect(second.marker).toEqual(first.marker)
   })
 
-  it('treats hydrated matching cutoverMarkerId as already_migrated', () => {
+  it('fails closed when hydration carries cutoverMarkerId without existingMarker', () => {
     const hydrated = hydrateLegacyRngState({
       rngSeed: 7,
       rngState: 9,
@@ -145,9 +145,9 @@ describe('SPE-3163 legacy rngState cutover', () => {
       markerId: 'cutover:spe-3163:v1',
       appliedAtWeek: 12,
     })
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.disposition).toBe('already_migrated')
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.reasonCode).toBe('missing_transition_metadata')
   })
 
   it('rejects non-integer rngSeed/rngState', () => {

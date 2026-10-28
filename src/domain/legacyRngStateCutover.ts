@@ -199,20 +199,13 @@ export function applyStochasticCutover(args: {
         message: 'hydration already carries a different cutover marker',
       }
     }
-    // Reloaded save already carries this cutover — reconstruct marker idempotently.
-    const policy = args.policy ?? 'migrate_existing'
-    const restored: StochasticCutoverMarker = Object.freeze({
-      schemaVersion: LEGACY_RNG_CUTOVER_SCHEMA_VERSION,
-      markerId,
-      stateFamily: LEGACY_RNG_STATE_FAMILY,
-      policy,
-      disposition: dispositionForPolicy(policy),
-      appliedAtWeek: Math.trunc(args.appliedAtWeek),
-      legacyRngSeed: args.hydration.rngSeed,
-      legacyRngStateAtCutover: args.hydration.rngState,
-      defaultSelectorVersion: (args.defaultSelectorVersion ?? 'spe-3162.v1').trim(),
-    })
-    return { ok: true, marker: restored, disposition: 'already_migrated' }
+    // Fail closed: hydration only stores the marker id. Callers must pass
+    // existingMarker to re-apply without minting a second cutover.
+    return {
+      ok: false,
+      reasonCode: 'missing_transition_metadata',
+      message: 'hydration already carries this cutover marker; pass existingMarker',
+    }
   }
   const policy = args.policy ?? 'migrate_existing'
   const marker: StochasticCutoverMarker = Object.freeze({
@@ -239,7 +232,8 @@ export function continueInFlightLegacySequence(
   if (
     !sequence ||
     typeof sequence.sequenceId !== 'string' ||
-    sequence.sequenceId.trim().length === 0
+    sequence.sequenceId.trim().length === 0 ||
+    !isFiniteInt(sequence.legacyStreamState)
   ) {
     return {
       continueLegacy: false,

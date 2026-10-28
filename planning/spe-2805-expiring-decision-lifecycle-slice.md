@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2805](https://linear.app/spectranoir/issue/SPE-2805/expiring-decision-lifecycle-and-deterministic-default-resolution) |
 | **Parent** | none (leaf) |
 | **Branch** | `jamesdyedbq/spe-2805-expiring-decision-lifecycle-and-deterministic-default` |

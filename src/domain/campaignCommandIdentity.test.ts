@@ -48,6 +48,19 @@ describe('campaignCommandIdentity (SPE-3172)', () => {
     expect(sanitizeCampaignCommandIdentity(undefined).mode).toBe('anonymous')
     expect(sanitizeCampaignCommandIdentity(5).mode).toBe('anonymous')
     expect(sanitizeCampaignCommandIdentity({ mode: 'wizard' }).mode).toBe('anonymous')
+    expect(
+      validateCampaignCommandIdentity({
+        mode: 'custom',
+        displayName: 'Ok',
+        title: 12,
+      }).ok
+    ).toBe(false)
+    expect(
+      sanitizeCampaignCommandIdentity({
+        mode: 'anonymous',
+        schemaVersion: 'spe-3172.v2',
+      }).mode
+    ).toBe('anonymous')
   })
 
   it('round-trips through campaign ledger sanitize without copying organization fields', () => {

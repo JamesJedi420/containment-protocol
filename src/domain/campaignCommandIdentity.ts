@@ -81,10 +81,45 @@ function optionalTrimmed(
   value: unknown,
   max: number
 ): string | null {
+  if (value == null) return null
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   if (trimmed.length === 0) return null
   return clampString(trimmed, max)
+}
+
+function optionalFieldOrReject(
+  raw: Record<string, unknown>,
+  key: string,
+  max: number
+):
+  | { readonly ok: true; readonly value: string | null }
+  | { readonly ok: false; readonly reason: string } {
+  if (!Object.prototype.hasOwnProperty.call(raw, key) || raw[key] == null) {
+    return { ok: true, value: null }
+  }
+  if (typeof raw[key] !== 'string') {
+    return { ok: false, reason: `${key} must be a string when present` }
+  }
+  return { ok: true, value: optionalTrimmed(raw[key], max) }
+}
+
+function schemaMetadataOk(raw: Record<string, unknown>): boolean {
+  if (
+    Object.prototype.hasOwnProperty.call(raw, 'schemaVersion') &&
+    raw.schemaVersion != null &&
+    raw.schemaVersion !== CAMPAIGN_COMMAND_IDENTITY_SCHEMA_VERSION
+  ) {
+    return false
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(raw, 'owner') &&
+    raw.owner != null &&
+    raw.owner !== CAMPAIGN_COMMAND_IDENTITY_OWNER
+  ) {
+    return false
+  }
+  return true
 }
 
 export function createAnonymousCommandIdentity(): CampaignCommandIdentityState {
@@ -140,6 +175,10 @@ export function validateCampaignCommandIdentity(
     return { ok: false, reason: 'command identity must be an object' }
   }
 
+  if (!schemaMetadataOk(raw)) {
+    return { ok: false, reason: 'incompatible command identity schema metadata' }
+  }
+
   const mode = raw.mode
   if (
     mode !== 'anonymous' &&
@@ -166,10 +205,20 @@ export function validateCampaignCommandIdentity(
     return { ok: true, identity: resolved }
   }
 
+  if (typeof raw.displayName !== 'string') {
+    return { ok: false, reason: 'custom mode requires displayName' }
+  }
   const displayName = optionalTrimmed(raw.displayName, MAX_DISPLAY_NAME)
   if (displayName == null) {
     return { ok: false, reason: 'custom mode requires displayName' }
   }
+
+  const title = optionalFieldOrReject(raw, 'title', MAX_TITLE)
+  if (!title.ok) return title
+  const pronouns = optionalFieldOrReject(raw, 'pronouns', MAX_PRONOUNS)
+  if (!pronouns.ok) return pronouns
+  const biography = optionalFieldOrReject(raw, 'biography', MAX_BIOGRAPHY)
+  if (!biography.ok) return biography
 
   return {
     ok: true,
@@ -179,9 +228,9 @@ export function validateCampaignCommandIdentity(
       mode: 'custom',
       presetId: null,
       displayName,
-      title: optionalTrimmed(raw.title, MAX_TITLE),
-      pronouns: optionalTrimmed(raw.pronouns, MAX_PRONOUNS),
-      biography: optionalTrimmed(raw.biography, MAX_BIOGRAPHY),
+      title: title.value,
+      pronouns: pronouns.value,
+      biography: biography.value,
     }),
   }
 }

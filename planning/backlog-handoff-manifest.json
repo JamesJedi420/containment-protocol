@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-2099"],
+  "inProgress": ["SPE-3163"],
   "recentlyShipped": [
+    "SPE-2099",
     "SPE-2264",
     "SPE-3139",
     "SPE-2265",
@@ -101,6 +102,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3163-legacy-rngstate-cutover-slice.md": "In progress",
+    "planning/spe-2099-historical-continuity-board-slice.md": "Recently shipped",
     "planning/spe-3363-public-service-degradation-slice.md": "Recently shipped",
     "planning/spe-862-message-to-service-availability-slice.md": "Recently shipped",
     "planning/spe-3180-subjective-vs-authoritative-time-slice.md": "Recently shipped",

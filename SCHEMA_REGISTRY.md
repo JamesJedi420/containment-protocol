@@ -106,6 +106,10 @@ Additive fields on existing `TruthLayerRecord` in `src/domain/truthLayerRecordRe
 
 Pure domain module `src/domain/historicalContinuityBoard.ts` owns layered historical records (`HistoricalRecord` / truth layers), chronology validation (`validateHistoricalChronology`), supersession-preserving readability, and player projection (`projectHistoricalRecordForPlayer`). No GameState persistence, site generator, franchise canon imports, or archive UI in slice 1. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Stochastic identity kernel (SPE-3162) + legacy rngState cutover (SPE-3163)
+
+Pure domain `src/domain/stochasticIdentity.ts` owns typed `StochasticDecisionIdentity`, FNV-derived scoped seeds, and `createScopedStochasticRng` under SPE-3162 (parent remains open for remaining children). Pure domain `src/domain/legacyRngStateCutover.ts` owns SPE-3163 legacy hydrate, exactly-once cutover markers, grandfathered in-flight legacy continuation through declared boundaries, and post-cutover scoped decision resolution consuming SPE-2898 transition vocabulary. No GameState field migration of all consumers in this slice (party-card path remains SPE-3164). No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

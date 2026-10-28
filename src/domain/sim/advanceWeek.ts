@@ -2701,8 +2701,7 @@ function resolveAssignments(
       ...context.nextState.cases[caseId],
       supportShortfall: isSupportShortfall,
     }
-    let {
-      effectiveCase,
+    const {
       assignedAgentLeaderBonuses,
       activeTeamStressModifiers,
       outcome,
@@ -2718,6 +2717,7 @@ function resolveAssignments(
 
     // SPE-3076: exactly-once major-incident terminal settlement before rewards/reports.
     let majorIncidentSettlement: MajorIncidentTerminalSettlementReceipt | undefined
+    let effectiveCase = weeklyResolution.effectiveCase
     if (
       currentCase.majorIncident &&
       isOperationalMajorIncidentCase(currentCase) &&

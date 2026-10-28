@@ -103,6 +103,14 @@ export function createAnonymousCommandIdentity(): CampaignCommandIdentityState {
 export function resolvePresetCommandIdentity(
   presetId: string
 ): CampaignCommandIdentityState | null {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      CAMPAIGN_COMMAND_IDENTITY_PRESETS,
+      presetId
+    )
+  ) {
+    return null
+  }
   const preset = CAMPAIGN_COMMAND_IDENTITY_PRESETS[presetId]
   if (!preset) return null
   return Object.freeze({

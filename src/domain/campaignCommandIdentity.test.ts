@@ -39,6 +39,12 @@ describe('campaignCommandIdentity (SPE-3172)', () => {
     expect(validateCampaignCommandIdentity({ mode: 'preset', presetId: 'nope' }).ok).toBe(
       false
     )
+    expect(
+      validateCampaignCommandIdentity({ mode: 'preset', presetId: '__proto__' }).ok
+    ).toBe(false)
+    expect(
+      validateCampaignCommandIdentity({ mode: 'preset', presetId: 'constructor' }).ok
+    ).toBe(false)
     expect(sanitizeCampaignCommandIdentity(undefined).mode).toBe('anonymous')
     expect(sanitizeCampaignCommandIdentity(5).mode).toBe('anonymous')
     expect(sanitizeCampaignCommandIdentity({ mode: 'wizard' }).mode).toBe('anonymous')
@@ -73,7 +79,7 @@ describe('campaignCommandIdentity (SPE-3172)', () => {
       },
       base
     )
-    expect(legacy.commandIdentity?.mode).toBe('anonymous')
+    expect(legacy.commandIdentity.mode).toBe('anonymous')
   })
 
   it('projects into agency-establishment without mutating simulation outcomes', () => {

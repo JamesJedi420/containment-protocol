@@ -2753,11 +2753,12 @@ export interface CampaignLedgerState {
   settingHistory: CampaignSettingHistoryEntry[]
   compatibility: CampaignLedgerCompatibilitySnapshot
   /**
-   * SPE-3172: optional managerial persona (presentation only).
+   * SPE-3172: managerial persona (presentation only).
    * Kept separate from CampaignOperationalProfile organization fields.
-   * Absent/malformed hydrates to anonymous via `sanitizeCampaignCommandIdentity`.
+   * Absent/malformed input hydrates to anonymous via `sanitizeCampaignCommandIdentity`.
+   * Always present after `sanitizeCampaignLedger` / `createSeedCampaignLedger`.
    */
-  commandIdentity?: CampaignCommandIdentityState
+  commandIdentity: CampaignCommandIdentityState
 }
 
 export interface GameState {

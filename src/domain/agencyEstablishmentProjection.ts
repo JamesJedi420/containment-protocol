@@ -281,13 +281,13 @@ export function buildAgencyEstablishmentProjection(
     organizationName: campaign.profile.organizationName,
     doctrineLabel: campaign.profile.doctrineLabel,
     roleFramingToken: AGENCY_ESTABLISHMENT_ROLE_FRAMING_TOKEN,
-    mode: persona?.mode ?? 'anonymous',
-    presetId: persona?.presetId ?? null,
-    displayName: persona?.displayName ?? null,
-    title: persona?.title ?? null,
-    pronouns: persona?.pronouns ?? null,
-    biography: persona?.biography ?? null,
-    isAnonymous: (persona?.mode ?? 'anonymous') === 'anonymous',
+    mode: persona.mode,
+    presetId: persona.presetId,
+    displayName: persona.displayName,
+    title: persona.title,
+    pronouns: persona.pronouns,
+    biography: persona.biography,
+    isAnonymous: persona.mode === 'anonymous',
   })
 
   const briefing = Object.freeze({

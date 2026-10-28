@@ -144,6 +144,12 @@ describe('publicServiceInfrastructureDegradation', () => {
       ],
     }
     expect(parseDistrictServiceRegistry(dupRegistry)).toBeNull()
+    expect(
+      createDistrictServiceRegistry(districtId, [
+        functionalRecord(districtId, 'water'),
+        functionalRecord(districtId, 'water'),
+      ]),
+    ).toBeNull()
     expect(parseDistrictServiceRegistry({ schemaVersion: 'spe-3363.v0', districtId, records: [] })).toBeNull()
     expect(applyServiceDegradation(functionalRecord(districtId, 'water'), 'overload', { kind: 'bad', sourceRef: 'x' } as never)).toBeNull()
   })

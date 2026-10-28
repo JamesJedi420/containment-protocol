@@ -279,7 +279,9 @@ function flagsImpactedByState(
 function freezeRecord(record: DistrictServiceReliabilityRecord): DistrictServiceReliabilityRecord {
   return Object.freeze({
     ...record,
-    downstreamUseFlags: Object.freeze([...record.downstreamUseFlags]),
+    downstreamUseFlags: Object.freeze(
+      uniqueSorted(record.downstreamUseFlags) as ServiceDownstreamUseFlag[],
+    ),
     reasonCodes: uniqueSorted(record.reasonCodes),
     provenance: Object.freeze({ ...record.provenance }),
   })
@@ -352,9 +354,9 @@ export function serializeDistrictServiceReliabilityRecord(
     reliabilityState: record.reliabilityState,
     ...(record.degradationCause ? { degradationCause: record.degradationCause } : {}),
     ...(record.recoveryState ? { recoveryState: record.recoveryState } : {}),
-    downstreamUseFlags: [...record.downstreamUseFlags],
+    downstreamUseFlags: uniqueSorted(record.downstreamUseFlags),
     provenance: { ...record.provenance },
-    reasonCodes: [...record.reasonCodes],
+    reasonCodes: uniqueSorted(record.reasonCodes),
   })
 }
 
@@ -366,10 +368,13 @@ export function createDistrictServiceRegistry(
   if (trimmed === '') return null
   const records: DistrictServiceReliabilityRecord[] = []
   if (seedRecords) {
+    const seen = new Set<string>()
     for (const seed of seedRecords) {
       if (seed.districtId !== trimmed) return null
       const parsed = parseDistrictServiceReliabilityRecord(seed)
       if (!parsed) return null
+      if (seen.has(parsed.serviceCategory)) return null
+      seen.add(parsed.serviceCategory)
       records.push(parsed)
     }
   }
@@ -595,7 +600,13 @@ export function projectServiceDownstreamOutputs(
     reasonCodes.push(`impact:${record.serviceCategory}:${record.reliabilityState}`)
   }
 
-  if (parsed.records.some((r) => r.degradationCause === 'authority_failure')) {
+  if (
+    parsed.records.some(
+      (r) =>
+        r.degradationCause === 'authority_failure' &&
+        SEVERITY_RANK[r.reliabilityState] > SEVERITY_RANK.strained,
+    )
+  ) {
     flags.trust_compliance_input = true
     reasonCodes.push('impact:authority_failure_trust')
   }

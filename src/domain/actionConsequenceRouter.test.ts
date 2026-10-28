@@ -575,6 +575,17 @@ describe('SPE-2157 action consequence router', () => {
     expect(propagated?.scaleBand).toBe('adjacent')
   })
 
+  it('rejects null hard-choice set entries without throwing', () => {
+    const result = routeActionConsequences(
+      baseInput({
+        hardChoiceSets: [null as unknown as { choiceSetId: string; options: [] }],
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.reasonCode).toBe('hard_choice_rejected_invalid')
+  })
+
   it('rejects duplicate intentIds and does not propagate from denied or unresolved', () => {
     const dup = routeActionConsequences(
       baseInput({

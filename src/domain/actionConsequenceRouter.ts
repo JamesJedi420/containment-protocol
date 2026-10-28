@@ -353,10 +353,17 @@ function dispositionForIntent(
 }
 
 function validateHardChoiceSet(
-  input: HardChoiceSetInput
+  input: HardChoiceSetInput | null | undefined
 ):
   | { readonly ok: true; readonly set: HardChoiceSet }
   | { readonly ok: false; readonly reasonCode: RouterReasonCode; readonly detail: string } {
+  if (input == null) {
+    return {
+      ok: false,
+      reasonCode: 'hard_choice_rejected_invalid',
+      detail: 'hard choice set entry is null',
+    }
+  }
   if (!isNonEmptyString(input.choiceSetId)) {
     return {
       ok: false,

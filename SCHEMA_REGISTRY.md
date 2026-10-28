@@ -62,6 +62,10 @@ Pure domain module `src/domain/interAgencyOwnershipTransfer.ts` governs inter-ag
 
 Pure domain `src/domain/difficultyProfileResolver.ts` owns Cozy/Normal/Workhorse/Custom difficulty profile registry, resolved run-configuration snapshot, Custom bounds, and consumer multiplier/option adapters under SPE-1734. Optional `CampaignLedgerState.difficultyProfile` binding; absent legacy → Cozy 1.0× (SPE-2898 stable). No OperationEvent kind; no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
 
+### Scenario configuration viability (SPE-3396)
+
+Pure domain module `src/domain/scenarioConfigurationViabilityContradiction.ts` records the frozen contradiction-check decision: scenario configuration is a bounded input layer under SPE-1734 precedence (not an unrestricted override engine); softlocks that remove every legal mandatory-continuity route fail closed; starting grants are explicit `scenario_start_grant` entitlements with provenance (no fabricated earned progression); hard world-law / competency / run-config gates stay with existing owners. Fixtures cover softlock, world-law override, and starting-grant cases. Surviving implementation folds into SPE-3397 plus existing owners. No GameState field, week-close hook, or OperationEvent kind. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

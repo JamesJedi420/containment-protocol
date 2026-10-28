@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3044](https://linear.app/spectranoir/issue/SPE-3044/versioned-difficulty-profiles-and-resolved-run-configuration) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734/campaign-rules-and-settings-ledger) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3044-versioned-difficulty-profiles-and-resolved-run-configuration` |

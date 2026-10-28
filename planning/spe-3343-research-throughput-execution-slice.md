@@ -2,10 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3343](https://linear.app/spectranoir/issue/SPE-3343) |
 | **Parent** | [SPE-3342](https://linear.app/spectranoir/issue/SPE-3342) — Backlog |
 | **Branch** | `jamesdyedbq/spe-3343-deterministic-research-capability-to-throughput-execution` |
+| **Shipped** | PR [#4437](https://github.com/JamesJedi420/containment-protocol/pull/4437) @ `8ac45755` |
 
 ## Delegated approval
 

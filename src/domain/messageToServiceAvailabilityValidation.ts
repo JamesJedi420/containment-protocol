@@ -230,11 +230,11 @@ export function parsePublicGuidanceMessagePacket(
     audienceProfiles.push(
       freezeAudienceProfile({
         audienceId,
-        mobilityOk: entry.mobilityOk,
-        languageOk: entry.languageOk,
-        moneyOk: entry.moneyOk,
-        suppliesOk: entry.suppliesOk,
-        infrastructureOk: entry.infrastructureOk,
+        mobilityOk: entry.mobilityOk as boolean,
+        languageOk: entry.languageOk as boolean,
+        moneyOk: entry.moneyOk as boolean,
+        suppliesOk: entry.suppliesOk as boolean,
+        infrastructureOk: entry.infrastructureOk as boolean,
       }),
     )
   }
@@ -260,8 +260,9 @@ function mergeRequiredCategories(
 }
 
 function isServiceCheckAvailable(state: ServiceReliabilityState | 'missing'): boolean {
+  // Revise-band states (strained/degraded/recovering) remain reachable services.
   if (state === 'missing') return false
-  return !BLOCKING_SERVICE_STATES.has(state) && !REVISE_SERVICE_STATES.has(state)
+  return !BLOCKING_SERVICE_STATES.has(state)
 }
 
 function serviceStateBlocksAction(
@@ -299,6 +300,9 @@ function evaluateAudienceCompliance(
         blockers.push(`audience:${dimension}_false`)
       }
     }
+    for (const category of blockingCategories) {
+      blockers.push(`audience:required_service_unavailable:${category}`)
+    }
     if (!profile.infrastructureOk && blockingCategories.size > 0) {
       blockers.push('audience:infrastructure_blocks_service_access')
     }
@@ -334,8 +338,8 @@ function shouldEmitTrustEffectHint(
   if (communicationsBlocked && packet.recommendedAction !== 'hotline') {
     return true
   }
-  const allServicesBlocked = serviceChecks.every((check) => !check.available)
-  return allServicesBlocked
+  if (serviceChecks.length === 0) return false
+  return serviceChecks.every((check) => !check.available)
 }
 
 export function validatePublicGuidanceAgainstServices(

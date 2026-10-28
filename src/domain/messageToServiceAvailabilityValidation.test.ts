@@ -233,5 +233,40 @@ describe('messageToServiceAvailabilityValidation (SPE-862)', () => {
 
     expect(result.disposition).toBe('release')
     expect(result.serviceChecks.every((check) => check.available)).toBe(true)
+    expect(result.reasonCodes).not.toContain('trust_effect:empty_advice_hint')
+  })
+
+  it('emits trust empty-advice hint when all required services are blocked', () => {
+    const districtId = 'district:trust'
+    const registry = createDistrictServiceRegistry(districtId, [
+      {
+        districtId,
+        serviceCategory: 'shelters',
+        reliabilityState: 'unavailable',
+        downstreamUseFlags: [],
+        provenance: { kind: 'report', sourceRef: 'ops' },
+        reasonCodes: ['seed'],
+      },
+      {
+        districtId,
+        serviceCategory: 'roads',
+        reliabilityState: 'interrupted',
+        downstreamUseFlags: [],
+        provenance: { kind: 'report', sourceRef: 'ops' },
+        reasonCodes: ['seed'],
+      },
+    ])!
+
+    const result = validatePublicGuidanceAgainstServices({
+      packet: basePacket({
+        districtId,
+        recommendedAction: 'evacuation',
+        requiredServiceCategories: ['shelters', 'roads'],
+      }),
+      registry,
+    })
+
+    expect(result.disposition).toBe('block')
+    expect(result.reasonCodes).toContain('trust_effect:empty_advice_hint')
   })
 })

@@ -13,6 +13,11 @@ import type {
   ResolvedScenarioInitialization,
   ScenarioDefinitionBinding,
 } from './scenarioDefinitionResolver'
+import {
+  getBoundSharedUniverseReleaseId,
+  sanitizeSharedUniverseCanonReleaseBinding,
+} from './sharedUniverseCanonReleaseBinding'
+import type { SharedUniverseCanonReleaseBinding } from './sharedUniverseCanonReleaseBinding'
 import type {
   CampaignLedgerCompatibilitySnapshot,
   CampaignLedgerState,
@@ -438,6 +443,7 @@ export function createSeedCampaignLedger(): CampaignLedgerState {
       warnings: [],
     },
     commandIdentity: sanitizeCampaignCommandIdentity(null),
+    sharedUniverseCanonRelease: sanitizeSharedUniverseCanonReleaseBinding(undefined),
   }
 }
 
@@ -468,6 +474,12 @@ export function sanitizeCampaignLedger(
     ),
     difficultyProfile: sanitizeDifficultyProfileBinding(raw.difficultyProfile),
     scenarioDefinition: sanitizeScenarioDefinitionBinding(raw.scenarioDefinition),
+    // Absent key → legacy_unbound (never invents latest shared-universe release).
+    sharedUniverseCanonRelease: sanitizeSharedUniverseCanonReleaseBinding(
+      Object.prototype.hasOwnProperty.call(raw, 'sharedUniverseCanonRelease')
+        ? raw.sharedUniverseCanonRelease
+        : undefined,
+    ),
   }
 }
 
@@ -546,6 +558,20 @@ export function getScenarioDefinitionBinding(
   game: GameState
 ): ScenarioDefinitionBinding | undefined {
   return getCurrentCampaignRulesLedger(game).scenarioDefinition
+}
+
+export function getSharedUniverseCanonReleaseBinding(
+  game: GameState,
+): SharedUniverseCanonReleaseBinding {
+  return getCurrentCampaignRulesLedger(game).sharedUniverseCanonRelease
+    ?? sanitizeSharedUniverseCanonReleaseBinding(undefined)
+}
+
+/** Campaign-bound release id for downstream continuity consumers (null if legacy_unbound). */
+export function getCampaignBoundSharedUniverseReleaseId(
+  game: GameState,
+): string | null {
+  return getBoundSharedUniverseReleaseId(getSharedUniverseCanonReleaseBinding(game))
 }
 
 /** Defensive sanitize: tests and partial fixtures may bypass `hydrateGame`; re-entry is cheap vs sim work. */

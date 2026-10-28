@@ -82,6 +82,10 @@ Pure domain module `src/domain/crossPropertyCanonHandoff.ts` owns the Dead Air â
 
 Pure domain module `src/domain/sharedUniverseCanonReleaseCatalog.ts` owns immutable shared-universe release records materialized from SPE-3282 validated packets, release lookup, scoped member resolution, structural Aâ†’B diff, new-campaign default eligibility, withdrawal/tombstone retention, and fail-closed `sanitizeSharedUniverseCanonReleaseCatalog` for non-campaign persistence callers. No GameState field (campaign binding stays SPE-3293). No week-close hook or OperationEvent kind. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Shared-universe canon release binding (SPE-3293)
+
+Pure domain `src/domain/sharedUniverseCanonReleaseBinding.ts` plus optional `CampaignLedgerState.sharedUniverseCanonRelease` under SPE-1734. New-campaign bind consumes SPE-3300 default/eligibility; absent/malformed hydrates to explicit `legacy_unbound` (never latest). Explicit adoption is atomic via SPE-2898 transition + domain precommits + adoption receipt; entity/relation materialization receipts are idempotent identity glue only. No week-close hook or OperationEvent kind. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

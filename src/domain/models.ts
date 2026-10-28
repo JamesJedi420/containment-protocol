@@ -5,6 +5,7 @@ import type {
 } from './difficultyProfileResolver'
 import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
 import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
+import type { SharedUniverseCanonReleaseBinding } from './sharedUniverseCanonReleaseBinding'
 import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
@@ -2780,6 +2781,11 @@ export interface CampaignLedgerState {
    * Bound definitionVersion must not silently follow a newer live preset (SPE-2898).
    */
   scenarioDefinition?: ScenarioDefinitionBinding
+  /**
+   * SPE-3293: shared-universe canon release binding.
+   * Absent/malformed → explicit legacy_unbound (never invents latest release).
+   */
+  sharedUniverseCanonRelease?: SharedUniverseCanonReleaseBinding
 }
 
 export interface GameState {

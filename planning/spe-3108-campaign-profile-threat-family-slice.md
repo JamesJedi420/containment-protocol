@@ -2,11 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3108](https://linear.app/spectranoir/issue/SPE-3108/campaign-profile-threat-family-terminology-migration) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734/campaign-rules-and-settings-ledger) |
 | **Branch** | `jamesdyedbq/spe-3108-campaign-profile-threat-family-terminology-migration` |
-| **Base main SHA** | `76bb56c2` |
+| **Base main SHA** | `62a23c98` (merged PR #4451) |
 
 ## Delegated approval
 

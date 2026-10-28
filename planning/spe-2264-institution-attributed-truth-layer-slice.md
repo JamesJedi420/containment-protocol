@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2264](https://linear.app/spectranoir/issue/SPE-2264/institution-attributed-truth-layer-extension-public-agency-faction) |
 | **Parent** | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2264-institution-attributed-truth-layer-extension-public-agency` |

@@ -102,6 +102,10 @@ Pure domain module `src/domain/authoredIncidentReferenceIntegrity.ts` owns autho
 
 Additive fields on existing `TruthLayerRecord` in `src/domain/truthLayerRecordRegistry.ts`: optional `institutionalAttribution` (`public` / `agency` / `faction` / `patron` / `simulation`) and optional `simulationAuthorityRef`. Helpers `listInstitutionAttributedModelsForSubject` and `resolveSimulationAuthorityForSubject` keep one simulation authority per subject. Legacy saves without attribution hydrate by omitting the field; unknown attribution tokens are dropped. Reuses `GameState.truthLayerRecords` — no second registry. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional fields).
 
+### Historical continuity board (SPE-2099)
+
+Pure domain module `src/domain/historicalContinuityBoard.ts` owns layered historical records (`HistoricalRecord` / truth layers), chronology validation (`validateHistoricalChronology`), supersession-preserving readability, and player projection (`projectHistoricalRecordForPlayer`). No GameState persistence, site generator, franchise canon imports, or archive UI in slice 1. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

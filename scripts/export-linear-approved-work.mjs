@@ -17,7 +17,8 @@ const QUERY = `query ApprovedIssues($project: String!, $after: String) {
     }
   }}
 }`
-export function normalizeLinearIssues(projectPages, evidence, asOf) {
+export function normalizeLinearIssues(projectPages, evidence, asOf, coverage) {
+  if(!coverage || coverage.source !== 'approved-planning' || coverage.complete !== true || !Array.isArray(coverage.issueIds) || !coverage.issueIds.length || new Set(coverage.issueIds).size!==coverage.issueIds.length) error('missing independently verified approved-work coverage')
   if (!evidence || evidence.source !== 'SPE-3276' || evidence.complete !== true || !evidence.issues || Array.isArray(evidence.issues)) error('SPE-3276 classification coverage not attested')
   const byId=new Map()
   for (const page of projectPages) for (const row of page) {
@@ -29,6 +30,7 @@ export function normalizeLinearIssues(projectPages, evidence, asOf) {
     if (byId.has(row.identifier) && JSON.stringify(byId.get(row.identifier))!==JSON.stringify(row)) error(row.identifier+' inconsistent duplicate')
     byId.set(row.identifier,row)
   }
+  if(byId.size !== coverage.issueIds.length || coverage.issueIds.some(id=>!byId.has(id))) error('Linear issue coverage differs from approved planning inventory')
   const issues=[]
   for (const row of byId.values()) {
     const record=evidence.issues[row.identifier]
@@ -71,11 +73,13 @@ export async function fetchLinearAuthority({apiKey,projectIds,request=fetch,cloc
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   try{
-    const [evidencePath,outputPath='planning/approved-work-projection.json']=process.argv.slice(2)
-    if(!evidencePath) error('usage: export-linear-approved-work.mjs <verified-spe-3276-evidence.json> [output-path]')
+    const [evidencePath,coveragePath,outputPath='planning/approved-work-projection.json']=process.argv.slice(2)
+    if(!evidencePath || !coveragePath) error('usage: export-linear-approved-work.mjs <verified-spe-3276-evidence.json> <approved-planning-inventory.json> [output-path]')
     const evidence=JSON.parse(fs.readFileSync(evidencePath,'utf8'))
+    const coverage=JSON.parse(fs.readFileSync(coveragePath,'utf8'))
     const {pages,asOf}=await fetchLinearAuthority({apiKey:process.env.LINEAR_API_KEY,projectIds:(process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean)})
-    const snapshot=normalizeLinearIssues(pages,evidence,asOf)
+    if(JSON.stringify([...new Set((process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))].sort())!==JSON.stringify([...coverage.projectIds].sort())) error('project IDs differ from approved planning inventory')
+    const snapshot=normalizeLinearIssues(pages,evidence,asOf,coverage)
     const projection=projectApprovedWork(snapshot)
     // Do not write a partial output; every validation must finish first.
     fs.writeFileSync(outputPath,serializeProjection(projection))

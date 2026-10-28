@@ -141,9 +141,7 @@ export function createAffiliatedBranchRecord(
   if (input.mantleConcealed === true && !publicOfficeIdentity) {
     throw new Error('affiliated branch mantleConcealed requires publicOfficeIdentity')
   }
-  if (predecessorOccupantId && !currentOccupantId) {
-    throw new Error('affiliated branch predecessorOccupantId requires currentOccupantId')
-  }
+  // Vacancy is allowed: predecessor may remain recorded after the current occupant clears.
   if (currentOccupantId && predecessorOccupantId && currentOccupantId === predecessorOccupantId) {
     throw new Error('affiliated branch occupant ids must differ for mantle succession')
   }
@@ -283,12 +281,14 @@ export function applyMantleSuccession(args: {
     args.branch.publicOfficeIdentity ?? '',
     'publicOfficeIdentity',
   )
-  const predecessor =
-    args.branch.currentOccupantId?.trim() || args.branch.predecessorOccupantId?.trim() || undefined
+  const predecessor = args.branch.currentOccupantId?.trim() || undefined
 
   if (predecessor && predecessor === successorOccupantId) {
     throw new Error('mantle succession requires a different successor occupant')
   }
+
+  const concealReplacement =
+    args.concealReplacement === true || args.branch.mantleConcealed === true
 
   return createAffiliatedBranchRecord({
     branchId: args.branch.branchId,
@@ -306,7 +306,7 @@ export function applyMantleSuccession(args: {
     publicOfficeIdentity,
     currentOccupantId: successorOccupantId,
     ...(predecessor ? { predecessorOccupantId: predecessor } : {}),
-    ...(args.concealReplacement === true ? { mantleConcealed: true as const } : {}),
+    ...(concealReplacement ? { mantleConcealed: true as const } : {}),
   })
 }
 
@@ -333,11 +333,10 @@ export function deriveBranchDownstreamSurface(
         `legitimacy:affiliation-${branch.affiliationKind}`,
         `legitimacy:doctrine-${branch.doctrinalStance}`,
         `legitimacy:moral-${branch.moralLimitTag}`,
-        ...(branch.mantleConcealed === true
-          ? ['legitimacy:mantle-concealed']
-          : branch.publicOfficeIdentity
-            ? [`legitimacy:office-${branch.publicOfficeIdentity}`]
-            : []),
+        ...(branch.publicOfficeIdentity
+          ? [`legitimacy:office-${branch.publicOfficeIdentity}`]
+          : []),
+        ...(branch.mantleConcealed === true ? ['legitimacy:mantle-concealed'] : []),
       ]),
     ),
     factionBehaviorHints: Object.freeze(

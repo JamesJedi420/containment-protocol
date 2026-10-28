@@ -83,7 +83,7 @@ describe('SPE-699 affiliated orders, sects, and branch linkage', () => {
 
   it('flags branch pairs that differ by visibility, mandate, or moral-limit assumptions', () => {
     const pairs = listDivergentBranchPairs([publicBranch, semiPublicSect, covertOrder])
-    expect(pairs.length).toBeGreaterThanOrEqual(1)
+    expect(pairs.length).toBe(3)
 
     const publicVsCovert = pairs.find(
       (pair) =>
@@ -113,8 +113,31 @@ describe('SPE-699 affiliated orders, sects, and branch linkage', () => {
 
     const surface = deriveBranchDownstreamSurface(succeeded)
     expect(surface.legitimacyHints).toContain('legitimacy:mantle-concealed')
+    expect(surface.legitimacyHints).toContain('legitimacy:office-office:warden-of-rites')
     expect(surface.accessHints).toContain('access:visibility-public')
     expect(surface.factionBehaviorHints).toContain('faction:autonomy-subordinate')
+
+    // Vacancy (no current occupant) must not invent a predecessor from a stale prior.
+    const vacant = createAffiliatedBranchRecord({
+      ...publicBranch,
+      branchId: 'branch-vacant-mantle',
+      currentOccupantId: undefined,
+      predecessorOccupantId: 'occupant:stale-prior',
+    })
+    const filledVacancy = applyMantleSuccession({
+      branch: vacant,
+      successorOccupantId: 'occupant:new-warden',
+    })
+    expect(filledVacancy.currentOccupantId).toBe('occupant:new-warden')
+    expect(filledVacancy.predecessorOccupantId).toBeUndefined()
+
+    // Already-concealed mantle stays concealed across further succession.
+    const second = applyMantleSuccession({
+      branch: succeeded,
+      successorOccupantId: 'occupant:heir-mira',
+    })
+    expect(second.mantleConcealed).toBe(true)
+    expect(second.predecessorOccupantId).toBe('occupant:heir-jonas')
   })
 
   it('projects deterministic downstream consumption for affiliated-order autonomy', () => {

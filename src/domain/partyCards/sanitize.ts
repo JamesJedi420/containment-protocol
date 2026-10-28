@@ -1,6 +1,8 @@
 import type { GameState } from '../models'
+import { isValidPartyCardDrawContinuation } from './drawContinuation'
 import type {
   PartyCardDefinition,
+  PartyCardDrawContinuation,
   PartyCardEffect,
   PartyCardPlay,
   PartyCardState,
@@ -315,6 +317,33 @@ function buildEmptyPartyCardZones(cards: PartyCardState['cards']) {
   return reconcilePartyCardZones(cards, { deck: [], hand: [], discard: [] })
 }
 
+/** SPE-3164: preserve valid deck-local continuation; drop malformed (re-cutover on next draw). */
+function sanitizeDrawContinuation(value: unknown): PartyCardDrawContinuation | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  // Reject unsupported/missing schema versions before coercing fields — do not
+  // rewrite foreign schemas into spe-3164.v1 and skip cutover.
+  if (value.schemaVersion !== 'spe-3164.v1') {
+    return undefined
+  }
+
+  const candidate: PartyCardDrawContinuation = {
+    schemaVersion: 'spe-3164.v1',
+    runSeed: typeof value.runSeed === 'number' ? Math.trunc(value.runSeed) : NaN,
+    epoch: typeof value.epoch === 'number' ? Math.trunc(value.epoch) : NaN,
+    streamState: typeof value.streamState === 'number' ? Math.trunc(value.streamState) : NaN,
+    selectorVersion:
+      typeof value.selectorVersion === 'string' ? value.selectorVersion.trim() : '',
+    ...(typeof value.cutoverMarkerId === 'string' && value.cutoverMarkerId.trim().length > 0
+      ? { cutoverMarkerId: value.cutoverMarkerId.trim() }
+      : {}),
+  }
+
+  return isValidPartyCardDrawContinuation(candidate) ? candidate : undefined
+}
+
 /**
  * Hydration problems 466, 551-553, 560-563: party card definitions, zones, queued plays, targets, and maxHandSize.
  */
@@ -333,6 +362,7 @@ export function sanitizePersistedPartyCardState(
 
   if (!isRecord(value)) {
     const zones = buildEmptyPartyCardZones(cards)
+    const drawContinuation = sanitizeDrawContinuation(fallback.drawContinuation)
 
     return {
       cards,
@@ -341,6 +371,7 @@ export function sanitizePersistedPartyCardState(
       discard: zones.discard,
       queuedPlays: [],
       maxHandSize: Math.max(zones.hand.length, fallback.maxHandSize, 1),
+      ...(drawContinuation ? { drawContinuation } : {}),
     }
   }
 
@@ -355,6 +386,10 @@ export function sanitizePersistedPartyCardState(
     sanitizeInteger(value.maxHandSize, fallback.maxHandSize, 1, MAX_HAND_SIZE_CAP)
   )
 
+  const drawContinuation = sanitizeDrawContinuation(
+    value.drawContinuation ?? fallback.drawContinuation,
+  )
+
   return {
     cards,
     deck: zones.deck,
@@ -362,5 +397,6 @@ export function sanitizePersistedPartyCardState(
     discard: zones.discard,
     queuedPlays: sanitizeQueuedPlays(value.queuedPlays, cards, cases, teams, campaignWeek),
     maxHandSize,
+    ...(drawContinuation ? { drawContinuation } : {}),
   }
 }

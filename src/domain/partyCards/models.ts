@@ -31,6 +31,19 @@ export interface PartyCardResolutionBonus {
   consumedCardIds: Id[]
 }
 
+/**
+ * SPE-3164 — deck-local stochastic continuation for party-card draws.
+ * Isolated from campaign `rngState`; established exactly once on legacy cutover.
+ */
+export interface PartyCardDrawContinuation {
+  schemaVersion: 'spe-3164.v1'
+  runSeed: number
+  epoch: number
+  streamState: number
+  selectorVersion: string
+  cutoverMarkerId?: string
+}
+
 export interface PartyCardState {
   cards: Record<Id, PartyCardDefinition>
   deck: Id[]
@@ -38,4 +51,6 @@ export interface PartyCardState {
   discard: Id[]
   queuedPlays: PartyCardPlay[]
   maxHandSize: number
+  /** Deck-local draw stream; absent on pre-SPE-3164 saves until first draw. */
+  drawContinuation?: PartyCardDrawContinuation
 }

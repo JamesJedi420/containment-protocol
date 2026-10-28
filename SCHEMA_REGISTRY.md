@@ -112,7 +112,7 @@ Pure domain `src/domain/stochasticIdentity.ts` owns typed `StochasticDecisionIde
 
 ### Major-incident terminal settlement (SPE-3076)
 
-Pure domain `src/domain/majorIncidentTerminalSettlement.ts` owns exactly-once terminal settlement receipts for operational major incidents under SPE-3076. Receipts stamp onto `ActiveMajorIncidentRuntime.settlementReceipt` / `settlementReceiptId` during week-close resolution and hydrate through `sanitizeMajorIncidentRuntime`. Reward eligibility is derived from the final authoritative outcome via `getAppliedMajorIncidentRewardPreview`, not a stale UI preview. Downstream casualty, assignment, aftermath, and report UI remain with their owners. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional runtime fields).
+Pure domain `src/domain/majorIncidentTerminalSettlement.ts` owns exactly-once terminal settlement receipts for operational major incidents under SPE-3076. Receipts stamp onto `ActiveMajorIncidentRuntime.settlementReceipt` / `settlementReceiptId` during week-close resolution from the final authoritative outcome (including success→partial degrade). Hydration through `sanitizeMajorIncidentRuntime` keeps the pair only when `isValidMajorIncidentSettlementReceipt` passes and `settlementReceiptId` matches `receipt.receiptId`; malformed receipts drop. Week-close passes any persisted runtime receipt as `existingReceipts` for idempotent replay. Reward eligibility is derived from the final authoritative outcome via `getAppliedMajorIncidentRewardPreview`, not a stale UI preview. Downstream casualty, assignment, aftermath, and report UI remain with their owners. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional runtime fields).
 
 ### Party-card draw continuation (SPE-3164)
 

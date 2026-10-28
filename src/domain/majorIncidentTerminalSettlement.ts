@@ -65,11 +65,7 @@ export type MajorIncidentTerminalSettlementResult =
     }
   | {
       readonly kind: 'rejected'
-      readonly reasonCode:
-        | 'missing_runtime'
-        | 'not_operational'
-        | 'invalid_outcome'
-        | 'receipt_conflict'
+      readonly reasonCode: 'missing_runtime' | 'invalid_outcome' | 'receipt_conflict'
       readonly message: string
     }
 
@@ -150,10 +146,13 @@ export function settleMajorIncidentTerminal(args: {
     getAppliedMajorIncidentRewardPreview(runtime, args.outcome.result),
   )
 
+  // Case stage is authoritative for normal launch paths; runtime.stage is optional.
   const stage =
-    typeof runtime.stage === 'number' && Number.isFinite(runtime.stage)
-      ? Math.max(0, Math.trunc(runtime.stage))
-      : 0
+    typeof args.currentCase.stage === 'number' && Number.isFinite(args.currentCase.stage)
+      ? Math.max(0, Math.trunc(args.currentCase.stage))
+      : typeof runtime.stage === 'number' && Number.isFinite(runtime.stage)
+        ? Math.max(0, Math.trunc(runtime.stage))
+        : 0
   const unlockSignalId =
     args.outcome.result === 'success' && rewardEligibility.progressionUnlocks.length > 0
       ? `mi-unlock:${receiptId}`

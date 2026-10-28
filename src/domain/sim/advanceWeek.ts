@@ -147,6 +147,7 @@ import {
 import { isOperationalMajorIncidentCase } from '../majorIncidentOperations'
 import {
   attachMajorIncidentSettlementReceipt,
+  isValidMajorIncidentSettlementReceipt,
   settleMajorIncidentTerminal,
   type MajorIncidentTerminalSettlementReceipt,
 } from '../majorIncidentTerminalSettlement'
@@ -2715,23 +2716,47 @@ function resolveAssignments(
       terminalDisposition,
     } = weeklyResolution
 
-    // SPE-3076: exactly-once major-incident terminal settlement before rewards/reports.
     let majorIncidentSettlement: MajorIncidentTerminalSettlementReceipt | undefined
     let effectiveCase = weeklyResolution.effectiveCase
+
+    const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
+      behaviorValidation,
+      infiltrationStageMission,
+      stealthLeaveBehindMission,
+    })
+
+    // SPE-3076: settle from final authoritative outcome (including success→partial degrade).
+    const majorIncidentFinalOutcome =
+      outcome.result === 'success' && missionSuccessDegrade.shouldDegrade
+        ? ('partial' as const)
+        : outcome.result === 'success' ||
+            outcome.result === 'partial' ||
+            outcome.result === 'fail'
+          ? outcome.result
+          : null
     if (
       currentCase.majorIncident &&
       isOperationalMajorIncidentCase(currentCase) &&
-      (outcome.result === 'success' ||
-        outcome.result === 'partial' ||
-        outcome.result === 'fail')
+      majorIncidentFinalOutcome
     ) {
+      const existingReceipt = currentCase.majorIncident.settlementReceipt
+      const existingReceipts = isValidMajorIncidentSettlementReceipt(existingReceipt)
+        ? { [existingReceipt.receiptId]: existingReceipt }
+        : undefined
+      const settlementReasons =
+        majorIncidentFinalOutcome === 'partial' &&
+        outcome.result === 'success' &&
+        missionSuccessDegrade.reason
+          ? [...outcome.reasons, missionSuccessDegrade.reason]
+          : outcome.reasons
       const settlement = settleMajorIncidentTerminal({
         currentCase: {
           ...currentCase,
           majorIncident: currentCase.majorIncident,
         },
-        outcome,
+        outcome: { result: majorIncidentFinalOutcome, reasons: settlementReasons },
         week: context.sourceState.week,
+        existingReceipts,
       })
       if (settlement.kind === 'settled' || settlement.kind === 'idempotent_replay') {
         majorIncidentSettlement = settlement.receipt
@@ -2746,12 +2771,6 @@ function resolveAssignments(
         }
       }
     }
-
-    const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
-      behaviorValidation,
-      infiltrationStageMission,
-      stealthLeaveBehindMission,
-    })
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)
     context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)

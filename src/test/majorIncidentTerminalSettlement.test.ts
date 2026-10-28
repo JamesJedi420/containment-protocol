@@ -114,6 +114,48 @@ describe('SPE-3076 major-incident terminal settlement', () => {
     expect(settled.receipt.reportableOutcome.summary).not.toMatch(/neutraliz|contain/i)
   })
 
+  it('records authoritative case stage in the settlement receipt', () => {
+    const { currentCase } = buildOperationalMajorIncidentCase()
+    expect(currentCase.stage).toBe(4)
+    expect(currentCase.majorIncident?.stage).toBeUndefined()
+    const settled = settleMajorIncidentTerminal({
+      currentCase,
+      outcome: { result: 'success', reasons: ['stage capture'] },
+      week: 2,
+    })
+    expect(settled.kind).toBe('settled')
+    if (settled.kind !== 'settled') return
+    expect(settled.receipt.terminalObjectiveState.stage).toBe(4)
+  })
+
+  it('replays from the persisted runtime receipt without regenerating', () => {
+    const { currentCase } = buildOperationalMajorIncidentCase()
+    const first = settleMajorIncidentTerminal({
+      currentCase,
+      outcome: { result: 'fail', reasons: ['attempt failed'] },
+      week: 5,
+    })
+    expect(first.kind).toBe('settled')
+    if (first.kind !== 'settled') return
+    const stamped = {
+      ...currentCase,
+      majorIncident: {
+        ...currentCase.majorIncident!,
+        settlementReceiptId: first.receipt.receiptId,
+        settlementReceipt: first.receipt,
+      },
+    }
+    const replay = settleMajorIncidentTerminal({
+      currentCase: stamped,
+      outcome: { result: 'fail', reasons: ['attempt failed'] },
+      week: 5,
+      existingReceipts: { [first.receipt.receiptId]: first.receipt },
+    })
+    expect(replay.kind).toBe('idempotent_replay')
+    if (replay.kind !== 'idempotent_replay') return
+    expect(replay.receipt).toBe(first.receipt)
+  })
+
   it('advanceWeek stamps exactly-once settlement on operational major incidents', () => {
     const state = createStartingState()
     state.rngSeed = 42

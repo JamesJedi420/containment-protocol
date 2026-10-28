@@ -205,13 +205,12 @@ export function evaluateScenarioViabilityScenario(
   if (!scenario) {
     return { ok: false, reason: 'unknown scenario' }
   }
+  // Exhaustive id check keeps newly added fixtures compile-fail until handled here.
   switch (scenario.scenarioId) {
     case 'mandatory_resource_softlock':
-      return { ok: true, disposition: 'reject_fail_closed' }
     case 'conflicting_world_law_override':
-      return { ok: true, disposition: 'route_to_owner' }
     case 'starting_grant_vs_earned_progression':
-      return { ok: true, disposition: 'allow_with_grant_provenance' }
+      return { ok: true, disposition: scenario.expectedDisposition }
     default: {
       const _exhaustive: never = scenario.scenarioId
       return { ok: false, reason: String(_exhaustive) }

@@ -25,16 +25,27 @@ describe('scenarioConfigurationViabilityContradiction (SPE-3396)', () => {
 
   it('reconciles softlock, override, and starting-grant fixtures against owners', () => {
     expect(SCENARIO_VIABILITY_SCENARIOS).toHaveLength(3)
-    const softlock = evaluateScenarioViabilityScenario('mandatory_resource_softlock')
-    expect(softlock).toEqual({ ok: true, disposition: 'reject_fail_closed' })
-    const override = evaluateScenarioViabilityScenario('conflicting_world_law_override')
-    expect(override).toEqual({ ok: true, disposition: 'route_to_owner' })
-    const grant = evaluateScenarioViabilityScenario('starting_grant_vs_earned_progression')
-    expect(grant).toEqual({ ok: true, disposition: 'allow_with_grant_provenance' })
+    for (const fixture of SCENARIO_VIABILITY_SCENARIOS) {
+      expect(evaluateScenarioViabilityScenario(fixture.scenarioId)).toEqual({
+        ok: true,
+        disposition: fixture.expectedDisposition,
+      })
+      expect(fixture.ownerIssueId.length).toBeGreaterThan(0)
+    }
+    expect(evaluateScenarioViabilityScenario('mandatory_resource_softlock')).toEqual({
+      ok: true,
+      disposition: 'reject_fail_closed',
+    })
+    expect(evaluateScenarioViabilityScenario('conflicting_world_law_override')).toEqual({
+      ok: true,
+      disposition: 'route_to_owner',
+    })
+    expect(evaluateScenarioViabilityScenario('starting_grant_vs_earned_progression')).toEqual({
+      ok: true,
+      disposition: 'allow_with_grant_provenance',
+    })
 
-    expect(
-      decisionHasForbiddenOverride('world_law_compatibility')
-    ).toBe(true)
+    expect(decisionHasForbiddenOverride('world_law_compatibility')).toBe(true)
     expect(decisionHasForbiddenOverride('competency_progression_history')).toBe(true)
   })
 

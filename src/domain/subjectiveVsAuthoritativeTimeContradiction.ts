@@ -227,7 +227,8 @@ export type SubjectiveTimeScenarioId =
   | 'multiplayer_pause_speed_compat'
 
 export type ScenarioValidationCode =
-  | 'authoritative_week_unchanged'
+  /** Authoritative SPE-1071 week is the only timeline; no second clock (week may still advance). */
+  | 'no_second_authoritative_clock'
   | 'local_marker_advanced'
   | 'perception_only_distortion'
   | 'scheduled_event_on_authoritative_week'
@@ -235,6 +236,9 @@ export type ScenarioValidationCode =
   | 'local_progress_preserved_on_rejoin'
   | 'multiplayer_does_not_reinterpret_local_markers'
   | 'invalid_input'
+
+/** Ordinary 1:1 local rate (SPE-3384 milli units per authoritative week). */
+export const ORDINARY_LOCAL_RATE_MILLI_PER_WEEK = 1000 as const
 
 export interface ScenarioValidationResult {
   readonly scenarioId: SubjectiveTimeScenarioId
@@ -267,11 +271,18 @@ export interface ScheduledEventDuringLocalInput {
   readonly localRateMilliPerAuthoritativeWeek: number
 }
 
-export interface SaveLoadBoundaryPhase {
-  readonly phase: 'before' | 'during' | 'after'
+export interface SaveLoadSnapshot {
   readonly authoritativeWeek: number
   readonly localMarker: number
   readonly localRemainderMilli: number
+}
+
+export interface SaveLoadBoundaryPhase {
+  readonly phase: 'before' | 'during' | 'after'
+  /** State written at save. */
+  readonly saved: SaveLoadSnapshot
+  /** State after load of the same save blob (must equal saved). */
+  readonly loaded: SaveLoadSnapshot
 }
 
 export interface SaveLoadAroundDivergenceInput {
@@ -308,6 +319,22 @@ function isNonNegativeInt(n: number): boolean {
   return Number.isFinite(n) && Number.isInteger(n) && n >= 0
 }
 
+function snapshotsEqual(a: SaveLoadSnapshot, b: SaveLoadSnapshot): boolean {
+  return (
+    a.authoritativeWeek === b.authoritativeWeek &&
+    a.localMarker === b.localMarker &&
+    a.localRemainderMilli === b.localRemainderMilli
+  )
+}
+
+function isValidSnapshot(s: SaveLoadSnapshot): boolean {
+  return (
+    isNonNegativeInt(s.authoritativeWeek) &&
+    isNonNegativeInt(s.localMarker) &&
+    Number.isInteger(s.localRemainderMilli)
+  )
+}
+
 function validateAcceleratedLocalExposure(
   input: AcceleratedLocalExposureInput,
 ): ScenarioValidationResult {
@@ -316,7 +343,7 @@ function validateAcceleratedLocalExposure(
     !isNonNegativeInt(input.authoritativeWeekBefore) ||
     !isNonNegativeInt(input.authoritativeWeeksElapsed) ||
     !Number.isInteger(input.localRateMilliPerAuthoritativeWeek) ||
-    !Number.isInteger(input.localMarkerBefore) ||
+    !isNonNegativeInt(input.localMarkerBefore) ||
     !Number.isInteger(input.localRemainderMilliBefore)
   ) {
     return Object.freeze({
@@ -336,15 +363,12 @@ function validateAcceleratedLocalExposure(
     remainderMilli: input.localRemainderMilliBefore,
   })
 
-  const localAdvancedBeyondGlobal =
-    update.value > input.localMarkerBefore ||
-    (input.localRateMilliPerAuthoritativeWeek > 0 &&
-      input.authoritativeWeeksElapsed > 0 &&
-      update.value >= input.localMarkerBefore + 1)
+  const localDelta = update.value - input.localMarkerBefore
+  const localAdvancedBeyondGlobal = localDelta > input.authoritativeWeeksElapsed
 
   const ok =
     input.authoritativeWeeksElapsed >= 1 &&
-    input.localRateMilliPerAuthoritativeWeek > 1000 &&
+    input.localRateMilliPerAuthoritativeWeek > ORDINARY_LOCAL_RATE_MILLI_PER_WEEK &&
     localAdvancedBeyondGlobal
 
   return Object.freeze({
@@ -352,12 +376,12 @@ function validateAcceleratedLocalExposure(
     ok,
     codes: Object.freeze(
       ok
-        ? (['authoritative_week_unchanged', 'local_marker_advanced'] as const)
+        ? (['no_second_authoritative_clock', 'local_marker_advanced'] as const)
         : (['invalid_input'] as const),
     ),
     detail: ok
-      ? `Authoritative week advances ${input.authoritativeWeeksElapsed} (${input.authoritativeWeekBefore}→${authoritativeWeekAfter}) while local marker ${input.localMarkerBefore}→${update.value} under rate ${input.localRateMilliPerAuthoritativeWeek} milli/week.`
-      : 'Fixture must use short global interval with materially higher local rate to prove divergence.',
+      ? `Authoritative week advances ${input.authoritativeWeeksElapsed} (${input.authoritativeWeekBefore}→${authoritativeWeekAfter}) while local marker ${input.localMarkerBefore}→${update.value} (delta ${localDelta} > global ${input.authoritativeWeeksElapsed}) under rate ${input.localRateMilliPerAuthoritativeWeek} milli/week.`
+      : 'Fixture must use short global interval with local marker delta exceeding authoritative weeks elapsed.',
   })
 }
 
@@ -372,21 +396,24 @@ function validateDistortedPerception(input: DistortedPerceptionInput): ScenarioV
     })
   }
 
+  const noLocalDivergence =
+    input.localRateMilliPerAuthoritativeWeek === 0 ||
+    input.localRateMilliPerAuthoritativeWeek === ORDINARY_LOCAL_RATE_MILLI_PER_WEEK
+
   const perceptionOnly =
-    (input.readableClockDistorted || input.timingConfidenceReduced) &&
-    input.localRateMilliPerAuthoritativeWeek === 0
+    (input.readableClockDistorted || input.timingConfidenceReduced) && noLocalDivergence
 
   return Object.freeze({
     scenarioId: id,
     ok: perceptionOnly,
     codes: Object.freeze(
       perceptionOnly
-        ? (['authoritative_week_unchanged', 'perception_only_distortion'] as const)
+        ? (['no_second_authoritative_clock', 'perception_only_distortion'] as const)
         : (['invalid_input'] as const),
     ),
     detail: perceptionOnly
-      ? `Authoritative week ${input.authoritativeWeek} unchanged; SPE-815/SPE-227 distort perception/confidence only (local rate 0).`
-      : 'Distorted-perception scenario requires zero local rate assignment.',
+      ? `Authoritative week ${input.authoritativeWeek} sole timeline; SPE-815/SPE-227 distort perception/confidence only (local rate ${input.localRateMilliPerAuthoritativeWeek} is ordinary or unset).`
+      : 'Distorted-perception scenario requires ordinary (1000) or unset (0) local rate — not accelerated/slowed divergence.',
   })
 }
 
@@ -409,6 +436,7 @@ function validateScheduledEventDuringLocal(
 
   const ok =
     input.localRateMilliPerAuthoritativeWeek !== 0 &&
+    input.localRateMilliPerAuthoritativeWeek !== ORDINARY_LOCAL_RATE_MILLI_PER_WEEK &&
     input.scheduledEventAuthoritativeWeek === input.actorAuthoritativeWeek
 
   return Object.freeze({
@@ -416,12 +444,12 @@ function validateScheduledEventDuringLocal(
     ok,
     codes: Object.freeze(
       ok
-        ? (['scheduled_event_on_authoritative_week', 'authoritative_week_unchanged'] as const)
+        ? (['scheduled_event_on_authoritative_week', 'no_second_authoritative_clock'] as const)
         : (['invalid_input'] as const),
     ),
     detail: ok
-      ? `Scheduled event fires at authoritative week ${input.scheduledEventAuthoritativeWeek} while actor carries non-zero local rate ${input.localRateMilliPerAuthoritativeWeek}; event key is global, not local.`
-      : 'Event week must match actor authoritative week with non-zero local divergence.',
+      ? `Scheduled event fires at authoritative week ${input.scheduledEventAuthoritativeWeek} while actor carries divergent local rate ${input.localRateMilliPerAuthoritativeWeek}; event key is global, not local.`
+      : 'Event week must match actor authoritative week with non-ordinary local rate divergence.',
   })
 }
 
@@ -443,31 +471,36 @@ function validateSaveLoadAroundDivergence(
     before.phase === 'before' &&
     during.phase === 'during' &&
     after.phase === 'after' &&
-    [before, during, after].every(
-      (b) =>
-        isNonNegativeInt(b.authoritativeWeek) &&
-        Number.isInteger(b.localMarker) &&
-        Number.isInteger(b.localRemainderMilli),
-    )
+    [before, during, after].every((b) => isValidSnapshot(b.saved) && isValidSnapshot(b.loaded))
 
-  const deterministic =
+  const roundTripsOk =
     phasesOk &&
-    before.authoritativeWeek === during.authoritativeWeek &&
-    during.authoritativeWeek === after.authoritativeWeek &&
-    before.localMarker === during.localMarker &&
-    during.localMarker === after.localMarker &&
-    before.localRemainderMilli === during.localRemainderMilli &&
-    during.localRemainderMilli === after.localRemainderMilli
+    snapshotsEqual(before.saved, before.loaded) &&
+    snapshotsEqual(during.saved, during.loaded) &&
+    snapshotsEqual(after.saved, after.loaded)
+
+  // Phases may differ as divergence progresses; require progressing authoritative week
+  // and local marker growth across before → during → after.
+  const progressionOk =
+    roundTripsOk &&
+    during.saved.authoritativeWeek >= before.saved.authoritativeWeek &&
+    after.saved.authoritativeWeek >= during.saved.authoritativeWeek &&
+    during.saved.localMarker >= before.saved.localMarker &&
+    after.saved.localMarker >= during.saved.localMarker &&
+    (after.saved.authoritativeWeek > before.saved.authoritativeWeek ||
+      after.saved.localMarker > before.saved.localMarker)
 
   return Object.freeze({
     scenarioId: id,
-    ok: deterministic,
+    ok: progressionOk,
     codes: Object.freeze(
-      deterministic ? (['persistence_deterministic', 'authoritative_week_unchanged'] as const) : (['invalid_input'] as const),
+      progressionOk
+        ? (['persistence_deterministic', 'no_second_authoritative_clock'] as const)
+        : (['invalid_input'] as const),
     ),
-    detail: deterministic
-      ? `Save/load preserves authoritative week ${after.authoritativeWeek} and local marker ${after.localMarker} across before/during/after boundaries.`
-      : 'Boundaries must be stable across save/load without authoritative or marker drift.',
+    detail: progressionOk
+      ? `Save/load round-trips preserve each phase snapshot; before week ${before.saved.authoritativeWeek}/marker ${before.saved.localMarker} → after week ${after.saved.authoritativeWeek}/marker ${after.saved.localMarker}.`
+      : 'Each phase must round-trip saved≡loaded; phases may differ but must progress without inventing a second clock.',
   })
 }
 
@@ -476,7 +509,7 @@ function validateLocalTaskRejoin(input: LocalTaskRejoinInput): ScenarioValidatio
   if (
     !isNonNegativeInt(input.authoritativeWeekAtRejoin) ||
     !isNonNegativeInt(input.authoritativeWeeksElapsedWhileOffMap) ||
-    !Number.isInteger(input.localTaskProgressBefore) ||
+    !isNonNegativeInt(input.localTaskProgressBefore) ||
     !Number.isInteger(input.localRateMilliPerAuthoritativeWeek) ||
     !Number.isInteger(input.localRemainderMilliBefore)
   ) {
@@ -498,20 +531,20 @@ function validateLocalTaskRejoin(input: LocalTaskRejoinInput): ScenarioValidatio
 
   const ok =
     input.authoritativeWeeksElapsedWhileOffMap > 0 &&
-    update.value >= input.localTaskProgressBefore &&
-    input.authoritativeWeekAtRejoin >= 0
+    input.localRateMilliPerAuthoritativeWeek !== 0 &&
+    update.value > input.localTaskProgressBefore
 
   return Object.freeze({
     scenarioId: id,
     ok,
     codes: Object.freeze(
       ok
-        ? (['local_progress_preserved_on_rejoin', 'authoritative_week_unchanged'] as const)
+        ? (['local_progress_preserved_on_rejoin', 'no_second_authoritative_clock'] as const)
         : (['invalid_input'] as const),
     ),
     detail: ok
       ? `Rejoin at authoritative week ${input.authoritativeWeekAtRejoin} carries local task progress ${input.localTaskProgressBefore}→${update.value} without inventing a second clock.`
-      : 'Rejoin must advance local task marker from authoritative elapsed weeks only.',
+      : 'Rejoin must advance local task marker from non-zero rate over authoritative elapsed weeks.',
   })
 }
 

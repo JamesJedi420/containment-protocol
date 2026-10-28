@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   AUTHORITATIVE_TIME_OWNER_ISSUE_ID,
+  ORDINARY_LOCAL_RATE_MILLI_PER_WEEK,
   SUBJECTIVE_VS_AUTHORITATIVE_TIME_CHECK_ID,
   SUBSYSTEM_CONSUMPTION_RULES,
   decideSubjectiveVsAuthoritativeTime,
@@ -41,19 +42,67 @@ describe('SPE-3180 subjective vs authoritative time', () => {
     })
     expect(result.ok).toBe(true)
     expect(result.codes).toContain('local_marker_advanced')
-    expect(result.codes).toContain('authoritative_week_unchanged')
+    expect(result.codes).toContain('no_second_authoritative_clock')
+  })
+
+  it('rejects accelerated exposure when local delta does not exceed global weeks', () => {
+    const result = validateSubjectiveTimeScenario({
+      scenario: 'accelerated_local_exposure_short_global_interval',
+      authoritativeWeekBefore: 10,
+      authoritativeWeeksElapsed: 1,
+      localRateMilliPerAuthoritativeWeek: 1001,
+      localMarkerBefore: 0,
+      localRemainderMilliBefore: 0,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.codes).toContain('invalid_input')
+  })
+
+  it('rejects negative local markers for accelerated exposure', () => {
+    const result = validateSubjectiveTimeScenario({
+      scenario: 'accelerated_local_exposure_short_global_interval',
+      authoritativeWeekBefore: 10,
+      authoritativeWeeksElapsed: 1,
+      localRateMilliPerAuthoritativeWeek: 5000,
+      localMarkerBefore: -1,
+      localRemainderMilliBefore: 0,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.codes).toContain('invalid_input')
   })
 
   it('validates distorted perception without authoritative elapsed change', () => {
-    const result = validateSubjectiveTimeScenario({
+    const unsetRate = validateSubjectiveTimeScenario({
       scenario: 'distorted_perception_without_authoritative_change',
       authoritativeWeek: 42,
       readableClockDistorted: true,
       timingConfidenceReduced: true,
       localRateMilliPerAuthoritativeWeek: 0,
     })
-    expect(result.ok).toBe(true)
-    expect(result.codes).toContain('perception_only_distortion')
+    expect(unsetRate.ok).toBe(true)
+    expect(unsetRate.codes).toContain('perception_only_distortion')
+
+    const ordinaryRate = validateSubjectiveTimeScenario({
+      scenario: 'distorted_perception_without_authoritative_change',
+      authoritativeWeek: 42,
+      readableClockDistorted: true,
+      timingConfidenceReduced: false,
+      localRateMilliPerAuthoritativeWeek: ORDINARY_LOCAL_RATE_MILLI_PER_WEEK,
+    })
+    expect(ordinaryRate.ok).toBe(true)
+    expect(ordinaryRate.codes).toContain('perception_only_distortion')
+  })
+
+  it('rejects distorted perception when a divergent local rate is assigned', () => {
+    const result = validateSubjectiveTimeScenario({
+      scenario: 'distorted_perception_without_authoritative_change',
+      authoritativeWeek: 42,
+      readableClockDistorted: true,
+      timingConfidenceReduced: true,
+      localRateMilliPerAuthoritativeWeek: 3000,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.codes).toContain('invalid_input')
   })
 
   it('validates scheduled external events on authoritative week during local divergence', () => {
@@ -68,21 +117,53 @@ describe('SPE-3180 subjective vs authoritative time', () => {
   })
 
   it('validates save/load before, during, and after local divergence', () => {
-    const boundary = {
-      authoritativeWeek: 20,
-      localMarker: 7,
-      localRemainderMilli: 250,
-    }
     const result = validateSubjectiveTimeScenario({
       scenario: 'save_load_around_local_divergence',
       boundaries: Object.freeze([
-        { phase: 'before', ...boundary },
-        { phase: 'during', ...boundary },
-        { phase: 'after', ...boundary },
+        {
+          phase: 'before',
+          saved: { authoritativeWeek: 20, localMarker: 2, localRemainderMilli: 0 },
+          loaded: { authoritativeWeek: 20, localMarker: 2, localRemainderMilli: 0 },
+        },
+        {
+          phase: 'during',
+          saved: { authoritativeWeek: 21, localMarker: 7, localRemainderMilli: 250 },
+          loaded: { authoritativeWeek: 21, localMarker: 7, localRemainderMilli: 250 },
+        },
+        {
+          phase: 'after',
+          saved: { authoritativeWeek: 22, localMarker: 12, localRemainderMilli: 100 },
+          loaded: { authoritativeWeek: 22, localMarker: 12, localRemainderMilli: 100 },
+        },
       ]),
     })
     expect(result.ok).toBe(true)
     expect(result.codes).toContain('persistence_deterministic')
+  })
+
+  it('rejects save/load when a phase round-trip drifts', () => {
+    const result = validateSubjectiveTimeScenario({
+      scenario: 'save_load_around_local_divergence',
+      boundaries: Object.freeze([
+        {
+          phase: 'before',
+          saved: { authoritativeWeek: 20, localMarker: 2, localRemainderMilli: 0 },
+          loaded: { authoritativeWeek: 20, localMarker: 2, localRemainderMilli: 0 },
+        },
+        {
+          phase: 'during',
+          saved: { authoritativeWeek: 21, localMarker: 7, localRemainderMilli: 250 },
+          loaded: { authoritativeWeek: 21, localMarker: 8, localRemainderMilli: 250 },
+        },
+        {
+          phase: 'after',
+          saved: { authoritativeWeek: 22, localMarker: 12, localRemainderMilli: 100 },
+          loaded: { authoritativeWeek: 22, localMarker: 12, localRemainderMilli: 100 },
+        },
+      ]),
+    })
+    expect(result.ok).toBe(false)
+    expect(result.codes).toContain('invalid_input')
   })
 
   it('validates local task progress on rejoin to global time', () => {
@@ -96,6 +177,19 @@ describe('SPE-3180 subjective vs authoritative time', () => {
     })
     expect(result.ok).toBe(true)
     expect(result.codes).toContain('local_progress_preserved_on_rejoin')
+  })
+
+  it('rejects local-task rejoin with zero rate', () => {
+    const result = validateSubjectiveTimeScenario({
+      scenario: 'local_task_rejoins_global_time',
+      authoritativeWeekAtRejoin: 30,
+      localTaskProgressBefore: 2,
+      localRateMilliPerAuthoritativeWeek: 0,
+      authoritativeWeeksElapsedWhileOffMap: 2,
+      localRemainderMilliBefore: 0,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.codes).toContain('invalid_input')
   })
 
   it('validates multiplayer pause/speed does not reinterpret local markers', () => {

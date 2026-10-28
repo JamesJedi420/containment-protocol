@@ -36,7 +36,7 @@ Full table: `SUBSYSTEM_CONSUMPTION_RULES` in the domain module.
 ## Transfer, persistence, presentation
 
 - **Transfer/rejoin:** authoritative week unchanged on transfer; local markers travel with entity/domain packets; global events stay keyed to SPE-1071.
-- **Persistence:** one authoritative week anchor; local markers + SPE-3384 remainders on owning records; save/load/replay must not duplicate ticks or skip authoritative consequences.
+- **Persistence:** one authoritative week anchor; local markers + SPE-3384 remainders on owning records; each save/load boundary round-trips `saved≡loaded` (before/during/after divergence may differ as sim progresses); no duplicate ticks or skipped authoritative consequences.
 - **Presentation:** perceived/local clocks may differ from authoritative schedules; UI must not imply perception is world time (SPE-227 / SPE-815).
 
 ## Scenario fixtures

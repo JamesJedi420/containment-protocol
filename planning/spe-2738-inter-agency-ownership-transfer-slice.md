@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2738](https://linear.app/spectranoir/issue/SPE-2738) |
 | **Branch** | `jamesdyedbq/spe-2738-inter-agency-ownership-transfer-governance` |
-| **Base main SHA** | `d0d468eb` |
+| **Base main SHA** | `22ba1174` (merged PR #4445) |
 
 ## Approved boundary
 

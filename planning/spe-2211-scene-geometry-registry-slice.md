@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4479 @ `0e8e7995`) |
 | **Issue** | [SPE-2211](https://linear.app/spectranoir/issue/SPE-2211/scene-geometry-registry-cover-concealment-line-of-effect-slice-1) |
 | **Parent** | [SPE-529](https://linear.app/spectranoir/issue/SPE-529) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2211-scene-geometry-registry-cover-concealment-line-of-effect` |

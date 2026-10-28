@@ -38,6 +38,10 @@ Pure domain module `src/domain/facilityProductionChain.ts` owns authored product
 
 Pure domain module `src/domain/managedCultivationLifecycle.ts` owns authored cultivation profiles, instance lifecycle/progress (including SPE-3384 remainder), viability reasons, SPE-1058 labor-demand declaration, harvest handoff envelopes, and SPE-1060 ornamental contribution projection. Persistence is proved via `sanitizeManagedCultivationRegistry` (version 1; max 64 instances; fail-closed malformed). Optional GameState wiring and week-close growth remain deferred orchestration. SPE-1027 / SPE-3360 remain harvest consumers; SPE-118 / SPE-182 remain wild ecology owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Subjective vs authoritative time (SPE-3180)
+
+Pure domain module `src/domain/subjectiveVsAuthoritativeTimeContradiction.ts` records the frozen architecture decision: SPE-1071 remains the sole authoritative campaign clock; local/subjective elapsed time is caller-owned per-entity accumulated markers updated via SPE-3384 rate projections over authoritative weeks, not a second clock. Scenario validation fixtures cover Linear acceptance cases; no time-dilation gameplay or GameState persistence. SPE-815 / SPE-227 govern perception/confidence; SPE-3161 compatibility is declared; SPE-964 off-map labor remains a candidate follow-up. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Regional cross-register event authority (SPE-3417)
 
 Evidence-only catalog `src/domain/regionalCrossRegisterEventAuthority.ts` records owner dispositions for hypothetical multi-family regional event application. It does not mutate GameState, persist registers, or authorize a cross-register event engine. SPE-1090 / SPE-2273 remain translation/trace owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.

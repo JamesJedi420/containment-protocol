@@ -79,7 +79,46 @@ describe('SPE-2265 authored content generation guardrails', () => {
     })
     expect(result.ok).toBe(false)
     if (result.ok) return
-    expect(result.diagnostics.some((d) => d.code === 'missing_token_lineage')).toBe(true)
+    const missing = result.diagnostics.filter((d) => d.code === 'missing_token_lineage')
+    expect(missing).toHaveLength(1)
+    expect(missing[0]?.message).toContain('missing canon rule token lineage')
+  })
+
+  it('rejects a forbidden break id', () => {
+    const result = validateAuthoredContentGeneration({
+      guardrail,
+      registry: registryWithBleed(),
+      packet: {
+        packetId: 'gen:2b',
+        subjectKind: 'anomaly',
+        subjectId: 'anomaly:break',
+        ruleTokenIds: ['rule:mirror-bleed'],
+        motifIds: ['motif:reflection'],
+        breakIds: ['break:free-form-entity'],
+      },
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'forbidden_break')).toBe(true)
+  })
+
+  it('rejects when novelty budget is exceeded', () => {
+    const result = validateAuthoredContentGeneration({
+      guardrail,
+      registry: registryWithBleed(),
+      packet: {
+        packetId: 'gen:2c',
+        subjectKind: 'district',
+        subjectId: 'district:novel',
+        ruleTokenIds: ['rule:mirror-bleed'],
+        motifIds: ['motif:reflection', 'motif:novel-a', 'motif:novel-b'],
+      },
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'novelty_budget_exceeded')).toBe(
+      true,
+    )
   })
 
   it('rejects valid lineage with an explicitly contradictory rule combination', () => {

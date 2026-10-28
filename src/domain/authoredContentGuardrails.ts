@@ -143,16 +143,16 @@ export function validateAuthoredContentGeneration(input: {
       field: 'ruleTokenIds',
       message: 'Generation packet missing canon rule token lineage',
     })
-  }
-
-  for (const requiredId of required) {
-    if (!provided.includes(requiredId)) {
-      diagnostics.push({
-        code: 'missing_token_lineage',
-        field: 'ruleTokenIds',
-        message: `Missing required rule token ${requiredId}`,
-        relatedRuleIds: [requiredId],
-      })
+  } else {
+    for (const requiredId of required) {
+      if (!provided.includes(requiredId)) {
+        diagnostics.push({
+          code: 'missing_token_lineage',
+          field: 'ruleTokenIds',
+          message: `Missing required rule token ${requiredId}`,
+          relatedRuleIds: [requiredId],
+        })
+      }
     }
   }
 
@@ -227,6 +227,16 @@ export function validateAuthoredContentGeneration(input: {
         releaseCatalog: input.releaseCatalog,
       })
       if (resA.kind === 'exception_recorded' || resB.kind === 'exception_recorded') {
+        continue
+      }
+      // Skip contradiction emit when either side already fails lineage/eligibility —
+      // those diagnostics are authoritative; avoid duplicate fail-closed noise.
+      if (
+        resA.kind === 'unknown_rule' ||
+        resB.kind === 'unknown_rule' ||
+        resA.kind === 'unavailable_in_release' ||
+        resB.kind === 'unavailable_in_release'
+      ) {
         continue
       }
       diagnostics.push({

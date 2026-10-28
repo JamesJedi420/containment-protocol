@@ -8,11 +8,15 @@ import {
   ACTOR_TRUTH_LAYER_FIXTURE,
   COMPETING_LAYER_ROLES,
   COMPETING_TRUTH_LAYERS_FIXTURE,
+  INSTITUTIONAL_ATTRIBUTIONS,
   TRUTH_LAYER_SUBJECT_KINDS,
+  isInstitutionalAttribution,
   isTruthLayerKnowledgeTier,
   isTruthLayerSourceConfidence,
+  listInstitutionAttributedModelsForSubject,
   projectTruthLayerOpsView,
   projectTruthLayerReviewView,
+  resolveSimulationAuthorityForSubject,
   sanitizeTruthLayerRecords,
   validateTruthLayerRecord,
   type TruthLayerRecord,
@@ -372,5 +376,165 @@ describe('truthLayerRecordRegistry weekly snapshots (SPE-1343 slice 3)', () => {
       loaded.truthLayerWeeklyProjectionSnapshots?.[COMPETING_TRUTH_LAYERS_FIXTURE.id]?.ops
         .mythInfrastructureActive
     ).toBe(true)
+  })
+})
+
+describe('SPE-2264 institution-attributed truth-layer extension', () => {
+  it('keeps agency and faction models independently inspectable for one subject', () => {
+    const agency = baseRecord({
+      id: 'truth:agency-model',
+      subjectRef: 'event:harbor-flare',
+      institutionalAttribution: 'agency',
+      simulationAuthorityRef: 'truth:sim-authority',
+      claim: {
+        narrative: 'Agency model: industrial flare.',
+        sourceConfidence: 'probable' as AuthoritySourceConfidence,
+        knowledgeTier: 'observed' as KnowledgeTier,
+      },
+    })
+    const faction = baseRecord({
+      id: 'truth:faction-model',
+      subjectRef: 'event:harbor-flare',
+      institutionalAttribution: 'faction',
+      simulationAuthorityRef: 'truth:sim-authority',
+      claim: {
+        narrative: 'Faction model: ritual omen.',
+        sourceConfidence: 'rumor' as AuthoritySourceConfidence,
+        knowledgeTier: 'suspected' as KnowledgeTier,
+      },
+    })
+    const simulation = baseRecord({
+      id: 'truth:sim-authority',
+      subjectRef: 'event:harbor-flare',
+      institutionalAttribution: 'simulation',
+      claim: { narrative: 'Simulation: anomalous discharge at pier 7.' },
+      verification: {
+        narrative: 'Simulation verification sealed.',
+        evidenceRef: 'log:sim-harbor',
+        sourceConfidence: 'verified' as AuthoritySourceConfidence,
+      },
+    })
+
+    expect(validateTruthLayerRecord(agency).valid).toBe(true)
+    expect(validateTruthLayerRecord(faction).valid).toBe(true)
+    expect(validateTruthLayerRecord(simulation).valid).toBe(true)
+
+    const map = {
+      [agency.id]: agency,
+      [faction.id]: faction,
+      [simulation.id]: simulation,
+    }
+    const models = listInstitutionAttributedModelsForSubject(map, 'event:harbor-flare')
+    expect(models.map((r) => r.institutionalAttribution)).toEqual([
+      'agency',
+      'faction',
+      'simulation',
+    ])
+    expect(agency.claim.narrative).not.toBe(faction.claim.narrative)
+
+    const authority = resolveSimulationAuthorityForSubject(map, 'event:harbor-flare')
+    expect(authority.ok).toBe(true)
+    if (!authority.ok) return
+    expect(authority.record?.id).toBe('truth:sim-authority')
+  })
+
+  it('ignores simulationAuthorityRef that does not resolve to a same-subject simulation record', () => {
+    const agency = baseRecord({
+      id: 'truth:agency-bad-ref',
+      subjectRef: 'event:wrong-ref',
+      institutionalAttribution: 'agency',
+      simulationAuthorityRef: 'truth:not-sim',
+    })
+    const notSim = baseRecord({
+      id: 'truth:not-sim',
+      subjectRef: 'event:wrong-ref',
+      institutionalAttribution: 'public',
+    })
+    const result = resolveSimulationAuthorityForSubject(
+      { [agency.id]: agency, [notSim.id]: notSim },
+      'event:wrong-ref',
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.record).toBeNull()
+  })
+
+  it('rejects duplicate simulation authorities for one subject', () => {
+    const a = baseRecord({
+      id: 'truth:sim-a',
+      subjectRef: 'site:dock',
+      institutionalAttribution: 'simulation',
+    })
+    const b = baseRecord({
+      id: 'truth:sim-b',
+      subjectRef: 'site:dock',
+      institutionalAttribution: 'simulation',
+    })
+    const result = resolveSimulationAuthorityForSubject(
+      { [a.id]: a, [b.id]: b },
+      'site:dock',
+    )
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('duplicate_simulation_authority')
+  })
+
+  it('hydrates legacy records without attribution and drops invalid attribution tokens', () => {
+    const legacy = sanitizeTruthLayerRecords({
+      'truth:legacy': {
+        id: 'truth:legacy',
+        label: 'Legacy record',
+        subjectRef: 'event:legacy',
+        subjectKind: 'event',
+        claim: { narrative: 'Legacy claim.' },
+        doctrine: { narrative: 'Legacy doctrine.' },
+        verification: { narrative: 'Legacy verification.' },
+      },
+      'truth:bad-attr': {
+        id: 'truth:bad-attr',
+        label: 'Bad attribution',
+        subjectRef: 'event:legacy',
+        subjectKind: 'event',
+        claim: { narrative: 'Claim.' },
+        doctrine: { narrative: 'Doctrine.' },
+        verification: { narrative: 'Verification.' },
+        institutionalAttribution: 'not-a-real-attribution',
+      },
+    })
+
+    expect(legacy['truth:legacy']?.institutionalAttribution).toBeUndefined()
+    expect(legacy['truth:bad-attr']?.institutionalAttribution).toBeUndefined()
+    expect(INSTITUTIONAL_ATTRIBUTIONS.every(isInstitutionalAttribution)).toBe(true)
+  })
+
+  it('does not leak simulation narrative through ordinary review projection of an agency model', () => {
+    const agency = baseRecord({
+      id: 'truth:agency-only',
+      subjectRef: 'event:sealed',
+      institutionalAttribution: 'agency',
+      simulationAuthorityRef: 'truth:hidden-sim',
+      claim: { narrative: 'Agency-facing claim only.' },
+    })
+    const hidden = baseRecord({
+      id: 'truth:hidden-sim',
+      subjectRef: 'event:sealed',
+      institutionalAttribution: 'simulation',
+      claim: { narrative: 'HIDDEN simulation truth must not appear in agency review.' },
+      verification: {
+        narrative: 'Hidden verification.',
+        evidenceRef: 'log:hidden',
+      },
+    })
+
+    const review = projectTruthLayerReviewView(agency)
+    expect(review.claim.narrative).toBe('Agency-facing claim only.')
+    expect(JSON.stringify(review)).not.toContain('HIDDEN simulation truth')
+    expect(JSON.stringify(projectTruthLayerOpsView(agency))).not.toContain(
+      'HIDDEN simulation truth',
+    )
+    expect(resolveSimulationAuthorityForSubject(
+      { [agency.id]: agency, [hidden.id]: hidden },
+      'event:sealed',
+    ).ok).toBe(true)
   })
 })

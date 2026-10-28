@@ -1,5 +1,10 @@
 import { clamp } from './math'
 import { sanitizeCampaignCommandIdentity } from './campaignCommandIdentity'
+import {
+  resolveDifficultyRunConfiguration,
+  resolveLegacyBaselineDifficulty,
+  type ResolvedDifficultyRunConfiguration,
+} from './difficultyProfileResolver'
 import type {
   CampaignLedgerCompatibilitySnapshot,
   CampaignLedgerState,
@@ -453,7 +458,66 @@ export function sanitizeCampaignLedger(
         ? raw.commandIdentity
         : undefined
     ),
+    difficultyProfile: sanitizeDifficultyProfileBinding(raw.difficultyProfile),
   }
+}
+
+function sanitizeDifficultyProfileBinding(
+  raw: unknown
+): CampaignLedgerState['difficultyProfile'] {
+  if (!isRecord(raw)) return undefined
+  const profileId = typeof raw.profileId === 'string' ? raw.profileId : ''
+  const profileVersion =
+    typeof raw.profileVersion === 'string' ? raw.profileVersion : '1'
+  const customInput = isRecord(raw.custom)
+    ? {
+        multipliers: isRecord(raw.custom.multipliers)
+          ? (raw.custom.multipliers as never)
+          : undefined,
+        runOptions: isRecord(raw.custom.runOptions)
+          ? (raw.custom.runOptions as never)
+          : undefined,
+        hasAlternateProgressionResourceRoute:
+          raw.custom.hasAlternateProgressionResourceRoute === true,
+      }
+    : null
+  const resolved = resolveDifficultyRunConfiguration({
+    profileId,
+    profileVersion,
+    custom: customInput,
+  })
+  if (!resolved.ok) return undefined
+  return {
+    profileId: resolved.configuration.profileId,
+    profileVersion: resolved.configuration.profileVersion,
+    ...(resolved.configuration.profileId === 'custom'
+      ? {
+          custom: {
+            multipliers: { ...resolved.configuration.multipliers },
+            runOptions: { ...resolved.configuration.runOptions },
+            ...(customInput?.hasAlternateProgressionResourceRoute
+              ? { hasAlternateProgressionResourceRoute: true as const }
+              : {}),
+          },
+        }
+      : {}),
+  }
+}
+
+/** Resolve effective difficulty for a campaign; legacy absence → Cozy 1.0×. */
+export function getResolvedDifficultyRunConfiguration(
+  game: GameState
+): ResolvedDifficultyRunConfiguration {
+  const ledger = getCurrentCampaignRulesLedger(game)
+  const binding = ledger.difficultyProfile
+  if (binding == null) return resolveLegacyBaselineDifficulty()
+  const resolved = resolveDifficultyRunConfiguration({
+    profileId: binding.profileId,
+    profileVersion: binding.profileVersion,
+    custom: binding.custom,
+  })
+  if (!resolved.ok) return resolveLegacyBaselineDifficulty()
+  return resolved.configuration
 }
 
 /** Defensive sanitize: tests and partial fixtures may bypass `hydrateGame`; re-entry is cheap vs sim work. */

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4455 @ `3782c709`) |
 | **Issue** | [SPE-2186](https://linear.app/spectranoir/issue/SPE-2186/defensive-control-staff-action-model-slice-1) |
 | **Parent** | [SPE-41](https://linear.app/spectranoir/issue/SPE-41/tags-conditions-and-graded-outcome-framework) |
 | **Branch** | `jamesdyedbq/spe-2186-defensive-control-staff-action-model-slice-1` |

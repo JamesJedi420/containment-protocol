@@ -38,7 +38,7 @@ export interface CampaignEraProfileInput {
   enabledPowerFamilies: readonly PowerFamilyId[]
   suppressedPowerFamilies?: readonly PowerFamilyId[]
   moneyModel: 'tribute' | 'coinage' | 'mercantile_credit'
-  prevalentMonsterFamilies: readonly string[]
+  prevalentThreatFamilies: readonly string[]
   settlementStyleHints: readonly SettlementStyleId[]
   suppressedInteractionSurfaces?: readonly SuppressedInteractionSurface[]
 }
@@ -54,7 +54,7 @@ export interface CampaignEraProfilePacket {
   enabledPowerFamilies: PowerFamilyId[]
   suppressedPowerFamilies: PowerFamilyId[]
   moneyModel: CampaignEraProfileInput['moneyModel']
-  prevalentMonsterFamilies: string[]
+  prevalentThreatFamilies: string[]
   settlementStyleHints: SettlementStyleId[]
   suppressedInteractionSurfaces: SuppressedInteractionSurface[]
 }
@@ -75,7 +75,7 @@ export interface CampaignEraOverlaySurface {
     suppressed: PowerFamilyId[]
   }
   moneyModel: CampaignEraProfileInput['moneyModel']
-  monsterPressureFamilies: string[]
+  threatPressureFamilies: string[]
   settlementStyleHints: SettlementStyleId[]
   suppressedInteractionSurfaces: SuppressedInteractionSurface[]
 }
@@ -104,7 +104,7 @@ export function createCampaignEraProfilePacket(
     enabledPowerFamilies: uniqueSorted(input.enabledPowerFamilies),
     suppressedPowerFamilies: uniqueSorted(input.suppressedPowerFamilies ?? []),
     moneyModel: input.moneyModel,
-    prevalentMonsterFamilies: uniqueSorted(input.prevalentMonsterFamilies),
+    prevalentThreatFamilies: uniqueSorted(input.prevalentThreatFamilies),
     settlementStyleHints: uniqueSorted(input.settlementStyleHints),
     suppressedInteractionSurfaces: uniqueSorted(input.suppressedInteractionSurfaces ?? []),
   }
@@ -129,7 +129,7 @@ export function deriveCampaignEraOverlay(
       suppressed: [...packet.suppressedPowerFamilies],
     },
     moneyModel: packet.moneyModel,
-    monsterPressureFamilies: [...packet.prevalentMonsterFamilies],
+    threatPressureFamilies: [...packet.prevalentThreatFamilies],
     settlementStyleHints: [...packet.settlementStyleHints],
     suppressedInteractionSurfaces: [...packet.suppressedInteractionSurfaces],
   }

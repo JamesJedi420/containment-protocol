@@ -2,11 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3367](https://linear.app/spectranoir/issue/SPE-3367/brief-extranormal-event-caseinstance-escalation-handoff) |
 | **Parent** | none (leaf; T3 under SPE-3365 design) |
 | **Branch** | `jamesdyedbq/spe-3367-brief-extranormal-event-caseinstance-escalation-handoff` |
-| **Base main SHA** | `d1cf60f3` |
+| **Base main SHA** | `76bb56c2` (merged PR #4450) |
 
 ## Delegated approval
 

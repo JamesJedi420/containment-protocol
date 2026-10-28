@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {fetchLinearAuthority,normalizeLinearIssues} from './export-linear-approved-work.mjs'
 import {projectApprovedWork} from './project-approved-work.mjs'
-const issue=(identifier,extra={})=>({identifier,id:identifier,title:identifier,priority:2,state:{type:'started'},labels:{nodes:[{name:'approved-work'},{name:'workstream:CP-core'}]},relations:{nodes:[]},...extra})
+const issue=(identifier,extra={})=>({identifier,id:identifier,title:identifier,priority:2,state:{type:'started'},labels:{nodes:[{name:'approved-work'},{name:'workstream:CP-core'}]},relations:{pageInfo:{hasNextPage:false},nodes:[]},...extra})
 const evidence=(ids)=>({source:'SPE-3276',complete:true,issues:Object.fromEntries(ids.map(id=>[id,{verified:true,evidenceDrift:false,implementationEvidence:{state:'merged'}}]))})
 test('paginates all authoritative Linear pages, rejects transport and partial GraphQL errors',async()=>{
   let calls=0
@@ -23,5 +23,10 @@ test('missing approved metadata, evidence coverage, or related identity fails cl
  assert.equal(projectApprovedWork(normalized).active[0].statusType,'started')
  assert.throws(()=>normalizeLinearIssues([[issue('SPE-1',{labels:{nodes:[]}})]],evidence(['SPE-1']),'2026-10-28T01:00:00Z'),/metadata/)
  assert.throws(()=>normalizeLinearIssues(rows,evidence([]),'2026-10-28T01:00:00Z'),/classification/)
- assert.throws(()=>normalizeLinearIssues([[issue('SPE-1',{relations:{nodes:[{type:'blocked_by',relatedIssue:null}]}})]],evidence(['SPE-1']),'2026-10-28T01:00:00Z'),/relationship/)
+ assert.throws(()=>normalizeLinearIssues([[issue('SPE-1',{relations:{pageInfo:{hasNextPage:false},nodes:[{type:'blocked_by',relatedIssue:null}]}})]],evidence(['SPE-1']),'2026-10-28T01:00:00Z'),/relationship/)
+})
+
+test('truncated nested relation pages must fail closed',()=>{
+ const row=issue('SPE-1',{relations:{pageInfo:{hasNextPage:true},nodes:[]}})
+ assert.throws(()=>normalizeLinearIssues([[row]],evidence(['SPE-1']),'2026-10-28T01:00:00Z'),/relation pagination/)
 })

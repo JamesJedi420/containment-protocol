@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   buildDerivedMajorIncidentRuntime,
+  buildPlannedMajorIncidentRuntime,
   getAppliedMajorIncidentRewardPreview,
 } from '../domain/majorIncidentOperations'
 import {
+  isValidMajorIncidentSettlementReceipt,
   rememberMajorIncidentSettlementReceipt,
   settleMajorIncidentTerminal,
 } from '../domain/majorIncidentTerminalSettlement'
@@ -126,6 +128,45 @@ describe('SPE-3076 major-incident terminal settlement', () => {
     expect(settled.kind).toBe('settled')
     if (settled.kind !== 'settled') return
     expect(settled.receipt.terminalObjectiveState.stage).toBe(4)
+  })
+
+  it('rejects incomplete hydrated receipts missing reportableOutcome', () => {
+    expect(
+      isValidMajorIncidentSettlementReceipt({
+        schemaVersion: 'spe-3076.v1',
+        receiptId: 'mi-settle:x:y',
+        caseId: 'x',
+        incidentId: 'y',
+        finalOutcome: 'success',
+        settledAtWeek: 1,
+      }),
+    ).toBe(false)
+  })
+
+  it('clears prior settlement receipt when planning a relaunch attempt', () => {
+    const { state, currentCase } = buildOperationalMajorIncidentCase()
+    const first = settleMajorIncidentTerminal({
+      currentCase,
+      outcome: { result: 'fail', reasons: ['first attempt'] },
+      week: 4,
+    })
+    expect(first.kind).toBe('settled')
+    if (first.kind !== 'settled') return
+    const withReceipt = {
+      ...currentCase,
+      majorIncident: {
+        ...currentCase.majorIncident!,
+        settlementReceiptId: first.receipt.receiptId,
+        settlementReceipt: first.receipt,
+      },
+    }
+    const planned = buildPlannedMajorIncidentRuntime(withReceipt, state, {
+      strategy: 'balanced',
+      provisions: [],
+    })
+    expect(planned).not.toBeNull()
+    expect(planned?.settlementReceipt).toBeUndefined()
+    expect(planned?.settlementReceiptId).toBeUndefined()
   })
 
   it('replays from the persisted runtime receipt without regenerating', () => {

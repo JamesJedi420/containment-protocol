@@ -149,6 +149,7 @@ import {
   attachMajorIncidentSettlementReceipt,
   isValidMajorIncidentSettlementReceipt,
   settleMajorIncidentTerminal,
+  stripMajorIncidentSettlementReceipt,
   type MajorIncidentTerminalSettlementReceipt,
 } from '../majorIncidentTerminalSettlement'
 import { drawPartyCardsToHandLimitWithScopedContinuation } from '../partyCards/drawContinuation'
@@ -3318,12 +3319,27 @@ function downgradeResolvedCaseToPartial(
     Boolean(context.sourceState.teams[teamId])
   )
   const resolutionEscalation = createResolutionEscalationTransition(resolvedCase, 'partial')
-  const downgradedCase = {
+  let downgradedCase: CaseInstance = {
     ...resolutionEscalation.nextCase,
     status: 'open' as const,
     assignedTeamIds: [],
     weeksRemaining: undefined,
     supportShortfall: context.nextState.cases[caseId]?.supportShortfall ?? false,
+  }
+  // SPE-3076: coordination/mission degrade after success — resettle MI as partial.
+  if (downgradedCase.majorIncident && isOperationalMajorIncidentCase(sourceCase)) {
+    const clearedRuntime = stripMajorIncidentSettlementReceipt(downgradedCase.majorIncident)
+    const settlement = settleMajorIncidentTerminal({
+      currentCase: { ...downgradedCase, majorIncident: clearedRuntime },
+      outcome: { result: 'partial', reasons: [note] },
+      week: context.sourceState.week,
+    })
+    if (settlement.kind === 'settled' || settlement.kind === 'idempotent_replay') {
+      downgradedCase = {
+        ...downgradedCase,
+        majorIncident: attachMajorIncidentSettlementReceipt(clearedRuntime, settlement.receipt),
+      }
+    }
   }
   const nextState = {
     ...context.nextState,

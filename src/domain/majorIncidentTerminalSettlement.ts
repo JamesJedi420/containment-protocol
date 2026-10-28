@@ -81,15 +81,14 @@ export function buildMajorIncidentSettlementReceiptId(caseId: string, incidentId
   return `mi-settle:${caseId}:${incidentId}`
 }
 
-function cloneRewardEligibility(
-  eligibility: MajorIncidentRewardEligibility,
-): MajorIncidentRewardEligibility {
-  return {
-    materials: eligibility.materials.map((entry) => ({ ...entry })),
-    gear: eligibility.gear.map((entry) => ({ ...entry })),
-    progressionUnlocks: [...eligibility.progressionUnlocks],
-    rumorLoot: eligibility.rumorLoot.map((entry) => ({ ...entry })),
-  }
+/** Drop attempt-scoped settlement fields so a relaunch starts a clean receipt identity. */
+export function stripMajorIncidentSettlementReceipt(
+  runtime: ActiveMajorIncidentRuntime,
+): ActiveMajorIncidentRuntime {
+  const next: ActiveMajorIncidentRuntime = { ...runtime }
+  delete next.settlementReceipt
+  delete next.settlementReceiptId
+  return next
 }
 
 /**
@@ -142,9 +141,8 @@ export function settleMajorIncidentTerminal(args: {
     return { kind: 'idempotent_replay', receipt: existing }
   }
 
-  const rewardEligibility = cloneRewardEligibility(
-    getAppliedMajorIncidentRewardPreview(runtime, args.outcome.result),
-  )
+  // getAppliedMajorIncidentRewardPreview already returns fresh cloned collections.
+  const rewardEligibility = getAppliedMajorIncidentRewardPreview(runtime, args.outcome.result)
 
   // Case stage is authoritative for normal launch paths; runtime.stage is optional.
   const stage =
@@ -217,6 +215,9 @@ export function isValidMajorIncidentSettlementReceipt(
 ): value is MajorIncidentTerminalSettlementReceipt {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const raw = value as Record<string, unknown>
+  const reportable = raw.reportableOutcome
+  if (!reportable || typeof reportable !== 'object' || Array.isArray(reportable)) return false
+  const report = reportable as Record<string, unknown>
   return (
     raw.schemaVersion === MAJOR_INCIDENT_TERMINAL_SETTLEMENT_SCHEMA &&
     typeof raw.receiptId === 'string' &&
@@ -227,6 +228,10 @@ export function isValidMajorIncidentSettlementReceipt(
     raw.incidentId.trim().length > 0 &&
     isTerminalOutcome(raw.finalOutcome) &&
     typeof raw.settledAtWeek === 'number' &&
-    Number.isFinite(raw.settledAtWeek)
+    Number.isFinite(raw.settledAtWeek) &&
+    typeof raw.settlementReason === 'string' &&
+    isTerminalOutcome(report.outcome) &&
+    typeof report.summary === 'string' &&
+    report.summary.trim().length > 0
   )
 }

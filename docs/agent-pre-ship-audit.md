@@ -12,7 +12,7 @@ Audit the current implementation for the active approved issue, find gaps and ed
 
 ## Source of truth
 
-Use the active approved Linear/GitHub issue, repository docs, tests, existing architecture, and current code. Durable issue comments are binding only when they clarify or document the already-approved boundary. A comment that introduces new or changed durable scope is **not** implementation authority: preserve it as candidate evidence and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4. **Preserve the approved issue boundary.** Do not expand scope.
+Use the active approved Linear/GitHub issue, repository docs, tests, existing architecture, and current code. Durable issue comments are binding only when they clarify or document the already-approved boundary. A comment that introduces new or changed durable scope is **not** implementation authority: preserve it as candidate evidence and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only). Lifecycle/evidence Linear updates on already-approved boundaries do not require those phases. **Preserve the approved issue boundary.** Do not expand scope.
 
 ---
 

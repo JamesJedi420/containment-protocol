@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policyVersion": "1.0.0",
+  "policyVersion": "1.0.1",
   "contractId": "cp.governance.authority",
   "status": "policy-projection-not-authority",
   "provenance": {
@@ -65,7 +65,7 @@
       "id": "lifecycle-evidence",
       "mayWriteLinear": true,
       "requiresPhases": [],
-      "predicate": "Verified status, review or progress evidence strictly inside existing approved boundary"
+      "predicate": "Verified status, review or progress evidence strictly inside existing approved boundary; does not require Phases 1-4"
     },
     {
       "id": "backlog-shape",
@@ -76,7 +76,7 @@
         "phase-3",
         "phase-4"
       ],
-      "predicate": "New parent/child, relationship, reparent, durable scope or ownership obligation"
+      "predicate": "Candidate extraction/reconciliation that creates new parent/child, relationship, reparent, durable scope or ownership obligation; not ordinary lifecycle/evidence updates"
     },
     {
       "id": "bounded-maintenance",
@@ -124,14 +124,16 @@
     {
       "id": "phase-4",
       "ordinal": 4,
-      "name": "Apply only explicitly approved changes",
+      "name": "Apply only explicitly approved backlog-shape mutations from candidate reconciliation",
       "approvalMarker": "APPROVE_PHASE_4",
       "prerequisites": [
         "phase-1",
         "phase-2",
         "phase-3"
       ],
-      "mayChangeDurableScope": true
+      "mayChangeDurableScope": true,
+      "appliesTo": "candidate-extraction-and-reconciliation-backlog-shape-only",
+      "doesNotApplyTo": "lifecycle-evidence-updates-on-already-approved-boundaries"
     }
   ],
   "candidateDispositions": [
@@ -242,13 +244,13 @@
       "id": "CP-GOV-003",
       "sourceClass": "current-user-approved-governance",
       "sourceRef": "project:Containment Protocol governance control plane",
-      "semantic": "scope-mutation-requires-ordered-approvals-and-phase-four"
+      "semantic": "backlog-shape-from-candidate-reconciliation-requires-ordered-approvals-and-phase-four"
     },
     {
       "id": "CP-GOV-004",
       "sourceClass": "current-user-approved-governance",
       "sourceRef": "project:Containment Protocol governance control plane",
-      "semantic": "lifecycle-evidence-may-maintain-existing-approved-boundary"
+      "semantic": "lifecycle-evidence-may-maintain-existing-approved-boundary-without-phases"
     },
     {
       "id": "CP-GOV-005",

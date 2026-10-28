@@ -17,11 +17,12 @@ Harvest triage is reconciliation evidence, not autonomous issue creation.
 
 - Existing approved owners may receive non-scope-expanding traceability comments.
 - A candidate that does not truthfully fit an existing owner is a **missing-boundary candidate**, not a new child yet.
-- New parents, children, contradiction issues, relationships, reparenting, or durable scope must pass the normal approval flow before Linear mutation:
+- **Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape. Ordinary lifecycle/evidence updates on already-approved owners (non-expanding traceability comments, status) do **not** require those phases.
+- New parents, children, contradiction issues, relationships, reparenting, or durable scope must pass the candidate approval flow before backlog-shape Linear mutation:
   1. Phase 1 — candidate assessment and production decomposition;
   2. Phase 2 — parent reconciliation and approval;
   3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
-  4. Phase 4 — approved Linear update.
+  4. Phase 4 — apply only explicitly approved backlog-shape mutations.
 - If approval state is unclear, fail closed and leave the candidate non-authoritative.
 - The durable destination for unresolved/missing-boundary candidate state is the Linear **Candidate extraction and reconciliation ledger — canonical workflow** linked above (plus the source-specific candidate ledger when one exists), not an invented feature issue.
 - When Linear is unavailable, the repository mirror becomes a **pending apply queue only**: it preserves an exact canonical-ledger payload until an authenticated agent applies it. That pending block is evidence, not feature/backlog authority.

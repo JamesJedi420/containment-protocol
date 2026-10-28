@@ -4,14 +4,16 @@ Canonical standing policy for humans and agents. User Rules are pasted from `doc
 
 ## Authority boundary
 
-A handoff may continue an **already-approved** Linear issue and may apply truthful lifecycle/evidence updates to that boundary. It may not create a new issue, child, parent, contradiction issue, relationship, or expanded durable scope merely because follow-up work was discovered.
+A handoff may continue an **already-approved** Linear issue and may apply truthful lifecycle/evidence updates to that boundary (status, PR links, progress/closure comments, factual notes that do not expand scope). Those writes do **not** require Phases 1–4.
 
-New or changed scope returns to the Containment Protocol governance flow:
+It may not create a new issue, child, parent, contradiction issue, relationship, or expanded durable scope merely because follow-up work was discovered.
+
+**Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape. See `docs/governance/authority-contract.v1.json` (`lifecycle-evidence` vs `backlog-shape`). Backlog-shape work returns to:
 
 1. Phase 1 — candidate assessment and production decomposition;
 2. Phase 2 — parent reconciliation and approval;
 3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
-4. Phase 4 — approved Linear update.
+4. Phase 4 — apply only explicitly approved backlog-shape mutations.
 
 If approval state is missing or ambiguous, fail closed and preserve the finding as candidate/deferred evidence.
 

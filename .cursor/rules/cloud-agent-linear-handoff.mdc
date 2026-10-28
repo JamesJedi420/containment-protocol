@@ -15,7 +15,8 @@ linkbacks do not replace Linear.
 
 The handoff does **not** authorize new issues, children, parents, relationships, reparenting, or scope
 expansion. Newly discovered durable scope remains candidate input for Phase 1 → Phase 2 → Phase 3
-(including mandatory contradiction review) → Phase 4.
+(including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation →
+backlog-shape only). Lifecycle/evidence updates on already-approved issues do not require those phases.
 
 ## Do not emit when
 

@@ -8,7 +8,7 @@ Before committing or merging the active approved slice:
 
 Audit the current implementation for the active approved issue; fix all gaps inside its approved boundary until validation is clean; do not code the next issue.
 
-Source of truth: active approved Linear/GitHub issue, repo docs, tests, architecture, current code. Incorporate durable issue comments only when they clarify/document the already-approved boundary. A comment that introduces new or changed durable scope is candidate evidence and must go through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog mutation. Preserve the approved boundary; do not expand scope.
+Source of truth: active approved Linear/GitHub issue, repo docs, tests, architecture, current code. Incorporate durable issue comments only when they clarify/document the already-approved boundary. A comment that introduces new or changed durable scope is candidate evidence and must go through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog-shape mutation (**Phases 1–4 apply only to candidate extraction/reconciliation**, not ordinary lifecycle/evidence Linear updates). Preserve the approved boundary; do not expand scope.
 
 Before coding: inspect relevant files/tests/docs/patterns; smallest approved boundary; status (complete / partial / wrong / blocked); pre-coding summary (files, current vs expected behavior, boundary, risks, validation plan, docs).
 

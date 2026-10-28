@@ -37,7 +37,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 4. Linear: In Progress before approved owned work; PR URL on slice issue; Done + merge comment only after the full approved slice boundary ships. Evaluate the parent separately and preserve its truthful current status unless full parent completion is proven. Cloud Agents that cannot auth Linear emit a local-agent handoff only after an **already-approved implementation plan** merges (`docs/cloud-agent-linear-handoff.md`).
 5. Deferred work: approved in-boundary deferral → slice doc `## Deferred` + existing approved owner comment. New durable boundary → canonical candidate ledger + Phase 1; **do not create or attach a child**.
 
-New or changed durable scope must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog mutation.
+**Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape. Ordinary lifecycle/evidence Linear updates on already-approved boundaries do **not** require those phases. New or changed durable scope must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog-shape mutation (`docs/governance/authority-contract.v1.json`).
 
 ## Review bar
 

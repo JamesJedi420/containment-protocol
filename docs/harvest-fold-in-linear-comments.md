@@ -15,7 +15,7 @@ This document does **not** authorize issue creation.
 - A fold-in comment may clarify an **existing approved owner** only when it stays inside that owner’s durable boundary.
 - If the candidate cannot truthfully fit an existing approved owner, classify it as `missing_boundary_candidate`.
 - Do not create a child, coordinator, contradiction issue, relationship, or expanded owner boundary during harvest triage.
-- Missing-boundary and scope-changing candidates must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog mutation.
+- Missing-boundary and scope-changing candidates must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before backlog-shape mutation. Phases 1–4 apply only to that candidate extraction/reconciliation path; non-expanding lifecycle/evidence comments on existing approved owners do not require them.
 - If approval state is missing or ambiguous, fail closed and preserve candidate evidence in the canonical Linear candidate ledger.
 
 ## Canonical harvest disposition identifiers

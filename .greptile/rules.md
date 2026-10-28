@@ -27,7 +27,7 @@ Repo config mirrors dashboard Custom Instructions and Custom Context. See also `
 - Implementation PRs must match an **already-approved** Linear slice/workflow issue and its Goal/Acceptance.
 - A workflow/docs-only PR may intentionally have no Linear slice when it creates or expands no feature/backlog scope. Do **not** pressure the author to manufacture an issue for bookkeeping.
 - Read the PR **Linear** section and scope boundary before commenting.
-- Newly discovered durable feature scope is candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog mutation. Do not recommend creating a child/parent/relationship as a review shortcut.
+- Newly discovered durable feature scope is candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog-shape mutation. Phases 1–4 apply only to candidate extraction/reconciliation, not ordinary lifecycle/evidence Linear updates. Do not recommend creating a child/parent/relationship as a review shortcut.
 - Manual re-review: comment `@greptileai` on the PR.
 
 ## Vite 8

@@ -110,7 +110,9 @@ describe('ruleChangeTransitionContract (SPE-2898)', () => {
     expect(first.ok).toBe(true)
     if (!first.ok) return
     expect(first.result.disposition).toBe('migrate_once')
-    expect(first.result.transitionMarkerId).toBe('migrate:equip:1')
+    expect(first.result.transitionMarkerId).toBe(
+      'migrate:transition:rules-v1-to-v2:equip:1'
+    )
     expect(first.result.domainHandlerRef).toBe('handler:equipment-grade-migrate')
 
     const replay = resolveRuleChangeTransition(
@@ -173,11 +175,25 @@ describe('ruleChangeTransitionContract (SPE-2898)', () => {
     if (!atBoundary.ok) return
     expect(atBoundary.result.disposition).toBe('migrate_once')
     expect(atBoundary.result.transitionMarkerId).toBe(
-      'revalidate:assign:1:mission_terminal'
+      'revalidate:transition:rules-v1-to-v2:assign:1:mission_terminal'
     )
+
+    const postChange = resolveRuleChangeTransition(
+      declaration,
+      subject({
+        subjectId: 'assign:new',
+        stateFamily: 'assignment',
+        originatedWeek: 12,
+        currentBoundary: 'mission_terminal',
+      })
+    )
+    expect(postChange.ok).toBe(true)
+    if (!postChange.ok) return
+    expect(postChange.result.disposition).toBe('apply_new_rule')
+    expect(postChange.result.cohort).toBe('post_change')
   })
 
-  it('invalidate_or_reissue uses explicit cutover for in-flight records', () => {
+  it('invalidate_or_reissue uses explicit cutover for in-flight records and is idempotent', () => {
     const declaration = baseDeclaration()
     const inFlight = resolveRuleChangeTransition(
       declaration,
@@ -191,7 +207,37 @@ describe('ruleChangeTransitionContract (SPE-2898)', () => {
     expect(inFlight.ok).toBe(true)
     if (!inFlight.ok) return
     expect(inFlight.result.disposition).toBe('reissue')
-    expect(serializeTransitionMarker(inFlight.result)).toBe('reissue:contract:1')
+    expect(serializeTransitionMarker(inFlight.result)).toBe(
+      'reissue:transition:rules-v1-to-v2:contract:1'
+    )
+
+    const replay = resolveRuleChangeTransition(
+      declaration,
+      subject({
+        subjectId: 'contract:1',
+        stateFamily: 'contract_offer',
+        originatedWeek: 6,
+        inFlight: true,
+        transitionMarkerId: serializeTransitionMarker(inFlight.result)!,
+      })
+    )
+    expect(replay.ok).toBe(true)
+    if (!replay.ok) return
+    expect(replay.result.disposition).toBe('already_migrated')
+
+    const postInFlightFlag = resolveRuleChangeTransition(
+      declaration,
+      subject({
+        subjectId: 'contract:new',
+        stateFamily: 'contract_offer',
+        originatedWeek: 12,
+        inFlight: true,
+      })
+    )
+    expect(postInFlightFlag.ok).toBe(true)
+    if (!postInFlightFlag.ok) return
+    expect(postInFlightFlag.result.cohort).toBe('post_change')
+    expect(postInFlightFlag.result.disposition).toBe('apply_new_rule')
   })
 
   it('fails visibly when a consequential state family has no transition policy', () => {

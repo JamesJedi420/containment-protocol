@@ -238,9 +238,10 @@ export function validateRuleChangeTransitionDeclaration(
       Object.freeze({
         stateFamily,
         policy: family.policy,
-        revalidationBoundary: family.revalidationBoundary?.trim(),
-        domainHandlerRef: family.domainHandlerRef?.trim(),
-        compatibilityOwnerRef: family.compatibilityOwnerRef?.trim() ?? 'SPE-151',
+        revalidationBoundary: optionalTrimmedString(family.revalidationBoundary),
+        domainHandlerRef: optionalTrimmedString(family.domainHandlerRef),
+        compatibilityOwnerRef:
+          optionalTrimmedString(family.compatibilityOwnerRef) ?? 'SPE-151',
       })
     )
   }
@@ -253,23 +254,43 @@ export function validateRuleChangeTransitionDeclaration(
       target: freezeRuleVersion(declaration.target),
       effectivePoint: Object.freeze({
         week: declaration.effectivePoint.week,
-        branchId: declaration.effectivePoint.branchId?.trim(),
+        branchId: optionalTrimmedString(declaration.effectivePoint.branchId),
       }),
       affectedFamilies: Object.freeze(families),
     }),
   }
 }
 
+function optionalTrimmedString(value: unknown): string | undefined {
+  if (value == null) return undefined
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
 function resolveCohort(
   subject: TransitionSubject,
   effectiveWeek: number
 ): CohortDecision {
-  if (subject.inFlight) return 'in_flight'
+  // In-flight cutover only applies to subjects that originated before the
+  // effective point; post-change "inFlight" flags do not rewrite cohort.
+  if (subject.inFlight && subject.originatedWeek < effectiveWeek) return 'in_flight'
   if (subject.originatedWeek < effectiveWeek) return 'pre_change'
   return 'post_change'
 }
 
+function markerFor(
+  transitionId: string,
+  kind: 'migrate' | 'revalidate' | 'reissue' | 'invalidate',
+  subjectId: string,
+  boundary?: string
+): string {
+  const base = `${kind}:${transitionId}:${subjectId}`
+  return boundary ? `${base}:${boundary}` : base
+}
+
 function dispositionFor(
+  transitionId: string,
   policy: TransitionPolicy,
   cohort: CohortDecision,
   subject: TransitionSubject,
@@ -280,12 +301,14 @@ function dispositionFor(
   explanation: string
   markerId: string | null
 } {
+  const existingMarker = optionalTrimmedString(subject.transitionMarkerId)
+
   if (subject.hardCompatibilityConflict) {
     return {
       disposition: 'compatibility_conflict',
       reasonCode: 'compatibility_conflict_routed',
       explanation: `Hard compatibility conflict routed to ${family.compatibilityOwnerRef ?? 'SPE-151'}`,
-      markerId: subject.transitionMarkerId?.trim() || null,
+      markerId: existingMarker ?? null,
     }
   }
 
@@ -324,8 +347,8 @@ function dispositionFor(
   }
 
   if (policy === 'migrate_existing') {
-    const expectedMarker = `migrate:${subject.subjectId}`
-    if (subject.transitionMarkerId?.trim() === expectedMarker) {
+    const expectedMarker = markerFor(transitionId, 'migrate', subject.subjectId.trim())
+    if (existingMarker === expectedMarker) {
       return {
         disposition: 'already_migrated',
         reasonCode: 'migration_already_applied',
@@ -358,10 +381,23 @@ function dispositionFor(
   }
 
   if (policy === 'revalidate_at_boundary') {
+    if (cohort === 'post_change') {
+      return {
+        disposition: 'apply_new_rule',
+        reasonCode: 'resolved',
+        explanation: 'Post-change subjects do not revalidate under prior-rule boundary policy',
+        markerId: null,
+      }
+    }
     const boundary = family.revalidationBoundary!
     if (subject.currentBoundary === boundary) {
-      const expectedMarker = `revalidate:${subject.subjectId}:${boundary}`
-      if (subject.transitionMarkerId?.trim() === expectedMarker) {
+      const expectedMarker = markerFor(
+        transitionId,
+        'revalidate',
+        subject.subjectId.trim(),
+        boundary
+      )
+      if (existingMarker === expectedMarker) {
         return {
           disposition: 'already_migrated',
           reasonCode: 'migration_already_applied',
@@ -379,7 +415,7 @@ function dispositionFor(
     return {
       disposition: 'await_boundary',
       reasonCode: 'resolved',
-      explanation: `Waiting for boundary ${boundary} (current=${subject.currentBoundary ?? 'none'})`,
+      explanation: `Waiting for boundary ${boundary} (current=${optionalTrimmedString(subject.currentBoundary) ?? 'none'})`,
       markerId: null,
     }
   }
@@ -393,19 +429,37 @@ function dispositionFor(
       markerId: null,
     }
   }
-  if (subject.inFlight) {
+  if (cohort === 'in_flight') {
+    const expectedMarker = markerFor(transitionId, 'reissue', subject.subjectId.trim())
+    if (existingMarker === expectedMarker) {
+      return {
+        disposition: 'already_migrated',
+        reasonCode: 'migration_already_applied',
+        explanation: 'Reissue already applied for this transition',
+        markerId: expectedMarker,
+      }
+    }
     return {
       disposition: 'reissue',
       reasonCode: 'resolved',
       explanation: 'In-flight cutover: reissue under target rule',
-      markerId: `reissue:${subject.subjectId}`,
+      markerId: expectedMarker,
+    }
+  }
+  const invalidateMarker = markerFor(transitionId, 'invalidate', subject.subjectId.trim())
+  if (existingMarker === invalidateMarker) {
+    return {
+      disposition: 'already_migrated',
+      reasonCode: 'migration_already_applied',
+      explanation: 'Invalidation already applied for this transition',
+      markerId: invalidateMarker,
     }
   }
   return {
     disposition: 'invalidate',
     reasonCode: 'resolved',
     explanation: 'Invalidate pre-change subject; domain may reissue',
-    markerId: `invalidate:${subject.subjectId}`,
+    markerId: invalidateMarker,
   }
 }
 
@@ -464,7 +518,13 @@ export function resolveRuleChangeTransition(
   }
 
   const cohort = resolveCohort(subjectInput, declaration.effectivePoint.week)
-  const resolved = dispositionFor(family.policy, cohort, subjectInput, family)
+  const resolved = dispositionFor(
+    declaration.transitionId,
+    family.policy,
+    cohort,
+    subjectInput,
+    family
+  )
 
   return {
     ok: true,

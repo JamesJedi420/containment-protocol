@@ -21,7 +21,8 @@
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs",
     "verify:governance-contract": "node --test scripts/governance/authority-contract.check.mjs",
     "project:approved-work": "node scripts/project-approved-work.mjs",
-    "test:approved-work": "node --test scripts/project-approved-work.test.mjs"
+    "test:approved-work": "node --test scripts/project-approved-work.test.mjs scripts/export-linear-approved-work.test.mjs",
+    "export:approved-work": "node scripts/export-linear-approved-work.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.58.0",

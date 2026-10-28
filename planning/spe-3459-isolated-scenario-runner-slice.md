@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3459](https://linear.app/spectranoir/issue/SPE-3459/configurable-isolated-scenario-runner) |
 | **Parent** | [SPE-77](https://linear.app/spectranoir/issue/SPE-77) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3459-configurable-isolated-scenario-runner` |

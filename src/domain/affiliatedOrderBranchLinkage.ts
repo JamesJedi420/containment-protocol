@@ -177,6 +177,7 @@ export function validateAffiliatedBranchSet(
   const errors: string[] = []
   const seenIds = new Set<string>()
   const seenKeys = new Map<string, string>()
+  const umbrellaParent = new Map<string, string>()
 
   for (const branch of branches) {
     if (seenIds.has(branch.branchId)) {
@@ -199,6 +200,15 @@ export function validateAffiliatedBranchSet(
     }
     if (!branch.umbrellaProfileId) {
       errors.push(`${branch.branchId}: missing umbrellaProfileId`)
+    }
+
+    const recordedParent = umbrellaParent.get(branch.umbrellaProfileId)
+    if (!recordedParent) {
+      umbrellaParent.set(branch.umbrellaProfileId, branch.parentInstitutionProfileId)
+    } else if (recordedParent !== branch.parentInstitutionProfileId) {
+      errors.push(
+        `${branch.branchId}: umbrella ${branch.umbrellaProfileId} parent mismatch (${recordedParent} vs ${branch.parentInstitutionProfileId})`,
+      )
     }
   }
 

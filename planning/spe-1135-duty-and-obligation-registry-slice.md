@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (local slice; Linear lifecycle separate) |
 | **Issue** | [SPE-1135](https://linear.app/spectranoir/issue/SPE-1135) |
 | **Parent** | CP-core taxonomy / schema milestone |
 | **Branch** | `jamesdyedbq/spe-1135-duty-and-obligation-registry` |

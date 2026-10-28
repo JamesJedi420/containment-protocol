@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-1135"
+    "SPE-2738"
   ],
   "recentlyShipped": [
+    "SPE-1135",
     "SPE-1757",
     "SPE-1896",
     "SPE-3180",
@@ -84,7 +85,8 @@
     "planning/spe-3180-subjective-vs-authoritative-time-slice.md": "Recently shipped",
     "planning/spe-1896-procedure-room-state-preconditions-slice.md": "Recently shipped",
     "planning/spe-1757-extranormal-temporal-event-registry-slice.md": "Recently shipped",
-    "planning/spe-1135-duty-and-obligation-registry-slice.md": "In progress",
+    "planning/spe-1135-duty-and-obligation-registry-slice.md": "Recently shipped",
+    "planning/spe-2738-inter-agency-ownership-transfer-slice.md": "In progress",
     "planning/spe-3344-hazardous-research-risk-posture-slice.md": "Recently shipped",
     "planning/spe-3343-research-throughput-execution-slice.md": "Recently shipped",
     "planning/spe-3041-conditional-recurring-task-activation-slice.md": "Recently shipped",

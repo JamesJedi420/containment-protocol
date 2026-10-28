@@ -76,6 +76,14 @@ describe('resolveSceneDifficulty (SPE-3186)', () => {
     })
     expect(bad.ok).toBe(false)
     expect(!bad.ok && bad.reasonCode).toBe('unknown_driver')
+
+    const badMitigations = resolveSceneDifficulty({
+      sceneId: 'scene:x',
+      drivers: [{ driver: 'noise', intensity: 1 }],
+      mitigations: {} as unknown as [],
+    })
+    expect(badMitigations.ok).toBe(false)
+    expect(!badMitigations.ok && badMitigations.reasonCode).toBe('malformed_input')
   })
 
   it('projects a consumer-safe view without leaking internal intensity tables', () => {

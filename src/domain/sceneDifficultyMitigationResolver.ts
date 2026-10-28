@@ -295,6 +295,14 @@ export function resolveSceneDifficulty(
     )
   }
 
+  if (input.mitigations != null && !Array.isArray(input.mitigations)) {
+    return {
+      ok: false,
+      reasonCode: 'malformed_input',
+      detail: 'mitigations must be an array',
+    }
+  }
+
   const seenMitigations = new Set<string>()
   const mitigations: ResolvedMitigation[] = []
   let reliefTotal = 0

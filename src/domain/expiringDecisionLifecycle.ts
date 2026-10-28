@@ -388,15 +388,26 @@ export function createExpiringDecision(input: {
     )
   }
 
+  let defaultOptionId: string | undefined
+  if (input.defaultResolution.defaultOptionId !== undefined) {
+    if (!isSafeId(input.defaultResolution.defaultOptionId)) {
+      return { ok: false, reason: 'malformed' }
+    }
+    defaultOptionId = input.defaultResolution.defaultOptionId.trim()
+  }
+  let actionRouteRef: string | undefined
+  if (input.defaultResolution.actionRouteRef !== undefined) {
+    // Omit empty/whitespace refs so create matches hydrate (parseDefaultResolution).
+    if (!isSafeId(input.defaultResolution.actionRouteRef)) {
+      return { ok: false, reason: 'malformed' }
+    }
+    actionRouteRef = input.defaultResolution.actionRouteRef.trim()
+  }
   const normalizedDefault: DefaultResolutionSpec = freezeDefault({
     contract: input.defaultResolution.contract,
     actionRouteOwner: input.defaultResolution.actionRouteOwner,
-    ...(input.defaultResolution.defaultOptionId !== undefined
-      ? { defaultOptionId: input.defaultResolution.defaultOptionId.trim() }
-      : {}),
-    ...(input.defaultResolution.actionRouteRef !== undefined
-      ? { actionRouteRef: input.defaultResolution.actionRouteRef.trim() }
-      : {}),
+    ...(defaultOptionId !== undefined ? { defaultOptionId } : {}),
+    ...(actionRouteRef !== undefined ? { actionRouteRef } : {}),
   })
 
   const contractError = validateDefaultContract(normalizedOptions, normalizedDefault)
@@ -485,6 +496,8 @@ export function refuseExplicitly(
 export function shiftDeadline(
   record: ExpiringDecisionRecord,
   input: {
+    /** Authoritative clock instant of the shift request. */
+    readonly at: number
     readonly newExpiresAt: number
     readonly clockDomain: ExpiringDecisionClockDomain
     readonly deadlineSourceRef?: string
@@ -493,7 +506,11 @@ export function shiftDeadline(
   if (isTerminal(record.lifecycleState)) return { ok: false, reason: 'terminal' }
   if (record.lifecycleState !== 'open') return { ok: false, reason: 'not_open' }
   if (input.clockDomain !== record.clockDomain) return { ok: false, reason: 'clock_mismatch' }
-  if (!isNonNegativeInt(input.newExpiresAt)) return { ok: false, reason: 'malformed' }
+  if (!isNonNegativeInt(input.at) || !isNonNegativeInt(input.newExpiresAt)) {
+    return { ok: false, reason: 'malformed' }
+  }
+  // Shifts after the current expiry are ordering-dependent vs timeout; reject them.
+  if (input.at >= record.expiresAt) return { ok: false, reason: 'past_expiry' }
   if (input.newExpiresAt < record.createdAt) {
     return { ok: false, reason: 'deadline_not_before_expiry' }
   }

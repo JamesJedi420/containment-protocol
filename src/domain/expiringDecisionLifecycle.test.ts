@@ -174,6 +174,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
     expect(early.ok).toBe(true)
 
     const shifted = shiftDeadline(created.record, {
+      at: 3,
       newExpiresAt: 8,
       clockDomain: 'authoritative_week',
       deadlineSourceRef: 'spe-1585:shifted-source',
@@ -657,6 +658,44 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 5,
     })
     expect(timed.ok).toBe(true)
+  })
+
+  it('rejects deadline shifts at or after the current expiry', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-late-shift',
+      createdAt: 1,
+      expiresAt: 5,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const lateShift = shiftDeadline(created.record, {
+      at: 5,
+      newExpiresAt: 10,
+      clockDomain: 'authoritative_week',
+    })
+    expect(lateShift.ok).toBe(false)
+    if (lateShift.ok) return
+    expect(lateShift.reason).toBe('past_expiry')
+  })
+
+  it('rejects whitespace-only optional actionRouteRef on create', () => {
+    const bad = createExpiringDecision({
+      id: 'dec:empty-route-ref',
+      producerDomain: 'correspondence_window',
+      createdAt: 0,
+      clockDomain: 'authoritative_week',
+      expiresAt: 1,
+      options: [{ optionId: 'reply', label: 'Reply', kind: 'accept' }],
+      defaultResolution: {
+        contract: 'expire_without_action',
+        actionRouteOwner: 'none',
+        actionRouteRef: '   ',
+      },
+    })
+    expect(bad.ok).toBe(false)
+    if (bad.ok) return
+    expect(bad.reason).toBe('malformed')
   })
 
   it('rejects option IDs that collide only after trim', () => {

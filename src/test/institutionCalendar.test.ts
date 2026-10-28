@@ -33,14 +33,15 @@ describe('SPE-700 institution calendars and availability shifts', () => {
     entryId: 'rite-founding',
     institutionProfileId: 'inst-sanctum',
     label: 'Founding Observance',
-    recurrence: { kind: 'once', absoluteWeek: 12 },
+    // Week 11 is off the biweekly vigil cadence (anchor 10, every 2).
+    recurrence: { kind: 'once', absoluteWeek: 11 },
     effects: [{ kind: 'public_access', delta: -2, reason: 'grounds closed for founding rite' }],
   })
 
   it('changes availability deterministically for a one-off calendar event', () => {
     const activeWeek = projectInstitutionAvailabilityShift({
       institutionProfileId: 'inst-sanctum',
-      absoluteWeek: 12,
+      absoluteWeek: 11,
       entries: [oneOff, feast, vigil],
       calendarConfig: calendar,
     })
@@ -51,7 +52,7 @@ describe('SPE-700 institution calendars and availability shifts', () => {
     const quietWeek = projectInstitutionAvailabilityShift({
       institutionProfileId: 'inst-sanctum',
       absoluteWeek: 13,
-      entries: [oneOff, feast, vigil],
+      entries: [oneOff, feast],
       calendarConfig: calendar,
     })
     expect(quietWeek.activeEntryIds).toEqual([])
@@ -97,10 +98,14 @@ describe('SPE-700 institution calendars and availability shifts', () => {
       12,
       calendar,
     )
-    expect(listed.map((entry) => entry.entryId).sort()).toEqual([
-      'rite-biweekly-vigil',
-      'rite-founding',
-    ])
+    expect(listed.map((entry) => entry.entryId)).toEqual(['rite-biweekly-vigil'])
+
+    const foundingListed = listActiveInstitutionCalendarEntries(
+      [feast, vigil, oneOff],
+      11,
+      calendar,
+    )
+    expect(foundingListed.map((entry) => entry.entryId)).toEqual(['rite-founding'])
 
     const other = projectInstitutionAvailabilityShift({
       institutionProfileId: 'inst-other',

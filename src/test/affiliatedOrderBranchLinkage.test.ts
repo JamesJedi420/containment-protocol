@@ -201,5 +201,8 @@ describe('SPE-699 affiliated orders, sects, and branch linkage', () => {
     expect(() => groupBranchesByUmbrella([publicBranch, mismatchedParent])).toThrow(
       /affiliated branch set invalid/,
     )
+    expect(() => listDivergentBranchPairs([publicBranch, mismatchedParent])).toThrow(
+      /affiliated branch set invalid/,
+    )
   })
 })

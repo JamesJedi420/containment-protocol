@@ -367,6 +367,11 @@ export function deriveBranchDownstreamSurface(
 export function listDivergentBranchPairs(
   branches: readonly AffiliatedBranchRecord[],
 ): BranchDivergencePair[] {
+  const linkageErrors = validateAffiliatedBranchSet(branches)
+  if (linkageErrors.length > 0) {
+    throw new Error(`affiliated branch set invalid: ${linkageErrors.join('; ')}`)
+  }
+
   const byUmbrella = new Map<string, AffiliatedBranchRecord[]>()
   for (const branch of branches) {
     const list = byUmbrella.get(branch.umbrellaProfileId) ?? []

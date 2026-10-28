@@ -60,6 +60,107 @@ function normalizeNoopIfDirty(state: GameState) {
   return shouldNormalizeNoopState(state) ? normalizeGameState(state) : state
 }
 
+type HireDestinationKind = 'agent' | 'staff'
+
+type HireIdentityGate = 'vacant' | 'idempotent' | 'reject'
+
+function hasAgentHiredHistory(agent: Agent): boolean {
+  return (agent.history?.timeline ?? []).some((entry) => entry.eventType === 'agent.hired')
+}
+
+function hasCompletedHireEvent(state: GameState, candidateId: Id): boolean {
+  return (state.events ?? []).some(
+    (event) =>
+      event.type === 'agent.hired' &&
+      (event.payload.candidateId === candidateId || event.payload.agentId === candidateId)
+  )
+}
+
+function isMatchingCompletedAgentTarget(
+  state: GameState,
+  candidateId: Id,
+  candidateName: string,
+  existing: Agent
+): boolean {
+  if (existing.name !== candidateName) {
+    return false
+  }
+
+  return hasAgentHiredHistory(existing) || hasCompletedHireEvent(state, candidateId)
+}
+
+function isMatchingCompletedStaffTarget(
+  state: GameState,
+  candidateId: Id,
+  candidate: Extract<GameState['candidates'][number], { category: 'staff' | 'instructor' }>,
+  recruitCategory: 'staff' | 'instructor',
+  existing: NonNullable<GameState['staff'][string]>
+): boolean {
+  if (recruitCategory === 'instructor') {
+    return (
+      existing.role === 'instructor' &&
+      existing.name === candidate.name &&
+      hasCompletedHireEvent(state, candidateId)
+    )
+  }
+
+  if (existing.role === 'instructor' || !candidate.staffData) {
+    return false
+  }
+
+  const expectedSpecialty = normalizeStaffCandidateSpecialty(candidate.staffData.specialty)
+  return existing.specialty === expectedSpecialty && hasCompletedHireEvent(state, candidateId)
+}
+
+/**
+ * Before any hire mutation: destination must be vacant, or an explicitly
+ * idempotent already-completed hire of this same candidate. Cross-map and
+ * unrelated same-map occupancy fail closed.
+ */
+function resolveHireIdentityGate(
+  state: GameState,
+  candidateId: Id,
+  candidate: GameState['candidates'][number],
+  recruitCategory: 'agent' | 'staff' | 'instructor',
+  destination: HireDestinationKind
+): HireIdentityGate {
+  const existingAgent = state.agents[candidateId]
+  const existingStaff = state.staff[candidateId]
+
+  if (destination === 'agent') {
+    if (existingStaff) {
+      return 'reject'
+    }
+    if (!existingAgent) {
+      return 'vacant'
+    }
+    return isMatchingCompletedAgentTarget(state, candidateId, candidate.name, existingAgent)
+      ? 'idempotent'
+      : 'reject'
+  }
+
+  if (existingAgent) {
+    return 'reject'
+  }
+  if (!existingStaff) {
+    return 'vacant'
+  }
+
+  if (recruitCategory !== 'staff' && recruitCategory !== 'instructor') {
+    return 'reject'
+  }
+
+  return isMatchingCompletedStaffTarget(
+    state,
+    candidateId,
+    candidate as Extract<GameState['candidates'][number], { category: 'staff' | 'instructor' }>,
+    recruitCategory,
+    existingStaff
+  )
+    ? 'idempotent'
+    : 'reject'
+}
+
 function deriveBaseStatsFromCandidate(agentData: AgentData) {
   const domainStats = agentData.domainStats ?? {}
 
@@ -163,6 +264,32 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
     return normalizeNoopIfDirty(state)
   }
 
+  const recruitCategory = normalizeCandidateCategory(candidate.category)
+  const destination: HireDestinationKind | null =
+    recruitCategory === 'agent'
+      ? 'agent'
+      : recruitCategory === 'staff' || recruitCategory === 'instructor'
+        ? 'staff'
+        : null
+
+  if (
+    destination &&
+    (recruitCategory === 'agent' ||
+      recruitCategory === 'staff' ||
+      recruitCategory === 'instructor')
+  ) {
+    const identityGate = resolveHireIdentityGate(
+      state,
+      candidateId,
+      candidate,
+      recruitCategory,
+      destination
+    )
+    if (identityGate === 'reject' || identityGate === 'idempotent') {
+      return normalizeNoopIfDirty(state)
+    }
+  }
+
   if (!isCandidateHireable(candidate.hireStatus)) {
     return normalizeNoopIfDirty(state)
   }
@@ -180,7 +307,6 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
 
   const remainingCandidates = currentRecruitmentPool.filter((entry) => entry.id !== candidateId)
   const eventDrafts: AnyOperationEventDraft[] = []
-  const recruitCategory = normalizeCandidateCategory(candidate.category)
   const previousUnlocks = getFactionRecruitUnlocks({ factions: state.factions ?? {} })
 
   if (recruitCategory === 'agent' && candidate.agentData) {

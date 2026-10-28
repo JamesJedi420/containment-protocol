@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3124](https://linear.app/spectranoir/issue/SPE-3124) |
 | **Parent** | [SPE-2794](https://linear.app/spectranoir/issue/SPE-2794) — persistent assignment lifecycle (umbrella) |
 | **Branch** | `jamesdyedbq/spe-3124-sponsored-training-completion-and-personnel-transfer` |

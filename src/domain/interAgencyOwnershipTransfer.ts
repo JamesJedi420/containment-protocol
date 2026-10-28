@@ -42,6 +42,8 @@ export const TRANSFER_REJECTION_REASONS = [
   'transfer_lock_active',
   'duplicate_request_id',
   'authorization_not_granted',
+  'authorization_request_mismatch',
+  'provenance_capacity_exceeded',
 ] as const
 export type TransferRejectionReason = (typeof TRANSFER_REJECTION_REASONS)[number]
 
@@ -61,6 +63,8 @@ export interface TransferAuthorizationResult {
   readonly authorized: boolean
   readonly reasonCode: TransferRejectionReason | 'authorized'
   readonly authorizationRef?: string
+  /** Stable binding of the authorized request fields — must match at completion. */
+  readonly requestFingerprint?: string
 }
 
 export interface OwnershipRecord {
@@ -484,6 +488,20 @@ export function evaluateTransferEligibility(
   })
 }
 
+/** Deterministic fingerprint binding authorization to the exact request payload. */
+export function transferRequestFingerprint(request: TransferRequest): string {
+  return [
+    request.requestId,
+    request.assetId,
+    request.assetClass,
+    request.fromAgencyId,
+    request.toAgencyId,
+    String(request.authoritativeWeek),
+    request.mode,
+    request.authorizationRef?.trim() ?? '',
+  ].join('|')
+}
+
 export function authorizeTransferRequest(
   state: InterAgencyOwnershipTransferState,
   request: TransferRequest | unknown,
@@ -519,6 +537,7 @@ export function authorizeTransferRequest(
       authorized: true,
       reasonCode: 'authorized',
       authorizationRef: parsed.authorizationRef.trim(),
+      requestFingerprint: transferRequestFingerprint(parsed),
     })
   }
 
@@ -535,6 +554,7 @@ export function authorizeTransferRequest(
     authorized: true,
     reasonCode: 'authorized',
     authorizationRef: parsed.authorizationRef.trim(),
+    requestFingerprint: transferRequestFingerprint(parsed),
   })
 }
 
@@ -555,6 +575,14 @@ export function completeOwnershipTransfer(
     return rejectResult(state, 'authorization_not_granted', undefined, authorization)
   }
 
+  const fingerprint = transferRequestFingerprint(parsed)
+  if (
+    authorization.requestFingerprint === undefined ||
+    authorization.requestFingerprint !== fingerprint
+  ) {
+    return rejectResult(state, 'authorization_request_mismatch', undefined, authorization)
+  }
+
   const eligibility = evaluateTransferEligibility(state, parsed)
   if (!eligibility.eligible) {
     const reason = eligibility.reasonCode as TransferRejectionReason
@@ -569,6 +597,11 @@ export function completeOwnershipTransfer(
   const existing = state.ownership[parsed.assetId]
   if (!existing) {
     return rejectResult(state, 'asset_not_found', undefined, authorization)
+  }
+
+  const priorProvenance = state.provenance[parsed.assetId] ?? Object.freeze([])
+  if (priorProvenance.length >= INTER_AGENCY_OWNERSHIP_TRANSFER_MAX_PROVENANCE_PER_ASSET) {
+    return rejectResult(state, 'provenance_capacity_exceeded', undefined, authorization)
   }
 
   const duration = lockDurationWeeks(parsed.assetClass)
@@ -586,7 +619,6 @@ export function completeOwnershipTransfer(
     authoritativeWeek: parsed.authoritativeWeek,
   })
 
-  const priorProvenance = state.provenance[parsed.assetId] ?? Object.freeze([])
   const nextProvenanceList = Object.freeze([...priorProvenance, provenanceEntry])
 
   const nextOwnership = createStringBag<OwnershipRecord>()

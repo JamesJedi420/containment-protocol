@@ -6,6 +6,7 @@ import {
   DEMO_EQUIPMENT_ASSET_ID,
   DEMO_PERSONNEL_ASSET_ID,
   DEMO_PERSONNEL_OWNERSHIP,
+  INTER_AGENCY_OWNERSHIP_TRANSFER_MAX_PROVENANCE_PER_ASSET,
   INTER_AGENCY_OWNERSHIP_TRANSFER_OWNER,
   INTER_AGENCY_OWNERSHIP_TRANSFER_SCHEMA_VERSION,
   TRANSFER_LOCK_DURATION_WEEKS_BY_ASSET_CLASS,
@@ -312,6 +313,71 @@ describe('SPE-2738 inter-agency ownership transfer governance', () => {
     expect(forced.state.locks[DEMO_PERSONNEL_ASSET_ID]?.expiresAtWeek).toBe(
       12 + TRANSFER_LOCK_DURATION_WEEKS_BY_ASSET_CLASS.personnel,
     )
+  })
+
+  it('rejects completion when the authorized request payload was mutated', () => {
+    const state = createDemoInterAgencyOwnershipTransferState()
+    const request = {
+      requestId: 'xfer:bind-001',
+      assetId: DEMO_PERSONNEL_ASSET_ID,
+      assetClass: 'personnel' as const,
+      fromAgencyId: DEMO_AGENCY_ALPHA,
+      toAgencyId: DEMO_AGENCY_BETA,
+      authoritativeWeek: 20,
+      mode: 'standard' as const,
+      authorizationRef: 'gov:board-20',
+    }
+    const auth = authorizeTransferRequest(state, request)
+    expect(auth.authorized).toBe(true)
+    const mutated = { ...request, toAgencyId: 'agency:gamma' }
+    const result = completeOwnershipTransfer(state, mutated, auth)
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCode).toBe('authorization_request_mismatch')
+    expect(result.state.ownership[DEMO_PERSONNEL_ASSET_ID]?.owningAgencyId).toBe(DEMO_AGENCY_ALPHA)
+  })
+
+  it('rejects transfer when provenance capacity for the asset is exhausted', () => {
+    let state = createDemoInterAgencyOwnershipTransferState()
+    for (let i = 0; i < INTER_AGENCY_OWNERSHIP_TRANSFER_MAX_PROVENANCE_PER_ASSET; i += 1) {
+      const unlocked = expireLocksAtWeek(state, 1000 + i * 20)
+      const from =
+        unlocked.ownership[DEMO_EQUIPMENT_ASSET_ID]!.owningAgencyId === DEMO_AGENCY_ALPHA
+          ? DEMO_AGENCY_ALPHA
+          : DEMO_AGENCY_BETA
+      const to = from === DEMO_AGENCY_ALPHA ? DEMO_AGENCY_BETA : DEMO_AGENCY_ALPHA
+      const request = {
+        requestId: `xfer:cap-${String(i).padStart(3, '0')}`,
+        assetId: DEMO_EQUIPMENT_ASSET_ID,
+        assetClass: 'equipment' as const,
+        fromAgencyId: from,
+        toAgencyId: to,
+        authoritativeWeek: 1000 + i * 20,
+        mode: 'standard' as const,
+        authorizationRef: `gov:cap-${i}`,
+      }
+      const auth = authorizeTransferRequest(unlocked, request)
+      const completed = completeOwnershipTransfer(unlocked, request, auth)
+      expect(completed.outcome).toBe('completed')
+      state = completed.state
+    }
+
+    const unlocked = expireLocksAtWeek(state, 1000 + INTER_AGENCY_OWNERSHIP_TRANSFER_MAX_PROVENANCE_PER_ASSET * 20)
+    const from = unlocked.ownership[DEMO_EQUIPMENT_ASSET_ID]!.owningAgencyId
+    const to = from === DEMO_AGENCY_ALPHA ? DEMO_AGENCY_BETA : DEMO_AGENCY_ALPHA
+    const overflow = {
+      requestId: 'xfer:cap-overflow',
+      assetId: DEMO_EQUIPMENT_ASSET_ID,
+      assetClass: 'equipment' as const,
+      fromAgencyId: from,
+      toAgencyId: to,
+      authoritativeWeek: 1000 + INTER_AGENCY_OWNERSHIP_TRANSFER_MAX_PROVENANCE_PER_ASSET * 20,
+      mode: 'standard' as const,
+      authorizationRef: 'gov:cap-overflow',
+    }
+    const auth = authorizeTransferRequest(unlocked, overflow)
+    const rejected = completeOwnershipTransfer(unlocked, overflow, auth)
+    expect(rejected.outcome).toBe('rejected')
+    expect(rejected.reasonCode).toBe('provenance_capacity_exceeded')
   })
 
   it('parses demo state deterministically and rejects prototype ids', () => {

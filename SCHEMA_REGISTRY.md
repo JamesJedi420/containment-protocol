@@ -78,6 +78,10 @@ Pure domain `src/domain/isolatedScenarioRunner.ts` launches validated SPE-3397 s
 
 Pure domain module `src/domain/crossPropertyCanonHandoff.ts` owns the Dead Air → shared-universe handoff packet, promotion dispositions, deterministic validation/diagnostics, release-membership construction inputs, and consumer seams for SPE-3175 transport, SPE-2099/SPE-1032 historical projection, SPE-2264 institutional interpretation, SPE-2263 canon-rule token refs, and SPE-3139 reference-integrity handoff. Unresolved/disputed/negative-space/non-promotable material remains representable without collapsing to established truth. No GameState field, week-close hook, parallel lore database, or OperationEvent kind. Persistent release catalog remains a separate SPE-1085 child. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Shared-universe canon release catalog (SPE-3300)
+
+Pure domain module `src/domain/sharedUniverseCanonReleaseCatalog.ts` owns immutable shared-universe release records materialized from SPE-3282 validated packets, release lookup, scoped member resolution, structural A→B diff, new-campaign default eligibility, withdrawal/tombstone retention, and fail-closed `sanitizeSharedUniverseCanonReleaseCatalog` for non-campaign persistence callers. No GameState field (campaign binding stays SPE-3293). No week-close hook or OperationEvent kind. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

@@ -90,6 +90,10 @@ Pure domain `src/domain/sharedUniverseCanonReleaseBinding.ts` plus optional `Cam
 
 Pure domain module `src/domain/canonRuleRegistry.ts` owns supernatural consistency rule tokens, exception refs, supersession refs, deterministic resolution (same rule → same outcome unless exception), and SPE-3300 release-scoped eligibility for shared-universe-derived tokens. No GameState field, week-close hook, or OperationEvent kind. SPE-151 / SPE-2098 remain world-law owners. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Authored-content generation guardrails (SPE-2265)
+
+Pure domain module `src/domain/authoredContentGuardrails.ts` owns authoring-time generation guardrail records (required rule-token refs, forbidden breaks, motif reuse hooks, novelty budget) and `validateAuthoredContentGeneration`. Packets must cite SPE-2263 rule-token lineage; explicitly contradictory combinations fail closed unless SPE-2263 records an exception for the subject; optional bound-release gating consumes SPE-3300 membership for shared-universe-derived tokens. No proc-gen pipeline, GameState field, week-close hook, or OperationEvent kind. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

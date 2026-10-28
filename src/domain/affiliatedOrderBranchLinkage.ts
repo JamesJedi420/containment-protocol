@@ -201,7 +201,7 @@ export function validateAffiliatedBranchSet(
     }
 
     const recordedParent = umbrellaParent.get(branch.umbrellaProfileId)
-    if (!recordedParent) {
+    if (recordedParent === undefined) {
       umbrellaParent.set(branch.umbrellaProfileId, branch.parentInstitutionProfileId)
     } else if (recordedParent !== branch.parentInstitutionProfileId) {
       errors.push(
@@ -215,10 +215,16 @@ export function validateAffiliatedBranchSet(
 
 /**
  * Group linked branches by umbrella under one parent institution.
+ * Fail-closed when the set fails linkage validation.
  */
 export function groupBranchesByUmbrella(
   branches: readonly AffiliatedBranchRecord[],
 ): BranchLinkageGroup[] {
+  const linkageErrors = validateAffiliatedBranchSet(branches)
+  if (linkageErrors.length > 0) {
+    throw new Error(`affiliated branch set invalid: ${linkageErrors.join('; ')}`)
+  }
+
   const byUmbrella = new Map<string, AffiliatedBranchRecord[]>()
 
   for (const branch of branches) {

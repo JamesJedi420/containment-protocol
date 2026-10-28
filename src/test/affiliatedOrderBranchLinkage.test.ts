@@ -188,5 +188,18 @@ describe('SPE-699 affiliated orders, sects, and branch linkage', () => {
     expect(validateAffiliatedBranchSet([publicBranch, mismatchedParent])).toEqual([
       `branch-wrong-parent: umbrella ${umbrellaId} parent mismatch (${parentId} vs other-parent)`,
     ])
+
+    const duplicateId = createAffiliatedBranchRecord({
+      ...semiPublicSect,
+      branchId: publicBranch.branchId,
+      branchKey: 'order-sect-other-key',
+    })
+    expect(validateAffiliatedBranchSet([publicBranch, duplicateId])).toEqual([
+      `duplicate branchId: ${publicBranch.branchId}`,
+    ])
+
+    expect(() => groupBranchesByUmbrella([publicBranch, mismatchedParent])).toThrow(
+      /affiliated branch set invalid/,
+    )
   })
 })

@@ -3760,8 +3760,9 @@ function refreshPartyCards(context: WeeklyExecutionContext) {
 
   const drawResult = drawPartyCardsToHandLimitWithScopedContinuation({
     partyCards: context.nextState.partyCards,
-    runSeed: context.nextState.rngSeed,
-    legacyRngState: context.nextState.rngState,
+    // Week-start campaign seed/stream are cutover evidence only; never advanced here.
+    runSeed: context.sourceState.rngSeed,
+    legacyRngState: context.sourceState.rngState,
     week: context.sourceState.week,
   })
   context.nextState = {

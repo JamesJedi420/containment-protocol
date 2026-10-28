@@ -323,6 +323,12 @@ function sanitizeDrawContinuation(value: unknown): PartyCardDrawContinuation | u
     return undefined
   }
 
+  // Reject unsupported/missing schema versions before coercing fields — do not
+  // rewrite foreign schemas into spe-3164.v1 and skip cutover.
+  if (value.schemaVersion !== 'spe-3164.v1') {
+    return undefined
+  }
+
   const candidate: PartyCardDrawContinuation = {
     schemaVersion: 'spe-3164.v1',
     runSeed: typeof value.runSeed === 'number' ? Math.trunc(value.runSeed) : NaN,

@@ -175,21 +175,57 @@ describe('SPE-3164 party-card draw continuation', () => {
       difficulty: { combat: 400, investigation: 400, utility: 400, social: 400 },
     }
 
-    // Force an empty hand so weekly refresh must draw.
+    // Empty deck + discard forces a reshuffle so the scoped stream is consumed.
     withAssignment.partyCards = {
       ...withAssignment.partyCards!,
       hand: [],
-      deck: [...withAssignment.partyCards!.deck, ...withAssignment.partyCards!.hand],
+      deck: [],
+      discard: [
+        ...withAssignment.partyCards!.deck,
+        ...withAssignment.partyCards!.hand,
+        ...withAssignment.partyCards!.discard,
+      ],
     }
 
-    const beforeHand = withAssignment.partyCards.hand.length
+    const root = ensurePartyCardDrawContinuation({
+      partyCards: withAssignment.partyCards,
+      runSeed: 77,
+      legacyRngState: 77,
+      week: withAssignment.week,
+    })
+    withAssignment.partyCards = root.partyCards
+
     const next = advanceWeek(withAssignment)
 
-    expect(next.partyCards?.hand.length).toBeGreaterThan(beforeHand)
-    expect(next.partyCards?.drawContinuation).toBeDefined()
+    expect(next.partyCards?.hand.length).toBe(next.partyCards!.maxHandSize)
     expect(next.partyCards?.drawContinuation?.cutoverMarkerId).toBe(
       PARTY_CARD_DRAW_CUTOVER_MARKER_ID,
     )
+    expect(next.partyCards?.drawContinuation?.streamState).not.toBe(
+      root.continuation.streamState,
+    )
+  })
+
+  it('sanitize drops unsupported drawContinuation schema versions', () => {
+    const base = createStartingState()
+    const cards = base.partyCards!
+    const sanitized = sanitizePersistedPartyCardState(
+      {
+        ...cards,
+        drawContinuation: {
+          schemaVersion: 'invalid',
+          runSeed: 1,
+          epoch: 0,
+          streamState: 99,
+          selectorVersion: 'spe-3164.draw.v1',
+        },
+      },
+      cards,
+      base.cases,
+      base.teams,
+      base.week,
+    )
+    expect(sanitized?.drawContinuation).toBeUndefined()
   })
 
   it('engine low-level draw still accepts injected RNG for unit tests', () => {

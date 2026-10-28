@@ -145,10 +145,38 @@ export function createCriticalEquipmentDossier(
   })
 }
 
+function tryValidateTechnology(
+  technology: TechnologyProfile | null | undefined,
+): { ok: true; profile: TechnologyProfile } | { ok: false; reason: string } {
+  if (technology == null) {
+    return { ok: false, reason: 'technology-profile' }
+  }
+  try {
+    return { ok: true, profile: createTechnologyProfile(technology) }
+  } catch {
+    return { ok: false, reason: 'technology-profile-incomplete' }
+  }
+}
+
+function tryValidateEquipment(
+  dossier: CriticalEquipmentDossier,
+): { ok: true; dossier: CriticalEquipmentDossier } | { ok: false; reason: string } {
+  try {
+    return { ok: true, dossier: createCriticalEquipmentDossier(dossier) }
+  } catch {
+    const id =
+      typeof dossier?.equipmentId === 'string' && dossier.equipmentId.trim()
+        ? dossier.equipmentId.trim()
+        : 'unknown'
+    return { ok: false, reason: `equipment-incomplete:${id}` }
+  }
+}
+
 /**
  * Evaluate the information gate for one process.
  * Deep hazard review is allowed only when all baseline packets are complete
  * and every legacy asset has active safe-operation proof.
+ * Raw packets are revalidated through the same fail-closed constructors.
  */
 export function evaluateProcessSafetyInformationGate(
   packet: ProcessSafetyInformationPacket,
@@ -175,47 +203,50 @@ export function evaluateProcessSafetyInformationGate(
     missing.push('protective-infrastructure')
     reasons.push('missing:protective-infrastructure')
   }
-  if (packet.technology === null) {
-    missing.push('technology-profile')
-    reasons.push('missing:technology-profile')
-  } else if (
-    packet.technology.safeLimits.length === 0 ||
-    packet.technology.deviationConsequences.length === 0
-  ) {
-    missing.push('technology-profile-incomplete')
-    reasons.push('incomplete:technology-profile')
+
+  const technologyResult = tryValidateTechnology(packet.technology)
+  if (!technologyResult.ok) {
+    missing.push(technologyResult.reason)
+    reasons.push(
+      technologyResult.reason === 'technology-profile'
+        ? 'missing:technology-profile'
+        : 'incomplete:technology-profile',
+    )
   }
 
-  const equipment = [...(packet.equipment ?? [])].sort((a, b) =>
-    compareAscii(a.equipmentId, b.equipmentId),
-  )
-  if (equipment.length === 0) {
+  const rawEquipment = packet.equipment ?? []
+  if (rawEquipment.length === 0) {
     missing.push('equipment-dossiers')
     reasons.push('missing:equipment-dossiers')
   }
 
-  for (const dossier of equipment) {
-    const fields = [
-      dossier.construction,
-      dossier.protection,
-      dossier.sensing,
-      dossier.shutdown,
-      dossier.relief,
-      dossier.supportSystems,
-    ]
-    if (fields.some((field) => !field || !field.trim())) {
-      missing.push(`equipment-incomplete:${dossier.equipmentId}`)
-      reasons.push(`incomplete:equipment:${dossier.equipmentId}`)
+  const seenIds = new Set<string>()
+  const validated: CriticalEquipmentDossier[] = []
+  for (const entry of rawEquipment) {
+    const result = tryValidateEquipment(entry)
+    if (!result.ok) {
+      missing.push(result.reason)
+      reasons.push(`incomplete:equipment:${result.reason.replace(/^equipment-incomplete:/, '')}`)
+      continue
     }
-    if (dossier.legacy) {
-      if (dossier.safeOperationProofActive) {
-        legacyValid.push(dossier.equipmentId)
-        reasons.push(`legacy-valid:${dossier.equipmentId}`)
-      } else {
-        legacyInvalid.push(dossier.equipmentId)
-        missing.push(`legacy-proof:${dossier.equipmentId}`)
-        reasons.push(`legacy-invalid:${dossier.equipmentId}`)
-      }
+    if (seenIds.has(result.dossier.equipmentId)) {
+      missing.push(`equipment-duplicate:${result.dossier.equipmentId}`)
+      reasons.push(`duplicate:equipment:${result.dossier.equipmentId}`)
+      continue
+    }
+    seenIds.add(result.dossier.equipmentId)
+    validated.push(result.dossier)
+  }
+
+  for (const dossier of [...validated].sort((a, b) => compareAscii(a.equipmentId, b.equipmentId))) {
+    if (!dossier.legacy) continue
+    if (dossier.safeOperationProofActive) {
+      legacyValid.push(dossier.equipmentId)
+      reasons.push(`legacy-valid:${dossier.equipmentId}`)
+    } else {
+      legacyInvalid.push(dossier.equipmentId)
+      missing.push(`legacy-proof:${dossier.equipmentId}`)
+      reasons.push(`legacy-invalid:${dossier.equipmentId}`)
     }
   }
 

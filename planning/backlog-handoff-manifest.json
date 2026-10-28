@@ -1,9 +1,10 @@
 {
   "primary": "SPE-1052",
   "inProgress": [
-    "SPE-3124"
+    "SPE-3366"
   ],
   "recentlyShipped": [
+    "SPE-3124",
     "SPE-2738",
     "SPE-1135",
     "SPE-1757",
@@ -88,7 +89,8 @@
     "planning/spe-1757-extranormal-temporal-event-registry-slice.md": "Recently shipped",
     "planning/spe-1135-duty-and-obligation-registry-slice.md": "Recently shipped",
     "planning/spe-2738-inter-agency-ownership-transfer-slice.md": "Recently shipped",
-    "planning/spe-3124-sponsored-training-completion-slice.md": "In progress",
+    "planning/spe-3124-sponsored-training-completion-slice.md": "Recently shipped",
+    "planning/spe-3366-recruitment-hire-identity-slice.md": "In progress",
     "planning/spe-3344-hazardous-research-risk-posture-slice.md": "Recently shipped",
     "planning/spe-3343-research-throughput-execution-slice.md": "Recently shipped",
     "planning/spe-3041-conditional-recurring-task-activation-slice.md": "Recently shipped",

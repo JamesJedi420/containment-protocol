@@ -97,7 +97,11 @@ function isMatchingCompletedStaffTarget(
   existing: NonNullable<GameState['staff'][string]>
 ): boolean {
   if (recruitCategory === 'instructor') {
-    return existing.role === 'instructor' && existing.name === candidate.name
+    return (
+      existing.role === 'instructor' &&
+      existing.name === candidate.name &&
+      hasCompletedHireEvent(state, candidateId)
+    )
   }
 
   if (existing.role === 'instructor' || !candidate.staffData) {

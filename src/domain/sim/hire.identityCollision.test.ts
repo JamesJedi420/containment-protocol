@@ -286,6 +286,44 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
           instructorSpecialty: 'combat',
         },
       },
+      events: [
+        {
+          id: 'evt-instructor-hire',
+          type: 'agent.hired',
+          week: 1,
+          payload: {
+            week: 1,
+            candidateId: candidate.id,
+            agentId: candidate.id,
+            agentName: candidate.name,
+            recruitCategory: 'instructor',
+          },
+        },
+      ],
+    }
+
+    const next = hireCandidate(state, candidate.id)
+
+    expect(next).toBe(state)
+    expect(next.funding).toBe(200)
+    expect(countHireEvents(next, candidate.id)).toBe(1)
+  })
+
+  it('rejects same-id instructor occupancy without a completed hire event', () => {
+    const candidate = makeInstructorCandidate()
+    const state: GameState = {
+      ...createStartingState(),
+      funding: 200,
+      candidates: [candidate],
+      staff: {
+        ...createStartingState().staff,
+        [candidate.id]: {
+          role: 'instructor',
+          name: candidate.name,
+          efficiency: 82,
+          instructorSpecialty: 'combat',
+        },
+      },
     }
 
     const next = hireCandidate(state, candidate.id)
@@ -293,6 +331,7 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
     expect(next).toBe(state)
     expect(next.funding).toBe(200)
     expect(countHireEvents(next, candidate.id)).toBe(0)
+    expect(next.candidates.find((entry) => entry.id === candidate.id)).toBeDefined()
   })
 
   it('idempotently no-ops when staff destination matches a prior hire event', () => {
@@ -350,16 +389,21 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
 
   it('does not apply funding, faction, or hire-event effects a second time after success', () => {
     const base = createStartingState()
-    const factions = base.factions
-    if (!factions) {
+    if (!base.factions?.institutions) {
       throw new Error('Expected faction state')
     }
-    factions.institutions.reputation = 80
-    factions.institutions.contacts = (factions.institutions.contacts ?? []).map((contact) =>
-      contact.id === 'institutions-halden'
-        ? { ...contact, relationship: 20, status: 'active' }
-        : contact
-    )
+    const factions = {
+      ...base.factions,
+      institutions: {
+        ...base.factions.institutions,
+        reputation: 80,
+        contacts: (base.factions.institutions.contacts ?? []).map((contact) =>
+          contact.id === 'institutions-halden'
+            ? { ...contact, relationship: 20, status: 'active' as const }
+            : contact
+        ),
+      },
+    }
 
     const candidate = makeAgentCandidate({
       hireStatus: 'available',

@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-3293",
     "SPE-3300",
     "SPE-3282",
     "SPE-3459",
@@ -110,6 +111,7 @@
     "planning/spe-3459-isolated-scenario-runner-slice.md": "Recently shipped",
     "planning/spe-3282-cross-property-canon-handoff-slice.md": "Recently shipped",
     "planning/spe-3300-shared-universe-canon-release-catalog-slice.md": "Recently shipped",
+    "planning/spe-3293-shared-universe-canon-release-binding-slice.md": "Recently shipped",
     "planning/spe-3172-campaign-command-identity-slice.md": "Recently shipped",
     "planning/spe-3186-scene-difficulty-mitigation-slice.md": "Recently shipped",
     "planning/spe-2898-rule-change-transition-slice.md": "Recently shipped",

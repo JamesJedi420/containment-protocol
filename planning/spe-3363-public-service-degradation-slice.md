@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3363](https://linear.app/spectranoir/issue/SPE-3363) |
 | **Branch** | `jamesdyedbq/spe-3363-public-service-and-infrastructure-degradation-resolver` |
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4456 @ `9c3806b8`) |
 | **Issue** | [SPE-2898](https://linear.app/spectranoir/issue/SPE-2898/rule-change-transition-and-grandfathering-contract) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734/campaign-rules-and-settings-ledger) |
 | **Branch** | `jamesdyedbq/spe-2898-rule-change-transition-and-grandfathering-contract` |

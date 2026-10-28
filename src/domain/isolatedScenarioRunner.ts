@@ -87,14 +87,30 @@ function makeRunId(binding: ScenarioDefinitionBinding, runSeed: number): string 
   return `iso:${binding.definitionId}:v${binding.definitionVersion}:s${runSeed}`
 }
 
+function snapshotBinding(binding: ScenarioDefinitionBinding): ScenarioDefinitionBinding {
+  return Object.freeze({
+    definitionId: binding.definitionId,
+    definitionVersion: binding.definitionVersion,
+    sourceKind: binding.sourceKind,
+    ...(binding.components != null
+      ? {
+          components: Object.freeze(
+            binding.components.map((c) => Object.freeze({ ...c }))
+          ),
+        }
+      : {}),
+  })
+}
+
 /** Launch a validated SPE-3397 scenario as an isolated run (no campaign commit). */
 export function launchIsolatedScenario(input: {
   readonly binding: ScenarioDefinitionBinding
   readonly runSeed: number
   readonly sourceChannel?: IsolatedScenarioSourceChannel
 }): IsolatedScenarioLaunchResult {
+  const binding = snapshotBinding(input.binding)
   const resolved = resolveScenarioInitialization({
-    binding: input.binding,
+    binding,
     runSeed: input.runSeed,
   })
   if (!resolved.ok) {
@@ -105,12 +121,12 @@ export function launchIsolatedScenario(input: {
     }
   }
 
-  const sourceChannel = input.sourceChannel ?? sourceChannelFor(input.binding)
+  const sourceChannel = input.sourceChannel ?? sourceChannelFor(binding)
   const run: IsolatedScenarioRunState = Object.freeze({
     version: ISOLATED_SCENARIO_RUN_SCHEMA_VERSION,
-    runId: makeRunId(input.binding, input.runSeed),
+    runId: makeRunId(binding, input.runSeed),
     phase: 'active',
-    binding: input.binding,
+    binding,
     runSeed: input.runSeed,
     resolved: resolved.configuration,
     provenance: buildProvenance(sourceChannel),
@@ -251,6 +267,20 @@ export function sanitizeIsolatedScenarioRun(
   // no longer resolves against live presets — keep structural packet only when
   // resolution still succeeds; otherwise fail closed (undefined).
   if (!resolvedCheck.ok) return undefined
+
+  const persistedResolved = raw.resolved
+  const persistedDefinitionId =
+    typeof persistedResolved.definitionId === 'string' ? persistedResolved.definitionId : ''
+  const persistedDefinitionVersion =
+    typeof persistedResolved.definitionVersion === 'string'
+      ? persistedResolved.definitionVersion
+      : ''
+  if (
+    persistedDefinitionId !== resolvedCheck.configuration.definitionId ||
+    persistedDefinitionVersion !== resolvedCheck.configuration.definitionVersion
+  ) {
+    return undefined
+  }
 
   return Object.freeze({
     version: ISOLATED_SCENARIO_RUN_SCHEMA_VERSION,

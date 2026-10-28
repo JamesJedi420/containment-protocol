@@ -177,5 +177,12 @@ describe('isolatedScenarioRunner (SPE-3459)', () => {
       definitionVersion: '999',
     }
     expect(restoreIsolatedScenario(stalePreset).ok).toBe(false)
+
+    const mismatched = JSON.parse(JSON.stringify(presetLaunch.run)) as Record<string, unknown>
+    mismatched.resolved = {
+      ...(mismatched.resolved as object),
+      definitionId: 'other_definition',
+    }
+    expect(restoreIsolatedScenario(mismatched).ok).toBe(false)
   })
 })

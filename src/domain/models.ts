@@ -3,6 +3,7 @@ import type {
   CustomDifficultyOverrides,
   DifficultyProfileId,
 } from './difficultyProfileResolver'
+import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
 import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
 import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
@@ -2782,6 +2783,11 @@ export interface CampaignLedgerState {
 }
 
 export interface GameState {
+  /**
+   * SPE-3459: optional isolated scenario run packet under SPE-77.
+   * Absent on ordinary campaigns. Never commits outcomes into campaign progression.
+   */
+  isolatedScenarioRun?: IsolatedScenarioRunState
   /** SPE-3181: authoritative saved recurring containment requirements by subject + requirement. */
   containmentRequirementStates?: ContainmentRequirementRegistry
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */

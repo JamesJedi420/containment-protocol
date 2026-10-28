@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-862](https://linear.app/spectranoir/issue/SPE-862) |
 | **Branch** | `jamesdyedbq/spe-862-message-to-service-availability-validation` |
 

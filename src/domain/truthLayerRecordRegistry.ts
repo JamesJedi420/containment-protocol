@@ -40,6 +40,27 @@ export const COMPETING_LAYER_ROLES: readonly CompetingLayerRole[] = [
   'operational_record',
 ] as const
 
+/**
+ * SPE-2264 — whose institutional model a truth-layer record represents.
+ * `simulation` is the singular authoritative simulation-state attribution;
+ * public/agency/faction/patron are source-attributed claims, not alternate
+ * engine realities.
+ */
+export type InstitutionalAttribution =
+  | 'public'
+  | 'agency'
+  | 'faction'
+  | 'patron'
+  | 'simulation'
+
+export const INSTITUTIONAL_ATTRIBUTIONS: readonly InstitutionalAttribution[] = [
+  'public',
+  'agency',
+  'faction',
+  'patron',
+  'simulation',
+] as const
+
 // Re-export for slice 2+ wire-up to authority graph and knowledge state.
 export type TruthLayerSourceConfidence = AuthoritySourceConfidence
 export type TruthLayerKnowledgeTier = KnowledgeTier
@@ -80,6 +101,13 @@ export interface TruthLayerRecord {
   readonly confidence?: number
   readonly unknownFields?: readonly string[]
   readonly redactedFields?: readonly string[]
+  /** SPE-2264 optional institutional model owner; absent on legacy saves. */
+  readonly institutionalAttribution?: InstitutionalAttribution
+  /**
+   * When this record is not the simulation authority, optional pointer to the
+   * singular simulation-attributed record for the same subject.
+   */
+  readonly simulationAuthorityRef?: TruthLayerRecordId
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +136,9 @@ export type TruthLayerValidationCode =
   | 'franchise_token_in_id'
   | 'franchise_token_in_label'
   | 'franchise_token_in_field'
+  | 'invalid_institutional_attribution'
+  | 'invalid_simulation_authority_ref'
+  | 'duplicate_simulation_authority'
 
 export interface TruthLayerValidationIssue {
   readonly code: TruthLayerValidationCode
@@ -192,6 +223,7 @@ export const MAX_TRUTH_LAYER_WEEKLY_PROJECTION_SNAPSHOTS = 128
 
 const SUBJECT_KIND_SET = new Set<string>(TRUTH_LAYER_SUBJECT_KINDS)
 const COMPETING_LAYER_ROLE_SET = new Set<string>(COMPETING_LAYER_ROLES)
+const INSTITUTIONAL_ATTRIBUTION_SET = new Set<string>(INSTITUTIONAL_ATTRIBUTIONS)
 
 const SOURCE_CONFIDENCE_SET = new Set<string>([
   'verified',
@@ -307,6 +339,12 @@ function isKnowledgeTier(value: string): value is TruthLayerKnowledgeTier {
 
 function isSubjectKind(value: string): value is TruthLayerSubjectKind {
   return SUBJECT_KIND_SET.has(value)
+}
+
+function isInstitutionalAttributionValue(
+  value: string,
+): value is InstitutionalAttribution {
+  return INSTITUTIONAL_ATTRIBUTION_SET.has(value)
 }
 
 function isCompetingLayerRoleValue(value: string): value is CompetingLayerRole {
@@ -553,6 +591,89 @@ export function isCompetingLayerRole(value: string): value is CompetingLayerRole
   return COMPETING_LAYER_ROLE_SET.has(value)
 }
 
+export function isInstitutionalAttribution(
+  value: string,
+): value is InstitutionalAttribution {
+  return INSTITUTIONAL_ATTRIBUTION_SET.has(value)
+}
+
+/**
+ * SPE-2264 — list institution-attributed models for a subject (deterministic order).
+ */
+export function listInstitutionAttributedModelsForSubject(
+  records: TruthLayerRecordsMap,
+  subjectRef: string,
+): readonly TruthLayerRecord[] {
+  const trimmed = normalizeToken(subjectRef)
+  if (!trimmed) return Object.freeze([])
+  return Object.freeze(
+    Object.values(records)
+      .filter(
+        (record) =>
+          normalizeToken(record.subjectRef) === trimmed &&
+          record.institutionalAttribution !== undefined,
+      )
+      .sort((a, b) => {
+        const byAttr =
+          String(a.institutionalAttribution).localeCompare(
+            String(b.institutionalAttribution),
+          ) || a.id.localeCompare(b.id)
+        return byAttr
+      }),
+  )
+}
+
+/**
+ * SPE-2264 — resolve the singular simulation-authority record for a subject.
+ * Prefers an explicitly simulation-attributed record; otherwise follows a
+ * unique simulationAuthorityRef among institutional peers.
+ */
+export function resolveSimulationAuthorityForSubject(
+  records: TruthLayerRecordsMap,
+  subjectRef: string,
+):
+  | { readonly ok: true; readonly record: TruthLayerRecord | null }
+  | {
+      readonly ok: false
+      readonly code: 'duplicate_simulation_authority'
+      readonly recordIds: readonly string[]
+    } {
+  const attributed = listInstitutionAttributedModelsForSubject(records, subjectRef)
+  const simulationRecords = attributed.filter(
+    (record) => record.institutionalAttribution === 'simulation',
+  )
+  if (simulationRecords.length > 1) {
+    return {
+      ok: false,
+      code: 'duplicate_simulation_authority',
+      recordIds: Object.freeze(simulationRecords.map((r) => r.id).sort()),
+    }
+  }
+  if (simulationRecords.length === 1) {
+    return { ok: true, record: simulationRecords[0]! }
+  }
+
+  const refs = [
+    ...new Set(
+      attributed
+        .map((record) => normalizeToken(record.simulationAuthorityRef ?? ''))
+        .filter((id) => id.length > 0),
+    ),
+  ].sort()
+  if (refs.length === 0) {
+    return { ok: true, record: null }
+  }
+  if (refs.length > 1) {
+    return {
+      ok: false,
+      code: 'duplicate_simulation_authority',
+      recordIds: Object.freeze(refs),
+    }
+  }
+  const authority = records[refs[0]!]
+  return { ok: true, record: authority ?? null }
+}
+
 export function isTruthLayerSourceConfidence(value: string): value is TruthLayerSourceConfidence {
   return isSourceConfidence(value)
 }
@@ -673,6 +794,42 @@ export function validateTruthLayerRecord(record: TruthLayerRecord): TruthLayerVa
         code: 'invalid_competing_layer_role',
         severity: 'error',
         detail: `Truth-layer record ${id || '(unknown)'} has invalid competing layer role ${String(entry.layerRole)}.`,
+        relatedIds: id ? [id] : undefined,
+      })
+    }
+  }
+
+  if (
+    record.institutionalAttribution !== undefined &&
+    !isInstitutionalAttributionValue(record.institutionalAttribution)
+  ) {
+    pushIssue(issues, {
+      code: 'invalid_institutional_attribution',
+      severity: 'error',
+      detail: `Truth-layer record ${id || '(unknown)'} has invalid institutionalAttribution ${String(record.institutionalAttribution)}.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.simulationAuthorityRef !== undefined) {
+    const authorityRef = normalizeToken(record.simulationAuthorityRef)
+    if (!authorityRef) {
+      pushIssue(issues, {
+        code: 'invalid_simulation_authority_ref',
+        severity: 'error',
+        detail: `Truth-layer record ${id || '(unknown)'} simulationAuthorityRef must be a non-empty record id.`,
+        relatedIds: id ? [id] : undefined,
+      })
+    } else if (
+      record.institutionalAttribution === 'simulation' &&
+      authorityRef === id
+    ) {
+      // Self-ref on the simulation authority record is allowed / redundant.
+    } else if (record.institutionalAttribution === 'simulation' && authorityRef !== id) {
+      pushIssue(issues, {
+        code: 'invalid_simulation_authority_ref',
+        severity: 'error',
+        detail: `Simulation-attributed record ${id || '(unknown)'} cannot point simulationAuthorityRef at a different record.`,
         relatedIds: id ? [id] : undefined,
       })
     }
@@ -983,6 +1140,13 @@ function sanitizeTruthLayerRecordEntry(value: unknown): TruthLayerRecord | null 
   const correctionPressure = value.correctionPressure
   const mythInfrastructureWeight = value.mythInfrastructureWeight
   const confidence = value.confidence
+  const institutionalAttribution =
+    typeof value.institutionalAttribution === 'string' &&
+    isInstitutionalAttributionValue(value.institutionalAttribution)
+      ? value.institutionalAttribution
+      : undefined
+  const simulationAuthorityRef =
+    normalizeToken(value.simulationAuthorityRef ?? '') || undefined
 
   const record: TruthLayerRecord = {
     id,
@@ -1001,6 +1165,8 @@ function sanitizeTruthLayerRecordEntry(value: unknown): TruthLayerRecord | null 
     ...(isValidUnitScore(confidence) ? { confidence } : {}),
     ...(unknownFields.length > 0 ? { unknownFields } : {}),
     ...(redactedFields.length > 0 ? { redactedFields } : {}),
+    ...(institutionalAttribution ? { institutionalAttribution } : {}),
+    ...(simulationAuthorityRef ? { simulationAuthorityRef } : {}),
   }
 
   if (!validateTruthLayerRecord(record).valid) {

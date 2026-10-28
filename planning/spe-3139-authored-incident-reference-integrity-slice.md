@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3139](https://linear.app/spectranoir/issue/SPE-3139/authored-incident-reference-integrity-validator) |
 | **Parent** | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3139-authored-incident-reference-integrity-validator` |

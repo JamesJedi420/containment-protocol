@@ -455,4 +455,164 @@ describe('SPE-2157 action consequence router', () => {
     const serialized = JSON.stringify(ok)
     expect(serialized).not.toMatch(/mission_success|campaign_defeat|domain_recovery/i)
   })
+
+  it('clamps mismatched or narrowing escalation to local and never leaks requested campaign scale', () => {
+    const narrowing = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:narrow',
+            requestedScaleBand: 'campaign',
+            escalationRuleId: 'esc:campaign-to-site',
+          }),
+        ],
+        escalationRules: [
+          { ruleId: 'esc:campaign-to-site', fromScale: 'campaign', toScale: 'site' },
+        ],
+      })
+    )
+    // Narrowing rules are rejected at input validation.
+    expect(narrowing.ok).toBe(false)
+    if (narrowing.ok) return
+    expect(narrowing.reasonCode).toBe('escalation_rejected')
+
+    const fromAbove = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:from-above',
+            requestedScaleBand: 'adjacent',
+            escalationRuleId: 'esc:site-to-campaign',
+          }),
+        ],
+        escalationRules: [
+          { ruleId: 'esc:site-to-campaign', fromScale: 'site', toScale: 'campaign' },
+        ],
+      })
+    )
+    expect(fromAbove.ok).toBe(true)
+    if (!fromAbove.ok) return
+    expect(fromAbove.consequences[0]?.scaleBand).toBe('local')
+    expect(fromAbove.consequences[0]?.reasonCode).toBe('local_scale_preserved')
+
+    const mismatch = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:mismatch-esc',
+            requestedScaleBand: 'campaign',
+            escalationRuleId: 'esc:site-to-campaign',
+          }),
+        ],
+        escalationRules: [
+          { ruleId: 'esc:site-to-campaign', fromScale: 'site', toScale: 'campaign' },
+        ],
+      })
+    )
+    expect(mismatch.ok).toBe(true)
+    if (!mismatch.ok) return
+    expect(mismatch.consequences[0]?.scaleBand).toBe('local')
+    expect(mismatch.consequences[0]?.reasonCode).toBe('local_scale_preserved')
+  })
+
+  it('rejects unknown escalation rule ids and malformed escalation rule records', () => {
+    const unknown = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:missing-esc',
+            escalationRuleId: 'esc:missing',
+          }),
+        ],
+      })
+    )
+    expect(unknown.ok).toBe(false)
+    if (unknown.ok) return
+    expect(unknown.reasonCode).toBe('escalation_rejected')
+
+    const malformed = routeActionConsequences(
+      baseInput({
+        escalationRules: [{ ruleId: '', fromScale: 'local', toScale: 'site' }],
+      })
+    )
+    expect(malformed.ok).toBe(false)
+    if (malformed.ok) return
+    expect(malformed.reasonCode).toBe('escalation_rejected')
+  })
+
+  it('clamps propagated scale to vector maxScaleBand', () => {
+    const result = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:clamp-prop',
+            family: 'infrastructure_damage',
+            targetDomain: 'infrastructure',
+            targetId: 'infra:pump',
+            requestedScaleBand: 'local',
+            escalationRuleId: 'esc:local-to-site',
+            propagationVectorId: 'vec:infra-to-civilians',
+          }),
+        ],
+        escalationRules: [
+          { ruleId: 'esc:local-to-site', fromScale: 'local', toScale: 'site' },
+        ],
+        propagationVectors: [
+          {
+            vectorId: 'vec:infra-to-civilians',
+            fromDomain: 'infrastructure',
+            toDomain: 'civilians',
+            maxScaleBand: 'adjacent',
+          },
+        ],
+      })
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const direct = result.consequences.find((c) => c.disposition === 'direct')
+    const propagated = result.consequences.find((c) => c.disposition === 'propagated')
+    expect(direct?.scaleBand).toBe('site')
+    expect(propagated?.scaleBand).toBe('adjacent')
+  })
+
+  it('rejects duplicate intentIds and does not propagate from denied or unresolved', () => {
+    const dup = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({ intentId: 'intent:same' }),
+          baseIntent({ intentId: 'intent:same', family: 'exposure' }),
+        ],
+      })
+    )
+    expect(dup.ok).toBe(false)
+    if (dup.ok) return
+    expect(dup.reasonCode).toBe('duplicate_intent')
+
+    const deniedNoProp = routeActionConsequences(
+      baseInput({
+        intents: [
+          baseIntent({
+            intentId: 'intent:denied-prop',
+            family: 'denied_asset',
+            targetDomain: 'evidence',
+            targetId: 'asset:x',
+            forcedDisposition: 'denied',
+            propagationVectorId: 'vec:evidence-to-public',
+          }),
+        ],
+        propagationVectors: [
+          {
+            vectorId: 'vec:evidence-to-public',
+            fromDomain: 'evidence',
+            toDomain: 'public_state',
+            maxScaleBand: 'local',
+          },
+        ],
+      })
+    )
+    expect(deniedNoProp.ok).toBe(true)
+    if (!deniedNoProp.ok) return
+    expect(deniedNoProp.consequences).toHaveLength(1)
+    expect(deniedNoProp.consequences[0]?.disposition).toBe('denied')
+  })
 })

@@ -98,6 +98,8 @@ export const ROUTER_REASON_CODES = [
   'unknown_domain',
   'unknown_scale',
   'propagation_rejected',
+  'escalation_rejected',
+  'duplicate_intent',
 ] as const
 export type RouterReasonCode = (typeof ROUTER_REASON_CODES)[number]
 
@@ -293,39 +295,41 @@ function clampScaleToMax(requested: ScaleBand, max: ScaleBand): ScaleBand {
   return SCALE_RANK[requested] <= SCALE_RANK[max] ? requested : max
 }
 
+/**
+ * Resolve scale. Without a matching widening escalation rule, always clamp to
+ * `local` — never leak a non-local requested band through mismatched/narrowing rules.
+ */
 function resolveScaleBand(
   intent: ConsequenceIntent,
   escalationById: ReadonlyMap<string, EscalationRule>
-): { readonly scaleBand: ScaleBand; readonly escalated: boolean } {
+):
+  | { readonly ok: true; readonly scaleBand: ScaleBand; readonly escalated: boolean }
+  | { readonly ok: false; readonly reasonCode: RouterReasonCode; readonly detail: string } {
   const requested = intent.requestedScaleBand
   if (!intent.escalationRuleId) {
-    // Without an explicit escalation rule, local (and only local) is preserved
-    // even if the intent asked for a wider band.
-    if (requested === 'local') {
-      return { scaleBand: 'local', escalated: false }
-    }
-    return { scaleBand: 'local', escalated: false }
+    return { ok: true, scaleBand: 'local', escalated: false }
   }
-  const rule = escalationById.get(intent.escalationRuleId)
+  const rule = escalationById.get(intent.escalationRuleId.trim())
   if (!rule) {
-    return { scaleBand: 'local', escalated: false }
-  }
-  if (rule.fromScale !== requested && requested !== 'local') {
-    // Rule must match the requested origin or widen from local.
-    if (SCALE_RANK[rule.fromScale] > SCALE_RANK[requested]) {
-      return { scaleBand: requested, escalated: false }
+    return {
+      ok: false,
+      reasonCode: 'escalation_rejected',
+      detail: `unknown escalation rule ${intent.escalationRuleId}`,
     }
   }
+  // Narrowing rules are not escalations — fail closed to local.
   if (SCALE_RANK[rule.toScale] < SCALE_RANK[rule.fromScale]) {
-    return { scaleBand: requested === 'local' ? 'local' : requested, escalated: false }
+    return { ok: true, scaleBand: 'local', escalated: false }
   }
-  const widened =
-    requested === 'local' || SCALE_RANK[rule.fromScale] <= SCALE_RANK[requested]
-      ? rule.toScale
-      : requested
+  // Rule applies only when fromScale matches the requested origin (local widen
+  // or exact non-local step). Otherwise clamp to local — never preserve a wider request.
+  if (rule.fromScale !== requested) {
+    return { ok: true, scaleBand: 'local', escalated: false }
+  }
   return {
-    scaleBand: widened,
-    escalated: SCALE_RANK[widened] > SCALE_RANK['local'],
+    ok: true,
+    scaleBand: rule.toScale,
+    escalated: SCALE_RANK[rule.toScale] > SCALE_RANK.local,
   }
 }
 
@@ -470,12 +474,37 @@ export function routeActionConsequences(
       !isScaleBand(rule.fromScale) ||
       !isScaleBand(rule.toScale)
     ) {
-      continue
+      return Object.freeze({
+        ok: false,
+        owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
+        schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
+        reasonCode: 'escalation_rejected',
+        detail: `invalid escalation rule ${String(rule?.ruleId)}`,
+      })
+    }
+    if (SCALE_RANK[rule.toScale] < SCALE_RANK[rule.fromScale]) {
+      return Object.freeze({
+        ok: false,
+        owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
+        schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
+        reasonCode: 'escalation_rejected',
+        detail: `narrowing escalation rule ${rule.ruleId.trim()}`,
+      })
+    }
+    const ruleId = rule.ruleId.trim()
+    if (escalationById.has(ruleId)) {
+      return Object.freeze({
+        ok: false,
+        owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
+        schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
+        reasonCode: 'escalation_rejected',
+        detail: `duplicate escalation rule ${ruleId}`,
+      })
     }
     escalationById.set(
-      rule.ruleId.trim(),
+      ruleId,
       Object.freeze({
-        ruleId: rule.ruleId.trim(),
+        ruleId,
         fromScale: rule.fromScale,
         toScale: rule.toScale,
       })
@@ -501,6 +530,7 @@ export function routeActionConsequences(
   )
 
   const consequences: RoutedConsequence[] = []
+  const seenIntentIds = new Set<string>()
 
   for (const intent of input.intents) {
     if (!isNonEmptyString(intent?.intentId)) {
@@ -512,6 +542,17 @@ export function routeActionConsequences(
         detail: 'intentId required',
       })
     }
+    const intentId = intent.intentId.trim()
+    if (seenIntentIds.has(intentId)) {
+      return Object.freeze({
+        ok: false,
+        owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
+        schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
+        reasonCode: 'duplicate_intent',
+        detail: `duplicate intentId ${intentId}`,
+      })
+    }
+    seenIntentIds.add(intentId)
     if (!isConsequenceFamily(intent.family)) {
       return Object.freeze({
         ok: false,
@@ -527,7 +568,7 @@ export function routeActionConsequences(
         owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
         schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
         reasonCode: 'unknown_domain',
-        detail: `invalid target for ${intent.intentId}`,
+        detail: `invalid target for ${intentId}`,
       })
     }
     if (!isScaleBand(intent.requestedScaleBand)) {
@@ -544,7 +585,17 @@ export function routeActionConsequences(
       ? intent.mitigationState
       : 'none'
 
-    const { scaleBand, escalated } = resolveScaleBand(intent, escalationById)
+    const scaleResult = resolveScaleBand(intent, escalationById)
+    if (!scaleResult.ok) {
+      return Object.freeze({
+        ok: false,
+        owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
+        schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
+        reasonCode: scaleResult.reasonCode,
+        detail: scaleResult.detail,
+      })
+    }
+    const { scaleBand, escalated } = scaleResult
     const { disposition, reasonCode: baseReason } = dispositionForIntent(intent, mitigation)
     const reasonCode: RouterReasonCode =
       disposition === 'direct' && !escalated && scaleBand === 'local'
@@ -553,7 +604,7 @@ export function routeActionConsequences(
           ? 'escalation_applied'
           : baseReason
 
-    const directId = `consequence:${intent.intentId.trim()}:direct`
+    const directId = `consequence:${intentId}:direct`
     const direct = freezeConsequence({
       schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
       owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
@@ -566,11 +617,16 @@ export function routeActionConsequences(
       scaleBand,
       reasonCode,
       mitigationState: mitigation,
-      sourceIntentId: intent.intentId.trim(),
+      sourceIntentId: intentId,
     })
     consequences.push(direct)
 
-    if (intent.propagationVectorId) {
+    // Denied / unresolved outcomes do not spawn collateral children.
+    if (
+      intent.propagationVectorId &&
+      disposition !== 'denied' &&
+      disposition !== 'unresolved'
+    ) {
       const vector = vectorById.get(intent.propagationVectorId.trim())
       if (!vector) {
         return Object.freeze({
@@ -595,7 +651,7 @@ export function routeActionConsequences(
         freezeConsequence({
           schemaVersion: ACTION_CONSEQUENCE_ROUTER_SCHEMA_VERSION,
           owner: ACTION_CONSEQUENCE_ROUTER_OWNER,
-          consequenceId: `consequence:${intent.intentId.trim()}:propagated:${vector.vectorId}`,
+          consequenceId: `consequence:${intentId}:propagated:${vector.vectorId}`,
           family: 'collateral_effect',
           disposition: 'propagated',
           causation,
@@ -605,7 +661,7 @@ export function routeActionConsequences(
           reasonCode: 'routed_propagated',
           mitigationState: mitigation === 'full' ? 'partial' : mitigation,
           propagationVectorId: vector.vectorId,
-          sourceIntentId: intent.intentId.trim(),
+          sourceIntentId: intentId,
           parentConsequenceId: directId,
         })
       )

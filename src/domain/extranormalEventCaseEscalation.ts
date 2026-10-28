@@ -15,6 +15,7 @@ import {
 } from './extranormalEventRegistry'
 import type { CaseInstance, CaseTemplate } from './models'
 import { createStarterCase } from './templates/startingCases'
+import { caseTemplateMap } from './templates/caseTemplates'
 
 export const EXTRANORMAL_EVENT_CASE_ESCALATION_OWNER = 'SPE-3367' as const
 
@@ -112,6 +113,17 @@ function caseHasSourceTag(currentCase: CaseInstance, eventId: ExtranormalEventId
   return (currentCase.tags ?? []).some((tag) => normalizeKey(tag) === expected)
 }
 
+function ownCaseEntry(
+  cases: Readonly<Record<string, CaseInstance>>,
+  key: string
+): CaseInstance | undefined {
+  if (!key || !Object.prototype.hasOwnProperty.call(cases, key)) {
+    return undefined
+  }
+  const value = cases[key]
+  return value && typeof value === 'object' ? value : undefined
+}
+
 function findCaseByRef(
   cases: Readonly<Record<string, CaseInstance>>,
   ref: string
@@ -121,18 +133,37 @@ function findCaseByRef(
     return undefined
   }
 
-  const direct = cases[ref] ?? cases[normalizeToken(ref)]
+  const direct =
+    ownCaseEntry(cases, ref) ?? ownCaseEntry(cases, normalizeToken(ref))
   if (direct) {
     return direct
   }
 
-  for (const currentCase of Object.values(cases)) {
-    if (normalizeKey(currentCase.id) === normalized) {
+  for (const key of Object.keys(cases)) {
+    const currentCase = ownCaseEntry(cases, key)
+    if (currentCase && normalizeKey(currentCase.id) === normalized) {
       return currentCase
     }
   }
 
   return undefined
+}
+
+function rejectEventIdAsCaseId(
+  eventId: string,
+  caseId: string,
+  events: ExtranormalEventRecordsMap,
+  cases: Readonly<Record<string, CaseInstance>>
+): ExtranormalEventCaseEscalationFailure | null {
+  if (normalizeKey(caseId) === normalizeKey(eventId)) {
+    return fail(
+      'event_id_as_case_id',
+      [`Case id must not equal event id ${eventId}.`],
+      events,
+      cases
+    )
+  }
+  return null
 }
 
 function collectClusterConvergenceCaseIds(
@@ -240,21 +271,30 @@ function commitSuccess(input: {
 export function escalateExtranormalEventToCase(
   input: EscalateExtranormalEventToCaseInput
 ): ExtranormalEventCaseEscalationResult {
-  const events = input.events
-  const cases = input.cases
-
   if (!input || typeof input !== 'object') {
     return fail('malformed_input', ['Escalation input must be an object.'], {}, {})
   }
 
+  const events = input.events
+  const cases = input.cases
+
   const eventId = normalizeToken(input.eventId)
   if (!eventId) {
-    return fail('malformed_input', ['eventId is required.'], events, cases)
+    return fail('malformed_input', ['eventId is required.'], events ?? {}, cases ?? {})
   }
 
   const templateId = normalizeToken(input.templateId)
   if (!templateId) {
-    return fail('malformed_input', ['templateId is required.'], events, cases)
+    return fail('malformed_input', ['templateId is required.'], events ?? {}, cases ?? {})
+  }
+
+  if (!events || typeof events !== 'object' || !cases || typeof cases !== 'object') {
+    return fail(
+      'malformed_input',
+      ['events and cases maps are required.'],
+      events && typeof events === 'object' ? events : {},
+      cases && typeof cases === 'object' ? cases : {}
+    )
   }
 
   const event = events[eventId]
@@ -284,6 +324,11 @@ export function escalateExtranormalEventToCase(
       )
     }
 
+    const identityConflict = rejectEventIdAsCaseId(eventId, linkedCase.id, events, cases)
+    if (identityConflict) {
+      return identityConflict
+    }
+
     const convergeRef = normalizeToken(input.convergeCaseRef ?? '')
     if (convergeRef) {
       const convergeCase = findCaseByRef(cases, convergeRef)
@@ -307,12 +352,28 @@ export function escalateExtranormalEventToCase(
       }
     }
 
+    const clusterTargets = collectClusterConvergenceCaseIds(event, events, cases)
+    if (
+      clusterTargets.some((clusterCaseId) => normalizeKey(clusterCaseId) !== normalizeKey(linkedCase.id))
+    ) {
+      return fail(
+        'conflicting_case_targets',
+        [
+          `Event ${eventId} is linked to ${linkedCase.id} but cluster peers resolve to ${clusterTargets.join(', ')}.`,
+        ],
+        events,
+        cases
+      )
+    }
+
+    const taggedLinked = withSourceTag(linkedCase, eventId)
     return commitSuccess({
       disposition: 'reused',
       event,
       caseId: linkedCase.id,
       events,
       cases,
+      nextCase: taggedLinked === linkedCase ? undefined : taggedLinked,
       createdCase: false,
     })
   }
@@ -352,35 +413,39 @@ export function escalateExtranormalEventToCase(
 
   if (candidateCaseIds.length === 1) {
     const caseId = candidateCaseIds[0]!
+    const identityConflict = rejectEventIdAsCaseId(eventId, caseId, events, cases)
+    if (identityConflict) {
+      return identityConflict
+    }
+    const convergeTarget = findCaseByRef(cases, caseId)
     return commitSuccess({
       disposition: 'converged',
       event,
       caseId,
       events,
       cases,
+      nextCase: convergeTarget ? withSourceTag(convergeTarget, eventId) : undefined,
       createdCase: false,
     })
   }
 
   const derivedCaseId = deriveEscalatedCaseId(eventId)
-  if (normalizeKey(derivedCaseId) === normalizeKey(eventId)) {
-    return fail(
-      'event_id_as_case_id',
-      [`Derived case id must not equal event id ${eventId}.`],
-      events,
-      cases
-    )
+  const derivedIdentityConflict = rejectEventIdAsCaseId(eventId, derivedCaseId, events, cases)
+  if (derivedIdentityConflict) {
+    return derivedIdentityConflict
   }
 
   const occupying = findCaseByRef(cases, derivedCaseId)
   if (occupying) {
     if (caseHasSourceTag(occupying, eventId)) {
+      const taggedOccupying = withSourceTag(occupying, eventId)
       return commitSuccess({
         disposition: 'reused',
         event,
         caseId: occupying.id,
         events,
         cases,
+        nextCase: taggedOccupying === occupying ? undefined : taggedOccupying,
         createdCase: false,
       })
     }
@@ -395,16 +460,22 @@ export function escalateExtranormalEventToCase(
     )
   }
 
-  if (input.templates) {
-    const template = input.templates[templateId]
-    if (!template) {
-      return fail(
-        'template_not_found',
-        [`Case template ${templateId} was not found in the provided catalog.`],
-        events,
-        cases
-      )
-    }
+  // Factory always resolves through caseTemplateMap — optional input.templates must agree.
+  if (!caseTemplateMap[templateId]) {
+    return fail(
+      'template_not_found',
+      [`Case template ${templateId} was not found in the factory catalog.`],
+      events,
+      cases
+    )
+  }
+  if (input.templates && !input.templates[templateId]) {
+    return fail(
+      'template_not_found',
+      [`Case template ${templateId} was not found in the provided catalog.`],
+      events,
+      cases
+    )
   }
 
   let created: CaseInstance

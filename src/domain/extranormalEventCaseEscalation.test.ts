@@ -196,6 +196,8 @@ describe('extranormalEventCaseEscalation (SPE-3367)', () => {
     expect(result.disposition).toBe('converged')
     expect(result.caseId).toBe(shared.id)
     expect(result.createdCase).toBe(false)
+    expect(result.events[event.id]?.escalatedCaseRef).toBe(shared.id)
+    expect(result.cases[result.caseId]?.tags).toContain(extranormalEventSourceTag(event.id))
   })
 
   it('fails deterministically on a conflicting second case target', () => {

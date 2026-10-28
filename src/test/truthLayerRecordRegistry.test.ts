@@ -438,6 +438,27 @@ describe('SPE-2264 institution-attributed truth-layer extension', () => {
     expect(authority.record?.id).toBe('truth:sim-authority')
   })
 
+  it('ignores simulationAuthorityRef that does not resolve to a same-subject simulation record', () => {
+    const agency = baseRecord({
+      id: 'truth:agency-bad-ref',
+      subjectRef: 'event:wrong-ref',
+      institutionalAttribution: 'agency',
+      simulationAuthorityRef: 'truth:not-sim',
+    })
+    const notSim = baseRecord({
+      id: 'truth:not-sim',
+      subjectRef: 'event:wrong-ref',
+      institutionalAttribution: 'public',
+    })
+    const result = resolveSimulationAuthorityForSubject(
+      { [agency.id]: agency, [notSim.id]: notSim },
+      'event:wrong-ref',
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.record).toBeNull()
+  })
+
   it('rejects duplicate simulation authorities for one subject', () => {
     const a = baseRecord({
       id: 'truth:sim-a',

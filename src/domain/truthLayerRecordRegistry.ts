@@ -653,6 +653,7 @@ export function resolveSimulationAuthorityForSubject(
     return { ok: true, record: simulationRecords[0]! }
   }
 
+  const trimmedSubject = normalizeToken(subjectRef)
   const refs = [
     ...new Set(
       attributed
@@ -671,7 +672,14 @@ export function resolveSimulationAuthorityForSubject(
     }
   }
   const authority = records[refs[0]!]
-  return { ok: true, record: authority ?? null }
+  if (
+    !authority ||
+    authority.institutionalAttribution !== 'simulation' ||
+    normalizeToken(authority.subjectRef) !== trimmedSubject
+  ) {
+    return { ok: true, record: null }
+  }
+  return { ok: true, record: authority }
 }
 
 export function isTruthLayerSourceConfidence(value: string): value is TruthLayerSourceConfidence {

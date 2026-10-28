@@ -119,6 +119,34 @@ describe('SPE-3120 action-output-derived recovery', () => {
       expect(result.reasonCode).toBe('context_not_allowed')
     })
 
+    it('treats an explicit empty allowlist as fail-closed', () => {
+      const effect = Object.freeze({
+        ...baseEffect(),
+        contextPolicy: Object.freeze({
+          allowedContextIds: Object.freeze([] as string[]),
+        }),
+      })
+      const result = resolveActionOutputDerivedRecovery(
+        baseInput({ effect, activeContextIds: ['context:field_ops'] })
+      )
+      expect(result.status).toBe('suppressed')
+      expect(result.reasonCode).toBe('context_not_allowed')
+    })
+
+    it('allows unrestricted contexts when allowlist property is omitted', () => {
+      const effect = Object.freeze({
+        ...baseEffect(),
+        contextPolicy: Object.freeze({
+          excludedContextIds: Object.freeze(['context:ethics_hold']),
+        }),
+      })
+      const result = resolveActionOutputDerivedRecovery(
+        baseInput({ effect, activeContextIds: ['context:other'] })
+      )
+      expect(result.status).toBe('applied')
+      expect(result.provenance.appliedAmount).toBe(20)
+    })
+
     it('clamps at the authoritative resource maximum without overflow', () => {
       const result = resolveActionOutputDerivedRecovery(
         baseInput({
@@ -285,6 +313,32 @@ describe('SPE-3120 action-output-derived recovery', () => {
       ).toBe('action_not_successful')
     })
 
+    it('reports action_not_successful before channel_mismatch when both apply', () => {
+      const result = resolveActionOutputDerivedRecovery(
+        baseInput({
+          success: false,
+          outputChannel: 'stabilization_output',
+        })
+      )
+      expect(result.status).toBe('suppressed')
+      expect(result.reasonCode).toBe('action_not_successful')
+    })
+
+    it('routes kill_trigger to SPE-1405 even when the effect is malformed', () => {
+      const result = resolveActionOutputDerivedRecovery(
+        baseInput({
+          triggerKind: 'kill_trigger',
+          effect: {
+            ...baseEffect(),
+            conversionDenominator: 0,
+          } as ActionOutputDerivedRecoveryEffect,
+        })
+      )
+      expect(result.status).toBe('rejected')
+      expect(result.reasonCode).toBe('kill_trigger_routed_to_spe_1405')
+      expect(result.owner).toBe(KILL_TRIGGER_RECOVERY_OWNER)
+    })
+
     it('is deterministic and replay-stable for identical inputs', () => {
       const a = resolveActionOutputDerivedRecovery(baseInput())
       const b = resolveActionOutputDerivedRecovery(baseInput())
@@ -292,8 +346,11 @@ describe('SPE-3120 action-output-derived recovery', () => {
       expect(a.provenance.nextValue).toBe(50)
     })
 
-    it('rejects malformed null/undefined input fail-closed', () => {
-      expect(resolveActionOutputDerivedRecovery(null).reasonCode).toBe('malformed_input')
+    it('rejects malformed null/undefined input fail-closed without inventing a resource kind', () => {
+      const nullResult = resolveActionOutputDerivedRecovery(null)
+      expect(nullResult.reasonCode).toBe('malformed_input')
+      expect(nullResult.provenance.resourceKind).toBeNull()
+      expect(nullResult.reportAttribution.resourceKind).toBeNull()
       expect(resolveActionOutputDerivedRecovery(undefined).reasonCode).toBe('malformed_input')
     })
   })

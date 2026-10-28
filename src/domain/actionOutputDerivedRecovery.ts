@@ -128,7 +128,8 @@ export interface ActionOutputRecoveryProvenance {
   readonly sourceEffectId: string
   readonly effectId: string
   readonly targetActorId: string
-  readonly resourceKind: RecoverableResourceKind
+  /** Null when the target resource kind is unknown or input is malformed. */
+  readonly resourceKind: RecoverableResourceKind | null
   readonly appliedAmount: number
   readonly convertedAmount: number
   readonly previousValue: number
@@ -237,8 +238,8 @@ function emptyProvenance(
   partial: Partial<ActionOutputRecoveryProvenance> &
     Pick<
       ActionOutputRecoveryProvenance,
-      'actorId' | 'actionId' | 'sourceEffectId' | 'effectId' | 'targetActorId' | 'resourceKind'
-    >
+      'actorId' | 'actionId' | 'sourceEffectId' | 'effectId' | 'targetActorId'
+    > & { readonly resourceKind?: RecoverableResourceKind | null }
 ): ActionOutputRecoveryProvenance {
   return Object.freeze({
     actorId: partial.actorId,
@@ -246,7 +247,7 @@ function emptyProvenance(
     sourceEffectId: partial.sourceEffectId,
     effectId: partial.effectId,
     targetActorId: partial.targetActorId,
-    resourceKind: partial.resourceKind,
+    resourceKind: partial.resourceKind ?? null,
     appliedAmount: partial.appliedAmount ?? 0,
     convertedAmount: partial.convertedAmount ?? 0,
     previousValue: partial.previousValue ?? 0,
@@ -343,7 +344,7 @@ export function resolveActionOutputDerivedRecovery(
         sourceEffectId: '',
         effectId: '',
         targetActorId: '',
-        resourceKind: 'vitality',
+        resourceKind: null,
       }),
     })
   }
@@ -353,26 +354,35 @@ export function resolveActionOutputDerivedRecovery(
   const actionId = normalizeToken(input.actionId)
   const sourceEffectId = normalizeToken(input.sourceEffectId)
   const targetActorId = normalizeToken(input.targetActorId)
-  const effectId = validateActionOutputDerivedRecoveryEffect(effect)
-    ? normalizeToken(effect.effectId)
-    : ''
+  const effectValid = validateActionOutputDerivedRecoveryEffect(effect)
+  const effectId = effectValid ? normalizeToken(effect.effectId) : ''
+  const effectResourceKind = effectValid ? effect.targetResourceKind : null
 
-  const baseProv = {
+  const baseProv = Object.freeze({
     actorId,
     actionId,
     sourceEffectId,
     effectId,
     targetActorId,
-    resourceKind: (validateActionOutputDerivedRecoveryEffect(effect)
-      ? effect.targetResourceKind
-      : 'vitality') as RecoverableResourceKind,
+    resourceKind: effectResourceKind,
     outputChannel: typeof input.outputChannel === 'string' ? input.outputChannel : '',
     outputMagnitude: isNonNegInt(input.outputMagnitude) ? input.outputMagnitude : 0,
     previousValue: validateTargetResource(input.targetResource) ? input.targetResource.current : 0,
+  })
+
+  // Route kill-trigger to SPE-1405 as soon as the trigger kind is recognized,
+  // before other malformed gates, so ownership stays with SPE-1405.
+  if (input.triggerKind === 'kill_trigger') {
+    return buildResult({
+      status: 'rejected',
+      reasonCode: 'kill_trigger_routed_to_spe_1405',
+      owner: KILL_TRIGGER_RECOVERY_OWNER,
+      provenance: emptyProvenance(baseProv),
+    })
   }
 
   if (
-    !validateActionOutputDerivedRecoveryEffect(effect) ||
+    !effectValid ||
     !actorId ||
     !actionId ||
     !sourceEffectId ||
@@ -396,15 +406,6 @@ export function resolveActionOutputDerivedRecovery(
     })
   }
 
-  if (input.triggerKind === 'kill_trigger') {
-    return buildResult({
-      status: 'rejected',
-      reasonCode: 'kill_trigger_routed_to_spe_1405',
-      owner: KILL_TRIGGER_RECOVERY_OWNER,
-      provenance: emptyProvenance(baseProv),
-    })
-  }
-
   if (!validateTargetResource(input.targetResource)) {
     return buildResult({
       status: 'rejected',
@@ -415,15 +416,18 @@ export function resolveActionOutputDerivedRecovery(
   }
 
   const resource = input.targetResource
-  baseProv.resourceKind = resource.kind
-  baseProv.previousValue = resource.current
+  const resourceProv = Object.freeze({
+    ...baseProv,
+    resourceKind: resource.kind,
+    previousValue: resource.current,
+  })
 
   if (resource.kind !== effect.targetResourceKind) {
     return buildResult({
       status: 'suppressed',
       reasonCode: 'resource_kind_mismatch',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
-      provenance: emptyProvenance(baseProv),
+      provenance: emptyProvenance(resourceProv),
     })
   }
 
@@ -433,7 +437,7 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'nonrecoverable_resource',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
@@ -446,7 +450,7 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'idempotent_replay',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
@@ -463,19 +467,21 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'recursive_self_trigger_blocked',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
   }
 
+  // Success before channel: failed actions report action_not_successful even
+  // when the channel would also mismatch.
   if (!input.success) {
     return buildResult({
       status: 'suppressed',
       reasonCode: 'action_not_successful',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
@@ -487,7 +493,7 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'channel_mismatch',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
@@ -501,23 +507,26 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'context_excluded',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         nextValue: resource.current,
       }),
     })
   }
 
-  const allowed = normalizeContextIds(effect.contextPolicy.allowedContextIds)
-  if (allowed.length > 0 && !allowed.some((id) => activeContexts.includes(id))) {
-    return buildResult({
-      status: 'suppressed',
-      reasonCode: 'context_not_allowed',
-      owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
-      provenance: emptyProvenance({
-        ...baseProv,
-        nextValue: resource.current,
-      }),
-    })
+  // Explicit allowlist (including empty) is fail-closed; omit the property for unrestricted.
+  if (effect.contextPolicy.allowedContextIds !== undefined) {
+    const allowed = normalizeContextIds(effect.contextPolicy.allowedContextIds)
+    if (!allowed.some((id) => activeContexts.includes(id))) {
+      return buildResult({
+        status: 'suppressed',
+        reasonCode: 'context_not_allowed',
+        owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
+        provenance: emptyProvenance({
+          ...resourceProv,
+          nextValue: resource.current,
+        }),
+      })
+    }
   }
 
   const converted = convertActionOutputToRecoveryAmount(
@@ -533,7 +542,7 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'zero_converted_amount',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         convertedAmount: 0,
         nextValue: resource.current,
       }),
@@ -551,7 +560,7 @@ export function resolveActionOutputDerivedRecovery(
       reasonCode: 'clamped_at_maximum',
       owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
       provenance: emptyProvenance({
-        ...baseProv,
+        ...resourceProv,
         convertedAmount: converted,
         nextValue: resource.current,
         clamped: true,
@@ -564,7 +573,7 @@ export function resolveActionOutputDerivedRecovery(
     reasonCode: clamped ? 'clamped_at_maximum' : 'applied',
     owner: ACTION_OUTPUT_DERIVED_RECOVERY_OWNER,
     provenance: emptyProvenance({
-      ...baseProv,
+      ...resourceProv,
       appliedAmount,
       convertedAmount: converted,
       nextValue,

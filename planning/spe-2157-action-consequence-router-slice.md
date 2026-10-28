@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4454 @ `da53a625`) |
 | **Issue** | [SPE-2157](https://linear.app/spectranoir/issue/SPE-2157/action-consequence-router-escalation-denial-collateral-hard-choices) |
 | **Parent** | [SPE-41](https://linear.app/spectranoir/issue/SPE-41/tags-conditions-and-graded-outcome-framework) |
 | **Branch** | `jamesdyedbq/spe-2157-action-consequence-router-escalation-denial-collateral-hard` |

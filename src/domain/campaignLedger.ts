@@ -5,6 +5,14 @@ import {
   resolveLegacyBaselineDifficulty,
   type ResolvedDifficultyRunConfiguration,
 } from './difficultyProfileResolver'
+import {
+  resolveScenarioInitialization,
+  sanitizeScenarioDefinitionBinding,
+} from './scenarioDefinitionResolver'
+import type {
+  ResolvedScenarioInitialization,
+  ScenarioDefinitionBinding,
+} from './scenarioDefinitionResolver'
 import type {
   CampaignLedgerCompatibilitySnapshot,
   CampaignLedgerState,
@@ -459,6 +467,7 @@ export function sanitizeCampaignLedger(
         : undefined
     ),
     difficultyProfile: sanitizeDifficultyProfileBinding(raw.difficultyProfile),
+    scenarioDefinition: sanitizeScenarioDefinitionBinding(raw.scenarioDefinition),
   }
 }
 
@@ -518,6 +527,25 @@ export function getResolvedDifficultyRunConfiguration(
   })
   if (!resolved.ok) return resolveLegacyBaselineDifficulty()
   return resolved.configuration
+}
+
+/** Resolve bound scenario initialization; absent/invalid → null (no silent default preset). */
+export function getResolvedScenarioInitialization(
+  game: GameState,
+  runSeed: number = game.rngSeed
+): ResolvedScenarioInitialization | null {
+  const ledger = getCurrentCampaignRulesLedger(game)
+  const binding = ledger.scenarioDefinition
+  if (binding == null) return null
+  const resolved = resolveScenarioInitialization({ binding, runSeed })
+  if (!resolved.ok) return null
+  return resolved.configuration
+}
+
+export function getScenarioDefinitionBinding(
+  game: GameState
+): ScenarioDefinitionBinding | undefined {
+  return getCurrentCampaignRulesLedger(game).scenarioDefinition
 }
 
 /** Defensive sanitize: tests and partial fixtures may bypass `hydrateGame`; re-entry is cheap vs sim work. */

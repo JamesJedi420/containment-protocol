@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3396](https://linear.app/spectranoir/issue/SPE-3396/contradiction-check-scenario-configuration-viability-and-override) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3396-contradiction-check-scenario-configuration-viability-and` |

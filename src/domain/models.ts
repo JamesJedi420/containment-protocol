@@ -3,6 +3,7 @@ import type {
   CustomDifficultyOverrides,
   DifficultyProfileId,
 } from './difficultyProfileResolver'
+import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
 import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
@@ -2772,6 +2773,12 @@ export interface CampaignLedgerState {
     profileVersion: string
     custom?: CustomDifficultyOverrides | null
   }
+  /**
+   * SPE-3397: selected scenario definition binding.
+   * Absent on legacy saves → no scenario initialization snapshot (callers bind explicitly).
+   * Bound definitionVersion must not silently follow a newer live preset (SPE-2898).
+   */
+  scenarioDefinition?: ScenarioDefinitionBinding
 }
 
 export interface GameState {

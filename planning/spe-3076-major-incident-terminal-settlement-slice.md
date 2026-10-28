@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3076](https://linear.app/spectranoir/issue/SPE-3076/major-incident-terminal-resolution-and-settlement-handoff) |
 | **Parent** | [SPE-36](https://linear.app/spectranoir/issue/SPE-36) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3076-major-incident-terminal-resolution-and-settlement-handoff` |

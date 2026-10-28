@@ -25,6 +25,13 @@ flaky_errors.txt
 gamestore_full_output.txt
 remaining-subset.json
 
+# Playwright (SPE-3458) — ephemeral artifacts; keep out of campaign state
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.playwright-mcp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

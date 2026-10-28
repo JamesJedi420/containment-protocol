@@ -49,4 +49,4 @@ No new Linear issue/relationship; no SPE-874 permit engine; no SPE-2771 projecti
 
 - `npx vitest run src/domain/procedureRoomStatePreconditions.test.ts`
 - `npm run verify:backlog-handoff`
-- `npm run lint` (when time permits)
+- `npm run lint`

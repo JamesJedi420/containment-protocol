@@ -223,5 +223,54 @@ describe('SPE-1896 procedure room-state preconditions', () => {
         })
       ).toMatchObject({ ok: false, reasonCode: 'unknown_lighting_state' })
     })
+
+    it('treats unknown locks and staff positioning as fail-closed', () => {
+      expect(
+        evaluateProcedureRoomStateSafety({
+          procedureId: 'binding_sigil',
+          roomState: makeSafeContainmentRoomState({ locks: 'unknown' }),
+          facilityConfiguration: makeContainmentFacility(),
+        })
+      ).toMatchObject({ ok: false, reasonCode: 'unknown_locks_state' })
+
+      expect(
+        evaluateProcedureRoomStateSafety({
+          procedureId: 'binding_sigil',
+          roomState: makeSafeContainmentRoomState({ staffPositioning: 'unknown' }),
+          facilityConfiguration: makeContainmentFacility(),
+        })
+      ).toMatchObject({ ok: false, reasonCode: 'unknown_staff_positioning_state' })
+    })
+
+    it('rejects conflicting zone assignments for the same room', () => {
+      expect(
+        parseFacilityConfigurationSnapshot({
+          facilityId: 'f1',
+          activeRoomIds: ['containment_cell'],
+          roomZoneAssignments: [
+            { roomId: 'containment_cell', zoneId: 'containment' },
+            { roomId: 'containment_cell', zoneId: 'storage' },
+          ],
+          containmentLayoutMode: 'secure_clean',
+        })
+      ).toBeUndefined()
+    })
+
+    it('rejects malformed caller-supplied requirement catalogs', () => {
+      expect(
+        evaluateProcedureRoomStateSafety({
+          procedureId: 'binding_sigil',
+          roomState: makeSafeContainmentRoomState(),
+          facilityConfiguration: makeContainmentFacility(),
+          requirements: [
+            {
+              procedureId: 'binding_sigil',
+              requiredRoomId: 'containment_cell',
+              checks: [{ kind: 'lighting', minimum: 'blinding' }],
+            },
+          ],
+        })
+      ).toMatchObject({ ok: false, reasonCode: 'invalid_requirements' })
+    })
   })
 })

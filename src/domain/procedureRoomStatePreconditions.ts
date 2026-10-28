@@ -42,7 +42,7 @@ export type StaffPositioningState = (typeof STAFF_POSITIONING_VALUES)[number]
 export type ProcedureRoomStateSafetyReasonCode =
   | 'malformed_input'
   | 'unknown_procedure_id'
-  | 'unknown_room_id'
+  | 'invalid_requirements'
   | 'room_state_room_mismatch'
   | 'room_not_in_facility_configuration'
   | 'unknown_lighting_state'
@@ -187,10 +187,18 @@ export function parseFacilityConfigurationSnapshot(
   const assignmentsRaw = input.roomZoneAssignments
   if (!Array.isArray(assignmentsRaw)) return undefined
   const roomZoneAssignments: FacilityRoomZoneAssignment[] = []
+  const zoneByRoom = new Map<FacilityRoomId, FacilityZoneId>()
   for (const entry of assignmentsRaw) {
     if (!isRecord(entry)) return undefined
     if (!isFacilityRoomId(entry.roomId) || !isFacilityZoneId(entry.zoneId)) return undefined
-    roomZoneAssignments.push(Object.freeze({ roomId: entry.roomId, zoneId: entry.zoneId }))
+    const prior = zoneByRoom.get(entry.roomId)
+    if (prior !== undefined && prior !== entry.zoneId) {
+      return undefined
+    }
+    if (prior === undefined) {
+      zoneByRoom.set(entry.roomId, entry.zoneId)
+      roomZoneAssignments.push(Object.freeze({ roomId: entry.roomId, zoneId: entry.zoneId }))
+    }
   }
 
   const modeRaw = input.containmentLayoutMode
@@ -247,6 +255,75 @@ export function lookupProcedureSafetyRequirement(
   const normalized = procedureId.trim()
   if (!normalized) return undefined
   return requirements.find((entry) => entry.procedureId === normalized)
+}
+
+function parseCheckSpec(raw: unknown): ProcedureRoomStateCheckSpec | undefined {
+  if (!isRecord(raw) || typeof raw.kind !== 'string') return undefined
+  switch (raw.kind) {
+    case 'lighting': {
+      if (!isRoomStateLighting(raw.minimum)) return undefined
+      return Object.freeze({ kind: 'lighting', minimum: raw.minimum })
+    }
+    case 'locks': {
+      if (raw.required !== 'secured') return undefined
+      return Object.freeze({ kind: 'locks', required: 'secured' as const })
+    }
+    case 'staffPositioning': {
+      if (raw.required !== 'clear') return undefined
+      return Object.freeze({ kind: 'staffPositioning', required: 'clear' as const })
+    }
+    case 'facilityConfiguration': {
+      if (!isFacilityZoneId(raw.expectedZone)) return undefined
+      if (
+        raw.requiredContainmentMode !== undefined &&
+        !isContainmentLayoutMode(raw.requiredContainmentMode)
+      ) {
+        return undefined
+      }
+      return Object.freeze({
+        kind: 'facilityConfiguration',
+        expectedZone: raw.expectedZone,
+        ...(raw.requiredContainmentMode !== undefined
+          ? { requiredContainmentMode: raw.requiredContainmentMode }
+          : {}),
+      })
+    }
+    default:
+      return undefined
+  }
+}
+
+/** Fail-closed parse of caller-supplied requirement catalogs. */
+export function parseProcedureSafetyRequirements(
+  input: unknown
+): readonly ProcedureSafetyRequirement[] | undefined {
+  if (!Array.isArray(input) || input.length === 0) return undefined
+  const out: ProcedureSafetyRequirement[] = []
+  const seen = new Set<string>()
+  for (const entry of input) {
+    if (!isRecord(entry)) return undefined
+    if (!isNonEmptyString(entry.procedureId) || !isFacilityRoomId(entry.requiredRoomId)) {
+      return undefined
+    }
+    const procedureId = entry.procedureId.trim()
+    if (seen.has(procedureId)) return undefined
+    seen.add(procedureId)
+    if (!Array.isArray(entry.checks) || entry.checks.length === 0) return undefined
+    const checks: ProcedureRoomStateCheckSpec[] = []
+    for (const checkRaw of entry.checks) {
+      const check = parseCheckSpec(checkRaw)
+      if (!check) return undefined
+      checks.push(check)
+    }
+    out.push(
+      Object.freeze({
+        procedureId,
+        requiredRoomId: entry.requiredRoomId,
+        checks: Object.freeze(checks),
+      })
+    )
+  }
+  return Object.freeze(out)
 }
 
 function block(
@@ -386,18 +463,20 @@ export function evaluateProcedureRoomStateSafety(
     return block('malformed_input', procedureId)
   }
 
-  const requirements =
-    input.requirements === undefined
-      ? DEFAULT_PROCEDURE_SAFETY_REQUIREMENTS
-      : input.requirements
+  let requirements: readonly ProcedureSafetyRequirement[]
+  if (input.requirements === undefined) {
+    requirements = DEFAULT_PROCEDURE_SAFETY_REQUIREMENTS
+  } else {
+    const parsed = parseProcedureSafetyRequirements(input.requirements)
+    if (!parsed) {
+      return block('invalid_requirements', procedureId)
+    }
+    requirements = parsed
+  }
 
   const requirement = lookupProcedureSafetyRequirement(procedureId, requirements)
   if (!requirement) {
     return block('unknown_procedure_id', procedureId)
-  }
-
-  if (!isFacilityRoomId(roomState.roomId)) {
-    return block('unknown_room_id', procedureId, undefined, roomState.roomId)
   }
 
   if (roomState.roomId !== requirement.requiredRoomId) {

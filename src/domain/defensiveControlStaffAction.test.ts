@@ -70,34 +70,44 @@ describe('validateDefensiveControlStaffAction (SPE-2186)', () => {
       baseInput({ controlKind: 'charge' })
     )
     expect(unknown.ok).toBe(false)
-    if (unknown.ok) return
-    expect(unknown.reasonCode).toBe('unknown_control_kind')
+    expect(!unknown.ok && unknown.reasonCode).toBe('unknown_control_kind')
 
     const missingGeo = validateDefensiveControlStaffAction(
       baseInput({ controlKind: 'block', targetGeometry: null })
     )
     expect(missingGeo.ok).toBe(false)
-    if (missingGeo.ok) return
-    expect(missingGeo.reasonCode).toBe('missing_target_geometry')
+    expect(!missingGeo.ok && missingGeo.reasonCode).toBe('missing_target_geometry')
 
     const badRisk = validateDefensiveControlStaffAction(
       baseInput({ collateralRisk: 'catastrophic' })
     )
     expect(badRisk.ok).toBe(false)
-    if (badRisk.ok) return
-    expect(badRisk.reasonCode).toBe('collateral_risk_out_of_bounds')
+    expect(!badRisk.ok && badRisk.reasonCode).toBe('collateral_risk_out_of_bounds')
   })
 
   it('rejects damage-only actions mislabeled as defensive control', () => {
-    const result = validateDefensiveControlStaffAction(
+    const known = validateDefensiveControlStaffAction(
       baseInput({
         controlKind: 'block',
         damageOnlyMarker: 'strike',
       })
     )
-    expect(result.ok).toBe(false)
-    if (result.ok) return
-    expect(result.reasonCode).toBe('damage_only_mislabel')
+    expect(known.ok).toBe(false)
+    expect(!known.ok && known.reasonCode).toBe('damage_only_mislabel')
+
+    const unrecognized = validateDefensiveControlStaffAction(
+      baseInput({ damageOnlyMarker: 'explosion' })
+    )
+    expect(unrecognized.ok).toBe(false)
+    expect(!unrecognized.ok && unrecognized.reasonCode).toBe('damage_only_mislabel')
+  })
+
+  it('requires an explicit posturePersistsWhileGuarded boolean', () => {
+    const omitted = validateDefensiveControlStaffAction(
+      baseInput({ posturePersistsWhileGuarded: undefined })
+    )
+    expect(omitted.ok).toBe(false)
+    expect(!omitted.ok && omitted.reasonCode).toBe('malformed_input')
   })
 
   it('covers invalidation through line of sight, flank, footing, or equipment', () => {

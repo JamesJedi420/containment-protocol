@@ -207,13 +207,6 @@ function isDefensiveInvalidationCondition(
   )
 }
 
-function isDamageOnlyMarker(value: unknown): value is DamageOnlyActionMarker {
-  return (
-    typeof value === 'string' &&
-    (DAMAGE_ONLY_ACTION_MARKERS as readonly string[]).includes(value.trim())
-  )
-}
-
 function freezeGeometry(geometry: TargetGeometry): TargetGeometry {
   return Object.freeze({
     kind: geometry.kind,
@@ -245,11 +238,12 @@ export function validateDefensiveControlStaffAction(
     }
   }
 
-  if (isDamageOnlyMarker(input.damageOnlyMarker)) {
+  if (input.damageOnlyMarker != null && String(input.damageOnlyMarker).trim() !== '') {
+    // Any present damage-only marker fails closed — known or unrecognized.
     return {
       ok: false,
       reasonCode: 'damage_only_mislabel',
-      detail: `damage-only marker ${input.damageOnlyMarker.trim()} cannot validate as defensive control`,
+      detail: `damage-only marker ${String(input.damageOnlyMarker).trim()} cannot validate as defensive control`,
     }
   }
 
@@ -356,7 +350,14 @@ export function validateDefensiveControlStaffAction(
     invalidationConditions.push(condition)
   }
 
-  const posturePersistsWhileGuarded = input.posturePersistsWhileGuarded !== false
+  if (typeof input.posturePersistsWhileGuarded !== 'boolean') {
+    return {
+      ok: false,
+      reasonCode: 'malformed_input',
+      detail: 'posturePersistsWhileGuarded must be an explicit boolean',
+    }
+  }
+  const posturePersistsWhileGuarded = input.posturePersistsWhileGuarded
   const collapsesToExposed =
     invalidationConditions.length > 0 || visibleStates.includes('exposed')
 
@@ -390,7 +391,7 @@ export function remainsOperationalWhileGuarded(
 
 /** True when posture collapse yields exposed/vulnerable rather than damage-only. */
 export function collapsesToExposedOrVulnerable(
-  action: Pick<DefensiveControlStaffAction, 'collapsesToExposed' | 'invalidationConditions'>
+  action: Pick<DefensiveControlStaffAction, 'collapsesToExposed'>
 ): boolean {
-  return action.collapsesToExposed || action.invalidationConditions.length > 0
+  return action.collapsesToExposed
 }

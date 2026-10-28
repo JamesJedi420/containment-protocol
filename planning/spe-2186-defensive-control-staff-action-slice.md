@@ -41,9 +41,9 @@ Linear comment on SPE-2186 records queue state (SPE-2157 Done @ `da53a625` / PR 
 | Item | Owner | Why deferred |
 | --- | --- | --- |
 | Live combat / confrontation resolution wiring | SPE-73 | Odds-band confrontation stays with SPE-73 |
-| Action-economy / budget consumption | SPE-41 consumers | Schema slice only |
-| GameState persistence of active postures | Future SPE-41 child | Explicitly out of slice 1 |
-| UI surfacing of guarded/pressured states | Feature consumers | Domain contract first |
+| Action-economy / budget consumption | SPE-41 (umbrella; no dedicated child yet) | Schema slice only; durable consumption boundary remains candidate under SPE-41 until Phase 4 |
+| GameState persistence of active postures | SPE-41 (candidate evidence — no child created) | Explicitly out of slice 1; preserve as candidate until Phase 4 |
+| UI surfacing of guarded/pressured states | SPE-1080 conventions + feature consumers | Domain contract first; no new UI child |
 
 ## Out of scope (preserved)
 

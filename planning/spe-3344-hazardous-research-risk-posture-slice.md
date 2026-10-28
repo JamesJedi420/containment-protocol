@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3344](https://linear.app/spectranoir/issue/SPE-3344) |
 | **Parent** | [SPE-3342](https://linear.app/spectranoir/issue/SPE-3342) — Backlog |
 | **Branch** | `jamesdyedbq/spe-3344-hazardous-research-risk-posture-and-consequence-resolution` |

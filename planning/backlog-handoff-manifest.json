@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-870"],
+  "inProgress": ["SPE-872"],
   "recentlyShipped": [
+    "SPE-870",
     "SPE-2211",
     "SPE-3458",
     "SPE-699",
@@ -110,7 +111,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-870-process-safety-coverage-slice.md": "In progress",
+    "planning/spe-872-process-safety-information-gate-slice.md": "In progress",
+    "planning/spe-870-process-safety-coverage-slice.md": "Recently shipped",
     "planning/spe-2211-scene-geometry-registry-slice.md": "Recently shipped",
     "planning/spe-3458-playwright-e2e-harness-slice.md": "Recently shipped",
     "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",

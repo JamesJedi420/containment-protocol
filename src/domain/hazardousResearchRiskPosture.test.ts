@@ -54,6 +54,7 @@ describe('resolveHazardousResearchRiskPosture', () => {
       capability: capability(),
       posture: 'exceeding_limits',
     })
+    expect(result.allowed).toBe(true)
     expect(result.effectiveThroughputMultiplier).toBe(EXCEEDING_LIMITS_RISK_THROUGHPUT_MULTIPLIER)
     expect(result.downsideChannels).toEqual([
       'contamination_exposure',

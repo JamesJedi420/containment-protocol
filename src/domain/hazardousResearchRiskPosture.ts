@@ -286,7 +286,8 @@ function channelShouldEmitIntent(
         posture === 'exceeding_limits'
       )
     case 'equipment_strain':
-      return posture === 'accelerated' || posture === 'exceeding_limits'
+      // Only accelerated posture declares this channel.
+      return posture === 'accelerated'
     case 'contamination_exposure':
       return posture === 'exceeding_limits'
     case 'facility_damage':
@@ -568,12 +569,14 @@ export function applyHazardousResearchConsequences(
 export function serializeHazardousResearchPostureSelection(
   marker: HazardousResearchPostureSelectionMarker,
 ): string {
+  const experimentRecordRef =
+    typeof marker.experimentRecordRef === 'string'
+      ? marker.experimentRecordRef.trim()
+      : undefined
   const payload = {
     schemaVersion: marker.schemaVersion,
     posture: marker.posture,
-    ...(marker.experimentRecordRef
-      ? { experimentRecordRef: marker.experimentRecordRef }
-      : {}),
+    ...(experimentRecordRef ? { experimentRecordRef } : {}),
   }
   return JSON.stringify(payload)
 }

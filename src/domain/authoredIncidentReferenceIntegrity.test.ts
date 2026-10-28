@@ -259,6 +259,57 @@ describe('SPE-3139 authored incident reference integrity', () => {
     expect(JSON.stringify(records)).toBe(snapshot)
   })
 
+  it('rejects duplicate record ids as malformed_input', () => {
+    const result = validateAuthoredReferenceIntegrity({
+      records: freezeRecords([
+        {
+          recordId: 'incident:dup',
+          kind: 'incident',
+          references: [],
+        },
+        {
+          recordId: 'incident:dup',
+          kind: 'incident',
+          references: [],
+        },
+      ]),
+      rootIds: ['incident:dup'],
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.some((d) => d.code === 'malformed_input')).toBe(true)
+  })
+
+  it('does not emit release diagnostics after a wrong-kind failure', () => {
+    const result = validateAuthoredReferenceIntegrity({
+      records: freezeRecords([
+        {
+          recordId: 'incident:root',
+          kind: 'incident',
+          references: [
+            {
+              fieldPath: 'hazardId',
+              targetId: 'case:alpha',
+              expectedKind: 'hazard',
+              sharedUniversePromotedRecordId: 'rec.rule.1',
+            },
+          ],
+        },
+        {
+          recordId: 'case:alpha',
+          kind: 'case',
+          references: [],
+        },
+      ]),
+      rootIds: ['incident:root'],
+      boundReleaseId: 'su.release.missing',
+      releaseCatalog: createEmptySharedUniverseCanonReleaseCatalog(),
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diagnostics.every((d) => d.code === 'wrong_kind')).toBe(true)
+  })
+
   it('flags release-unavailable shared-universe references under a bound release', () => {
     const earlier = materializeSharedUniverseRelease(
       createEmptySharedUniverseCanonReleaseCatalog(),

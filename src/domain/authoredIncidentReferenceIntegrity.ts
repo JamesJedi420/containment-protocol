@@ -154,12 +154,63 @@ export function validateAuthoredReferenceIntegrity(input: {
       })
       continue
     }
-    byId.set(record.recordId.trim(), record)
+    const recordId = record.recordId.trim()
+    if (byId.has(recordId)) {
+      diagnostics.push({
+        code: 'malformed_input',
+        sourceRecordId: recordId,
+        fieldPath: 'recordId',
+        referencedId: recordId,
+        message: `Duplicate recordId ${recordId}`,
+      })
+      continue
+    }
+    const normalizedRefs: AuthoredGovernedReference[] = []
+    let refsMalformed = false
+    for (const ref of record.references) {
+      if (
+        !ref ||
+        typeof ref.targetId !== 'string' ||
+        typeof ref.fieldPath !== 'string' ||
+        typeof ref.expectedKind !== 'string'
+      ) {
+        refsMalformed = true
+        break
+      }
+      normalizedRefs.push(
+        Object.freeze({
+          fieldPath: ref.fieldPath,
+          targetId: ref.targetId,
+          expectedKind: ref.expectedKind,
+          sharedUniversePromotedRecordId: ref.sharedUniversePromotedRecordId,
+        }),
+      )
+    }
+    if (refsMalformed) {
+      diagnostics.push({
+        code: 'malformed_input',
+        sourceRecordId: recordId,
+        fieldPath: 'references',
+        referencedId: '',
+        message: 'Each reference requires fieldPath, targetId, and expectedKind',
+      })
+      continue
+    }
+    byId.set(
+      recordId,
+      Object.freeze({
+        ...record,
+        recordId,
+        references: Object.freeze(normalizedRefs),
+      }),
+    )
   }
 
   const exempt = new Set(
     (input.exemptRecordIds ?? []).map((id) => id.trim()).filter(Boolean),
   )
+  const boundReleaseId = input.boundReleaseId?.trim() || null
+  const releaseCatalog = input.releaseCatalog ?? null
 
   for (const record of byId.values()) {
     for (const ref of record.references) {
@@ -200,45 +251,54 @@ export function validateAuthoredReferenceIntegrity(input: {
           resolvedKind: target.kind,
           message: `Expected kind ${ref.expectedKind}, resolved ${target.kind}`,
         })
+        continue
       }
 
       const promotedId = ref.sharedUniversePromotedRecordId?.trim()
+      if (!promotedId) continue
+      if (boundReleaseId && !releaseCatalog) {
+        diagnostics.push({
+          code: 'malformed_input',
+          sourceRecordId: record.recordId,
+          fieldPath,
+          referencedId: targetId,
+          expectedKind: ref.expectedKind,
+          message: 'boundReleaseId requires releaseCatalog for shared-universe refs',
+        })
+        continue
+      }
+      if (!boundReleaseId || !releaseCatalog) continue
+
+      const membership = resolveReleaseMember(
+        releaseCatalog,
+        boundReleaseId,
+        promotedId,
+      )
       if (
-        promotedId &&
-        input.boundReleaseId &&
-        input.releaseCatalog
+        membership.kind === 'absent' ||
+        membership.kind === 'introduced_later' ||
+        membership.kind === 'unknown_member' ||
+        membership.kind === 'invalid_release'
       ) {
-        const membership = resolveReleaseMember(
-          input.releaseCatalog,
-          input.boundReleaseId,
-          promotedId,
-        )
-        if (
-          membership.kind === 'absent' ||
-          membership.kind === 'introduced_later' ||
-          membership.kind === 'unknown_member' ||
-          membership.kind === 'invalid_release'
-        ) {
-          diagnostics.push({
-            code: 'release_unavailable',
-            sourceRecordId: record.recordId,
-            fieldPath,
-            referencedId: targetId,
-            expectedKind: ref.expectedKind,
-            resolvedKind: target.kind,
-            message: `Referenced shared-universe member ${promotedId} unavailable under bound release (${membership.kind})`,
-          })
-        } else if (membership.kind === 'superseded') {
-          diagnostics.push({
-            code: 'stale_revision',
-            sourceRecordId: record.recordId,
-            fieldPath,
-            referencedId: targetId,
-            expectedKind: ref.expectedKind,
-            resolvedKind: target.kind,
-            message: `Referenced shared-universe member ${promotedId} is superseded under bound release`,
-          })
-        }
+        diagnostics.push({
+          code: 'release_unavailable',
+          sourceRecordId: record.recordId,
+          fieldPath,
+          referencedId: targetId,
+          expectedKind: ref.expectedKind,
+          resolvedKind: target.kind,
+          message: `Referenced shared-universe member ${promotedId} unavailable under bound release (${membership.kind})`,
+        })
+      } else if (membership.kind === 'superseded') {
+        diagnostics.push({
+          code: 'stale_revision',
+          sourceRecordId: record.recordId,
+          fieldPath,
+          referencedId: targetId,
+          expectedKind: ref.expectedKind,
+          resolvedKind: target.kind,
+          message: `Referenced shared-universe member ${promotedId} is superseded under bound release`,
+        })
       }
     }
   }
@@ -268,20 +328,19 @@ export function validateAuthoredReferenceIntegrity(input: {
     }
   }
 
-  for (const record of [...byId.values()].sort((a, b) =>
-    compareStrings(a.recordId, b.recordId),
-  )) {
-    if (reachable.has(record.recordId)) continue
-    if (exempt.has(record.recordId)) continue
+  for (const recordId of [...byId.keys()].sort(compareStrings)) {
+    const record = byId.get(recordId)!
+    if (reachable.has(recordId)) continue
+    if (exempt.has(recordId)) continue
     if (!isEligible(record)) continue
     diagnostics.push({
       code: 'unreachable_record',
-      sourceRecordId: record.recordId,
+      sourceRecordId: recordId,
       fieldPath: 'record',
-      referencedId: record.recordId,
+      referencedId: recordId,
       expectedKind: record.kind,
       resolvedKind: record.kind,
-      message: `Record ${record.recordId} unreachable from supplied roots`,
+      message: `Record ${recordId} unreachable from supplied roots`,
     })
   }
 

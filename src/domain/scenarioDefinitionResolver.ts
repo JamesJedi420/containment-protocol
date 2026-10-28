@@ -681,8 +681,14 @@ function applyViabilityGates(
   components: readonly ScenarioComponent[]
 ): readonly ScenarioDiagnostic[] {
   const diagnostics: ScenarioDiagnostic[] = []
-  const viability = getScenarioConfigurationViabilityDecision()
-  void viability
+  // Touch frozen SPE-3396 decision so this gate stays coupled to the check owner.
+  if (getScenarioConfigurationViabilityDecision().checkId !== 'SPE-3396') {
+    diagnostics.push({
+      code: 'softlock_viability',
+      message: 'SPE-3396 viability decision missing',
+    })
+    return diagnostics
+  }
 
   for (const component of components) {
     if (component.kind === 'prohibition') {

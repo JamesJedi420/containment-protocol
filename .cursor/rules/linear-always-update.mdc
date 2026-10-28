@@ -11,16 +11,18 @@ Linear is the **system of record** for approved issue scope, lifecycle state, an
 
 ## Scope-mutation guardrail
 
-Separate lifecycle/evidence maintenance from backlog-shape mutation.
+Separate lifecycle/evidence maintenance from backlog-shape mutation. Mutation classes: `docs/governance/authority-contract.v1.json` (`lifecycle-evidence` vs `backlog-shape`).
 
-Agents may directly update an **already-approved issue boundary** when evidence supports only lifecycle/evidence changes: implementation progress, PR/review links, truthful status movement, verified closure, or concise factual notes that do not expand scope.
+Agents may directly update an **already-approved issue boundary** when evidence supports only lifecycle/evidence changes: implementation progress, PR/review links, truthful status movement, verified closure, or concise factual notes that do not expand scope. Those Linear writes do **not** require Phases 1–4.
 
-Agents must **not** create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope merely because work is discovered. New or changed scope must return to the Containment Protocol approval flow:
+**Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape (new issue/child/parent, relationship, reparenting, or expanded durable Goal/Scope/Acceptance). They do **not** gate ordinary lifecycle/evidence Linear updates.
+
+Agents must **not** create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope merely because work is discovered. That backlog-shape work returns to the candidate approval flow:
 
 1. Phase 1 — candidate assessment and production decomposition;
 2. Phase 2 — parent reconciliation and approval;
 3. Phase 3 — child/supporting-work reconciliation, mandatory contradiction review, and approval;
-4. Phase 4 — approved Linear update.
+4. Phase 4 — apply only explicitly approved backlog-shape mutations.
 
 When approval state is absent or ambiguous, fail closed: preserve the finding as candidate/deferred evidence and do not mutate backlog shape.
 

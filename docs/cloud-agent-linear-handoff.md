@@ -10,7 +10,9 @@ truthful lifecycle/evidence updates for those already-approved issues.
 
 This handoff never authorizes issue creation, scope expansion, reparenting, new relationships, or
 other candidate-derived backlog mutation. Newly discovered durable scope remains candidate input for
-Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate
+extraction/reconciliation → backlog-shape only). Lifecycle/evidence updates on already-approved
+issues do not require those phases.
 
 Do **not** emit this handoff for planning-only PRs, open PRs, harvest-only sessions, unowned read-only
 review/docs work, ambiguous approval state, or mid-slice work. If Linear MCP is `ready` in the Cloud

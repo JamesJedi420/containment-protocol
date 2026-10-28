@@ -153,7 +153,7 @@ Expected PR flow for an **already-approved implementation slice**:
 5. Link the approved Linear issue in the PR body.
 6. Merge only after CI is green.
 
-If useful work has no approved issue boundary yet, do **not** create one from this contributing flow. Preserve it as candidate input and route it through the project’s Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4 governance workflow.
+If useful work has no approved issue boundary yet, do **not** create one from this contributing flow. Preserve it as candidate input and route it through the project’s Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4 candidate-extraction workflow (backlog-shape only; ordinary lifecycle/evidence Linear updates do not use those phases).
 
 After a PR merges, sync local `main` before starting the next approved slice.
 

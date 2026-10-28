@@ -4,7 +4,7 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 ## Governance guardrail (current)
 
-Only already-approved Linear boundaries are actionable from this queue. Legacy text such as `create`, `create/claim`, `create on start`, `create on merge`, `owner creates Linear child`, or `pending create` is retained only as historical planning evidence and **does not authorize issue creation now**. Any unresolved/new durable boundary must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before Linear backlog mutation. If approval state is unclear, fail closed and preserve the item as candidate evidence.
+Only already-approved Linear boundaries are actionable from this queue. Legacy text such as `create`, `create/claim`, `create on start`, `create on merge`, `owner creates Linear child`, or `pending create` is retained only as historical planning evidence and **does not authorize issue creation now**. **Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape; ordinary lifecycle/evidence Linear updates on already-approved boundaries do not require them. Any unresolved/new durable boundary must return to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 before Linear backlog-shape mutation. If approval state is unclear, fail closed and preserve the item as candidate evidence.
 
 **How to use:** Pick from the active queue unless a dependency blocks it. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
 

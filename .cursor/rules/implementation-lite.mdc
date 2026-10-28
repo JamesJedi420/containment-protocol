@@ -33,7 +33,7 @@ Do not:
 - fix nearby issues unless required by the current acceptance criteria
 - close parent issues because a child slice shipped
 
-If the issue boundary is unclear, stop and report the ambiguity instead of guessing. If implementation exposes a new durable boundary, preserve it as candidate input and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 rather than creating scope directly.
+If the issue boundary is unclear, stop and report the ambiguity instead of guessing. If implementation exposes a new durable boundary, preserve it as candidate input and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only) rather than creating scope directly. Do not treat ordinary lifecycle/evidence Linear updates as Phase 1–4 work.
 
 ## Deferred work recording (mandatory)
 

@@ -10,6 +10,6 @@ Do not emit the handoff for planning-only PRs, open PRs, harvest-only work, unow
 
 After the approved implementation merge, write the copy-paste payload in phase B closeout (not a post-merge edit of the tracked slice doc on `main`): approved issue IDs, slice **Done** only when the full approved boundary shipped, parent truthful current status (or **do not change**) unless full parent completion is independently proven, verbatim lifecycle/evidence comment (PR URL + what shipped + validation), and any candidate-evidence reference.
 
-This handoff never authorizes issue creation, child/parent creation, new relationships, reparenting, or scope expansion. Newly discovered durable scope remains candidate input for Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+This handoff never authorizes issue creation, child/parent creation, new relationships, reparenting, or scope expansion. Newly discovered durable scope remains candidate input for Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only). Lifecycle/evidence updates on already-approved issues do not require those phases.
 
 A **local** agent with Linear MCP `ready` verifies the approval basis, applies the lifecycle/evidence block verbatim, preserves truthful parent state, skips duplicates, and does not convert candidate evidence into backlog scope.

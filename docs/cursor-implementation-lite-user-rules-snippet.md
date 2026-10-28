@@ -28,7 +28,7 @@ Do not:
 - fix nearby issues unless required by current acceptance criteria;
 - close a parent because only one child shipped.
 
-New or changed scope is candidate input and must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+**Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape; lifecycle/evidence Linear updates on already-approved boundaries do not require them. New or changed durable scope is candidate input and must pass Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
 
 ### Deferred work
 

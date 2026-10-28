@@ -80,7 +80,7 @@ If two issues still tie, stop and ask. Do not invent a pick.
 | Harvest batch close / candidate-ledger frontier edits | **No** (still ChatGPT / harvest docs) |
 | Standalone Phase 1 candidate that needs a new issue (e.g. SPE-3382 C1) | Preserve as candidate; do **not** Phase-4 create under this policy |
 
-New durable boundaries remain Phase 1 → Phase 2 → Phase 3 (mandatory contradiction review) → Phase 4 with **human** Phase-4 authorization unless a later amendment expands this document.
+New durable boundaries remain Phase 1 → Phase 2 → Phase 3 (mandatory contradiction review) → Phase 4 with **human** Phase-4 authorization unless a later amendment expands this document. Those phases apply only to candidate extraction/reconciliation → backlog-shape mutation; they do not gate lifecycle/evidence Linear updates on already-approved issues.
 
 ## Decision criteria (must document)
 

@@ -75,7 +75,7 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording
 - Do not expand the current issue.
 - Do not implement the next issue.
 - Do not create a new Linear issue, child, parent, contradiction issue, relationship, or durable scope from deferred work or closeout.
-- New or changed scope returns to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
+- New or changed durable scope returns to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only). Ordinary lifecycle/evidence Linear updates do not require those phases.
 - Do not create a parallel system when an existing system can absorb the approved work.
 - Do not mark the issue complete unless implemented and validated work satisfies the **full** issue boundary.
 - Keep parent issues open when this is only a child slice.

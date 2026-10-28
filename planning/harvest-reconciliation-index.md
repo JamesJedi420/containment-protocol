@@ -91,7 +91,7 @@ For every **new** reconciliation batch, record the candidate-only result using t
 | --- | ---: | --- | --- | --- | --- | --- |
 | `<batch-id>` | `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/<batch-id>-harvest.md` | `applied` or `pending apply` | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
 
-The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, and `missing_boundary_candidate`. None creates a child, parent, relationship, or authoritative owner. A missing boundary remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes Linear mutation.
+The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, and `missing_boundary_candidate`. None creates a child, parent, relationship, or authoritative owner. A missing boundary remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog-shape Linear mutation (candidate extraction/reconciliation only; not ordinary lifecycle/evidence updates).
 
 ## How to add a row
 

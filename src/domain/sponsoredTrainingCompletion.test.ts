@@ -349,6 +349,15 @@ describe('SPE-3124 sponsored training completion and personnel transfer', () => 
     expect(isTraineePersonBlockedForSpawn(training, locked.traineePersonId)).toBe(true)
   })
 
+  it('rejects hydration when trainee index drifts from live assignments', () => {
+    const training = registerRetainAssignment()
+    const drifted = {
+      ...JSON.parse(JSON.stringify(training)),
+      activeTraineePersonIds: {},
+    }
+    expect(parseSponsoredTrainingCompletionState(drifted)).toBeNull()
+  })
+
   it('rejects closeoutId reuse with conflicting assignment or kind', () => {
     let training = registerRetainAssignment()
     const ownership = createEmptyInterAgencyOwnershipTransferState()

@@ -468,10 +468,27 @@ export function parseSponsoredTrainingCompletionState(
     })
   }
 
+  // Rebuild trainee occupancy from assignments — refuse stale/empty index drift.
   const activeTraineePersonIds = createTraineeBag()
+  const assignmentEntries = Object.entries(assignments).sort(([a], [b]) => a.localeCompare(b))
+  for (const [assignmentId, assignment] of assignmentEntries) {
+    if (!occupiesTraineeSlot(assignment.lifecycleState)) continue
+    const existing = activeTraineePersonIds[assignment.traineePersonId]
+    if (existing !== undefined && existing !== assignmentId) return null
+    activeTraineePersonIds[assignment.traineePersonId] = assignmentId
+  }
+
+  // Optional supplied index must match the rebuilt occupancy (fail closed on drift).
   for (const [personKey, assignmentId] of Object.entries(parsed.activeTraineePersonIds)) {
     if (!isSafeId(personKey) || !isSafeId(assignmentId)) return null
-    activeTraineePersonIds[personKey.trim()] = (assignmentId as string).trim()
+    const personId = personKey.trim()
+    const claimedAssignmentId = (assignmentId as string).trim()
+    if (activeTraineePersonIds[personId] !== claimedAssignmentId) return null
+  }
+  for (const personId of Object.keys(activeTraineePersonIds)) {
+    if (!Object.prototype.hasOwnProperty.call(parsed.activeTraineePersonIds, personId)) {
+      return null
+    }
   }
 
   return freezeTrainingState({

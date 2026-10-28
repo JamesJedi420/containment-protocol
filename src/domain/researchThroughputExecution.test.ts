@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   ARCHIVE_LEAD_RESEARCH_PROJECT,
+  RESEARCH_PROJECT_DEFINITION_SCHEMA_VERSION,
   validateResearchProjectDefinition,
 } from './researchProjectDefinition'
+import type { ResearchProjectDefinition } from './researchProjectDefinition'
 import {
   applyResearchExecutionTick,
   classifyResearchExecutionEntry,
@@ -277,6 +279,50 @@ describe('applyResearchExecutionTick', () => {
     expect(completed).toBe(true)
     const optionalFired = runtime.firedMilestoneIds.includes('milestone.side-channel')
     expect(typeof optionalFired).toBe('boolean')
+  })
+
+  it('fires same-tick milestones in code-unit id order', () => {
+    const definition: ResearchProjectDefinition = {
+      schemaVersion: RESEARCH_PROJECT_DEFINITION_SCHEMA_VERSION,
+      projectId: 'research.case-order.v1',
+      label: 'Case Order',
+      sources: [],
+      milestones: [
+        {
+          milestoneId: 'milestone.a',
+          findingId: 'finding.a',
+          findingKind: 'mandatory',
+          eligibility: {},
+          outputs: [{ kind: 'reveal_finding', targetRef: 'finding.a' }],
+        },
+        {
+          milestoneId: 'milestone.A',
+          findingId: 'finding.A',
+          findingKind: 'mandatory',
+          eligibility: {},
+          outputs: [{ kind: 'reveal_finding', targetRef: 'finding.A' }],
+        },
+      ],
+      closureRequirement: { mandatoryFindingIds: ['finding.A', 'finding.a'] },
+    }
+
+    const result = applyResearchExecutionTick({
+      definition,
+      runtime: createEmptyResearchExecutionRuntime(definition.projectId, definition),
+      capability: capability({
+        domainScores: { analysis: 1 },
+        difficulty: 1,
+        staffTimeCommitmentId: undefined,
+        staffCompetencyRefs: [],
+        sourceInputRefs: [],
+      }),
+    })
+
+    expect(result.milestoneOutputs.map((output) => output.milestoneId)).toEqual([
+      'milestone.A',
+      'milestone.a',
+    ])
+    expect(result.outcome).toBe('completed')
   })
 })
 

@@ -720,7 +720,7 @@ export function applyResearchExecutionTick(
   const newlyFired: string[] = [...nextRuntime.firedMilestoneIds]
 
   const orderedMilestones = [...definition.milestones].sort((a, b) =>
-    a.milestoneId.localeCompare(b.milestoneId),
+    a.milestoneId < b.milestoneId ? -1 : a.milestoneId > b.milestoneId ? 1 : 0,
   )
 
   for (const milestone of orderedMilestones) {

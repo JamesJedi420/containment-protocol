@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3172](https://linear.app/spectranoir/issue/SPE-3172/campaign-command-identity-profile-and-persistence) |
 | **Parent** | [SPE-1734](https://linear.app/spectranoir/issue/SPE-1734/campaign-rules-and-settings-ledger) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3172-campaign-command-identity-profile-and-persistence` |

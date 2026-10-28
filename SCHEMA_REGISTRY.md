@@ -58,6 +58,10 @@ Pure domain module `src/domain/dutyObligationRegistry.ts` defines compact role-s
 
 Pure domain module `src/domain/interAgencyOwnershipTransfer.ts` governs inter-agency ownership transfers via request → authorize → complete/reject with append-only provenance and a temporary anti-cycling lock whose duration is data-driven by asset class (`personnel`, `equipment`, `artifact`, `vehicle`). Campaign time uses SPE-1071 authoritative integer weeks only. Internal reassignment within one agency updates assignment refs without provenance or locks. Forced/admin transfers route through the same `completeOwnershipTransfer` mutation path. Parse/hydrate uses null-prototype maps and rejects prototype ids. No GameState field or custody UI. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Versioned difficulty profiles (SPE-3044)
+
+Pure domain `src/domain/difficultyProfileResolver.ts` owns Cozy/Normal/Workhorse/Custom difficulty profile registry, resolved run-configuration snapshot, Custom bounds, and consumer multiplier/option adapters under SPE-1734. Optional `CampaignLedgerState.difficultyProfile` binding; absent legacy → Cozy 1.0× (SPE-2898 stable). No OperationEvent kind; no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).
+
 ### Campaign command identity (SPE-3172)
 
 Optional `CampaignLedgerState.commandIdentity` under SPE-1734 holds a presentation-only managerial persona (`anonymous` / `preset` / `custom`) via `src/domain/campaignCommandIdentity.ts`. Organization identity remains on `CampaignOperationalProfile`. Absent/malformed identity hydrates to anonymous. Agency-establishment `command-identity` beat consumes the canonical record. No actor/gameplay modifiers, no OperationEvent kind, and no `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional field).

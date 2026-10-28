@@ -1,4 +1,8 @@
 import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
+import type {
+  CustomDifficultyOverrides,
+  DifficultyProfileId,
+} from './difficultyProfileResolver'
 import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
 import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
 import type { StaffTimeLedger } from './staffTimeAllocation'
@@ -2759,6 +2763,15 @@ export interface CampaignLedgerState {
    * Always present after `sanitizeCampaignLedger` / `createSeedCampaignLedger`.
    */
   commandIdentity: CampaignCommandIdentityState
+  /**
+   * SPE-3044: selected difficulty profile binding.
+   * Absent on legacy saves → Cozy 1.0× via resolver (SPE-2898 stable baseline).
+   */
+  difficultyProfile?: {
+    profileId: DifficultyProfileId
+    profileVersion: string
+    custom?: CustomDifficultyOverrides | null
+  }
 }
 
 export interface GameState {

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4476 @ `df2d023e`) |
 | **Issue** | [SPE-700](https://linear.app/spectranoir/issue/SPE-700/institution-calendars-and-availability-shifts) |
 | **Parent** | [SPE-174](https://linear.app/spectranoir/issue/SPE-174) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-700-institution-calendars-and-availability-shifts` |

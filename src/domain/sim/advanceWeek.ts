@@ -144,7 +144,8 @@ import {
   explainHazardKnowledge,
   explainRelayChain,
 } from '../explanations'
-import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
+import { drawPartyCardsToHandLimitWithScopedContinuation } from '../partyCards/drawContinuation'
+import { consumeResolutionPartyCards } from '../partyCards/engine'
 import {
   appendOperationEventDrafts,
   createAgencyFrontBusinessResolvedDraft,
@@ -3752,16 +3753,20 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
   })
 }
 
-function refreshPartyCards(context: WeeklyExecutionContext, rng: SeededRng) {
+function refreshPartyCards(context: WeeklyExecutionContext) {
   if (!context.nextState.partyCards) {
     return
   }
 
-  const drawResult = drawPartyCardsToHandLimit(context.nextState.partyCards, rng.next)
+  const drawResult = drawPartyCardsToHandLimitWithScopedContinuation({
+    partyCards: context.nextState.partyCards,
+    runSeed: context.nextState.rngSeed,
+    legacyRngState: context.nextState.rngState,
+    week: context.sourceState.week,
+  })
   context.nextState = {
     ...context.nextState,
     partyCards: drawResult.nextState,
-    rngState: rng.getState(),
   }
 
   if (drawResult.drawnCardIds.length > 0) {
@@ -4965,7 +4970,7 @@ export function advanceWeek(
   escalateCases(context, timingCheckState)
   assertExclusiveCaseBuckets(context)
   settleWeekState(context, rng)
-  refreshPartyCards(context, rng)
+  refreshPartyCards(context)
   spawnFollowUps(context, rng)
   generateRecruitmentPool(context, rng)
   expireOldCandidates(context)

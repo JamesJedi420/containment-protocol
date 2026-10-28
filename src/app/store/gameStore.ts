@@ -107,7 +107,7 @@ import {
   type StatKey,
   type WeeklyDirectiveId,
 } from '../../domain/models'
-import { createSeededRng, normalizeSeed } from '../../domain/math'
+import { normalizeSeed } from '../../domain/math'
 import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equipment'
 import {
   COMBAT_STIM_DEFINITION_ID,
@@ -124,7 +124,8 @@ import {
   isContainmentClassId,
 } from '../../domain/containmentClassInspection'
 import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
-import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
+import { drawPartyCardsWithScopedContinuation } from '../../domain/partyCards/drawContinuation'
+import { discardPartyCard, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
@@ -2431,13 +2432,17 @@ export const useGameStore = create<GameStore>()(
             return s
           }
 
-          const rng = createSeededRng(s.game.rngState)
-          const draw = drawPartyCards(s.game.partyCards, count, rng.next)
+          const draw = drawPartyCardsWithScopedContinuation({
+            partyCards: s.game.partyCards,
+            count,
+            runSeed: s.game.rngSeed,
+            legacyRngState: s.game.rngState,
+            week: s.game.week,
+          })
 
           return {
             game: {
               ...s.game,
-              rngState: rng.getState(),
               partyCards: draw.nextState,
             },
           }

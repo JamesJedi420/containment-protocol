@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3163](https://linear.app/spectranoir/issue/SPE-3163/legacy-rngstate-compatibility-and-stochastic-cutover-migration) |
 | **Parent** | [SPE-3162](https://linear.app/spectranoir/issue/SPE-3162) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-3163-legacy-rngstate-compatibility-and-stochastic-cutover` |

@@ -12,10 +12,12 @@ import {
   markSpe3041ActivationIntentEmitted,
   openContainmentRequirementWindow,
   projectContainmentRequirementDefinition,
+  evaluateDutyAgainstRequirementOutcome,
   projectDutyConsumptionFromRequirement,
   projectExplainableRequirementStatus,
   projectSpe3041ActivationIntent,
 } from '../domain/containmentRequirementFulfillment'
+import { DEMO_DUTY_OBLIGATION_REGISTRY } from '../domain/dutyObligationRegistry'
 
 const INFO_DEF = {
   requirementId: 'req:briefing-dossier',
@@ -740,6 +742,21 @@ describe('SPE-3181 recurring containment requirement fulfillment', () => {
     expect(projectDutyConsumptionFromRequirement(satisfied.state).fulfillmentOutcome).toBe(
       'satisfied'
     )
+  })
+
+  it('evaluates duty against requirement outcome via SPE-1135 registry consumer', () => {
+    const open = openContainmentRequirementWindow({
+      definition: { ...INFO_DEF, requirementId: 'req:containment-info', subjectRef: 'subject:anomaly-alpha' },
+      currentWindow: WINDOW,
+    })!
+    const projection = projectDutyConsumptionFromRequirement(open)
+    const evaluation = evaluateDutyAgainstRequirementOutcome(
+      DEMO_DUTY_OBLIGATION_REGISTRY,
+      'field_lead',
+      projection
+    )
+    expect(evaluation?.compliance).toBe('pending')
+    expect(evaluation?.requirementRemainsAuthority).toBe(true)
   })
 
   it('exposes explainable status for planning surfaces', () => {

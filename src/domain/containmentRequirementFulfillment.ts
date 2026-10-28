@@ -838,6 +838,16 @@ export function projectDutyConsumptionFromRequirement(
   })
 }
 
+export type {
+  DutyCompliance,
+  DutyEvaluationContext,
+  DutyObligationRegistry,
+  DutyRequirementEvaluation,
+  DutyRoleId,
+} from './dutyObligationRegistry'
+
+export { evaluateDutyAgainstRequirementOutcome } from './dutyObligationRegistry'
+
 export interface ExplainableRequirementStatus {
   readonly requirementId: string
   readonly subjectRef: string

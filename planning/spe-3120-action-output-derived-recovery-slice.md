@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3120](https://linear.app/spectranoir/issue/SPE-3120/action-output-derived-recovery-effect) |
 | **Parent** | [SPE-41](https://linear.app/spectranoir/issue/SPE-41/tags-conditions-and-graded-outcome-framework) |
 | **Branch** | `jamesdyedbq/spe-3120-action-output-derived-recovery-effect` |

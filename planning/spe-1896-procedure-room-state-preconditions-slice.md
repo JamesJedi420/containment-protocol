@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-1896](https://linear.app/spectranoir/issue/SPE-1896) |
 | **Parent** | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) |
 | **Branch** | `jamesdyedbq/spe-1896-procedure-room-state-preconditions-and-facility` |

@@ -42,6 +42,10 @@ Pure domain module `src/domain/managedCultivationLifecycle.ts` owns authored cul
 
 Pure domain module `src/domain/procedureRoomStatePreconditions.ts` defines compact `ProcedureSafetyRequirement` records, caller-owned `RoomStateSnapshot` and `FacilityConfigurationSnapshot` inputs (referencing SPE-1026 `FacilityRoomId` / `FacilityZoneId`), and deterministic `evaluateProcedureRoomStateSafety` with stable reason codes. Fail-closed on malformed or unknown refs. No GameState persistence, facility simulator, or SPE-874 permit engine. SPE-2771 workshop operational safety remains a separate owner. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Extranormal temporal event registry (SPE-1757)
+
+Pure domain module `src/domain/extranormalTemporalEventRegistry.ts` holds bounded typed temporal-event records keyed by authoritative SPE-1071 campaign weeks only (SPE-3180 decision: no second clock). Registry helpers cover parse/upsert, zone listing, schedule drift on predicted windows, instability-window checks, research-vs-public planning divergence, and optional incident refs without stable-chronology claims. Deterministic fixtures prove multi-event zones, drift, divergent planning, and incident linkage. No GameState field, week-close hook, or full time-travel simulator. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
+
 ### Subjective vs authoritative time (SPE-3180)
 
 Pure domain module `src/domain/subjectiveVsAuthoritativeTimeContradiction.ts` records the frozen architecture decision: SPE-1071 remains the sole authoritative campaign clock; local/subjective elapsed time is caller-owned per-entity accumulated markers updated via SPE-3384 rate projections over authoritative weeks, not a second clock. Scenario validation fixtures cover Linear acceptance cases; no time-dilation gameplay or GameState persistence. SPE-815 / SPE-227 govern perception/confidence; SPE-3161 compatibility is declared; SPE-964 off-map labor remains a candidate follow-up. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.

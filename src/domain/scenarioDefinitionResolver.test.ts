@@ -290,18 +290,30 @@ describe('scenarioDefinitionResolver (SPE-3397)', () => {
     const resolved = getResolvedScenarioInitialization(game, 55)
     expect(resolved?.definitionId).toBe('austere_field_office')
     expect(resolved?.runSeed).toBe(55)
-    expect(
-      sanitizeCampaignLedger(
-        {
-          ...seed,
-          scenarioDefinition: {
-            definitionId: 'austere_field_office',
-            definitionVersion: '999',
-            sourceKind: 'preset',
-          },
+    game.campaignLedger = sanitizeCampaignLedger(
+      {
+        ...seed,
+        scenarioDefinition: {
+          definitionId: 'austere_field_office',
+          definitionVersion: '999',
+          sourceKind: 'preset',
         },
-        seed
-      ).scenarioDefinition
-    ).toBeUndefined()
+      },
+      seed
+    )
+    expect(game.campaignLedger.scenarioDefinition).toEqual({
+      definitionId: 'austere_field_office',
+      definitionVersion: '999',
+      sourceKind: 'preset',
+    })
+    // Resolution still fails closed until SPE-2898 cutover; binding is retained.
+    expect(getResolvedScenarioInitialization(game, 1)).toBeNull()
+    expect(
+      assessScenarioDefinitionVersionTransition({
+        boundDefinitionId: 'austere_field_office',
+        boundDefinitionVersion: '999',
+        liveDefinitionVersion: SCENARIO_PRESET_REGISTRY.austere_field_office.definitionVersion,
+      }).disposition
+    ).toBe('await_boundary')
   })
 })

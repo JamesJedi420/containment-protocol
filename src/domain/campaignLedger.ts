@@ -8,8 +8,10 @@ import {
 import {
   resolveScenarioInitialization,
   sanitizeScenarioDefinitionBinding,
-  type ResolvedScenarioInitialization,
-  type ScenarioDefinitionBinding,
+} from './scenarioDefinitionResolver'
+import type {
+  ResolvedScenarioInitialization,
+  ScenarioDefinitionBinding,
 } from './scenarioDefinitionResolver'
 import type {
   CampaignLedgerCompatibilitySnapshot,

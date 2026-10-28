@@ -842,7 +842,9 @@ export function resolveScenarioInitialization(
       ),
     })
   }
-  stochasticChoices.sort((a, b) => a.decisionId.localeCompare(b.decisionId))
+  stochasticChoices.sort((a, b) =>
+    a.decisionId < b.decisionId ? -1 : a.decisionId > b.decisionId ? 1 : 0
+  )
 
   return {
     ok: true,
@@ -902,11 +904,10 @@ export function sanitizeScenarioDefinitionBinding(
   }
 
   if (sourceKind === 'preset') {
-    const resolved = resolveScenarioInitialization({
-      binding: { definitionId, definitionVersion, sourceKind: 'preset' },
-      runSeed: 0,
-    })
-    if (!resolved.ok) return undefined
+    const preset = SCENARIO_PRESET_REGISTRY[definitionId]
+    if (preset == null) return undefined
+    // Preserve bound definitionVersion even when it differs from live registry so
+    // SPE-2898 transition assessment can run; do not erase identity on hydrate.
     return { definitionId, definitionVersion, sourceKind: 'preset' }
   }
 

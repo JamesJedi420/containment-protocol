@@ -110,6 +110,10 @@ Pure domain module `src/domain/historicalContinuityBoard.ts` owns layered histor
 
 Pure domain `src/domain/stochasticIdentity.ts` owns typed `StochasticDecisionIdentity`, FNV-derived scoped seeds, and `createScopedStochasticRng` under SPE-3162 (parent remains open for remaining children). Pure domain `src/domain/legacyRngStateCutover.ts` owns SPE-3163 legacy hydrate, exactly-once cutover markers, grandfathered in-flight legacy continuation through declared boundaries, and post-cutover scoped decision resolution consuming SPE-2898 transition vocabulary. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required.
 
+### Major-incident terminal settlement (SPE-3076)
+
+Pure domain `src/domain/majorIncidentTerminalSettlement.ts` owns exactly-once terminal settlement receipts for operational major incidents under SPE-3076. Receipts stamp onto `ActiveMajorIncidentRuntime.settlementReceipt` / `settlementReceiptId` during week-close resolution and hydrate through `sanitizeMajorIncidentRuntime`. Reward eligibility is derived from the final authoritative outcome via `getAppliedMajorIncidentRewardPreview`, not a stale UI preview. Downstream casualty, assignment, aftermath, and report UI remain with their owners. No `GAME_STORE_VERSION` / `GAME_SAVE_VERSION` bump (additive optional runtime fields).
+
 ### Party-card draw continuation (SPE-3164)
 
 Optional `PartyCardState.drawContinuation` (`spe-3164.v1`) holds deck-local scoped stream state for manual and weekly party-card draws under SPE-3164. Established exactly once via SPE-3163 cutover vocabulary without regenerating deck/hand/discard. Draw paths in the game store and `advanceWeek` consume this continuation and do not advance campaign `rngState`. Malformed continuation is dropped on hydrate and re-established on the next draw. No OperationEvent, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change is required (additive optional field).

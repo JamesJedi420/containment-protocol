@@ -144,6 +144,12 @@ import {
   explainHazardKnowledge,
   explainRelayChain,
 } from '../explanations'
+import { isOperationalMajorIncidentCase } from '../majorIncidentOperations'
+import {
+  attachMajorIncidentSettlementReceipt,
+  settleMajorIncidentTerminal,
+  type MajorIncidentTerminalSettlementReceipt,
+} from '../majorIncidentTerminalSettlement'
 import { drawPartyCardsToHandLimitWithScopedContinuation } from '../partyCards/drawContinuation'
 import { consumeResolutionPartyCards } from '../partyCards/engine'
 import {
@@ -2695,7 +2701,7 @@ function resolveAssignments(
       ...context.nextState.cases[caseId],
       supportShortfall: isSupportShortfall,
     }
-    const {
+    let {
       effectiveCase,
       assignedAgentLeaderBonuses,
       activeTeamStressModifiers,
@@ -2709,6 +2715,37 @@ function resolveAssignments(
       weakestLinkResult,
       terminalDisposition,
     } = weeklyResolution
+
+    // SPE-3076: exactly-once major-incident terminal settlement before rewards/reports.
+    let majorIncidentSettlement: MajorIncidentTerminalSettlementReceipt | undefined
+    if (
+      currentCase.majorIncident &&
+      isOperationalMajorIncidentCase(currentCase) &&
+      (outcome.result === 'success' ||
+        outcome.result === 'partial' ||
+        outcome.result === 'fail')
+    ) {
+      const settlement = settleMajorIncidentTerminal({
+        currentCase: {
+          ...currentCase,
+          majorIncident: currentCase.majorIncident,
+        },
+        outcome,
+        week: context.sourceState.week,
+      })
+      if (settlement.kind === 'settled' || settlement.kind === 'idempotent_replay') {
+        majorIncidentSettlement = settlement.receipt
+        if (effectiveCase.majorIncident) {
+          effectiveCase = {
+            ...effectiveCase,
+            majorIncident: attachMajorIncidentSettlementReceipt(
+              effectiveCase.majorIncident,
+              settlement.receipt,
+            ),
+          }
+        }
+      }
+    }
 
     const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
       behaviorValidation,
@@ -2772,6 +2809,11 @@ function resolveAssignments(
     const resolutionReasons = [
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
+      ...(majorIncidentSettlement
+        ? [
+            `Major-incident terminal settlement: ${majorIncidentSettlement.reportableOutcome.summary} (${majorIncidentSettlement.receiptId})`,
+          ]
+        : []),
     ]
     appendDetectionScanResolutionReason(
       resolutionReasons,

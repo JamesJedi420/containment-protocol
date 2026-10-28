@@ -749,6 +749,16 @@ function sanitizeMajorIncidentRuntime(
       : fallback?.rumor
         ? { rumor: fallback.rumor }
         : {}),
+    ...(typeof value.settlementReceiptId === 'string' && value.settlementReceiptId.trim().length > 0
+      ? { settlementReceiptId: value.settlementReceiptId.trim() }
+      : typeof fallback?.settlementReceiptId === 'string'
+        ? { settlementReceiptId: fallback.settlementReceiptId }
+        : {}),
+    ...(isRecord(value.settlementReceipt)
+      ? { settlementReceipt: value.settlementReceipt }
+      : isRecord(fallback?.settlementReceipt)
+        ? { settlementReceipt: fallback.settlementReceipt }
+        : {}),
   }
 
   return runtime

@@ -2,11 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3366](https://linear.app/spectranoir/issue/SPE-3366/recruitment-hire-identity-collision-and-exact-once-personnel) |
 | **Parent** | none (leaf) |
 | **Branch** | `jamesdyedbq/spe-3366-recruitment-hire-identity-collision-exact-once-personnel` |
-| **Base main SHA** | `ead9e8b5` |
+| **Base main SHA** | `d1cf60f3` (merged PR #4448) |
 
 ## Delegated approval
 

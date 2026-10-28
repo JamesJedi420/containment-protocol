@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2265](https://linear.app/spectranoir/issue/SPE-2265/authored-content-generation-guardrails-slice-1) |
 | **Parent** | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2265-authored-content-generation-guardrails-slice-1` |

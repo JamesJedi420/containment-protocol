@@ -558,7 +558,9 @@ export function resolveTimeoutIfDue(
 ): ExpiringDecisionMutationResult & {
   readonly effect?: TimeoutResolutionEffect
 } {
-  if (record.timeoutResolvedOnce && isTerminal(record.lifecycleState)) {
+  // Exactly-once: timeoutResolvedOnce alone means the default already invoked,
+  // even if persisted state is inconsistent (e.g. open + flag).
+  if (record.timeoutResolvedOnce) {
     return { ok: false, reason: 'already_timeout_resolved' }
   }
   if (isTerminal(record.lifecycleState)) return { ok: false, reason: 'terminal' }
@@ -658,9 +660,12 @@ export function projectTerminalProvenanceForDuty(
     })
   }
   if (record.resolutionProvenance === 'explicit_selection') {
+    // SPE-1135 has no "fulfilled" kind. Closed explicit selection must not stay
+    // `actionable` (that yields false actionable_omission when actObserved is false).
+    // Terminal non-actionable → no_omission_terminal_window; distinguish via terminalReason.
     return Object.freeze({
       decisionRef: record.id,
-      kind: 'actionable' as const,
+      kind: 'expired' as const,
       terminalReason: 'explicit_selection_closed',
     })
   }
@@ -840,16 +845,23 @@ export function hydrateExpiringDecisionRecord(raw: unknown): ExpiringDecisionRec
 
   const legacyMisclassifiedExpiredAsRefusal =
     raw.legacyMisclassifiedExpiredAsRefusal === true ? true : undefined
-  const hydrationRepairApplied =
-    raw.hydrationRepairApplied === EXPIRING_DECISION_CORRESPONDENCE_REPAIR_VERSION
-      ? EXPIRING_DECISION_CORRESPONDENCE_REPAIR_VERSION
-      : raw.hydrationRepairApplied === undefined
-        ? undefined
-        : undefined
   if (
     raw.hydrationRepairApplied !== undefined &&
     raw.hydrationRepairApplied !== EXPIRING_DECISION_CORRESPONDENCE_REPAIR_VERSION
   ) {
+    return undefined
+  }
+  const hydrationRepairApplied =
+    raw.hydrationRepairApplied === EXPIRING_DECISION_CORRESPONDENCE_REPAIR_VERSION
+      ? EXPIRING_DECISION_CORRESPONDENCE_REPAIR_VERSION
+      : undefined
+
+  // Fail closed on inconsistent timeout/lifecycle combinations.
+  if (raw.lifecycleState === 'open' && raw.timeoutResolvedOnce === true) {
+    return undefined
+  }
+  // Terminal records require resolution provenance (repair path always carries it).
+  if (isTerminal(raw.lifecycleState) && resolutionProvenance === undefined) {
     return undefined
   }
 

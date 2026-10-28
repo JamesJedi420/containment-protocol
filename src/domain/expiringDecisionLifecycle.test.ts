@@ -5,6 +5,7 @@ import {
   EXPIRING_DECISION_LIFECYCLE_SCHEMA_VERSION,
   applyCorrespondenceMisclassificationRepair,
   attemptLateResponse,
+  cancelDecision,
   createCorrespondenceWindowDecision,
   createExpiringDecision,
   createOperationalRecommendationDecision,
@@ -18,6 +19,8 @@ import {
   resolveTimeoutIfDue,
   serializeExpiringDecisionRecord,
   shiftDeadline,
+  supersedeDecision,
+  type ExpiringDecisionRecord,
 } from './expiringDecisionLifecycle'
 import {
   FIELD_LEAD_CONTAINMENT_ESCALATION_OBLIGATION,
@@ -524,5 +527,128 @@ describe('SPE-2805 expiring decision lifecycle', () => {
     expect(bad.ok).toBe(false)
     if (bad.ok) return
     expect(bad.reason).toBe('invalid_default_contract')
+  })
+
+  it('rejects hydrate of open + timeoutResolvedOnce and does not re-fire timeout', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-inconsistent',
+      createdAt: 1,
+      expiresAt: 2,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const inconsistentRaw = {
+      ...serializeExpiringDecisionRecord(created.record),
+      lifecycleState: 'open',
+      timeoutResolvedOnce: true,
+    }
+    expect(hydrateExpiringDecisionRecord(inconsistentRaw)).toBeUndefined()
+
+    // Runtime guard: even a bypassed inconsistent record must not re-invoke default.
+    const bypassed = {
+      ...created.record,
+      timeoutResolvedOnce: true,
+    } as ExpiringDecisionRecord
+    const replay = resolveTimeoutIfDue(bypassed, {
+      clockDomain: 'authoritative_week',
+      now: 2,
+    })
+    expect(replay.ok).toBe(false)
+    expect(replay.reason).toBe('already_timeout_resolved')
+    expect(replay.effect).toBeUndefined()
+  })
+
+  it('projects closed explicit selection as non-actionable for duty omission', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-explicit-duty',
+      createdAt: 1,
+      expiresAt: 5,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const explicit = resolveExplicitly(created.record, {
+      optionId: 'reply_acknowledge',
+      at: 2,
+    })
+    expect(explicit.ok).toBe(true)
+    if (!explicit.ok) return
+
+    const provenance = projectTerminalProvenanceForDuty(explicit.record)
+    expect(provenance.kind).toBe('expired')
+    expect(provenance.terminalReason).toBe('explicit_selection_closed')
+    const omission = evaluateOmissionAgainstDuty({
+      obligation: FIELD_LEAD_CONTAINMENT_ESCALATION_OBLIGATION,
+      provenance,
+      actObserved: false,
+    })
+    expect(omission.result).toBe('no_omission_terminal_window')
+  })
+
+  it('cancels an open decision with distinguishable provenance and rejects late response', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-cancel',
+      createdAt: 1,
+      expiresAt: 5,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const canceled = cancelDecision(created.record, {
+      at: 2,
+      canceledByRef: 'admin:revoke',
+    })
+    expect(canceled.ok).toBe(true)
+    if (!canceled.ok) return
+    expect(canceled.record.lifecycleState).toBe('canceled')
+    expect(canceled.record.resolutionProvenance).toBe('canceled')
+    expect(canceled.record.canceledByRef).toBe('admin:revoke')
+
+    const late = attemptLateResponse(canceled.record, {
+      optionId: 'reply_acknowledge',
+      at: 3,
+    })
+    expect(late.ok).toBe(false)
+    expect(late.reason).toBe('terminal')
+
+    const provenance = projectTerminalProvenanceForDuty(canceled.record)
+    expect(provenance.kind).toBe('canceled')
+    const omission = evaluateOmissionAgainstDuty({
+      obligation: FIELD_LEAD_CONTAINMENT_ESCALATION_OBLIGATION,
+      provenance,
+      actObserved: false,
+    })
+    expect(omission.result).toBe('no_omission_terminal_window')
+  })
+
+  it('supersedes an open decision with distinguishable provenance and rejects late response', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-supersede',
+      createdAt: 1,
+      expiresAt: 5,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const superseded = supersedeDecision(created.record, {
+      at: 2,
+      supersededByDecisionId: 'dec:corr-replacement',
+    })
+    expect(superseded.ok).toBe(true)
+    if (!superseded.ok) return
+    expect(superseded.record.lifecycleState).toBe('superseded')
+    expect(superseded.record.resolutionProvenance).toBe('superseded')
+    expect(superseded.record.supersededByDecisionId).toBe('dec:corr-replacement')
+
+    const late = attemptLateResponse(superseded.record, {
+      optionId: 'reply_acknowledge',
+      at: 3,
+    })
+    expect(late.ok).toBe(false)
+    expect(late.reason).toBe('terminal')
+
+    const provenance = projectTerminalProvenanceForDuty(superseded.record)
+    expect(provenance.kind).toBe('superseded')
   })
 })

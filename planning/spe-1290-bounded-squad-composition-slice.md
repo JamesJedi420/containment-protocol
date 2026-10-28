@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-1290](https://linear.app/spectranoir/issue/SPE-1290/bounded-squad-composition-and-role-slot-assignment-seam) |
 | **Parent** | [SPE-1025](https://linear.app/spectranoir/issue/SPE-1025) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-1290-bounded-squad-composition-and-role-slot-assignment-seam` |

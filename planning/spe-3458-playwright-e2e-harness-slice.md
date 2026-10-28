@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4481 @ `a7c5bc87`) |
 | **Issue** | [SPE-3458](https://linear.app/spectranoir/issue/SPE-3458/shared-browser-e2e-verification-harness-playwright) |
 | **Parent** | none (standalone shared-system parent; zero children) |
 | **Branch** | `jamesdyedbq/spe-3458-shared-browser-e2e-verification-harness-playwright` |

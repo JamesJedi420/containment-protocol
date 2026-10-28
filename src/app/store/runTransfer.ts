@@ -2388,14 +2388,9 @@ export function buildReportCaseSnapshot(
   return currentCase.distortion?.length ? propagateDistortion(currentCase, snapshot) : snapshot
 }
 
-export function buildReportCaseSnapshots(cases: GameState['cases']) {
-  return Object.fromEntries(
-    Object.values(cases).map((currentCase) => [
-      currentCase.id,
-      buildReportCaseSnapshot(currentCase),
-    ])
-  )
-}
+// Canonical buildReportCaseSnapshots: domain/sim/reportCaseSnapshot (imported above).
+// Do not re-declare it here — duplicate binding breaks Vite/Chromium ESM load
+// (SPE-3375/SPE-3376 census owner; SPE-3458 preflight unblock only).
 
 export {
   buildReportTeamStatus,

@@ -1,4 +1,5 @@
 import { clamp } from './math'
+import { sanitizeCampaignCommandIdentity } from './campaignCommandIdentity'
 import type {
   CampaignLedgerCompatibilitySnapshot,
   CampaignLedgerState,
@@ -423,6 +424,7 @@ export function createSeedCampaignLedger(): CampaignLedgerState {
       ],
       warnings: [],
     },
+    commandIdentity: sanitizeCampaignCommandIdentity(null),
   }
 }
 
@@ -445,6 +447,12 @@ export function sanitizeCampaignLedger(
     moduleToggles: sanitizeModuleToggles(raw.moduleToggles, fallback.moduleToggles),
     settingHistory: sanitizeSettingHistory(raw.settingHistory, fallback.settingHistory, campaignWeek),
     compatibility: rulesProfile.compatibility,
+    // Absent key → anonymous (legacy), not fallback persona.
+    commandIdentity: sanitizeCampaignCommandIdentity(
+      Object.prototype.hasOwnProperty.call(raw, 'commandIdentity')
+        ? raw.commandIdentity
+        : undefined
+    ),
   }
 }
 

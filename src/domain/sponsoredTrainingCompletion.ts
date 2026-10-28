@@ -599,6 +599,11 @@ export function registerSponsoredTrainingAssignment(
     return rejectRegistration(state, 'malformed_command')
   }
 
+  // Terminal lifecycle is closeout-owned; registration must leave hydrateable state.
+  if (parsed.lifecycleState === 'completed' || parsed.lifecycleState === 'canceled') {
+    return rejectRegistration(state, 'malformed_command')
+  }
+
   if (Object.prototype.hasOwnProperty.call(state.assignments, parsed.id)) {
     return rejectRegistration(state, 'assignment_already_registered')
   }

@@ -358,6 +358,21 @@ describe('SPE-3124 sponsored training completion and personnel transfer', () => 
     expect(parseSponsoredTrainingCompletionState(drifted)).toBeNull()
   })
 
+  it('rejects registration of terminal lifecycle without closeout', () => {
+    const terminal = {
+      ...createDemoRetainGraduateAssignment(),
+      id: 'sponsored-training:already-done',
+      traineePersonId: 'person:trainee-terminal',
+      lifecycleState: 'completed' as const,
+    }
+    const result = registerSponsoredTrainingAssignment(
+      createEmptySponsoredTrainingCompletionState(),
+      terminal,
+    )
+    expect(result.outcome).toBe('rejected')
+    expect(result.reasonCode).toBe('malformed_command')
+  })
+
   it('rejects hydration when closeout conflicts with assignment lifecycle', () => {
     let training = registerRetainAssignment()
     const ownership = createEmptyInterAgencyOwnershipTransferState()

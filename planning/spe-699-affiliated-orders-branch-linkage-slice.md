@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4477 @ `df2d023e`) |
 | **Issue** | [SPE-699](https://linear.app/spectranoir/issue/SPE-699/affiliated-orders-sects-and-branch-linkage) |
 | **Parent** | [SPE-174](https://linear.app/spectranoir/issue/SPE-174) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-699-affiliated-orders-sects-and-branch-linkage` |

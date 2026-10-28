@@ -138,6 +138,16 @@ describe('SPE-699 affiliated orders, sects, and branch linkage', () => {
     })
     expect(second.mantleConcealed).toBe(true)
     expect(second.predecessorOccupantId).toBe('occupant:heir-jonas')
+
+    expect(() =>
+      applyMantleSuccession({
+        branch: createAffiliatedBranchRecord({
+          ...covertOrder,
+          publicOfficeIdentity: undefined,
+        }),
+        successorOccupantId: 'occupant:shadow-heir',
+      }),
+    ).toThrow(/publicOfficeIdentity is required/)
   })
 
   it('projects deterministic downstream consumption for affiliated-order autonomy', () => {

@@ -198,6 +198,7 @@ export function validateAffiliatedBranchSet(
     }
     if (!branch.umbrellaProfileId) {
       errors.push(`${branch.branchId}: missing umbrellaProfileId`)
+      continue
     }
 
     const recordedParent = umbrellaParent.get(branch.umbrellaProfileId)

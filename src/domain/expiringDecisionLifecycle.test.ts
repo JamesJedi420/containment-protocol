@@ -622,6 +622,64 @@ describe('SPE-2805 expiring decision lifecycle', () => {
     expect(omission.result).toBe('no_omission_terminal_window')
   })
 
+  it('rejects explicit replies at or after expiresAt before the timeout sweep', () => {
+    const created = createCorrespondenceWindowDecision({
+      id: 'dec:corr-past-expiry',
+      createdAt: 1,
+      expiresAt: 5,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+
+    const lateExplicit = resolveExplicitly(created.record, {
+      optionId: 'reply_acknowledge',
+      at: 5,
+    })
+    expect(lateExplicit.ok).toBe(false)
+    if (lateExplicit.ok) return
+    expect(lateExplicit.reason).toBe('past_expiry')
+
+    const lateRefuse = refuseExplicitly(created.record, { at: 6 })
+    expect(lateRefuse.ok).toBe(false)
+    if (lateRefuse.ok) return
+    expect(lateRefuse.reason).toBe('past_expiry')
+
+    const lateAttempt = attemptLateResponse(created.record, {
+      optionId: 'reply_acknowledge',
+      at: 7,
+    })
+    expect(lateAttempt.ok).toBe(false)
+    if (lateAttempt.ok) return
+    expect(lateAttempt.reason).toBe('past_expiry')
+
+    const timed = resolveTimeoutIfDue(created.record, {
+      clockDomain: 'authoritative_week',
+      now: 5,
+    })
+    expect(timed.ok).toBe(true)
+  })
+
+  it('rejects option IDs that collide only after trim', () => {
+    const bad = createExpiringDecision({
+      id: 'dec:trim-dup',
+      producerDomain: 'correspondence_window',
+      createdAt: 0,
+      clockDomain: 'authoritative_week',
+      expiresAt: 1,
+      options: [
+        { optionId: 'reply', label: 'A', kind: 'accept' },
+        { optionId: ' reply ', label: 'B', kind: 'decline' },
+      ],
+      defaultResolution: {
+        contract: 'expire_without_action',
+        actionRouteOwner: 'none',
+      },
+    })
+    expect(bad.ok).toBe(false)
+    if (bad.ok) return
+    expect(bad.reason).toBe('malformed')
+  })
+
   it('supersedes an open decision with distinguishable provenance and rejects late response', () => {
     const created = createCorrespondenceWindowDecision({
       id: 'dec:corr-supersede',

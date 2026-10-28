@@ -156,6 +156,7 @@ export type ExpiringDecisionMutationResult =
         | 'already_timeout_resolved'
         | 'invalid_default_contract'
         | 'ui_order_forbidden'
+        | 'past_expiry'
     }
 
 export interface TimeoutResolutionEffect {
@@ -369,22 +370,41 @@ export function createExpiringDecision(input: {
   if (input.expiresAt < input.createdAt) return { ok: false, reason: 'malformed' }
   if (input.options.length === 0) return { ok: false, reason: 'malformed' }
 
+  const normalizedOptions: ExpiringDecisionOption[] = []
   const seen = new Set<string>()
   for (const option of input.options) {
     if (!isSafeId(option.optionId) || !isNonEmptyString(option.label) || !isOptionKind(option.kind)) {
       return { ok: false, reason: 'malformed' }
     }
-    if (seen.has(option.optionId)) return { ok: false, reason: 'malformed' }
-    seen.add(option.optionId)
+    const optionId = option.optionId.trim()
+    if (seen.has(optionId)) return { ok: false, reason: 'malformed' }
+    seen.add(optionId)
+    normalizedOptions.push(
+      freezeOption({
+        optionId,
+        label: option.label.trim(),
+        kind: option.kind,
+      })
+    )
   }
 
-  const contractError = validateDefaultContract(input.options, input.defaultResolution)
+  const normalizedDefault: DefaultResolutionSpec = freezeDefault({
+    contract: input.defaultResolution.contract,
+    actionRouteOwner: input.defaultResolution.actionRouteOwner,
+    ...(input.defaultResolution.defaultOptionId !== undefined
+      ? { defaultOptionId: input.defaultResolution.defaultOptionId.trim() }
+      : {}),
+    ...(input.defaultResolution.actionRouteRef !== undefined
+      ? { actionRouteRef: input.defaultResolution.actionRouteRef.trim() }
+      : {}),
+  })
+
+  const contractError = validateDefaultContract(normalizedOptions, normalizedDefault)
   if (contractError !== null) return { ok: false, reason: 'invalid_default_contract' }
 
   if (input.uiPresentationOrder !== undefined) {
-    const declared = new Set(input.options.map((o) => o.optionId))
     for (const id of input.uiPresentationOrder) {
-      if (!declared.has(id)) return { ok: false, reason: 'ui_order_forbidden' }
+      if (!seen.has(id.trim())) return { ok: false, reason: 'ui_order_forbidden' }
     }
     // Presentation order is intentionally ignored for fallback selection.
   }
@@ -398,8 +418,8 @@ export function createExpiringDecision(input: {
       createdAt: input.createdAt,
       clockDomain: input.clockDomain,
       expiresAt: input.expiresAt,
-      options: input.options,
-      defaultResolution: input.defaultResolution,
+      options: normalizedOptions,
+      defaultResolution: normalizedDefault,
       lifecycleState: 'open',
       timeoutResolvedOnce: false,
       ...(input.deadlineSourceRef !== undefined && isSafeId(input.deadlineSourceRef)
@@ -420,7 +440,10 @@ export function resolveExplicitly(
   if (isTerminal(record.lifecycleState)) return { ok: false, reason: 'terminal' }
   if (record.lifecycleState !== 'open') return { ok: false, reason: 'not_open' }
   if (!isNonNegativeInt(input.at)) return { ok: false, reason: 'malformed' }
-  const option = record.options.find((o) => o.optionId === input.optionId)
+  // Authoritative clock at/after expiresAt belongs to timeout resolution, not late reply.
+  if (input.at >= record.expiresAt) return { ok: false, reason: 'past_expiry' }
+  const optionId = input.optionId.trim()
+  const option = record.options.find((o) => o.optionId === optionId)
   if (option === undefined) return { ok: false, reason: 'unknown_option' }
 
   return {
@@ -444,6 +467,7 @@ export function refuseExplicitly(
   if (isTerminal(record.lifecycleState)) return { ok: false, reason: 'terminal' }
   if (record.lifecycleState !== 'open') return { ok: false, reason: 'not_open' }
   if (!isNonNegativeInt(input.at)) return { ok: false, reason: 'malformed' }
+  if (input.at >= record.expiresAt) return { ok: false, reason: 'past_expiry' }
 
   return {
     ok: true,

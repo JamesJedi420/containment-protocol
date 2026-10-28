@@ -59,6 +59,7 @@ export const SPONSORED_CLOSEOUT_REJECTION_REASONS = [
   'assignment_not_active',
   'commitment_locked',
   'duplicate_trainee_assignment',
+  'assignment_capacity_exceeded',
   'transfer_branch_misconfigured',
   'ownership_transfer_rejected',
   'prototype_id',
@@ -256,24 +257,32 @@ function freezeOutcomeRecord(record: SponsoredTrainingOutcomeRecord): SponsoredT
   })
 }
 
+function assertSafeId(key: string, label: string): void {
+  if (!isSafeId(key)) {
+    throw new Error(`SPE-3124 invariant: unsafe ${label} id ${JSON.stringify(key)}`)
+  }
+}
+
 function freezeTrainingState(
   state: SponsoredTrainingCompletionState,
 ): SponsoredTrainingCompletionState {
   const assignments = createAssignmentsBag()
   for (const [key, assignment] of Object.entries(state.assignments)) {
-    if (isSafeId(key)) assignments[key] = freezeAssignment(assignment)
+    assertSafeId(key, 'assignment')
+    assignments[key] = freezeAssignment(assignment)
   }
 
   const appliedCloseouts = createCloseoutsBag()
   for (const [key, record] of Object.entries(state.appliedCloseouts)) {
-    if (isSafeId(key)) appliedCloseouts[key] = freezeOutcomeRecord(record)
+    assertSafeId(key, 'closeout')
+    appliedCloseouts[key] = freezeOutcomeRecord(record)
   }
 
   const activeTraineePersonIds = createTraineeBag()
   for (const [key, assignmentId] of Object.entries(state.activeTraineePersonIds)) {
-    if (isSafeId(key) && isSafeId(assignmentId)) {
-      activeTraineePersonIds[key] = assignmentId
-    }
+    assertSafeId(key, 'traineePerson')
+    assertSafeId(assignmentId, 'activeTraineeAssignment')
+    activeTraineePersonIds[key] = assignmentId
   }
 
   return Object.freeze({
@@ -514,7 +523,7 @@ export function registerSponsoredTrainingAssignment(
 
   if (Object.keys(state.assignments).length >= SPONSORED_TRAINING_COMPLETION_MAX_ASSIGNMENTS) {
     if (!Object.prototype.hasOwnProperty.call(state.assignments, parsed.id)) {
-      return rejectRegistration(state, 'malformed_command')
+      return rejectRegistration(state, 'assignment_capacity_exceeded')
     }
   }
 
@@ -872,8 +881,11 @@ export function applySponsoredTrainingCloseout(
       return applyTargetUnavailableCancel(trainingState, ownershipState, assignment, parsed)
     case 'invalidate_target':
       return applyTargetInvalidation(trainingState, ownershipState, assignment, parsed)
-    default:
+    default: {
+      const _exhaustive: never = parsed.kind
+      void _exhaustive
       return rejectCloseout(trainingState, ownershipState, 'malformed_command')
+    }
   }
 }
 

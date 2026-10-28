@@ -277,10 +277,12 @@ describe('SPE-3124 sponsored training completion and personnel transfer', () => 
       id: '__proto__',
     }
     expect(parseSponsoredTrainingAssignment(forbidden)).toBeNull()
+
+    const retain = createDemoRetainGraduateAssignment()
     const raw = {
       schemaVersion: SPONSORED_TRAINING_COMPLETION_SCHEMA_VERSION,
       assignments: {
-        'sponsored-training:valid': createDemoRetainGraduateAssignment(),
+        [retain.id]: retain,
       },
       appliedCloseouts: {
         constructor: {

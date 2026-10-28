@@ -59,9 +59,11 @@ export const SPONSORED_CLOSEOUT_REJECTION_REASONS = [
   'assignment_not_active',
   'commitment_locked',
   'duplicate_trainee_assignment',
+  'assignment_already_registered',
   'assignment_capacity_exceeded',
   'transfer_branch_misconfigured',
   'ownership_transfer_rejected',
+  'closeout_conflict',
   'prototype_id',
 ] as const
 export type SponsoredCloseoutRejectionReason =
@@ -484,6 +486,45 @@ function isAssignmentCloseable(state: SponsoredAssignmentLifecycleState): boolea
   return state === 'active' || state === 'paused' || state === 'blocked'
 }
 
+/** Non-terminal occupancy — includes commitment_locked (closeout blocked; spawn still blocked). */
+function occupiesTraineeSlot(state: SponsoredAssignmentLifecycleState): boolean {
+  return isAssignmentCloseable(state) || state === 'commitment_locked'
+}
+
+function expectedOutcomeKind(kind: SponsoredCloseoutCommandKind): SponsoredOutcomeKind {
+  switch (kind) {
+    case 'complete_success':
+      // Branch-specific retained vs transfer is resolved at apply time; replay conflict
+      // checks only that a success closeout was previously recorded under either success kind.
+      return 'retained_completion'
+    case 'fail_qualification':
+      return 'qualification_failure'
+    case 'cancel_voluntary':
+      return 'voluntary_cancellation'
+    case 'cancel_target_unavailable':
+      return 'target_unavailable_cancellation'
+    case 'invalidate_target':
+      return 'target_invalidation'
+    default: {
+      const _exhaustive: never = kind
+      return _exhaustive
+    }
+  }
+}
+
+function closeoutKindMatchesRecord(
+  kind: SponsoredCloseoutCommandKind,
+  record: SponsoredTrainingOutcomeRecord,
+): boolean {
+  if (kind === 'complete_success') {
+    return (
+      record.outcomeKind === 'retained_completion' ||
+      record.outcomeKind === 'transfer_completion'
+    )
+  }
+  return record.outcomeKind === expectedOutcomeKind(kind)
+}
+
 function selectedOutcomeTier(assignment: SponsoredTrainingAssignment): SponsoredOutcomeTierRefs {
   return assignment.outcomeTiers[assignment.outcomeTierIndex]!
 }
@@ -521,17 +562,19 @@ export function registerSponsoredTrainingAssignment(
     return rejectRegistration(state, 'malformed_command')
   }
 
+  if (Object.prototype.hasOwnProperty.call(state.assignments, parsed.id)) {
+    return rejectRegistration(state, 'assignment_already_registered')
+  }
+
   if (Object.keys(state.assignments).length >= SPONSORED_TRAINING_COMPLETION_MAX_ASSIGNMENTS) {
-    if (!Object.prototype.hasOwnProperty.call(state.assignments, parsed.id)) {
-      return rejectRegistration(state, 'assignment_capacity_exceeded')
-    }
+    return rejectRegistration(state, 'assignment_capacity_exceeded')
   }
 
   const existingTraineeAssignment = state.activeTraineePersonIds[parsed.traineePersonId]
   if (
     existingTraineeAssignment !== undefined &&
     existingTraineeAssignment !== parsed.id &&
-    isAssignmentCloseable(state.assignments[existingTraineeAssignment]?.lifecycleState ?? 'canceled')
+    occupiesTraineeSlot(state.assignments[existingTraineeAssignment]?.lifecycleState ?? 'canceled')
   ) {
     return rejectRegistration(state, 'duplicate_trainee_assignment')
   }
@@ -546,7 +589,7 @@ export function registerSponsoredTrainingAssignment(
   for (const [key, value] of Object.entries(state.activeTraineePersonIds)) {
     nextTrainees[key] = value
   }
-  if (isAssignmentCloseable(parsed.lifecycleState)) {
+  if (occupiesTraineeSlot(parsed.lifecycleState)) {
     nextTrainees[parsed.traineePersonId] = parsed.id
   }
 
@@ -587,7 +630,7 @@ export function isTraineePersonBlockedForSpawn(
   if (assignmentId === undefined) return false
   const assignment = state.assignments[assignmentId]
   if (!assignment) return false
-  return isAssignmentCloseable(assignment.lifecycleState)
+  return occupiesTraineeSlot(assignment.lifecycleState)
 }
 
 function updateAssignmentLifecycle(
@@ -848,6 +891,12 @@ export function applySponsoredTrainingCloseout(
 
   const existingOutcome = trainingState.appliedCloseouts[parsed.closeoutId]
   if (existingOutcome !== undefined) {
+    if (
+      existingOutcome.assignmentId !== parsed.assignmentId ||
+      !closeoutKindMatchesRecord(parsed.kind, existingOutcome)
+    ) {
+      return rejectCloseout(trainingState, ownershipState, 'closeout_conflict')
+    }
     return Object.freeze({
       outcome: 'idempotent_replay',
       reasonCode: 'idempotent_replay',

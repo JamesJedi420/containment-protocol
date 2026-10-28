@@ -319,4 +319,68 @@ describe('SPE-3124 sponsored training completion and personnel transfer', () => 
       result.ownershipState.ownership[DEMO_PERSONNEL_ASSET_ID]?.owningAgencyId,
     ).toBe(DEMO_AGENCY_ALPHA)
   })
+
+  it('rejects re-registration that would resurrect a terminal assignment', () => {
+    let training = registerRetainAssignment()
+    const ownership = createEmptyInterAgencyOwnershipTransferState()
+    training = applySponsoredTrainingCloseout(training, ownership, {
+      kind: 'complete_success',
+      closeoutId: 'closeout:terminal-once',
+      assignmentId: DEMO_SPONSORED_ASSIGNMENT_ID,
+      authoritativeWeek: 12,
+    }).trainingState
+    expect(training.assignments[DEMO_SPONSORED_ASSIGNMENT_ID]?.lifecycleState).toBe('completed')
+
+    const resurrect = registerSponsoredTrainingAssignment(
+      training,
+      createDemoRetainGraduateAssignment(),
+    )
+    expect(resurrect.outcome).toBe('rejected')
+    expect(resurrect.reasonCode).toBe('assignment_already_registered')
+    expect(training.assignments[DEMO_SPONSORED_ASSIGNMENT_ID]?.lifecycleState).toBe('completed')
+  })
+
+  it('blocks spawn for commitment-locked trainees', () => {
+    const locked = createDemoCommitmentLockedAssignment()
+    const training = registerSponsoredTrainingAssignment(
+      createEmptySponsoredTrainingCompletionState(),
+      locked,
+    ).state
+    expect(isTraineePersonBlockedForSpawn(training, locked.traineePersonId)).toBe(true)
+  })
+
+  it('rejects closeoutId reuse with conflicting assignment or kind', () => {
+    let training = registerRetainAssignment()
+    const ownership = createEmptyInterAgencyOwnershipTransferState()
+    training = applySponsoredTrainingCloseout(training, ownership, {
+      kind: 'complete_success',
+      closeoutId: 'closeout:shared-id',
+      assignmentId: DEMO_SPONSORED_ASSIGNMENT_ID,
+      authoritativeWeek: 12,
+    }).trainingState
+
+    const conflictKind = applySponsoredTrainingCloseout(training, ownership, {
+      kind: 'cancel_voluntary',
+      closeoutId: 'closeout:shared-id',
+      assignmentId: DEMO_SPONSORED_ASSIGNMENT_ID,
+      authoritativeWeek: 12,
+    })
+    expect(conflictKind.outcome).toBe('rejected')
+    expect(conflictKind.reasonCode).toBe('closeout_conflict')
+
+    const second = registerSponsoredTrainingAssignment(training, {
+      ...createDemoRetainGraduateAssignment(),
+      id: 'sponsored-training:other',
+      traineePersonId: 'person:trainee-other',
+    })
+    expect(second.outcome).toBe('applied')
+    const conflictAssignment = applySponsoredTrainingCloseout(second.state, ownership, {
+      kind: 'complete_success',
+      closeoutId: 'closeout:shared-id',
+      assignmentId: 'sponsored-training:other',
+      authoritativeWeek: 13,
+    })
+    expect(conflictAssignment.outcome).toBe('rejected')
+    expect(conflictAssignment.reasonCode).toBe('closeout_conflict')
+  })
 })

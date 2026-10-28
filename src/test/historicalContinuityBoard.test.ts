@@ -84,6 +84,100 @@ describe('SPE-2099 historical continuity board', () => {
     expect(readable.map((r) => r.recordId)).toEqual(['hist:next', 'hist:prior'])
   })
 
+  it('allows date correction via supersession without conflicting_dates', () => {
+    const prior = record({
+      recordId: 'hist:wrong-date',
+      eventId: 'event:correct',
+      truthLayer: 'institutional_record',
+      approximateDate: '1910',
+    })
+    const next = record({
+      recordId: 'hist:fixed-date',
+      eventId: 'event:correct',
+      truthLayer: 'later_correction',
+      approximateDate: '1912',
+      supersedesRecordId: 'hist:wrong-date',
+    })
+    const result = validateHistoricalChronology([prior, next])
+    expect(result.ok).toBe(true)
+    expect(result.diagnostics.some((d) => d.code === 'conflicting_dates')).toBe(false)
+    expect(result.diagnostics.some((d) => d.code === 'stale_record')).toBe(true)
+  })
+
+  it('does not flag year vs year-month-day at shared year precision', () => {
+    const result = validateHistoricalChronology([
+      record({
+        recordId: 'hist:era',
+        eventId: 'event:precision',
+        truthLayer: 'public_history',
+        approximateDate: '1912',
+        contradictionNotes: ['precision'],
+      }),
+      record({
+        recordId: 'hist:day',
+        eventId: 'event:precision',
+        truthLayer: 'operational_truth',
+        approximateDate: '1912-04-15',
+        contradictionNotes: ['precision'],
+      }),
+    ])
+    expect(result.ok).toBe(true)
+    expect(result.diagnostics.some((d) => d.code === 'conflicting_dates')).toBe(false)
+  })
+
+  it('errors on duplicate recordIds', () => {
+    const result = validateHistoricalChronology([
+      record({
+        recordId: 'hist:dup',
+        eventId: 'event:a',
+        truthLayer: 'public_history',
+      }),
+      record({
+        recordId: 'hist:dup',
+        eventId: 'event:b',
+        truthLayer: 'operational_truth',
+      }),
+    ])
+    expect(result.ok).toBe(false)
+    expect(
+      result.diagnostics.some(
+        (d) => d.code === 'malformed_record' && d.message.includes('Duplicate'),
+      ),
+    ).toBe(true)
+  })
+
+  it('errors when a record supersedes itself', () => {
+    const result = validateHistoricalChronology([
+      record({
+        recordId: 'hist:self',
+        eventId: 'event:self',
+        truthLayer: 'later_correction',
+        supersedesRecordId: 'hist:self',
+      }),
+    ])
+    expect(result.ok).toBe(false)
+    expect(
+      result.diagnostics.some(
+        (d) =>
+          d.code === 'malformed_record' && d.message.includes('cannot supersede itself'),
+      ),
+    ).toBe(true)
+  })
+
+  it('errors when discoveryDate precedes approximateDate', () => {
+    const result = validateHistoricalChronology([
+      record({
+        recordId: 'hist:order',
+        eventId: 'event:order',
+        truthLayer: 'institutional_record',
+        approximateDate: '1920-06-01',
+        discoveryDate: '1919-01-01',
+      }),
+    ])
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics.some((d) => d.code === 'impossible_order')).toBe(true)
+  })
+
   it('projects for players without operational truth by default', () => {
     const source = record({
       recordId: 'hist:ops-only',
@@ -114,7 +208,7 @@ describe('SPE-2099 historical continuity board', () => {
     )
   })
 
-  it('warns on truth_layer_collapse via historyText', () => {
+  it('warns on truth_layer_collapse via historyText without failing ok', () => {
     const result = validateHistoricalChronology([
       record({
         recordId: 'hist:collapse',
@@ -123,9 +217,26 @@ describe('SPE-2099 historical continuity board', () => {
         historyText: 'One blob replacing layers',
       }),
     ])
+    expect(result.ok).toBe(true)
     expect(result.diagnostics.some((d) => d.code === 'truth_layer_collapse')).toBe(
       true,
     )
+  })
+
+  it('redacts hostile_dossier projections by default', () => {
+    const source = record({
+      recordId: 'hist:hostile',
+      eventId: 'event:hostile',
+      truthLayer: 'hostile_dossier',
+      publicExplanation: 'Enemy framing',
+      operationalExplanation: 'Should stay hidden',
+      contradictionNotes: ['hostile note'],
+    })
+    const projection = projectHistoricalRecordForPlayer(source)
+    expect(projection.redacted).toBe(true)
+    expect(projection.publicExplanation).toBeNull()
+    expect(projection.operationalExplanation).toBeNull()
+    expect(projection.contradictionNotes).toEqual([])
   })
 
   it('errors when a non-seed record lacks provenance', () => {

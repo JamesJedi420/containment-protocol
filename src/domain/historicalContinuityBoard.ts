@@ -141,19 +141,53 @@ function isTruthLayer(value: string): value is HistoricalTruthLayer {
   return (HISTORICAL_TRUTH_LAYERS as readonly string[]).includes(value)
 }
 
-function parseDateToken(value: string | undefined): number | null {
+interface ParsedHistoricalDate {
+  readonly raw: string
+  readonly year: number
+  readonly month: number | null
+  readonly day: number | null
+  /** Comparable token at the precision actually authored. */
+  readonly precisionToken: string
+}
+
+function parseDateToken(value: string | undefined): ParsedHistoricalDate | null {
   if (!value || value.trim().length === 0) return null
   const trimmed = value.trim()
-  // Accept ISO-ish YYYY or YYYY-MM-DD for ordering only.
+  // Accept ISO-ish YYYY or YYYY-MM-DD; preserve authored precision.
   const match = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(trimmed)
   if (!match) return null
   const year = Number(match[1])
-  const month = Number(match[2] ?? '01')
-  const day = Number(match[3] ?? '01')
-  if (!Number.isFinite(year) || month < 1 || month > 12 || day < 1 || day > 31) {
-    return null
-  }
-  return year * 10000 + month * 100 + day
+  const month = match[2] !== undefined ? Number(match[2]) : null
+  const day = match[3] !== undefined ? Number(match[3]) : null
+  if (!Number.isFinite(year)) return null
+  if (month !== null && (month < 1 || month > 12)) return null
+  if (day !== null && (day < 1 || day > 31)) return null
+  const precisionToken =
+    day !== null
+      ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      : month !== null
+        ? `${year}-${String(month).padStart(2, '0')}`
+        : `${year}`
+  return Object.freeze({ raw: trimmed, year, month, day, precisionToken })
+}
+
+function datesConflict(
+  left: ParsedHistoricalDate,
+  right: ParsedHistoricalDate,
+): boolean {
+  if (left.year !== right.year) return true
+  if (left.month === null || right.month === null) return false
+  if (left.month !== right.month) return true
+  if (left.day === null || right.day === null) return false
+  return left.day !== right.day
+}
+
+function dateOrderKey(date: ParsedHistoricalDate): number {
+  return (
+    date.year * 10000 +
+    (date.month ?? 1) * 100 +
+    (date.day ?? 1)
+  )
 }
 
 /**
@@ -198,10 +232,23 @@ export function validateHistoricalChronology(
       })
       continue
     }
-    byId.set(record.recordId.trim(), record)
+    const recordId = record.recordId.trim()
+    if (byId.has(recordId)) {
+      diagnostics.push({
+        code: 'malformed_record',
+        severity: 'error',
+        recordId,
+        eventId: record.eventId.trim(),
+        message: `Duplicate recordId ${recordId}`,
+      })
+      continue
+    }
+    byId.set(recordId, record)
   }
 
   const fingerprintCounts = new Map<string, string[]>()
+  /** Pairs linked by explicit supersession — date corrections skip conflicting_dates. */
+  const supersessionPairs = new Set<string>()
   for (const record of byId.values()) {
     const recordId = record.recordId.trim()
     const eventId = record.eventId.trim()
@@ -273,7 +320,11 @@ export function validateHistoricalChronology(
     const occurrence = parseDateToken(record.approximateDate)
     const discovery = parseDateToken(record.discoveryDate)
     const publication = parseDateToken(record.publicationDate)
-    if (occurrence !== null && discovery !== null && discovery < occurrence) {
+    if (
+      occurrence !== null &&
+      discovery !== null &&
+      dateOrderKey(discovery) < dateOrderKey(occurrence)
+    ) {
       diagnostics.push({
         code: 'impossible_order',
         severity: 'error',
@@ -282,7 +333,11 @@ export function validateHistoricalChronology(
         message: 'discoveryDate precedes approximateDate',
       })
     }
-    if (occurrence !== null && publication !== null && publication < occurrence) {
+    if (
+      occurrence !== null &&
+      publication !== null &&
+      dateOrderKey(publication) < dateOrderKey(occurrence)
+    ) {
       diagnostics.push({
         code: 'impossible_order',
         severity: 'error',
@@ -304,17 +359,32 @@ export function validateHistoricalChronology(
     fingerprintCounts.set(fingerprint, bucket)
 
     if (record.supersedesRecordId) {
-      const prior = byId.get(record.supersedesRecordId.trim())
-      if (prior) {
-        // Prior remains readable — no diagnostic. Mark superseded prior as stale warning.
+      const priorId = record.supersedesRecordId.trim()
+      if (priorId === recordId) {
         diagnostics.push({
-          code: 'stale_record',
-          severity: 'warning',
-          recordId: prior.recordId.trim(),
-          eventId: prior.eventId.trim(),
-          message: `Record superseded by ${recordId}`,
-          relatedRecordIds: [recordId],
+          code: 'malformed_record',
+          severity: 'error',
+          recordId,
+          eventId,
+          message: 'Record cannot supersede itself',
         })
+      } else {
+        const prior = byId.get(priorId)
+        if (prior) {
+          const pairKey =
+            recordId < priorId
+              ? `${recordId}|${priorId}`
+              : `${priorId}|${recordId}`
+          supersessionPairs.add(pairKey)
+          diagnostics.push({
+            code: 'stale_record',
+            severity: 'warning',
+            recordId: prior.recordId.trim(),
+            eventId: prior.eventId.trim(),
+            message: `Record superseded by ${recordId}`,
+            relatedRecordIds: [recordId],
+          })
+        }
       }
     }
   }
@@ -344,27 +414,43 @@ export function validateHistoricalChronology(
     const dated = group
       .map((r) => ({
         recordId: r.recordId.trim(),
-        token: parseDateToken(r.approximateDate),
-        layer: r.truthLayer,
+        parsed: parseDateToken(r.approximateDate),
       }))
-      .filter((entry) => entry.token !== null)
-    const uniqueTokens = [...new Set(dated.map((entry) => entry.token!))]
-    if (uniqueTokens.length > 1) {
+      .filter((entry) => entry.parsed !== null)
+    const conflictingIds: string[] = []
+    for (let i = 0; i < dated.length; i += 1) {
+      for (let j = i + 1; j < dated.length; j += 1) {
+        const leftId = dated[i]!.recordId
+        const rightId = dated[j]!.recordId
+        const pairKey =
+          leftId < rightId ? `${leftId}|${rightId}` : `${rightId}|${leftId}`
+        // Explicit supersession is the correction path — do not flag that pair.
+        if (supersessionPairs.has(pairKey)) continue
+        if (datesConflict(dated[i]!.parsed!, dated[j]!.parsed!)) {
+          if (!conflictingIds.includes(leftId)) conflictingIds.push(leftId)
+          if (!conflictingIds.includes(rightId)) conflictingIds.push(rightId)
+        }
+      }
+    }
+    if (conflictingIds.length > 0) {
       diagnostics.push({
         code: 'conflicting_dates',
         severity: 'error',
-        recordId: dated[0]!.recordId,
+        recordId: conflictingIds[0]!,
         eventId,
         message: 'Conflicting approximateDate values for the same eventId',
-        relatedRecordIds: dated.map((entry) => entry.recordId),
+        relatedRecordIds: conflictingIds,
       })
     }
 
     const layers = new Set(group.map((r) => r.truthLayer))
     if (layers.size > 1) {
-      const hasNotes = group.some(
-        (r) => (r.contradictionNotes?.length ?? 0) > 0 || r.supersedesRecordId,
-      )
+      const hasValidSupersession = group.some((r) => {
+        const priorId = r.supersedesRecordId?.trim()
+        return Boolean(priorId && priorId !== r.recordId.trim() && byId.has(priorId))
+      })
+      const hasNotes =
+        group.some((r) => (r.contradictionNotes?.length ?? 0) > 0) || hasValidSupersession
       if (!hasNotes) {
         diagnostics.push({
           code: 'unresolved_contradiction',

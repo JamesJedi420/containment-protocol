@@ -114,6 +114,17 @@ describe('SPE-408 persistent area shapes', () => {
     expect(surfaceAdjWithoutSurface.activeLayers).toEqual([])
     expect(surfaceAdjWithoutSurface.reasons.some((r) => r.startsWith('no-contact:'))).toBe(true)
 
+    const surfaceAdjMissingGraph = evaluatePersistentAreaShape({
+      shape: wallBase,
+      contact: {
+        locationId: 'corridor-1',
+        dwellTicks: 2,
+        contactingSurfaceId: 'floor-a',
+      },
+    })
+    expect(surfaceAdjMissingGraph.activeLayers).toEqual([])
+    expect(surfaceAdjMissingGraph.reasons).toContain('missing-surfaces')
+
     const moved = evaluatePersistentAreaShape({
       shape: { ...cloudBase, anchorLocationId: 'room-b' },
       contact: { locationId: 'room-b', dwellTicks: 3 },

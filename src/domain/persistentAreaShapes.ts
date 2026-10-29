@@ -227,11 +227,25 @@ export function evaluatePersistentAreaShape(args: {
   // Footprint is always the current anchor. Walls and surfaceAdjacency also need surface contact.
   const atAnchor = locationId === shape.anchorLocationId
   const needsSurface = shape.family === 'wall' || shape.conduit === 'surfaceAdjacency'
+  const surfaces = args.surfaces ?? []
   const familyContactOk = atAnchor && (!needsSurface || Boolean(surfaceId))
 
   if (!familyContactOk) {
     if (!atAnchor) reasons.push('outside-footprint')
     else reasons.push(`no-contact:${shape.family}`)
+    return Object.freeze({
+      shapeId: shape.shapeId,
+      family: shape.family,
+      activeLayers: Object.freeze([]),
+      escalated: false,
+      affectedLocationIds: Object.freeze([]),
+      surfaceRoutedIds: Object.freeze([]),
+      reasons: Object.freeze([...reasons].sort(compareAscii)),
+    })
+  }
+
+  if (shape.conduit === 'surfaceAdjacency' && surfaces.length === 0) {
+    reasons.push('missing-surfaces')
     return Object.freeze({
       shapeId: shape.shapeId,
       family: shape.family,
@@ -254,7 +268,7 @@ export function evaluatePersistentAreaShape(args: {
   if (shape.conduit === 'surfaceAdjacency') {
     surfaceRoutedIds = routeSurfaceAdjacency({
       originSurfaceId: surfaceId,
-      surfaces: args.surfaces ?? [],
+      surfaces,
       maxHops: 2,
     })
     reasons.push('conduit:surfaceAdjacency')

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4483 @ `f00cc621`) |
 | **Issue** | [SPE-872](https://linear.app/spectranoir/issue/SPE-872/process-safety-information-gate) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-872-process-safety-information-gate` |

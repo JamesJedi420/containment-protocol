@@ -41,7 +41,9 @@ export function createPersistedTutorialRecord(
 export function normalizeTutorialRuntime(value: unknown): TutorialRuntimeState | undefined {
   if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.records)) return undefined
   const records: Record<string, PersistedTutorialRecord> = Object.create(null)
-  for (const id of Object.keys(value.records).sort().slice(0, TUTORIAL_RECORD_LIMIT)) {
+  let accepted = 0
+  for (const id of Object.keys(value.records).sort()) {
+    if (accepted >= TUTORIAL_RECORD_LIMIT) break
     const raw = value.records[id]
     if (
       !isTutorialIdentifier(id) ||
@@ -79,6 +81,7 @@ export function normalizeTutorialRuntime(value: unknown): TutorialRuntimeState |
           : {}),
       }),
     })
+    accepted += 1
   }
   return Object.freeze({ schemaVersion: 1, records: Object.freeze(records) })
 }

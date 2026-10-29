@@ -87,6 +87,25 @@ describe('canonical tutorial persistence', () => {
     expect(changed.runtimeState?.globalFlags['test:ordinary']).toBe(true)
   })
 
+  it('rehydrates the production Zustand persistence envelope', async () => {
+    const options = useGameStore.persist.getOptions()
+    if (!options.storage) throw new Error('Expected canonical persistence storage')
+    useGameStore.getState().applyTutorialCommand(definition, { type: 'start', expectedRevision: 0 })
+    useGameStore
+      .getState()
+      .applyTutorialCommand(definition, { type: 'advance', expectedRevision: 1, stepId: 'one' })
+    const saved = await options.storage.getItem(options.name)
+    if (!saved) throw new Error('Expected stored game')
+    useGameStore.setState({ game: createStartingState() })
+    await options.storage.setItem(options.name, saved)
+    await useGameStore.persist.rehydrate()
+    expect(getTutorialLifecycle(useGameStore.getState().game, definition)).toMatchObject({
+      status: 'active',
+      cursor: 1,
+      stepStatuses: ['completed', 'active'],
+    })
+  })
+
   it('resumes interrupted guidance at the saved step without repeating completed steps', () => {
     const interrupted = roundTrip(command(active(), 'interrupt'))
     const resumed = command(interrupted, 'resume')
@@ -200,6 +219,20 @@ describe('canonical tutorial persistence', () => {
           normalizeTutorialRuntime({ schemaVersion: 1, records: { [definition.id]: bad } })!.records
         )
       ).toEqual([])
+  })
+
+  it('does not let malformed siblings consume the valid-record capacity', () => {
+    const good = active().runtimeState!.tutorials!.records[definition.id]
+    const records: Record<string, unknown> = Object.fromEntries(
+      Array.from({ length: TUTORIAL_RECORD_LIMIT }, (_, index) => [
+        `a-bad-${index}`,
+        { stepIds: [] },
+      ])
+    )
+    records[definition.id] = good
+    expect(Object.keys(normalizeTutorialRuntime({ schemaVersion: 1, records })!.records)).toEqual([
+      definition.id,
+    ])
   })
 })
 

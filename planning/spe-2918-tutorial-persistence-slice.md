@@ -32,8 +32,12 @@ SPE-2919 owns presentation adapters; SPE-2920 owns archive/delivery/telemetry in
 
 ## Pre-ship audit and validation
 
-Six passes completed: scope/integration (single RuntimeState branch and existing store/save authority); edge cases (malformed/future/legacy payloads, caps, identity/version mismatch); determinism/state (pure derived migrations, immutable copies, stale revision rejection, no production actions); regression (save/run-transfer/runtime and browser checks); docs/schema/handoff; cleanup (no-op commands avoid store writes; unrelated legacy formatting preserved). Repeated after corrections; no remaining in-boundary findings.
+Six passes completed: scope/integration (single RuntimeState branch and existing store/save authority); edge cases (malformed/future/legacy payloads, caps, identity/version mismatch); determinism/state (pure derived migrations, immutable copies, stale revision rejection, no production actions); regression (save/run-transfer/runtime and browser checks); docs/schema/handoff; cleanup (no-op commands preserve store/game object identity; unrelated legacy formatting preserved). Repeated after corrections; no remaining in-boundary findings.
 
 Full suite: 965 files / 10,490 tests passed (`test:run:ci -- --maxWorkers=8 --reporter=dot`, 307.07s). After final no-op cleanup, focused six-file suite: 493 passed; changed-file lint passed. Full lint passed before that cleanup. Required Chromium: 11 passed, including reload continuity and week advance. Scoped Prettier and handoff validator pass. Forced compiler diagnostics exactly match the prior baseline after normalizing shifted source line/column numbers; no tutorial diagnostics. Local Node 24.18.0; PR CI verifies Node 22. No dependencies changed.
 
 Advisor architecture and completion preflights both returned parent_runtime_unavailable; no consultation process ran and the skill explicitly permits root work to proceed. Handoff Recently shipped status below becomes effective on merge; Linear remains In Progress until the approved boundary merges.
+
+## Independent PR review corrections
+
+Full diff reviewed against main, including schema, normalizer, managed/store integration, migration policy, tests and handoff. Root review and Codex independently found malformed records consuming the hydration cap; the cap now counts accepted records, with a regression preserving a valid sibling after 128 malformed entries. Adopted the store updater-callback pattern requested by Amazon Q, returning the current store object for no-op commands. Added a direct production Zustand storage-envelope rehydration test. Final focused suite: 495 tests across six files passed; changed-file lint passes. All six passes rechecked; no remaining in-boundary findings.

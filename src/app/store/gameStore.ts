@@ -924,11 +924,14 @@ export const useGameStore = create<GameStore>()(
       },
 
       applyTutorialCommand: (definition, command, eligibility) => {
-        const previous = get().game
-        const result = applyTutorialCommandState(previous, definition, command, eligibility)
-        if (result.state === previous) return false
-        set({ game: result.state })
-        return true
+        let changed = false
+        set((s) => {
+          const result = applyTutorialCommandState(s.game, definition, command, eligibility)
+          if (result.state === s.game) return s
+          changed = true
+          return { game: result.state }
+        })
+        return changed
       },
 
       setPersistentFlag: (flagId, value = true) =>

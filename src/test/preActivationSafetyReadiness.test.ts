@@ -31,7 +31,7 @@ describe('SPE-876 pre-activation safety readiness', () => {
     )
     expect(blocked.authority).toBe('blocked')
     expect(blocked.activationAllowed).toBe(false)
-    expect(blocked.blockingConditions).toContain('construction')
+    expect(blocked.blockingConditions).toEqual(['construction'])
 
     const authorized = evaluatePreActivationSafetyReadiness(readyFirstStartup())
     expect(authorized.authority).toBe('authorized')
@@ -88,13 +88,13 @@ describe('SPE-876 pre-activation safety readiness', () => {
       readyFirstStartup({ reviewFindingsClosed: false }),
     )
     expect(openReview.activationAllowed).toBe(false)
-    expect(openReview.blockingConditions).toContain('review_findings')
+    expect(openReview.blockingConditions).toEqual(['review_findings'])
 
     const trainingGap = evaluatePreActivationSafetyReadiness(
       readyFirstStartup({ trainingComplete: false }),
     )
     expect(trainingGap.activationAllowed).toBe(false)
-    expect(trainingGap.blockingConditions).toContain('training')
+    expect(trainingGap.blockingConditions).toEqual(['training'])
 
     const majorChangeOpenReview = evaluatePreActivationSafetyReadiness(
       createPreActivationReadinessSnapshot({

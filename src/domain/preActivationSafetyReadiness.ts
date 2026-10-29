@@ -39,7 +39,7 @@ export interface PreActivationReadinessState {
   readonly authority: ActivationAuthority
   readonly activationAllowed: boolean
   readonly requiredBundle: readonly ReadinessPrerequisite[]
-  readonly blockingConditions: readonly string[]
+  readonly blockingConditions: readonly ReadinessPrerequisite[]
   readonly reasons: readonly string[]
 }
 
@@ -151,7 +151,7 @@ export function evaluatePreActivationSafetyReadiness(
 ): PreActivationReadinessState {
   const snapshot = createPreActivationReadinessSnapshot(input)
   const requiredBundle = readinessBundleForKind(snapshot.activationKind)
-  const blocking: string[] = []
+  const blocking: ReadinessPrerequisite[] = []
   const reasons: string[] = []
 
   for (const prerequisite of requiredBundle) {

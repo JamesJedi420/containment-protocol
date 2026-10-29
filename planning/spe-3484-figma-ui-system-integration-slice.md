@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4503) |
 | **Issue** | [SPE-3484](https://linear.app/spectranoir/issue/SPE-3484/figma-ui-system-integration-agent-design-bridge) |
 | **Related** | Plugin keep-list (`docs/agent-cursor-plugins.md`); UI CSS (`src/index.css`) |
 | **Branch** | `jamesdyedbq/spe-3484-figma-ui-system-integration-agent-design-bridge` |

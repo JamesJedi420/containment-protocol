@@ -70,6 +70,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 | Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                   |
 | Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`    |
 | Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md` |
+| Req. validators | `npm run verify:requirements`    | SPE-3348 path→validator selection (local/CI parity); see `docs/repository-validation-requirements.md` |
 
 ### Non-obvious caveats
 

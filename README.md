@@ -57,13 +57,21 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
 | `npm run verify:backlog-handoff` | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`. |
 | `npm run verify:theme-contracts` | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`. |
+| `npm run verify:requirements`    | SPE-3348: resolve and run path-selected required validators (local/CI parity).        |
+| `npm run verify:requirements:test` | SPE-3348 selection / unavailable / missing-required unit tests.                    |
 | `npm run build`                  | Run the TypeScript project build and Vite production bundle. See the note below.      |
 
 `npm run build` is a type-contract gate, not the current day-to-day development gate. The app, tests, and dev server use Vite successfully, but strict project build can expose known type-contract drift that should be fixed in scoped follow-up slices before treating build as a deployment blocker.
 
 ## Validation
 
-Before opening a pull request, run the checks that match the scope of your change:
+Before opening a pull request, prefer the shared requirement resolver (SPE-3348), which selects the same validators CI will run:
+
+```bash
+npm run verify:requirements -- --base origin/main
+```
+
+Or run checks that match the scope of your change manually:
 
 ```bash
 npm run lint
@@ -78,6 +86,8 @@ npm run verify:audits-index
 npm run verify:backlog-handoff
 npm run verify:theme-contracts
 ```
+
+See `docs/repository-validation-requirements.md`.
 
 GitHub Actions on pull requests runs lint, audit verification, theme-contract verification, and tests. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 

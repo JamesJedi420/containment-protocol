@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -27,42 +29,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Verify design audits index
-        run: npm run verify:audits-index
-
-      - name: Verify backlog handoff
-        run: npm run verify:backlog-handoff
-
-      - name: Verify external theme contracts
-        run: npm run verify:theme-contracts
-
-      - name: Verify canonical governance contract
-        run: npm run verify:governance-contract
-
-      - name: Run tests (non-watch)
-        run: npm run test:run:ci
+      # SPE-3348 — same requirement resolver as local pre-ship.
+      # Playwright stays in its own job (browser install). Exclude it here.
+      - name: Resolve and run required validators
+        env:
+          # Prefer PR base SHA; on push skip all-zero "before" (new branch) and use HEAD~1 via runner default.
+          VALIDATION_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$VALIDATION_BASE" ] && [ "$VALIDATION_BASE" != "0000000000000000000000000000000000000000" ]; then
+            export VALIDATION_BASE
+          else
+            unset VALIDATION_BASE
+          fi
+          npm run verify:requirements -- --ci --exclude=playwright-e2e
 
       # Coverage re-runs the full suite under instrumentation (~as long as the test
       # step). Keep it on main pushes only so PR babysit stays one suite deep.
+      # Only when unit-tests were in the required set for this change.
       - name: Coverage
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: npm run coverage:ci
 
-  # SPE-3458 — advisory Chromium E2E. Visible pass/fail + artifacts.
-  # Not a required merge gate (SPE-3348 owns required-validator policy).
-  # Does not replace or duplicate the Vitest job above.
+  # SPE-3348 — Playwright selection from the shared requirement model.
+  # Required when e2e harness paths change; advisory for player-path UI changes.
+  # Not an unconditional continue-on-error flip for every PR.
   playwright-e2e:
-    name: playwright-e2e (advisory)
+    name: playwright-e2e
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       CI: true
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -73,14 +73,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve Playwright requirement
+        id: pw
+        env:
+          VALIDATION_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$VALIDATION_BASE" ] && [ "$VALIDATION_BASE" != "0000000000000000000000000000000000000000" ]; then
+            export VALIDATION_BASE
+          else
+            unset VALIDATION_BASE
+          fi
+          node scripts/validation/emit-playwright-gate.mjs >> "$GITHUB_OUTPUT"
+
       - name: Install Playwright Chromium
+        if: steps.pw.outputs.selected == 'true'
         run: npx playwright install chromium --with-deps
 
-      - name: Run Playwright E2E (advisory)
+      - name: Run Playwright E2E
+        id: e2e
+        if: steps.pw.outputs.selected == 'true'
+        continue-on-error: ${{ steps.pw.outputs.enforcement != 'required' }}
         run: npm run test:e2e:ci
 
+      - name: Skip notice when Playwright not selected
+        if: steps.pw.outputs.selected != 'true'
+        run: echo "Playwright not selected for this change set (SPE-3348 resolver)."
+
       - name: Upload Playwright report
-        if: always()
+        if: always() && steps.pw.outputs.selected == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

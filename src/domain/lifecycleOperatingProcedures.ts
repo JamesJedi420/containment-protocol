@@ -204,11 +204,14 @@ export function evaluateLifecycleProcedure(args: {
 }): LifecycleProcedureEvaluation {
   const systemId = requireNonEmpty(args.systemId, 'systemId')
   const phase = requireLifecyclePhase(args.phase)
-  const match = args.catalog.find((entry) => entry.phase === phase)
-  if (!match) {
+  const matches = args.catalog.filter((entry) => entry.phase === phase)
+  if (matches.length === 0) {
     throw new Error(`lifecycle procedure missing for phase ${phase}`)
   }
-  const procedure = createPhaseProcedure(match)
+  if (matches.length > 1) {
+    throw new Error(`lifecycle procedure ambiguous for phase ${phase}`)
+  }
+  const procedure = createPhaseProcedure(matches[0]!)
   return Object.freeze({
     systemId,
     phase: procedure.phase,

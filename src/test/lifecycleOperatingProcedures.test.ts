@@ -102,6 +102,22 @@ describe('SPE-874 lifecycle operating procedures', () => {
       'outside-window',
       'precondition:tags-hung',
     ])
+
+    const unauthorized = evaluateSafeWorkPermitGate({
+      permit: { ...lotoPermit, authorized: false },
+      assetId: 'eq-pump-1',
+      currentWeek: 11,
+      satisfiedPreconditions: ['energy-isolated', 'tags-hung'],
+    })
+    expect(unauthorized.blockingReasons).toEqual(['not-authorized'])
+
+    expect(() =>
+      createSafeWorkPermit({
+        ...lotoPermit,
+        windowEndWeek: 5,
+        windowStartWeek: 10,
+      }),
+    ).toThrow(/windowEndWeek must be >= windowStartWeek/)
   })
 
   it('marks procedure sets stale without timely attestation', () => {
@@ -116,6 +132,18 @@ describe('SPE-874 lifecycle operating procedures', () => {
     expect(current.stale).toBe(false)
     expect(current.freshness).toBe('current')
 
+    const atBoundary = evaluateProcedureAttestation({
+      attestation: {
+        procedureSetId: 'set-cryo',
+        lastAttestedWeek: 10,
+        attestationIntervalWeeks: 52,
+      },
+      currentWeek: 62,
+    })
+    expect(atBoundary.weeksSinceAttestation).toBe(52)
+    expect(atBoundary.stale).toBe(false)
+    expect(atBoundary.freshness).toBe('current')
+
     const stale = evaluateProcedureAttestation({
       attestation: {
         procedureSetId: 'set-cryo',
@@ -127,5 +155,21 @@ describe('SPE-874 lifecycle operating procedures', () => {
     expect(stale.stale).toBe(true)
     expect(stale.freshness).toBe('stale')
     expect(stale.weeksSinceAttestation).toBe(59)
+
+    expect(() =>
+      evaluateLifecycleProcedure({
+        systemId: 'sys-a',
+        phase: 'emergency_shutdown',
+        catalog: [startup, normal],
+      }),
+    ).toThrow(/missing for phase emergency_shutdown/)
+
+    expect(() =>
+      evaluateLifecycleProcedure({
+        systemId: 'sys-a',
+        phase: 'startup',
+        catalog: [startup, { ...startup, procedureId: 'proc-startup-dup' }],
+      }),
+    ).toThrow(/ambiguous for phase startup/)
   })
 })

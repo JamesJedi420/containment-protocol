@@ -225,10 +225,10 @@ export function isTutorialLifecycleState(
     state.definitionVersion !== definition.version ||
     !Number.isSafeInteger(state.revision) ||
     state.revision < 0 ||
-    state.revision >= Number.MAX_SAFE_INTEGER ||
+    state.revision > Number.MAX_SAFE_INTEGER ||
     !Number.isSafeInteger(state.run) ||
     state.run < 0 ||
-    state.run >= Number.MAX_SAFE_INTEGER ||
+    state.run > Number.MAX_SAFE_INTEGER ||
     !Number.isInteger(state.cursor) ||
     state.cursor < 0 ||
     state.cursor >= definition.steps.length ||
@@ -262,6 +262,8 @@ export function transitionTutorial(
   })
   if (!isTutorialLifecycleState(state, definition)) return unchanged('invalid_state')
   if (command.expectedRevision !== state.revision) return unchanged('stale')
+  if (state.revision === Number.MAX_SAFE_INTEGER || state.run === Number.MAX_SAFE_INTEGER)
+    return unchanged('invalid_state')
   const update = (patch: Partial<TutorialLifecycleState>): TutorialTransitionResult => ({
     state: freezeState({ ...state, ...patch, revision: state.revision + 1 }),
     changed: true,

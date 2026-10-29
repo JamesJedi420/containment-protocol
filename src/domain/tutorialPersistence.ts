@@ -42,7 +42,7 @@ export function normalizeTutorialRuntime(value: unknown): TutorialRuntimeState |
   if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.records)) return undefined
   const records: Record<string, PersistedTutorialRecord> = Object.create(null)
   let accepted = 0
-  for (const id of Object.keys(value.records).sort()) {
+  for (const id of Object.keys(value.records).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
     if (accepted >= TUTORIAL_RECORD_LIMIT) break
     const raw = value.records[id]
     if (

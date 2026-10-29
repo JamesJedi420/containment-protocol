@@ -1193,8 +1193,8 @@ export function normalizeRuntimeState(
   const base = fallback ?? createDefaultRuntimeState(week)
 
   if (!isRecord(value)) {
-    const { tutorials, ...legacyBase } = base
-    void tutorials
+    const legacyBase = { ...base }
+    delete legacyBase.tutorials
     return legacyBase
   }
 
@@ -1430,7 +1430,7 @@ export function applyTutorialCommand(
         tutorials: {
           schemaVersion: 1,
           records: {
-            ...(runtime?.records ?? {}),
+            ...runtime?.records,
             [definition.id]: createPersistedTutorialRecord(definition, result.state),
           },
         },

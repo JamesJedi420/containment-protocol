@@ -158,6 +158,51 @@ describe('canonical tutorial persistence', () => {
     expect(duplicate.state).toBe(loaded)
   })
 
+  it('preserves an exhausted final completion counter across reload without allowing overflow', () => {
+    const base = active()
+    const tutorials = base.runtimeState!.tutorials!
+    const record = tutorials.records[definition.id]
+    const game: GameState = {
+      ...base,
+      runtimeState: {
+        ...base.runtimeState!,
+        tutorials: {
+          ...tutorials,
+          records: {
+            ...tutorials.records,
+            [definition.id]: {
+              ...record,
+              lifecycle: { ...record.lifecycle, revision: Number.MAX_SAFE_INTEGER - 1 },
+            },
+          },
+        },
+      },
+    }
+    const completed = applyTutorialCommand(game, definition, {
+      type: 'complete',
+      expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+      stepId: 'two',
+    }).state
+    const loaded = roundTrip(completed)
+    expect(getTutorialLifecycle(loaded, definition)).toMatchObject({
+      status: 'completed',
+      revision: Number.MAX_SAFE_INTEGER,
+    })
+    expect(
+      applyTutorialCommand(loaded, definition, {
+        type: 'complete',
+        expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+        stepId: 'two',
+      }).result?.reason
+    ).toBe('stale')
+    expect(
+      applyTutorialCommand(loaded, definition, {
+        type: 'replay_start',
+        expectedRevision: Number.MAX_SAFE_INTEGER,
+      }).state
+    ).toBe(loaded)
+  })
+
   it('leaves legacy saves unbound even when a fallback contains tutorial progress', () => {
     const old = createStartingState()
     const loaded = hydrateGame(old, active())

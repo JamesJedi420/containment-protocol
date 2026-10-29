@@ -152,12 +152,20 @@
     {
       "id": "playwright-e2e",
       "ownerIssue": "SPE-3458",
-      "ownerNote": "Shared Chromium E2E harness. SPE-3348 selects required vs advisory; does not redefine Playwright assertions.",
+      "ownerNote": "Shared Chromium E2E harness. SPE-3348/SPE-3481 select required vs advisory; does not redefine Playwright assertions. Deep sim stays Vitest.",
       "npmScript": "test:e2e",
       "ciNpmScript": "test:e2e:ci",
       "enforcement": "advisory",
       "requiredWhen": {
-        "pathGlobs": ["e2e/**", "playwright.config.ts"]
+        "pathGlobs": [
+          "e2e/**",
+          "playwright.config.ts",
+          "src/features/operations/FrontDeskPage.tsx",
+          "src/features/operations/frontDeskView.ts",
+          "src/components/layout/ShellStatusBar.tsx",
+          "src/components/layout/shellStatusBarView.ts",
+          "src/app/store/gameStore.ts"
+        ]
       },
       "activation": {
         "changeClasses": ["e2e", "application"],

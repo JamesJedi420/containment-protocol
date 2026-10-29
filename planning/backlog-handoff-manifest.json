@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-874"],
+  "inProgress": ["SPE-263"],
   "recentlyShipped": [
+    "SPE-874",
     "SPE-876",
     "SPE-872",
     "SPE-870",
@@ -113,7 +114,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-874-lifecycle-operating-procedures-slice.md": "In progress",
+    "planning/spe-263-confined-space-explosion-slice.md": "In progress",
+    "planning/spe-874-lifecycle-operating-procedures-slice.md": "Recently shipped",
     "planning/spe-876-pre-activation-safety-readiness-slice.md": "Recently shipped",
     "planning/spe-872-process-safety-information-gate-slice.md": "Recently shipped",
     "planning/spe-870-process-safety-coverage-slice.md": "Recently shipped",

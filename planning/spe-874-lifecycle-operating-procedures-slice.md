@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4485 @ `76b5ac07`) |
 | **Issue** | [SPE-874](https://linear.app/spectranoir/issue/SPE-874/lifecycle-operating-procedures-and-permit-controls) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-874-lifecycle-operating-procedures-and-permit-controls` |

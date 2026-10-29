@@ -108,9 +108,9 @@ export async function hireFirstEnabledCandidate(page: Page): Promise<void> {
 
   const hireButtons = page.getByRole('button', { name: /^Hire$/i })
   await expect(hireButtons.first()).toBeVisible({ timeout: 15_000 })
-  const count = await hireButtons.count()
+  const countBefore = await hireButtons.count()
   let hired = false
-  for (let i = 0; i < count; i += 1) {
+  for (let i = 0; i < countBefore; i += 1) {
     const button = hireButtons.nth(i)
     if (await button.isEnabled()) {
       await button.click()
@@ -121,6 +121,10 @@ export async function hireFirstEnabledCandidate(page: Page): Promise<void> {
   expect(hired, 'expected at least one hireable recruitment candidate after week advance').toBe(
     true,
   )
+  // Hired candidates leave the live board — count drop confirms the action mutated state.
+  await expect
+    .poll(async () => hireButtons.count())
+    .toBeLessThan(countBefore)
 }
 
 /** Agency command surface: buy one facility maintenance package when funded. */
@@ -128,10 +132,25 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   await openFutureExpansionNav(page, 'Agency')
   await expect(page).toHaveURL(/\/agency/)
   await expect(page.getByRole('heading', { name: 'Agency Command' })).toBeVisible()
+  const fundingLine = page.getByText(/Available funding:/i)
+  await expect(fundingLine).toBeVisible()
+  const fundingBefore = Number(
+    /Available funding:\s*(\d+)/i.exec((await fundingLine.textContent()) ?? '')?.[1] ?? 'NaN',
+  )
+  expect(Number.isFinite(fundingBefore), 'expected numeric Available funding before purchase').toBe(
+    true,
+  )
   const buy = page.getByRole('button', { name: 'Buy maintenance package' })
   await expect(buy).toBeEnabled()
   await buy.click()
-  await expect(page.getByText(/Recovery budget:/i)).toBeVisible()
+  // Package credits recovery budget and deducts funding — assert both mutated.
+  await expect(page.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i)).toBeVisible()
+  await expect
+    .poll(async () => {
+      const text = (await fundingLine.textContent()) ?? ''
+      return Number(/Available funding:\s*(\d+)/i.exec(text)?.[1] ?? 'NaN')
+    })
+    .toBeLessThan(fundingBefore)
 }
 
 export function expectNoPageErrors(probe: PageErrorProbe): void {

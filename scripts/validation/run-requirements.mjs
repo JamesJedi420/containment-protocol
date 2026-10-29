@@ -233,10 +233,17 @@ function runOne(selected, { ci, dryRun }) {
   const isolateStdout = Boolean(process.env.VALIDATION_JSON_ISOLATE)
   const result = spawnSync(finalCommand, finalArgs, {
     encoding: 'utf8',
-    stdio: isolateStdout ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+    // When emitting JSON on stdout, capture child streams and mirror them to
+    // stderr so diagnostics are preserved without polluting the JSON report.
+    stdio: isolateStdout ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    maxBuffer: isolateStdout ? 64 * 1024 * 1024 : undefined,
     env: process.env,
     shell: process.platform === 'win32' && invocation.kind === 'npm',
   })
+  if (isolateStdout) {
+    if (result.stdout) process.stderr.write(result.stdout)
+    if (result.stderr) process.stderr.write(result.stderr)
+  }
 
   if (result.status === 0) {
     return {

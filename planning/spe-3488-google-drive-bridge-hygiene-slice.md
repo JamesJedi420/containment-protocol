@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3488](https://linear.app/spectranoir/issue/SPE-3488/google-drive-bridge-hygiene-skill-story-knowledge-migration) |
 | **Related** | SPE-3487 |
 | **Branch** | `jamesdyedbq/spe-3488-google-drive-bridge-hygiene-skill-story-knowledge-migration` |

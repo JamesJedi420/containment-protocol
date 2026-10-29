@@ -11,7 +11,8 @@ Client-only SPA rule still applies: **never** add a Google Drive SDK, OAuth clie
 | Shipped code / engineering SoT | Git repo + Linear |
 | Drive role | Story knowledge, social/marketing briefs, design drafts; optional planning exports when asked |
 | Write strategy | Agent-owned folder tree (MCP `create_folder`) so writes succeed under `drive.file` |
-| Usage intensity | Proactive for drafts when useful; do **not** auto-mirror every planning/handoff note |
+| Usage intensity | Proactive for story/social/design drafts; skip domain/sim-only; do **not** auto-mirror every planning/handoff note |
+| Story Knowledge home | Agent `Story Knowledge` folder only (SPE-3488 copies); do not write to pre-migration originals |
 | Runtime | No Drive dependency in the app |
 
 ## Registry files
@@ -45,14 +46,22 @@ Do **not** prompt when the slice does not need Drive (domain/sim, or work that s
 ### Create a draft Doc or Sheet
 
 1. Resolve destination folder id from `file-registry.json` (never invent ids).
-2. `create_file` with `parentId`, Markdown/`text/markdown` → `application/vnd.google-apps.document`, or CSV → spreadsheet.
-3. Confirm with `list_folder` or `get_file_metadata` / `read_file`.
-4. Return `webViewLink` to the human. Share only if they asked (`share_file`).
+2. Docs: `create_file` with `contentMimeType: text/markdown`, `targetMimeType: application/vnd.google-apps.document`, and `parentId`.
+3. Sheets: `create_file` with `contentMimeType: text/csv`, `targetMimeType: application/vnd.google-apps.spreadsheet`, and `parentId`.
+4. Confirm with `list_folder` or `get_file_metadata` / `read_file`.
+5. Return `webViewLink` to the human. Share only if they asked (`share_file`).
+
+### Story Knowledge (single home)
+
+Canonical Registry / Canon / Scene Context live under the agent **Story Knowledge** folder. Ids are in `known-files.json` (`writableViaAgent: true`).
+
+- **New story drafts and updates** go only under that folder (or those file ids).
+- Pre-migration originals are listed under `supersededPreMigration` — do not treat them as writable. Agents cannot move/trash them under `drive.file`; the human may trash duplicates in the Drive UI.
 
 ### Read existing CP Story Knowledge
 
-1. Prefer ids in `known-files.json` for Registry / Canon / Scene Context Template.
-2. Otherwise `search` with exact or free-text query; re-search each session — do not reuse stale chat ids.
+1. Use agent-folder ids in `known-files.json` for Registry / Canon / Scene Context Template.
+2. Otherwise `search` with exact or free-text query; re-search each session — do not reuse stale chat ids; prefer hits under the agent workspace.
 3. `read_file` for Markdown/CSV text; `export_file` for PDF when a rendered look is needed.
 
 ### Social asset packs
@@ -75,4 +84,4 @@ Cursor’s Drive grant is typically `drive.file`: the app can create files/folde
 - Plugin keep-list: `docs/agent-cursor-plugins.md`
 - Cursor skill: `.cursor/skills/cp-google-drive-bridge/SKILL.md`
 - Marketplace skill: `google-drive`
-- Owner issue: [SPE-3487](https://linear.app/spectranoir/issue/SPE-3487)
+- Owner issues: [SPE-3487](https://linear.app/spectranoir/issue/SPE-3487) (bridge), [SPE-3488](https://linear.app/spectranoir/issue/SPE-3488) (hygiene + Story Knowledge migration)

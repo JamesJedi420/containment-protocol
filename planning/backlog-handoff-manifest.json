@@ -1,6 +1,6 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": ["SPE-3488"],
   "recentlyShipped": [
     "SPE-3487",
     "SPE-3486",
@@ -144,6 +144,7 @@
     "planning/spe-3484-figma-ui-system-integration-slice.md": "Recently shipped",
     "planning/spe-3486-figma-subscription-blocker-prompt-rule-slice.md": "Recently shipped",
     "planning/spe-3487-google-drive-agent-bridge-slice.md": "Recently shipped",
+    "planning/spe-3488-google-drive-bridge-hygiene-slice.md": "In progress",
     "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",
     "planning/spe-700-institution-calendars-slice.md": "Recently shipped",
     "planning/spe-1290-bounded-squad-composition-slice.md": "Recently shipped",

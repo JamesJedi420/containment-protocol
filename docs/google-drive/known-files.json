@@ -1,23 +1,49 @@
 {
-  "$schemaComment": "Bounded index of important pre-existing CP Drive files discoverable by search. Prefer search for Social Asset packs (many docs); do not invent ids.",
+  "$schemaComment": "Canonical Story Knowledge files live under the agent Story Knowledge folder (SPE-3488). Prefer these ids for reads/writes. Social Asset packs: search only; do not invent ids.",
   "storyKnowledge": [
     {
       "name": "CP Story Knowledge — Registry",
-      "fileId": "1S4yz4HphpCK4egYKRUXEB1mka5BiavzdTroXRPrHXB0",
+      "fileId": "1Y0Vhvo_Uv9nnHono8HM72Y6dk_IaMmMICSlDS23IUzE",
       "mimeType": "application/vnd.google-apps.spreadsheet",
-      "webViewLink": "https://docs.google.com/spreadsheets/d/1S4yz4HphpCK4egYKRUXEB1mka5BiavzdTroXRPrHXB0/edit?usp=drivesdk"
+      "webViewLink": "https://docs.google.com/spreadsheets/d/1Y0Vhvo_Uv9nnHono8HM72Y6dk_IaMmMICSlDS23IUzE/edit?usp=drivesdk",
+      "parentFolder": "Story Knowledge",
+      "parentFolderId": "1GG2vyxjtoL4JvNyB0EmbXwIA8c82hxKe",
+      "writableViaAgent": true
     },
     {
       "name": "CP Story Knowledge — Canon & Retrieval Protocol",
-      "fileId": "1R8sqZ6uFX450yMsoEge5ccGxG_lQzCLcP_ML57d917I",
+      "fileId": "1xj8s0jlBChVjDuXE_qPopYczptZ45x3HA-x8k0ib-XM",
       "mimeType": "application/vnd.google-apps.document",
-      "webViewLink": "https://docs.google.com/document/d/1R8sqZ6uFX450yMsoEge5ccGxG_lQzCLcP_ML57d917I/edit?usp=drivesdk"
+      "webViewLink": "https://docs.google.com/document/d/1xj8s0jlBChVjDuXE_qPopYczptZ45x3HA-x8k0ib-XM/edit?usp=drivesdk",
+      "parentFolder": "Story Knowledge",
+      "parentFolderId": "1GG2vyxjtoL4JvNyB0EmbXwIA8c82hxKe",
+      "writableViaAgent": true
     },
     {
       "name": "CP Story Knowledge — Scene Context Template",
-      "fileId": "1o9TIGdpJ3Urqp5wZ95z32ReV4PyDW59z0sl8WcvRZGQ",
+      "fileId": "1syiz5w3JoUHtYxgPF4EDHj71Mm0bdjPa0UgOZ6aL7Qk",
       "mimeType": "application/vnd.google-apps.document",
-      "webViewLink": "https://docs.google.com/document/d/1o9TIGdpJ3Urqp5wZ95z32ReV4PyDW59z0sl8WcvRZGQ/edit?usp=drivesdk"
+      "webViewLink": "https://docs.google.com/document/d/1syiz5w3JoUHtYxgPF4EDHj71Mm0bdjPa0UgOZ6aL7Qk/edit?usp=drivesdk",
+      "parentFolder": "Story Knowledge",
+      "parentFolderId": "1GG2vyxjtoL4JvNyB0EmbXwIA8c82hxKe",
+      "writableViaAgent": true
+    }
+  ],
+  "supersededPreMigration": [
+    {
+      "name": "CP Story Knowledge — Registry (pre-migration)",
+      "fileId": "1S4yz4HphpCK4egYKRUXEB1mka5BiavzdTroXRPrHXB0",
+      "notes": "Superseded by agent-folder copy. drive.file blocks agent trash/move; human may trash in Drive UI."
+    },
+    {
+      "name": "CP Story Knowledge — Canon & Retrieval Protocol (pre-migration)",
+      "fileId": "1R8sqZ6uFX450yMsoEge5ccGxG_lQzCLcP_ML57d917I",
+      "notes": "Superseded by agent-folder copy. Human may trash in Drive UI."
+    },
+    {
+      "name": "CP Story Knowledge — Scene Context Template (pre-migration)",
+      "fileId": "1o9TIGdpJ3Urqp5wZ95z32ReV4PyDW59z0sl8WcvRZGQ",
+      "notes": "Superseded by agent-folder copy. Human may trash in Drive UI."
     }
   ],
   "agentWorkspaceSeeds": [
@@ -27,18 +53,10 @@
       "mimeType": "application/vnd.google-apps.document",
       "webViewLink": "https://docs.google.com/document/d/1cNrZPOgLTkY95qEFkreqXcshiM41Tp-71hKO_SB2GAQ/edit?usp=drivesdk",
       "parentFolder": "canonicalAgentWorkspace"
-    },
-    {
-      "name": "Bridge smoke — Templates README",
-      "fileId": "1Upa3mv2LCn3O4zHQc1xAJJRfv0TlQA0Idm9sv0s8qdY",
-      "mimeType": "application/vnd.google-apps.document",
-      "webViewLink": "https://docs.google.com/document/d/1Upa3mv2LCn3O4zHQc1xAJJRfv0TlQA0Idm9sv0s8qdY/edit?usp=drivesdk",
-      "parentFolder": "Templates",
-      "notes": "SPE-3487 smoke; safe to edit or trash"
     }
   ],
   "socialAssetsDiscovery": {
-    "hint": "Search Drive for titles containing 'Containment Protocol' and 'Social' (or 'Social Asset'). Do not enumerate hundreds of ids here.",
+    "hint": "Search Drive for titles containing 'Containment Protocol' and 'Social' (or 'Social Asset'). Do not enumerate hundreds of ids here. New packs go under agent Social Assets.",
     "suggestedQuery": "Containment Protocol Social"
   }
 }

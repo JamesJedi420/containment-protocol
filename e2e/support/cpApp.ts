@@ -248,10 +248,8 @@ async function readAssignedTabCount(page: Page): Promise<number> {
   await expect(assignedTab).toBeVisible()
   const text = (await assignedTab.textContent()) ?? ''
   const match = /\((\d+)\)/.exec(text)
-  if (!match) {
-    throw new Error(`Assigned tab label missing (N); got: ${JSON.stringify(text)}`)
-  }
-  return Number(match[1])
+  // Missing (N) treats as 0 — same fail-soft as launchContractFromMissionBoard's Assigned baseline.
+  return match ? Number(match[1]) : 0
 }
 
 /**

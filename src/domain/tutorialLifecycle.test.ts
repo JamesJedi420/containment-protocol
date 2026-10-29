@@ -255,6 +255,34 @@ describe('tutorial lifecycle', () => {
     ).toBe(false)
   })
 
+  it('returns to a previously triggered step without repeating its entry event', () => {
+    const triggered = createTutorialRegistry([
+      {
+        ...authored,
+        steps: [{ id: 'one', triggerId: 'event:open', conditionIds: ['visible'] }, { id: 'two' }],
+      },
+    ]).definitions[0]
+    const conditions = { visible: { passes: true } }
+    const first = transitionTutorial(
+      triggered,
+      createTutorialState(triggered),
+      { type: 'start', expectedRevision: 0 },
+      { conditions, triggerIds: ['event:open'] }
+    ).state
+    const next = transitionTutorial(
+      triggered,
+      first,
+      { type: 'advance', expectedRevision: 1, stepId: 'one' },
+      { conditions }
+    ).state
+    const back = { type: 'back', expectedRevision: 2, stepId: 'two' } as const
+    expect(transitionTutorial(triggered, next, back, { conditions }).state.cursor).toBe(0)
+    expect(
+      transitionTutorial(triggered, next, back, { conditions: { visible: { passes: false } } })
+        .reason
+    ).toBe('ineligible')
+  })
+
   it('skips steps, dismisses flows and requires explicit replay', () => {
     const firstSkip = apply(started(), 'skip').state
     expect(firstSkip.stepStatuses).toEqual(['skipped', 'active'])

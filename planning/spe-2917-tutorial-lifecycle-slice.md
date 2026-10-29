@@ -45,3 +45,5 @@ Handoff status is effective on merge; Linear remains In Progress until the PR me
 ## PR review correction
 
 Gitar identified that the typed state contract still permits suppressed state without `resumeStatus`, and malformed step arrays could throw. Added explicit status/resume-status vocabulary and array/entry validation, returning unchanged `invalid_state` with no event. Regression tests cover unknown status, missing/self resume status, unexpected resume state, non-array and sparse/invalid step arrays. Final targeted checks after the fix: 29 passed; full lint passed. The earlier full-suite result remains 964 files/10,461 tests; updated full-suite verification runs in PR CI on Node 22. Rechecked all six audit passes after the fix.
+
+Amazon Q follow-up identified the same one-time entry-event issue on back navigation. Back now rechecks destination conditions without replaying its earlier entry event. Added a regression proving both successful back navigation and rejection when current destination conditions fail. Targeted checks: 30 passed; full lint passed. API documentation updated and all six audit passes rechecked.

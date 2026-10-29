@@ -293,7 +293,10 @@ export function transitionTutorial(
     !eligible(definition, state.cursor, input, false)
   )
     return unchanged('ineligible')
-  if (target < definition.steps.length && !eligible(definition, target, input))
+  if (
+    target < definition.steps.length &&
+    !eligible(definition, target, input, command.type !== 'back')
+  )
     return unchanged('ineligible')
   const statuses = [...state.stepStatuses]
   statuses[state.cursor] =

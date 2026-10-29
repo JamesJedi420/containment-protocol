@@ -141,19 +141,25 @@ export async function hireFirstEnabledCandidate(page: Page): Promise<void> {
     .toBeLessThan(countBefore)
 }
 
-/** Agency command surface: buy one facility maintenance package when funded. */
+/**
+ * Agency command surface: buy one facility maintenance package when funded.
+ * Requires a clean campaign with Available funding >= package Price (starting state is 110/100).
+ * Do not advance week first — week close can reduce funding below the package price.
+ */
 export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   await openFutureExpansionNav(page, 'Agency')
   await expect(page).toHaveURL(/\/agency/)
   await expect(page.getByRole('heading', { name: 'Agency Command' })).toBeVisible()
   const maintenance = page.getByRole('article', { name: 'Facility maintenance' })
-  const fundingLine = maintenance.getByText(/Available funding:\s*\d+/i)
-  await expect(fundingLine).toBeVisible()
-  const fundingBeforeMatch = /Available funding:\s*(\d+)/i.exec(
-    (await fundingLine.textContent()) ?? '',
-  )
-  expect(fundingBeforeMatch, 'expected Available funding: <n> before purchase').toBeTruthy()
-  const fundingBefore = Number(fundingBeforeMatch![1])
+  const packageLine = maintenance.getByText(/Price:\s*\d+\s*funding\s*·\s*Available funding:\s*\d+/i)
+  await expect(packageLine).toBeVisible()
+  const packageText = (await packageLine.textContent()) ?? ''
+  const price = Number(/Price:\s*(\d+)/i.exec(packageText)?.[1])
+  const fundingBefore = Number(/Available funding:\s*(\d+)/i.exec(packageText)?.[1])
+  expect(
+    Number.isFinite(price) && Number.isFinite(fundingBefore) && fundingBefore >= price,
+    `buyAgencyMaintenancePackage needs Available funding >= Price (funding=${fundingBefore}, price=${price}); use clearCampaignStorage on the funded starting campaign`,
+  ).toBe(true)
   const buy = maintenance.getByRole('button', { name: 'Buy maintenance package' })
   await expect(buy).toBeEnabled()
   await buy.click()
@@ -163,7 +169,7 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   ).toBeVisible()
   await expect
     .poll(async () => {
-      const text = (await fundingLine.textContent()) ?? ''
+      const text = (await packageLine.textContent()) ?? ''
       const match = /Available funding:\s*(\d+)/i.exec(text)
       return match ? Number(match[1]) : Number.POSITIVE_INFINITY
     })

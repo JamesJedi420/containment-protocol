@@ -21,6 +21,7 @@ test('canonical registry validates', () => {
   assert.ok(registry.validators.some((v) => v.id === 'playwright-e2e'))
   assert.ok(registry.validators.some((v) => v.id === 'academy-authored-content'))
   assert.ok(registry.validators.some((v) => v.id === 'governance-contract'))
+  assert.ok(registry.validators.some((v) => v.id === 'requirements-model-tests'))
 })
 
 test('glob matcher is deterministic for ** and *', () => {

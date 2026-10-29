@@ -158,6 +158,22 @@ export function createPatrolDoctrineRegistry(input: PatrolDoctrineRegistry): Pat
   })
 }
 
+function decision(args: {
+  readonly action: PatrolResponseAction
+  readonly zoneId: string | null
+  readonly policyId: string | null
+  readonly failureKind: DoctrineFailureKind | null
+  readonly reasons: readonly string[]
+}): PatrolDoctrineDecision {
+  return Object.freeze({
+    action: args.action,
+    zoneId: args.zoneId,
+    policyId: args.policyId,
+    failureKind: args.failureKind,
+    reasons: Object.freeze([...args.reasons].sort(compareAscii)),
+  })
+}
+
 /**
  * Resolve a doctrine-driven response without per-unit player orders.
  */
@@ -167,30 +183,29 @@ export function resolvePatrolDoctrineResponse(args: {
 }): PatrolDoctrineDecision {
   const registry = createPatrolDoctrineRegistry(args.registry)
   const activeZoneId = requireNonEmpty(args.stimulus.activeZoneId, 'activeZoneId')
-  const reasons: string[] = []
 
   const zone = registry.zones.find((z) => z.zoneId === activeZoneId) ?? null
   if (!zone) {
-    return Object.freeze({
+    return decision({
       action: 'hold_position',
       zoneId: null,
       policyId: null,
       failureKind: null,
-      reasons: Object.freeze(['unknown-zone']),
+      reasons: ['unknown-zone'],
     })
   }
 
   const escortedAssetTag = args.stimulus.escortedAssetTag?.trim() || ''
-  let escort = null as ReturnType<typeof createEscortPolicyRecord> | null
+  let escort: EscortPolicyRecord | null = null
   if (escortedAssetTag !== '') {
     escort = registry.escorts.find((e) => e.assetTag === escortedAssetTag) ?? null
     if (!escort) {
-      return Object.freeze({
+      return decision({
         action: 'hold_position',
         zoneId: zone.zoneId,
         policyId: null,
         failureKind: null,
-        reasons: Object.freeze(['unknown-escort-asset']),
+        reasons: ['unknown-escort-asset'],
       })
     }
   }
@@ -200,75 +215,69 @@ export function resolvePatrolDoctrineResponse(args: {
   // Escort policy takes precedence: abandon configured failure kinds, else stay on escort.
   if (escort) {
     if (failureKind && escort.abandonOnFailureKinds.includes(failureKind)) {
-      reasons.push(`abandon:${failureKind}`, `escort:${escort.stance}`)
-      return Object.freeze({
+      return decision({
         action: 'hold_position',
         zoneId: zone.zoneId,
         policyId: escort.policyId,
         failureKind,
-        reasons: Object.freeze([...reasons].sort(compareAscii)),
+        reasons: [`abandon:${failureKind}`, `escort:${escort.stance}`],
       })
     }
     if (failureKind) {
-      reasons.push(`failure:${failureKind}`, `escort:${escort.stance}`)
-      return Object.freeze({
+      return decision({
         action: 'doctrine_failure',
         zoneId: zone.zoneId,
         policyId: escort.policyId,
         failureKind,
-        reasons: Object.freeze([...reasons].sort(compareAscii)),
+        reasons: [`failure:${failureKind}`, `escort:${escort.stance}`],
       })
     }
     if (escort.stance === 'abandon_on_alarm' && args.stimulus.contactPresent) {
-      reasons.push('escort:abandon_on_alarm')
-      return Object.freeze({
+      return decision({
         action: 'hold_position',
         zoneId: zone.zoneId,
         policyId: escort.policyId,
         failureKind: null,
-        reasons: Object.freeze([...reasons].sort(compareAscii)),
+        reasons: ['escort:abandon_on_alarm'],
       })
     }
-    reasons.push(`escort:${escort.stance}`)
-    return Object.freeze({
+    return decision({
       action: 'escort_asset',
       zoneId: zone.zoneId,
       policyId: escort.policyId,
       failureKind: null,
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
+      reasons: [`escort:${escort.stance}`],
     })
   }
 
   if (failureKind) {
-    reasons.push(`failure:${failureKind}`)
+    const reasons = [`failure:${failureKind}`]
     if (failureKind === 'decoy_pursuit') reasons.push(`pursuit:${zone.pursuitRule}`)
-    return Object.freeze({
+    return decision({
       action: 'doctrine_failure',
       zoneId: zone.zoneId,
       policyId: null,
       failureKind,
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
+      reasons,
     })
   }
 
   if (args.stimulus.contactPresent && zone.pursuitRule !== 'hold_zone') {
-    reasons.push(`pursuit:${zone.pursuitRule}`)
-    return Object.freeze({
+    return decision({
       action: 'pursue_contact',
       zoneId: zone.zoneId,
       policyId: null,
       failureKind: null,
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
+      reasons: [`pursuit:${zone.pursuitRule}`],
     })
   }
 
-  reasons.push(`patrol:${zone.pursuitRule}`)
-  return Object.freeze({
+  return decision({
     action: 'patrol_zone',
     zoneId: zone.zoneId,
     policyId: null,
     failureKind: null,
-    reasons: Object.freeze([...reasons].sort(compareAscii)),
+    reasons: [`patrol:${zone.pursuitRule}`],
   })
 }
 

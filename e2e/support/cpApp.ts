@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 /** Zustand persist key for campaign state (gameStore). */
 export const CP_GAME_STORAGE_KEY = 'containment-protocol-game-state'
@@ -114,11 +114,39 @@ export async function launchContractFromMissionBoard(page: Page): Promise<void> 
   ).toBeVisible()
 }
 
+async function readAgentsRosterTotal(page: Page): Promise<number> {
+  const totalLine = page.getByText(/\d+\s*shown\s*\/\s*\d+\s*total/i)
+  await expect(totalLine).toBeVisible()
+  const text = (await totalLine.textContent()) ?? ''
+  const match = /(\d+)\s*shown\s*\/\s*(\d+)\s*total/i.exec(text)
+  if (!match) {
+    throw new Error(`Agents roster total missing; got: ${JSON.stringify(text)}`)
+  }
+  return Number(match[2])
+}
+
+async function readRecoveryBudget(
+  maintenance: Locator,
+): Promise<{ hours: number; parts: number }> {
+  const budgetLine = maintenance.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i)
+  await expect(budgetLine).toBeVisible()
+  const text = (await budgetLine.textContent()) ?? ''
+  const match = /Recovery budget:\s*(\d+)\s*hours\s*\/\s*(\d+)\s*parts/i.exec(text)
+  if (!match) {
+    throw new Error(`Recovery budget hours/parts missing; got: ${JSON.stringify(text)}`)
+  }
+  return { hours: Number(match[1]), parts: Number(match[2]) }
+}
+
 /**
  * Hire the first enabled recruitment candidate. Call after at least one week advance
- * so the weekly recruitment pool exists.
+ * so the weekly recruitment pool exists. Asserts Agents roster total increases.
  */
 export async function hireFirstEnabledCandidate(page: Page): Promise<void> {
+  await openPrimaryNav(page, 'Agents')
+  await expect(page).toHaveURL(/\/agents/)
+  const agentsBefore = await readAgentsRosterTotal(page)
+
   await openPrimaryNav(page, 'Recruitment')
   await expect(page).toHaveURL(/\/recruitment/)
   await expect(page.getByRole('heading', { name: 'Recruitment' })).toBeVisible()
@@ -143,18 +171,26 @@ export async function hireFirstEnabledCandidate(page: Page): Promise<void> {
   await expect
     .poll(async () => hireButtons.count())
     .toBeLessThan(countBefore)
+
+  await openPrimaryNav(page, 'Agents')
+  await expect(page).toHaveURL(/\/agents/)
+  await expect
+    .poll(async () => readAgentsRosterTotal(page))
+    .toBeGreaterThan(agentsBefore)
 }
 
 /**
  * Agency command surface: buy one facility maintenance package when funded.
  * Requires a clean campaign with Available funding >= package Price (starting state is 110/100).
  * Do not advance week first — week close can reduce funding below the package price.
+ * Asserts funding drops and Recovery budget hours/parts both increase.
  */
 export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   await openFutureExpansionNav(page, 'Agency')
   await expect(page).toHaveURL(/\/agency/)
   await expect(page.getByRole('heading', { name: 'Agency Command' })).toBeVisible()
   const maintenance = page.getByRole('article', { name: 'Facility maintenance' })
+  const budgetBefore = await readRecoveryBudget(maintenance)
   const packageLine = maintenance.getByText(/Price:\s*\d+\s*funding\s*·\s*Available funding:\s*\d+/i)
   await expect(packageLine).toBeVisible()
   const packageText = (await packageLine.textContent()) ?? ''
@@ -167,10 +203,6 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   const buy = maintenance.getByRole('button', { name: 'Buy maintenance package' })
   await expect(buy).toBeEnabled()
   await buy.click()
-  // Package credits recovery budget and deducts funding — assert both mutated.
-  await expect(
-    maintenance.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i),
-  ).toBeVisible()
   await expect
     .poll(async () => {
       const text = (await packageLine.textContent()) ?? ''
@@ -181,6 +213,34 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
       return Number(match[1])
     })
     .toBeLessThan(fundingBefore)
+  await expect
+    .poll(async () => {
+      const budget = await readRecoveryBudget(maintenance)
+      return budget.hours
+    })
+    .toBeGreaterThan(budgetBefore.hours)
+  await expect
+    .poll(async () => {
+      const budget = await readRecoveryBudget(maintenance)
+      return budget.parts
+    })
+    .toBeGreaterThan(budgetBefore.parts)
+}
+
+/**
+ * Open the live Containment Site route (`SystemBoundaryPage` placeholder) and hand off
+ * into Cases via primary nav. `ContainmentSitePage.tsx` is not routed yet — smokes cover
+ * the player-visible surface only.
+ */
+export async function openContainmentSiteAndIncidentDesk(page: Page): Promise<void> {
+  await openFutureExpansionNav(page, 'Containment Site')
+  await expect(page).toHaveURL(/\/containment-site/)
+  await expect(page.getByRole('heading', { name: 'Containment Site', level: 2 })).toBeVisible()
+  await expect(page.getByText('Active cases', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Shared-state integration' })).toBeVisible()
+  await openPrimaryNav(page, 'Cases')
+  await expect(page).toHaveURL(/\/cases/)
+  await expect(page.getByRole('region', { name: 'Case triage queue' })).toBeVisible()
 }
 
 export function expectNoPageErrors(probe: PageErrorProbe): void {

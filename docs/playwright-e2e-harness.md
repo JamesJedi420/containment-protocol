@@ -25,14 +25,14 @@ Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
 
 ## Artifacts
 
-Failures retain Playwright traces and screenshots under `test-results/playwright/` and HTML under `playwright-report/`. Both are gitignored. CI uploads them from the advisory `playwright-e2e` job.
+Failures retain Playwright traces and screenshots under `test-results/playwright/` and HTML under `playwright-report/`. Both are gitignored. CI uploads them from the `playwright-e2e` job.
 
-## CI selection (SPE-3348)
+## CI selection (SPE-3348 / SPE-3481 / SPE-3482)
 
 Playwright is registered in `scripts/validation/validators.v1.json` as `playwright-e2e`.
 
-- **Required** when `e2e/**` or `playwright.config.ts` changes.
-- **Advisory** when selected for player-path UI changes (`src/app/**`, `src/features/**`, …) without harness edits.
+- **Required** when `e2e/**`, `playwright.config.ts`, or listed player-critical / smoke-path surfaces change (Front Desk, Advance Week shell, `gameStore`, Cases, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage` — see `requiredWhen` in the registry).
+- **Advisory** when selected for other player-path UI changes (`src/app/**`, `src/features/**`, …) that do not match `requiredWhen`.
 - **Not selected** when the change set does not match activation rules (job skips install/run).
 
 The `playwright-e2e` job uses `emit-playwright-gate.mjs` for `selected` / `enforcement`. `continue-on-error` applies only when enforcement is not `required`. See [repository-validation-requirements.md](./repository-validation-requirements.md).

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4497 @ `f963db1a`) |
 | **Issue** | [SPE-3481](https://linear.app/spectranoir/issue/SPE-3481/playwright-player-critical-path-gate-acceptance-smokes) |
 | **Related** | SPE-3348 (orchestrator), SPE-3458 (harness) |
 | **Branch** | `jamesdyedbq/spe-3481-playwright-player-critical-path-gate-acceptance-smokes` |

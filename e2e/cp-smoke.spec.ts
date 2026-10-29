@@ -8,11 +8,12 @@ import {
   expectNoPageErrors,
   hireFirstEnabledCandidate,
   launchContractFromMissionBoard,
+  openContainmentSiteAndIncidentDesk,
   openFrontDesk,
   openPrimaryNav,
 } from './support/cpApp'
 
-test.describe('SPE-3458 / SPE-3481 CP Chromium player smokes', () => {
+test.describe('SPE-3458 / SPE-3481 / SPE-3482 CP Chromium player smokes', () => {
   test('startup and player-visible navigation', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
@@ -120,6 +121,18 @@ test.describe('SPE-3458 / SPE-3481 CP Chromium player smokes', () => {
       await clearCampaignStorage(page)
       await openFrontDesk(page)
       await buyAgencyMaintenancePackage(page)
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
+  test('containment site loads and routes to incident desk', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await openContainmentSiteAndIncidentDesk(page)
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

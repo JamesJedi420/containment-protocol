@@ -181,50 +181,45 @@ export function resolvePatrolDoctrineResponse(args: {
   }
 
   const escortedAssetTag = args.stimulus.escortedAssetTag?.trim() || ''
-  const escort =
-    escortedAssetTag === ''
-      ? null
-      : (registry.escorts.find((e) => e.assetTag === escortedAssetTag) ?? null)
-
-  // Doctrine failure hooks — change response without per-unit orders.
-  if (args.stimulus.contactPresent && args.stimulus.contactIsDecoy && zone.pursuitRule !== 'hold_zone') {
-    reasons.push('failure:decoy_pursuit', `pursuit:${zone.pursuitRule}`)
-    return Object.freeze({
-      action: 'doctrine_failure',
-      zoneId: zone.zoneId,
-      policyId: escort?.policyId ?? null,
-      failureKind: 'decoy_pursuit',
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
-    })
+  let escort = null as ReturnType<typeof createEscortPolicyRecord> | null
+  if (escortedAssetTag !== '') {
+    escort = registry.escorts.find((e) => e.assetTag === escortedAssetTag) ?? null
+    if (!escort) {
+      return Object.freeze({
+        action: 'hold_position',
+        zoneId: zone.zoneId,
+        policyId: null,
+        failureKind: null,
+        reasons: Object.freeze(['unknown-escort-asset']),
+      })
+    }
   }
 
-  if (args.stimulus.contactPresent && args.stimulus.contactIsGlamoured) {
-    reasons.push('failure:glamoured_victim')
-    return Object.freeze({
-      action: 'doctrine_failure',
-      zoneId: zone.zoneId,
-      policyId: escort?.policyId ?? null,
-      failureKind: 'glamoured_victim',
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
-    })
-  }
+  const failureKind = detectDoctrineFailure(args.stimulus, zone)
 
-  if (!args.stimulus.zoneCleared && zone.overrideConditions.includes('require_clearance')) {
-    reasons.push('failure:uncleared_zone')
-    return Object.freeze({
-      action: 'doctrine_failure',
-      zoneId: zone.zoneId,
-      policyId: escort?.policyId ?? null,
-      failureKind: 'uncleared_zone',
-      reasons: Object.freeze([...reasons].sort(compareAscii)),
-    })
-  }
-
+  // Escort policy takes precedence: abandon configured failure kinds, else stay on escort.
   if (escort) {
-    if (
-      escort.stance === 'abandon_on_alarm' &&
-      args.stimulus.contactPresent
-    ) {
+    if (failureKind && escort.abandonOnFailureKinds.includes(failureKind)) {
+      reasons.push(`abandon:${failureKind}`, `escort:${escort.stance}`)
+      return Object.freeze({
+        action: 'hold_position',
+        zoneId: zone.zoneId,
+        policyId: escort.policyId,
+        failureKind,
+        reasons: Object.freeze([...reasons].sort(compareAscii)),
+      })
+    }
+    if (failureKind) {
+      reasons.push(`failure:${failureKind}`, `escort:${escort.stance}`)
+      return Object.freeze({
+        action: 'doctrine_failure',
+        zoneId: zone.zoneId,
+        policyId: escort.policyId,
+        failureKind,
+        reasons: Object.freeze([...reasons].sort(compareAscii)),
+      })
+    }
+    if (escort.stance === 'abandon_on_alarm' && args.stimulus.contactPresent) {
       reasons.push('escort:abandon_on_alarm')
       return Object.freeze({
         action: 'hold_position',
@@ -240,6 +235,18 @@ export function resolvePatrolDoctrineResponse(args: {
       zoneId: zone.zoneId,
       policyId: escort.policyId,
       failureKind: null,
+      reasons: Object.freeze([...reasons].sort(compareAscii)),
+    })
+  }
+
+  if (failureKind) {
+    reasons.push(`failure:${failureKind}`)
+    if (failureKind === 'decoy_pursuit') reasons.push(`pursuit:${zone.pursuitRule}`)
+    return Object.freeze({
+      action: 'doctrine_failure',
+      zoneId: zone.zoneId,
+      policyId: null,
+      failureKind,
       reasons: Object.freeze([...reasons].sort(compareAscii)),
     })
   }
@@ -263,4 +270,20 @@ export function resolvePatrolDoctrineResponse(args: {
     failureKind: null,
     reasons: Object.freeze([...reasons].sort(compareAscii)),
   })
+}
+
+function detectDoctrineFailure(
+  stimulus: PatrolStimulus,
+  zone: PatrolZoneRecord,
+): DoctrineFailureKind | null {
+  if (stimulus.contactPresent && stimulus.contactIsDecoy && zone.pursuitRule !== 'hold_zone') {
+    return 'decoy_pursuit'
+  }
+  if (stimulus.contactPresent && stimulus.contactIsGlamoured) {
+    return 'glamoured_victim'
+  }
+  if (!stimulus.zoneCleared && zone.overrideConditions.includes('require_clearance')) {
+    return 'uncleared_zone'
+  }
+  return null
 }

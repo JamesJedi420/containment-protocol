@@ -116,6 +116,61 @@ describe('SPE-2271 patrol doctrine', () => {
     })
     expect(escort.action).toBe('escort_asset')
     expect(escort.policyId).toBe('escort-vip')
+
+    const glamouredAbandon = resolvePatrolDoctrineResponse({
+      registry: registryBase,
+      stimulus: {
+        activeZoneId: 'perimeter-a',
+        contactPresent: true,
+        contactIsDecoy: false,
+        contactIsGlamoured: true,
+        zoneCleared: true,
+        escortedAssetTag: 'vip-convoy',
+      },
+    })
+    expect(glamouredAbandon.action).toBe('hold_position')
+    expect(glamouredAbandon.failureKind).toBe('glamoured_victim')
+    expect(glamouredAbandon.reasons).toContain('abandon:glamoured_victim')
+
+    const abandonAlarmRegistry = createPatrolDoctrineRegistry({
+      zones: registryBase.zones,
+      escorts: [
+        {
+          policyId: 'escort-alarm',
+          assetTag: 'vip-convoy',
+          stance: 'abandon_on_alarm',
+          abandonOnFailureKinds: [],
+        },
+      ],
+    })
+    const abandonAlarm = resolvePatrolDoctrineResponse({
+      registry: abandonAlarmRegistry,
+      stimulus: {
+        activeZoneId: 'gate-b',
+        contactPresent: true,
+        contactIsDecoy: false,
+        contactIsGlamoured: false,
+        zoneCleared: true,
+        escortedAssetTag: 'vip-convoy',
+      },
+    })
+    expect(abandonAlarm.action).toBe('hold_position')
+    expect(abandonAlarm.reasons).toContain('escort:abandon_on_alarm')
+
+    const escortBeatsDecoy = resolvePatrolDoctrineResponse({
+      registry: registryBase,
+      stimulus: {
+        activeZoneId: 'perimeter-a',
+        contactPresent: true,
+        contactIsDecoy: true,
+        contactIsGlamoured: false,
+        zoneCleared: true,
+        escortedAssetTag: 'vip-convoy',
+      },
+    })
+    expect(escortBeatsDecoy.action).toBe('doctrine_failure')
+    expect(escortBeatsDecoy.policyId).toBe('escort-vip')
+    expect(escortBeatsDecoy.failureKind).toBe('decoy_pursuit')
   })
 
   it('fails closed on invalid registry packets', () => {

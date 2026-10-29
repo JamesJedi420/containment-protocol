@@ -41,7 +41,7 @@ Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `gov
 | `theme-contracts` | required | SPE-10 (DX) | Theme contract / audits index paths |
 | `governance-contract` | required | SPE-3269 | Governance surfaces; SPE-3271 may register separately later |
 | `architecture-index` | advisory | SPE-10 (DX) | `architecture/**` |
-| `playwright-e2e` | advisory; **required** when `e2e/**` or `playwright.config.ts` changes | SPE-3458 | Player-path UI changes stay advisory |
+| `playwright-e2e` | advisory; **required** for e2e harness edits and player-critical paths (Front Desk, Advance Week shell, campaign persist `gameStore`) | SPE-3458 / SPE-3481 | Other UI paths stay advisory unless listed in `requiredWhen`; deep sim remains Vitest |
 | `academy-authored-content` | required when Academy content paths change | SPE-3304 | Unavailable until Academy ships its npm script; fail-closed |
 
 ## Local / CI parity

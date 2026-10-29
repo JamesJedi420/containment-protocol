@@ -93,6 +93,31 @@ test('e2e harness change promotes playwright-e2e to required', () => {
   assert.ok(resolution.requiredIds.includes('lint'))
 })
 
+test('player-critical Front Desk / Advance Week / persist promote playwright-e2e to required', () => {
+  for (const file of [
+    'src/features/operations/FrontDeskPage.tsx',
+    'src/features/operations/frontDeskView.ts',
+    'src/components/layout/ShellStatusBar.tsx',
+    'src/components/layout/shellStatusBarView.ts',
+    'src/app/store/gameStore.ts',
+  ]) {
+    const resolution = resolveValidationRequirements([file], registry)
+    assert.ok(
+      resolution.requiredIds.includes('playwright-e2e'),
+      `expected playwright-e2e required for ${file}`,
+    )
+  }
+})
+
+test('non-critical feature UI keeps playwright-e2e advisory', () => {
+  const resolution = resolveValidationRequirements(
+    ['src/features/factions/FactionsPage.tsx'],
+    registry,
+  )
+  assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
+  assert.ok(!resolution.requiredIds.includes('playwright-e2e'))
+})
+
 test('academy content change selects SPE-3304 owner without copying its rules', () => {
   const resolution = resolveValidationRequirements(
     ['academy/content/courses.json', 'src/domain/academy/catalog.ts'],

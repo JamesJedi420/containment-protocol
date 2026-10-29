@@ -2,21 +2,23 @@ import { test, expect } from '@playwright/test'
 import {
   advanceOperationalWeek,
   attachPageErrorProbe,
+  buyAgencyMaintenancePackage,
   clearCampaignStorage,
   CP_GAME_STORAGE_KEY,
   expectNoPageErrors,
+  hireFirstEnabledCandidate,
+  launchContractFromMissionBoard,
   openFrontDesk,
+  openPrimaryNav,
 } from './support/cpApp'
 
-test.describe('SPE-3458 CP Chromium smoke', () => {
+test.describe('SPE-3458 / SPE-3481 CP Chromium player smokes', () => {
   test('startup and player-visible navigation', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
       await clearCampaignStorage(page)
       await openFrontDesk(page)
-      await page.getByRole('navigation', { name: 'Primary operations' }).getByRole('link', {
-        name: 'Cases',
-      }).click()
+      await openPrimaryNav(page, 'Cases')
       await expect(page).toHaveURL(/\/cases/)
       await expect(page.getByRole('heading', { name: /Cases|Mission|Triage/i }).first()).toBeVisible()
       expectNoPageErrors(probe)
@@ -31,9 +33,7 @@ test.describe('SPE-3458 CP Chromium smoke', () => {
     try {
       await clearCampaignStorage(page)
       await openFrontDesk(page)
-      await page.getByRole('navigation', { name: 'Primary operations' }).getByRole('link', {
-        name: 'Agents',
-      }).click()
+      await openPrimaryNav(page, 'Agents')
       await expect(page).toHaveURL(/\/agents/)
       await expect(page.getByRole('region', { name: 'Agent filters' })).toBeVisible()
       await expect(page.getByText(/shown\s*\/\s*\d+\s*total/i)).toBeVisible()
@@ -81,6 +81,45 @@ test.describe('SPE-3458 CP Chromium smoke', () => {
       await expect(
         page.getByRole('region', { name: 'Latest report' }).getByRole('link', { name: /Week 1/i }),
       ).toBeVisible()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
+  // SPE-3481 — shipped player acceptance actions (not page-count coverage).
+  test('launch mission-board contract opens a case with assignment', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await launchContractFromMissionBoard(page)
+      await expect(page.getByRole('region', { name: 'Case triage queue' })).toBeVisible()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
+  test('hire a recruitment candidate after week advance', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await advanceOperationalWeek(page)
+      await hireFirstEnabledCandidate(page)
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
+  test('agency maintenance package is a completable player action', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await buyAgencyMaintenancePackage(page)
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

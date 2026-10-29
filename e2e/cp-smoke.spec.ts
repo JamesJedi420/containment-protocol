@@ -25,6 +25,24 @@ test.describe('SPE-3458 CP Chromium smoke', () => {
     }
   })
 
+  // SPE-3348 — expand player-path smoke for primary Agents surface (shipped roster UI).
+  test('primary Agents roster path loads without page errors', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await page.getByRole('navigation', { name: 'Primary operations' }).getByRole('link', {
+        name: 'Agents',
+      }).click()
+      await expect(page).toHaveURL(/\/agents/)
+      await expect(page.getByRole('region', { name: 'Agent filters' })).toBeVisible()
+      await expect(page.getByText(/shown\s*\/\s*\d+\s*total/i)).toBeVisible()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
   test('advance one operational week through player controls', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {

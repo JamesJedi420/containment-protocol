@@ -27,11 +27,17 @@ Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
 
 Failures retain Playwright traces and screenshots under `test-results/playwright/` and HTML under `playwright-report/`. Both are gitignored. CI uploads them from the advisory `playwright-e2e` job.
 
-## Advisory CI
+## CI selection (SPE-3348)
 
-GitHub Actions job `playwright-e2e (advisory)` uses `continue-on-error: true`. It must show genuine pass/fail and artifacts. It does **not** change required checks. Required-validator selection remains [SPE-3348](https://linear.app/spectranoir/issue/SPE-3348).
+Playwright is registered in `scripts/validation/validators.v1.json` as `playwright-e2e`.
 
-Existing Vitest (`test` job), lint, and governance verifies are unchanged.
+- **Required** when `e2e/**` or `playwright.config.ts` changes.
+- **Advisory** when selected for player-path UI changes (`src/app/**`, `src/features/**`, …) without harness edits.
+- **Not selected** when the change set does not match activation rules (job skips install/run).
+
+The `playwright-e2e` job uses `emit-playwright-gate.mjs` for `selected` / `enforcement`. `continue-on-error` applies only when enforcement is not `required`. See [repository-validation-requirements.md](./repository-validation-requirements.md).
+
+Existing Vitest/lint/governance gates run through the shared `verify:requirements` orchestrator in the `test` job (Playwright excluded there because of browser install).
 
 ## Dependency review (SPE-3458)
 

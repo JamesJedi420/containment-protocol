@@ -20,6 +20,8 @@
     "verify:backlog-handoff": "node scripts/verify-backlog-handoff.mjs",
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs",
     "verify:governance-contract": "node --test scripts/governance/authority-contract.check.mjs",
+    "verify:requirements": "node scripts/validation/run-requirements.mjs",
+    "verify:requirements:test": "node --test scripts/validation/requirement-model.check.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=list,html"
   },

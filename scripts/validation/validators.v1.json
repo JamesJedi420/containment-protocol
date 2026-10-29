@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "policyOwner": "SPE-3348",
+  "description": "Machine-readable change-class → required/advisory validator contract. Selects which already-approved validators must run; does not redefine validator semantics.",
+  "changeClasses": {
+    "application": {
+      "pathGlobs": ["src/**"]
+    },
+    "e2e": {
+      "pathGlobs": ["e2e/**", "playwright.config.ts"]
+    },
+    "docs": {
+      "pathGlobs": ["docs/**"]
+    },
+    "planning": {
+      "pathGlobs": ["planning/**"]
+    },
+    "governance": {
+      "pathGlobs": ["docs/governance/**", "scripts/governance/**"]
+    },
+    "academy": {
+      "pathGlobs": [
+        "academy/**",
+        "src/domain/academy/**",
+        "src/data/academy/**",
+        "src/features/academy/**"
+      ]
+    },
+    "tooling": {
+      "pathGlobs": ["scripts/**", ".github/**", ".cursor/**"]
+    },
+    "shared-config": {
+      "pathGlobs": [
+        "package.json",
+        "package-lock.json",
+        "eslint.config.*",
+        "tsconfig*.json",
+        "app.vite.config.ts",
+        "vite.config.*",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ]
+    },
+    "architecture": {
+      "pathGlobs": ["architecture/**"]
+    }
+  },
+  "validators": [
+    {
+      "id": "lint",
+      "ownerIssue": "SPE-10",
+      "ownerNote": "Organizational tooling container; lint command ownership is repository DX.",
+      "npmScript": "lint",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["application", "e2e", "tooling", "shared-config", "academy"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "unit-tests",
+      "ownerIssue": "SPE-10",
+      "ownerNote": "Vitest suite; CI uses test:run:ci via ciNpmScript.",
+      "npmScript": "test:run",
+      "ciNpmScript": "test:run:ci",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["application", "shared-config", "academy"],
+        "pathGlobs": ["src/test/**", "test/**"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "format-check",
+      "ownerIssue": "SPE-10",
+      "npmScript": "format:check",
+      "enforcement": "advisory",
+      "activation": {
+        "changeClasses": [
+          "application",
+          "e2e",
+          "docs",
+          "planning",
+          "governance",
+          "tooling",
+          "shared-config",
+          "architecture",
+          "academy"
+        ]
+      },
+      "whenUnavailable": "report-unavailable"
+    },
+    {
+      "id": "audits-index",
+      "ownerIssue": "SPE-10",
+      "npmScript": "verify:audits-index",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": ["docs/*audit*.md", "docs/design-audits-index.md"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "backlog-handoff",
+      "ownerIssue": "SPE-10",
+      "npmScript": "verify:backlog-handoff",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["planning"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "theme-contracts",
+      "ownerIssue": "SPE-10",
+      "npmScript": "verify:theme-contracts",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": [
+          "architecture/external-design-theme-contracts.md",
+          "architecture/**/*theme*",
+          "docs/design-audits-index.md",
+          "docs/linear-external-documentation-follow-ups.md"
+        ]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "governance-contract",
+      "ownerIssue": "SPE-3269",
+      "ownerNote": "Canonical governance contract check. SPE-3271 retains broader conformance projection semantics and may register a separate validator later.",
+      "npmScript": "verify:governance-contract",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["governance"],
+        "pathGlobs": ["docs/governance/**", "scripts/governance/**"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "architecture-index",
+      "ownerIssue": "SPE-10",
+      "npmScript": "verify:architecture-index",
+      "command": "node scripts/verify-architecture-index.mjs",
+      "enforcement": "advisory",
+      "activation": {
+        "changeClasses": ["architecture"]
+      },
+      "whenUnavailable": "report-unavailable"
+    },
+    {
+      "id": "playwright-e2e",
+      "ownerIssue": "SPE-3458",
+      "ownerNote": "Shared Chromium E2E harness. SPE-3348 selects required vs advisory; does not redefine Playwright assertions.",
+      "npmScript": "test:e2e",
+      "ciNpmScript": "test:e2e:ci",
+      "enforcement": "advisory",
+      "requiredWhen": {
+        "pathGlobs": ["e2e/**", "playwright.config.ts"]
+      },
+      "activation": {
+        "changeClasses": ["e2e", "application"],
+        "pathGlobs": [
+          "e2e/**",
+          "playwright.config.ts",
+          "src/app/**",
+          "src/features/**",
+          "src/components/**",
+          "index.html"
+        ]
+      },
+      "whenUnavailable": "report-unavailable",
+      "browserInstallHint": "npx playwright install chromium --with-deps"
+    },
+    {
+      "id": "academy-authored-content",
+      "ownerIssue": "SPE-3304",
+      "ownerNote": "Academy owns authored-content validation semantics. Orchestrator only selects this validator for Academy content paths; does not copy SPE-3304 rules.",
+      "npmScript": "verify:academy-authored-content",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["academy"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "requirements-model-tests",
+      "ownerIssue": "SPE-3348",
+      "ownerNote": "Selection/unavailable/missing-required unit tests for this orchestrator.",
+      "npmScript": "verify:requirements:test",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": ["scripts/validation/**"]
+      },
+      "whenUnavailable": "fail"
+    }
+  ]
+}

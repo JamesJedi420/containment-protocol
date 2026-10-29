@@ -16,6 +16,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 | Format | `npm run format:check` |
 | Audit index | `npm run verify:audits-index` |
 | Theme contracts | `npm run verify:theme-contracts` |
+| Req. validators | `npm run verify:requirements` |
 
 `npm run build` has known baseline TS drift — do not treat as a green deployment gate; do not expand that drift in-slice.
 

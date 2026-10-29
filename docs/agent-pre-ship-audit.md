@@ -73,11 +73,13 @@ Remove dead code, unused imports, duplicate helpers, debug logs, temporary comme
 
 ## Validation
 
-1. Run the **most specific** test command first.
-2. Then run broader relevant validation (lint, typecheck if in scope, integration tests for touched flows).
+1. Prefer `npm run verify:requirements -- --base origin/main` (SPE-3348) so local pre-ship matches CI’s required-validator set.
+2. Otherwise run the **most specific** test command first, then broader relevant validation (lint, typecheck if in scope, integration tests for touched flows).
 3. If a command fails, fix the cause and rerun. Continue until clean or a **real blocker** is identified.
 
 If validation cannot run: state which command, why, and what remains unverified. **Do not** claim the work is complete.
+
+Canonical selection contract: `docs/repository-validation-requirements.md`.
 
 ---
 

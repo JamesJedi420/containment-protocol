@@ -81,8 +81,8 @@ If Modern Web Guidance is installed, search it before inventing layout/motion/fo
 
 1. Read `docs/google-drive/file-registry.json` — create new files under those agent-owned folder ids.
 2. Load `.cursor/skills/cp-google-drive-bridge/SKILL.md` (and marketplace `google-drive`) before Drive MCP work.
-3. **Repo + Linear remain SoT** for shipped code/engineering; Drive is for drafts.
-4. Prefer `search` / `known-files.json` for existing Story Knowledge; never invent Drive ids.
+3. **Repo + Linear remain SoT** for shipped code/engineering; Drive is for story/social/design drafts (skip domain/sim-only).
+4. Prefer agent-folder `known-files.json` ids for Story Knowledge; never invent Drive ids; new story work only under agent `Story Knowledge`.
 5. Share only when the human asks; return `webViewLink` otherwise.
 6. **Auth blocker (mandatory):** If the active task needs Drive and MCP auth / account access blocks it — **stop and prompt the human**. Do not silently skip. Do not prompt when the slice does not need Drive.
 7. Never add a Google Drive SDK or required Google secrets to the game runtime or CI for this bridge.

@@ -61,92 +61,86 @@ const PURSUIT: readonly PursuitRule[] = ['hold_zone', 'limited_pursuit', 'aggres
 const STANCES: readonly EscortStance[] = ['tight', 'loose', 'abandon_on_alarm']
 const FAILURES: readonly DoctrineFailureKind[] = ['decoy_pursuit', 'glamoured_victim', 'uncleared_zone']
 
-function requireNonEmpty(value: string | null | undefined, label: string): string {
-  if (typeof value !== 'string') {
+function requireToken(value: string | null | undefined, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`patrol doctrine ${label} is required`)
   }
-  const trimmed = value.trim()
-  if (!trimmed) throw new Error(`patrol doctrine ${label} is required`)
-  return trimmed
+  return value.trim()
 }
 
-function compareAscii(a: string, b: string): number {
-  if (a < b) return -1
-  if (a > b) return 1
-  return 0
+function asciiCmp(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
 }
 
-function requirePositiveInt(value: number, label: string): number {
+function requireEnum<T extends string>(value: string, allowed: readonly T[], label: string): T {
+  if ((allowed as readonly string[]).includes(value)) return value as T
+  throw new Error(`patrol doctrine ${label} is invalid`)
+}
+
+function requirePriority(value: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
-    throw new Error(`patrol doctrine ${label} must be an integer >= 1`)
+    throw new Error('patrol doctrine priority must be an integer >= 1')
   }
   return value
 }
 
-function requirePursuit(value: string): PursuitRule {
-  if ((PURSUIT as readonly string[]).includes(value)) return value as PursuitRule
-  throw new Error('patrol doctrine pursuitRule is invalid')
-}
-
-function requireStance(value: string): EscortStance {
-  if ((STANCES as readonly string[]).includes(value)) return value as EscortStance
-  throw new Error('patrol doctrine stance is invalid')
-}
-
-function requireFailure(value: string): DoctrineFailureKind {
-  if ((FAILURES as readonly string[]).includes(value)) return value as DoctrineFailureKind
-  throw new Error('patrol doctrine failure kind is invalid')
+function uniqueSortedTokens(values: readonly string[], label: string): readonly string[] {
+  return Object.freeze(
+    [...new Set(values.map((v) => requireToken(v, label)))].sort(asciiCmp),
+  )
 }
 
 export function createPatrolZoneRecord(input: PatrolZoneRecord): PatrolZoneRecord {
-  const overrideConditions = [
-    ...new Set((input.overrideConditions ?? []).map((c) => requireNonEmpty(c, 'overrideCondition'))),
-  ].sort(compareAscii)
   return Object.freeze({
-    zoneId: requireNonEmpty(input.zoneId, 'zoneId'),
-    geometryRef: requireNonEmpty(input.geometryRef, 'geometryRef'),
-    priority: requirePositiveInt(input.priority, 'priority'),
-    pursuitRule: requirePursuit(input.pursuitRule),
-    overrideConditions: Object.freeze(overrideConditions),
+    zoneId: requireToken(input.zoneId, 'zoneId'),
+    geometryRef: requireToken(input.geometryRef, 'geometryRef'),
+    priority: requirePriority(input.priority),
+    pursuitRule: requireEnum(input.pursuitRule, PURSUIT, 'pursuitRule'),
+    overrideConditions: uniqueSortedTokens(input.overrideConditions ?? [], 'overrideCondition'),
   })
 }
 
 export function createEscortPolicyRecord(input: EscortPolicyRecord): EscortPolicyRecord {
-  const abandonOnFailureKinds = [
-    ...new Set((input.abandonOnFailureKinds ?? []).map(requireFailure)),
-  ].sort(compareAscii) as DoctrineFailureKind[]
   return Object.freeze({
-    policyId: requireNonEmpty(input.policyId, 'policyId'),
-    assetTag: requireNonEmpty(input.assetTag, 'assetTag'),
-    stance: requireStance(input.stance),
-    abandonOnFailureKinds: Object.freeze(abandonOnFailureKinds),
+    policyId: requireToken(input.policyId, 'policyId'),
+    assetTag: requireToken(input.assetTag, 'assetTag'),
+    stance: requireEnum(input.stance, STANCES, 'stance'),
+    abandonOnFailureKinds: Object.freeze(
+      uniqueSortedTokens(input.abandonOnFailureKinds ?? [], 'abandonOnFailureKind').map((k) =>
+        requireEnum(k, FAILURES, 'abandonOnFailureKind'),
+      ),
+    ),
   })
 }
 
-export function createPatrolDoctrineRegistry(input: PatrolDoctrineRegistry): PatrolDoctrineRegistry {
-  const zones: PatrolZoneRecord[] = []
-  const seenZones = new Set<string>()
-  for (const zone of input.zones ?? []) {
-    const record = createPatrolZoneRecord(zone)
-    if (seenZones.has(record.zoneId)) {
-      throw new Error(`patrol doctrine duplicate zoneId ${record.zoneId}`)
-    }
-    seenZones.add(record.zoneId)
-    zones.push(record)
+function mapUniqueById<T>(
+  items: readonly T[],
+  idOf: (item: T) => string,
+  label: string,
+): T[] {
+  const out: T[] = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    const id = idOf(item)
+    if (seen.has(id)) throw new Error(`patrol doctrine duplicate ${label} ${id}`)
+    seen.add(id)
+    out.push(item)
   }
-  zones.sort((a, b) => b.priority - a.priority || compareAscii(a.zoneId, b.zoneId))
+  return out
+}
 
-  const escorts: EscortPolicyRecord[] = []
-  const seenPolicies = new Set<string>()
-  for (const escort of input.escorts ?? []) {
-    const record = createEscortPolicyRecord(escort)
-    if (seenPolicies.has(record.policyId)) {
-      throw new Error(`patrol doctrine duplicate policyId ${record.policyId}`)
-    }
-    seenPolicies.add(record.policyId)
-    escorts.push(record)
-  }
-  escorts.sort((a, b) => compareAscii(a.policyId, b.policyId))
+export function createPatrolDoctrineRegistry(input: PatrolDoctrineRegistry): PatrolDoctrineRegistry {
+  const zones = mapUniqueById(
+    (input.zones ?? []).map(createPatrolZoneRecord),
+    (z) => z.zoneId,
+    'zoneId',
+  ).sort((a, b) => b.priority - a.priority || asciiCmp(a.zoneId, b.zoneId))
+
+  const escorts = mapUniqueById(
+    (input.escorts ?? []).map(createEscortPolicyRecord),
+    (e) => e.policyId,
+    'policyId',
+  ).sort((a, b) => asciiCmp(a.policyId, b.policyId))
 
   if (zones.length === 0 && escorts.length === 0) {
     throw new Error('patrol doctrine registry requires at least one zone or escort policy')
@@ -170,7 +164,7 @@ function decision(args: {
     zoneId: args.zoneId,
     policyId: args.policyId,
     failureKind: args.failureKind,
-    reasons: Object.freeze([...args.reasons].sort(compareAscii)),
+    reasons: Object.freeze([...args.reasons].sort(asciiCmp)),
   })
 }
 
@@ -182,7 +176,7 @@ export function resolvePatrolDoctrineResponse(args: {
   readonly stimulus: PatrolStimulus
 }): PatrolDoctrineDecision {
   const registry = createPatrolDoctrineRegistry(args.registry)
-  const activeZoneId = requireNonEmpty(args.stimulus.activeZoneId, 'activeZoneId')
+  const activeZoneId = requireToken(args.stimulus.activeZoneId, 'activeZoneId')
 
   const zone = registry.zones.find((z) => z.zoneId === activeZoneId) ?? null
   if (!zone) {

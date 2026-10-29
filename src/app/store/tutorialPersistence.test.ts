@@ -89,15 +89,17 @@ describe('canonical tutorial persistence', () => {
 
   it('rehydrates the production Zustand persistence envelope', async () => {
     const options = useGameStore.persist.getOptions()
-    if (!options.storage) throw new Error('Expected canonical persistence storage')
+    const storage = options.storage
+    const name = options.name
+    if (!storage || !name) throw new Error('Expected canonical persistence storage')
     useGameStore.getState().applyTutorialCommand(definition, { type: 'start', expectedRevision: 0 })
     useGameStore
       .getState()
       .applyTutorialCommand(definition, { type: 'advance', expectedRevision: 1, stepId: 'one' })
-    const saved = await options.storage.getItem(options.name)
+    const saved = await storage.getItem(name)
     if (!saved) throw new Error('Expected stored game')
     useGameStore.setState({ game: createStartingState() })
-    await options.storage.setItem(options.name, saved)
+    await storage.setItem(name, saved)
     await useGameStore.persist.rehydrate()
     expect(getTutorialLifecycle(useGameStore.getState().game, definition)).toMatchObject({
       status: 'active',

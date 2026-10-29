@@ -10,8 +10,8 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 | --- | --- | --- |
 | **Linear** | System of record for issues | `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/cloud-agent-linear-handoff.mdc`, `AGENTS.md`, `docs/cloud-agent-linear-handoff.md` |
 | **Tavily** | Live web research after repo sources | `AGENTS.md` § Live web research |
-| **Sonatype** | Evaluate a package before add/upgrade | Cursor skill `/check-dependency`; MCP `getComponentVersion` |
-| **Snyk** | Optional SCA/SAST / package health (on demand) | MCP `snyk_*` tools; do not add CI gates without a slice |
+| **Sonatype** | Evaluate a package before add/upgrade; Guide Agent P for automated dependency update PRs | Cursor skill `/check-dependency`; MCP `getComponentVersion`; `.github/workflows/agp-workflow.yml` |
+| **Snyk** | Optional SCA/SAST / package health (on demand) | MCP `snyk_*` tools; do not add parallel Snyk CI gates without a slice |
 | **Modern Web Guidance** | HTML/CSS/client JS patterns before inventing UI | Cursor skill `modern-web-guidance` (`npx modern-web-guidance search "..."`) |
 | **Cursor Team Kit** + **CLI for Agents** | CI/PR/review/shell agent skills | Plugin-local skills (not duplicated here) |
 | **browse** | Agent browser sandbox / Browserbase demos | Tooling only — not the game SPA |
@@ -47,6 +47,15 @@ Enterprise DB/ops/auth/sales/comms plugins (Databricks, MongoDB, Auth0 product w
 3. **Optional:** Snyk `snyk_package_health_check` for extra package health — does not replace Sonatype.
 4. Prefer maintained permissive licenses; avoid known critical/high CVEs.
 5. Do not weaken CI or lockfile discipline to land a bad package.
+
+### Sonatype Guide Agent P (CI)
+
+- Workflow: `.github/workflows/agp-workflow.yml` (schedule + `workflow_dispatch`; OIDC to Guide — no Guide token in the repo).
+- Gate job fail-closed; AGP job runs only when Guide returns `run`.
+- Do **not** commit `agp.yml`; Guide writes governed config at run time.
+- Optional repo variable `AGP_API_URL` selects a non-default Guide environment.
+- Agent P may open dependency-update PRs — still run Sonatype MCP / `/check-dependency` for agent-driven adds/upgrades inside a slice; treat Guide PRs like any other dependency PR (slice justification, tests, lockfile discipline).
+- Auth for local MCP remains `SONATYPE_GUIDE_TOKEN` in the Cursor/user environment (gitignored `.cursor/mcp.json`); never commit that token.
 
 ### Live web research
 

@@ -1,4 +1,10 @@
 import { convertFacilityMaintenanceResources } from '../../domain/facilityMaintenanceConversion'
+import { applyTutorialCommand as applyTutorialCommandState } from '../../domain/gameStateManager'
+import type {
+  TutorialDefinition,
+  TutorialCommand,
+  TutorialEligibility,
+} from '../../domain/tutorialLifecycle'
 import type {
   MaintenanceConversionRequest,
   MaintenanceConversionResult,
@@ -315,6 +321,11 @@ import {
 
 interface GameStore {
   game: GameState
+  applyTutorialCommand: (
+    definition: TutorialDefinition,
+    command: TutorialCommand,
+    eligibility?: TutorialEligibility
+  ) => boolean
   appendDeveloperLogEvent: (event: DeveloperLogEventInput) => void
   clearDeveloperLog: () => void
   debugReset: (request: DebugResetRequest) => ReturnType<typeof applyDebugReset>['summary']
@@ -910,6 +921,14 @@ export const useGameStore = create<GameStore>()(
         })
 
         return resetSummary
+      },
+
+      applyTutorialCommand: (definition, command, eligibility) => {
+        const previous = get().game
+        const result = applyTutorialCommandState(previous, definition, command, eligibility)
+        if (result.state === previous) return false
+        set({ game: result.state })
+        return true
       },
 
       setPersistentFlag: (flagId, value = true) =>

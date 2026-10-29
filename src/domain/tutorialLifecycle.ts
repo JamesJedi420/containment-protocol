@@ -23,14 +23,14 @@ export interface TutorialRegistry {
   readonly get: (id: string, version: number) => TutorialDefinition | undefined
 }
 
-const validId = (id: unknown): id is string =>
+export const isTutorialIdentifier = (id: unknown): id is string =>
   typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:/-]*$/.test(id)
 
 function validateConditions(ids: readonly string[] | undefined) {
   if (
     ids !== undefined &&
     (!Array.isArray(ids) ||
-      Array.from(ids).some((id) => !validId(id)) ||
+      Array.from(ids).some((id) => !isTutorialIdentifier(id)) ||
       new Set(ids).size !== ids.length)
   ) {
     throw new Error('Invalid tutorial condition references')
@@ -45,7 +45,7 @@ export function createTutorialRegistry(
   const copies = Array.from(definitions).map((definition) => {
     if (
       !definition ||
-      !validId(definition.id) ||
+      !isTutorialIdentifier(definition.id) ||
       !Number.isSafeInteger(definition.version) ||
       definition.version < 1 ||
       !['sequenced', 'contextual'].includes(definition.kind) ||
@@ -64,10 +64,10 @@ export function createTutorialRegistry(
     const steps = Array.from(definition.steps).map((step) => {
       if (
         !step ||
-        !validId(step.id) ||
+        !isTutorialIdentifier(step.id) ||
         stepIds.has(step.id) ||
-        (step.triggerId !== undefined && !validId(step.triggerId)) ||
-        (step.expectedActionId !== undefined && !validId(step.expectedActionId))
+        (step.triggerId !== undefined && !isTutorialIdentifier(step.triggerId)) ||
+        (step.expectedActionId !== undefined && !isTutorialIdentifier(step.expectedActionId))
       ) {
         throw new Error(`Invalid tutorial step: ${key}`)
       }
@@ -208,21 +208,20 @@ function eligible(
   )
 }
 
-/** Pure guidance transitions. Caller retains ownership of production actions and truth. */
-export function transitionTutorial(
-  definition: TutorialDefinition,
-  state: TutorialLifecycleState,
-  command: TutorialCommand,
-  input: TutorialEligibility = {}
-): TutorialTransitionResult {
-  const unchanged = (reason: TutorialTransitionResult['reason']): TutorialTransitionResult => ({
-    state,
-    changed: false,
-    reason,
-    events: [],
-  })
+/** Shared structural guard for runtime commands and untrusted save hydration. */
+export function isTutorialLifecycleState(
+  value: unknown,
+  definition: Pick<TutorialDefinition, 'id' | 'version' | 'steps'>
+): value is TutorialLifecycleState {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const state = value as Record<string, unknown>
   if (
     state.tutorialId !== definition.id ||
+    typeof state.revision !== 'number' ||
+    typeof state.run !== 'number' ||
+    typeof state.cursor !== 'number' ||
+    typeof state.reachedCursor !== 'number' ||
+    typeof state.status !== 'string' ||
     state.definitionVersion !== definition.version ||
     !Number.isSafeInteger(state.revision) ||
     state.revision < 0 ||
@@ -238,13 +237,30 @@ export function transitionTutorial(
     state.reachedCursor >= definition.steps.length ||
     !tutorialStatuses.includes(state.status) ||
     (state.status === 'suppressed'
-      ? state.resumeStatus === undefined || !resumeStatuses.includes(state.resumeStatus)
+      ? typeof state.resumeStatus !== 'string' || !resumeStatuses.includes(state.resumeStatus)
       : state.resumeStatus !== undefined) ||
     !Array.isArray(state.stepStatuses) ||
     state.stepStatuses.length !== definition.steps.length ||
     Array.from(state.stepStatuses).some((status) => !stepStatuses.includes(status))
   )
-    return unchanged('invalid_state')
+    return false
+  return true
+}
+
+/** Pure guidance transitions. Caller retains ownership of production actions and truth. */
+export function transitionTutorial(
+  definition: TutorialDefinition,
+  state: TutorialLifecycleState,
+  command: TutorialCommand,
+  input: TutorialEligibility = {}
+): TutorialTransitionResult {
+  const unchanged = (reason: TutorialTransitionResult['reason']): TutorialTransitionResult => ({
+    state,
+    changed: false,
+    reason,
+    events: [],
+  })
+  if (!isTutorialLifecycleState(state, definition)) return unchanged('invalid_state')
   if (command.expectedRevision !== state.revision) return unchanged('stale')
   const update = (patch: Partial<TutorialLifecycleState>): TutorialTransitionResult => ({
     state: freezeState({ ...state, ...patch, revision: state.revision + 1 }),

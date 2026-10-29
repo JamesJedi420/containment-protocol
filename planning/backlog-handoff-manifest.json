@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2918",
     "SPE-2917",
     "SPE-3488",
     "SPE-3487",
@@ -467,6 +468,7 @@
     "planning/spe-3292-maintenance-conversion-slice.md": "Recently shipped",
     "planning/spe-3436-store-projection-dependency-slice.md": "Recently shipped",
     "planning/spe-3438-cross-feature-import-slice.md": "Recently shipped",
-    "planning/spe-2917-tutorial-lifecycle-slice.md": "Recently shipped"
+    "planning/spe-2917-tutorial-lifecycle-slice.md": "Recently shipped",
+    "planning/spe-2918-tutorial-persistence-slice.md": "Recently shipped"
   }
 }

@@ -102,7 +102,11 @@ export async function launchContractFromMissionBoard(page: Page): Promise<void> 
   await expect
     .poll(async () => {
       const text = (await assignedTab.textContent()) ?? ''
-      return Number(/\((\d+)\)/.exec(text)?.[1] ?? '0')
+      const match = /\((\d+)\)/.exec(text)
+      if (!match) {
+        throw new Error(`assigned tab label missing (N); got: ${JSON.stringify(text)}`)
+      }
+      return Number(match[1])
     })
     .toBeGreaterThan(0)
   await expect(
@@ -171,7 +175,10 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
     .poll(async () => {
       const text = (await packageLine.textContent()) ?? ''
       const match = /Available funding:\s*(\d+)/i.exec(text)
-      return match ? Number(match[1]) : Number.POSITIVE_INFINITY
+      if (!match) {
+        throw new Error(`Available funding text missing; got: ${JSON.stringify(text)}`)
+      }
+      return Number(match[1])
     })
     .toBeLessThan(fundingBefore)
 }

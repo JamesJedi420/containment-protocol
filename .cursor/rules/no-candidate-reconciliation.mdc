@@ -1,23 +1,12 @@
 ---
-description: Default — no candidate reconciliation; ChatGPT owns it unless delegated policy is effective
-alwaysApply: true
+description: ChatGPT-only pointer — Cursor must not treat this as a ban on reconciliation (see cursor-autonomous-authority)
+alwaysApply: false
 ---
 
-# No candidate reconciliation (default)
+# ChatGPT candidate reconciliation (not a Cursor ban)
 
-This agent plans and implements already-approved Linear issues, one coding slice at a time.
+**For Cursor sessions:** follow `docs/cursor-autonomous-authority.md` and `.cursor/rules/cursor-autonomous-authority.mdc`. Cursor may assess, reconcile, approve, and write backlog-shape Linear mutations under those safeguards. Do **not** stop for ChatGPT Phase 1–4 approval.
 
-Candidate reconciliation belongs to ChatGPT by default. Do not perform it unless `docs/cursor-delegated-backlog-approval.md` is effective on `origin/main` (session copy matches that revision), the session has an **explicit** implementation-continuation request, and the session follows that document’s eligibility, audit evidence, and prohibitions.
+**For ChatGPT actors:** Phases 1–4 and the canonical candidate ledger remain ChatGPT’s Linear management workflow. ChatGPT must not treat Cursor autonomy docs as permission to skip its own Project gates.
 
-Do not (unless the effective delegated policy explicitly allows the step):
-
-- run candidate-ledger phases (assessment, parent reconciliation, child reconciliation, contradiction review, or feature/backlog writeback)
-- harvest, triage, or close candidate batches
-- edit the candidate reconciliation ledger or its frontier
-- treat “no approved next slice” or “continue the governance flow” as an assignment to reconcile candidates
-- create Linear issues, children, parents, or relationships
-
-When no approved implementation slice is named:
-
-1. If delegated policy is **effective** on `origin/main` **and** the session has an explicit implementation-continuation request, follow `docs/cursor-delegated-backlog-approval.md` and `.cursor/rules/cursor-delegated-backlog-approval.mdc` (including resume-if-In-Progress and branch-before-audit).
-2. Otherwise run `.cursor/skills/cp-next-implementation-slice/SKILL.md`. That skill picks one already-approved eligible issue, sets it In Progress, and starts the slice. If it finds no eligible issue, stop and ask for the Linear issue URL, slice doc, and branch name. Do not invent a slice and do not start reconciliation while waiting.
+Historical “Cursor must not reconcile / must not create issues” wording in older chats is obsolete for Cursor.

@@ -8,7 +8,7 @@ Paste this block into **Cursor → Settings → Rules → User Rules** when runn
 
 Apply when I ask for backlog hygiene, Linear grooming, issue reconciliation, or GitHub mirror alignment. **Do not** use for implementation slices.
 
-**Hard boundaries:** No application-code edits; no branch/PR requirement for analysis-only hygiene; **no new issues, parents, children, relationships, reparenting, or durable scope from hygiene itself**. A clear missing boundary is a candidate, not issue-creation permission. **Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape; ordinary lifecycle/evidence Linear updates do not require them. New/changed durable scope must pass Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4. When unsure, report `needs owner decision` or the current candidate phase.
+**Hard boundaries:** No application-code edits during hygiene-only passes; no branch/PR requirement for analysis-only hygiene. Prefer fold-in comments on existing owners. **Cursor** may create bounded missing owners under `docs/cursor-autonomous-authority.md` when hygiene proves a durable gap (keep hygiene PRs separate from feature code). **ChatGPT** still uses Phases 1–4 for its own backlog-shape workflow. Ordinary lifecycle/evidence Linear updates never require phases.
 
 **Source of truth:** Linear is canonical for already-approved SPE scope/lifecycle; GitHub PRs/tests are implementation evidence; completed/canceled provenance is preserved.
 

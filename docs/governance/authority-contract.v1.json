@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policyVersion": "1.0.1",
+  "policyVersion": "1.0.2",
   "contractId": "cp.governance.authority",
   "status": "policy-projection-not-authority",
   "provenance": {
@@ -244,7 +244,7 @@
       "id": "CP-GOV-003",
       "sourceClass": "current-user-approved-governance",
       "sourceRef": "project:Containment Protocol governance control plane",
-      "semantic": "backlog-shape-from-candidate-reconciliation-requires-ordered-approvals-and-phase-four"
+      "semantic": "chatgpt-backlog-shape-from-candidate-reconciliation-requires-ordered-approvals-and-phase-four"
     },
     {
       "id": "CP-GOV-004",
@@ -275,6 +275,12 @@
       "sourceClass": "current-user-approved-governance",
       "sourceRef": "project:Containment Protocol governance control plane",
       "semantic": "one-canonical-owner-for-shared-systems"
+    },
+    {
+      "id": "CP-GOV-009",
+      "sourceClass": "current-user-approved-governance",
+      "sourceRef": "project:Containment Protocol governance control plane — docs/cursor-autonomous-authority.md",
+      "semantic": "cursor-may-autonomously-mutate-backlog-shape-under-safeguards-without-chatgpt-phase-gates"
     }
   ]
 }

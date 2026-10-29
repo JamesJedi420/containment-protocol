@@ -8,34 +8,20 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 4. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md`
 5. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
 6. **Cloud-agent Linear handoff** — `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`
+7. **Cursor autonomous authority** — `docs/cursor-autonomous-authority.md` (canonical; also alwaysApply rule)
 
 ---
 
 ## Containment Protocol — standing workflow
 
-- **Scope authority:** Linear is authoritative for **already-approved** planning/lifecycle state; GitHub code/PR/CI/tests are implementation evidence. Newly discovered durable scope is not automatically backlog scope.
-- **Scope mutation:** do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or expanded durable scope from implementation, harvest, deferred-work notes, review, or closeout. **Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape; lifecycle/evidence Linear updates on already-approved boundaries do not require them. New/changed durable scope goes through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4.
-- **Unowned review/docs work:** may proceed read-only without a Linear mutation. Do not invent an issue just to satisfy bookkeeping. If durable product scope is discovered, record it as candidate input.
-- **Implementation slices:** use the already-approved Linear issue named by the task. Follow the repo `implementation-lite` ship loop (commit → push → PR → independent review + external-comment triage + CI → merge → sync `main`) unless the user explicitly says no commit/PR/push/merge or local/plan only.
-- **Linear lifecycle:** keep approved owned work current with truthful progress/PR/status/closure evidence. Done only when the full existing boundary is satisfied; parent closure is evaluated separately.
-- **Harvest triage:** use `docs/harvest-candidate-triage-agent.md`; rich existing-owner traceability is allowed only inside an already-approved boundary. Missing boundaries stay in the canonical Linear candidate ledger until governance authorizes Phase 4.
-- **Candidate ledger:** https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
-- After a PR **merges**: `git checkout main` + `git pull origin main`, then start a **new agent chat** before the next approved slice.
+- **Cursor authority:** Cursor is an autonomous implementation and engineering-management agent. It may reconcile, create, reparent, and close Linear issues under `docs/cursor-autonomous-authority.md` safeguards. ChatGPT Phase 1–4 gates do **not** bind Cursor. Codex designations are preferences, not exclusive locks.
+- **Scope authority:** Linear is the system of record; GitHub is implementation evidence.
+- **Lifecycle:** keep owned work current with truthful progress/PR/status/closure evidence. Done only when the full boundary is satisfied; parent closure is separate.
+- **Implementation slices:** follow the repo `implementation-lite` ship loop (commit → push → PR → independent review + external-comment triage + CI → merge → sync `main`) unless the user explicitly says no commit/PR/push/merge or local/plan only.
+- **Safeguards:** inspect existing Linear first; prefer fold-in; keep issues bounded with Goal/Scope/Constraints/Acceptance; one canonical shared-system owner; no parallel frameworks or speculative drive-bys; escalate only real blockers.
+- After a PR **merges**: `git checkout main` + `git pull origin main`, then prefer a **new agent chat** for the next slice.
 - During one open PR on one branch, one agent session is fine until merge.
-- Each approved implementation task: give the agent the Linear issue, `planning/*-slice.md` when present, branch name, and current `main` SHA.
-- Standing repo rules: read `AGENTS.md` first.
-- Prefer slice docs and authoritative records over re-explaining finished work in chat.
-- Live web research: prefer repo sources first; use configured read-only research tools only when current external facts are necessary; do not add search APIs to runtime without approved scope.
-- Cursor plugin keep-list: `docs/agent-cursor-plugins.md`; follow dependency-scanning requirements before adding/upgrading packages.
-- Session closeout: phase A while merge is blocked = no next-issue plan. Phase B after merge = plan only an already-approved next issue; otherwise stop and ask for one. Do not exercise delegated selection in closeout. Candidate reconciliation belongs to ChatGPT.
-- Delegated backlog approval: bounded Cursor selection/approval only when that doc is effective on `origin/main` (matching revision) and the session has an explicit implementation-continuation request; never from an unmerged amendment PR. Details: `docs/cursor-delegated-backlog-approval.md`.
-
----
-
-## Optional one-line first message (approved next task)
-
-```text
-PR #____ merged. On main @ <sha>. Next approved issue: <Linear URL> — see planning/<slice>.md — branch <name>. Confirm planning/backlog.md + backlog-handoff-manifest.json match Linear (`npm run verify:backlog-handoff`).
-```
-
-If no approved next issue exists, stop and ask for the Linear issue, slice doc, and branch. A later new agent chat may use delegated selection when that policy is effective on `origin/main` and continuation is requested.
+- Standing repo rules: read `AGENTS.md` first; Cursor alwaysApply rule `.cursor/rules/cursor-autonomous-authority.mdc`.
+- Prefer slice docs and Linear over re-explaining finished work in chat.
+- Cursor plugin keep-list: `docs/agent-cursor-plugins.md`; Sonatype before npm add/upgrade.
+- Session closeout: phase A while merge blocked; phase B after merge may plan/select/create the next bounded slice when continuation is expected.

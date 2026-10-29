@@ -50,8 +50,17 @@ export async function openFrontDesk(page: Page): Promise<void> {
 }
 
 export async function advanceOperationalWeek(page: Page): Promise<void> {
+  const weekLabel = page.getByText(/Week \d+\s*\/\s*Active cap/i).first()
+  await expect(weekLabel).toBeVisible()
+  const currentWeek = Number(/Week\s+(\d+)/i.exec((await weekLabel.textContent()) ?? '')?.[1])
+  expect(
+    Number.isFinite(currentWeek) && currentWeek > 0,
+    'expected visible Week N / Active cap label before advance',
+  ).toBe(true)
   await page.getByTestId('topbar-advance-button').click()
-  await expect(page.getByText(/Week 2\s*\/\s*Active cap/i).first()).toBeVisible()
+  await expect(
+    page.getByText(new RegExp(`Week ${currentWeek + 1}\\s*/\\s*Active cap`, 'i')).first(),
+  ).toBeVisible()
 }
 
 export async function openPrimaryNav(page: Page, label: string): Promise<void> {

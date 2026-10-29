@@ -181,3 +181,20 @@ test('classifyChangedFiles sorts files and classes stably', () => {
   assert.ok(classification.activeClasses.includes('governance'))
   assert.ok(classification.activeClasses.includes('planning'))
 })
+
+test('CLI accepts --exclude=id equals form used by npm/CI', async () => {
+  const { spawnSync } = await import('node:child_process')
+  const result = spawnSync(
+    process.execPath,
+    [
+      'scripts/validation/run-requirements.mjs',
+      '--resolve-only',
+      '--files=e2e/cp-smoke.spec.ts',
+      '--exclude=playwright-e2e',
+    ],
+    { encoding: 'utf8', cwd: process.cwd() },
+  )
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  assert.match(result.stdout, /required:/)
+  assert.doesNotMatch(result.stdout, /playwright-e2e/)
+})

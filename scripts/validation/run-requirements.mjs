@@ -21,6 +21,15 @@ import {
   summarizeRequirementReport,
 } from './requirement-model.mjs'
 
+function takeValue(argv, i, flag, inline) {
+  if (inline !== undefined) return { value: inline, next: i }
+  const value = argv[i + 1]
+  if (value === undefined || value.startsWith('--')) {
+    throw new Error(`${flag} requires a value`)
+  }
+  return { value, next: i + 1 }
+}
+
 function parseArgs(argv) {
   const opts = {
     base: null,
@@ -36,21 +45,39 @@ function parseArgs(argv) {
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--ci') opts.ci = true
-    else if (a === '--resolve-only') opts.resolveOnly = true
-    else if (a === '--dry-run') opts.dryRun = true
-    else if (a === '--json') opts.json = true
-    else if (a === '--all') opts.all = true
-    else if (a === '--base') opts.base = argv[++i]
-    else if (a === '--files') opts.files = argv[++i].split(',').map((s) => s.trim()).filter(Boolean)
-    else if (a === '--include') opts.include.push(argv[++i])
-    else if (a === '--exclude') opts.exclude.push(argv[++i])
-    else if (a === '--exception') {
-      const raw = argv[++i]
-      const eq = raw.indexOf('=')
-      if (eq === -1) throw new Error(`--exception expects id=reason, got ${raw}`)
-      opts.exceptions.push({ validatorId: raw.slice(0, eq), reason: raw.slice(eq + 1) })
-    } else if (a === '--help' || a === '-h') {
+    const eq = a.indexOf('=')
+    const flag = eq === -1 ? a : a.slice(0, eq)
+    const inline = eq === -1 ? undefined : a.slice(eq + 1)
+
+    if (flag === '--ci' && inline === undefined) opts.ci = true
+    else if (flag === '--resolve-only' && inline === undefined) opts.resolveOnly = true
+    else if (flag === '--dry-run' && inline === undefined) opts.dryRun = true
+    else if (flag === '--json' && inline === undefined) opts.json = true
+    else if (flag === '--all' && inline === undefined) opts.all = true
+    else if (flag === '--base') {
+      const taken = takeValue(argv, i, '--base', inline)
+      opts.base = taken.value
+      i = taken.next
+    } else if (flag === '--files') {
+      const taken = takeValue(argv, i, '--files', inline)
+      opts.files = taken.value.split(',').map((s) => s.trim()).filter(Boolean)
+      i = taken.next
+    } else if (flag === '--include') {
+      const taken = takeValue(argv, i, '--include', inline)
+      opts.include.push(taken.value)
+      i = taken.next
+    } else if (flag === '--exclude') {
+      const taken = takeValue(argv, i, '--exclude', inline)
+      opts.exclude.push(taken.value)
+      i = taken.next
+    } else if (flag === '--exception') {
+      const taken = takeValue(argv, i, '--exception', inline)
+      const raw = taken.value
+      const sep = raw.indexOf('=')
+      if (sep === -1) throw new Error(`--exception expects id=reason, got ${raw}`)
+      opts.exceptions.push({ validatorId: raw.slice(0, sep), reason: raw.slice(sep + 1) })
+      i = taken.next
+    } else if (flag === '--help' || flag === '-h') {
       opts.help = true
     } else {
       throw new Error(`Unknown argument: ${a}`)

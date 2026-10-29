@@ -15,11 +15,17 @@ Vite starts via Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`). Loca
 
 ## Scope
 
-Bounded smoke:
+Bounded Chromium player smokes (`e2e/cp-smoke.spec.ts`) — player-loop proof, not page-count coverage. Deep sim stays Vitest.
 
 1. Startup + primary navigation with page-error detection
-2. One Advance Week through `data-testid="topbar-advance-button"`
-3. Hard reload continuity via existing Zustand `localStorage` key `containment-protocol-game-state`
+2. Agents roster surface load
+3. One Advance Week through `data-testid="topbar-advance-button"`
+4. Hard reload continuity via Zustand `localStorage` key `containment-protocol-game-state`
+5. Mission Board “Launch with…” (open case + recommended assign)
+6. Manual Assign from open triage (distinct from Launch)
+7. Hire after week advance (roster total increases)
+8. Agency maintenance package purchase (funding + recovery budget deltas)
+9. Containment Site `SystemBoundaryPage` load + Cases handoff
 
 Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
 
@@ -27,11 +33,11 @@ Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
 
 Failures retain Playwright traces and screenshots under `test-results/playwright/` and HTML under `playwright-report/`. Both are gitignored. CI uploads them from the `playwright-e2e` job.
 
-## CI selection (SPE-3348 / SPE-3481 / SPE-3482)
+## CI selection (SPE-3348 / SPE-3481 / SPE-3482 / SPE-3483)
 
 Playwright is registered in `scripts/validation/validators.v1.json` as `playwright-e2e`.
 
-- **Required** when `e2e/**`, `playwright.config.ts`, or listed player-critical / smoke-path surfaces change (Front Desk, Advance Week shell, `gameStore`, Cases, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage` — see `requiredWhen` in the registry).
+- **Required** when `e2e/**`, `playwright.config.ts`, or listed player-critical / smoke-path surfaces change (Front Desk, Advance Week shell, `gameStore`, `AppShell`, Cases + `caseView` / Case detail, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage` — see `requiredWhen` in the registry).
 - **Advisory** when selected for other player-path UI changes (`src/app/**`, `src/features/**`, …) that do not match `requiredWhen`.
 - **Not selected** when the change set does not match activation rules (job skips install/run).
 

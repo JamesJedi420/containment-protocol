@@ -50,7 +50,8 @@ jobs:
         run: npm run coverage:ci
 
   # SPE-3348 — Playwright selection from the shared requirement model.
-  # Required when e2e harness paths change; advisory for player-path UI changes.
+  # Required when e2e harness or listed player-critical / smoke-path surfaces change
+  # (validators.v1.json playwright-e2e.requiredWhen); advisory for other activated UI paths.
   # Not an unconditional continue-on-error flip for every PR.
   playwright-e2e:
     name: playwright-e2e

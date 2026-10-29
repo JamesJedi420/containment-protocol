@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **Recently shipped** / **Done** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-2271](https://linear.app/spectranoir/issue/SPE-2271/patrol-zones-and-escort-policy-doctrine-slice-1) |
 | **Parent** | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2271-patrol-zones-and-escort-policy-doctrine-slice-1` |

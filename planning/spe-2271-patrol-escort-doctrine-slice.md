@@ -2,10 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** / **Done** |
 | **Issue** | [SPE-2271](https://linear.app/spectranoir/issue/SPE-2271/patrol-zones-and-escort-policy-doctrine-slice-1) |
-| **Parent** | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) |
+| **Parent** | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023/response-team-readiness-patrol-and-alert-doctrine-layer) (stays Backlog) |
 | **Branch** | `jamesdyedbq/spe-2271-patrol-zones-and-escort-policy-doctrine-slice-1` |
+| **Merged** | PR [#4489](https://github.com/JamesJedi420/containment-protocol/pull/4489) @ `c82945fc` |
 | **Base main SHA** | `357dcf7d` |
 
 ## Delegated approval

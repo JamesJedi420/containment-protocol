@@ -86,6 +86,7 @@ jobs:
 
       - name: Install Playwright Chromium
         if: steps.pw.outputs.selected == 'true'
+        continue-on-error: ${{ steps.pw.outputs.enforcement != 'required' }}
         run: npx playwright install chromium --with-deps
 
       - name: Run Playwright E2E
@@ -94,8 +95,14 @@ jobs:
         continue-on-error: ${{ steps.pw.outputs.enforcement != 'required' }}
         run: npm run test:e2e:ci
 
+      - name: Fail when required Playwright gate could not resolve
+        if: steps.pw.outcome == 'failure'
+        run: |
+          echo "Playwright requirement resolve failed (fail-closed)."
+          exit 1
+
       - name: Skip notice when Playwright not selected
-        if: steps.pw.outputs.selected != 'true'
+        if: steps.pw.outcome == 'success' && steps.pw.outputs.selected != 'true'
         run: echo "Playwright not selected for this change set (SPE-3348 resolver)."
 
       - name: Upload Playwright report

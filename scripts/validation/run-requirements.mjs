@@ -86,23 +86,55 @@ function parseArgs(argv) {
   return opts
 }
 
-function gitChangedFiles(base) {
+function parseNameOnly(stdout) {
+  return stdout
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+}
+
+/** Include deletions (D) so delete-only PRs still activate validators. */
+const DIFF_NAME_ONLY = ['diff', '--name-only', '--diff-filter=ACDMR']
+
+function workingTreeChanges() {
+  const tracked = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACDMR', 'HEAD'], {
+    encoding: 'utf8',
+  })
+  const staged = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACDMR', '--cached'], {
+    encoding: 'utf8',
+  })
+  const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard'], {
+    encoding: 'utf8',
+  })
+  return [
+    ...parseNameOnly(tracked.status === 0 ? tracked.stdout : ''),
+    ...parseNameOnly(staged.status === 0 ? staged.stdout : ''),
+    ...parseNameOnly(untracked.status === 0 ? untracked.stdout : ''),
+  ]
+}
+
+function gitChangedFiles(base, { includeWorkingTree = true } = {}) {
   const ref = base ?? defaultBaseRef()
   const attempts = [
-    ['diff', '--name-only', '--diff-filter=ACMR', `${ref}...HEAD`],
-    ['diff', '--name-only', '--diff-filter=ACMR', `${ref}..HEAD`],
-    ['diff', '--name-only', '--diff-filter=ACMR', ref],
+    [...DIFF_NAME_ONLY, `${ref}...HEAD`],
+    [...DIFF_NAME_ONLY, `${ref}..HEAD`],
+    [...DIFF_NAME_ONLY, ref],
   ]
+  let committed = null
   for (const args of attempts) {
     const result = spawnSync('git', args, { encoding: 'utf8' })
     if (result.status === 0) {
-      return result.stdout
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean)
+      committed = parseNameOnly(result.stdout)
+      break
     }
   }
-  throw new Error(`Unable to resolve changed files against base ${ref}`)
+  if (committed === null) {
+    throw new Error(`Unable to resolve changed files against base ${ref}`)
+  }
+  if (!includeWorkingTree) return committed
+  return [...new Set([...committed, ...workingTreeChanges()])].sort((a, b) =>
+    a.localeCompare(b, 'en'),
+  )
 }
 
 function defaultBaseRef() {
@@ -198,9 +230,10 @@ function runOne(selected, { ci, dryRun }) {
     }
   }
 
+  const isolateStdout = Boolean(process.env.VALIDATION_JSON_ISOLATE)
   const result = spawnSync(finalCommand, finalArgs, {
     encoding: 'utf8',
-    stdio: 'inherit',
+    stdio: isolateStdout ? ['ignore', 'pipe', 'inherit'] : 'inherit',
     env: process.env,
     shell: process.platform === 'win32' && invocation.kind === 'npm',
   })
@@ -269,10 +302,18 @@ function main() {
     process.exit(0)
   }
 
+  if (opts.json) {
+    process.env.VALIDATION_JSON_ISOLATE = '1'
+  }
+
   const registry = readRequirementRegistry()
   const files = opts.all
     ? ['**']
-    : (opts.files ?? gitChangedFiles(opts.base))
+    : (opts.files ??
+      gitChangedFiles(opts.base, {
+        // Local pre-ship includes dirty working tree; CI uses committed PR diff only.
+        includeWorkingTree: !opts.ci,
+      }))
 
   // `--all` uses a synthetic match-all path handled below
   const effectiveFiles = opts.all
@@ -297,16 +338,15 @@ function main() {
     const results = resolution.selected.map((s) =>
       runOne(s, { ci: opts.ci, dryRun: true }),
     )
-    const missing = opts.resolveOnly
-      ? []
-      : detectMissingRequiredValidation(resolution, results)
+    // resolve-only is selection-only (no availability execution). Availability is
+    // enforced when validators actually run.
+    const missing = []
     const report = summarizeRequirementReport(resolution, results, missing)
     if (opts.json) {
       console.log(JSON.stringify(report, null, 2))
     } else {
       printHuman(report)
     }
-    // resolve-only / dry-run: exit 0 unless JSON consumers need selection signal
     if (opts.resolveOnly && opts.include.length === 1) {
       const hit = resolution.selected.find((s) => s.id === opts.include[0])
       if (!hit) process.exit(3) // not selected

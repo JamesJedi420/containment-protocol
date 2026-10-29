@@ -120,7 +120,8 @@
         "pathGlobs": [
           "architecture/external-design-theme-contracts.md",
           "architecture/**/*theme*",
-          "docs/design-audits-index.md"
+          "docs/design-audits-index.md",
+          "docs/linear-external-documentation-follow-ups.md"
         ]
       },
       "whenUnavailable": "fail"

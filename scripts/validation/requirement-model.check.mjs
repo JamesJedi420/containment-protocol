@@ -198,3 +198,17 @@ test('CLI accepts --exclude=id equals form used by npm/CI', async () => {
   assert.match(result.stdout, /required:/)
   assert.doesNotMatch(result.stdout, /playwright-e2e/)
 })
+
+test('deleted application path still requires lint and unit-tests', () => {
+  const resolution = resolveValidationRequirements(['src/domain/removedModule.ts'], registry)
+  assert.ok(resolution.requiredIds.includes('lint'))
+  assert.ok(resolution.requiredIds.includes('unit-tests'))
+})
+
+test('SPE mirror doc activates theme-contracts', () => {
+  const resolution = resolveValidationRequirements(
+    ['docs/linear-external-documentation-follow-ups.md'],
+    registry,
+  )
+  assert.ok(resolution.requiredIds.includes('theme-contracts'))
+})

@@ -50,7 +50,8 @@ export interface ContaminationExposure {
   readonly sourceZoneId: string
   readonly destinationZoneId: string
   readonly actorId: string
-  readonly symptom: ContaminationSymptom
+  /** Null when the destination is not linked to the source. */
+  readonly symptom: ContaminationSymptom | null
   readonly severity: SeverityBand
   readonly susceptible: boolean
   readonly reasons: readonly string[]
@@ -73,7 +74,10 @@ const TAGS: readonly SusceptibilityTag[] = [
 ]
 const SEVERITIES: readonly Exclude<SeverityBand, 'none'>[] = ['low', 'moderate', 'high', 'critical']
 
-function requireNonEmpty(value: string, label: string): string {
+function requireNonEmpty(value: string | null | undefined, label: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(`cross-zone contamination ${label} is required`)
+  }
   const trimmed = value.trim()
   if (!trimmed) throw new Error(`cross-zone contamination ${label} is required`)
   return trimmed
@@ -116,10 +120,10 @@ export function scaleSeverityByHops(
   base: Exclude<SeverityBand, 'none'>,
   hopsFromSource: number,
 ): SeverityBand {
+  const validated = requireSeverity(base)
   const hops = requireNonNegativeInt(hopsFromSource, 'hopsFromSource')
   const order: readonly SeverityBand[] = ['critical', 'high', 'moderate', 'low', 'none']
-  const start = order.indexOf(base)
-  if (start < 0) throw new Error('cross-zone contamination severity is invalid')
+  const start = order.indexOf(validated)
   const idx = Math.min(start + hops, order.length - 1)
   return order[idx]!
 }
@@ -192,7 +196,7 @@ export function evaluateContaminationExposure(args: {
       sourceZoneId: source.sourceZoneId,
       destinationZoneId,
       actorId,
-      symptom: 'mild_unrest',
+      symptom: null,
       severity: 'none',
       susceptible: false,
       reasons: Object.freeze(['unknown-destination']),
@@ -240,8 +244,16 @@ export function projectContaminationExposures(args: {
   readonly actors: readonly ActorContaminationSubject[]
 }): readonly ContaminationExposure[] {
   const source = createContaminationSourceProfile(args.source)
-  const actors = [...(args.actors ?? [])].sort((a, b) =>
-    compareAscii(requireNonEmpty(a.actorId, 'actorId'), requireNonEmpty(b.actorId, 'actorId')),
+  const byActorId = new Map<string, ActorContaminationSubject>()
+  for (const actor of args.actors ?? []) {
+    const actorId = requireNonEmpty(actor.actorId, 'actorId')
+    if (byActorId.has(actorId)) {
+      throw new Error(`cross-zone contamination duplicate actorId ${actorId}`)
+    }
+    byActorId.set(actorId, actor)
+  }
+  const actors = [...byActorId.values()].sort((a, b) =>
+    compareAscii(a.actorId, b.actorId),
   )
   const out: ContaminationExposure[] = []
   for (const dest of source.destinations) {

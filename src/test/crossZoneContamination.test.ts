@@ -68,7 +68,9 @@ describe('SPE-807 cross-zone contamination', () => {
       destinationZoneId: 'zone-near',
     })
     expect(dreamer.susceptible).toBe(true)
+    expect(dreamer.symptom).toBe('shared_dreams')
     expect(dreamer.severity).toBe('high')
+    expect(dreamer.reasons).toEqual(['hops:0', 'severity:high', 'symptom:shared_dreams'])
   })
 
   it('projects deterministic exposures for multiple actors and destinations', () => {
@@ -129,5 +131,21 @@ describe('SPE-807 cross-zone contamination', () => {
     })
     expect(unknown.reasons).toEqual(['unknown-destination'])
     expect(unknown.severity).toBe('none')
+    expect(unknown.symptom).toBeNull()
+
+    expect(() =>
+      projectContaminationExposures({
+        source: sourceBase,
+        actors: [
+          { actorId: 'dup', tags: ['species:human'] },
+          { actorId: 'dup', tags: ['affinity:dreamspace'] },
+        ],
+      }),
+    ).toThrow(/duplicate actorId/)
+
+    expect(() => scaleSeverityByHops('none' as 'low', 0)).toThrow(/severity is invalid/)
+    expect(() => createContaminationSourceProfile({ ...sourceBase, sourceId: null as unknown as string })).toThrow(
+      /sourceId is required/,
+    )
   })
 })

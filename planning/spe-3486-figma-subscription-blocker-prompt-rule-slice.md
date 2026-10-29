@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4507) |
 | **Issue** | [SPE-3486](https://linear.app/spectranoir/issue/SPE-3486/figma-subscription-blocker-mandatory-human-prompt-rule) |
 | **Related** | SPE-3484 (Figma UI system integration) |
 | **Branch** | `jamesdyedbq/spe-3486-figma-subscription-blocker-mandatory-human-prompt-rule` |

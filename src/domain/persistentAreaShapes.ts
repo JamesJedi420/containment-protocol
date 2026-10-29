@@ -123,9 +123,6 @@ export function defaultConduitForFamily(family: AreaShapeFamily): ConduitProfile
 export function createPersistentAreaShape(input: PersistentAreaShape): PersistentAreaShape {
   const family = requireFamily(input.family)
   const conduit = requireConduit(input.conduit)
-  if (conduit !== defaultConduitForFamily(family) && family === 'wall' && conduit === 'volume_fill') {
-    // walls may still be authored volume_fill, but surfaceAdjacency is the default
-  }
   // Preserve authored order so pre-escalation exposes the first authored layer.
   const layers: HazardLayerEffect[] = []
   const seen = new Set<HazardLayerEffect>()

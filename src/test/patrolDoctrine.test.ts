@@ -168,9 +168,38 @@ describe('SPE-2271 patrol doctrine', () => {
         escortedAssetTag: 'vip-convoy',
       },
     })
-    expect(escortBeatsDecoy.action).toBe('doctrine_failure')
+    expect(escortBeatsDecoy.action).toBe('escort_asset')
     expect(escortBeatsDecoy.policyId).toBe('escort-vip')
-    expect(escortBeatsDecoy.failureKind).toBe('decoy_pursuit')
+    expect(escortBeatsDecoy.failureKind).toBeNull()
+
+    const glamouredBeatsDecoy = resolvePatrolDoctrineResponse({
+      registry: registryBase,
+      stimulus: {
+        activeZoneId: 'perimeter-a',
+        contactPresent: true,
+        contactIsDecoy: true,
+        contactIsGlamoured: true,
+        zoneCleared: true,
+        escortedAssetTag: 'vip-convoy',
+      },
+    })
+    expect(glamouredBeatsDecoy.action).toBe('hold_position')
+    expect(glamouredBeatsDecoy.failureKind).toBe('glamoured_victim')
+    expect(glamouredBeatsDecoy.reasons).toContain('abandon:glamoured_victim')
+
+    const abandonAlarmVsDecoy = resolvePatrolDoctrineResponse({
+      registry: abandonAlarmRegistry,
+      stimulus: {
+        activeZoneId: 'perimeter-a',
+        contactPresent: true,
+        contactIsDecoy: true,
+        contactIsGlamoured: false,
+        zoneCleared: true,
+        escortedAssetTag: 'vip-convoy',
+      },
+    })
+    expect(abandonAlarmVsDecoy.action).toBe('hold_position')
+    expect(abandonAlarmVsDecoy.reasons).toContain('escort:abandon_on_alarm')
   })
 
   it('fails closed on invalid registry packets', () => {
@@ -205,5 +234,19 @@ describe('SPE-2271 patrol doctrine', () => {
     })
     expect(unknown.action).toBe('hold_position')
     expect(unknown.reasons).toEqual(['unknown-zone'])
+
+    const unknownEscort = resolvePatrolDoctrineResponse({
+      registry: registryBase,
+      stimulus: {
+        activeZoneId: 'gate-b',
+        contactPresent: false,
+        contactIsDecoy: false,
+        contactIsGlamoured: false,
+        zoneCleared: true,
+        escortedAssetTag: 'missing-asset',
+      },
+    })
+    expect(unknownEscort.action).toBe('hold_position')
+    expect(unknownEscort.reasons).toEqual(['unknown-escort-asset'])
   })
 })

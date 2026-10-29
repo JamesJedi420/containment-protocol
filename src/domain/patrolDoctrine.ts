@@ -204,7 +204,8 @@ export function resolvePatrolDoctrineResponse(args: {
     }
   }
 
-  const failureKind = detectDoctrineFailure(args.stimulus, zone)
+  // Escort overrides bare pursuit: skip decoy_pursuit while escorting (unit is not pursuing).
+  const failureKind = detectDoctrineFailure(args.stimulus, zone, escort !== null)
 
   // Escort policy takes precedence: abandon configured failure kinds, else stay on escort.
   if (escort) {
@@ -215,15 +216,6 @@ export function resolvePatrolDoctrineResponse(args: {
         policyId: escort.policyId,
         failureKind,
         reasons: [`abandon:${failureKind}`, `escort:${escort.stance}`],
-      })
-    }
-    if (failureKind) {
-      return decision({
-        action: 'doctrine_failure',
-        zoneId: zone.zoneId,
-        policyId: escort.policyId,
-        failureKind,
-        reasons: [`failure:${failureKind}`, `escort:${escort.stance}`],
       })
     }
     if (escort.stance === 'abandon_on_alarm' && args.stimulus.contactPresent) {
@@ -278,12 +270,20 @@ export function resolvePatrolDoctrineResponse(args: {
 function detectDoctrineFailure(
   stimulus: PatrolStimulus,
   zone: PatrolZoneRecord,
+  escorting: boolean,
 ): DoctrineFailureKind | null {
-  if (stimulus.contactPresent && stimulus.contactIsDecoy && zone.pursuitRule !== 'hold_zone') {
-    return 'decoy_pursuit'
-  }
+  // Glamour is a contact classification; evaluate before decoy so abandon lists can fire.
   if (stimulus.contactPresent && stimulus.contactIsGlamoured) {
     return 'glamoured_victim'
+  }
+  // Decoy only fools pursuit — escorting units are not pursuing.
+  if (
+    !escorting &&
+    stimulus.contactPresent &&
+    stimulus.contactIsDecoy &&
+    zone.pursuitRule !== 'hold_zone'
+  ) {
+    return 'decoy_pursuit'
   }
   if (!stimulus.zoneCleared && zone.overrideConditions.includes('require_clearance')) {
     return 'uncleared_zone'

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4484 @ `ede7d66c`) |
 | **Issue** | [SPE-876](https://linear.app/spectranoir/issue/SPE-876/pre-activation-safety-readiness-review) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-876-pre-activation-safety-readiness-review` |

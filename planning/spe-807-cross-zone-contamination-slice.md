@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-807](https://linear.app/spectranoir/issue/SPE-807/cross-zone-contamination-propagation-profiles) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-807-cross-zone-contamination-propagation-profiles` |

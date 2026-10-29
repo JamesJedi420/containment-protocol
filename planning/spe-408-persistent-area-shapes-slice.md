@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-408](https://linear.app/spectranoir/issue/SPE-408/persistent-area-shapes-and-hazard-surfaces) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-408-persistent-area-shapes-and-hazard-surfaces` |

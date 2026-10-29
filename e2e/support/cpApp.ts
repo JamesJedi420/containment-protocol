@@ -140,12 +140,11 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   const maintenance = page.getByRole('article', { name: 'Facility maintenance' })
   const fundingLine = maintenance.getByText(/Available funding:\s*\d+/i)
   await expect(fundingLine).toBeVisible()
-  const fundingBefore = Number(
-    /Available funding:\s*(\d+)/i.exec((await fundingLine.textContent()) ?? '')?.[1] ?? 'NaN',
+  const fundingBeforeMatch = /Available funding:\s*(\d+)/i.exec(
+    (await fundingLine.textContent()) ?? '',
   )
-  expect(Number.isFinite(fundingBefore), 'expected numeric Available funding before purchase').toBe(
-    true,
-  )
+  expect(fundingBeforeMatch, 'expected Available funding: <n> before purchase').toBeTruthy()
+  const fundingBefore = Number(fundingBeforeMatch![1])
   const buy = maintenance.getByRole('button', { name: 'Buy maintenance package' })
   await expect(buy).toBeEnabled()
   await buy.click()
@@ -156,7 +155,8 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   await expect
     .poll(async () => {
       const text = (await fundingLine.textContent()) ?? ''
-      return Number(/Available funding:\s*(\d+)/i.exec(text)?.[1] ?? 'NaN')
+      const match = /Available funding:\s*(\d+)/i.exec(text)
+      return match ? Number(match[1]) : Number.POSITIVE_INFINITY
     })
     .toBeLessThan(fundingBefore)
 }

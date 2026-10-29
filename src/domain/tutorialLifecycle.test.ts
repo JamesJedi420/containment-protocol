@@ -328,4 +328,26 @@ describe('tutorial lifecycle', () => {
     }
     expect(run()).toEqual(run())
   })
+
+  it('rejects malformed lifecycle vocabulary and arrays without throwing or emitting events', () => {
+    const malformed: readonly (readonly [string, unknown])[] = [
+      ['status', 'unknown'],
+      ['status', 'suppressed'],
+      ['resumeStatus', 'active'],
+      ['stepStatuses', undefined],
+      ['stepStatuses', { length: 2 }],
+      ['stepStatuses', ['unknown', 'not_started']],
+      ['stepStatuses', new Array(2)],
+    ]
+    for (const [key, value] of malformed) {
+      const state = { ...started() }
+      Reflect.set(state, key, value)
+      const result = apply(state, 'unsuppress')
+      expect(result).toMatchObject({ changed: false, reason: 'invalid_state', events: [] })
+      expect(result.state).toBe(state)
+    }
+    const suppressed = { ...apply(started(), 'suppress').state }
+    Reflect.set(suppressed, 'resumeStatus', 'suppressed')
+    expect(apply(suppressed, 'unsuppress').reason).toBe('invalid_state')
+  })
 })

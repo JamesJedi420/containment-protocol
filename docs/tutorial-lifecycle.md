@@ -30,3 +30,5 @@ Every command includes `expectedRevision`. A changed result increments revision 
 The step-status array records not-started/active/completed/skipped progress. Flow status records dismissal, suppression and interruption separately so resumable progress is retained. Replayability is an immutable definition property, not another mutable completion state.
 
 State/results are pure values. The state factory and changed transitions freeze their state and step arrays. Results expose a semantic event hook for later telemetry but write no log or backend. No GameState mutation, persistence, migration, resource grant, input binding, or gameplay authorization occurs here. Consumers must continue invoking and validating normal production commands independently of guidance progression.
+
+Transitions reject invalid identity/version, counters/cursor, status vocabulary, missing or invalid suppression resume status, and malformed step-status arrays with an unchanged `invalid_state` result. This check does not replace the persistence owner's hydration/migration contract.

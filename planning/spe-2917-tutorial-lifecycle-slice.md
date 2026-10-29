@@ -41,3 +41,7 @@ Targeted validation: 28 tests passed (tutorial registry/lifecycle plus boundary 
 Final audit correction: event triggers gate entry only; completion/resume recheck current authoritative conditions without requiring the already-consumed entry event. Regression coverage verifies both successful completion/resume and fail-closed missing current conditions. Final targeted 28 checks and changed-file lint pass after this correction. All six audit passes rechecked with no remaining findings.
 
 Handoff status is effective on merge; Linear remains In Progress until the PR merges. Full-suite output included one existing React act warning in AffiliationPersonStatusMirrorPage.test.tsx; no test failures.
+
+## PR review correction
+
+Gitar identified that the typed state contract still permits suppressed state without `resumeStatus`, and malformed step arrays could throw. Added explicit status/resume-status vocabulary and array/entry validation, returning unchanged `invalid_state` with no event. Regression tests cover unknown status, missing/self resume status, unexpected resume state, non-array and sparse/invalid step arrays. Final targeted checks after the fix: 29 passed; full lint passed. The earlier full-suite result remains 964 files/10,461 tests; updated full-suite verification runs in PR CI on Node 22. Rechecked all six audit passes after the fix.

@@ -113,6 +113,19 @@ export type TutorialStatus =
   | 'canceled'
 export type TutorialStepStatus = 'not_started' | 'active' | 'completed' | 'skipped'
 
+const tutorialStatuses: readonly string[] = [
+  'not_started',
+  'active',
+  'completed',
+  'dismissed',
+  'skipped',
+  'suppressed',
+  'interrupted',
+  'canceled',
+]
+const resumeStatuses = tutorialStatuses.filter((status) => status !== 'suppressed')
+const stepStatuses: readonly string[] = ['not_started', 'active', 'completed', 'skipped']
+
 /** Serializable value contract; persistence and migration belong to SPE-2918. */
 export interface TutorialLifecycleState {
   readonly tutorialId: string
@@ -217,7 +230,13 @@ export function transitionTutorial(
     !Number.isInteger(state.cursor) ||
     state.cursor < 0 ||
     state.cursor >= definition.steps.length ||
-    state.stepStatuses.length !== definition.steps.length
+    !tutorialStatuses.includes(state.status) ||
+    (state.status === 'suppressed'
+      ? state.resumeStatus === undefined || !resumeStatuses.includes(state.resumeStatus)
+      : state.resumeStatus !== undefined) ||
+    !Array.isArray(state.stepStatuses) ||
+    state.stepStatuses.length !== definition.steps.length ||
+    Array.from(state.stepStatuses).some((status) => !stepStatuses.includes(status))
   )
     return unchanged('invalid_state')
   if (command.expectedRevision !== state.revision) return unchanged('stale')

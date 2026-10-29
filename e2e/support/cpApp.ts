@@ -115,7 +115,7 @@ export async function launchContractFromMissionBoard(page: Page): Promise<void> 
 }
 
 async function readAgentsRosterTotal(page: Page): Promise<number> {
-  const totalLine = page.getByText(/\d+\s*shown\s*\/\s*\d+\s*total/i)
+  const totalLine = page.getByText(/\d+\s*shown\s*\/\s*\d+\s*total/i).first()
   await expect(totalLine).toBeVisible()
   const text = (await totalLine.textContent()) ?? ''
   const match = /(\d+)\s*shown\s*\/\s*(\d+)\s*total/i.exec(text)

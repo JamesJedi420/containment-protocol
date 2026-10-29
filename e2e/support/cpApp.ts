@@ -70,6 +70,7 @@ export async function openFutureExpansionNav(page: Page, label: string): Promise
 /**
  * Launch the first available mission-board contract with its recommended team.
  * Covers shipped “open a case + assign” acceptance in one player control.
+ * Requires a clean campaign (callers must `clearCampaignStorage` first) so Assigned starts at 0.
  */
 export async function launchContractFromMissionBoard(page: Page): Promise<void> {
   await openPrimaryNav(page, 'Cases')
@@ -80,6 +81,10 @@ export async function launchContractFromMissionBoard(page: Page): Promise<void> 
   const assignedBefore = Number(
     /\((\d+)\)/.exec((await assignedTab.textContent()) ?? '')?.[1] ?? '0',
   )
+  expect(
+    assignedBefore,
+    'launchContractFromMissionBoard requires a clean campaign (Assigned === 0); clearCampaignStorage first',
+  ).toBe(0)
   const launch = board.getByRole('button', { name: /Launch with/i }).first()
   await expect(launch).toBeEnabled()
   await launch.click()
@@ -90,7 +95,7 @@ export async function launchContractFromMissionBoard(page: Page): Promise<void> 
       const text = (await assignedTab.textContent()) ?? ''
       return Number(/\((\d+)\)/.exec(text)?.[1] ?? '0')
     })
-    .toBeGreaterThan(assignedBefore)
+    .toBeGreaterThan(0)
   await expect(
     page.getByRole('list', { name: 'Triage list' }).getByText('Contract', { exact: true }).first(),
   ).toBeVisible()
@@ -132,7 +137,8 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   await openFutureExpansionNav(page, 'Agency')
   await expect(page).toHaveURL(/\/agency/)
   await expect(page.getByRole('heading', { name: 'Agency Command' })).toBeVisible()
-  const fundingLine = page.getByText(/Available funding:/i)
+  const maintenance = page.getByRole('article', { name: 'Facility maintenance' })
+  const fundingLine = maintenance.getByText(/Available funding:\s*\d+/i)
   await expect(fundingLine).toBeVisible()
   const fundingBefore = Number(
     /Available funding:\s*(\d+)/i.exec((await fundingLine.textContent()) ?? '')?.[1] ?? 'NaN',
@@ -140,11 +146,13 @@ export async function buyAgencyMaintenancePackage(page: Page): Promise<void> {
   expect(Number.isFinite(fundingBefore), 'expected numeric Available funding before purchase').toBe(
     true,
   )
-  const buy = page.getByRole('button', { name: 'Buy maintenance package' })
+  const buy = maintenance.getByRole('button', { name: 'Buy maintenance package' })
   await expect(buy).toBeEnabled()
   await buy.click()
   // Package credits recovery budget and deducts funding — assert both mutated.
-  await expect(page.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i)).toBeVisible()
+  await expect(
+    maintenance.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i),
+  ).toBeVisible()
   await expect
     .poll(async () => {
       const text = (await fundingLine.textContent()) ?? ''

@@ -1,0 +1,44 @@
+{
+  "$schemaComment": "Bounded index of important pre-existing CP Drive files discoverable by search. Prefer search for Social Asset packs (many docs); do not invent ids.",
+  "storyKnowledge": [
+    {
+      "name": "CP Story Knowledge — Registry",
+      "fileId": "1S4yz4HphpCK4egYKRUXEB1mka5BiavzdTroXRPrHXB0",
+      "mimeType": "application/vnd.google-apps.spreadsheet",
+      "webViewLink": "https://docs.google.com/spreadsheets/d/1S4yz4HphpCK4egYKRUXEB1mka5BiavzdTroXRPrHXB0/edit?usp=drivesdk"
+    },
+    {
+      "name": "CP Story Knowledge — Canon & Retrieval Protocol",
+      "fileId": "1R8sqZ6uFX450yMsoEge5ccGxG_lQzCLcP_ML57d917I",
+      "mimeType": "application/vnd.google-apps.document",
+      "webViewLink": "https://docs.google.com/document/d/1R8sqZ6uFX450yMsoEge5ccGxG_lQzCLcP_ML57d917I/edit?usp=drivesdk"
+    },
+    {
+      "name": "CP Story Knowledge — Scene Context Template",
+      "fileId": "1o9TIGdpJ3Urqp5wZ95z32ReV4PyDW59z0sl8WcvRZGQ",
+      "mimeType": "application/vnd.google-apps.document",
+      "webViewLink": "https://docs.google.com/document/d/1o9TIGdpJ3Urqp5wZ95z32ReV4PyDW59z0sl8WcvRZGQ/edit?usp=drivesdk"
+    }
+  ],
+  "agentWorkspaceSeeds": [
+    {
+      "name": "Agent Workspace README",
+      "fileId": "1cNrZPOgLTkY95qEFkreqXcshiM41Tp-71hKO_SB2GAQ",
+      "mimeType": "application/vnd.google-apps.document",
+      "webViewLink": "https://docs.google.com/document/d/1cNrZPOgLTkY95qEFkreqXcshiM41Tp-71hKO_SB2GAQ/edit?usp=drivesdk",
+      "parentFolder": "canonicalAgentWorkspace"
+    },
+    {
+      "name": "Bridge smoke — Templates README",
+      "fileId": "1Upa3mv2LCn3O4zHQc1xAJJRfv0TlQA0Idm9sv0s8qdY",
+      "mimeType": "application/vnd.google-apps.document",
+      "webViewLink": "https://docs.google.com/document/d/1Upa3mv2LCn3O4zHQc1xAJJRfv0TlQA0Idm9sv0s8qdY/edit?usp=drivesdk",
+      "parentFolder": "Templates",
+      "notes": "SPE-3487 smoke; safe to edit or trash"
+    }
+  ],
+  "socialAssetsDiscovery": {
+    "hint": "Search Drive for titles containing 'Containment Protocol' and 'Social' (or 'Social Asset'). Do not enumerate hundreds of ids here.",
+    "suggestedQuery": "Containment Protocol Social"
+  }
+}

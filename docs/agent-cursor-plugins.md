@@ -17,6 +17,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 | **browse** | Agent browser sandbox / Browserbase demos | Tooling only — not the game SPA |
 | **Playwright** (Test + optional MCP) | Shared Chromium E2E harness; optional local browser inspection | `docs/playwright-e2e-harness.md`, `playwright.config.ts`, `npm run test:e2e` |
 | **Figma** | Visual design bridge: CSS-mirrored tokens + shell components; design→code / code→Figma | `docs/figma-integration.md`, `docs/figma/*`, `.cursor/skills/cp-figma-ui-bridge/SKILL.md` |
+| **Google Drive** | Collaborative drafts: story knowledge, social/marketing, design; agent-owned workspace | `docs/google-drive-integration.md`, `docs/google-drive/*`, `.cursor/skills/cp-google-drive-bridge/SKILL.md` |
 
 ## PR review configs (already in repo)
 
@@ -76,6 +77,16 @@ If Modern Web Guidance is installed, search it before inventing layout/motion/fo
 5. Never add a Figma SDK or required Figma secrets to the game runtime or CI for this bridge.
 6. **Subscription / auth blocker (mandatory):** If the active task needs Figma (edit UI System file, design→code from a frame, sync tokens/components) and a missing/lapsed subscription, plan tier, or MCP auth blocks that path — **stop and prompt the human** to subscribe, renew, upgrade, or complete auth. Do not silently skip Figma or substitute a weaker path without telling them. Do not prompt when the slice does not need Figma.
 
+### Google Drive (collaborative drafts)
+
+1. Read `docs/google-drive/file-registry.json` — create new files under those agent-owned folder ids.
+2. Load `.cursor/skills/cp-google-drive-bridge/SKILL.md` (and marketplace `google-drive`) before Drive MCP work.
+3. **Repo + Linear remain SoT** for shipped code/engineering; Drive is for drafts.
+4. Prefer `search` / `known-files.json` for existing Story Knowledge; never invent Drive ids.
+5. Share only when the human asks; return `webViewLink` otherwise.
+6. **Auth blocker (mandatory):** If the active task needs Drive and MCP auth / account access blocks it — **stop and prompt the human**. Do not silently skip. Do not prompt when the slice does not need Drive.
+7. Never add a Google Drive SDK or required Google secrets to the game runtime or CI for this bridge.
+
 ### Security scans
 
 Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOKEN` CI jobs, `.snyk` ignore sprawl, or Secure-at-Inception hooks into this repo without an explicit Linear slice.
@@ -85,3 +96,5 @@ Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOK
 MCP servers must show `ready` (or equivalent) before agents rely on them. If `needsAuth`, ask the human to complete Cursor Connect / `mcp_auth`; do not invent tokens in the SPA.
 
 If Figma MCP is ready but a **paid plan / subscription** is required for the needed capability (file edit, design context, library tools), treat that the same as a blocker: prompt the human to subscribe or renew before continuing that path.
+
+If Google Drive MCP is `needsAuth` or calls fail for auth while Drive is required for the active task, prompt the human to connect or re-auth before continuing that path.

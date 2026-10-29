@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3487](https://linear.app/spectranoir/issue/SPE-3487/google-drive-agent-bridge-workspace-registry) |
 | **Related** | Figma bridge SPE-3484 / SPE-3486 (auth-blocker pattern) |
 | **Branch** | `jamesdyedbq/spe-3487-google-drive-agent-bridge-workspace-registry` |

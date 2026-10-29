@@ -4,8 +4,8 @@
     "name": "Containment Protocol — UI System",
     "fileKey": "Xb4sEWsOqEOkrB5nnTZWct",
     "fileUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct/Containment-Protocol-%E2%80%94-UI-System",
-    "planKey": "team::1051241629014154545",
     "ownerIssue": "SPE-3484",
+    "accessNote": "fileKey is the public URL segment of a Figma design link (not an API secret). Access is gated by Figma file sharing permissions. Resolve planKey via Figma whoami when creating files — do not commit team plan keys.",
     "pages": {
       "Overview": "Agent bridge / source-of-truth notes",
       "Foundations": "Variable collections CP/Primitives + CP/Semantic",

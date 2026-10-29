@@ -1,5 +1,5 @@
 {
-  "$schemaComment": "Maps CSS custom properties in src/index.css to Figma variable names in the canonical UI System file. CSS remains source of truth for shipped values.",
+  "$schemaComment": "Maps CSS custom properties in src/index.css to Figma variable names in the canonical UI System file. CSS remains source of truth for shipped values. figmaPxApprox uses rem×16 rounded (mobile/root 16px at max-width 640px). Desktop :root font is 18px above 640px, so CSS rem radii render ~12.5% larger than these Figma px approximates.",
   "fileKey": "Xb4sEWsOqEOkrB5nnTZWct",
   "collections": {
     "primitives": "CP/Primitives",

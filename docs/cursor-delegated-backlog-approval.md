@@ -1,26 +1,18 @@
-# Cursor delegated backlog selection and approval
+# Cursor work-selection heuristics (historical delegated approval)
 
-Canonical policy for bounded Cursor authority over backlog selection and approval when Hermes (or another orchestrator) directs Cursor to continue without a human-named next slice.
+**Superseding policy for Cursor:** `docs/cursor-autonomous-authority.md`. Cursor may select **or create** Linear issues under those safeguards. ChatGPT Phase 1–4 gates do not bind Cursor.
 
-Tracked rule: `.cursor/rules/cursor-delegated-backlog-approval.mdc` (`alwaysApply: true`).
+This document remains as **selection heuristics** (clean main, resume In Progress, prefer non-umbrella children, audit comment shape). The former “effectiveness gate / no issue create / ChatGPT owns reconciliation” language below is **historical** for Cursor and must not be read as a stop-gate.
 
-## Effectiveness gate (mandatory)
+Tracked rule: `.cursor/rules/cursor-delegated-backlog-approval.mdc` (`alwaysApply: true`) — points at autonomous authority.
 
-This policy is **not effective** until **all** of the following are true:
+## Historical effectiveness gate (obsolete for Cursor stop/start)
 
-1. This document is present on `origin/main` after an ordinary repository review/merge of the adopting PR.
-2. The session loads the authoritative policy from **`origin/main`** (or verifies the working-tree file is byte-identical / same blob as `origin/main:docs/cursor-delegated-backlog-approval.md`). A same-path file only on a feature branch, or a local edit that diverges from `origin/main`, does **not** activate authority.
-3. The user or orchestrator made an **explicit implementation-continuation** request. Mere absence of a named slice (including unowned review/docs analysis) does **not** activate delegated selection.
+Previously this policy required presence on `origin/main`, matching revision, and an explicit continuation request before Cursor could self-select an **existing** issue. That gate is **obsolete for Cursor** under autonomous authority. Retain the checklist below only as optional hygiene when selecting from the existing queue:
 
-Until then:
-
-- treat this file as a **draft amendment** only;
-- do **not** record delegated Linear approval;
-- do **not** set a newly selected issue **In Progress** under this authority;
-- do **not** run Phase 4 backlog mutation under this authority;
-- continue under `.cursor/rules/no-candidate-reconciliation.mdc` and `.cursor/skills/cp-next-implementation-slice/SKILL.md` (pick only an already-approved eligible issue, or stop and ask).
-
-ChatGPT remains the default owner of candidate reconciliation until this gate passes.
+1. Prefer policy text that matches `origin/main` when editing this file.
+2. Prefer an explicit continuation request when the session was review-only.
+3. Do not select a parent umbrella as the coding slice when children own the boundary.
 
 ## Roles
 

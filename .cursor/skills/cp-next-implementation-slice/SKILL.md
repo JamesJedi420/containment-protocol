@@ -1,85 +1,61 @@
 ---
 name: cp-next-implementation-slice
 description: >-
-  Selects the next already-approved Containment Protocol Linear issue when
-  nothing is In Progress, sets that issue In Progress, and starts the
-  implementation slice. Use when the backlog handoff says In progress is none,
-  no slice was named, or the user asks what to work on next. Does not reconcile
-  candidates or create issues.
+  Selects or creates the next Containment Protocol Linear implementation slice
+  when nothing is In Progress. Use when the backlog handoff says In progress is
+  none, no slice was named, or the user asks what to work on next. Cursor may
+  create bounded issues under autonomous authority; ChatGPT Phase gates do not
+  bind Cursor.
 ---
 
 # Next implementation slice
 
-Pick one already-approved SPE issue and start it. Candidate reconciliation belongs to ChatGPT. Do not run `cp-candidate-triage-linear`.
-
-When `docs/cursor-delegated-backlog-approval.md` is **effective on `origin/main`** and the session has an **explicit** implementation-continuation request with no named slice, follow that policy (eligibility, audit evidence, prohibitions) instead of inventing a pick here. Until that gate passes, this skill only starts an already-approved eligible issue.
+Pick or create one Linear issue and start it. Canonical authority: `docs/cursor-autonomous-authority.md`.
 
 ## When to run
 
-Obey `.cursor/rules/clean-main-before-next-slice.mdc` first. If `main` is dirty or any PR is open, babysit and merge that PR, then sync `main`. Do not pick or start a slice until `main` is clean and no PR is open.
+Obey `.cursor/rules/clean-main-before-next-slice.mdc` first. If `main` is dirty or any PR is open, babysit and merge, then sync `main`.
 
-Run this picker only when no implementation slice is already in progress and the user did not name an issue.
-
-If the user named a Linear issue, implement that issue after `main` is clean. Do not override it with this picker.
+If the user named a Linear issue, implement that issue after `main` is clean.
 
 ## Confirm the queue is empty
 
-Read `planning/backlog-handoff-manifest.json` (`primary`, `inProgress`, `recentlyShipped`) and the **In progress** line in `planning/backlog.md`.
+Read `planning/backlog-handoff-manifest.json` and the **In progress** line in `planning/backlog.md`. List Linear **In Progress** SPE issues.
 
-With Linear MCP `list_issues`, team that owns SPE issues, `state` `In Progress`. Discover the team from `get_issue` on `primary` if needed.
+- If a sole In Progress slice exists: **resume it**. Do not start a second.
+- If multiple In Progress: stop and ask which to resume.
+- Otherwise continue.
 
-- Manifest `inProgress` is non-empty, or Linear has an In Progress slice: **resume that issue**. Do not pick a second one. If more than one In Progress slice exists, stop and ask which to resume.
-- Otherwise the queue is empty. Continue below.
+## Choose or create
 
-## Eligible issue
+Prefer, in order:
 
-An issue is eligible only when all of these are true:
+1. Recommended next concrete SPE in `planning/backlog.md` (not the primary umbrella).
+2. Eligible child of `primary` with clear acceptance; prefer higher priority, then lower SPE number.
+3. Other eligible backlog children named in the active queue.
+4. If no eligible existing issue fits and durable scope is justified: **create** a bounded Linear issue (Goal/Scope/Constraints/Acceptance; prefer existing parent; no duplicate owners) under autonomous-authority safeguards, then select it.
 
-- It already exists. Status is Backlog or Todo.
-- It is not listed in `recentlyShipped`.
-- It is a slice, not a parent umbrella. Reject any issue that has open or remaining child issues (`list_issues` with `parentId` set to the candidate), or whose body requires implementation through children. Do not rely on description text alone.
-- `get_issue` shows acceptance criteria a single slice can satisfy. A slice doc alone is not enough unless that document itself states the accepted boundary and the issue body is consistent with it.
-- No `blockedBy` issue is still open. Done and Canceled blockers do not block.
-- A `planning/*-slice.md` for that SPE id exists, or the issue body already names the branch and the acceptance bar.
-
-Skip Done, Canceled, duplicate, harvest-only, and contradiction-only issues that do not change the game (exception only when the issue body itself is an explicitly approved docs/workflow boundary).
-
-## Choose one
-
-Apply in order. Stop at the first eligible issue.
-
-1. The next concrete SPE id named in `planning/backlog.md` **Recommended next step** that is not the `primary` parent and is not recently shipped.
-2. An eligible child of `primary` (`list_issues` with `parentId` set to the primary id). Prefer a child that already has a slice doc. If several remain, prefer the higher Linear priority, then the lowest SPE number.
-3. The next other eligible child slice named in the active queue of `planning/backlog.md`.
-
-Do not select the `primary` parent itself. Do not use JSON key insertion order in the manifest as a backlog ranking; the manifest has no ordered candidate list.
-
-If no eligible issue remains, stop. Ask for a Linear issue URL, slice doc, and branch. Do not create an issue, edit the candidate ledger, or start a governance phase. If delegated approval is effective on `main` and this session has an explicit implementation-continuation request, continue under `docs/cursor-delegated-backlog-approval.md` instead of inventing a pick here.
+Skip Done/Canceled/duplicate/contradiction-only unless the issue itself is an approved docs/workflow boundary. Do not select SPE-1052 or any umbrella with unfinished children as the coding slice.
 
 ## Start work
 
-When exactly one issue wins:
+1. Branch from current `main` (`gitBranchName` or slice-doc branch) **before** handoff edits.
+2. `save_issue` → **In Progress**; comment rationale if newly created or newly selected.
+3. Implement under `.cursor/rules/implementation-lite.mdc`.
 
-1. Read the issue, its comments, its parent, and the slice doc.
-2. From current `main`, create the branch named in the slice doc, otherwise the issue `gitBranchName`, **before** any repository audit or handoff edits.
-3. `save_issue` with `id` and `state` `In Progress` only. Do not change the description, parent, or relations.
-4. Implement that slice under `.cursor/rules/implementation-lite.mdc`, including the ship loop.
-
-Report this before the first code edit:
+Report before first feature edit:
 
 ```markdown
 ## Next slice
 - Issue: SPE-____ — url
-- Why: <which rule above matched>
+- Why: <selection or create rationale>
 - Skipped: <nearer issues and why>
-- Slice doc: planning/....md
+- Slice doc: planning/....md (create if needed)
 - Branch: <name>
 ```
 
 ## Do not
 
-- Create a Linear issue, child, or parent.
-- Mark a parent Done.
-- Reorder `planning/backlog.md` to justify the pick.
-- Start coding when two issues still tie after the rules above.
-- Select SPE-1052 or any parent umbrella as the coding slice.
+- Mark a parent Done for a child-only ship.
+- Select an umbrella as the coding slice when children own the work.
+- Expand the active PR unboundedly; land new durable scope on its own issue/PR when needed.

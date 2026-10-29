@@ -8,7 +8,8 @@
 | --- | --- |
 | **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
 | **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
-| **Linear + `planning/*-slice.md` + first message** | One approved implementation task: issue link, slice doc, branch name, `main` SHA. Unowned review/docs analysis may proceed read-only without creating an issue. Bounded delegated selection requires `docs/cursor-delegated-backlog-approval.md` effective on `origin/main` (session copy matches that revision) **and** an explicit implementation-continuation request — not merely an unnamed slice. |
+| **Cursor autonomous authority** | `docs/cursor-autonomous-authority.md` + `.cursor/rules/cursor-autonomous-authority.mdc` — Cursor may reconcile/create Linear scope under safeguards; ChatGPT Phase 1–4 gates do not bind Cursor. |
+| **Linear + `planning/*-slice.md` + first message** | Active implementation task: issue link, slice doc, branch name, `main` SHA. Cursor may select or create the next bounded issue when continuation is expected. |
 
 ### After you merge a PR (human)
 
@@ -24,13 +25,13 @@ Agents: when merge is complete, sync `main` in-session, then remind the user to 
 
 Linear is the system of record for approved issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because an owned task feels "metadata only." An unowned review/docs analysis may remain read-only with no Linear mutation; do not manufacture an issue for bookkeeping.
 
-**Scope-mutation guardrail:** lifecycle/evidence Linear updates on an already-approved issue boundary (status, PR links, progress/closure comments, factual notes that do not expand scope) are allowed directly and do **not** require Phases 1–4. Do not create a new issue, child, parent, contradiction issue, relationship, reparenting, or durable scope because work was discovered. **Phases 1–4 apply only to candidate extraction/reconciliation** that would change backlog shape; that work returns to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (apply only explicitly approved backlog-shape mutations). See `docs/governance/authority-contract.v1.json` (`lifecycle-evidence` vs `backlog-shape`). If approval state is unclear, fail closed and preserve the finding as candidate/deferred evidence. Bounded Cursor selection of an **existing** eligible issue (no issue creation) is defined in `docs/cursor-delegated-backlog-approval.md` and is effective only after that document is on `origin/main` with a matching session revision and an explicit implementation-continuation request.
+**Scope-mutation guardrail:** lifecycle/evidence updates on an existing boundary are always allowed. **Backlog-shape** mutations: **Cursor** may create/fold/reparent under `docs/cursor-autonomous-authority.md` safeguards (no ChatGPT Phase gate). **ChatGPT** still uses Phases 1–4. See `docs/governance/authority-contract.v1.json` and CP-GOV-009. Codex designations are preferences, not exclusive locks.
 
 | When | Action |
 | --- | --- |
-| **Before substantive owned work** | Use the already-approved slice/workflow issue named by the task; set **In Progress**. If feature scope has no approved issue, stop that scope and route it through candidate governance instead of creating one. |
-| **Unowned review/docs analysis** | May proceed **read-only with no Linear mutation**. If it discovers durable product scope, record candidate evidence and route it through governance; do not create an issue solely to satisfy workflow bookkeeping. |
-| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** existing-owner comments only when they stay inside the approved boundary. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**. Missing boundaries remain candidates until Phase 4. |
+| **Before substantive owned work** | Set the owning slice **In Progress**. If durable scope has no owner, Cursor creates or folds a bounded Linear issue under autonomous-authority safeguards. |
+| **Unowned review/docs analysis** | May start read-only; when durable product scope is confirmed, Cursor creates/folds Linear ownership rather than leaving orphans. |
+| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Prefer existing owners; Cursor may create missing bounded owners when safeguards justify it. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**. |
 | **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
 | **PR opened** | Link the **approved slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
 | **Babysit → merge** | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`. |
@@ -49,7 +50,7 @@ One session on the **same branch** is fine (implement, CI, review). New session 
 
 If checkout of a migrated branch fails (`couldn't find remote ref`), use updated **`main`** and a new branch; do not chase deleted remote branch names from old sessions.
 
-Whenever a Cloud Agent **implements an already-approved plan to completion and merges that PR**, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) so a local agent can update Linear. Planning-only and open PRs do not trigger it. Newly discovered durable scope is reported separately as candidate input; the handoff does not authorize issue creation.
+Whenever a Cloud Agent **implements a plan to completion and merges that PR**, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) when Linear was not updated in-session. Planning-only and open PRs do not trigger it. Newly discovered durable scope should be listed as lifecycle notes plus any Cursor-authorized backlog-shape items already applied or still needed.
 
 ---
 
@@ -92,7 +93,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 - **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
 - **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
 - **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-approved-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
-- **Deferred work:** same session — record approved in-boundary deferrals in the slice doc + existing owner comment. A new durable boundary is candidate input and must not create a child directly; see `docs/agent-session-closeout.md` and `.cursor/rules/implementation-lite.mdc`.
+- **Deferred work:** same session — record in-boundary deferrals in the slice doc + existing owner comment. A new durable boundary: Cursor creates/folds Linear under `docs/cursor-autonomous-authority.md`; see `docs/agent-session-closeout.md` and `.cursor/rules/implementation-lite.mdc`.
 - **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` (optional local `.cursor/rules/backlog-hygiene.mdc`; grooming only, not implementation).
 
 ### Live web research (agents)

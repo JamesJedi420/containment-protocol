@@ -11,29 +11,28 @@ Use this rule for ordinary implementation work. Do not perform full backlog hygi
 
 ## Source of truth
 
-Linear is the authoritative source for already-approved scope, status, and closure. Also use repository docs, tests, existing architecture, and current code. Current Containment Protocol governance controls whether newly discovered scope may enter the backlog.
+Linear is the authoritative source for scope, status, and closure. Also use repository docs, tests, existing architecture, and current code. Cursor backlog authority: `docs/cursor-autonomous-authority.md`.
 
 Before coding:
 1. Read the target Linear issue (and GitHub mirror if linked).
 2. Read issue comments; fold durable scope, constraints, acceptance criteria, deferred work, and implementation notes into your working summary.
 3. Read parent/child issues when the issue sits under a broader umbrella.
-4. Treat Goal, Scope, Constraints, Acceptance criteria, and approved reconciliation comments as binding.
+4. Treat Goal, Scope, Constraints, Acceptance criteria, and durable reconciliation comments as binding for the active boundary.
 
-If Linear and chat instructions diverge, follow the current approved issue boundary and call out the mismatch. **Preserve the issue boundary.** Do not expand scope.
+If chat diverges from Linear, follow the Linear boundary for the active slice and call out mismatch. Do not silently expand the active coding boundary mid-PR.
 
 ## Scope discipline
 
-Implement the smallest coherent deterministic slice that satisfies the approved issue.
+Implement the smallest coherent deterministic slice that satisfies the active issue.
 
 Do not:
-- expand scope
-- create parallel systems
-- create a new Linear issue, child, parent, contradiction issue, relationship, or durable obligation discovered during implementation
+- expand the **active** slice past its acceptance bar without updating Linear first
+- create parallel systems or speculative frameworks
 - rewrite unrelated code
-- fix nearby issues unless required by the current acceptance criteria
+- fix nearby issues unless required by acceptance criteria
 - close parent issues because a child slice shipped
 
-If the issue boundary is unclear, stop and report the ambiguity instead of guessing. If implementation exposes a new durable boundary, preserve it as candidate input and route it through Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only) rather than creating scope directly. Do not treat ordinary lifecycle/evidence Linear updates as Phase 1–4 work.
+When implementation exposes a **new durable boundary**, Cursor may create or fold Linear ownership under autonomous-authority safeguards (prefer existing owners; bounded Goal/Scope/Constraints/Acceptance; record rationale). Do not wait for ChatGPT Phase 4. Keep the **current PR** focused; land new scope on its own branch/PR when it would bloat the active diff.
 
 ## Deferred work recording (mandatory)
 
@@ -41,10 +40,10 @@ When scope is intentionally **out of slice** or **not done this session**, recor
 
 Distinguish:
 
-1. **Approved in-boundary deferral** — `## Deferred` table: item, existing approved owner issue, why deferred; add a rich comment to that existing owner when useful.
-2. **New durable boundary** — record the candidate and provenance in the slice doc/candidate ledger and return it to Phase 1. Do **not** create a child or expand the parent.
-3. **Parent stays open** — do not mark the umbrella Done while unmet work remains inside its approved acceptance/completion rule.
-4. **Closeout** — `Remaining risks or deferred work` must match the durable record and must distinguish approved deferral from candidate scope.
+1. **In-boundary deferral** — `## Deferred` table: item, existing owner issue, why deferred; rich comment on that owner when useful.
+2. **New durable boundary** — create or fold a Linear issue under autonomous-authority safeguards; link from the active slice doc.
+3. **Parent stays open** — do not mark the umbrella Done while unmet work remains inside its acceptance/completion rule.
+4. **Closeout** — `Remaining risks or deferred work` must match the durable record.
 
 Chat and session memory do **not** substitute for the durable record. Full checklist: `docs/agent-session-closeout.md` § Deferred work recording.
 

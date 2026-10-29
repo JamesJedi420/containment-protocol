@@ -53,6 +53,7 @@ remaining-subset.json
 !.cursor/rules/no-candidate-reconciliation.mdc
 !.cursor/rules/clean-main-before-next-slice.mdc
 !.cursor/rules/cursor-delegated-backlog-approval.mdc
+!.cursor/rules/cursor-autonomous-authority.mdc
 .DS_Store
 *.suo
 *.ntvs*

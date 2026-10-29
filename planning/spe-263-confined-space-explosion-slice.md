@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-263](https://linear.app/spectranoir/issue/SPE-263/confined-space-explosion-propagation) |
 | **Parent** | none (standalone) |
 | **Branch** | `jamesdyedbq/spe-263-confined-space-explosion-propagation` |

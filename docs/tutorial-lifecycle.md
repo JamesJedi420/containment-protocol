@@ -10,7 +10,7 @@ Definitions distinguish sequenced and contextual use, allow or disallow back nav
 
 `conditionIds` identify caller-owned authoritative route conditions. Evaluate those conditions through `evaluateScreenRouteCondition` and supply their results in `TutorialEligibility.conditions`. Missing or failed conditions fail closed; the kernel adds no alternative condition grammar or hidden truth query. `triggerId` requires a matching explicit event reference in `triggerIds`. Adapters are responsible for visibility-filtered inputs and current evaluations. No global event queue is introduced.
 
-Start/replay require conditions and entry triggers at their destination. Advance/complete require current conditions and destination conditions/triggers when one exists. Resume requires current conditions without repeating the original entry trigger. Back requires current destination conditions without repeating its earlier entry trigger; skip requires destination conditions/triggers. Unavailable destinations produce an unchanged `ineligible` result, so callers can retry with fresh authoritative results, dismiss, or cancel. No ineligible step is automatically skipped or marked complete. Event reference inputs are caller-owned observations, not a persisted event log.
+Start/replay require conditions and entry triggers at their destination. Advance/complete require current conditions and destination conditions/triggers when one exists. Resume requires current conditions without repeating the original entry trigger. The `reachedCursor` records the furthest step entered in the current run. Revisiting any reached step rechecks current conditions without repeating its earlier entry trigger; entering an unreached step requires its trigger, including when skipping the preceding step. Replay resets this history. Unavailable destinations produce an unchanged `ineligible` result, so callers can retry with fresh authoritative results, dismiss, or cancel. No ineligible step is automatically skipped or marked complete. Event reference inputs are caller-owned observations, not a persisted event log.
 
 ## Commands and state
 
@@ -19,7 +19,7 @@ Every command includes `expectedRevision`. A changed result increments revision 
 - `start`: not-started → active, first authored step.
 - `advance`: completes the current step and enters the next; at the final step completes the flow.
 - `complete`: explicit final-step completion only.
-- `back`: returns to the prior step when allowed; resets the step being left to not-started.
+- `back`: returns to the prior step when allowed; resets the step being left to not-started while retaining entry-event history.
 - `skip`: skips the current step and enters the next; a fully skipped flow is skipped, otherwise reaching the end completes the guidance flow with skipped steps preserved.
 - `dismiss`: ends active guidance without claiming production-action completion.
 - `suppress` / `unsuppress`: save and restore the flow status and cursor, including not-started and terminal statuses; other progression is disabled while suppressed.
@@ -32,3 +32,5 @@ The step-status array records not-started/active/completed/skipped progress. Flo
 State/results are pure values. The state factory and changed transitions freeze their state and step arrays. Results expose a semantic event hook for later telemetry but write no log or backend. No GameState mutation, persistence, migration, resource grant, input binding, or gameplay authorization occurs here. Consumers must continue invoking and validating normal production commands independently of guidance progression.
 
 Transitions reject invalid identity/version, counters/cursor, status vocabulary, missing or invalid suppression resume status, and malformed step-status arrays with an unchanged `invalid_state` result. This check does not replace the persistence owner's hydration/migration contract.
+
+Skip affects the current step only. It does not authorize showing an unreached destination whose trigger or current conditions are unsatisfied. Dismiss/cancel remain available while a destination is ineligible, so guidance never blocks ordinary play.

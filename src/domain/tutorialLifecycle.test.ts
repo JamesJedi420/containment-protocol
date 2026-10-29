@@ -300,6 +300,90 @@ describe('tutorial lifecycle', () => {
     ).toBe(false)
   })
 
+  it('requires entry events once per run, retaining them across back/forward navigation', () => {
+    const triggered = createTutorialRegistry([
+      {
+        ...authored,
+        steps: [{ id: 'one' }, { id: 'two', triggerId: 'event:once', conditionIds: ['visible'] }],
+      },
+    ]).definitions[0]
+    const conditions = { visible: { passes: true } }
+    const first = transitionTutorial(triggered, createTutorialState(triggered), {
+      type: 'start',
+      expectedRevision: 0,
+    }).state
+    const forward = { type: 'advance', expectedRevision: 1, stepId: 'one' } as const
+    expect(transitionTutorial(triggered, first, forward, { conditions }).reason).toBe('ineligible')
+    const second = transitionTutorial(triggered, first, forward, {
+      conditions,
+      triggerIds: ['event:once'],
+    }).state
+    const back = transitionTutorial(triggered, second, {
+      type: 'back',
+      expectedRevision: 2,
+      stepId: 'two',
+    }).state
+    expect(back.reachedCursor).toBe(1)
+    const again = { type: 'advance', expectedRevision: 3, stepId: 'one' } as const
+    expect(
+      transitionTutorial(triggered, back, again, { conditions: { visible: { passes: false } } })
+        .reason
+    ).toBe('ineligible')
+    const revisited = transitionTutorial(triggered, back, again, { conditions }).state
+    expect(revisited.cursor).toBe(1)
+    const completed = transitionTutorial(
+      triggered,
+      revisited,
+      { type: 'complete', expectedRevision: 4, stepId: 'two' },
+      { conditions }
+    ).state
+    const replay = transitionTutorial(triggered, completed, {
+      type: 'replay_start',
+      expectedRevision: 5,
+    }).state
+    expect(replay.reachedCursor).toBe(0)
+    expect(
+      transitionTutorial(
+        triggered,
+        replay,
+        { type: 'advance', expectedRevision: 6, stepId: 'one' },
+        { conditions }
+      ).reason
+    ).toBe('ineligible')
+  })
+
+  it('skips only the current step and preserves new destination eligibility', () => {
+    const triggered = createTutorialRegistry([
+      {
+        ...authored,
+        steps: [{ id: 'one' }, { id: 'two', triggerId: 'event:once', conditionIds: ['visible'] }],
+      },
+    ]).definitions[0]
+    const first = transitionTutorial(triggered, createTutorialState(triggered), {
+      type: 'start',
+      expectedRevision: 0,
+    }).state
+    const command = { type: 'skip', expectedRevision: 1, stepId: 'one' } as const
+    const conditions = { visible: { passes: true } }
+    const blocked = transitionTutorial(triggered, first, command, { conditions })
+    expect(blocked.state).toBe(first)
+    expect(blocked.reason).toBe('ineligible')
+    expect(
+      transitionTutorial(triggered, first, { type: 'dismiss', expectedRevision: 1 }).state.status
+    ).toBe('dismissed')
+    const entered = transitionTutorial(triggered, first, command, {
+      conditions,
+      triggerIds: ['event:once'],
+    }).state
+    expect(entered.stepStatuses).toEqual(['skipped', 'active'])
+    expect(
+      transitionTutorial(triggered, first, command, {
+        conditions: { visible: { passes: false } },
+        triggerIds: ['event:once'],
+      }).reason
+    ).toBe('ineligible')
+  })
+
   it('suppresses and restores both unstarted and active guidance without losing cursor', () => {
     for (const state of [createTutorialState(definition), apply(started(), 'advance').state]) {
       const suppressed = apply(state, 'suppress').state

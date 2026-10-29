@@ -134,6 +134,8 @@ export interface TutorialLifecycleState {
   readonly run: number
   readonly status: TutorialStatus
   readonly cursor: number
+  /** Furthest step entered in this run; entry events are consumed once per run. */
+  readonly reachedCursor: number
   readonly stepStatuses: readonly TutorialStepStatus[]
   readonly resumeStatus?: Exclude<TutorialStatus, 'suppressed'>
 }
@@ -183,6 +185,7 @@ export function createTutorialState(definition: TutorialDefinition): TutorialLif
     run: 0,
     status: 'not_started',
     cursor: 0,
+    reachedCursor: 0,
     stepStatuses: definition.steps.map(() => 'not_started'),
   })
 }
@@ -230,6 +233,9 @@ export function transitionTutorial(
     !Number.isInteger(state.cursor) ||
     state.cursor < 0 ||
     state.cursor >= definition.steps.length ||
+    !Number.isInteger(state.reachedCursor) ||
+    state.reachedCursor < state.cursor ||
+    state.reachedCursor >= definition.steps.length ||
     !tutorialStatuses.includes(state.status) ||
     (state.status === 'suppressed'
       ? state.resumeStatus === undefined || !resumeStatuses.includes(state.resumeStatus)
@@ -264,6 +270,7 @@ export function transitionTutorial(
     return update({
       status: 'active',
       cursor: 0,
+      reachedCursor: 0,
       run: state.run + 1,
       stepStatuses: definition.steps.map((_, index) => (index === 0 ? 'active' : 'not_started')),
       resumeStatus: undefined,
@@ -295,7 +302,7 @@ export function transitionTutorial(
     return unchanged('ineligible')
   if (
     target < definition.steps.length &&
-    !eligible(definition, target, input, command.type !== 'back')
+    !eligible(definition, target, input, target > state.reachedCursor)
   )
     return unchanged('ineligible')
   const statuses = [...state.stepStatuses]
@@ -307,5 +314,9 @@ export function transitionTutorial(
       stepStatuses: statuses,
     })
   statuses[target] = 'active'
-  return update({ cursor: target, stepStatuses: statuses })
+  return update({
+    cursor: target,
+    reachedCursor: Math.max(state.reachedCursor, target),
+    stepStatuses: statuses,
+  })
 }

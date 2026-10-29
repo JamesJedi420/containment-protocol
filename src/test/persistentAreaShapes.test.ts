@@ -91,7 +91,28 @@ describe('SPE-408 persistent area shapes', () => {
       contact: { locationId: 'corridor-1', dwellTicks: 5 },
     })
     expect(noContact.activeLayers).toEqual([])
+    expect(noContact.escalated).toBe(false)
+    expect(noContact.reasons).not.toContain('dwell-escalated')
     expect(noContact.reasons.some((r) => r.startsWith('no-contact:'))).toBe(true)
+
+    const remoteSurface = evaluatePersistentAreaShape({
+      shape: wallBase,
+      contact: {
+        locationId: 'other-room',
+        dwellTicks: 5,
+        contactingSurfaceId: 'floor-a',
+      },
+      surfaces,
+    })
+    expect(remoteSurface.activeLayers).toEqual([])
+    expect(remoteSurface.reasons).toContain('outside-footprint')
+
+    const surfaceAdjWithoutSurface = evaluatePersistentAreaShape({
+      shape: { ...cloudBase, conduit: 'surfaceAdjacency' },
+      contact: { locationId: 'room-a', dwellTicks: 3 },
+    })
+    expect(surfaceAdjWithoutSurface.activeLayers).toEqual([])
+    expect(surfaceAdjWithoutSurface.reasons.some((r) => r.startsWith('no-contact:'))).toBe(true)
 
     const moved = evaluatePersistentAreaShape({
       shape: { ...cloudBase, anchorLocationId: 'room-b' },
@@ -100,6 +121,7 @@ describe('SPE-408 persistent area shapes', () => {
     })
     expect(moved.affectedLocationIds).toEqual(['room-b'])
     expect(moved.reasons).toContain('stale-cleared:room-a')
+    expect(moved.reasons).not.toContain('stale-cleared:room-b')
   })
 
   it('fails closed on invalid packets and inactive shapes', () => {

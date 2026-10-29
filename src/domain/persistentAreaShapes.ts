@@ -222,18 +222,16 @@ export function evaluatePersistentAreaShape(args: {
     })
   }
 
-  const escalated = dwellTicks >= shape.dwellTicksToEscalate
-  if (escalated) reasons.push('dwell-escalated')
-  else reasons.push('dwell-pending')
+  const surfaceId = args.contact.contactingSurfaceId?.trim() || ''
 
-  // Distinct family operational rule: walls require surface contact; clouds affect anchor volume.
-  const familyContactOk =
-    shape.family === 'wall'
-      ? Boolean(args.contact.contactingSurfaceId?.trim())
-      : locationId === shape.anchorLocationId || Boolean(args.contact.contactingSurfaceId?.trim())
+  // Footprint is always the current anchor. Walls and surfaceAdjacency also need surface contact.
+  const atAnchor = locationId === shape.anchorLocationId
+  const needsSurface = shape.family === 'wall' || shape.conduit === 'surfaceAdjacency'
+  const familyContactOk = atAnchor && (!needsSurface || Boolean(surfaceId))
 
   if (!familyContactOk) {
-    reasons.push(`no-contact:${shape.family}`)
+    if (!atAnchor) reasons.push('outside-footprint')
+    else reasons.push(`no-contact:${shape.family}`)
     return Object.freeze({
       shapeId: shape.shapeId,
       family: shape.family,
@@ -245,17 +243,17 @@ export function evaluatePersistentAreaShape(args: {
     })
   }
 
+  const escalated = dwellTicks >= shape.dwellTicksToEscalate
+  if (escalated) reasons.push('dwell-escalated')
+  else reasons.push('dwell-pending')
+
   const activeLayers = escalated ? shape.layers : shape.layers.slice(0, 1)
   reasons.push(`layers:${activeLayers.length}`)
 
   let surfaceRoutedIds: readonly string[] = Object.freeze([])
   if (shape.conduit === 'surfaceAdjacency') {
-    const origin = requireNonEmpty(
-      args.contact.contactingSurfaceId ?? '',
-      'contact.contactingSurfaceId',
-    )
     surfaceRoutedIds = routeSurfaceAdjacency({
-      originSurfaceId: origin,
+      originSurfaceId: surfaceId,
       surfaces: args.surfaces ?? [],
       maxHops: 2,
     })
@@ -265,10 +263,11 @@ export function evaluatePersistentAreaShape(args: {
   }
 
   // Mobile-anchor rule: footprint follows current anchor only; drop stale prior exposures.
-  const affected = new Set<string>([shape.anchorLocationId, locationId])
+  const affected = new Set<string>([shape.anchorLocationId])
   for (const prior of args.priorExposedLocationIds ?? []) {
-    if (prior === shape.anchorLocationId) affected.add(prior)
-    else reasons.push(`stale-cleared:${prior}`)
+    const trimmed = prior.trim()
+    if (!trimmed || trimmed === shape.anchorLocationId) continue
+    reasons.push(`stale-cleared:${trimmed}`)
   }
 
   return Object.freeze({

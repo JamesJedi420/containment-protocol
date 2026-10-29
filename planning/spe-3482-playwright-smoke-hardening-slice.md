@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4499 @ `ca40c838`) |
 | **Issue** | [SPE-3482](https://linear.app/spectranoir/issue/SPE-3482/playwright-player-smoke-assert-hardening-smoke-path-requiredwhen) |
 | **Related** | SPE-3481 (Done), SPE-3458, SPE-3348 |
 | **Branch** | `jamesdyedbq/spe-3482-playwright-player-smoke-assert-hardening-smoke-path` |

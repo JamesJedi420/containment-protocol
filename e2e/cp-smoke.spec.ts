@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import {
   advanceOperationalWeek,
+  assignFirstOpenTriageCase,
   attachPageErrorProbe,
   buyAgencyMaintenancePackage,
   clearCampaignStorage,
@@ -13,7 +14,7 @@ import {
   openPrimaryNav,
 } from './support/cpApp'
 
-test.describe('SPE-3458 / SPE-3481 / SPE-3482 CP Chromium player smokes', () => {
+test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smokes', () => {
   test('startup and player-visible navigation', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
@@ -96,6 +97,19 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 CP Chromium player smokes', () => 
       await openFrontDesk(page)
       await launchContractFromMissionBoard(page)
       await expect(page.getByRole('region', { name: 'Case triage queue' })).toBeVisible()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
+
+  // SPE-3483 — manual Assign distinct from Mission Board Launch-with-recommended.
+  test('manual assign from open triage increases Assigned queue', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+      await assignFirstOpenTriageCase(page)
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

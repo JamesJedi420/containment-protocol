@@ -243,6 +243,65 @@ export async function openContainmentSiteAndIncidentDesk(page: Page): Promise<vo
   await expect(page.getByRole('region', { name: 'Case triage queue' })).toBeVisible()
 }
 
+async function readAssignedTabCount(page: Page): Promise<number> {
+  const assignedTab = page.getByRole('tab', { name: /Assigned/i })
+  await expect(assignedTab).toBeVisible()
+  const text = (await assignedTab.textContent()) ?? ''
+  const match = /\((\d+)\)/.exec(text)
+  // Missing (N) treats as 0 — same fail-soft as launchContractFromMissionBoard's Assigned baseline.
+  return match ? Number(match[1]) : 0
+}
+
+/**
+ * Manual Assign from Cases triage detail — distinct from Mission Board “Launch with…”.
+ * Inspects the first triage row that exposes an enabled Assign control and asserts
+ * the Assigned tab count increases.
+ */
+export async function assignFirstOpenTriageCase(page: Page): Promise<void> {
+  await openPrimaryNav(page, 'Cases')
+  await expect(page).toHaveURL(/\/cases/)
+  const triage = page.getByRole('region', { name: 'Case triage queue' })
+  await expect(triage).toBeVisible()
+  await expect(page.getByRole('tablist', { name: 'Mission triage categories' })).toBeVisible()
+  const assignedBefore = await readAssignedTabCount(page)
+  const list = triage.getByRole('list', { name: 'Triage list' })
+  await expect(list.getByRole('listitem').first()).toBeVisible({ timeout: 15_000 })
+  const rowCount = await list.getByRole('listitem').count()
+  expect(rowCount, 'expected at least one triage case for manual Assign').toBeGreaterThan(0)
+
+  let assigned = false
+  for (let i = 0; i < rowCount; i += 1) {
+    const row = list.getByRole('listitem').nth(i)
+    const inspect = row.getByRole('button', { name: /Select .+ for triage detail/i })
+    if ((await inspect.count()) > 0) {
+      await inspect.click()
+    } else {
+      await row.click()
+    }
+    const detail = page.getByRole('region', { name: /Case triage detail:/i })
+    await expect(detail).toBeVisible()
+    const assignButtons = detail.getByRole('button', { name: /^Assign /i })
+    const buttonCount = await assignButtons.count()
+    for (let j = 0; j < buttonCount; j += 1) {
+      const button = assignButtons.nth(j)
+      if (await button.isEnabled()) {
+        await button.click()
+        assigned = true
+        break
+      }
+    }
+    if (assigned) {
+      break
+    }
+  }
+  expect(
+    assigned,
+    'expected at least one enabled Assign control on a triage case',
+  ).toBe(true)
+
+  await expect.poll(async () => readAssignedTabCount(page)).toBeGreaterThan(assignedBefore)
+}
+
 export function expectNoPageErrors(probe: PageErrorProbe): void {
   expect(
     probe.errors,

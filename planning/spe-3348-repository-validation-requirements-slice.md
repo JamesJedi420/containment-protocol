@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4494 @ `e27e2e19`) |
 | **Issue** | [SPE-3348](https://linear.app/spectranoir/issue/SPE-3348/repository-validation-requirement-orchestration) |
 | **Parent** | none (shared-system parent; no children) |
 | **Branch** | `jamesdyedbq/spe-3348-repository-validation-requirement-orchestration` |

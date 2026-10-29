@@ -14,7 +14,7 @@ Start/replay require conditions and entry triggers at their destination. Advance
 
 ## Commands and state
 
-Every command includes `expectedRevision`. A changed result increments revision once and emits one semantic command event. Repeating the same command token produces `stale`, no event and the identical state reference. Revision stays monotonic across replay; `run` increments on start/replay. Step commands additionally require the current `stepId`.
+Every command includes `expectedRevision`. A changed result increments revision once and emits one semantic command event. Repeating a command token after a successful state change produces `stale`, no event and the identical state reference. Ineligible/illegal commands preserve revision; retrying them with the same token rechecks eligibility and can succeed when conditions change. Revision stays monotonic across replay; `run` increments on start/replay. Step commands additionally require the current `stepId`.
 
 - `start`: not-started → active, first authored step.
 - `advance`: completes the current step and enters the next; at the final step completes the flow.

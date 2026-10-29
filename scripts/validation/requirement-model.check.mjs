@@ -76,7 +76,7 @@ test('governance-only change requires governance-contract without absorbing SPE-
 
 test('application change requires lint + unit-tests; playwright advisory', () => {
   const resolution = resolveValidationRequirements(
-    ['src/features/agents/AgentsPage.tsx', 'src/app/AppShell.tsx'],
+    ['src/features/teams/TeamsPage.tsx', 'src/app/AppShell.tsx'],
     registry,
   )
   assert.ok(resolution.requiredIds.includes('lint'))
@@ -101,6 +101,24 @@ test('player-critical Front Desk / Advance Week / persist promote playwright-e2e
     'src/components/layout/ShellStatusBar.tsx',
     'src/components/layout/shellStatusBarView.ts',
     'src/app/store/gameStore.ts',
+  ]) {
+    const resolution = resolveValidationRequirements([file], registry)
+    assert.ok(
+      resolution.requiredIds.includes('playwright-e2e'),
+      `expected playwright-e2e required for ${file}`,
+    )
+  }
+})
+
+test('smoke-path Cases / Agents / Recruitment / Agency / Containment promote playwright-e2e to required', () => {
+  for (const file of [
+    'src/features/cases/CasesPage.tsx',
+    'src/features/agents/AgentsPage.tsx',
+    'src/features/recruitment/RecruitmentPage.tsx',
+    'src/features/recruitment/recruitmentView.ts',
+    'src/features/agency/AgencyPage.tsx',
+    'src/features/agency/facilityMaintenanceView.ts',
+    'src/features/divisions/SystemBoundaryPage.tsx',
   ]) {
     const resolution = resolveValidationRequirements([file], registry)
     assert.ok(

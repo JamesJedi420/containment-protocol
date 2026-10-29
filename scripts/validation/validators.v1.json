@@ -152,7 +152,7 @@
     {
       "id": "playwright-e2e",
       "ownerIssue": "SPE-3458",
-      "ownerNote": "Shared Chromium E2E harness. SPE-3348/SPE-3481 select required vs advisory; does not redefine Playwright assertions. Deep sim stays Vitest.",
+      "ownerNote": "Shared Chromium E2E harness. SPE-3348/SPE-3481/SPE-3482 select required vs advisory; does not redefine Playwright assertions. Deep sim stays Vitest.",
       "npmScript": "test:e2e",
       "ciNpmScript": "test:e2e:ci",
       "enforcement": "advisory",
@@ -164,7 +164,14 @@
           "src/features/operations/frontDeskView.ts",
           "src/components/layout/ShellStatusBar.tsx",
           "src/components/layout/shellStatusBarView.ts",
-          "src/app/store/gameStore.ts"
+          "src/app/store/gameStore.ts",
+          "src/features/cases/CasesPage.tsx",
+          "src/features/agents/AgentsPage.tsx",
+          "src/features/recruitment/RecruitmentPage.tsx",
+          "src/features/recruitment/recruitmentView.ts",
+          "src/features/agency/AgencyPage.tsx",
+          "src/features/agency/facilityMaintenanceView.ts",
+          "src/features/divisions/SystemBoundaryPage.tsx"
         ]
       },
       "activation": {

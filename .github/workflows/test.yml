@@ -45,7 +45,6 @@ jobs:
 
       # Coverage re-runs the full suite under instrumentation (~as long as the test
       # step). Keep it on main pushes only so PR babysit stays one suite deep.
-      # Only when unit-tests were in the required set for this change.
       - name: Coverage
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: npm run coverage:ci

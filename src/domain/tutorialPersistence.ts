@@ -24,6 +24,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function hasCoherentProgress(state: TutorialLifecycleState) {
+  if (state.run > state.revision) return false
+  const effectiveStatus = state.status === 'suppressed' ? state.resumeStatus : state.status
+  if (effectiveStatus === 'not_started')
+    return (
+      state.run === 0 &&
+      state.cursor === 0 &&
+      state.reachedCursor === 0 &&
+      state.stepStatuses.every((status) => status === 'not_started')
+    )
+  if (state.run === 0) return false
+  const activeShape =
+    state.stepStatuses[state.cursor] === 'active' &&
+    state.stepStatuses
+      .slice(0, state.cursor)
+      .every((status) => status === 'completed' || status === 'skipped') &&
+    state.stepStatuses.slice(state.cursor + 1).every((status) => status === 'not_started')
+  if (effectiveStatus === 'active' || effectiveStatus === 'interrupted') return activeShape
+  if (effectiveStatus === 'completed' || effectiveStatus === 'skipped')
+    return !state.stepStatuses.includes('active')
+  return !state.stepStatuses.includes('active') || activeShape
+}
+
 export function createPersistedTutorialRecord(
   definition: TutorialDefinition,
   lifecycle: TutorialLifecycleState
@@ -64,7 +87,8 @@ export function normalizeTutorialRuntime(value: unknown): TutorialRuntimeState |
       version: raw.lifecycle.definitionVersion,
       steps: raw.stepIds.map((stepId: string) => ({ id: stepId })),
     }
-    if (!isTutorialLifecycleState(raw.lifecycle, definition)) continue
+    if (!isTutorialLifecycleState(raw.lifecycle, definition) || !hasCoherentProgress(raw.lifecycle))
+      continue
     records[id] = Object.freeze({
       stepIds: Object.freeze([...raw.stepIds]),
       lifecycle: Object.freeze({
@@ -103,12 +127,12 @@ export function resolveTutorialLifecycle(
     record.stepIds.every((id, index) => id === definition.steps[index].id)
   if (old.definitionVersion > definition.version) return undefined
   if (old.definitionVersion === definition.version) return sameLayout ? old : undefined
-  if (old.revision >= Number.MAX_SAFE_INTEGER - 1) return undefined
+  const revision = old.revision === Number.MAX_SAFE_INTEGER ? old.revision : old.revision + 1
   if (sameLayout)
     return Object.freeze({
       ...old,
       definitionVersion: definition.version,
-      revision: old.revision + 1,
+      revision,
     })
 
   const statuses = new Map(record.stepIds.map((id, index) => [id, old.stepStatuses[index]]))
@@ -121,7 +145,7 @@ export function resolveTutorialLifecycle(
   const migrated: TutorialLifecycleState = {
     tutorialId: definition.id,
     definitionVersion: definition.version,
-    revision: old.revision + 1,
+    revision,
     run: old.run,
     cursor: 0,
     reachedCursor: 0,

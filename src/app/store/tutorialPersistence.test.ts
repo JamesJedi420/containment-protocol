@@ -281,9 +281,65 @@ describe('canonical tutorial persistence', () => {
       definition.id,
     ])
   })
+
+  it('rejects inconsistent active or suppressed progress rather than replaying completed steps', () => {
+    const record = active().runtimeState!.tutorials!.records[definition.id]
+    for (const patch of [
+      { stepStatuses: ['completed', 'completed'] },
+      { stepStatuses: ['active', 'active'] },
+      { stepStatuses: ['not_started', 'active'] },
+      { status: 'completed' },
+      { status: 'not_started' },
+      { run: 0 },
+      { revision: 0 },
+      { status: 'suppressed', resumeStatus: 'active', stepStatuses: ['completed', 'completed'] },
+    ]) {
+      const runtime = normalizeTutorialRuntime({
+        schemaVersion: 1,
+        records: { [definition.id]: { ...record, lifecycle: { ...record.lifecycle, ...patch } } },
+      })
+      expect(Object.keys(runtime!.records)).toEqual([])
+    }
+  })
 })
 
 describe('tutorial definition migration', () => {
+  it.each([Number.MAX_SAFE_INTEGER - 1, Number.MAX_SAFE_INTEGER])(
+    'keeps completed upgrades readable at revision %s without overflow',
+    (revision) => {
+      const base = command(active(), 'complete')
+      const tutorials = base.runtimeState!.tutorials!
+      const record = tutorials.records[definition.id]
+      const game: GameState = {
+        ...base,
+        runtimeState: {
+          ...base.runtimeState!,
+          tutorials: {
+            ...tutorials,
+            records: {
+              ...tutorials.records,
+              [definition.id]: { ...record, lifecycle: { ...record.lifecycle, revision } },
+            },
+          },
+        },
+      }
+      for (const next of [upgraded(), upgraded([{ id: 'new' }, ...definition.steps])]) {
+        const migrated = getTutorialLifecycle(roundTrip(game), next)!
+        expect(migrated).toMatchObject({
+          status: 'completed',
+          revision: Number.MAX_SAFE_INTEGER,
+          definitionVersion: 2,
+        })
+        expect(
+          applyTutorialCommand(game, next, {
+            type: 'replay_start',
+            expectedRevision: Number.MAX_SAFE_INTEGER,
+          }).state
+        ).toBe(game)
+      }
+    }
+  )
+
   it('preserves same-layout progress and commits migration on the next successful command', () => {
     const game = roundTrip(command(active(), 'interrupt'))
     const next = upgraded()

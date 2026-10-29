@@ -45,3 +45,7 @@ Full diff reviewed against main, including schema, normalizer, managed/store int
 ## Quality-gate and counter boundary corrections
 
 SonarCloud reported S3735 (fallback `void`), S2871 (implicit sort comparator), and S7744 (unnecessary empty spread). Replaced the fallback exclusion with deletion on a local clone, used an explicit code-point comparator matching the registry, and removed the redundant spread fallback. No validation rules were weakened. A final counter-boundary probe found that the last safe completion revision could be generated but then rejected by hydration; structural validation now preserves exhausted safe counters while command execution prevents further increments. Regression covers save/load preservation, stale delivery and overflow refusal. Focused six-file suite: 496 passed; final two-file suite after the last assertion: 59 passed; changed-file lint passes. Six audit passes rechecked.
+
+## Final progress-coherence and migration-boundary review
+
+Added semantic hydration checks so well-typed but contradictory active/suppressed records cannot replay completed steps; terminal migration snapshots remain valid. Gitar identified the corresponding upgrade boundary after counters became inclusive: version migration now increments safely or retains a saturated read-only MAX revision, preserving completed upgrades at MAX-1 and MAX without permitting further commands. Added same-layout/structural upgrade regressions for both boundaries. Focused six-file suite: 499 passed; lint passed. No scope expansion or new storage authority.

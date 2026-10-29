@@ -8,9 +8,7 @@
  *   node scripts/validation/run-requirements.mjs --dry-run
  *   node scripts/validation/run-requirements.mjs --include id --exclude id
  */
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import path from 'node:path'
 import {
   detectMissingRequiredValidation,
   probeValidatorAvailability,
@@ -20,6 +18,7 @@ import {
   resolveValidationRequirements,
   summarizeRequirementReport,
 } from './requirement-model.mjs'
+import { resolveBin, spawnSafe } from './spawn-safe.mjs'
 
 function takeValue(argv, i, flag, inline) {
   if (inline !== undefined) return { value: inline, next: i }
@@ -28,6 +27,32 @@ function takeValue(argv, i, flag, inline) {
     throw new Error(`${flag} requires a value`)
   }
   return { value, next: i + 1 }
+}
+
+function applyValuedFlag(opts, flag, value) {
+  if (flag === '--base') {
+    opts.base = value
+    return
+  }
+  if (flag === '--files') {
+    opts.files = value.split(',').map((s) => s.trim()).filter(Boolean)
+    return
+  }
+  if (flag === '--include') {
+    opts.include.push(value)
+    return
+  }
+  if (flag === '--exclude') {
+    opts.exclude.push(value)
+    return
+  }
+  if (flag === '--exception') {
+    const sep = value.indexOf('=')
+    if (sep === -1) throw new Error(`--exception expects id=reason, got ${value}`)
+    opts.exceptions.push({ validatorId: value.slice(0, sep), reason: value.slice(sep + 1) })
+    return
+  }
+  throw new Error(`Unknown argument: ${flag}`)
 }
 
 function parseArgs(argv) {
@@ -43,45 +68,56 @@ function parseArgs(argv) {
     exceptions: [],
     all: false,
   }
-  for (let i = 0; i < argv.length; i++) {
+  let i = 0
+  while (i < argv.length) {
     const a = argv[i]
     const eq = a.indexOf('=')
     const flag = eq === -1 ? a : a.slice(0, eq)
     const inline = eq === -1 ? undefined : a.slice(eq + 1)
 
-    if (flag === '--ci' && inline === undefined) opts.ci = true
-    else if (flag === '--resolve-only' && inline === undefined) opts.resolveOnly = true
-    else if (flag === '--dry-run' && inline === undefined) opts.dryRun = true
-    else if (flag === '--json' && inline === undefined) opts.json = true
-    else if (flag === '--all' && inline === undefined) opts.all = true
-    else if (flag === '--base') {
-      const taken = takeValue(argv, i, '--base', inline)
-      opts.base = taken.value
-      i = taken.next
-    } else if (flag === '--files') {
-      const taken = takeValue(argv, i, '--files', inline)
-      opts.files = taken.value.split(',').map((s) => s.trim()).filter(Boolean)
-      i = taken.next
-    } else if (flag === '--include') {
-      const taken = takeValue(argv, i, '--include', inline)
-      opts.include.push(taken.value)
-      i = taken.next
-    } else if (flag === '--exclude') {
-      const taken = takeValue(argv, i, '--exclude', inline)
-      opts.exclude.push(taken.value)
-      i = taken.next
-    } else if (flag === '--exception') {
-      const taken = takeValue(argv, i, '--exception', inline)
-      const raw = taken.value
-      const sep = raw.indexOf('=')
-      if (sep === -1) throw new Error(`--exception expects id=reason, got ${raw}`)
-      opts.exceptions.push({ validatorId: raw.slice(0, sep), reason: raw.slice(sep + 1) })
-      i = taken.next
-    } else if (flag === '--help' || flag === '-h') {
-      opts.help = true
-    } else {
-      throw new Error(`Unknown argument: ${a}`)
+    if (flag === '--ci' && inline === undefined) {
+      opts.ci = true
+      i += 1
+      continue
     }
+    if (flag === '--resolve-only' && inline === undefined) {
+      opts.resolveOnly = true
+      i += 1
+      continue
+    }
+    if (flag === '--dry-run' && inline === undefined) {
+      opts.dryRun = true
+      i += 1
+      continue
+    }
+    if (flag === '--json' && inline === undefined) {
+      opts.json = true
+      i += 1
+      continue
+    }
+    if (flag === '--all' && inline === undefined) {
+      opts.all = true
+      i += 1
+      continue
+    }
+    if (flag === '--help' || flag === '-h') {
+      opts.help = true
+      i += 1
+      continue
+    }
+    if (
+      flag === '--base' ||
+      flag === '--files' ||
+      flag === '--include' ||
+      flag === '--exclude' ||
+      flag === '--exception'
+    ) {
+      const taken = takeValue(argv, i, flag, inline)
+      applyValuedFlag(opts, flag, taken.value)
+      i = taken.next + 1
+      continue
+    }
+    throw new Error(`Unknown argument: ${a}`)
   }
   return opts
 }
@@ -97,13 +133,13 @@ function parseNameOnly(stdout) {
 const DIFF_NAME_ONLY = ['diff', '--name-only', '--diff-filter=ACDMR']
 
 function workingTreeChanges() {
-  const tracked = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACDMR', 'HEAD'], {
+  const tracked = spawnSafe('git', ['diff', '--name-only', '--diff-filter=ACDMR', 'HEAD'], {
     encoding: 'utf8',
   })
-  const staged = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACDMR', '--cached'], {
+  const staged = spawnSafe('git', ['diff', '--name-only', '--diff-filter=ACDMR', '--cached'], {
     encoding: 'utf8',
   })
-  const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard'], {
+  const untracked = spawnSafe('git', ['ls-files', '--others', '--exclude-standard'], {
     encoding: 'utf8',
   })
   return [
@@ -122,7 +158,7 @@ function gitChangedFiles(base, { includeWorkingTree = true } = {}) {
   ]
   let committed = null
   for (const args of attempts) {
-    const result = spawnSync('git', args, { encoding: 'utf8' })
+    const result = spawnSafe('git', args, { encoding: 'utf8' })
     if (result.status === 0) {
       committed = parseNameOnly(result.stdout)
       break
@@ -165,6 +201,26 @@ function filterSelected(selected, { include, exclude }) {
   return out
 }
 
+function unavailableStatus(whenUnavailable) {
+  if (whenUnavailable === 'skip') return 'skipped'
+  return 'unavailable'
+}
+
+function npmCommand() {
+  return process.platform === 'win32' ? resolveBin('npm.cmd') : resolveBin('npm')
+}
+
+function resolveRunCommand(invocation) {
+  if (invocation.kind === 'npm') {
+    return { finalCommand: npmCommand(), finalArgs: ['run', invocation.value] }
+  }
+  const parts = invocation.value.split(/\s+/)
+  if (parts[0] === 'node') {
+    return { finalCommand: process.execPath, finalArgs: parts.slice(1) }
+  }
+  return { finalCommand: parts[0], finalArgs: parts.slice(1) }
+}
+
 function runOne(selected, { ci, dryRun }) {
   if (selected.enforcement === 'skipped-exception') {
     return {
@@ -179,15 +235,9 @@ function runOne(selected, { ci, dryRun }) {
   const scripts = readPackageScripts()
   const availability = probeValidatorAvailability(selected, scripts)
   if (availability === 'unavailable') {
-    const status =
-      selected.whenUnavailable === 'skip'
-        ? 'skipped'
-        : selected.whenUnavailable === 'report-unavailable'
-          ? 'unavailable'
-          : 'unavailable'
     return {
       id: selected.id,
-      status,
+      status: unavailableStatus(selected.whenUnavailable),
       enforcement: selected.enforcement,
       whenUnavailable: selected.whenUnavailable,
       detail: `validator invocation unavailable (missing npm script ${selected.npmScript ?? 'n/a'} or command)`,
@@ -205,40 +255,12 @@ function runOne(selected, { ci, dryRun }) {
     }
   }
 
-  const command =
-    invocation.kind === 'npm'
-      ? process.platform === 'win32'
-        ? 'npm.cmd'
-        : 'npm'
-      : process.execPath
-  const args =
-    invocation.kind === 'npm'
-      ? ['run', invocation.value]
-      : [path.resolve(process.cwd(), invocation.value.replace(/^node\s+/, ''))]
-
-  // For bare `node script.mjs` stored as command string:
-  let finalCommand = command
-  let finalArgs = args
-  if (invocation.kind === 'command') {
-    const parts = invocation.value.split(/\s+/)
-    if (parts[0] === 'node') {
-      finalCommand = process.execPath
-      finalArgs = parts.slice(1)
-    } else {
-      finalCommand = parts[0]
-      finalArgs = parts.slice(1)
-    }
-  }
-
+  const { finalCommand, finalArgs } = resolveRunCommand(invocation)
   const isolateStdout = Boolean(process.env.VALIDATION_JSON_ISOLATE)
-  const result = spawnSync(finalCommand, finalArgs, {
+  const result = spawnSafe(finalCommand, finalArgs, {
     encoding: 'utf8',
-    // When emitting JSON on stdout, capture child streams and mirror them to
-    // stderr so diagnostics are preserved without polluting the JSON report.
     stdio: isolateStdout ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     maxBuffer: isolateStdout ? 64 * 1024 * 1024 : undefined,
-    env: process.env,
-    shell: process.platform === 'win32' && invocation.kind === 'npm',
   })
   if (isolateStdout) {
     if (result.stdout) process.stderr.write(result.stdout)
@@ -285,17 +307,8 @@ function printHuman(report) {
   }
 }
 
-function main() {
-  let opts
-  try {
-    opts = parseArgs(process.argv.slice(2))
-  } catch (error) {
-    console.error(error.message)
-    process.exit(2)
-  }
-
-  if (opts.help) {
-    console.log(`Usage: node scripts/validation/run-requirements.mjs [options]
+function printHelpAndExit() {
+  console.log(`Usage: node scripts/validation/run-requirements.mjs [options]
   --base <ref>         Git base for changed-file detection (default: origin/main / PR base)
   --files a,b          Explicit changed-file list (skips git)
   --all                Select every registered validator
@@ -306,32 +319,15 @@ function main() {
   --include <id>       Restrict to validator id (repeatable)
   --exclude <id>       Omit validator id (repeatable)
   --exception id=why   Treat validator as skipped-exception for this run`)
-    process.exit(0)
-  }
+  process.exit(0)
+}
 
-  if (opts.json) {
-    process.env.VALIDATION_JSON_ISOLATE = '1'
-  }
-
-  const registry = readRequirementRegistry()
-  const files = opts.all
-    ? ['**']
-    : (opts.files ??
-      gitChangedFiles(opts.base, {
-        // Local pre-ship includes dirty working tree; CI uses committed PR diff only.
-        includeWorkingTree: !opts.ci,
-      }))
-
-  // `--all` uses a synthetic match-all path handled below
-  const effectiveFiles = opts.all
-    ? collectAllActivationFiles(registry)
-    : files
-
+function buildResolution(registry, effectiveFiles, opts) {
   const resolved = resolveValidationRequirements(effectiveFiles, registry, {
     exceptions: opts.exceptions,
   })
   const selected = filterSelected(resolved.selected, opts)
-  const resolution = {
+  return {
     ...resolved,
     selected,
     requiredIds: selected.filter((s) => s.enforcement === 'required').map((s) => s.id),
@@ -340,38 +336,57 @@ function main() {
       .filter((s) => s.enforcement === 'skipped-exception')
       .map((s) => s.id),
   }
+}
+
+function emitReport(report, opts, advisoryFailed) {
+  if (opts.json) {
+    console.log(JSON.stringify(report, null, 2))
+    return
+  }
+  printHuman(report)
+  if (advisoryFailed.length) {
+    console.warn(
+      `Advisory validator failure(s) (non-blocking): ${advisoryFailed.map((r) => r.id).join(', ')}`,
+    )
+  }
+}
+
+function main() {
+  let opts
+  try {
+    opts = parseArgs(process.argv.slice(2))
+  } catch (error) {
+    console.error(error.message)
+    process.exit(2)
+  }
+
+  if (opts.help) printHelpAndExit()
+  if (opts.json) process.env.VALIDATION_JSON_ISOLATE = '1'
+
+  const registry = readRequirementRegistry()
+  const files = opts.all
+    ? ['**']
+    : (opts.files ??
+      gitChangedFiles(opts.base, {
+        includeWorkingTree: !opts.ci,
+      }))
+  const effectiveFiles = opts.all ? collectAllActivationFiles(registry) : files
+  const resolution = buildResolution(registry, effectiveFiles, opts)
 
   if (opts.resolveOnly || opts.dryRun) {
-    const results = resolution.selected.map((s) =>
-      runOne(s, { ci: opts.ci, dryRun: true }),
-    )
-    // resolve-only is selection-only (no availability execution). Availability is
-    // enforced when validators actually run.
-    const missing = []
-    const report = summarizeRequirementReport(resolution, results, missing)
-    if (opts.json) {
-      console.log(JSON.stringify(report, null, 2))
-    } else {
-      printHuman(report)
-    }
+    const results = resolution.selected.map((s) => runOne(s, { ci: opts.ci, dryRun: true }))
+    const report = summarizeRequirementReport(resolution, results, [])
+    emitReport(report, opts, [])
     if (opts.resolveOnly && opts.include.length === 1) {
-      const hit = resolution.selected.find((s) => s.id === opts.include[0])
-      if (!hit) process.exit(3) // not selected
+      const selected = resolution.selected.some((s) => s.id === opts.include[0])
+      if (!selected) process.exit(3)
     }
     process.exit(0)
   }
 
-  const results = []
-  for (const selected of resolution.selected) {
-    const result = runOne(selected, { ci: opts.ci, dryRun: false })
-    results.push(result)
-    // Advisory failures do not fail the process by themselves; required do.
-  }
-
+  const results = resolution.selected.map((s) => runOne(s, { ci: opts.ci, dryRun: false }))
   const missing = detectMissingRequiredValidation(resolution, results)
   const report = summarizeRequirementReport(resolution, results, missing)
-
-  // Soft-fail advisory: mark ok false only for required failures / missing
   const requiredFailed = results.some(
     (r) => r.enforcement === 'required' && (r.status === 'failed' || r.status === 'unavailable'),
   )
@@ -380,35 +395,25 @@ function main() {
   )
   report.ok = missing.length === 0 && !requiredFailed
   report.advisoryFailures = advisoryFailed.map((r) => r.id)
-
-  if (opts.json) {
-    console.log(JSON.stringify(report, null, 2))
-  } else {
-    printHuman(report)
-    if (advisoryFailed.length) {
-      console.warn(
-        `Advisory validator failure(s) (non-blocking): ${advisoryFailed.map((r) => r.id).join(', ')}`,
-      )
-    }
-  }
-
+  emitReport(report, opts, advisoryFailed)
   process.exit(report.ok ? 0 : 1)
+}
+
+function collapseGlobExample(glob) {
+  return glob.includes('*')
+    ? glob.replaceAll('**', 'all').replaceAll('*', 'x')
+    : glob
 }
 
 /** Expand `--all` into one representative path per change class / glob so every validator activates. */
 function collectAllActivationFiles(registry) {
   const files = new Set()
   for (const def of Object.values(registry.changeClasses)) {
-    for (const g of def.pathGlobs ?? []) {
-      files.add(g.includes('*') ? g.replace(/\*\*/g, 'all').replace(/\*/g, 'x') : g)
-    }
+    for (const g of def.pathGlobs ?? []) files.add(collapseGlobExample(g))
   }
   for (const v of registry.validators) {
-    for (const g of v.activation?.pathGlobs ?? []) {
-      files.add(g.includes('*') ? g.replace(/\*\*/g, 'all').replace(/\*/g, 'x') : g)
-    }
+    for (const g of v.activation?.pathGlobs ?? []) files.add(collapseGlobExample(g))
   }
-  // Ensure academy / e2e / governance representatives exist even if globs collapse oddly
   files.add('src/domain/example.ts')
   files.add('e2e/example.spec.ts')
   files.add('playwright.config.ts')

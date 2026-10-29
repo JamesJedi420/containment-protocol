@@ -6,12 +6,12 @@
  * Fail-closed: if the change set cannot be resolved from git, exit non-zero
  * so CI does not treat a broken resolve as "Playwright not selected".
  */
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import {
   readRequirementRegistry,
   resolveValidationRequirements,
 } from './requirement-model.mjs'
+import { spawnSafe } from './spawn-safe.mjs'
 
 function parseNameOnly(stdout) {
   return stdout
@@ -44,7 +44,7 @@ function changedFiles() {
     ['diff', '--name-only', '--diff-filter=ACDMR', 'HEAD~1'],
   ]
   for (const args of attempts) {
-    const result = spawnSync('git', args, { encoding: 'utf8' })
+    const result = spawnSafe('git', args, { encoding: 'utf8' })
     if (result.status === 0) {
       return parseNameOnly(result.stdout)
     }

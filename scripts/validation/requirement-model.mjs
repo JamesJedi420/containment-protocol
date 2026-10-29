@@ -27,7 +27,7 @@ export function matchGlob(filePath, pattern) {
 }
 
 function normalizeRepoPath(p) {
-  return String(p).replace(/\\/g, '/').replace(/^\.\//, '')
+  return String(p).replaceAll('\\', '/').replace(/^\.\//, '')
 }
 
 function globToRegExp(pattern) {
@@ -68,7 +68,7 @@ export function readRequirementRegistry(registryPath = DEFAULT_REGISTRY_PATH) {
   return raw
 }
 
-export function validateRequirementRegistry(registry) {
+function assertRegistryShape(registry) {
   if (!registry || typeof registry !== 'object') {
     throw new Error('validation-requirements: registry must be an object')
   }
@@ -84,37 +84,43 @@ export function validateRequirementRegistry(registry) {
   if (!Array.isArray(registry.validators) || registry.validators.length === 0) {
     throw new Error('validation-requirements: validators must be a non-empty array')
   }
+}
 
+function assertValidatorEntry(v, registry, ids) {
+  if (!v?.id || typeof v.id !== 'string') {
+    throw new Error('validation-requirements: each validator needs a string id')
+  }
+  if (ids.has(v.id)) {
+    throw new Error(`validation-requirements: duplicate validator id ${v.id}`)
+  }
+  ids.add(v.id)
+  if (!v.ownerIssue || typeof v.ownerIssue !== 'string') {
+    throw new Error(`validation-requirements: ${v.id} needs ownerIssue`)
+  }
+  if (!ENFORCEMENT.has(v.enforcement)) {
+    throw new Error(`validation-requirements: ${v.id} invalid enforcement`)
+  }
+  if (!WHEN_UNAVAILABLE.has(v.whenUnavailable)) {
+    throw new Error(`validation-requirements: ${v.id} invalid whenUnavailable`)
+  }
+  if (!v.npmScript && !v.command) {
+    throw new Error(`validation-requirements: ${v.id} needs npmScript or command`)
+  }
+  if (!v.activation || typeof v.activation !== 'object') {
+    throw new Error(`validation-requirements: ${v.id} needs activation`)
+  }
+  for (const c of v.activation.changeClasses ?? []) {
+    if (!registry.changeClasses[c]) {
+      throw new Error(`validation-requirements: ${v.id} unknown changeClass ${c}`)
+    }
+  }
+}
+
+export function validateRequirementRegistry(registry) {
+  assertRegistryShape(registry)
   const ids = new Set()
   for (const v of registry.validators) {
-    if (!v?.id || typeof v.id !== 'string') {
-      throw new Error('validation-requirements: each validator needs a string id')
-    }
-    if (ids.has(v.id)) {
-      throw new Error(`validation-requirements: duplicate validator id ${v.id}`)
-    }
-    ids.add(v.id)
-    if (!v.ownerIssue || typeof v.ownerIssue !== 'string') {
-      throw new Error(`validation-requirements: ${v.id} needs ownerIssue`)
-    }
-    if (!ENFORCEMENT.has(v.enforcement)) {
-      throw new Error(`validation-requirements: ${v.id} invalid enforcement`)
-    }
-    if (!WHEN_UNAVAILABLE.has(v.whenUnavailable)) {
-      throw new Error(`validation-requirements: ${v.id} invalid whenUnavailable`)
-    }
-    if (!v.npmScript && !v.command) {
-      throw new Error(`validation-requirements: ${v.id} needs npmScript or command`)
-    }
-    if (!v.activation || typeof v.activation !== 'object') {
-      throw new Error(`validation-requirements: ${v.id} needs activation`)
-    }
-    const classes = v.activation.changeClasses ?? []
-    for (const c of classes) {
-      if (!registry.changeClasses[c]) {
-        throw new Error(`validation-requirements: ${v.id} unknown changeClass ${c}`)
-      }
-    }
+    assertValidatorEntry(v, registry, ids)
   }
   return true
 }

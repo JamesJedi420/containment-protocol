@@ -34,6 +34,16 @@ Do not put Figma personal access tokens in committed `.cursor/mcp.json`. Prefer 
 
 The registry `fileKey` is the same identifier that appears in a normal Figma share URL. It is **not** an API secret. Restrict who can open the file with Figma sharing settings. Do **not** commit `planKey` / team IDs — resolve those via `whoami` when creating files.
 
+### Subscription / auth blocker (mandatory)
+
+When the **active task needs** a Figma capability — edit the canonical UI System file, design→code from a Figma frame, or sync tokens/components in Figma — and a missing/lapsed Figma subscription, insufficient plan tier, or MCP auth blocks that capability:
+
+1. **Stop** that path.
+2. **Prompt the human** to subscribe, renew, upgrade, or complete auth so the capability is available.
+3. Do **not** silently skip Figma or substitute a weaker path without telling them.
+
+Do **not** prompt when the slice does not need Figma (domain/sim work, or UI that can ship from existing React/CSS alone).
+
 ## Agent workflows
 
 ### Design → code (UI slice with a Figma frame)

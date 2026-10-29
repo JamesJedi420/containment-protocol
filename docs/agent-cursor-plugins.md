@@ -74,6 +74,7 @@ If Modern Web Guidance is installed, search it before inventing layout/motion/fo
 3. **CSS in `src/index.css` is source of truth** for shipped tokens; sync Figma variables to match.
 4. Map components via `docs/figma/component-map.json` (Starter Code Connect substitute).
 5. Never add a Figma SDK or required Figma secrets to the game runtime or CI for this bridge.
+6. **Subscription / auth blocker (mandatory):** If the active task needs Figma (edit UI System file, design→code from a frame, sync tokens/components) and a missing/lapsed subscription, plan tier, or MCP auth blocks that path — **stop and prompt the human** to subscribe, renew, upgrade, or complete auth. Do not silently skip Figma or substitute a weaker path without telling them. Do not prompt when the slice does not need Figma.
 
 ### Security scans
 
@@ -82,3 +83,5 @@ Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOK
 ## Auth
 
 MCP servers must show `ready` (or equivalent) before agents rely on them. If `needsAuth`, ask the human to complete Cursor Connect / `mcp_auth`; do not invent tokens in the SPA.
+
+If Figma MCP is ready but a **paid plan / subscription** is required for the needed capability (file edit, design context, library tools), treat that the same as a blocker: prompt the human to subscribe or renew before continuing that path.

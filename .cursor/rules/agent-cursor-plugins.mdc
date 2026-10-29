@@ -15,6 +15,7 @@ Canonical detail: **`docs/agent-cursor-plugins.md`**.
 - **Snyk** — optional on-demand SCA/SAST/package health; does not replace Sonatype; no parallel Snyk CI gates without a Linear slice.
 - **Modern Web Guidance** — when installed, search before inventing HTML/CSS/client-JS UI patterns; still obey layer boundaries and existing design system.
 - **Figma** — UI visual bridge only; CSS (`src/index.css`) is shipped token source of truth; use `docs/figma-integration.md` + `docs/figma/*` + skill `cp-figma-ui-bridge`; never wire Figma SDK into `src/` or CI for this bridge.
+- **Figma subscription / auth blocker (mandatory):** When the active task needs a Figma capability (edit the canonical UI System file, design→code from a Figma frame, sync tokens/components in Figma) and a missing/lapsed Figma subscription, plan tier, or MCP auth blocks that capability — **stop and prompt the human** to subscribe, renew, upgrade, or complete auth. Do **not** silently skip Figma or substitute a weaker path without telling them. Do **not** prompt when the slice does not need Figma (domain/sim, or UI solvable from existing React/CSS alone).
 - **PR reviewers** — enforce via `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `AGENTS.md` Review guidelines.
 
 ## Do not
@@ -22,3 +23,4 @@ Canonical detail: **`docs/agent-cursor-plugins.md`**.
 - Wire search, scan, or SaaS SDKs into `src/` or CI unless the active Linear slice requires it.
 - Treat marketplace plugins as installable from the agent — human installs; agent documents and uses.
 - Expand scope to enterprise DB/ops/auth/sales plugins for this client-only SPA.
+- Silently skip a needed Figma step because the human has no active subscription — prompt first.

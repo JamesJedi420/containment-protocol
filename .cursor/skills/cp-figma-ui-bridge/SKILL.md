@@ -23,6 +23,7 @@ description: >-
 - **No runtime wiring:** Do not add Figma packages, env keys, or fetches to `src/` or CI for this bridge.
 - **Code Connect:** Starter plan uses `component-map.json`. Do not invent published Code Connect unless Org/Enterprise is confirmed.
 - **One file:** Do not create a second CP UI System design file.
+- **Subscription / auth blocker:** If this skill’s Figma path is required for the active task and subscription, plan tier, or MCP auth blocks it — **stop and prompt the human** to subscribe/renew/auth. Do not silently skip or substitute without telling them. Do not prompt when the slice does not need Figma.
 
 ## Design → code
 

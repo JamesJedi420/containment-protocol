@@ -11,8 +11,8 @@ Canonical detail: **`docs/agent-cursor-plugins.md`**.
 
 - **Linear** — mandatory issue lifecycle (see `linear-always-update.mdc`). After an implementation PR merges, Cloud Agents that cannot auth Linear emit a local-agent handoff (`cloud-agent-linear-handoff.mdc`).
 - **Tavily** — live web research only after repo sources; never into game runtime/CI.
-- **Sonatype** — **required** before adding/upgrading npm deps (`/check-dependency` or MCP).
-- **Snyk** — optional on-demand SCA/SAST/package health; does not replace Sonatype; no new CI vendor gates without a Linear slice.
+- **Sonatype** — **required** before adding/upgrading npm deps (`/check-dependency` or MCP). Guide Agent P CI: `.github/workflows/agp-workflow.yml` (OIDC; do not commit Guide tokens or `agp.yml`).
+- **Snyk** — optional on-demand SCA/SAST/package health; does not replace Sonatype; no parallel Snyk CI gates without a Linear slice.
 - **Modern Web Guidance** — when installed, search before inventing HTML/CSS/client-JS UI patterns; still obey layer boundaries and existing design system.
 - **PR reviewers** — enforce via `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `AGENTS.md` Review guidelines.
 

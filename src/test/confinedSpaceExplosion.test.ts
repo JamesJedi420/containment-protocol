@@ -37,6 +37,31 @@ describe('SPE-263 confined-space explosion propagation', () => {
     expect(tunnel.blastIntensity).toBeGreaterThan(open.blastIntensity)
     expect(tunnel.reasons).toContain('confined-amplification')
     expect(open.reasons).toContain('open-radial')
+
+    const shaft = evaluateConfinedSpaceExplosion(
+      createVolatileBuildupSnapshot({
+        spaceId: 'space-shaft-ignite',
+        geometry: 'shaft',
+        volatileLevel: 10,
+        warningThreshold: 4,
+        ignitionThreshold: 8,
+        ignitionSourcePresent: true,
+      }),
+    )
+    const corridor = evaluateConfinedSpaceExplosion(
+      createVolatileBuildupSnapshot({
+        spaceId: 'space-corridor',
+        geometry: 'corridor',
+        volatileLevel: 10,
+        warningThreshold: 4,
+        ignitionThreshold: 8,
+        ignitionSourcePresent: true,
+      }),
+    )
+    expect(shaft.blastShape).toBe('amplified_confined')
+    expect(shaft.blastIntensity).toBe(20)
+    expect(corridor.blastShape).toBe('channeled_axial')
+    expect(corridor.blastIntensity).toBe(12.5)
   })
 
   it('shows a warning before ignition under explicit threshold conditions', () => {
@@ -85,6 +110,17 @@ describe('SPE-263 confined-space explosion propagation', () => {
 
     expect(() =>
       createVolatileBuildupSnapshot({
+        spaceId: 'space-x',
+        geometry: 'room' as 'open',
+        volatileLevel: 1,
+        warningThreshold: 1,
+        ignitionThreshold: 2,
+        ignitionSourcePresent: true,
+      }),
+    ).toThrow(/geometry is invalid/)
+
+    expect(() =>
+      createVolatileBuildupSnapshot({
         spaceId: '  ',
         geometry: 'open',
         volatileLevel: 1,
@@ -93,5 +129,16 @@ describe('SPE-263 confined-space explosion propagation', () => {
         ignitionSourcePresent: true,
       }),
     ).toThrow(/spaceId is required/)
+
+    expect(() =>
+      createVolatileBuildupSnapshot({
+        spaceId: 'space-x',
+        geometry: 'open',
+        volatileLevel: Number.NaN,
+        warningThreshold: 1,
+        ignitionThreshold: 2,
+        ignitionSourcePresent: true,
+      }),
+    ).toThrow(/volatileLevel must be a finite number/)
   })
 })

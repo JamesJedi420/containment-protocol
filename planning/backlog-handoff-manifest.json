@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-807"],
+  "inProgress": ["SPE-2271"],
   "recentlyShipped": [
+    "SPE-807",
     "SPE-408",
     "SPE-263",
     "SPE-874",
@@ -116,7 +117,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
-    "planning/spe-807-cross-zone-contamination-slice.md": "In progress",
+    "planning/spe-2271-patrol-escort-doctrine-slice.md": "In progress",
+    "planning/spe-807-cross-zone-contamination-slice.md": "Recently shipped",
     "planning/spe-408-persistent-area-shapes-slice.md": "Recently shipped",
     "planning/spe-263-confined-space-explosion-slice.md": "Recently shipped",
     "planning/spe-874-lifecycle-operating-procedures-slice.md": "Recently shipped",

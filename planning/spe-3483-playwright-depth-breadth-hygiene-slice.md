@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** (PR #4501 @ `5b01b9bc`) |
 | **Issue** | [SPE-3483](https://linear.app/spectranoir/issue/SPE-3483/playwright-depth-gate-breadth-and-hygiene-follow-through) |
 | **Related** | SPE-3481, SPE-3482 (Done), SPE-3458, SPE-3348 |
 | **Branch** | `jamesdyedbq/spe-3483-playwright-depth-gate-breadth-and-hygiene-follow-through` |

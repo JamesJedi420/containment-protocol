@@ -1,0 +1,41 @@
+{
+  "$schemaComment": "Maps CSS custom properties in src/index.css to Figma variable names in the canonical UI System file. CSS remains source of truth for shipped values.",
+  "fileKey": "Xb4sEWsOqEOkrB5nnTZWct",
+  "collections": {
+    "primitives": "CP/Primitives",
+    "semantic": "CP/Semantic"
+  },
+  "modes": {
+    "primitives": ["Value"],
+    "semantic": ["Game"]
+  },
+  "colors": [
+    { "css": "--bg", "theme": "--color-bg", "figmaPrimitive": "color/bg", "figmaSemantic": "bg/canvas", "value": "#071014" },
+    { "css": "--bg-top", "theme": "--color-bg-top", "figmaPrimitive": "color/bg-top", "figmaSemantic": "bg/top", "value": "#16323a" },
+    { "css": "--panel", "theme": "--color-panel", "figmaPrimitive": "color/panel", "figmaSemantic": "surface/panel", "value": "#0d171c" },
+    { "css": "--panel-hi", "theme": "--color-panel-hi", "figmaPrimitive": "color/panel-hi", "figmaSemantic": "surface/panel-hi", "value": "#111e24" },
+    { "css": "--text", "theme": "--color-text", "figmaPrimitive": "color/text", "figmaSemantic": "fg/default", "value": "#bdd2d0" },
+    { "css": "--text-soft", "theme": "--color-text-soft", "figmaPrimitive": "color/text-soft", "figmaSemantic": "fg/soft", "value": "#9fb4b2" },
+    { "css": "--text-dim", "theme": "--color-text-dim", "figmaPrimitive": "color/text-dim", "figmaSemantic": "fg/dim", "value": "#6b8280" },
+    { "css": "--text-strong", "theme": "--color-text-strong", "figmaPrimitive": "color/text-strong", "figmaSemantic": "fg/strong", "value": "#f4fbf7" },
+    { "css": "--accent", "theme": "--color-accent", "figmaPrimitive": "color/accent", "figmaSemantic": "fg/accent", "value": "#75ffd5" },
+    { "css": "--success", "theme": "--color-success", "figmaPrimitive": "color/success", "figmaSemantic": "status/success", "value": "#75ffd5" },
+    { "css": "--warning", "theme": "--color-warning", "figmaPrimitive": "color/warning", "figmaSemantic": "status/warning", "value": "#ffb95c" },
+    { "css": "--critical", "theme": "--color-critical", "figmaPrimitive": "color/critical", "figmaSemantic": "status/critical", "value": "#ff6b6b" },
+    { "css": "--border", "theme": "--color-border", "figmaPrimitive": "color/border", "figmaSemantic": "stroke/default", "value": "rgba(117, 255, 213, 0.1)" },
+    { "css": "--border-strong", "theme": null, "figmaPrimitive": "color/border-strong", "figmaSemantic": "stroke/strong", "value": "rgba(117, 255, 213, 0.18)" }
+  ],
+  "radii": [
+    { "css": "--radius-sm", "figmaPrimitive": "radius/sm", "figmaPxApprox": 7, "cssRem": "0.45rem" },
+    { "css": "--radius-md", "figmaPrimitive": "radius/md", "figmaPxApprox": 9, "cssRem": "0.55rem" },
+    { "css": "--radius-lg", "figmaPrimitive": "radius/lg", "figmaPxApprox": 12, "cssRem": "0.75rem" },
+    { "css": "--radius-xl", "figmaPrimitive": "radius/xl", "figmaPxApprox": 16, "cssRem": "1rem" }
+  ],
+  "fonts": [
+    { "css": "--font-body", "figmaPrimitive": "font/body", "cssStack": "'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif", "figmaPreviewFont": "Inter" },
+    { "css": "--font-heading", "figmaPrimitive": "font/heading", "cssStack": "'Palatino Linotype', 'Book Antiqua', Palatino, serif", "figmaPreviewFont": "Inter" },
+    { "css": "--font-mono", "figmaPrimitive": "font/mono", "cssStack": "'Consolas', 'Liberation Mono', monospace", "figmaPreviewFont": "Inter" }
+  ],
+  "textStyles": ["CP/Heading", "CP/Body", "CP/Label", "CP/Mono"],
+  "syncRule": "When changing a shipped token in src/index.css, update this map and the matching Figma variable in the same UI slice (or a dedicated token-sync follow-up)."
+}

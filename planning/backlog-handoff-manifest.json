@@ -1,7 +1,9 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-3483"],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3484",
+    "SPE-3483",
     "SPE-3482",
     "SPE-3481",
     "SPE-3348",
@@ -135,7 +137,8 @@
     "planning/spe-3458-playwright-e2e-harness-slice.md": "Recently shipped",
     "planning/spe-3481-playwright-player-critical-smokes-slice.md": "Recently shipped",
     "planning/spe-3482-playwright-smoke-hardening-slice.md": "Recently shipped",
-    "planning/spe-3483-playwright-depth-breadth-hygiene-slice.md": "In progress",
+    "planning/spe-3483-playwright-depth-breadth-hygiene-slice.md": "Recently shipped",
+    "planning/spe-3484-figma-ui-system-integration-slice.md": "Recently shipped",
     "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",
     "planning/spe-700-institution-calendars-slice.md": "Recently shipped",
     "planning/spe-1290-bounded-squad-composition-slice.md": "Recently shipped",

@@ -1,0 +1,54 @@
+{
+  "$schemaComment": "Agent-facing Code Connect substitute (Starter plan). Maps Figma component names/node IDs to React implementation paths. Prefer existing CSS classes over inventing parallel markup.",
+  "fileKey": "Xb4sEWsOqEOkrB5nnTZWct",
+  "fileUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct/Containment-Protocol-%E2%80%94-UI-System",
+  "components": [
+    {
+      "figmaName": "TopBar",
+      "nodeId": "2:17",
+      "nodeUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct?node-id=2-17",
+      "react": [
+        "src/components/layout/TopBar.tsx",
+        "src/components/layout/ShellStatusBar.tsx"
+      ],
+      "styles": ["src/styles/components.css (.topbar-*)"],
+      "projection": ["src/components/layout/topBarView.ts", "src/components/layout/shellStatusBarView.ts"]
+    },
+    {
+      "figmaName": "StatCard",
+      "nodeId": "2:10",
+      "nodeUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct?node-id=2-10",
+      "react": ["src/components/StatCard.tsx"],
+      "styles": ["src/styles/components.css (.stat-shell, .panel)", "src/index.css"]
+    },
+    {
+      "figmaName": "Panel",
+      "nodeId": "2:7",
+      "nodeUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct?node-id=2-7",
+      "react": null,
+      "styles": ["src/styles/components.css (.panel, .panel-hi)"],
+      "notes": "Presentational CSS class pattern; no dedicated Panel.tsx — reuse .panel on feature surfaces."
+    },
+    {
+      "figmaName": "Button/Primary",
+      "nodeId": "2:13",
+      "nodeUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct?node-id=2-13",
+      "react": null,
+      "styles": ["src/styles/components.css (.btn, .btn-primary and related)"],
+      "notes": "Buttons are CSS utility classes, not a Button.tsx primitive."
+    },
+    {
+      "figmaName": "Button/Ghost",
+      "nodeId": "2:15",
+      "nodeUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct?node-id=2-15",
+      "react": null,
+      "styles": ["src/styles/components.css (.btn-ghost)"],
+      "notes": "Used heavily in TopBar utility actions."
+    }
+  ],
+  "codeConnect": {
+    "status": "deferred",
+    "reason": "Published Code Connect requires Figma Organization or Enterprise. Until then agents use this map + get_design_context / screenshots.",
+    "upgradePath": "Publish Components as a team library, add @figma/code-connect + figma.config.json, write .figma.ts templates per docs/figma-integration.md"
+  }
+}

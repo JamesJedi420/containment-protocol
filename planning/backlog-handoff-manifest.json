@@ -1,9 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [
-    "SPE-3348"
-  ],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3348",
     "SPE-3480",
     "SPE-2271",
     "SPE-807",
@@ -130,7 +129,7 @@
     "planning/spe-872-process-safety-information-gate-slice.md": "Recently shipped",
     "planning/spe-870-process-safety-coverage-slice.md": "Recently shipped",
     "planning/spe-2211-scene-geometry-registry-slice.md": "Recently shipped",
-    "planning/spe-3348-repository-validation-requirements-slice.md": "In progress",
+    "planning/spe-3348-repository-validation-requirements-slice.md": "Recently shipped",
     "planning/spe-3458-playwright-e2e-harness-slice.md": "Recently shipped",
     "planning/spe-699-affiliated-orders-branch-linkage-slice.md": "Recently shipped",
     "planning/spe-700-institution-calendars-slice.md": "Recently shipped",

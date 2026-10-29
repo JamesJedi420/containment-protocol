@@ -14,6 +14,7 @@ Canonical detail: **`docs/agent-cursor-plugins.md`**.
 - **Sonatype** — **required** before adding/upgrading npm deps (`/check-dependency` or MCP). Guide Agent P CI: `.github/workflows/agp-workflow.yml` (OIDC; do not commit Guide tokens or `agp.yml`).
 - **Snyk** — optional on-demand SCA/SAST/package health; does not replace Sonatype; no parallel Snyk CI gates without a Linear slice.
 - **Modern Web Guidance** — when installed, search before inventing HTML/CSS/client-JS UI patterns; still obey layer boundaries and existing design system.
+- **Figma** — UI visual bridge only; CSS (`src/index.css`) is shipped token source of truth; use `docs/figma-integration.md` + `docs/figma/*` + skill `cp-figma-ui-bridge`; never wire Figma SDK into `src/` or CI for this bridge.
 - **PR reviewers** — enforce via `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `AGENTS.md` Review guidelines.
 
 ## Do not

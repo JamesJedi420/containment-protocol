@@ -1,0 +1,23 @@
+{
+  "$schemaComment": "Canonical Figma file registry for Containment Protocol. Agents: read this before any Figma MCP call. Do not invent a second UI System file.",
+  "canonicalUiSystem": {
+    "name": "Containment Protocol — UI System",
+    "fileKey": "Xb4sEWsOqEOkrB5nnTZWct",
+    "fileUrl": "https://www.figma.com/design/Xb4sEWsOqEOkrB5nnTZWct/Containment-Protocol-%E2%80%94-UI-System",
+    "planKey": "team::1051241629014154545",
+    "ownerIssue": "SPE-3484",
+    "pages": {
+      "Overview": "Agent bridge / source-of-truth notes",
+      "Foundations": "Variable collections CP/Primitives + CP/Semantic",
+      "Components": "TopBar, StatCard, Panel, Button/Primary, Button/Ghost"
+    }
+  },
+  "sourceOfTruth": {
+    "shippedTokens": "src/index.css (@theme + :root)",
+    "shippedComponents": "src/components/** and src/styles/components.css",
+    "figmaRole": "Visual mirror and agent design bridge — not a runtime dependency"
+  },
+  "deferred": {
+    "codeConnectPublishedLibrary": "Requires Figma Organization or Enterprise; Starter uses docs/figma/component-map.json instead"
+  }
+}

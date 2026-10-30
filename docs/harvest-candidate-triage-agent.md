@@ -7,7 +7,7 @@
 - [`planning/harvest-reconciliation-index.md`](../planning/harvest-reconciliation-index.md) — batch index and pending-ledger-apply queue
 - [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md) — required Linear comment shape
 - [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md) — owner map ↔ outcome-table checks
-- [Read-only session handoff](./read-only-session-handoff.md) — session closeout when triage only gathered evidence and made no writes
+- [Read-only session handoff](./read-only-session-handoff.md) — preliminary closeout when triage only inspected evidence and made no writes; not evidence of completed durable harvest
 - [Candidate extraction and reconciliation ledger — canonical workflow](https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf) — durable candidate identity, provenance, reconciliation, approval state, and contradiction record
 
 ---
@@ -56,6 +56,12 @@ Your job is **not** to ship code or manufacture issue structure in the mirror PR
 8. **Index + PR** — add the batch row to `harvest-reconciliation-index.md`; docs-only PR. The row must state whether the canonical-ledger apply is `applied` or `pending apply`.
 
 ---
+
+## Preliminary discovery versus completed harvest
+
+A preliminary read-only finding may have **no canonical candidate-ledger reference**, but must be marked **preliminary / not recorded** and handed to the next actor for authorized staging; this does not complete a harvest batch. The read-only handoff makes no Linear, repository, or external authoritative write.
+
+A completed triage batch requires existing evidence in the canonical ledger or a **durable pending canonical-ledger apply** mirror/index entry. `pending apply` is staged transport, not canonical application; `applied` requires verified canonical writeback, not a merged mirror PR. Neither state implies candidate approval or backlog scope. Reuse SPE-3495 intake, SPE-3274 replay/frontier integrity, and SPE-3492 read-only phase-state presentation; do not create a second record or approval source.
 
 ## Authoritative sources
 

@@ -139,6 +139,21 @@
       "whenUnavailable": "fail"
     },
     {
+      "id": "linear-provider-contract",
+      "ownerIssue": "SPE-3432",
+      "ownerNote": "Fail-closed read-only provider schema fixture tests; no authenticated writes or provider-atomic revision claim.",
+      "command": "node scripts/governance/linear-provider-contract.check.mjs",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": [
+          "scripts/governance/linear-provider-contract*.mjs",
+          ".github/workflows/spe-3432-provider-readonly.yml",
+          "docs/governance/spe-3432-provider-readonly-probe.md"
+        ]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
       "id": "architecture-index",
       "ownerIssue": "SPE-10",
       "npmScript": "verify:architecture-index",

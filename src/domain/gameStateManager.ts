@@ -1,3 +1,16 @@
+import {
+  normalizeTutorialRuntime,
+  resolveTutorialLifecycle,
+  createPersistedTutorialRecord,
+  TUTORIAL_RECORD_LIMIT,
+} from './tutorialPersistence'
+import {
+  transitionTutorial,
+  type TutorialDefinition,
+  type TutorialCommand,
+  type TutorialEligibility,
+  type TutorialTransitionResult,
+} from './tutorialLifecycle'
 import { isAllowedProgressClockId, PROGRESS_CLOCK_HYDRATION_MAX } from './progressClocks'
 import {
   getDefaultRuntimeLocation,
@@ -1180,7 +1193,9 @@ export function normalizeRuntimeState(
   const base = fallback ?? createDefaultRuntimeState(week)
 
   if (!isRecord(value)) {
-    return { ...base }
+    const legacyBase = { ...base }
+    delete legacyBase.tutorials
+    return legacyBase
   }
 
   const sceneHistory = Array.isArray(value.sceneHistory)
@@ -1196,7 +1211,9 @@ export function normalizeRuntimeState(
     encounterWeekClampMode
   )
 
+  const tutorials = normalizeTutorialRuntime(value.tutorials)
   return {
+    ...(tutorials !== undefined ? { tutorials } : {}),
     player: sanitizePlayerProfile(value.player, base.player),
     globalFlags: sanitizeFlagRecord(value.globalFlags),
     oneShotEvents: sanitizeOneShotEvents(value.oneShotEvents, week),
@@ -1379,6 +1396,47 @@ export function setPlayerProfile(state: GameState, patch: Partial<PlayerProfileS
       player: sanitizePlayerProfile({ ...runtimeState.player, ...patch }, runtimeState.player),
     },
   }))
+}
+
+/** Registered definitions remain caller-owned; this branch never executes game actions. */
+export function getTutorialLifecycle(state: GameState, definition: TutorialDefinition) {
+  return resolveTutorialLifecycle(
+    normalizeTutorialRuntime(state.runtimeState?.tutorials),
+    definition
+  )
+}
+
+export function applyTutorialCommand(
+  state: GameState,
+  definition: TutorialDefinition,
+  command: TutorialCommand,
+  eligibility: TutorialEligibility = {}
+): { state: GameState; result: TutorialTransitionResult | null } {
+  const runtime = normalizeTutorialRuntime(state.runtimeState?.tutorials)
+  const current = resolveTutorialLifecycle(runtime, definition)
+  if (
+    !current ||
+    (!Object.hasOwn(runtime?.records ?? {}, definition.id) &&
+      Object.keys(runtime?.records ?? {}).length >= TUTORIAL_RECORD_LIMIT)
+  )
+    return { state, result: null }
+  const result = transitionTutorial(definition, current, command, eligibility)
+  if (!result.changed) return { state, result }
+  return {
+    result,
+    state: withRuntimeState(state, (managed) => ({
+      runtimeState: {
+        ...managed,
+        tutorials: {
+          schemaVersion: 1,
+          records: {
+            ...runtime?.records,
+            [definition.id]: createPersistedTutorialRecord(definition, result.state),
+          },
+        },
+      },
+    })),
+  }
 }
 
 export function setGlobalFlag(state: GameState, flagId: string, value: GameFlagValue) {

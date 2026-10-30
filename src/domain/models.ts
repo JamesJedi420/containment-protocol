@@ -2095,6 +2095,8 @@ export interface GameUiDebugState {
 }
 
 export interface RuntimeState {
+  /** SPE-2918: optional versioned tutorial progress; legacy saves stay unbound. */
+  tutorials?: import('./tutorialPersistence').TutorialRuntimeState
   player: PlayerProfileState
   globalFlags: Record<string, GameFlagValue>
   oneShotEvents: Record<string, OneShotEventState>

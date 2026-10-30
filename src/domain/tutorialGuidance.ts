@@ -179,7 +179,7 @@ function resolveGuidanceAction<Context extends ScreenRouteContext>(
   return { action, explanations, semanticText }
 }
 
-function resolveAccessibility(
+export function resolveTutorialAccessibility(
   preferences: TutorialAccessibilityInput
 ): TutorialGuidanceContext['accessibility'] {
   const method = preferences.inputMethod
@@ -264,6 +264,6 @@ export function selectTutorialGuidance<Context extends ScreenRouteContext>(input
     action,
     explanations,
     semanticText: Object.freeze(semanticText),
-    accessibility: resolveAccessibility(preferences),
+    accessibility: resolveTutorialAccessibility(preferences),
   })
 }

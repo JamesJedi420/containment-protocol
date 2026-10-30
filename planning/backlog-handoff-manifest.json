@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": [],
   "recentlyShipped": [
+    "SPE-2907",
     "SPE-3491",
     "SPE-2920",
     "SPE-2919",
@@ -476,6 +477,7 @@
     "planning/spe-2919-contextual-guidance-slice.md": "Recently shipped",
     "planning/spe-2918-tutorial-persistence-slice.md": "Recently shipped",
     "planning/spe-3489-plugin-request-connectors-rule-slice.md": "Recently shipped",
+    "planning/spe-2907-seven-beat-presentation-slice.md": "Recently shipped",
     "planning/spe-2920-tutorial-delivery-slice.md": "Recently shipped",
     "planning/spe-3491-recraft-prompt-human-generate-rule-slice.md": "Recently shipped"
   }

@@ -52,8 +52,14 @@ jobs:
           fi
 
           # ready_for_review can re-fire after draft conversion; do not re-request.
-          if gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
-            --jq '.[].body' 2>/dev/null | grep -Fqx '@coderabbitai full review'; then
+          # Capture *all* pages before grep: with pipefail, grep exiting after
+          # an early match can SIGPIPE gh while later pages are still arriving.
+          if ! existing_comments=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[].body' 2>/dev/null); then
+            echo "::error::Cannot check existing PR comments; refusing a potentially duplicate review request."
+            exit 1
+          fi
+          if grep -Fqx '@coderabbitai full review' <<< "$existing_comments"; then
             echo "A prior @coderabbitai full review request already exists on this PR."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0

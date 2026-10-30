@@ -87,13 +87,6 @@ const CANONICAL_CRITICAL_RULES = Object.freeze([
   }
 ].map((rule) => Object.freeze(rule)))
 const REVIEW_STATUSES = ['approved', 'unavailable', 'approved-substitute']
-const provenancePrefix = {
-  'current-user-approved-governance': 'project:',
-  'linear-approved-boundary': 'linear:',
-  'github-implementation-evidence': 'github:',
-  'repository-derived-projection': 'repository:',
-  'historical-or-external-reference': 'reference:',
-}
 const TOP_LEVEL_KEYS = [
   'schemaVersion', 'policyVersion', 'contractId', 'status', 'provenance',
   'sourceClasses', 'authorityOrder', 'mutationClasses', 'phases',

@@ -50,12 +50,28 @@ Copy the block below into the session's final handoff or an already-authorized d
 - <explicitly approved phases, with evidence references; or none>
 - <next requested mutation permitted now? yes/no, exact basis or "unknown — fail closed">
 
+### Phase progression map (ChatGPT candidate governance)
+| Phase | Status | Evidence | Blocker | Next actor |
+|-------|--------|----------|---------|------------|
+| Phase 1 — design and decomposition | <not started; prepared — approval pending; human-approved; not applicable> | <specific decision/approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
+| Phase 2 — parent reconciliation | <not started; prepared — approval pending; human-approved; not applicable> | <specific parent disposition and approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
+| Phase 3 — child/support reconciliation | <not started; prepared — approval pending; human-approved; not applicable> | <specific dispositions and approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
+| Phase 4 — authorized Linear application | <not authorized; approved — pending apply; verified applied; not applicable> | <approval reference and verified Linear changes or none> | <unapproved scope, missing write evidence, or none> | <ChatGPT / human / other authorized actor> |
+
 ### Next authorized action
 - Owner: ChatGPT | Cursor | human <role if relevant>
 - Action: <specific read, decision, approval, or in-boundary execution; not an implied authorization>
 - Prerequisites / blockers: <approval, evidence, credentials, dependencies, or none>
 - Stop conditions: <unverified authority, changed issue boundary, stale or conflicting evidence, or none>
 ~~~
+
+## Phase-map interpretation
+
+The phase table is a **read-only, candidate-scoped snapshot**, not a replacement for canonical ledger approval evidence or the planned generated phase-state projection under [SPE-3492](https://linear.app/spectranoir/issue/SPE-3492). Populate each row from verified, current source records. Distinguish assessment/reconciliation **prepared** from **human-approved**, and Phase 4 **approved for application** from **verified applied**. If approval or application cannot be verified, state the uncertainty and block forward authorization; do not infer permissions from the table.
+
+For ChatGPT's candidate scope-mutation flow, each required Phase 1–3 gate needs explicit human approval before moving on. A candidate disposition of `fold_in` is **not**, by itself, permission to skip parent/child reconciliation or to expand an existing issue. `not applicable` is appropriate for a verified `no_op`, a documentation-only/no-scope-change path, or a fold-in that truly creates no new durable obligation; supply the evidence and reason. Phase 4 requires the approved preceding gates and any separately required human authorization, and is `verified applied` only after inspecting actual authorized Linear results. When the next gate needs human approval, the next actor is human; once application is authorized, name the actual permitted executor.
+
+Cursor's separately approved autonomous authority is not governed by ChatGPT's phase gates. For Cursor-only work, mark ChatGPT-specific phase rows `not applicable — Cursor authority` with an authority reference and applicable blockers, not as implicit approval. Shared CP/Academy documentation uses one canonical phase-state/approval source; do not establish a second ledger.
 
 ## Preliminary discovery versus durable harvest completion
 

@@ -102,7 +102,12 @@ describe('equipment defect recall', () => {
     )
     expect(repaired.ok).toBe(true)
     if (!repaired.ok) throw new Error(repaired.code)
-    const stabilized = stabilizeContainmentClassDeficiency(repaired.state, 'affected_damaged')
+    const repairObserved = reconcileEquipmentRecall(repaired.state, campaign)
+    expect(repairObserved.record.obligations.affected_damaged).toMatchObject({
+      state: 'dispositioned',
+      observedCondition: 'damaged',
+    })
+    const stabilized = stabilizeContainmentClassDeficiency(repairObserved.state, 'affected_damaged')
     expect(stabilized.ok).toBe(true)
     if (!stabilized.ok) throw new Error(stabilized.code)
     const cleared = stabilizeContainmentClassDeficiency(stabilized.state, 'affected_damaged')
@@ -135,5 +140,45 @@ describe('equipment defect recall', () => {
     expect(parseEquipmentRecallRegistry({ bad: { campaignId: 'other', obligations: {} } })).toEqual(
       {}
     )
+    expect(
+      parseEquipmentRecallRegistry({
+        'recall:bad': {
+          campaignId: 'recall:bad',
+          obligations: {
+            bad: {
+              instanceId: 'bad',
+              applicability: 'unknown',
+              state: 'remediated',
+              reason: 'provenance_missing',
+              observedCondition: 'damaged',
+            },
+          },
+        },
+      })['recall:bad']?.obligations
+    ).toEqual({})
+  })
+
+  it('hard-stops a confirmed recall even when inspection is current', () => {
+    const state = recallState()
+    const current = state.equipmentInstances?.affected_outstanding
+    if (!current?.containmentIntegrity) throw new Error('missing current inspection fixture')
+    const result = reconcileEquipmentRecall(
+      {
+        ...state,
+        week: 2,
+        equipmentInstances: {
+          ...state.equipmentInstances,
+          affected_outstanding: {
+            ...current,
+            containmentIntegrity: { ...current.containmentIntegrity, lastInspectionWeek: 2 },
+          },
+        },
+      },
+      campaign
+    )
+    expect(result.record.obligations.affected_outstanding?.state).toBe('dispositioned')
+    expect(
+      result.state.equipmentInstances?.affected_outstanding?.containmentIntegrity?.deficiency
+    ).toEqual({ kind: 'hard_stop' })
   })
 })

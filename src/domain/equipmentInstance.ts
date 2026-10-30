@@ -1045,6 +1045,45 @@ export function applyContainmentClassDeficiency(
   }
 }
 
+/** SPE-3155: confirmed recall defects are safety hard-stops independent of inspection cadence. */
+export function applyContainmentRecallHardStop(
+  state: GameState,
+  instanceId: EquipmentInstanceId
+): EquipmentInstanceMutationResult {
+  const normalized = ensureNormalizedGameState(state)
+  if (!isSafeEquipmentInstanceId(instanceId)) {
+    return { ok: false, state: normalized, code: 'invalid_instance_id' }
+  }
+  const current = normalized.equipmentInstances?.[instanceId]
+  if (!current) return { ok: false, state: normalized, code: 'stale_transition' }
+  const parsed = parseContainmentClassIntegrity(current.containmentIntegrity)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      state: normalized,
+      code:
+        parsed.code === 'invalid_class'
+          ? 'invalid_containment_class'
+          : 'malformed_containment_integrity',
+    }
+  }
+  if (parsed.integrity.deficiency.kind === 'hard_stop') {
+    return { ok: true, state: normalized, instance: current }
+  }
+  const transitioned = applyEquipmentInstanceTransition(normalized, instanceId, current, {
+    ...current,
+    containmentIntegrity: snapshotContainmentClassIntegrity({
+      ...parsed.integrity,
+      deficiency: { kind: 'hard_stop' },
+    }),
+  })
+  if (!transitioned.ok) return transitioned
+  return {
+    ...transitioned,
+    state: persistContainmentBarrierCoupling(transitioned.state, instanceId, { kind: 'hard_stop' }),
+  }
+}
+
 export function canInspectContainmentClassIntegrity(
   instance: EquipmentInstance | undefined,
   currentWeek: number

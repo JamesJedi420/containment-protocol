@@ -1,5 +1,5 @@
 import {
-  applyContainmentClassDeficiency,
+  applyContainmentRecallHardStop,
   isSafeEquipmentInstanceId,
   type EquipmentInstance,
 } from './equipmentInstance'
@@ -88,17 +88,20 @@ export function reconcileEquipmentRecall(
       ) {
         obligationState = 'remediated'
       } else if (
+        prior?.applicability === 'affected' &&
+        prior.observedCondition === 'damaged' &&
+        instance.condition === 'operational'
+      ) {
+        // Preserve the durable repair observation while authoritative deficiency relief is pending.
+        obligationState = 'dispositioned'
+      } else if (
         prior?.state === 'remediated' &&
         instance.condition === 'operational' &&
         instance.containmentIntegrity?.deficiency.kind === 'none'
       ) {
         obligationState = 'remediated'
       } else {
-        const disposition = applyContainmentClassDeficiency(
-          nextState,
-          instance.instanceId,
-          'hard_stop'
-        )
+        const disposition = applyContainmentRecallHardStop(nextState, instance.instanceId)
         if (disposition.ok) nextState = disposition.state
         const current = nextState.equipmentInstances?.[instance.instanceId]
         obligationState =
@@ -114,7 +117,13 @@ export function reconcileEquipmentRecall(
       instanceId: instance.instanceId,
       ...classification,
       state: obligationState,
-      observedCondition: instance.condition,
+      observedCondition:
+        classification.applicability === 'affected' &&
+        prior?.observedCondition === 'damaged' &&
+        instance.condition === 'operational' &&
+        obligationState !== 'remediated'
+          ? 'damaged'
+          : instance.condition,
     })
   }
 
@@ -160,6 +169,19 @@ export function parseEquipmentRecallRegistry(value: unknown): EquipmentRecallReg
       )
         continue
       const item = entry as Record<string, unknown>
+      const applicability = item.applicability
+      const reason = item.reason
+      const state = item.state
+      const observedCondition = item.observedCondition
+      const relationshipsValid =
+        (applicability === 'unknown' && reason === 'provenance_missing' && state === 'unknown') ||
+        (applicability === 'unaffected' &&
+          (reason === 'lot_mismatch' || reason === 'definition_mismatch') &&
+          state === 'located') ||
+        (applicability === 'affected' &&
+          reason === 'lot_match' &&
+          ['located', 'dispositioned', 'remediated'].includes(state as string) &&
+          (state !== 'remediated' || observedCondition === 'operational'))
       if (
         Object.keys(item).some(
           (key) =>
@@ -173,7 +195,8 @@ export function parseEquipmentRecallRegistry(value: unknown): EquipmentRecallReg
         !['lot_match', 'lot_mismatch', 'definition_mismatch', 'provenance_missing'].includes(
           item.reason as string
         ) ||
-        !['operational', 'damaged'].includes(item.observedCondition as string)
+        !['operational', 'damaged'].includes(item.observedCondition as string) ||
+        !relationshipsValid
       )
         continue
       obligations[instanceId] = Object.freeze({

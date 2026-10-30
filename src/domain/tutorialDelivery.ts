@@ -297,7 +297,8 @@ export function applyTutorialDelivery(
       changed: recorded.state !== game,
       lifecycleChanged: result.changed,
       reason: result.reason,
-      events: recorded.events,
+      // Accepted lifecycle transitions are signals, not diagnostic append receipts.
+      events: result.changed ? Object.freeze(candidates) : recorded.events,
       ...(result.changed && isCompletion(command, before, result.state)
         ? {
             completion: Object.freeze({

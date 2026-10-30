@@ -379,4 +379,18 @@ describe('agency establishment flow', () => {
     expect(lifecycle().cursor).toBe(0)
     expect(agencyEstablishmentHandoff(result)).toBeUndefined()
   })
+
+  it('preserves accepted skip handoff when prior diagnostic IDs survive missing tutorial state', () => {
+    const first = skipAgencyEstablishment(0)
+    expect(agencyEstablishmentHandoff(first)?.outcome).toBe('skipped')
+    const count = events().length
+    const legacy = structuredClone(game())
+    if (!legacy.runtimeState) throw new Error('Expected managed runtime')
+    delete legacy.runtimeState.tutorials
+    useGameStore.setState({ game: legacy })
+    const second = skipAgencyEstablishment(0)
+    expect(second.lifecycleChanged).toBe(true)
+    expect(agencyEstablishmentHandoff(second)?.outcome).toBe('skipped')
+    expect(events()).toHaveLength(count)
+  })
 })

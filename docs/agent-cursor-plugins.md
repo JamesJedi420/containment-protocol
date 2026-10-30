@@ -18,6 +18,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 | **Playwright** (Test + optional MCP) | Shared Chromium E2E harness; optional local browser inspection | `docs/playwright-e2e-harness.md`, `playwright.config.ts`, `npm run test:e2e` |
 | **Figma** | Visual design bridge: CSS-mirrored tokens + shell components; design→code / code→Figma | `docs/figma-integration.md`, `docs/figma/*`, `.cursor/skills/cp-figma-ui-bridge/SKILL.md` |
 | **Google Drive** | Collaborative drafts: story knowledge, social/marketing, design; agent-owned workspace | `docs/google-drive-integration.md`, `docs/google-drive/*`, `.cursor/skills/cp-google-drive-bridge/SKILL.md` |
+| **Scenario** | Visual production: concept art, environments, characters, props, UI studies; full MCP tool catalog | `docs/scenario-integration.md`, `docs/scenario/*`, `.cursor/skills/cp-scenario-bridge/SKILL.md` |
 
 ## PR review configs (already in repo)
 
@@ -102,6 +103,16 @@ If Modern Web Guidance is installed, search it before inventing layout/motion/fo
 6. **Auth blocker (mandatory):** If the active task needs Drive and MCP auth / account access blocks it — **stop and prompt the human**. Do not silently skip. Do not prompt when the slice does not need Drive.
 7. Never add a Google Drive SDK or required Google secrets to the game runtime or CI for this bridge.
 
+### Scenario (visual production)
+
+1. Read `docs/scenario/project-registry.json` — use exact `teamId` / `projectId` / collection ids.
+2. Load `.cursor/skills/cp-scenario-bridge/SKILL.md` before Scenario MCP work.
+3. Prefer MCP URL `https://mcp.scenario.com/mcp?toolsets=full` so the full catalog (including ~64 formerly catalog-only tools) is listed. On lean URL, use `scenario_tools_search` + `scenario_tool_execute_read|write|delete`.
+4. **Repo + Linear remain SoT** for shipped code; Scenario is for visual production assets.
+5. Costful generation (batches, video, training): plan + estimate first; align with Scenario project instructions via `memory_recall`.
+6. **Auth blocker (mandatory):** If the active task needs Scenario and MCP auth / account access blocks it — **stop and prompt the human**. Do not silently skip. Do not prompt when the slice does not need Scenario.
+7. Never add a Scenario SDK or required Scenario secrets to the game runtime or CI for this bridge.
+
 ### Recraft (human-generated art)
 
 Recraft is **not** a keep-list MCP plugin. The human operates Recraft; agents do not call a Recraft API from this repo.
@@ -123,5 +134,7 @@ MCP servers must show `ready` (or equivalent) before agents rely on them. If `ne
 If Figma MCP is ready but a **paid plan / subscription** is required for the needed capability (file edit, design context, library tools), treat that the same as a blocker: prompt the human to subscribe or renew before continuing that path.
 
 If Google Drive MCP is `needsAuth` or calls fail for auth while Drive is required for the active task, prompt the human to connect or re-auth before continuing that path.
+
+If Scenario MCP is `needsAuth` or calls fail for auth while Scenario is required for the active task, prompt the human to connect or re-auth before continuing that path.
 
 If the active task needs Recraft-generated art, prompt the human to generate it in Recraft before continuing that path — do not invent runtime Recraft wiring.

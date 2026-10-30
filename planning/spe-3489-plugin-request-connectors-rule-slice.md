@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3489](https://linear.app/spectranoir/issue/SPE-3489/plugin-keep-list-agents-may-request-additional-connectorstools) |
 | **Branch** | `jamesdyedbq/spe-3489-plugin-keep-list-agents-may-request-additional` |
 | **Base main SHA** | `34850b79080e358addd2f25fd9a8f6d25f988fc5` |

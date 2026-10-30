@@ -209,7 +209,7 @@ Use only when babysit cannot finish in-session (external blocker, merge policy, 
 
 After **PR merged**, slice issue **Done** when justified, merge comment on Linear, and **`git checkout main` && `git pull`**:
 
-1. **Do not** implement the next issue unless the user explicitly asks in that session.
+1. **Do not** implement the next issue in the merge closeout; an explicit next implementation request is handled in a separate agent session.
 2. Prepare a **next-issue implementation plan** only when an already-approved next issue exists; otherwise stop and ask for one. Do not perform candidate reconciliation in closeout. Do not exercise delegated selection here; remind that a **new** Cursor agent chat may use `docs/cursor-autonomous-authority.md` after an explicit continuation request.
 3. Return the **phase B** final response structure from that doc.
 

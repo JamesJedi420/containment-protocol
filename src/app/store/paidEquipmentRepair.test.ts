@@ -1,7 +1,11 @@
 import '../../test/setup'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
-import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
+import {
+  applyEquipmentInstanceTransition,
+  instantiateEquipmentInstance,
+} from '../../domain/equipmentInstance'
+import { getCanonicalFundingState } from '../../domain/funding'
 import {
   quotePaidEquipmentRepair,
   settlePaidEquipmentRepair,
@@ -111,6 +115,52 @@ describe('paid equipment repair', () => {
     const result = settlePaidEquipmentRepair(state, created.instance.instanceId)
     expect(result).toMatchObject({ payment: 'not_charged', failure: 'invalid_week', charged: 0 })
     expect(result.state).toBe(state)
+  })
+
+  it('retains canonical agency mirrors when a legacy agency record is absent', () => {
+    const created = damaged()
+    const state = { ...created.state, agency: undefined, containmentRating: 63, clearanceLevel: 4 }
+    const result = settlePaidEquipmentRepair(state, created.instance.instanceId)
+    expect(result.payment).toBe('paid')
+    expect(result.state.agency).toMatchObject({
+      containmentRating: 63,
+      clearanceLevel: 4,
+      funding: 0,
+    })
+  })
+
+  it('preserves both same-week expenses when an identity is damaged and repaired again', () => {
+    const created = damaged()
+    useGameStore.setState({ game: { ...created.state, funding: 200 } })
+    const first = useGameStore
+      .getState()
+      .repairStoredEquipmentInstanceCondition(created.instance.instanceId, 100)
+    expect(first.payment).toBe('paid')
+    const current = first.state.equipmentInstances![created.instance.instanceId]!
+    const damagedAgain = applyEquipmentInstanceTransition(
+      first.state,
+      current.instanceId,
+      current,
+      { ...current, condition: 'damaged' }
+    )
+    if (!damagedAgain.ok) throw new Error(damagedAgain.code)
+    useGameStore.setState({ game: damagedAgain.state })
+    const second = useGameStore
+      .getState()
+      .repairStoredEquipmentInstanceCondition(current.instanceId, 100)
+    expect(second.payment).toBe('paid')
+    const entries = (game: typeof second.state) =>
+      getCanonicalFundingState(game).fundingHistory.filter(
+        (entry) => entry.reason === 'equipment_repair' && entry.sourceId === current.instanceId
+      )
+    expect(second.state.funding).toBe(0)
+    expect(entries(second.state)).toHaveLength(2)
+    const loaded = loadGameSave(serializeGameSave(second.state))
+    expect(loaded.funding).toBe(0)
+    expect(entries(loaded)).toHaveLength(2)
+    expect(
+      loaded.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toHaveLength(2)
   })
 
   it('does not consume another named part or charge after a save round trip', () => {

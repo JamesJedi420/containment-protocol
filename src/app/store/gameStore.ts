@@ -2137,27 +2137,32 @@ export const useGameStore = create<GameStore>()(
         }),
 
       repairStoredEquipmentInstanceCondition: (instanceId, expectedCost) => {
-        const game = get().game
-        const instance = game.equipmentInstances?.[instanceId]
-        const sparePartId = getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
-        const result = settlePaidEquipmentRepair(game, instanceId, sparePartId, expectedCost)
-        if (result.payment !== 'paid') return result
-        const repaired = result.state.equipmentInstances![instanceId]!
-        const definition = getEquipmentDefinition(repaired.definitionId)
-        const nextGame = appendOperationEventDrafts(result.state, [
-          createEquipmentInstanceConditionRepairedDraft({
-            week: game.week,
-            instanceId: repaired.instanceId,
-            definitionId: repaired.definitionId,
-            definitionName: definition?.name ?? repaired.definitionId,
-            previousCondition: 'damaged',
-            condition: 'operational',
-            reason: 'manual_condition_repair',
-            repairCost: result.charged,
-          }),
-        ])
-        set({ game: nextGame })
-        return { ...result, state: nextGame }
+        let outcome!: PaidRepairResult
+        set((s) => {
+          const game = s.game
+          const instance = game.equipmentInstances?.[instanceId]
+          const sparePartId = getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
+          const result = settlePaidEquipmentRepair(game, instanceId, sparePartId, expectedCost)
+          outcome = result
+          if (result.payment !== 'paid') return s
+          const repaired = result.state.equipmentInstances![instanceId]!
+          const definition = getEquipmentDefinition(repaired.definitionId)
+          const nextGame = appendOperationEventDrafts(result.state, [
+            createEquipmentInstanceConditionRepairedDraft({
+              week: game.week,
+              instanceId: repaired.instanceId,
+              definitionId: repaired.definitionId,
+              definitionName: definition?.name ?? repaired.definitionId,
+              previousCondition: 'damaged',
+              condition: 'operational',
+              reason: 'manual_condition_repair',
+              repairCost: result.charged,
+            }),
+          ])
+          outcome = { ...result, state: nextGame }
+          return { game: nextGame }
+        })
+        return outcome
       },
 
       stabilizeContainmentClassDeficiency: (instanceId) =>

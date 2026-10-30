@@ -101,6 +101,8 @@ confirmation retains the quote; settlement rechecks it, funding, condition, suit
 stock before committing the repair, part consumption and debit together. Failure leaves the input
 state unchanged. The existing repair event carries optional `repairCost` for paid settlements;
 legacy events omit it. Loading a save preserves the record and never replays the repair or charge.
+Funding-history normalization preserves separate repair expenses when the same identity is damaged
+and repaired again in the same week.
 
 Repair is intentionally storage-only. Equipped identities must be moved back to storage first, and
 recovery-claimed identities remain locked to their recovery provenance. Once repaired, an identity

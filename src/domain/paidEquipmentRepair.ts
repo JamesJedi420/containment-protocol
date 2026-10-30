@@ -14,6 +14,7 @@ export const EQUIPMENT_REPAIR_COST = 100
 export type PaidRepairFailure =
   | EquipmentInstanceFailureCode
   | 'invalid_funding'
+  | 'invalid_agency'
   | 'invalid_week'
   | 'insufficient_funding'
   | 'stale_quote'
@@ -57,6 +58,7 @@ export function quotePaidEquipmentRepair(
 
 export function getPaidRepairFailureLabel(code: PaidRepairFailure): string {
   if (code === 'invalid_funding') return 'Repair unavailable: funding is invalid.'
+  if (code === 'invalid_agency') return 'Repair unavailable: agency state is invalid.'
   if (code === 'invalid_week') return 'Repair unavailable: campaign week is invalid.'
   if (code === 'insufficient_funding') return 'Insufficient funds for this repair.'
   if (code === 'stale_quote') return 'The repair quote changed. Review the current price.'
@@ -102,6 +104,7 @@ export function settlePaidEquipmentRepair(
   if (!quote.eligible) return failureResult(quote.failure ?? 'stale_transition')
   const repaired = repairStoredEquipmentInstanceCondition(state, instanceId, sparePartId)
   if (!repaired.ok) return failureResult(repaired.code)
+  if (!repaired.state.agency) return failureResult('invalid_agency')
   const fundingState = recomputeBudgetPressure(
     applyFundingExpense(
       getCanonicalFundingState(state),
@@ -118,11 +121,7 @@ export function settlePaidEquipmentRepair(
       ...repaired.state,
       funding: fundingState.funding,
       agency: {
-        ...(repaired.state.agency ?? {
-          containmentRating: 0,
-          clearanceLevel: 1,
-          supportAvailable: 0,
-        }),
+        ...repaired.state.agency,
         funding: fundingState.funding,
         fundingState,
       },

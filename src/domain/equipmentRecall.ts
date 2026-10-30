@@ -87,7 +87,11 @@ export function reconcileEquipmentRecall(
         instance.containmentIntegrity?.deficiency.kind === 'none'
       ) {
         obligationState = 'remediated'
-      } else if (prior?.state === 'remediated') {
+      } else if (
+        prior?.state === 'remediated' &&
+        instance.condition === 'operational' &&
+        instance.containmentIntegrity?.deficiency.kind === 'none'
+      ) {
         obligationState = 'remediated'
       } else {
         const disposition = applyContainmentClassDeficiency(

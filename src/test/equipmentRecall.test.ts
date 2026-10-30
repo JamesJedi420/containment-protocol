@@ -44,36 +44,38 @@ function instance(
 }
 
 function recallState() {
-  const state = createStartingState()
-  state.week = 20
-  state.facilityStockpile = { blast_door_hinge_seal: 1 }
-  state.fabricatedEquipmentLots = {
-    'batch-a': {
-      queueId: 'batch-a',
-      recipeId: 'ward-seals',
-      itemId: 'ward_seals',
-      quantity: 2,
-      gradeId: 'grade_2',
-      completedWeek: 1,
-      trackedInstanceUnits: 2,
+  const starting = createStartingState()
+  return {
+    ...starting,
+    week: 20,
+    facilityStockpile: { blast_door_hinge_seal: 1 },
+    fabricatedEquipmentLots: {
+      'batch-a': {
+        queueId: 'batch-a',
+        recipeId: 'ward-seals',
+        itemId: 'ward_seals',
+        quantity: 2,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 2,
+      },
+      'batch-b': {
+        queueId: 'batch-b',
+        recipeId: 'ward-seals',
+        itemId: 'ward_seals',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 1,
+      },
     },
-    'batch-b': {
-      queueId: 'batch-b',
-      recipeId: 'ward-seals',
-      itemId: 'ward_seals',
-      quantity: 1,
-      gradeId: 'grade_2',
-      completedWeek: 1,
-      trackedInstanceUnits: 1,
+    equipmentInstances: {
+      affected_damaged: instance('affected_damaged', 'batch-a', 'damaged'),
+      affected_outstanding: instance('affected_outstanding', 'batch-a', 'operational'),
+      unaffected: instance('unaffected', 'batch-b', 'operational'),
+      unknown: instance('unknown', undefined, 'operational'),
     },
   }
-  state.equipmentInstances = {
-    affected_damaged: instance('affected_damaged', 'batch-a', 'damaged'),
-    affected_outstanding: instance('affected_outstanding', 'batch-a', 'operational'),
-    unaffected: instance('unaffected', 'batch-b', 'operational'),
-    unknown: instance('unknown', undefined, 'operational'),
-  }
-  return state
 }
 
 describe('equipment defect recall', () => {
@@ -110,6 +112,19 @@ describe('equipment defect recall', () => {
     expect(reconciled.record.obligations.affected_damaged?.state).toBe('remediated')
     expect(reconciled.record.obligations.affected_outstanding?.state).toBe('dispositioned')
     expect(reconcileEquipmentRecall(reconciled.state, campaign)).toEqual(reconciled)
+
+    const damagedAgain = {
+      ...reconciled.state,
+      equipmentInstances: {
+        ...reconciled.state.equipmentInstances,
+        affected_damaged: {
+          ...reconciled.state.equipmentInstances?.affected_damaged,
+          condition: 'damaged' as const,
+        } as EquipmentInstance,
+      },
+    }
+    const reopened = reconcileEquipmentRecall(damagedAgain, campaign)
+    expect(reopened.record.obligations.affected_damaged?.state).toBe('dispositioned')
   })
 
   it('round-trips valid obligations and drops malformed siblings', () => {

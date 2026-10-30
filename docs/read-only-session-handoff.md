@@ -8,18 +8,18 @@ Use this template for **review**, **docs analysis**, or **harvest-triage** sessi
 
 ## Canonical authority and boundaries
 
-- The [candidate extraction and reconciliation ledger — canonical workflow](https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf) is the canonical candidate-identity, provenance, disposition and approval-state workflow. Link its *specific candidate/batch record* when it exists; otherwise state `none / not yet recorded`. The link to the workflow itself is not proof that a candidate record exists.
+- The [candidate extraction and reconciliation ledger — canonical workflow](https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf) is the canonical candidate-identity, provenance, disposition and approval-state workflow. Link its _specific candidate/batch record_ when it exists; otherwise state `none / not yet recorded`. The link to the workflow itself is not proof that a candidate record exists.
 - [SPE-1705](https://linear.app/spectranoir/issue/SPE-1705/design-doc-routing-ledger) routes documentation-only consequences. Neither this template nor its examples create independent planning authority.
 - Linear owns approved issue scope, lifecycle and ownership; GitHub supplies implementation evidence. Repository harvest mirrors and `planning/harvest-reconciliation-index.md` are evidence/transport, not backlog authority.
 - For **ChatGPT** actors, new or changed durable scope requires explicit Phase 1 design approval, Phase 2 parent approval, Phase 3 child/supporting-work approval, then authorized Phase 4 application. Do not infer approval or successful application from a summary, candidate disposition, or next-action label. Verified in-boundary lifecycle/evidence updates are a distinct class, but none is performed in a read-only session.
 - **Cursor** uses its separately approved [autonomous-authority safeguards](./cursor-autonomous-authority.md). ChatGPT's Phase 1–4 gates are not Cursor's authorization system; a handoff must identify the receiving actor's actual authority without conferring new powers.
-- CP core and Academy share this *documentation* convention. Use `CP-core`, `Academy`, `shared-system` or `cross-project` when ownership is relevant, and identify one canonical implementation owner for a shared system. Do not open a second Academy ledger or handoff framework.
+- CP core and Academy share this _documentation_ convention. Use `CP-core`, `Academy`, `shared-system` or `cross-project` when ownership is relevant, and identify one canonical implementation owner for a shared system. Do not open a second Academy ledger or handoff framework.
 
 ## Required handoff template
 
 Copy the block below into the session's final handoff or an already-authorized documentation record. Replace placeholders with verified facts; write `none` or `unknown — verification required` rather than inventing IDs, approvals, versions or links.
 
-~~~markdown
+```markdown
 ## Read-only session handoff
 
 - Session mode: read-only
@@ -30,13 +30,16 @@ Copy the block below into the session's final handoff or an already-authorized d
 - Repository / external writes: none
 
 ### Issues inspected (read-only)
+
 - <SPE-####, URL, observed status, inspection date, relationship to findings; or none>
 
 ### Evidence and uncertainty
+
 - <finding with source URL/path, version/commit and what was actually observed>
 - <uncertainty or missing evidence; or none>
 
 ### Candidate status (not automatic approval)
+
 - <candidate/batch ID or none>
 - <canonical disposition if established: fold_in | no_op | contradiction_check | documentation_only | missing_boundary_candidate; otherwise unassessed>
 - <proposed or verified decision, and actual decision authority; never conflate these>
@@ -45,25 +48,28 @@ Copy the block below into the session's final handoff or an already-authorized d
 - Canonical ledger workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
 
 ### Governance / authorization state
+
 - <actor governed: ChatGPT | Cursor | human | other named actor>
 - <current phase: not started | Phase 1 | Phase 2 | Phase 3 | Phase 4 applied | not applicable>
 - <explicitly approved phases, with evidence references; or none>
 - <next requested mutation permitted now? yes/no, exact basis or "unknown — fail closed">
 
 ### Phase progression map (ChatGPT candidate governance)
-| Phase | Status | Evidence | Blocker | Next actor |
-|-------|--------|----------|---------|------------|
-| Phase 1 — design and decomposition | <not started; prepared — approval pending; human-approved; not applicable> | <specific decision/approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
-| Phase 2 — parent reconciliation | <not started; prepared — approval pending; human-approved; not applicable> | <specific parent disposition and approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
-| Phase 3 — child/support reconciliation | <not started; prepared — approval pending; human-approved; not applicable> | <specific dispositions and approval link or none> | <unresolved prerequisite or none> | <ChatGPT / human / other authorized actor> |
-| Phase 4 — authorized Linear application | <not authorized; approved — pending apply; verified applied; not applicable> | <approval reference and verified Linear changes or none> | <unapproved scope, missing write evidence, or none> | <ChatGPT / human / other authorized actor> |
+
+| Phase                                                           | Status                                                                       | Evidence                                                                        | Blocker                                             | Next actor                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------ |
+| Phase 1 — design and decomposition                              | <not started; prepared — approval pending; human-approved; not applicable>   | <specific decision/approval link or none>                                       | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 2 — parent reconciliation                                 | <not started; prepared — approval pending; human-approved; not applicable>   | <specific parent disposition and approval link or none>                         | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 3 — child/support reconciliation and contradiction review | <not started; prepared — approval pending; human-approved; not applicable>   | <specific dispositions, contradiction-review result, and approval link or none> | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 4 — authorized Linear application                         | <not authorized; approved — pending apply; verified applied; not applicable> | <approval reference and verified Linear changes or none>                        | <unapproved scope, missing write evidence, or none> | <ChatGPT / human / other authorized actor> |
 
 ### Next authorized action
+
 - Owner: ChatGPT | Cursor | human <role if relevant>
 - Action: <specific read, decision, approval, or in-boundary execution; not an implied authorization>
 - Prerequisites / blockers: <approval, evidence, credentials, dependencies, or none>
 - Stop conditions: <unverified authority, changed issue boundary, stale or conflicting evidence, or none>
-~~~
+```
 
 ## Phase-map interpretation
 
@@ -72,6 +78,8 @@ The phase table is a **read-only, candidate-scoped snapshot**, not a replacement
 For ChatGPT's candidate scope-mutation flow, each required Phase 1–3 gate needs explicit human approval before moving on. A candidate disposition of `fold_in` is **not**, by itself, permission to skip parent/child reconciliation or to expand an existing issue. `not applicable` is appropriate for a verified `no_op`, a documentation-only/no-scope-change path, or a fold-in that truly creates no new durable obligation; supply the evidence and reason. Phase 4 requires the approved preceding gates and any separately required human authorization, and is `verified applied` only after inspecting actual authorized Linear results. When the next gate needs human approval, the next actor is human; once application is authorized, name the actual permitted executor.
 
 Cursor's separately approved autonomous authority is not governed by ChatGPT's phase gates. For Cursor-only work, mark ChatGPT-specific phase rows `not applicable — Cursor authority` with an authority reference and applicable blockers, not as implicit approval. Shared CP/Academy documentation uses one canonical phase-state/approval source; do not establish a second ledger.
+
+Hermes may carry or route an already authorized handoff, but it does not approve ChatGPT's phase gates or authorize Linear mutations. Codex and other implementation actors may execute only within an existing approved issue or slice boundary; their implementation role does not supply missing phase approval or expand scope.
 
 ## Preliminary discovery versus durable harvest completion
 

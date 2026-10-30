@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **In progress** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3494](https://linear.app/spectranoir/issue/SPE-3494/scenario-mcp-agent-bridge-full-toolset-registry) |
 | **Branch** | `jamesdyedbq/spe-3494-scenario-mcp-agent-bridge-full-toolset-registry` |
 | **Base main SHA** | `3b50ccc693d44bb78bb8ddb06db3bf7475dbfce9` |

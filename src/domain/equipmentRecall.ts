@@ -55,6 +55,42 @@ function classify(instance: EquipmentInstance, campaign: EquipmentRecallCampaign
     : ({ applicability: 'unaffected', reason: 'lot_mismatch' } as const)
 }
 
+function resolveAffectedObligation(
+  state: GameState,
+  instance: EquipmentInstance,
+  prior: EquipmentRecallObligation | undefined
+): {
+  state: GameState
+  obligationState: EquipmentRecallObligationState
+  observedCondition: EquipmentInstance['condition']
+} {
+  const repairObserved =
+    prior?.applicability === 'affected' &&
+    prior.observedCondition === 'damaged' &&
+    instance.condition === 'operational'
+  const deficiencyCleared = instance.containmentIntegrity?.deficiency.kind === 'none'
+  if (
+    (repairObserved || prior?.state === 'remediated') &&
+    deficiencyCleared &&
+    instance.condition === 'operational'
+  ) {
+    return { state, obligationState: 'remediated', observedCondition: 'operational' }
+  }
+  if (repairObserved) {
+    return { state, obligationState: 'dispositioned', observedCondition: 'damaged' }
+  }
+  const disposition = applyContainmentRecallHardStop(state, instance.instanceId)
+  const nextState = disposition.ok ? disposition.state : state
+  const hardStopped =
+    nextState.equipmentInstances?.[instance.instanceId]?.containmentIntegrity?.deficiency.kind ===
+    'hard_stop'
+  return {
+    state: nextState,
+    obligationState: hardStopped || prior?.state === 'dispositioned' ? 'dispositioned' : 'located',
+    observedCondition: instance.condition,
+  }
+}
+
 /**
  * Resolves one recall from canonical instance/provenance identity. Confirmed affected
  * containment identities are routed through the existing SPE-877 hard-stop command.
@@ -73,57 +109,21 @@ export function reconcileEquipmentRecall(
     const classification = classify(instance, campaign)
     const prior = previous?.obligations[instance.instanceId]
     let obligationState: EquipmentRecallObligationState =
-      classification.applicability === 'unknown'
-        ? 'unknown'
-        : classification.applicability === 'unaffected'
-          ? 'located'
-          : 'located'
+      classification.applicability === 'unknown' ? 'unknown' : 'located'
+    let observedCondition = instance.condition
 
     if (classification.applicability === 'affected') {
-      if (
-        prior?.applicability === 'affected' &&
-        prior.observedCondition === 'damaged' &&
-        instance.condition === 'operational' &&
-        instance.containmentIntegrity?.deficiency.kind === 'none'
-      ) {
-        obligationState = 'remediated'
-      } else if (
-        prior?.applicability === 'affected' &&
-        prior.observedCondition === 'damaged' &&
-        instance.condition === 'operational'
-      ) {
-        // Preserve the durable repair observation while authoritative deficiency relief is pending.
-        obligationState = 'dispositioned'
-      } else if (
-        prior?.state === 'remediated' &&
-        instance.condition === 'operational' &&
-        instance.containmentIntegrity?.deficiency.kind === 'none'
-      ) {
-        obligationState = 'remediated'
-      } else {
-        const disposition = applyContainmentRecallHardStop(nextState, instance.instanceId)
-        if (disposition.ok) nextState = disposition.state
-        const current = nextState.equipmentInstances?.[instance.instanceId]
-        obligationState =
-          current?.containmentIntegrity?.deficiency.kind === 'hard_stop'
-            ? 'dispositioned'
-            : prior?.state === 'dispositioned'
-              ? 'dispositioned'
-              : 'located'
-      }
+      const resolved = resolveAffectedObligation(nextState, instance, prior)
+      nextState = resolved.state
+      obligationState = resolved.obligationState
+      observedCondition = resolved.observedCondition
     }
 
     obligations[instance.instanceId] = Object.freeze({
       instanceId: instance.instanceId,
       ...classification,
       state: obligationState,
-      observedCondition:
-        classification.applicability === 'affected' &&
-        prior?.observedCondition === 'damaged' &&
-        instance.condition === 'operational' &&
-        obligationState !== 'remediated'
-          ? 'damaged'
-          : instance.condition,
+      observedCondition,
     })
   }
 
@@ -135,7 +135,7 @@ export function reconcileEquipmentRecall(
     state: {
       ...nextState,
       equipmentRecallRegistry: {
-        ...(nextState.equipmentRecallRegistry ?? {}),
+        ...nextState.equipmentRecallRegistry,
         [campaign.campaignId]: record,
       },
     },
@@ -168,46 +168,59 @@ export function parseEquipmentRecallRegistry(value: unknown): EquipmentRecallReg
         Array.isArray(entry)
       )
         continue
-      const item = entry as Record<string, unknown>
-      const applicability = item.applicability
-      const reason = item.reason
-      const state = item.state
-      const observedCondition = item.observedCondition
-      const relationshipsValid =
-        (applicability === 'unknown' && reason === 'provenance_missing' && state === 'unknown') ||
-        (applicability === 'unaffected' &&
-          (reason === 'lot_mismatch' || reason === 'definition_mismatch') &&
-          state === 'located') ||
-        (applicability === 'affected' &&
-          reason === 'lot_match' &&
-          ['located', 'dispositioned', 'remediated'].includes(state as string) &&
-          (state !== 'remediated' || observedCondition === 'operational'))
-      if (
-        Object.keys(item).some(
-          (key) =>
-            !['instanceId', 'applicability', 'state', 'reason', 'observedCondition'].includes(key)
-        ) ||
-        item.instanceId !== instanceId ||
-        !['affected', 'unaffected', 'unknown'].includes(item.applicability as string) ||
-        !EQUIPMENT_RECALL_OBLIGATION_STATES.includes(
-          item.state as EquipmentRecallObligationState
-        ) ||
-        !['lot_match', 'lot_mismatch', 'definition_mismatch', 'provenance_missing'].includes(
-          item.reason as string
-        ) ||
-        !['operational', 'damaged'].includes(item.observedCondition as string) ||
-        !relationshipsValid
-      )
-        continue
-      obligations[instanceId] = Object.freeze({
-        instanceId,
-        applicability: item.applicability,
-        state: item.state,
-        reason: item.reason,
-        observedCondition: item.observedCondition,
-      } as EquipmentRecallObligation)
+      const parsed = parseObligation(instanceId, entry)
+      if (parsed) obligations[instanceId] = parsed
     }
     records[campaignId] = Object.freeze({ campaignId, obligations: Object.freeze(obligations) })
   }
   return Object.freeze(records)
+}
+
+function parseObligation(
+  instanceId: string,
+  entry: unknown
+): EquipmentRecallObligation | undefined {
+  if (
+    !isSafeEquipmentInstanceId(instanceId) ||
+    !entry ||
+    typeof entry !== 'object' ||
+    Array.isArray(entry)
+  )
+    return undefined
+  const item = entry as Record<string, unknown>
+  const applicability = item.applicability
+  const reason = item.reason
+  const state = item.state
+  const observedCondition = item.observedCondition
+  const relationshipsValid =
+    (applicability === 'unknown' && reason === 'provenance_missing' && state === 'unknown') ||
+    (applicability === 'unaffected' &&
+      (reason === 'lot_mismatch' || reason === 'definition_mismatch') &&
+      state === 'located') ||
+    (applicability === 'affected' &&
+      reason === 'lot_match' &&
+      ['located', 'dispositioned', 'remediated'].includes(state as string) &&
+      (state !== 'remediated' || observedCondition === 'operational'))
+  const valid = !(
+    Object.keys(item).some(
+      (key) =>
+        !['instanceId', 'applicability', 'state', 'reason', 'observedCondition'].includes(key)
+    ) ||
+    item.instanceId !== instanceId ||
+    !['affected', 'unaffected', 'unknown'].includes(item.applicability as string) ||
+    !EQUIPMENT_RECALL_OBLIGATION_STATES.includes(item.state as EquipmentRecallObligationState) ||
+    !['lot_match', 'lot_mismatch', 'definition_mismatch', 'provenance_missing'].includes(
+      item.reason as string
+    ) ||
+    !['operational', 'damaged'].includes(item.observedCondition as string) ||
+    !relationshipsValid
+  )
+  if (!valid) return undefined
+  return Object.freeze({
+    instanceId,
+    applicability: item.applicability,
+    state: item.state,
+    reason: item.reason,
+    observedCondition: item.observedCondition,
+  } as EquipmentRecallObligation)
 }

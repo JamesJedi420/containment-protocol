@@ -1,5 +1,7 @@
 import { convertFacilityMaintenanceResources } from '../../domain/facilityMaintenanceConversion'
 import { applyTutorialCommand as applyTutorialCommandState } from '../../domain/gameStateManager'
+import { applyTutorialDelivery, unavailableTutorialResult } from '../../domain/tutorialDelivery'
+import type { TutorialDeliveryCommand, TutorialDispatchResult } from '../../domain/tutorialDelivery'
 import type {
   TutorialDefinition,
   TutorialCommand,
@@ -321,6 +323,11 @@ import {
 
 interface GameStore {
   game: GameState
+  dispatchTutorialCommand: (
+    definition: TutorialDefinition,
+    command: TutorialDeliveryCommand,
+    eligibility?: TutorialEligibility
+  ) => TutorialDispatchResult
   applyTutorialCommand: (
     definition: TutorialDefinition,
     command: TutorialCommand,
@@ -921,6 +928,16 @@ export const useGameStore = create<GameStore>()(
         })
 
         return resetSummary
+      },
+
+      dispatchTutorialCommand: (definition, command, eligibility) => {
+        let result = unavailableTutorialResult()
+        set((s) => {
+          const delivered = applyTutorialDelivery(s.game, definition, command, eligibility)
+          result = delivered.result
+          return delivered.state === s.game ? s : { game: delivered.state }
+        })
+        return result
       },
 
       applyTutorialCommand: (definition, command, eligibility) => {

@@ -52,6 +52,7 @@ const DEFAULT_PLAYER_PROFILE: PlayerProfileState = {
 const SCENE_HISTORY_LIMIT = 200
 const DEVELOPER_LOG_HYDRATION_LIMIT = 200
 const DEVELOPER_LOG_TYPES: readonly DeveloperLogEventType[] = [
+  'tutorial.lifecycle',
   'flag.set',
   'flag.cleared',
   'one_shot.consumed',

@@ -41,6 +41,7 @@ Copy the block below into the session's final handoff or an already-authorized d
 - <canonical disposition if established: fold_in | no_op | contradiction_check | documentation_only | missing_boundary_candidate; otherwise unassessed>
 - <proposed or verified decision, and actual decision authority; never conflate these>
 - <specific canonical ledger record URL/ID or "none / not yet recorded">
+- <candidate persistence: preliminary / not recorded | durably staged / pending apply | canonically applied | none; evidence reference and next authorized actor>
 - Canonical ledger workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
 
 ### Governance / authorization state
@@ -56,6 +57,12 @@ Copy the block below into the session's final handoff or an already-authorized d
 - Stop conditions: <unverified authority, changed issue boundary, stale or conflicting evidence, or none>
 ~~~
 
+## Preliminary discovery versus durable harvest completion
+
+A **preliminary read-only** review or harvest finding may cite `none / not yet recorded` if the session only inspected sources and made no durable writes. Mark it **preliminary / not recorded**, name unsaved evidence and the next **authorized** staging actor/action. A handoff is not itself a persisted candidate or completed harvest batch. Existing [SPE-3495 intake](https://linear.app/spectranoir/issue/SPE-3495) owns staging.
+
+A completed harvest triage batch must have a verified canonical candidate-ledger record or durable **pending-apply** transport linked from the existing batch/index under [SPE-3274](https://linear.app/spectranoir/issue/SPE-3274). Pending transport completes staging but **not** canonical application; only a verified ledger write may be called **canonically applied**. Ledger application is not candidate approval. [SPE-3492](https://linear.app/spectranoir/issue/SPE-3492) owns the read-only phase/status projection. Any subsequent Linear write requires the receiving actor's applicable authorization.
+
 ## Closeout and consistency checks
 
 1. Choose **one** of `review`, `docs`, or `harvest-triage`; use `read-only` only if the session made **no** changes to Linear, files or external authoritative records. A proposed future change is not an executed change.
@@ -63,7 +70,7 @@ Copy the block below into the session's final handoff or an already-authorized d
 3. Cite actual evidence, revisions, and uncertainties. A reference without verified content is not a completed review.
 4. Keep `proposed`, `approved`, and `applied` separate. Candidate labels are classifications, not Phase 1–4 approvals.
 5. Use canonical disposition values only when grounded; `unassessed` is a handoff state, **not** a sixth canonical disposition.
-6. Link the **specific** candidate ledger record if available; when absent, preserve the pending gap and do not fabricate a URL or treat a repository mirror as authoritative.
+6. Link the **specific** candidate ledger record if available; otherwise label **preliminary / not recorded** and identify authorized staging as outstanding. Actual pending-apply mirrors require durable batch/index references and do not prove canonical application.
 7. Give exactly one next authorized action for this handoff. Name its actor and prerequisites, and fail closed if the action's authority cannot be established.
 8. Do not change the triggers of implementation closeout or cloud-agent post-merge Linear handoff; this format does not replace either.
 
@@ -92,7 +99,7 @@ The `EXAMPLE-*` identifiers below are **fictional fixtures**, not registered can
 - Session mode/type: `read-only / harvest-triage`; workstream: `Academy`; writes: `none`.
 - Issues inspected: `SPE-####` (placeholder; inspect both Academy and CP owners where relevant).
 - Evidence: `EXAMPLE-C01` source packet with section/version reference; existing boundary fit not established.
-- Candidate: `EXAMPLE-C01`; `missing_boundary_candidate` **proposed**; specific canonical ledger record: `none / not yet recorded` (a pending ledger write is not approval).
-- Governance: ChatGPT Phase 1 **not approved**; next owner **ChatGPT**; next action: return Phase 1 assessment to the human for explicit approval. No Phase 2/3/4 or Linear mutation is authorized.
+- Candidate: `EXAMPLE-C01`; `missing_boundary_candidate` **proposed**; persistence: **preliminary / not recorded**; specific canonical record: `none / not yet recorded` (no durable transport exists in this read-only example).
+- Governance: ChatGPT Phase 1 **not approved**; next owner **ChatGPT**; next action: arrange authorized durable intake/staging before claiming completed harvest or requesting the next applicable human approval. No Phase 2/3/4 or Linear mutation is authorized.
 
 These examples test all three session types, separation of inspected evidence from writes, ledger absence handling, actor-specific authorization, and fail-closed advancement. They do not establish a new validation service or registry.

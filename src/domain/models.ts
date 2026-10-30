@@ -2046,6 +2046,7 @@ export interface RuntimeEventQueueState {
 }
 
 export type DeveloperLogEventType =
+  | 'tutorial.lifecycle'
   | 'flag.set'
   | 'flag.cleared'
   | 'one_shot.consumed'

@@ -161,9 +161,19 @@ export function formatDiagnostics(diagnostics) {
 /**
  * @param {string} fileText
  * @param {string} needle
+ * @param {number} [fromIndex]
  */
-function lineOfNeedle(fileText, needle) {
-  const idx = fileText.indexOf(needle)
+function indexOfNeedle(fileText, needle, fromIndex = 0) {
+  return fileText.indexOf(needle, fromIndex)
+}
+
+/**
+ * @param {string} fileText
+ * @param {string} needle
+ * @param {number} [fromIndex]
+ */
+function lineOfNeedle(fileText, needle, fromIndex = 0) {
+  const idx = indexOfNeedle(fileText, needle, fromIndex)
   if (idx < 0) return 1
   return fileText.slice(0, idx).split(/\r?\n/).length
 }
@@ -343,12 +353,27 @@ export function validateAcademyAuthoredContent(contentRoot = DEFAULT_CONTENT_ROO
       continue
     }
 
+    let searchFrom = 0
     for (const record of parsed.records) {
+      let recordFrom = searchFrom
+      if (
+        record &&
+        typeof record === 'object' &&
+        !Array.isArray(record) &&
+        typeof record.id === 'string'
+      ) {
+        const idIdx = indexOfNeedle(text, `"${record.id}"`, searchFrom)
+        if (idIdx >= 0) {
+          recordFrom = idIdx
+          searchFrom = idIdx + `"${record.id}"`.length
+        }
+      }
+
       const ctx = {
         diagnostics,
         filePath,
         relativePath,
-        lineOf: (needle) => lineOfNeedle(text, needle),
+        lineOf: (needle) => lineOfNeedle(text, needle, recordFrom),
         recordsByKind,
         recordsByIdSpace,
         pendingRefs,
@@ -360,7 +385,7 @@ export function validateAcademyAuthoredContent(contentRoot = DEFAULT_CONTENT_ROO
           recordId: 'file',
           fieldPath: 'records[]',
           message: 'each record must be a JSON object',
-          line: ctx.lineOf('"records"'),
+          line: lineOfNeedle(text, '"records"'),
         })
         continue
       }
@@ -371,7 +396,7 @@ export function validateAcademyAuthoredContent(contentRoot = DEFAULT_CONTENT_ROO
           recordId: 'file',
           fieldPath: 'id',
           message: 'id must be a non-empty string',
-          line: ctx.lineOf('"id"'),
+          line: lineOfNeedle(text, '"id"', recordFrom),
         })
         continue
       }
@@ -402,7 +427,7 @@ export function validateAcademyAuthoredContent(contentRoot = DEFAULT_CONTENT_ROO
         filePath,
         relativePath,
         record,
-        line: ctx.lineOf(`"${record.id}"`),
+        line: lineOfNeedle(text, `"${record.id}"`, recordFrom),
       }
       if (!recordsByKind.has(kind.id)) recordsByKind.set(kind.id, [])
       recordsByKind.get(kind.id).push(loaded)

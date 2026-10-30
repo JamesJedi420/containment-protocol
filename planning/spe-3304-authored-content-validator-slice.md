@@ -74,7 +74,7 @@ Choosing `content/academy/**` instead is **outside this boundary**: it needs an 
 | Stable ID grammar                           | IDs outside the declared pattern for their kind                           |
 | Duplicate stable ID                         | Same ID twice in one kind, or in two kinds sharing an ID space            |
 | Dangling cross-reference                    | A declared reference with no matching authored record                     |
-| Statically provable impossible prerequisite | Prerequisite cycles, or a prerequisite on a record that cannot exist      |
+| Statically provable impossible prerequisite | Prerequisite cycles (missing targets report as `dangling-reference`)      |
 | Absent or empty root                        | No — both are valid and exit `0`                                          |
 
 Discovery is `academy/content/**/*.json`. A non-JSON file in the root — a README, a `.gitkeep`, notes — is not a candidate and never fails the gate, so documentation can sit beside content without weakening the unclassified rule. Only a discovered JSON file that no registered kind claims fails closed.
@@ -125,7 +125,7 @@ Each stays owned by SPE-3304 and keeps its existing acceptance coverage. Slice 1
 | `invalid/duplicate-id-shared-space`  | exit `1`, cross-kind duplicate reported once per record |
 | `invalid/id-grammar`                 | exit `1`, offending ID quoted                           |
 | `invalid/dangling-reference`         | exit `1`, source record plus missing target             |
-| `invalid/impossible-prerequisite`    | exit `1`, cycle or unsatisfiable prerequisite named     |
+| `invalid/impossible-prerequisite`    | exit `1`, prerequisite cycle named                      |
 | repeated run of any fixture          | byte-identical output, identical exit code              |
 
 Additionally: the validator leaves the fixture tree byte-identical (hash before/after), an unregistered content kind is rejected rather than silently skipped, and `npm run format:check` stays clean over every committed fixture.

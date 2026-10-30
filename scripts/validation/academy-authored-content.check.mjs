@@ -181,9 +181,22 @@ test('invalid CLI invocation exits 2', () => {
   assert.equal(result.status, 2)
 })
 
-test('default production root absent on repo is exit 0', () => {
+test('default production root validates without requiring absence', () => {
+  // Gate activates on academy/** PRs that may create this root; do not assert it stays missing.
   const productionRoot = path.join(here, '..', '..', 'academy', 'content')
-  assert.equal(fs.existsSync(productionRoot), false)
   const result = validateAcademyAuthoredContent(productionRoot)
-  assert.equal(result.ok, true)
+  assert.ok(Array.isArray(result.diagnostics))
+  if (!fs.existsSync(productionRoot)) {
+    assert.equal(result.ok, true)
+    assert.equal(result.filesChecked, 0)
+  }
+})
+
+test('duplicate-id diagnostics attribute distinct lines per occurrence', () => {
+  const root = fixture('invalid/duplicate-id-same-kind')
+  const result = validateAcademyAuthoredContent(root, { relativeTo: root })
+  const dups = result.diagnostics.filter((d) => d.rule === 'duplicate-id')
+  assert.ok(dups.length >= 2)
+  const lines = new Set(dups.map((d) => d.line))
+  assert.ok(lines.size >= 2, `expected distinct lines, got ${[...lines]}`)
 })

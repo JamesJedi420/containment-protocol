@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| **Status** | **Active** |
+| **Status** | **Recently shipped** |
 | **Issue** | [SPE-3491](https://linear.app/spectranoir/issue/SPE-3491/recraft-prompt-human-to-generate-needed-assets) |
 | **Related** | SPE-3486 (Figma subscription prompt pattern) |
 | **Branch** | `jamesdyedbq/spe-3491-recraft-prompt-human-to-generate-needed-assets` |

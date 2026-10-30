@@ -38,4 +38,8 @@ Codex “owner” designations are preferences; Cursor may implement and close t
 
 - GitHub has a linkback bot comment
 - Work was docs-only or tooling-only
-- Linear MCP failed once — retry or leave a precise handoff (`docs/cloud-agent-linear-handoff.md`) after an implementation merge when MCP cannot auth
+- Linear MCP failed once — retry or leave a precise handoff (`docs/cloud-agent-linear-handoff.md`) **only** after an approved implementation merge when that trigger applies
+
+## Authorized docs-only merges with Linear unavailable
+
+When an **authorized documentation-only** merge has legitimate, existing-boundary factual Linear traceability still unposted, record **pending / unverified** in the normal docs-work closeout. Include the exact existing Linear issue target, merged PR and actual validation evidence, intended non-scope-expanding comment or independently authorized status action, whether posting was attempted, and the next actor's authorized verification/posting step. That actor must recheck current issue state and evidence and avoid duplicate comments before applying any update. A pending note is **not** a Linear post, permission to create scope, or proof of successful synchronization. Do not create a second outbox, issue, relationship, or approval process; the cloud-agent handoff stays implementation-only. Unowned read-only analysis may remain no-write.

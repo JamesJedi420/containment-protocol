@@ -10,7 +10,7 @@
 
 ## Boundary and plan
 
-Define deterministic caller-owned routine/high-tempo profiles and accumulate payroll, gear, morale, recovery and inspection costs. Assess the next deployment against caller-owned limits, identifying shortages and whether lower tempo fits. Validate bounded integers, unique identifiers and high-tempo pressure; never mutate input. Demonstrate repeated deployment burden through the existing agent readiness normalization. The result is a proposal, not an actual debit, condition writer or recovery action.
+Define deterministic caller-owned routine/high-tempo profiles and accumulate payroll, gear, morale, recovery and inspection costs. Assess the next deployment against caller-owned limits covering all five dimensions, identifying shortages and whether lower tempo fits. Validate bounded integers, unique identifiers and high-tempo pressure; never mutate input. Demonstrate repeated deployment burden through the existing agent readiness normalization using a stable starter agent id. The result is a proposal, not an actual debit, condition writer or recovery action.
 
 ## Deferred
 

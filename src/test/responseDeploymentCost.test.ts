@@ -60,7 +60,13 @@ describe('SPE-2272 deployment cost registry', () => {
   })
 
   it('requires lower tempo or resource recovery when caller-owned limits are exhausted', () => {
-    const limits = { gearAvailable: 6, moraleAllowance: 60, recoveryCapacity: 3 }
+    const limits = {
+      payrollAvailable: 100,
+      gearAvailable: 6,
+      moraleAllowance: 60,
+      recoveryCapacity: 3,
+      inspectionCapacity: 100,
+    }
     const afterHigh = accumulateDeploymentCost(profile, 'high', empty)
     expect(assessNextDeployment(profile, 'high', afterHigh, limits)).toEqual({
       allowed: false,
@@ -73,11 +79,33 @@ describe('SPE-2272 deployment cost registry', () => {
       shortages: ['gear', 'recovery'],
       lowerTempoAvailable: false,
     })
-    expect(limits).toEqual({ gearAvailable: 6, moraleAllowance: 60, recoveryCapacity: 3 })
+    expect(limits).toEqual({
+      payrollAvailable: 100,
+      gearAvailable: 6,
+      moraleAllowance: 60,
+      recoveryCapacity: 3,
+      inspectionCapacity: 100,
+    })
+  })
+
+  it('surfaces payroll and inspection shortages when those limits are exhausted', () => {
+    const limits = {
+      payrollAvailable: 12,
+      gearAvailable: 100,
+      moraleAllowance: 100,
+      recoveryCapacity: 100,
+      inspectionCapacity: 1,
+    }
+    expect(assessNextDeployment(profile, 'high', empty, limits)).toEqual({
+      allowed: false,
+      shortages: ['payroll', 'inspection'],
+      lowerTempoAvailable: true,
+    })
   })
 
   it('shows repeated deployment degradation through the existing readiness authority', () => {
-    const initial = Object.values(createStartingState().agents)[0]!
+    const initial = createStartingState().agents.a_ava
+    expect(initial).toBeDefined()
     const agent = normalizeAgent({
       ...initial,
       status: 'active',
@@ -128,9 +156,11 @@ describe('SPE-2272 deployment cost registry', () => {
     ).toThrow(/exceeds/)
     expect(() =>
       assessNextDeployment(profile, 'high', empty, {
+        payrollAvailable: 10,
         gearAvailable: -1,
         moraleAllowance: 5,
         recoveryCapacity: 2,
+        inspectionCapacity: 2,
       })
     ).toThrow()
   })

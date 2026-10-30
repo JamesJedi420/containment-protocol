@@ -16,14 +16,18 @@ export interface DeploymentCostRecord {
 }
 
 export interface DeploymentCapacityLimits {
+  readonly payrollAvailable: number
   readonly gearAvailable: number
   readonly moraleAllowance: number
   readonly recoveryCapacity: number
+  readonly inspectionCapacity: number
 }
+
+export type DeploymentShortage = 'payroll' | 'gear' | 'morale' | 'recovery' | 'inspection'
 
 export interface DeploymentCapacityAssessment {
   readonly allowed: boolean
-  readonly shortages: readonly ('gear' | 'morale' | 'recovery')[]
+  readonly shortages: readonly DeploymentShortage[]
   readonly lowerTempoAvailable: boolean
 }
 
@@ -110,15 +114,23 @@ export function assessNextDeployment(
 ): DeploymentCapacityAssessment {
   if (typeof limits !== 'object' || limits === null || Array.isArray(limits))
     throw new Error('deployment limits are required')
-  for (const value of [limits.gearAvailable, limits.moraleAllowance, limits.recoveryCapacity]) {
+  for (const value of [
+    limits.payrollAvailable,
+    limits.gearAvailable,
+    limits.moraleAllowance,
+    limits.recoveryCapacity,
+    limits.inspectionCapacity,
+  ]) {
     if (!Number.isSafeInteger(value) || value < 0 || value > MAX_AMOUNT)
       throw new Error('deployment limits must be bounded nonnegative integers')
   }
-  const shortagesFor = (burden: DeploymentBurden): ('gear' | 'morale' | 'recovery')[] => {
-    const shortages: ('gear' | 'morale' | 'recovery')[] = []
+  const shortagesFor = (burden: DeploymentBurden): DeploymentShortage[] => {
+    const shortages: DeploymentShortage[] = []
+    if (burden.payrollLoad > limits.payrollAvailable) shortages.push('payroll')
     if (burden.gearConsumption > limits.gearAvailable) shortages.push('gear')
     if (burden.moraleHit > limits.moraleAllowance) shortages.push('morale')
     if (burden.recoveryTicks > limits.recoveryCapacity) shortages.push('recovery')
+    if (burden.inspectionDebt > limits.inspectionCapacity) shortages.push('inspection')
     return shortages
   }
   const shortages = shortagesFor(accumulateDeploymentCost(record, tempo, previous))

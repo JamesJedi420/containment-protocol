@@ -9,6 +9,7 @@
 | **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
 | **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
 | **Cursor autonomous authority** | `docs/cursor-autonomous-authority.md` + `.cursor/rules/cursor-autonomous-authority.mdc` — Cursor may reconcile/create Linear scope under safeguards; ChatGPT Phase 1–4 gates do not bind Cursor. |
+| **Agent capability quick reference** | [`docs/agent-capabilities.md`](docs/agent-capabilities.md) — non-authoritative summary of ChatGPT, Cursor, and Codex permissions; defer to canonical policy and actual tool access. |
 | **Linear + `planning/*-slice.md` + first message** | Active implementation task: issue link, slice doc, branch name, `main` SHA. Cursor may select or create the next bounded issue when continuation is expected. |
 
 ### After you merge a PR (human)

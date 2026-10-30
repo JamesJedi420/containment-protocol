@@ -1,6 +1,6 @@
 {
   "primary": "SPE-1052",
-  "inProgress": [],
+  "inProgress": ["SPE-3489"],
   "recentlyShipped": [
     "SPE-2918",
     "SPE-2917",
@@ -469,6 +469,7 @@
     "planning/spe-3436-store-projection-dependency-slice.md": "Recently shipped",
     "planning/spe-3438-cross-feature-import-slice.md": "Recently shipped",
     "planning/spe-2917-tutorial-lifecycle-slice.md": "Recently shipped",
-    "planning/spe-2918-tutorial-persistence-slice.md": "Recently shipped"
+    "planning/spe-2918-tutorial-persistence-slice.md": "Recently shipped",
+    "planning/spe-3489-plugin-request-connectors-rule-slice.md": "In progress"
   }
 }

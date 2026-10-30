@@ -46,7 +46,7 @@ test('precedence and source-provenance cannot silently promote lower-authority c
   assert.throws(() => validateAuthorityContract(spoofed), /canonical critical rule mapping changed/)
   const duplicated = clone()
   duplicated.criticalRules[1].id = duplicated.criticalRules[0].id
-  assert.throws(() => validateAuthorityContract(duplicated), /duplicate/)
+  assert.throws(() => validateAuthorityContract(duplicated), /canonical critical rule mapping changed: CP-GOV-002/)
 })
 
 test('phase ordering and final-phase-only scope authority are mandatory', () => {

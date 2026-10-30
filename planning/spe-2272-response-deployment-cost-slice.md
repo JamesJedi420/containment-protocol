@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                      |
 | ---------- | -------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                            |
+| **Status** | **Recently shipped** (PR #4546 @ `74750203`)                               |
 | **Linear** | [SPE-2272](https://linear.app/spectranoir/issue/SPE-2272)                  |
 | **Parent** | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023), remains Backlog |
 | **Branch** | `feat/spe-2272-response-deployment-cost`                                   |

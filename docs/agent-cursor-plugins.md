@@ -41,6 +41,21 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 
 Enterprise DB/ops/auth/sales/comms plugins (Databricks, MongoDB, Auth0 product wiring, Apollo, Twilio/Sinch, etc.) unless product scope changes. Do not enable parallel app builders (e.g. Lovable) against this Linear + ship-loop workflow. Do not treat Magic Patterns exports as production UI — port through existing CSS/components per `docs/figma-integration.md`.
 
+## Requesting additional connectors / tools
+
+Agents **may and should ask the human** to install or connect an additional Cursor marketplace plugin, MCP server, or connector when it would clearly enhance in-boundary capability and the keep-list tools are insufficient.
+
+Examples (not auto-install): Google Docs / Sheets / Slides plugins when Drive MCP cannot do structured Doc styling, cell-level Sheet edits, or slide layout/PNG review; other Cursor Verified connectors that fit a client-only SPA agent workflow.
+
+When asking:
+
+1. Name the **capability gap** and the **suggested connector**.
+2. Say why existing keep-list tools (e.g. Drive MCP) are not enough for this task.
+3. Wait for the human to install/auth — agents do not marketplace-install.
+4. After install, prefer documenting durable use in `docs/agent-cursor-plugins.md` / a skill when the connector becomes standing practice (separate slice if needed).
+
+Still do **not**: wire vendor SDKs into `src/` or CI without an approved Linear slice; request Skip-list enterprise stacks unless product scope changed; ask for redundant connectors when the keep-list already covers the need.
+
 ## Agent workflows
 
 ### New or upgraded npm dependency

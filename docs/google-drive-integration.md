@@ -79,6 +79,10 @@ Cursor’s Drive grant is typically `drive.file`: the app can create files/folde
 - Auto-mirroring the entire Linear backlog or every planning note
 - Speculative sharing or widening permissions without a human ask
 
+## Docs / Sheets / Slides plugins (optional)
+
+Drive MCP is the default. If structured Doc styling, cell-level Sheet edits, or Slides layout/PNG review would clearly help and Drive is insufficient, **ask the human** to install the Cursor Google Docs / Sheets / Slides plugins — see `docs/agent-cursor-plugins.md` § Requesting additional connectors. Do not install by default.
+
 ## Related
 
 - Plugin keep-list: `docs/agent-cursor-plugins.md`

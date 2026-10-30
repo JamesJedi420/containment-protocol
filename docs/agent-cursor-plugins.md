@@ -39,7 +39,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 
 ## Skip for this repo
 
-Enterprise DB/ops/auth/sales/comms plugins (Databricks, MongoDB, Auth0 product wiring, Apollo, Twilio/Sinch, etc.) unless product scope changes. Do not enable parallel app builders (e.g. Lovable) against this Linear + ship-loop workflow. Do not treat Magic Patterns exports as production UI — port through existing CSS/components per `docs/figma-integration.md`.
+Enterprise DB/ops/auth/sales/comms plugins (Databricks, MongoDB, Auth0 product wiring, Apollo, Twilio/Sinch, etc.) unless product scope changes. Do not enable parallel app builders (e.g. Lovable) against this Linear + ship-loop workflow. Do not treat Magic Patterns exports as production UI — port through existing CSS/components per `docs/figma-integration.md`. Do **not** add Recraft (or any image-gen SaaS) as a runtime/CI dependency — see **Recraft** workflow below.
 
 ## Requesting additional connectors / tools
 
@@ -102,6 +102,16 @@ If Modern Web Guidance is installed, search it before inventing layout/motion/fo
 6. **Auth blocker (mandatory):** If the active task needs Drive and MCP auth / account access blocks it — **stop and prompt the human**. Do not silently skip. Do not prompt when the slice does not need Drive.
 7. Never add a Google Drive SDK or required Google secrets to the game runtime or CI for this bridge.
 
+### Recraft (human-generated art)
+
+Recraft is **not** a keep-list MCP plugin. The human operates Recraft; agents do not call a Recraft API from this repo.
+
+1. Prefer existing CSS tokens, Figma UI System, and checked-in SVG/assets for in-product UI.
+2. **When Recraft assets are needed (mandatory):** If the active task needs Recraft-quality stills, vectors, icons, marketing art, or concept illustrations — **stop and prompt the human** to generate them in Recraft. Include a concise brief (purpose, size/format, style notes, deliverable path if known).
+3. Do **not** wire a Recraft API/SDK or required Recraft secrets into `src/` or CI.
+4. Do **not** silently skip needed Recraft assets or substitute a weaker path without telling the human.
+5. Do **not** prompt when the slice does not need Recraft (domain/sim-only, or UI solvable from existing React/CSS/Figma alone).
+
 ### Security scans
 
 Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOKEN` CI jobs, `.snyk` ignore sprawl, or Secure-at-Inception hooks into this repo without an explicit Linear slice.
@@ -113,3 +123,5 @@ MCP servers must show `ready` (or equivalent) before agents rely on them. If `ne
 If Figma MCP is ready but a **paid plan / subscription** is required for the needed capability (file edit, design context, library tools), treat that the same as a blocker: prompt the human to subscribe or renew before continuing that path.
 
 If Google Drive MCP is `needsAuth` or calls fail for auth while Drive is required for the active task, prompt the human to connect or re-auth before continuing that path.
+
+If the active task needs Recraft-generated art, prompt the human to generate it in Recraft before continuing that path — do not invent runtime Recraft wiring.

@@ -47,6 +47,8 @@ remaining-subset.json
 !.cursor/skills/cp-figma-ui-bridge/SKILL.md
 !.cursor/skills/cp-google-drive-bridge/
 !.cursor/skills/cp-google-drive-bridge/SKILL.md
+!.cursor/skills/cp-scenario-bridge/
+!.cursor/skills/cp-scenario-bridge/SKILL.md
 # Shared repo rules are tracked explicitly; other files here stay local-only
 .cursor/rules/*
 !.cursor/rules/

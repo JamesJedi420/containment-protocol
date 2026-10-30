@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": ["SPE-3155"],
   "recentlyShipped": [
+    "SPE-3494",
     "SPE-2907",
     "SPE-3491",
     "SPE-2920",
@@ -477,6 +478,7 @@
     "planning/spe-2919-contextual-guidance-slice.md": "Recently shipped",
     "planning/spe-2918-tutorial-persistence-slice.md": "Recently shipped",
     "planning/spe-3489-plugin-request-connectors-rule-slice.md": "Recently shipped",
+    "planning/spe-3494-scenario-mcp-agent-bridge-slice.md": "Recently shipped",
     "planning/spe-2907-seven-beat-presentation-slice.md": "Recently shipped",
     "planning/spe-2920-tutorial-delivery-slice.md": "Recently shipped",
     "planning/spe-3491-recraft-prompt-human-generate-rule-slice.md": "Recently shipped"

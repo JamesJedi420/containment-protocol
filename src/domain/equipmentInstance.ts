@@ -1070,13 +1070,19 @@ export function applyContainmentRecallHardStop(
   if (parsed.integrity.deficiency.kind === 'hard_stop') {
     return { ok: true, state: normalized, instance: current }
   }
-  const transitioned = applyEquipmentInstanceTransition(normalized, instanceId, current, {
-    ...current,
-    containmentIntegrity: snapshotContainmentClassIntegrity({
-      ...parsed.integrity,
-      deficiency: { kind: 'hard_stop' },
-    }),
-  })
+  const transitioned = applyEquipmentInstanceTransition(
+    normalized,
+    instanceId,
+    current,
+    {
+      ...current,
+      containmentIntegrity: snapshotContainmentClassIntegrity({
+        ...parsed.integrity,
+        deficiency: { kind: 'hard_stop' },
+      }),
+    },
+    { allowNonIdleCarrier: true }
+  )
   if (!transitioned.ok) return transitioned
   return {
     ...transitioned,

@@ -70,7 +70,7 @@ function resolveAffectedObligation(
     instance.condition === 'operational'
   const deficiencyCleared = instance.containmentIntegrity?.deficiency.kind === 'none'
   if (
-    (repairObserved || prior?.state === 'remediated') &&
+    (repairObserved || prior?.state === 'dispositioned' || prior?.state === 'remediated') &&
     deficiencyCleared &&
     instance.condition === 'operational'
   ) {
@@ -104,7 +104,7 @@ export function reconcileEquipmentRecall(
   const obligations: Record<string, EquipmentRecallObligation> = {}
 
   for (const instance of Object.values(state.equipmentInstances ?? {}).sort((a, b) =>
-    a.instanceId.localeCompare(b.instanceId)
+    a.instanceId < b.instanceId ? -1 : a.instanceId > b.instanceId ? 1 : 0
   )) {
     const classification = classify(instance, campaign)
     const prior = previous?.obligations[instance.instanceId]

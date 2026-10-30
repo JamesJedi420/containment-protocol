@@ -181,4 +181,16 @@ describe('equipment defect recall', () => {
       result.state.equipmentInstances?.affected_outstanding?.containmentIntegrity?.deficiency
     ).toEqual({ kind: 'hard_stop' })
   })
+
+  it('closes an initially operational obligation after authoritative deficiency relief', () => {
+    const opened = reconcileEquipmentRecall(recallState(), campaign)
+    const stabilized = stabilizeContainmentClassDeficiency(opened.state, 'affected_outstanding')
+    if (!stabilized.ok) throw new Error(stabilized.code)
+    const cleared = stabilizeContainmentClassDeficiency(stabilized.state, 'affected_outstanding')
+    if (!cleared.ok) throw new Error(cleared.code)
+    expect(
+      reconcileEquipmentRecall(cleared.state, campaign).record.obligations.affected_outstanding
+        ?.state
+    ).toBe('remediated')
+  })
 })

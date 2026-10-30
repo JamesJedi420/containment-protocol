@@ -12,11 +12,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
 import { getEquipmentGradeDefinition } from '../../domain/equipmentGrade'
-import {
-  type GameState,
-  type OperationEvent,
-  type OperationEventType,
-} from '../../domain/models'
+import { type GameState, type OperationEvent, type OperationEventType } from '../../domain/models'
 import type { ContainmentClassId } from '../../domain/containmentClassInspection'
 import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
 
@@ -778,7 +774,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: `${event.payload.definitionName} instance repaired`,
-        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Damaged → operational / Manual condition repair`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Damaged → operational / Manual condition repair${event.payload.repairCost === undefined ? '' : ` / Paid $${event.payload.repairCost}`}`,
         sourceLabel,
         typeLabel,
         timestampLabel,

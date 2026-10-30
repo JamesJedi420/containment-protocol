@@ -17,6 +17,7 @@ import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAl
 import { create } from 'zustand'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
+import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
 import {
   assignOperationalStaffPost,
   reassignOperationalStaffPost,
@@ -123,7 +124,6 @@ import {
   getEquipmentInstanceAtAgentSlot,
   reaggregateStoredOrdinaryEquipmentInstance,
   isContainmentClassInService,
-  repairStoredEquipmentInstanceCondition as repairStoredEquipmentInstanceConditionState,
   stabilizeContainmentClassDeficiency as stabilizeContainmentClassDeficiencyState,
   inspectContainmentClassIntegrity as inspectContainmentClassIntegrityState,
 } from '../../domain/equipmentInstance'
@@ -498,7 +498,10 @@ interface GameStore {
   convertFacilityMaintenanceResources: (
     request: MaintenanceConversionRequest
   ) => MaintenanceConversionResult
-  repairStoredEquipmentInstanceCondition: (instanceId: string) => void
+  repairStoredEquipmentInstanceCondition: (
+    instanceId: string,
+    expectedCost?: number
+  ) => PaidRepairResult
   stabilizeContainmentClassDeficiency: (instanceId: string) => void
   inspectContainmentClassIntegrity: (instanceId: string) => void
   disposeStoredCombatStimInstance: (instanceId: string) => void
@@ -2133,31 +2136,34 @@ export const useGameStore = create<GameStore>()(
           return result.status === 'purchased' ? { game: result.game } : s
         }),
 
-      repairStoredEquipmentInstanceCondition: (instanceId) =>
+      repairStoredEquipmentInstanceCondition: (instanceId, expectedCost) => {
+        let outcome!: PaidRepairResult
         set((s) => {
-          const instance = s.game.equipmentInstances?.[instanceId]
+          const game = s.game
+          const instance = game.equipmentInstances?.[instanceId]
           const sparePartId = getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
-          const result = repairStoredEquipmentInstanceConditionState(
-            s.game,
-            instanceId,
-            sparePartId
-          )
-          if (!result.ok) return { game: result.state }
-          const definition = getEquipmentDefinition(result.instance.definitionId)
-          return {
-            game: appendOperationEventDrafts(result.state, [
-              createEquipmentInstanceConditionRepairedDraft({
-                week: s.game.week,
-                instanceId: result.instance.instanceId,
-                definitionId: result.instance.definitionId,
-                definitionName: definition?.name ?? result.instance.definitionId,
-                previousCondition: 'damaged',
-                condition: 'operational',
-                reason: 'manual_condition_repair',
-              }),
-            ]),
-          }
-        }),
+          const result = settlePaidEquipmentRepair(game, instanceId, sparePartId, expectedCost)
+          outcome = result
+          if (result.payment !== 'paid') return s
+          const repaired = result.state.equipmentInstances![instanceId]!
+          const definition = getEquipmentDefinition(repaired.definitionId)
+          const nextGame = appendOperationEventDrafts(result.state, [
+            createEquipmentInstanceConditionRepairedDraft({
+              week: game.week,
+              instanceId: repaired.instanceId,
+              definitionId: repaired.definitionId,
+              definitionName: definition?.name ?? repaired.definitionId,
+              previousCondition: 'damaged',
+              condition: 'operational',
+              reason: 'manual_condition_repair',
+              repairCost: result.charged,
+            }),
+          ])
+          outcome = { ...result, state: nextGame }
+          return { game: nextGame }
+        })
+        return outcome
+      },
 
       stabilizeContainmentClassDeficiency: (instanceId) =>
         set((s) => {

@@ -4,6 +4,8 @@ Canonical standing policy for humans and agents. User Rules are pasted from `doc
 
 Cursor backlog authority: **`docs/cursor-autonomous-authority.md`**.
 
+Capability quick reference: **[`docs/agent-capabilities.md`](agent-capabilities.md)** (non-authoritative summary; consult canonical policies and live tool permissions).
+
 ## Authority boundary
 
 A handoff may continue an active Linear issue and may apply truthful lifecycle/evidence updates (status, PR links, progress/closure comments, factual notes).

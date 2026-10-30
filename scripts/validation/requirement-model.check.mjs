@@ -12,6 +12,7 @@ import {
   resolveValidationRequirements,
   validateRequirementRegistry,
 } from './requirement-model.mjs'
+import { describeSpawnError, resolveNpmLaunch, spawnSafe } from './spawn-safe.mjs'
 
 const registry = readRequirementRegistry()
 
@@ -258,4 +259,66 @@ test('SPE mirror doc activates theme-contracts', () => {
     registry,
   )
   assert.ok(resolution.requiredIds.includes('theme-contracts'))
+})
+
+test('win32 npm launch never spawns a .cmd shim', () => {
+  const nodeExecPath = 'C:\\Program Files\\nodejs\\node.exe'
+  const npmCli = 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js'
+  const launch = resolveNpmLaunch({
+    platform: 'win32',
+    npmExecPath: 'C:\\Program Files\\nodejs\\npm.cmd',
+    nodeExecPath,
+    fileExists: (candidate) => candidate === npmCli,
+  })
+  assert.equal(launch.ok, true)
+  assert.equal(launch.command, nodeExecPath)
+  assert.deepEqual(launch.args, [npmCli])
+  assert.ok(!launch.args.some((arg) => /\.cmd$/i.test(arg)))
+})
+
+test('win32 npm launch prefers npm_execpath JS entrypoint', () => {
+  const npmCli = 'C:\\custom\\npm\\bin\\npm-cli.js'
+  const launch = resolveNpmLaunch({
+    platform: 'win32',
+    npmExecPath: npmCli,
+    nodeExecPath: 'C:\\Program Files\\nodejs\\node.exe',
+    fileExists: (candidate) => candidate === npmCli,
+  })
+  assert.equal(launch.ok, true)
+  assert.deepEqual(launch.args, [npmCli])
+})
+
+test('posix npm launch preserves the existing resolved command', () => {
+  const launch = resolveNpmLaunch({
+    platform: 'linux',
+    npmExecPath: '/usr/lib/node_modules/npm/bin/npm-cli.js',
+    nodeExecPath: '/usr/bin/node',
+    fallbackCommand: '/usr/bin/npm',
+  })
+  assert.deepEqual(launch, { ok: true, command: '/usr/bin/npm', args: [] })
+})
+
+test('win32 without a resolvable npm CLI is unavailable, not a spawn error', () => {
+  const launch = resolveNpmLaunch({
+    platform: 'win32',
+    nodeExecPath: 'C:\\Program Files\\nodejs\\node.exe',
+    fileExists: () => false,
+  })
+  assert.equal(launch.ok, false)
+  assert.match(launch.reason, /npm CLI/)
+  assert.match(launch.reason, /npm_execpath/)
+})
+
+test('spawn failure detail reports the error code instead of a signal', () => {
+  assert.equal(describeSpawnError(null), null)
+  assert.equal(describeSpawnError({ code: 'EINVAL', message: 'spawn EINVAL' }), 'spawn EINVAL')
+  assert.equal(describeSpawnError({ errno: -4071 }), 'spawn -4071')
+  assert.equal(describeSpawnError({ message: 'bad' }), 'spawn failed: bad')
+})
+
+test('real spawn failure is described with its error code, not a signal', () => {
+  const result = spawnSafe('cp-definitely-missing-binary', [])
+  assert.ok(result.error, 'expected a spawn error for a missing binary')
+  assert.equal(result.status, null)
+  assert.match(describeSpawnError(result.error), /^spawn [A-Z]+$/)
 })

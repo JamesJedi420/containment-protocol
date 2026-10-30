@@ -35,6 +35,7 @@ import {
   sanitizeEquipmentInstanceRegistry,
 } from '../../domain/equipmentInstance'
 import { parseContainmentBarrierIntegrityRegistry } from '../../domain/containmentBarrierIntegrity'
+import { parseEquipmentRecallRegistry } from '../../domain/equipmentRecall'
 import { parseFacilityStockpile } from '../../domain/facilityStockpile'
 import { parseDepartmentLocalStaging } from '../../domain/departmentLocalStaging'
 import { parseSpecialistOperatorSlots } from '../../domain/specialistLaborOperatorFeed'
@@ -10625,6 +10626,7 @@ export function hydrateGame(
   )
   agents = equipmentInstanceHydration.agents
   const equipmentInstances = equipmentInstanceHydration.equipmentInstances
+  const equipmentRecallRegistry = parseEquipmentRecallRegistry(game.equipmentRecallRegistry)
   const equipmentAutoScrapPolicy = sanitizeEquipmentAutoScrapPolicy(game.equipmentAutoScrapPolicy)
   const containmentBarrierIntegrity = parseContainmentBarrierIntegrityRegistry(
     game.containmentBarrierIntegrity
@@ -10801,6 +10803,7 @@ export function hydrateGame(
     volatileActionHoldRecords,
     containmentRequirementStates,
     equipmentInstances,
+    equipmentRecallRegistry,
     containmentBarrierIntegrity,
     damagedEquipmentQueue,
     authorityGraphState,

@@ -14,7 +14,7 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 4. Linear slice **Done** only when its full approved boundary is satisfied + merge comment.
 5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation in this closeout. Remind the human that a **new** Cursor session may assess/select/reconcile under canonical Cursor autonomous-authority safeguards when continuation is requested; do not set the next issue In Progress, reconcile candidates, or implement in merge closeout.
 
-**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later session may use delegated selection).
+**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later Cursor session may exercise its canonical autonomous selection authority).
 
 ## Two phases (closeout format)
 

@@ -15,6 +15,11 @@ const assert = (condition, message) => {
   if (!condition) throw new Error('governance-contract: ' + message)
 }
 const sortedKeys = (keys) => [...keys].sort((a, b) => a.localeCompare(b))
+const assertKeys = (value, fields, label) => {
+  assert(isObject(value), label + ' must be an object')
+  assert(exact(sortedKeys(Object.keys(value)), sortedKeys(fields)),
+    label + ' has missing or unknown fields')
+}
 const IDS = ['phase-1', 'phase-2', 'phase-3', 'phase-4']
 const CLASSES = ['read-only', 'lifecycle-evidence', 'backlog-shape', 'bounded-maintenance', 'ambiguous']
 const SOURCE_CLASSES = [
@@ -25,14 +30,63 @@ const SOURCE_CLASSES = [
   'historical-or-external-reference',
 ]
 const STATUS = ['unknown', 'missing', 'stale', 'superseded', 'contradictory', 'incomplete']
+const CANONICAL_CRITICAL_RULES = Object.freeze([
+  {
+    "id": "CP-GOV-001",
+    "sourceClass": "current-user-approved-governance",
+    "sourceRef": "project:Containment Protocol governance control plane",
+    "semantic": "current-user-governance-overrides-encoded-contract"
+  },
+  {
+    "id": "CP-GOV-002",
+    "sourceClass": "linear-approved-boundary",
+    "sourceRef": "linear:SPE-3261",
+    "semantic": "linear-is-canonical-for-planning-lifecycle-and-ownership"
+  },
+  {
+    "id": "CP-GOV-003",
+    "sourceClass": "current-user-approved-governance",
+    "sourceRef": "project:Containment Protocol governance control plane",
+    "semantic": "chatgpt-backlog-shape-from-candidate-reconciliation-requires-ordered-approvals-and-phase-four"
+  },
+  {
+    "id": "CP-GOV-004",
+    "sourceClass": "current-user-approved-governance",
+    "sourceRef": "project:Containment Protocol governance control plane",
+    "semantic": "lifecycle-evidence-may-maintain-existing-approved-boundary-without-phases"
+  },
+  {
+    "id": "CP-GOV-005",
+    "sourceClass": "linear-approved-boundary",
+    "sourceRef": "linear:SPE-3269",
+    "semantic": "fail-closed-for-missing-stale-superseded-or-contradictory-approvals"
+  },
+  {
+    "id": "CP-GOV-006",
+    "sourceClass": "linear-approved-boundary",
+    "sourceRef": "linear:SPE-3269",
+    "semantic": "degraded-external-review-must-not-mint-approval"
+  },
+  {
+    "id": "CP-GOV-007",
+    "sourceClass": "linear-approved-boundary",
+    "sourceRef": "linear:SPE-3269",
+    "semantic": "bounded-maintenance-cannot-create-durable-scope"
+  },
+  {
+    "id": "CP-GOV-008",
+    "sourceClass": "current-user-approved-governance",
+    "sourceRef": "project:Containment Protocol governance control plane",
+    "semantic": "one-canonical-owner-for-shared-systems"
+  },
+  {
+    "id": "CP-GOV-009",
+    "sourceClass": "current-user-approved-governance",
+    "sourceRef": "project:Containment Protocol governance control plane — docs/cursor-autonomous-authority.md",
+    "semantic": "cursor-may-autonomously-mutate-backlog-shape-under-safeguards-without-chatgpt-phase-gates"
+  }
+].map((rule) => Object.freeze(rule)))
 const REVIEW_STATUSES = ['approved', 'unavailable', 'approved-substitute']
-const provenancePrefix = {
-  'current-user-approved-governance': 'project:',
-  'linear-approved-boundary': 'linear:',
-  'github-implementation-evidence': 'github:',
-  'repository-derived-projection': 'repository:',
-  'historical-or-external-reference': 'reference:',
-}
 const TOP_LEVEL_KEYS = [
   'schemaVersion', 'policyVersion', 'contractId', 'status', 'provenance',
   'sourceClasses', 'authorityOrder', 'mutationClasses', 'phases',
@@ -46,10 +100,19 @@ export function readAuthorityContract() {
 }
 
 function assertProvenance(contract) {
-  assert(isObject(contract.provenance), 'missing provenance')
-  assert(contract.provenance.classification === 'linear-approved-program', 'unknown provenance classification')
-  assert(contract.provenance.higherAuthority === 'current-user-approved-governance', 'user governance must outrank contract')
-  assert(contract.provenance.ownerIssue === 'SPE-3269' && contract.provenance.parentIssue === 'SPE-3261', 'canonical implementation owner mismatch')
+  const provenance = contract.provenance
+  assertKeys(provenance, [
+    'ownerIssue', 'parentIssue', 'classification', 'higherAuthority',
+    'sourceReferences', 'implementationEvidenceClass',
+  ], 'provenance')
+  assert(provenance.classification === 'linear-approved-program', 'unknown provenance classification')
+  assert(provenance.higherAuthority === 'current-user-approved-governance', 'user governance must outrank contract')
+  assert(provenance.ownerIssue === 'SPE-3269' && provenance.parentIssue === 'SPE-3261', 'canonical implementation owner mismatch')
+  assert(Array.isArray(provenance.sourceReferences) && exact(provenance.sourceReferences, [
+    'project:Containment Protocol governance control plane', 'linear:SPE-3261', 'linear:SPE-3269',
+  ]), 'provenance sourceReferences invalid')
+  assert(provenance.implementationEvidenceClass === 'github-implementation-evidence',
+    'provenance implementationEvidenceClass invalid')
 }
 
 function assertAuthorityOrder(contract) {
@@ -58,11 +121,15 @@ function assertAuthorityOrder(contract) {
   assert(unique(contract.authorityOrder.map((item) => item.id)), 'duplicate authority id')
   assert(exact(contract.authorityOrder.map((item) => item.rank), [0, 1, 2, 3, 4]), 'authority order reordered or duplicated')
   assert(exact(contract.authorityOrder.map((item) => item.sourceClass), SOURCE_CLASSES), 'authority class precedence invalid')
+  contract.authorityOrder.forEach((item) =>
+    assertKeys(item, ['id', 'rank', 'sourceClass', 'purpose'], 'authority order entry'))
   assert(contract.authorityOrder.every((item) => nonblank(item.purpose)), 'authority purposes required')
 }
 
 function assertMutationClasses(contract) {
   assert(Array.isArray(contract.mutationClasses), 'missing mutation classes')
+  contract.mutationClasses.forEach((item) =>
+    assertKeys(item, ['id', 'mayWriteLinear', 'requiresPhases', 'predicate'], 'mutation class entry'))
   assert(exact(contract.mutationClasses.map((item) => item.id), CLASSES), 'unknown/missing mutation class')
   assert(contract.mutationClasses.every((item) =>
     typeof item.mayWriteLinear === 'boolean' && Array.isArray(item.requiresPhases) && nonblank(item.predicate)
@@ -76,6 +143,14 @@ function assertMutationClasses(contract) {
 function assertPhases(contract) {
   assert(Array.isArray(contract.phases) && exact(contract.phases.map((item) => item.id), IDS), 'invalid phase order')
   contract.phases.forEach((item, index) => {
+    const fields = ['id', 'ordinal', 'name', 'approvalMarker', 'prerequisites', 'mayChangeDurableScope']
+    if (index === 3) fields.push('appliesTo', 'doesNotApplyTo')
+    assertKeys(item, fields, 'phase entry')
+    if (index === 3) {
+      assert(item.appliesTo === 'candidate-extraction-and-reconciliation-backlog-shape-only' &&
+        item.doesNotApplyTo === 'lifecycle-evidence-updates-on-already-approved-boundaries',
+      'phase four scope classification invalid')
+    }
     assert(item.ordinal === index + 1 && nonblank(item.name), 'invalid phase ordinal/name')
     assert(item.approvalMarker === 'APPROVE_PHASE_' + (index + 1), 'phase marker mismatch')
     assert(exact(item.prerequisites, IDS.slice(0, index)), 'phase prerequisites must be sequential')
@@ -92,14 +167,20 @@ function assertDispositions(contract) {
 
 function assertApprovalEvidence(contract) {
   const ae = contract.approvalEvidence
-  assert(isObject(ae) && ae.allowOnlyWhenCurrent === true && ae.allowScopeMutationOnlyAfter === 'phase-4', 'approval evidence semantics incomplete')
+  assertKeys(ae, [...STATUS, 'valid', 'allowOnlyWhenCurrent', 'allowScopeMutationOnlyAfter'], 'approval evidence')
+  assert(ae.allowOnlyWhenCurrent === true && ae.allowScopeMutationOnlyAfter === 'phase-4', 'approval evidence semantics incomplete')
   for (const state of STATUS) assert(ae[state] === 'deny', 'noncurrent approval must deny: ' + state)
   assert(ae.valid === 'eligible-for-class-specific-checks', 'valid approval cannot imply unconditional allow')
 }
 
 function assertMaintenanceException(contract) {
   const maintenancePolicy = contract.maintenanceException
-  assert(isObject(maintenancePolicy) && maintenancePolicy.explicitAuthorizationRequired === true && maintenancePolicy.scopeMustBeBounded === true, 'maintenance needs explicit bounded authority')
+  assertKeys(maintenancePolicy, [
+    'explicitAuthorizationRequired', 'scopeMustBeBounded', 'mayCreateIssue', 'mayCreateChild',
+    'mayReparent', 'mayExpandApprovedScope', 'mayCreateDurableObligation', 'disallowedWithoutOwner',
+  ], 'maintenance exception')
+  assert(maintenancePolicy.explicitAuthorizationRequired === true && maintenancePolicy.scopeMustBeBounded === true,
+    'maintenance needs explicit bounded authority')
   for (const field of ['mayCreateIssue', 'mayCreateChild', 'mayReparent', 'mayExpandApprovedScope', 'mayCreateDurableObligation']) {
     assert(maintenancePolicy[field] === false, 'maintenance cannot create durable scope: ' + field)
   }
@@ -108,7 +189,11 @@ function assertMaintenanceException(contract) {
 
 function assertExternalReview(contract) {
   const review = contract.externalReview
-  assert(isObject(review) && review.defaultRegime === 'required' &&
+  assertKeys(review, ['regimes', 'defaultRegime', 'missingConfiguration', 'automaticApprovalWhenUnavailable'], 'external review')
+  assert(Array.isArray(review.regimes), 'missing external review regimes')
+  review.regimes.forEach((item) =>
+    assertKeys(item, ['id', 'requiresIndependentReview', 'onUnavailable'], 'review regime'))
+  assert(review.defaultRegime === 'required' &&
     review.missingConfiguration === 'deny-or-hold' &&
     review.automaticApprovalWhenUnavailable === false, 'external review defaults must fail closed')
   assert(exact(review.regimes.map((item) => item.id),
@@ -118,23 +203,24 @@ function assertExternalReview(contract) {
 
 function assertCrossWorkstream(contract) {
   const cross = contract.crossWorkstream
-  assert(isObject(cross) && exact(cross.workstreams, ['cp', 'academy']) &&
+  assertKeys(cross, ['workstreams', 'sharedImplementationOwnerCount', 'ownerClasses', 'noParallelImplementations'], 'cross-workstream')
+  assert(Array.isArray(cross.workstreams) && exact(cross.workstreams, ['cp', 'academy']) &&
     cross.sharedImplementationOwnerCount === 1 && cross.noParallelImplementations === true, 'canonical workstream ownership missing')
   assert(exact(cross.ownerClasses,
     ['cp-core-owned', 'academy-owned', 'shared-system-owned', 'cross-project']), 'workstream classifications incomplete')
 }
 
 function assertCriticalRules(contract) {
-  assert(Array.isArray(contract.criticalRules) && contract.criticalRules.length >= 8, 'critical rules incomplete')
-  assert(unique(contract.criticalRules.map((r) => r.id)), 'duplicate critical rule id')
-  for (const rule of contract.criticalRules) {
-    assert(/^CP-GOV-\d{3}$/.test(rule.id) && nonblank(rule.semantic) &&
-      SOURCE_CLASSES.includes(rule.sourceClass) && nonblank(rule.sourceRef), 'critical rule malformed or unclassified')
-    assert(rule.sourceRef.startsWith(provenancePrefix[rule.sourceClass]),
-      'rule source does not support claimed authority: ' + rule.id)
-  }
-  assert(contract.criticalRules.some((r) => r.semantic === 'current-user-governance-overrides-encoded-contract'),
-    'missing critical user authority invariant')
+  assert(Array.isArray(contract.criticalRules) &&
+    contract.criticalRules.length === CANONICAL_CRITICAL_RULES.length,
+  'canonical critical rule count changed')
+  contract.criticalRules.forEach((rule, index) => {
+    assertKeys(rule, ['id', 'sourceClass', 'sourceRef', 'semantic'], 'critical rule')
+    const expected = CANONICAL_CRITICAL_RULES[index]
+    assert(rule.id === expected.id && rule.semantic === expected.semantic &&
+      rule.sourceClass === expected.sourceClass && rule.sourceRef === expected.sourceRef,
+    'canonical critical rule mapping changed: ' + expected.id)
+  })
 }
 
 /** Reject missing/unknown critical policy semantics before any consumer uses the snapshot. */
@@ -173,7 +259,7 @@ function collectMutationReasons(input, reasons) {
   }
   if (mutationClass === 'bounded-maintenance') {
     if (input.explicitlyAuthorized !== true || input.createsDurableScope !== false ||
-        input.mutatesLinear === true) reasons.push('maintenance-exception-misuse')
+        input.mutatesLinear !== false) reasons.push('maintenance-exception-misuse')
   }
   if (mutationClass === 'read-only' && input.mutatesLinear === true) reasons.push('read-only-cannot-write')
   if (mutationClass === 'ambiguous') reasons.push('ambiguous-classification')
@@ -202,6 +288,16 @@ function collectReviewReasons(input, contract, reasons) {
   }
   if (input.reviewRegime === 'required' && input.reviewStatus !== 'approved') {
     reasons.push('required-review-missing')
+    return
+  }
+  if (input.reviewRegime === 'advisory' &&
+      !['approved', 'unavailable'].includes(input.reviewStatus)) {
+    reasons.push('contradictory-review-evidence')
+    return
+  }
+  if (input.reviewRegime === 'unavailable') {
+    if (input.reviewStatus !== 'unavailable') reasons.push('contradictory-review-evidence')
+    else if (input.mutationClass === 'backlog-shape') reasons.push('unavailable-review-cannot-authorize-scope')
     return
   }
   if (input.reviewRegime === 'approved-substitute' &&

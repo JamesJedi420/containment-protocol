@@ -43,10 +43,10 @@ test('precedence and source-provenance cannot silently promote lower-authority c
   assert.throws(() => validateAuthorityContract(reversed), /authority/)
   const spoofed = clone()
   spoofed.criticalRules[0].sourceRef = 'repository:AGENTS.md'
-  assert.throws(() => validateAuthorityContract(spoofed), /source does not support/)
+  assert.throws(() => validateAuthorityContract(spoofed), /canonical critical rule mapping changed/)
   const duplicated = clone()
   duplicated.criticalRules[1].id = duplicated.criticalRules[0].id
-  assert.throws(() => validateAuthorityContract(duplicated), /duplicate/)
+  assert.throws(() => validateAuthorityContract(duplicated), /canonical critical rule mapping changed: CP-GOV-002/)
 })
 
 test('phase ordering and final-phase-only scope authority are mandatory', () => {
@@ -157,4 +157,83 @@ test('schema rejects forged current-user policy and duplicate ownership', () => 
   const copy = clone()
   copy.status = 'canonical-policy-authority'
   assert.throws(() => validateAuthorityContract(copy), /independent authority/)
+})
+
+test('SPE-3479: unavailable reviewer regime cannot claim an approved decision', () => {
+  for (const reviewStatus of ['approved', 'approved-substitute', 'unavailable']) {
+    assert.equal(inspectGovernanceEvidence({
+      ...current, reviewRegime: 'unavailable', reviewStatus,
+    }).outcome, 'blocked')
+  }
+  assert.equal(inspectGovernanceEvidence({
+    ...current, reviewRegime: 'advisory', reviewStatus: 'approved-substitute',
+  }).outcome, 'blocked')
+  assert.equal(inspectGovernanceEvidence({
+    ...current, reviewRegime: 'required', reviewStatus: 'approved',
+  }).outcome, 'eligible-for-phase-four-revalidation')
+  assert.equal(inspectGovernanceEvidence({
+    ...current, reviewRegime: 'approved-substitute', reviewStatus: 'approved-substitute',
+    currentSubstitutionApproval: true,
+  }).outcome, 'eligible-for-phase-four-revalidation')
+})
+
+test('SPE-3479: version-compatible critical rules require exact identity and provenance', () => {
+  const edits = [
+    (c) => { c.criticalRules[0].semantic = 'replaced-user-authority' },
+    (c) => { c.criticalRules[1].sourceClass = 'repository-derived-projection'; c.criticalRules[1].sourceRef = 'repository:forged' },
+    (c) => { c.criticalRules[2].sourceRef = 'linear:SPE-3261' },
+    (c) => { c.criticalRules[3].id = 'CP-GOV-012' },
+    (c) => { c.criticalRules.reverse() },
+    (c) => { c.criticalRules.pop() },
+    (c) => { c.criticalRules.push({ ...c.criticalRules[0], id: 'CP-GOV-010' }) },
+    (c) => { c.criticalRules[0].newAuthority = true },
+  ]
+  for (const edit of edits) {
+    const contract = clone()
+    edit(contract)
+    assert.throws(() => validateAuthorityContract(contract), /governance-contract:/)
+  }
+  assert.equal(validateAuthorityContract(clone()), true)
+})
+
+test('SPE-3479: reject missing and unknown nested authority-bearing fields', () => {
+  const edits = [
+    (c) => { delete c.provenance.sourceReferences },
+    (c) => { c.provenance.sourceReferences = ['linear:SPE-3261'] },
+    (c) => { delete c.provenance.implementationEvidenceClass },
+    (c) => { c.provenance.implementationEvidenceClass = 'repository-derived-projection' },
+    (c) => { c.provenance.extraApproval = true },
+    (c) => { c.authorityOrder[0].extraApproval = true },
+    (c) => { c.mutationClasses[0].unreviewedWrite = true },
+    (c) => { c.phases[0].appliesTo = 'any' },
+    (c) => { delete c.phases[3].doesNotApplyTo },
+    (c) => { c.approvalEvidence.extraAllowState = 'allow' },
+    (c) => { c.maintenanceException.extraWrite = true },
+    (c) => { c.externalReview.regimes[0].newApprover = true },
+    (c) => { c.crossWorkstream.additionalOwner = true },
+  ]
+  for (const edit of edits) {
+    const contract = clone()
+    edit(contract)
+    assert.throws(() => validateAuthorityContract(contract), /governance-contract:/)
+  }
+  assert.equal(validateAuthorityContract(clone()), true)
+})
+
+test('SPE-3479: maintenance requires explicit non-mutation evidence', () => {
+  const valid = {
+    mutationClass: 'bounded-maintenance',
+    contractVersion: base.policyVersion,
+    approvalState: 'valid',
+    explicitlyAuthorized: true,
+    createsDurableScope: false,
+    mutatesLinear: false,
+  }
+  assert.equal(inspectGovernanceEvidence(valid).outcome, 'read-only-or-maintenance')
+  for (const invalid of [undefined, null, true, 'false', 0]) {
+    const probe = { ...valid }
+    if (invalid === undefined) delete probe.mutatesLinear
+    else probe.mutatesLinear = invalid
+    assert.equal(inspectGovernanceEvidence(probe).outcome, 'blocked')
+  }
 })

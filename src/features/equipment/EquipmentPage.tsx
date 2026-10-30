@@ -10,14 +10,11 @@ import {
   getCombatStimStoredInstanceReaggregationViews,
   getCombatStimStoredInstanceReturnToLotViews,
 } from '../../domain/combatStim'
-import {
-  getPaidRepairFailureLabel,
-  quotePaidEquipmentRepair,
-} from '../../domain/paidEquipmentRepair'
-import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
+import { getPaidRepairFailureLabel } from '../../domain/paidEquipmentRepair'
 import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
   getAgentEquipmentLoadoutViews,
+  getCombatStimPaidRepairViews,
   getEquipmentAutoScrapView,
   getEquipmentDeconstructionQueueViews,
   getEquipmentDeconstructionViews,
@@ -112,22 +109,7 @@ function EquipmentPage() {
     )
     return map
   }, [game])
-  const combatStimRepairById = useMemo(() => {
-    const map = new Map(
-      combatStimDisposalViews.map(({ instanceId }) => {
-        const instance = game.equipmentInstances?.[instanceId]
-        return [
-          instanceId,
-          quotePaidEquipmentRepair(
-            game,
-            instanceId,
-            getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
-          ),
-        ] as const
-      })
-    )
-    return map
-  }, [game, combatStimDisposalViews])
+  const combatStimRepairById = useMemo(() => getCombatStimPaidRepairViews(game), [game])
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (

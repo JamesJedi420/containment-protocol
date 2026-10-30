@@ -107,7 +107,7 @@ export function settlePaidEquipmentRepair(
   if (!repaired.state.agency) return failureResult('invalid_agency')
   const fundingState = recomputeBudgetPressure(
     applyFundingExpense(
-      getCanonicalFundingState(state),
+      getCanonicalFundingState(repaired.state),
       quote.quotedCost,
       'equipment_repair',
       state.week,

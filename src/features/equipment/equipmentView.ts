@@ -38,6 +38,7 @@ import {
 } from '../../domain/equipmentAutoScrap'
 import {
   getCombatStimActivationReasonLabel,
+  getCombatStimStoredInstanceDisposalViews,
   resolveCombatStimActivation,
   resolveCombatStimDisposal,
   resolveCombatStimReaggregation,
@@ -53,6 +54,7 @@ import {
   getPaidRepairFailureLabel,
   quotePaidEquipmentRepair,
 } from '../../domain/paidEquipmentRepair'
+
 import {
   COMBAT_STIM_DEFINITION_ID,
   canInspectContainmentClassIntegrity,
@@ -76,6 +78,22 @@ import type {
   PersonnelPpeDemandViewRow,
   PpeDeficitReason,
 } from '../../domain/personnelPpeReplacementDemand'
+
+export function getCombatStimPaidRepairViews(game: GameState) {
+  return new Map(
+    getCombatStimStoredInstanceDisposalViews(game).map(({ instanceId }) => {
+      const instance = game.equipmentInstances?.[instanceId]
+      return [
+        instanceId,
+        quotePaidEquipmentRepair(
+          game,
+          instanceId,
+          getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
+        ),
+      ] as const
+    })
+  )
+}
 
 export interface GearRecommendation {
   caseId: string

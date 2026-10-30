@@ -1,5 +1,7 @@
 # Event Schema Registry
 
+- Optional `GameState.equipmentRecallRegistry` (SPE-3155) stores bounded recall obligations by safe campaign ID and immutable equipment-instance ID. Each obligation preserves affected/unaffected/unknown applicability, its provenance reason, observed condition, and unknown/located/dispositioned/remediated lifecycle. Hydration drops malformed siblings and never replays disposition or repair. Legacy omit hydrates empty. Resolution consumes `equipmentInstances.fabricationOrigin`, uses the existing containment hard-stop command, and observes ordinary condition repair plus deficiency stabilization without inventing provenance or changing inventory/lot quantities. No save-envelope version change.
+
 ## Overview
 
 Documents versioning strategy for OperationEvent types to ensure backward compatibility and safe migrations.

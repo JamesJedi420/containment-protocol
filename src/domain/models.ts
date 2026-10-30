@@ -3050,6 +3050,8 @@ export interface GameState {
   volatileActionHoldRecords?: VolatileActionHoldRecords
   /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
   equipmentInstances?: EquipmentInstanceRegistry
+  /** SPE-3155: bounded defect-recall obligations keyed by campaign and instance identity. */
+  equipmentRecallRegistry?: import('./equipmentRecall').EquipmentRecallRegistry
   /**
    * SPE-877 / SPE-2868 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
    * `blast_door_membrane`, `pressure_seal_membrane`, and `interlock_membrane` are independent.

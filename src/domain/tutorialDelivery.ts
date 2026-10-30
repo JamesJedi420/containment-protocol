@@ -129,8 +129,9 @@ function telemetry(
   extra: Pick<TutorialTelemetryRecord, 'stepId' | 'reason' | 'fromVersion'> = {}
 ): TutorialTelemetryRecord {
   const step = extra.stepId === undefined ? 'flow' : `step/${encodeURIComponent(extra.stepId)}`
+  const reason = extra.reason === undefined ? '' : `:reason/${extra.reason}`
   return Object.freeze({
-    id: `tutorial:${encodeURIComponent(definition.id)}:${definition.version}:${lifecycle.run}:${lifecycle.revision}:${command.type}:${kind}:${step}`,
+    id: `tutorial:${encodeURIComponent(definition.id)}:${definition.version}:${lifecycle.run}:${lifecycle.revision}:${command.type}:${kind}:${step}${reason}`,
     tutorialId: definition.id,
     definitionVersion: definition.version,
     run: lifecycle.run,
@@ -283,7 +284,12 @@ export function applyTutorialDelivery(
     ?.lifecycle.definitionVersion
   const candidates = result.changed
     ? transitionEvents(definition, before, result.state, command, fromVersion)
-    : [telemetry(definition, before, command, 'failed', { reason: result.reason })]
+    : [
+        telemetry(definition, before, command, 'failed', {
+          stepId: definition.steps[before.cursor].id,
+          reason: result.reason,
+        }),
+      ]
   const recorded = recordEvents(applied.state, candidates)
   return {
     state: recorded.state,

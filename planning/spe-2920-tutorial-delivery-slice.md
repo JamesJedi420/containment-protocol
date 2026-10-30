@@ -35,3 +35,7 @@ Architecture and completion advisor preflights both returned parent_runtime_unav
 ## Deferred
 
 No in-boundary deferrals. Existing SPE-2907 owns downstream campaign-specific presentation reconciliation; SPE-2744 owns first-run onboarding. SPE-1119 retains broader analytics ownership; SPE-3395 retains input registry/remapping ownership. No activation or new issue creation here.
+
+## Independent review correction
+
+Full eleven-file diff reviewed against main: no remaining root critical/warning findings. Gitar identified failure diagnostic identity collisions between illegal and ineligible attempts on the same command/revision. IDs now include the failure reason and failed records carry the canonical current step; arbitrary requested-step payloads are not logged. New regression proves distinct failures survive and duplicate deliveries still deduplicate. Final focused six-file suite: 108 passed; changed-file lint passes. Six audit passes rechecked. Amazon Q revision-union concern is invalid: every TutorialCommand declares required expectedRevision, as does report_recovery; no guard narrowing is needed. Sonar Set suggestion is nonblocking style/performance only; no gate is weakened.

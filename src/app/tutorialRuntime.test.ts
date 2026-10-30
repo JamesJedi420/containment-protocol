@@ -293,6 +293,42 @@ describe('application tutorial runtime', () => {
     ).toBe(true)
   })
 
+  it('distinguishes failure reasons on the same revision without recording untrusted requested steps', () => {
+    const blocked = createTutorialRuntime([
+      { ...runtime.definition('context')!, conditionIds: ['open'] },
+    ])
+    blocked.dispatch(
+      'context',
+      { type: 'start', expectedRevision: 0 },
+      {
+        conditions: { open: { passes: true } },
+      }
+    )
+    const revision = lifecycle('context').revision
+    const wrong = {
+      type: 'advance',
+      expectedRevision: revision,
+      stepId: 'untrusted-payload',
+    } as const
+    const unavailable = { ...wrong, stepId: 'inspect' }
+    const illegal = blocked.dispatch('context', wrong)
+    const ineligible = blocked.dispatch('context', unavailable)
+    expect(illegal.events[0]).toMatchObject({
+      kind: 'failed',
+      reason: 'illegal',
+      stepId: 'inspect',
+    })
+    expect(ineligible.events[0]).toMatchObject({
+      kind: 'failed',
+      reason: 'ineligible',
+      stepId: 'inspect',
+    })
+    expect(illegal.events[0].id).not.toBe(ineligible.events[0].id)
+    expect(blocked.dispatch('context', wrong).events).toEqual([])
+    expect(blocked.dispatch('context', unavailable).events).toEqual([])
+    expect(JSON.stringify(traces())).not.toContain('untrusted-payload')
+  })
+
   it('emits migration only when a new version is durably written and never reactivates obsolete steps', () => {
     command('start')
     command('advance')

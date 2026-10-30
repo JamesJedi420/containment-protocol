@@ -41,7 +41,7 @@ export function quotePaidEquipmentRepair(
 ): PaidRepairQuote {
   const preview = resolveStoredEquipmentInstanceConditionRepair(state, instanceId, sparePartId)
   let failure: PaidRepairFailure | undefined = preview.reasonCode
-  if (!failure && (!Number.isSafeInteger(state.funding) || state.funding < 0)) {
+  if (!failure && !Number.isSafeInteger(state.funding)) {
     failure = 'invalid_funding'
   }
   if (!failure && (!Number.isSafeInteger(state.week) || state.week < 1)) failure = 'invalid_week'

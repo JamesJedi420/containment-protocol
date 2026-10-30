@@ -14,9 +14,8 @@ import { loadGameSave, serializeGameSave } from './saveSystem'
 import { useGameStore } from './gameStore'
 
 function damaged(classId?: 'blast_door' | 'pressure_seal') {
-  const game = createStartingState()
-  game.funding = 100
-  game.inventory.ward_seals = 1
+  const base = createStartingState()
+  const game = { ...base, funding: 100, inventory: { ...base.inventory, ward_seals: 1 } }
   const created = instantiateEquipmentInstance(game, 'ward_seals', {
     condition: 'damaged',
     ...(classId
@@ -84,14 +83,14 @@ describe('paid equipment repair', () => {
     expect(loaded.funding).toBe(0)
   })
 
-  it.each([99, -1, NaN])('fails without writes for funding %s', (funding) => {
+  it.each([99, 0, -1, NaN])('fails without writes for funding %s', (funding) => {
     const created = damaged()
     const state = { ...created.state, funding }
     const result = settlePaidEquipmentRepair(state, created.instance.instanceId)
     expect(result).toMatchObject({
       payment: 'not_charged',
       charged: 0,
-      failure: funding === 99 ? 'insufficient_funding' : 'invalid_funding',
+      failure: Number.isFinite(funding) ? 'insufficient_funding' : 'invalid_funding',
     })
     expect(result.state).toBe(state)
   })

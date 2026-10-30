@@ -14,6 +14,10 @@ A handoff may continue an active Linear issue and may apply truthful lifecycle/e
 
 See `docs/governance/authority-contract.v1.json` (`lifecycle-evidence` vs `backlog-shape`; CP-GOV-009).
 
+## Read-only session closeout
+
+For sessions that only review evidence, analyze documentation, or triage harvest candidates (without Linear, repository, or external writes), use [Read-only session handoff](./read-only-session-handoff.md). Record inspected issues, evidence and candidate/approval state, the canonical ledger reference when available, and the next authorized actor/action. This is not an implementation closeout and does not trigger the post-merge cloud-agent Linear handoff or grant new mutation authority.
+
 ## Standing policy
 
 | Layer | What belongs there |

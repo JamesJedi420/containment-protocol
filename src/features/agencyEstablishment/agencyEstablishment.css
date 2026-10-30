@@ -1,0 +1,97 @@
+.agency-establishment {
+  display: grid;
+  gap: 1.25em;
+  min-width: 0;
+}
+.agency-establishment h2 {
+  font-size: 1.8em;
+}
+.agency-establishment h3 {
+  font-size: 1.5em;
+  margin: 0 0 0.6em;
+}
+.agency-establishment p {
+  margin: 0.5em 0;
+  font-size: 1em;
+}
+.agency-establishment .opening-eyebrow {
+  color: var(--accent);
+  font: 0.7em var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.opening-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7em, 1fr));
+  gap: 0.5em;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.opening-progress li {
+  display: flex;
+  gap: 0.55em;
+  align-items: flex-start;
+  padding: 0.6em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75em;
+  overflow-wrap: anywhere;
+}
+.opening-progress li[aria-current='step'] {
+  border-color: var(--accent);
+  background: var(--panel-hi);
+}
+.opening-progress small {
+  display: block;
+  margin-top: 0.35em;
+  color: var(--text-soft);
+}
+.opening-number {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.opening-stage {
+  padding: 1.25em;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel-hi);
+  overflow-wrap: anywhere;
+}
+.opening-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12em, 100%), 1fr));
+  gap: 1em;
+  margin: 1em 0 0;
+}
+.opening-facts dt {
+  color: var(--text-soft);
+  font-size: 0.8em;
+}
+.opening-facts dd {
+  margin: 0.15em 0 0;
+  color: var(--text-strong);
+}
+.opening-explanation {
+  border-top: 1px solid var(--border-strong);
+  margin-top: 1.1em;
+  padding-top: 0.7em;
+}
+.opening-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em;
+}
+.opening-controls .btn {
+  font-size: 0.85em;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.agency-establishment[data-reduced-motion='true'] *,
+.agency-establishment[data-reduced-motion='true'] {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto;
+}

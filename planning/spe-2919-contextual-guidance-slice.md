@@ -35,3 +35,7 @@ Architecture and completion advisor preflights returned parent_runtime_unavailab
 ## Deferred
 
 No in-boundary deferrals. Existing SPE-3395 owns canonical input registry/remapping/persistence; SPE-2920 owns archive/replay delivery and integration. These boundaries are not implemented here.
+
+## Independent review and reviewer dispositions
+
+Full seven-file diff reviewed against main: no critical/warning findings. Amazon Q requested explicit omitted-action-adapter, accessibility-default and nested-output-freeze assertions; added to existing regressions. The shared sorter preserves references, and the shared validator rejects noncanonical IDs, so those crash/validation concerns do not require production changes. Missing action ownership intentionally hides the step; reduced motion defaults conservatively to true as documented. Final focused lifecycle/guidance suite: 56 passed; test-file lint passes. All six audit passes rechecked without new findings.

@@ -156,6 +156,17 @@ describe('tutorial guidance adapters', () => {
       ).toBeUndefined()
     }
     expect(binding).not.toHaveBeenCalled()
+    expect(
+      selectTutorialGuidance({
+        ...input,
+        adapters: {
+          conditions: adapters.conditions,
+          resolveContent: adapters.resolveContent,
+          resolveBinding: binding,
+        },
+      })
+    ).toBeUndefined()
+    expect(binding).not.toHaveBeenCalled()
   })
 
   it('reuses the shared explanation projection capped by the owner', () => {
@@ -241,6 +252,12 @@ describe('tutorial guidance adapters', () => {
       adapters: { ...adapters, resolveBinding: binding },
     })!
     expect(unsupported.action?.bindingStatus).toBe('unsupported')
+    expect(unsupported.accessibility).toMatchObject({
+      reducedMotion: true,
+      hover: false,
+      screenReader: false,
+      textScale: 1,
+    })
     expect(binding).not.toHaveBeenCalled()
     expect(unsupported.semanticText).toEqual(missing.semanticText)
     expect(unsupported.semanticText.join(' ')).toContain('guidance is optional')
@@ -286,6 +303,8 @@ describe('tutorial guidance adapters', () => {
     expect(lifecycle.revision).toBe(0)
     expect(Object.isFrozen(result)).toBe(true)
     expect(Object.isFrozen(result.semanticText)).toBe(true)
+    expect(Object.isFrozen(result.action)).toBe(true)
+    expect(Object.isFrozen(result.explanations)).toBe(true)
   })
 
   it('orders explanations deterministically and isolates their mutable input references', () => {

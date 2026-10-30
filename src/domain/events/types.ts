@@ -515,6 +515,8 @@ export interface OperationEventPayloadMap {
     previousCondition: 'damaged'
     condition: 'operational'
     reason: 'manual_condition_repair'
+    /** Absent for legacy unpaid repair events. */
+    repairCost?: number
   }
   'equipment.containment_class_deficiency_recorded': {
     week: number

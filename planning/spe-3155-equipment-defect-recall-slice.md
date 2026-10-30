@@ -1,6 +1,6 @@
 # SPE-3155 — Equipment defect recall and remediation slice
 
-Status: Ready to ship. Linear remains In Progress until merge.
+Status: Shipped in PR #4527. Linear is Done; parent SPE-877 remains Backlog.
 
 ## Boundary
 

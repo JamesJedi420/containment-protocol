@@ -1029,6 +1029,7 @@ const equipmentInstanceConditionRepairedSchema = z
     previousCondition: z.literal('damaged'),
     condition: z.literal('operational'),
     reason: z.literal('manual_condition_repair'),
+    repairCost: z.number().int().positive().max(1_000_000).optional(),
   })
   .strict()
   .superRefine((payload, context) => {

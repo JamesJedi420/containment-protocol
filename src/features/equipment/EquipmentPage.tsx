@@ -6,12 +6,15 @@ import {
   getCombatStimDisposalReasonLabel,
   getCombatStimReaggregationReasonLabel,
   getCombatStimReturnToLotReasonLabel,
-  getCombatStimStoredInstanceConditionRepairViews,
   getCombatStimStoredInstanceDisposalViews,
   getCombatStimStoredInstanceReaggregationViews,
   getCombatStimStoredInstanceReturnToLotViews,
 } from '../../domain/combatStim'
-import { getStoredEquipmentInstanceConditionRepairReasonLabel } from '../../domain/equipmentInstance'
+import {
+  getPaidRepairFailureLabel,
+  quotePaidEquipmentRepair,
+} from '../../domain/paidEquipmentRepair'
+import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import type { EquipmentDeconstructionSourceRef } from '../../domain/sim/equipmentDeconstruction'
 import {
   getAgentEquipmentLoadoutViews,
@@ -66,6 +69,9 @@ function EquipmentPage() {
   }>()
   const [pendingDestructionInstanceId, setPendingDestructionInstanceId] = useState<string>()
   const [pendingRepairInstanceId, setPendingRepairInstanceId] = useState<string>()
+  const [pendingRepairCost, setPendingRepairCost] = useState<number>()
+  const [pendingCombatStimRepairCost, setPendingCombatStimRepairCost] = useState<number>()
+  const [repairFeedback, setRepairFeedback] = useState<string>()
   const [pendingStabilizeInstanceId, setPendingStabilizeInstanceId] = useState<string>()
   const [pendingInspectInstanceId, setPendingInspectInstanceId] = useState<string>()
   const [pendingCombatStimDisposalInstanceId, setPendingCombatStimDisposalInstanceId] =
@@ -108,15 +114,26 @@ function EquipmentPage() {
   }, [game])
   const combatStimRepairById = useMemo(() => {
     const map = new Map(
-      getCombatStimStoredInstanceConditionRepairViews(game).map((view) => [view.instanceId, view])
+      combatStimDisposalViews.map(({ instanceId }) => {
+        const instance = game.equipmentInstances?.[instanceId]
+        return [
+          instanceId,
+          quotePaidEquipmentRepair(
+            game,
+            instanceId,
+            getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
+          ),
+        ] as const
+      })
     )
     return map
-  }, [game])
+  }, [game, combatStimDisposalViews])
   const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (
     <section className="space-y-4">
       <article className="panel space-y-3">
+        {repairFeedback ? <p role="status">{repairFeedback}</p> : null}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Equipment</h2>
@@ -470,8 +487,9 @@ function EquipmentPage() {
                             aria-label={`Confirm condition repair ${view.itemName} instance ${instance.instanceId}`}
                           >
                             <p className="text-xs text-amber-100">
-                              Restore this exact stored copy to operational condition? Aggregate
-                              stock, fabricated-lot tracking, and recovery claims stay unchanged.
+                              Restore this exact stored copy to operational condition for $
+                              {pendingRepairCost}? Aggregate stock, fabricated-lot tracking, and
+                              recovery claims stay unchanged.
                             </p>
                             <div className="flex gap-2">
                               <button
@@ -479,8 +497,19 @@ function EquipmentPage() {
                                 className="btn btn-xs"
                                 aria-label={`Repair condition ${view.itemName} instance ${instance.instanceId}`}
                                 onClick={() => {
-                                  repairStoredEquipmentInstanceCondition(instance.instanceId)
-                                  setPendingRepairInstanceId(undefined)
+                                  const result = repairStoredEquipmentInstanceCondition(
+                                    instance.instanceId,
+                                    pendingRepairCost
+                                  )
+                                  setRepairFeedback(
+                                    result.payment === 'paid'
+                                      ? `Repair completed: paid $${result.charged}; condition ${result.resultingCondition}.`
+                                      : getPaidRepairFailureLabel(
+                                          result.failure ?? 'stale_transition'
+                                        )
+                                  )
+                                  if (result.payment === 'paid')
+                                    setPendingRepairInstanceId(undefined)
                                 }}
                               >
                                 Confirm repair
@@ -507,9 +536,12 @@ function EquipmentPage() {
                               setPendingStabilizeInstanceId(undefined)
                               setPendingInspectInstanceId(undefined)
                               setPendingRepairInstanceId(instance.instanceId)
+                              setPendingCombatStimRepairInstanceId(undefined)
+                              setPendingRepairCost(instance.repairCost)
+                              setRepairFeedback(undefined)
                             }}
                           >
-                            Repair condition
+                            Repair condition (${instance.repairCost})
                           </button>
                         ) : null}
                         {instance.conditionLabel === 'Damaged' &&
@@ -861,8 +893,9 @@ function EquipmentPage() {
                     >
                       <p className="text-xs text-amber-100">
                         Restore this stored Combat Stim to operational condition
-                        {instance.doseLabel ? ` (${instance.doseLabel})` : ''}? Remaining doses and
-                        aggregate stock stay unchanged.
+                        {instance.doseLabel ? ` (${instance.doseLabel})` : ''} for $
+                        {pendingCombatStimRepairCost}? Remaining doses and aggregate stock stay
+                        unchanged.
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -870,8 +903,17 @@ function EquipmentPage() {
                           className="btn btn-xs"
                           aria-label={`Repair condition Combat Stim instance ${instance.instanceId}`}
                           onClick={() => {
-                            repairStoredEquipmentInstanceCondition(instance.instanceId)
-                            setPendingCombatStimRepairInstanceId(undefined)
+                            const result = repairStoredEquipmentInstanceCondition(
+                              instance.instanceId,
+                              pendingCombatStimRepairCost
+                            )
+                            setRepairFeedback(
+                              result.payment === 'paid'
+                                ? `Repair completed: paid $${result.charged}; condition ${result.resultingCondition}.`
+                                : getPaidRepairFailureLabel(result.failure ?? 'stale_transition')
+                            )
+                            if (result.payment === 'paid')
+                              setPendingCombatStimRepairInstanceId(undefined)
                           }}
                         >
                           Confirm repair
@@ -889,24 +931,27 @@ function EquipmentPage() {
                     <button
                       type="button"
                       className="btn btn-xs btn-ghost mt-2"
-                      disabled={!repair?.canRepairCondition}
+                      disabled={!repair?.eligible}
                       aria-label={`Review condition repair Combat Stim instance ${instance.instanceId}`}
                       onClick={() => {
                         setPendingCombatStimRepairInstanceId(instance.instanceId)
+                        setPendingCombatStimRepairCost(repair?.quotedCost)
+                        setPendingRepairInstanceId(undefined)
+                        setRepairFeedback(undefined)
                         setPendingCombatStimDisposalInstanceId(undefined)
                         setPendingCombatStimReaggregationInstanceId(undefined)
                         setPendingCombatStimReturnToLotInstanceId(undefined)
                       }}
                     >
-                      Repair condition
+                      Repair condition (${repair?.quotedCost})
                     </button>
                   ) : null}
                   {repair &&
-                  !repair.canRepairCondition &&
-                  repair.reasonCode &&
+                  !repair.eligible &&
+                  repair.failure &&
                   instance.conditionLabel === 'Damaged' ? (
                     <p className="mt-1 text-xs text-amber-200/80">
-                      {getStoredEquipmentInstanceConditionRepairReasonLabel(repair.reasonCode)}
+                      {getPaidRepairFailureLabel(repair.failure)}
                     </p>
                   ) : null}
                   {pendingCombatStimReaggregationInstanceId === instance.instanceId ? (
@@ -1230,7 +1275,10 @@ function EquipmentPage() {
                       <p className="mt-1 text-xs text-amber-200/80">{view.blockedReason}</p>
                     ) : null}
                     {view.ppeDemands.length > 0 ? (
-                      <ul className="mt-2 space-y-1" aria-label={`PPE replacement demand for ${view.agentName}`}>
+                      <ul
+                        className="mt-2 space-y-1"
+                        aria-label={`PPE replacement demand for ${view.agentName}`}
+                      >
                         {view.ppeDemands.map((demand) => (
                           <li key={demand.demandId} className="text-xs">
                             <span className="text-amber-100">

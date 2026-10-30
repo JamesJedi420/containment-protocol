@@ -519,6 +519,7 @@ describe('EquipmentPage', () => {
         /aggregate stock, fabricated-lot tracking, and recovery claims stay unchanged/i
       )
     ).toBeVisible()
+    expect(screen.getByText(/operational condition for \$100/i)).toBeVisible()
     await user.click(
       screen.getByRole('button', {
         name: `Repair condition Signal Jammers instance ${created.instance.instanceId}`,
@@ -540,9 +541,11 @@ describe('EquipmentPage', () => {
           previousCondition: 'damaged',
           condition: 'operational',
           reason: 'manual_condition_repair',
+          repairCost: 100,
         }),
       }),
     ])
+    expect(screen.getByRole('status')).toHaveTextContent('paid $100; condition operational')
     act(() =>
       useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
     )
@@ -566,6 +569,38 @@ describe('EquipmentPage', () => {
     expect(useGameStore.getState().game.equipmentInstances).not.toHaveProperty(
       created.instance.instanceId
     )
+  })
+
+  it('keeps the confirmation open and reports changed funding without charging', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.funding = 100
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', { condition: 'damaged' })
+    if (!created.ok) throw new Error(created.code)
+    useGameStore.setState({ game: created.state })
+    renderEquipmentPage()
+    await user.click(
+      screen.getByRole('button', {
+        name: `Review condition repair Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    act(() => useGameStore.setState({ game: { ...useGameStore.getState().game, funding: 99 } }))
+    await user.click(
+      screen.getByRole('button', {
+        name: `Repair condition Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('Insufficient funds')
+    expect(
+      screen.getByRole('group', {
+        name: `Confirm condition repair Signal Jammers instance ${created.instance.instanceId}`,
+      })
+    ).toBeVisible()
+    expect(useGameStore.getState().game.funding).toBe(99)
+    expect(
+      useGameStore.getState().game.equipmentInstances?.[created.instance.instanceId]?.condition
+    ).toBe('damaged')
   })
 
   it('disables blast-door condition repair when named spare-part stock is missing', async () => {
@@ -1337,6 +1372,7 @@ describe('EquipmentPage', () => {
       })
     ).toBeVisible()
     expect(screen.getByText(/remaining doses and aggregate stock stay unchanged/i)).toBeVisible()
+    expect(screen.getByText(/for \$100\?/i)).toBeVisible()
     await user.click(
       screen.getByRole('button', {
         name: 'Repair condition Combat Stim instance equipment-instance-damaged-full',
@@ -1360,9 +1396,11 @@ describe('EquipmentPage', () => {
           previousCondition: 'damaged',
           condition: 'operational',
           reason: 'manual_condition_repair',
+          repairCost: 100,
         }),
       }),
     ])
+    expect(screen.getByRole('status')).toHaveTextContent('paid $100; condition operational')
 
     await user.click(
       screen.getByRole('button', {

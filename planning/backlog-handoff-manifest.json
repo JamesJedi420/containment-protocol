@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-3155"],
+  "inProgress": [],
   "recentlyShipped": [
+    "SPE-3088",
     "SPE-3494",
     "SPE-2907",
     "SPE-3491",
@@ -136,6 +137,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3088-paid-equipment-repair-settlement-slice.md": "Recently shipped",
     "planning/spe-2271-patrol-escort-doctrine-slice.md": "Recently shipped",
     "planning/spe-807-cross-zone-contamination-slice.md": "Recently shipped",
     "planning/spe-408-persistent-area-shapes-slice.md": "Recently shipped",

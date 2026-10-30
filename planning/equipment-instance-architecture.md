@@ -90,11 +90,17 @@ closed when active overdrive or recovery debt references the instance.
 ## Condition repair
 
 Stored damaged ordinary and Combat Stim identities can be repaired through
-`repairStoredEquipmentInstanceCondition`. The command changes only `condition: 'damaged'` to
+`repairStoredEquipmentInstanceCondition`. The condition authority changes only `condition: 'damaged'` to
 `'operational'` by reusing `applyEquipmentInstanceTransition`; it does not credit inventory, refill
 Combat Stim doses, mutate fabricated-lot receipts, touch `damagedEquipmentQueue`, or alter recovery
 queues and outcomes. Successful repairs emit `equipment.instance_condition_repaired` with the exact
 instance ID, definition snapshot, previous/resulting condition, and `manual_condition_repair`.
+
+SPE-3088 composes that transition with a fixed $100 quoted agency-funding expense. The player
+confirmation retains the quote; settlement rechecks it, funding, condition, suitability and named
+stock before committing the repair, part consumption and debit together. Failure leaves the input
+state unchanged. The existing repair event carries optional `repairCost` for paid settlements;
+legacy events omit it. Loading a save preserves the record and never replays the repair or charge.
 
 Repair is intentionally storage-only. Equipped identities must be moved back to storage first, and
 recovery-claimed identities remain locked to their recovery provenance. Once repaired, an identity

@@ -50,16 +50,18 @@ import {
 import { isAuthoredWorkshopIntegrityInstanceId } from '../../domain/departmentWorkshopIntegrityQualityMapping'
 import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
 import {
+  getPaidRepairFailureLabel,
+  quotePaidEquipmentRepair,
+} from '../../domain/paidEquipmentRepair'
+import {
   COMBAT_STIM_DEFINITION_ID,
   canInspectContainmentClassIntegrity,
   canStabilizeContainmentClassDeficiency,
   getEquipmentInstanceAtAgentSlot,
-  getStoredEquipmentInstanceConditionRepairReasonLabel,
   isCanonicalCombatStimPayload,
   isEquipmentInstanceClaimedForRecovery,
   listStoredEquipmentInstances,
   resolveFabricationOriginForDefinition,
-  resolveStoredEquipmentInstanceConditionRepair,
 } from '../../domain/equipmentInstance'
 import {
   createDefaultResponderEnergyBudget,
@@ -120,6 +122,7 @@ export interface EquipmentInstanceMaterializationView {
     canDestroy: boolean
     destructionBlocker?: 'payload_unsupported' | 'recovery_claimed' | 'authored_workshop_identity'
     canRepairCondition: boolean
+    repairCost: number
     repairConditionBlocker?: 'recovery_claimed'
     repairConditionReasonLabel?: string
     canStabilizeContainmentDeficiency: boolean
@@ -648,7 +651,9 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
           fulfillable: packet.fulfillable,
           reasons: packet.reasons,
           reasonLabels: packet.reasons.map((reason) => getPpeDeficitReasonLabel(reason)),
-          reasonSummary: packet.reasons.map((reason) => getPpeDeficitReasonLabel(reason)).join('; '),
+          reasonSummary: packet.reasons
+            .map((reason) => getPpeDeficitReasonLabel(reason))
+            .join('; '),
         }))
 
       return {
@@ -802,20 +807,18 @@ export function getEquipmentInstanceMaterializationViews(
                   : recoveryClaimed
                     ? ('recovery_claimed' as const)
                     : undefined)
-              const repairPreview = resolveStoredEquipmentInstanceConditionRepair(
+              const repairPreview = quotePaidEquipmentRepair(
                 game,
                 instance.instanceId,
                 getRequiredRepairSparePartId(instance.containmentIntegrity?.classId)
               )
               const repairConditionBlocker =
-                !repairPreview.canRepairCondition && repairPreview.reasonCode === 'recovery_claimed'
+                !repairPreview.eligible && repairPreview.failure === 'recovery_claimed'
                   ? ('recovery_claimed' as const)
                   : undefined
               const repairConditionReasonLabel =
-                instance.condition === 'damaged' &&
-                !repairPreview.canRepairCondition &&
-                repairPreview.reasonCode
-                  ? getStoredEquipmentInstanceConditionRepairReasonLabel(repairPreview.reasonCode)
+                instance.condition === 'damaged' && !repairPreview.eligible && repairPreview.failure
+                  ? getPaidRepairFailureLabel(repairPreview.failure)
                   : undefined
               const reaggregationBlocker =
                 authoredWorkshopBlocker ??
@@ -870,7 +873,8 @@ export function getEquipmentInstanceMaterializationViews(
                     }
                   : {}),
                 canDestroy: destructionBlocker === undefined,
-                canRepairCondition: repairPreview.canRepairCondition,
+                canRepairCondition: repairPreview.eligible,
+                repairCost: repairPreview.quotedCost,
                 canStabilizeContainmentDeficiency: canStabilizeContainmentClassDeficiency(instance),
                 canInspectContainmentClassIntegrity: canInspectContainmentClassIntegrity(
                   instance,

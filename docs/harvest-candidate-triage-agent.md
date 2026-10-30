@@ -7,6 +7,7 @@
 - [`planning/harvest-reconciliation-index.md`](../planning/harvest-reconciliation-index.md) — batch index and pending-ledger-apply queue
 - [`docs/harvest-fold-in-linear-comments.md`](./harvest-fold-in-linear-comments.md) — required Linear comment shape
 - [`docs/harvest-mirror-owner-map-qa.md`](./harvest-mirror-owner-map-qa.md) — owner map ↔ outcome-table checks
+- [Read-only session handoff](./read-only-session-handoff.md) — session closeout when triage only gathered evidence and made no writes
 - [Candidate extraction and reconciliation ledger — canonical workflow](https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf) — durable candidate identity, provenance, reconciliation, approval state, and contradiction record
 
 ---

@@ -11,8 +11,7 @@ import type {
   TutorialAccessibilityInput,
   TutorialBindingResolver,
 } from '../../domain/tutorialGuidance'
-import { transitionTutorial } from '../../domain/tutorialLifecycle'
-import type { TutorialCommandType } from '../../domain/tutorialLifecycle'
+import { getAvailableTutorialCommands } from '../../domain/tutorialLifecycle'
 
 export interface AgencyEstablishmentBeatView {
   readonly id: AgencyEstablishmentBeatProjection['id']
@@ -179,29 +178,8 @@ export function projectAgencyEstablishmentView(
   const lifecycle = getTutorialLifecycle(game, AGENCY_ESTABLISHMENT_TUTORIAL)
   const accessibility = resolveTutorialAccessibility(preferences)
   const currentBeat = lifecycle ? beats[lifecycle.cursor] : undefined
-  const allowed: TutorialCommandType[] = lifecycle
-    ? (
-        [
-          'start',
-          'advance',
-          'complete',
-          'back',
-          'skip',
-          'dismiss',
-          'suppress',
-          'unsuppress',
-          'interrupt',
-          'resume',
-          'replay_start',
-        ] as const
-      ).filter(
-        (type) =>
-          transitionTutorial(AGENCY_ESTABLISHMENT_TUTORIAL, lifecycle, {
-            type,
-            expectedRevision: lifecycle.revision,
-            stepId: currentBeat?.id,
-          }).changed
-      )
+  const allowed = lifecycle
+    ? getAvailableTutorialCommands(AGENCY_ESTABLISHMENT_TUTORIAL, lifecycle)
     : []
   const guidance = lifecycle
     ? selectTutorialGuidance({

@@ -31,6 +31,8 @@ The step-status array records not-started/active/completed/skipped progress. Flo
 
 State/results are pure values. The state factory and changed transitions freeze their state and step arrays. Results expose a semantic event hook for later telemetry but write no log or backend. No GameState mutation, persistence, migration, resource grant, input binding, or gameplay authorization occurs here. Consumers must continue invoking and validating normal production commands independently of guidance progression.
 
+`getAvailableTutorialCommands(definition, state, eligibility?)` is a pure presentation query over those same transitions. It returns the currently accepted command types without writing state or emitting telemetry. Actual dispatch must still supply the current revision/step and authoritative eligibility; availability is not a production-action authorization.
+
 Transitions reject invalid identity/version, counters/cursor, status vocabulary, missing or invalid suppression resume status, and malformed step-status arrays with an unchanged `invalid_state` result. This check does not replace the persistence owner's hydration/migration contract.
 
 Skip affects the current step only. It does not authorize showing an unreached destination whose trigger or current conditions are unsatisfied. Dismiss/cancel remain available while a destination is ineligible, so guidance never blocks ordinary play.

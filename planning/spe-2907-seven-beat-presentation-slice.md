@@ -36,3 +36,7 @@ Initial selection base was 7f9447ce. Before PR, integrate concurrent documentati
 ## Deferred
 
 No in-boundary deferrals. Existing SPE-2908 owns campaign-entry/handoff routing; SPE-2909 owns subsequent integrated regression/accessibility coverage. SPE-3395 retains global binding/remapping authority. Parent SPE-2903 remains Backlog. No new scope created.
+
+## Independent review and corrections
+
+Full current diff reviewed against main. Command availability now has a named pure domain query, keeping all transition-rule evaluation under its canonical owner. The feature view consumes that query and existing pure guidance/accessibility selectors; docs/dependency-boundaries.md explicitly permits Projection → Domain. No simulation calculation or write is implemented in the view. Privacy fixture deep-copies state and annotates all candidate cases so the selected dossier is covered without shared-state mutation. Added stale whole-flow-skip coverage (no state/event/handoff change) and CodeRabbit mixed-skip outcome assertion. Final six-file focused suite: 99 passed; changed-file lint passes; normalized forced compiler diagnostics remain identical to baseline. All six passes repeated without remaining findings. Existing deterministic conservative reduced-motion default and CAS stale rejection are intentional; no behavior changes required for those notes. Sonar style-only suggestions are nonblocking; no gate weakened.

@@ -339,3 +339,40 @@ export function transitionTutorial(
     stepStatuses: statuses,
   })
 }
+
+/** Pure availability query for presentation; the transition owner retains every rule. */
+export function getAvailableTutorialCommands(
+  definition: TutorialDefinition,
+  state: TutorialLifecycleState,
+  eligibility: TutorialEligibility = {}
+): readonly TutorialCommandType[] {
+  const commands: readonly TutorialCommandType[] = [
+    'start',
+    'advance',
+    'complete',
+    'back',
+    'skip',
+    'dismiss',
+    'suppress',
+    'unsuppress',
+    'interrupt',
+    'resume',
+    'cancel',
+    'replay_start',
+  ]
+  return Object.freeze(
+    commands.filter(
+      (type) =>
+        transitionTutorial(
+          definition,
+          state,
+          {
+            type,
+            expectedRevision: state.revision,
+            stepId: definition.steps[state.cursor]?.id,
+          },
+          eligibility
+        ).changed
+    )
+  )
+}

@@ -8,6 +8,7 @@ import { loadGameSave, serializeGameSave } from '../../app/store/saveSystem'
 import {
   agencyEstablishmentHandoff,
   dispatchAgencyEstablishment,
+  skipAgencyEstablishment,
 } from '../../app/agencyEstablishmentRuntime'
 import { createTutorialRuntime } from '../../app/tutorialRuntime'
 import { createStartingState } from '../../data/startingState'
@@ -161,6 +162,7 @@ describe('agency establishment flow', () => {
     expect(lifecycle().status).toBe('completed')
     expect(lifecycle().stepStatuses.filter((status) => status === 'skipped')).toHaveLength(5)
     expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'completed' }))
     expect(events().some((entry) => entry.details?.kind === 'failed')).toBe(false)
   })
 
@@ -277,13 +279,14 @@ describe('agency establishment flow', () => {
   })
 
   it('renders only the bounded dossier/routing projection, with no extra case payload', () => {
-    const current = game()
-    const first = Object.values(current.cases)[0]
-    expect(first).toBeDefined()
-    Object.assign(first, {
-      description: 'PRIVATE_CASE_PAYLOAD',
-      hiddenTruth: 'PRIVATE_CASE_PAYLOAD',
-    })
+    const current = structuredClone(game())
+    expect(Object.values(current.cases).length).toBeGreaterThan(0)
+    for (const currentCase of Object.values(current.cases))
+      Object.assign(currentCase, {
+        description: 'PRIVATE_CASE_PAYLOAD',
+        hiddenTruth: 'PRIVATE_CASE_PAYLOAD',
+      })
+    useGameStore.setState({ game: current })
     const projection = buildAgencyEstablishmentProjection(current)
     const view = projectAgencyEstablishmentView(current)
     expect(view.beats[5].explanation).toEqual(projection.firstDossier?.routingExplanation)
@@ -360,5 +363,20 @@ describe('agency establishment flow', () => {
       stepId: 'one',
     })
     expect(agencyEstablishmentHandoff(completed)).toBeUndefined()
+  })
+
+  it('rejects a stale remaining-flow skip before advancing any current step', () => {
+    dispatchAgencyEstablishment('start', 0)
+    const before = game()
+    const result = skipAgencyEstablishment(0)
+    expect(result).toMatchObject({
+      changed: false,
+      lifecycleChanged: false,
+      reason: 'stale',
+      events: [],
+    })
+    expect(game()).toBe(before)
+    expect(lifecycle().cursor).toBe(0)
+    expect(agencyEstablishmentHandoff(result)).toBeUndefined()
   })
 })

@@ -43,7 +43,7 @@ test('precedence and source-provenance cannot silently promote lower-authority c
   assert.throws(() => validateAuthorityContract(reversed), /authority/)
   const spoofed = clone()
   spoofed.criticalRules[0].sourceRef = 'repository:AGENTS.md'
-  assert.throws(() => validateAuthorityContract(spoofed), /source does not support/)
+  assert.throws(() => validateAuthorityContract(spoofed), /canonical critical rule mapping changed/)
   const duplicated = clone()
   duplicated.criticalRules[1].id = duplicated.criticalRules[0].id
   assert.throws(() => validateAuthorityContract(duplicated), /duplicate/)

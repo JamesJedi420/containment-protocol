@@ -59,7 +59,7 @@ Copy the block below into the session's final handoff or an already-authorized d
 
 ## Preliminary discovery versus durable harvest completion
 
-A **preliminary read-only** review or harvest finding may cite `none / not yet recorded` if the session only inspected sources and made no durable writes. Mark it **preliminary / not recorded**, name unsaved evidence and the next **authorized** staging actor/action. A handoff is not itself a persisted candidate or completed harvest batch. Existing [SPE-3495 intake](https://linear.app/spectranoir/issue/SPE-3495) owns staging.
+A **preliminary read-only** review or harvest finding may cite `none / not yet recorded` if the session only inspected sources and made no durable writes. Mark it **preliminary / not recorded**, name unsaved evidence, the next permissible reconciliation step, and the actor responsible for eventual authorized staging. This does not make intake a prerequisite for Phase 1 assessment. A handoff is not itself a persisted candidate or completed harvest batch. Existing [SPE-3495 intake](https://linear.app/spectranoir/issue/SPE-3495) owns staging.
 
 A completed harvest triage batch must have a verified canonical candidate-ledger record or durable **pending-apply** transport linked from the existing batch/index under [SPE-3274](https://linear.app/spectranoir/issue/SPE-3274). Pending transport completes staging but **not** canonical application; only a verified ledger write may be called **canonically applied**. Ledger application is not candidate approval. [SPE-3492](https://linear.app/spectranoir/issue/SPE-3492) owns the read-only phase/status projection. Any subsequent Linear write requires the receiving actor's applicable authorization.
 
@@ -100,6 +100,6 @@ The `EXAMPLE-*` identifiers below are **fictional fixtures**, not registered can
 - Issues inspected: `SPE-####` (placeholder; inspect both Academy and CP owners where relevant).
 - Evidence: `EXAMPLE-C01` source packet with section/version reference; existing boundary fit not established.
 - Candidate: `EXAMPLE-C01`; `missing_boundary_candidate` **proposed**; persistence: **preliminary / not recorded**; specific canonical record: `none / not yet recorded` (no durable transport exists in this read-only example).
-- Governance: ChatGPT Phase 1 **not approved**; next owner **ChatGPT**; next action: arrange authorized durable intake/staging before claiming completed harvest or requesting the next applicable human approval. No Phase 2/3/4 or Linear mutation is authorized.
+- Governance: ChatGPT Phase 1 **not approved**; next owner **ChatGPT**; next action: return the preliminary evidence for Phase 1 assessment and identify authorized durable staging as outstanding. Neither a completed harvest nor any Phase 2/3/4 or Linear mutation is authorized.
 
 These examples test all three session types, separation of inspected evidence from writes, ledger absence handling, actor-specific authorization, and fail-closed advancement. They do not establish a new validation service or registry.

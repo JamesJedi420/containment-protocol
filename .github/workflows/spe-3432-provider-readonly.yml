@@ -1,0 +1,39 @@
+# SPE-3432: trusted-host schema observation only. This workflow CANNOT write Linear.
+# Configure environment 'linear-provider-probe' with an explicitly restricted
+# LINEAR_API_KEY secret. Do not run on unreviewed branches or PR code.
+name: SPE-3432 Linear Provider Read-only Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spe-3432-provider-probe
+  cancel-in-progress: false
+
+jobs:
+  introspection:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: linear-provider-probe
+    timeout-minutes: 5
+    steps:
+      - name: Checkout reviewed main
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Verify fail-closed local fixtures
+        run: node scripts/governance/linear-provider-contract.check.mjs
+
+      - name: Read live mutation schema (no write operations)
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: node scripts/governance/linear-provider-contract.probe.mjs

@@ -6,24 +6,24 @@ This orchestrator does **not** redefine what lint, Vitest, Playwright, governanc
 
 ## Canonical files
 
-| Path | Role |
-| --- | --- |
-| `scripts/validation/validators.v1.json` | Registry: change classes, validators, activation, enforcement, unavailable policy |
-| `scripts/validation/requirement-model.mjs` | Pure resolve / classify / missing-required detection |
-| `scripts/validation/run-requirements.mjs` | Local + CI runner |
-| `scripts/validation/requirement-model.check.mjs` | Deterministic selection tests |
-| `scripts/validation/emit-playwright-gate.mjs` | CI helper for Playwright selected/enforcement outputs |
+| Path                                             | Role                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `scripts/validation/validators.v1.json`          | Registry: change classes, validators, activation, enforcement, unavailable policy |
+| `scripts/validation/requirement-model.mjs`       | Pure resolve / classify / missing-required detection                              |
+| `scripts/validation/run-requirements.mjs`        | Local + CI runner                                                                 |
+| `scripts/validation/requirement-model.check.mjs` | Deterministic selection tests                                                     |
+| `scripts/validation/emit-playwright-gate.mjs`    | CI helper for Playwright selected/enforcement outputs                             |
 
 ## Commands
 
-| Task | Command |
-| --- | --- |
-| Resolve + run for changes vs `origin/main` | `npm run verify:requirements` |
-| CI mode (uses `ciNpmScript` when declared) | `npm run verify:requirements -- --ci` |
-| Explicit files | `npm run verify:requirements -- --files src/a.ts,planning/backlog.md` |
-| Resolve only | `npm run verify:requirements -- --resolve-only --json` |
-| Dry-run invocations | `npm run verify:requirements -- --dry-run` |
-| Selection unit tests | `npm run verify:requirements:test` |
+| Task                                       | Command                                                               |
+| ------------------------------------------ | --------------------------------------------------------------------- |
+| Resolve + run for changes vs `origin/main` | `npm run verify:requirements`                                         |
+| CI mode (uses `ciNpmScript` when declared) | `npm run verify:requirements -- --ci`                                 |
+| Explicit files                             | `npm run verify:requirements -- --files src/a.ts,planning/backlog.md` |
+| Resolve only                               | `npm run verify:requirements -- --resolve-only --json`                |
+| Dry-run invocations                        | `npm run verify:requirements -- --dry-run`                            |
+| Selection unit tests                       | `npm run verify:requirements:test`                                    |
 
 ## Change classes
 
@@ -31,18 +31,18 @@ Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `gov
 
 ## Registered validators (summary)
 
-| Id | Enforcement | Owner | Notes |
-| --- | --- | --- | --- |
-| `lint` | required | SPE-10 (DX) | Application / e2e / tooling / shared-config / academy |
-| `unit-tests` | required | SPE-10 (DX) | Application / shared-config; CI uses `test:run:ci` |
-| `format-check` | advisory | SPE-10 (DX) | Broad docs/code paths |
-| `audits-index` | required | SPE-10 (DX) | Audit docs + index paths only |
-| `backlog-handoff` | required | SPE-10 (DX) | `planning/**` |
-| `theme-contracts` | required | SPE-10 (DX) | Theme contract / audits index paths |
-| `governance-contract` | required | SPE-3269 | Governance surfaces; SPE-3271 may register separately later |
-| `architecture-index` | advisory | SPE-10 (DX) | `architecture/**` |
-| `playwright-e2e` | advisory; **required** for e2e harness edits and player-critical / smoke-path surfaces (Front Desk, Advance Week shell, `gameStore`, `AppShell`, Cases + caseView / Case detail, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage`) | SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 | Other UI paths stay advisory unless listed in `requiredWhen`; deep sim remains Vitest |
-| `academy-authored-content` | required when Academy content paths change | SPE-3304 | Unavailable until Academy ships its npm script; fail-closed |
+| Id                         | Enforcement                                                                                                                                                                                                                                                      | Owner                                     | Notes                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `lint`                     | required                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | Application / e2e / tooling / shared-config / academy                                                      |
+| `unit-tests`               | required                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | Application / shared-config; CI uses `test:run:ci`                                                         |
+| `format-check`             | advisory                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | Broad docs/code paths                                                                                      |
+| `audits-index`             | required                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | Audit docs + index paths only                                                                              |
+| `backlog-handoff`          | required                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | `planning/**`                                                                                              |
+| `theme-contracts`          | required                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | Theme contract / audits index paths                                                                        |
+| `governance-contract`      | required                                                                                                                                                                                                                                                         | SPE-3269                                  | Governance surfaces; SPE-3271 may register separately later                                                |
+| `architecture-index`       | advisory                                                                                                                                                                                                                                                         | SPE-10 (DX)                               | `architecture/**`                                                                                          |
+| `playwright-e2e`           | advisory; **required** for e2e harness edits and player-critical / smoke-path surfaces (Front Desk, Advance Week shell, `gameStore`, `AppShell`, Cases + caseView / Case detail, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage`) | SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 | Other UI paths stay advisory unless listed in `requiredWhen`; deep sim remains Vitest                      |
+| `academy-authored-content` | required when Academy content paths change                                                                                                                                                                                                                       | SPE-3304                                  | Available via `npm run verify:academy-authored-content`; see `docs/academy-authored-content-validation.md` |
 
 ## Local / CI parity
 

@@ -1,0 +1,10 @@
+{
+  "kind": "module",
+  "records": [
+    {
+      "id": "shared-collide",
+      "displayName": "Module Collide",
+      "prerequisites": []
+    }
+  ]
+}

@@ -43,23 +43,24 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 
 ## Common Commands
 
-| Command                          | Purpose                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------- |
-| `npm run dev`                    | Start the Vite development server with HMR.                                           |
-| `npm run lint`                   | Run ESLint across the repository.                                                     |
-| `npm run test:run`               | Run the full Vitest suite once using the local `vmThreads` pool.                      |
-| `npm run test`                   | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.           |
-| `npm run test:run:ci`            | Run the CI test command using the `forks` pool (PR and main).                         |
-| `npm run coverage`               | Run tests with coverage output (local `vmThreads` pool).                              |
-| `npm run coverage:ci`            | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.   |
-| `npm run format`                 | Rewrite files with Prettier.                                                          |
-| `npm run format:check`           | Check formatting without editing files.                                               |
-| `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
-| `npm run verify:backlog-handoff` | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`. |
-| `npm run verify:theme-contracts` | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`. |
-| `npm run verify:requirements`    | SPE-3348: resolve and run path-selected required validators (local/CI parity).        |
-| `npm run verify:requirements:test` | SPE-3348 selection / unavailable / missing-required unit tests.                    |
-| `npm run build`                  | Run the TypeScript project build and Vite production bundle. See the note below.      |
+| Command                                   | Purpose                                                                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `npm run dev`                             | Start the Vite development server with HMR.                                                                  |
+| `npm run lint`                            | Run ESLint across the repository.                                                                            |
+| `npm run test:run`                        | Run the full Vitest suite once using the local `vmThreads` pool.                                             |
+| `npm run test`                            | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.                                  |
+| `npm run test:run:ci`                     | Run the CI test command using the `forks` pool (PR and main).                                                |
+| `npm run coverage`                        | Run tests with coverage output (local `vmThreads` pool).                                                     |
+| `npm run coverage:ci`                     | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.                          |
+| `npm run format`                          | Rewrite files with Prettier.                                                                                 |
+| `npm run format:check`                    | Check formatting without editing files.                                                                      |
+| `npm run verify:audits-index`             | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.                              |
+| `npm run verify:backlog-handoff`          | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`.                       |
+| `npm run verify:theme-contracts`          | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`.                        |
+| `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                               |
+| `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks). |
+| `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                         |
+| `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                             |
 
 `npm run build` is a type-contract gate, not the current day-to-day development gate. The app, tests, and dev server use Vite successfully, but strict project build can expose known type-contract drift that should be fixed in scoped follow-up slices before treating build as a deployment blocker.
 

@@ -1,6 +1,6 @@
 # Tutorial lifecycle API (SPE-2917)
 
-`src/domain/tutorialLifecycle.ts` owns the pure definition registry and guidance transitions. SPE-2743 remains open: persistence, adapters and delivery belong to SPE-2918–2920.
+`src/domain/tutorialLifecycle.ts` owns the pure definition registry and guidance transitions. SPE-2918 owns persistence; SPE-2919 owns contextual adapters; SPE-2920 owns delivery. Parent completion is evaluated separately from these APIs.
 
 Create a registry with `createTutorialRegistry`. Each `(id, version)` pair is unique; versions are positive safe integers. Registry order is code-point ID order followed by numeric version. Steps retain authored order. Definitions, steps and reference arrays are copied and frozen. Use definitions returned by this registry with `createTutorialState` and `transitionTutorial`.
 
@@ -46,3 +46,15 @@ Definition migration is deterministic and derived at read, then committed on the
 Exhausted safe-integer counters remain readable after save/load so a final completion is not lost. Further state-changing commands fail closed before overflow; stale revision tokens remain stale.
 
 Hydration also checks progress coherence: active/interrupted (including suppressed resume states) must name the sole active cursor with completed/skipped predecessors and not-started successors. Terminal migration snapshots may retain matching completion history with new steps unstarted. Impossible run/revision relationships and inconsistent active records are dropped.
+
+## Contextual guidance adapters (SPE-2919)
+
+`selectTutorialGuidance` in `src/domain/tutorialGuidance.ts` derives one optional presentation context from a registered definition, current GameState/UI context, and optional current lifecycle. Pass the canonical saved lifecycle when one exists: omission means a new, unstarted flow. Suppressed, terminal, interrupted, mismatched-version and ineligible guidance produces no context. Missing condition references fail closed. The selector evaluates only the current step's references through `evaluateScreenRouteCondition` and the lifecycle's shared `evaluateTutorialStepEligibility`; it exposes no failed predicates or condition results. First-entry triggers are required for unstarted flows; an already active step does not consume its trigger again. This selector reads guidance; lifecycle commands still use their own destination eligibility inputs.
+
+Owners inject pure `resolveContent` and `resolveAction` adapters. Content must contain only ordinary player-visible semantic text, including any applicable scope, constraints, permitted projection, exception/override path and uncertainty (estimated/bounded/verified/contested). Undefined/empty content hides the step. An expected action requires an explicit visible production projection; missing/hidden actions hide guidance without resolving bindings or exposing action/explanation data. Availability comes directly from the owner. Tutorial completion never grants authorization or executes an action.
+
+Visible actions may supply existing `OperationalExplanationRecord` values with an explicit `permittedDepth`. The selector uses the shared validator, ordering and projection functions; it never recomputes a reason. Requested depth defaults to summary and is capped by each owner's permission. Owners must authorize every exposed field through that depth, including source/subject identities at summary depth. Malformed records and duplicate identities are omitted. An unavailable action without explanations retains a generic unavailable message; it does not acquire an invented recovery rule.
+
+`resolveBinding(actionId, inputMethod)` consumes current labels from the input owner. It is called on every read for a supported keyboard/controller/pointer/touch method, so remapping needs no definition change. Unknown/unsupported capabilities skip binding resolution; missing/blank labels use a generic ordinary-controls fallback. Guidance is always optional and cannot gate ordinary play. SPE-3395 retains ownership of the global registry, device profiles, remapping and persistence.
+
+`semanticText` is the common visual/screen-reader meaning, with explanation confidence and recovery text included at permitted depth. Reduced motion and non-hover access never remove semantic content. Presentation metadata carries the injected input method, screen-reader preference, positive finite text scale (default 1), reduced motion (conservative default true) and hover capability (default false). Critical meaning never requires hover. Concrete renderers remain responsible for using this text and metadata accessibly; no UI or global preference store is added by this API.

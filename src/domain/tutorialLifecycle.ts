@@ -190,7 +190,7 @@ export function createTutorialState(definition: TutorialDefinition): TutorialLif
   })
 }
 
-function eligible(
+export function evaluateTutorialStepEligibility(
   definition: TutorialDefinition,
   index: number,
   input: TutorialEligibility,
@@ -284,7 +284,7 @@ export function transitionTutorial(
         : !terminal || !definition.replayable
     )
       return unchanged('illegal')
-    if (!eligible(definition, 0, input)) return unchanged('ineligible')
+    if (!evaluateTutorialStepEligibility(definition, 0, input)) return unchanged('ineligible')
     return update({
       status: 'active',
       cursor: 0,
@@ -295,7 +295,8 @@ export function transitionTutorial(
     })
   }
   if (command.type === 'resume' && state.status === 'interrupted') {
-    if (!eligible(definition, state.cursor, input, false)) return unchanged('ineligible')
+    if (!evaluateTutorialStepEligibility(definition, state.cursor, input, false))
+      return unchanged('ineligible')
     return update({ status: 'active' })
   }
   if (command.type === 'cancel' && (state.status === 'active' || state.status === 'interrupted'))
@@ -315,12 +316,12 @@ export function transitionTutorial(
   const target = command.type === 'back' ? state.cursor - 1 : state.cursor + 1
   if (
     (command.type === 'advance' || command.type === 'complete') &&
-    !eligible(definition, state.cursor, input, false)
+    !evaluateTutorialStepEligibility(definition, state.cursor, input, false)
   )
     return unchanged('ineligible')
   if (
     target < definition.steps.length &&
-    !eligible(definition, target, input, target > state.reachedCursor)
+    !evaluateTutorialStepEligibility(definition, target, input, target > state.reachedCursor)
   )
     return unchanged('ineligible')
   const statuses = [...state.stepStatuses]

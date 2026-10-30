@@ -18,7 +18,12 @@ import {
   resolveValidationRequirements,
   summarizeRequirementReport,
 } from './requirement-model.mjs'
-import { resolveBin, spawnSafe } from './spawn-safe.mjs'
+import {
+  describeSpawnError,
+  resolveBin,
+  resolveNpmLaunch,
+  spawnSafe,
+} from './spawn-safe.mjs'
 
 function takeValue(argv, i, flag, inline) {
   if (inline !== undefined) return { value: inline, next: i }
@@ -206,13 +211,23 @@ function unavailableStatus(whenUnavailable) {
   return 'unavailable'
 }
 
-function npmCommand() {
-  return process.platform === 'win32' ? resolveBin('npm.cmd') : resolveBin('npm')
+function resolveNpmLaunchForHost() {
+  return resolveNpmLaunch({
+    platform: process.platform,
+    npmExecPath: process.env.npm_execpath,
+    nodeExecPath: process.execPath,
+    fallbackCommand: resolveBin('npm'),
+  })
 }
 
 function resolveRunCommand(invocation) {
   if (invocation.kind === 'npm') {
-    return { finalCommand: npmCommand(), finalArgs: ['run', invocation.value] }
+    const launch = resolveNpmLaunchForHost()
+    if (!launch.ok) return { unavailable: launch.reason }
+    return {
+      finalCommand: launch.command,
+      finalArgs: [...launch.args, 'run', invocation.value],
+    }
   }
   const parts = invocation.value.split(/\s+/)
   if (parts[0] === 'node') {
@@ -255,7 +270,17 @@ function runOne(selected, { ci, dryRun }) {
     }
   }
 
-  const { finalCommand, finalArgs } = resolveRunCommand(invocation)
+  const runCommand = resolveRunCommand(invocation)
+  if (runCommand.unavailable) {
+    return {
+      id: selected.id,
+      status: unavailableStatus(selected.whenUnavailable),
+      enforcement: selected.enforcement,
+      whenUnavailable: selected.whenUnavailable,
+      detail: `${invocation.kind}:${invocation.value} unavailable — ${runCommand.unavailable}`,
+    }
+  }
+  const { finalCommand, finalArgs } = runCommand
   const isolateStdout = Boolean(process.env.VALIDATION_JSON_ISOLATE)
   const result = spawnSafe(finalCommand, finalArgs, {
     encoding: 'utf8',
@@ -265,6 +290,18 @@ function runOne(selected, { ci, dryRun }) {
   if (isolateStdout) {
     if (result.stdout) process.stderr.write(result.stdout)
     if (result.stderr) process.stderr.write(result.stderr)
+  }
+
+  const spawnFailure = describeSpawnError(result.error)
+  if (spawnFailure) {
+    return {
+      id: selected.id,
+      status: 'failed',
+      enforcement: selected.enforcement,
+      whenUnavailable: selected.whenUnavailable,
+      detail: `${invocation.kind}:${invocation.value} ${spawnFailure}`,
+      exitCode: null,
+    }
   }
 
   if (result.status === 0) {

@@ -63,6 +63,59 @@ export function resolveBin(name) {
   return name
 }
 
+const NPM_CLI_RELATIVE = ['node_modules', 'npm', 'bin', 'npm-cli.js']
+const NODE_SCRIPT_RE = /\.(?:c|m)?js$/i
+
+/**
+ * Resolve an npm launch that is safe to spawn with `shell: false`.
+ *
+ * On win32 npm is a `.cmd` shim, which CreateProcess cannot execute; Node
+ * returns EINVAL before npm runs. Run npm's JS entrypoint through the current
+ * node binary instead. Platform, paths, and fs are injected so the Windows
+ * branch is testable on Linux CI, where it never executes naturally.
+ */
+export function resolveNpmLaunch({
+  platform,
+  npmExecPath,
+  nodeExecPath,
+  fallbackCommand = 'npm',
+  fileExists = fs.existsSync,
+} = {}) {
+  if (platform !== 'win32') {
+    return { ok: true, command: fallbackCommand, args: [] }
+  }
+  if (!nodeExecPath) {
+    return { ok: false, reason: 'node executable path unavailable' }
+  }
+  const candidates = []
+  if (npmExecPath && NODE_SCRIPT_RE.test(npmExecPath)) {
+    candidates.push(npmExecPath)
+  }
+  candidates.push(
+    path.win32.join(path.win32.dirname(nodeExecPath), ...NPM_CLI_RELATIVE),
+  )
+  for (const candidate of candidates) {
+    if (fileExists(candidate)) {
+      return { ok: true, command: nodeExecPath, args: [candidate] }
+    }
+  }
+  return {
+    ok: false,
+    reason:
+      'npm CLI entrypoint not found on win32 (set npm_execpath or install npm beside node)',
+  }
+}
+
+/**
+ * Describe a spawnSync failure so it is never reported as a validator exit code.
+ */
+export function describeSpawnError(error) {
+  if (!error) return null
+  const code = error.code ?? error.errno
+  if (code !== undefined && code !== null && code !== '') return `spawn ${code}`
+  return `spawn failed: ${error.message ?? 'unknown error'}`
+}
+
 /**
  * Spawn with absolute (or resolved) executable and a fixed PATH.
  */

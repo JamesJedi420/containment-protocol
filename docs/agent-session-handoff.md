@@ -42,6 +42,7 @@ One agent session on the same branch may implement, review, fix CI, and merge th
 - Verify the branch/ref before checkout; use current `main` if an old migrated branch was deleted.
 - After a Cloud Agent implements a plan to completion and merges that PR, leave the local-agent Linear handoff in `docs/cloud-agent-linear-handoff.md` if Linear was not updated in-session.
 - Planning-only/open-PR sessions do not trigger that lifecycle handoff.
+- If an **authorized docs-only** merge leaves legitimate existing-boundary Linear traceability unposted, record **pending / not posted** in normal docs-work closeout: exact issue target, merged PR/validation, intended factual operation, posting state, and next authorized verification/posting step. Do not claim an applied update or invoke the implementation-only cloud-agent handoff. Unowned read-only analysis requires no Linear write.
 
 ## Each new implementation task
 
@@ -56,6 +57,6 @@ One agent session on the same branch may implement, review, fix CI, and merge th
 
 **Phase A — PR open / merge blocked:** report blocker, PR URL, CI status. Do not code another unrelated issue in the same PR.
 
-**Phase B — after merge:** plan or select the next slice under autonomous authority when continuation is expected; otherwise stop.
+**Phase B — after merge:** complete current-slice evidence and closeout; plan an already-approved next issue if identified, otherwise stop. Next-slice selection, candidate reconciliation, scope decisions, and implementation belong in a **new agent session**. Cursor retains autonomous authority in that new session; ChatGPT follows its own Phase 1–4 gates. This is a session-timing rule, not a general restriction on Cursor.
 
 Use `docs/agent-session-closeout.md` for response structures.

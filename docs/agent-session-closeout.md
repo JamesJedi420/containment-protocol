@@ -12,18 +12,18 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 2. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable.
 3. **`git checkout main` && `git pull origin main`** — agent syncs local `main` before closeout.
 4. Linear slice **Done** only when its full approved boundary is satisfied + merge comment.
-5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation in this closeout. If delegated policy is effective on `origin/main`, remind the human that the **new** agent chat may run delegated selection when they request implementation continuation — do not set issues In Progress or implement here.
+5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation in this closeout. Remind the human that a **new** Cursor session may assess/select/reconcile under canonical Cursor autonomous-authority safeguards when continuation is requested; do not set the next issue In Progress, reconcile candidates, or implement in merge closeout.
 
-**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later session may use delegated selection).
+**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later Cursor session may exercise its canonical autonomous selection authority).
 
 ## Two phases (closeout format)
 
 | Phase | When | Agent does | Agent does **not** |
 | ----- | ---- | ---------- | ------------------- |
 | **A — Babysit blocked** | PR open; merge cannot complete in-session | Interim status, PR URL, CI/blocker | Next-issue plan; mark slice **Done** |
-| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one; if delegated policy is on `origin/main`, remind that a **new** agent chat may invoke it | Code the next issue; perform candidate reconciliation; create a new issue/child/parent from follow-up discovery; set a new issue In Progress under delegated authority in this closeout |
+| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one; remind that a **new** Cursor agent chat may use its canonical autonomous authority | Code the next issue; perform candidate reconciliation; create a new issue/child/parent from follow-up discovery; set a new issue In Progress under delegated authority in this closeout |
 
-Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one. Candidate reconciliation belongs to ChatGPT. Delegated selection, when effective on `origin/main`, starts only in that new chat after an explicit implementation-continuation request.
+Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one. ChatGPT candidate-derived scope requires its Phase 1–4 approvals; Cursor may independently reconcile under `docs/cursor-autonomous-authority.md` in a **subsequent authorized session**, not in merge closeout.
 
 ---
 
@@ -31,7 +31,7 @@ Phase B reminder: **new agent chat** for the next approved slice (Linear URL, sl
 
 When the current slice PR is **merged** and its approved boundary is satisfied:
 
-1. **Do not** start coding the next Linear issue in the merge/babysit session unless the user explicitly asks for implementation.
+1. **Do not** start coding the next Linear issue in merge/babysit closeout; a requested next implementation starts in a separate agent session.
 2. If an **already-approved next issue** is explicitly identified by the authoritative queue/user, produce its implementation plan.
 3. If the only next work comes from a deferred row, review finding, or newly discovered durable boundary that is not already approved, preserve it as candidate input and report its current governance phase. Do **not** create or select a new issue merely to populate closeout.
 4. Remind the human: sync `main`, then **new agent chat** to implement the next approved slice.
@@ -75,7 +75,7 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording
 - Do not expand the current issue.
 - Do not implement the next issue.
 - Do not create a new Linear issue, child, parent, contradiction issue, relationship, or durable scope from deferred work or closeout.
-- New or changed durable scope returns to Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 (candidate extraction/reconciliation → backlog-shape only). Ordinary lifecycle/evidence Linear updates do not require those phases.
+- ChatGPT-originated new or changed durable scope requires explicit Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4 before backlog-shape mutation. Cursor follows `docs/cursor-autonomous-authority.md` instead; neither actor starts next-slice reconciliation or scope mutation during this merge closeout. Verified in-boundary lifecycle/evidence updates are separately permitted.
 - Do not create a parallel system when an existing system can absorb the approved work.
 - Do not mark the issue complete unless implemented and validated work satisfies the **full** issue boundary.
 - Keep parent issues open when this is only a child slice.
@@ -128,7 +128,7 @@ Next issue implementation plan:
 
 ### Phase B — After merge
 
-Use when the PR is **merged**, the agent has run **`git checkout main` && `git pull origin main`**, and backlog handoff updates are **on `main`** (`npm run verify:backlog-handoff` passes when applicable). The Linear merge comment may still be **pending** when Linear MCP was unavailable — fill **Local-agent Linear handoff** in that case (`docs/cloud-agent-linear-handoff.md`). Do not block phase B on Linear tooling availability.
+Use when the PR is **merged**, the agent has run **`git checkout main` && `git pull origin main`**, and backlog handoff updates are **on `main`** (`npm run verify:backlog-handoff` passes when applicable). The Linear merge comment may still be **pending** when Linear MCP was unavailable — fill **Local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) only when its approved-implementation trigger applies. Authorized docs-only merges use the factual pending/unverified closeout in `docs/agent-session-handoff.md`. Do not block phase B on Linear tooling availability.
 
 ```text
 Merge closeout:

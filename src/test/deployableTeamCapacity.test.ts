@@ -135,6 +135,14 @@ describe('SPE-3497 deployable-team capacity progression resolver', () => {
         requestedAdditional: 1,
       })
     ).toThrow(/nonnegative/)
+    expect(() =>
+      assessOrganizationDeployableCapacity({
+        maxDeployableTeams: 16,
+        progressionStep: 0,
+        currentUsage: Number.MAX_SAFE_INTEGER,
+        requestedAdditional: 1,
+      })
+    ).toThrow(/overflows safe integer/)
     expect(input).toEqual({ maxDeployableTeams: 16, progressionStep: 3 })
   })
 })

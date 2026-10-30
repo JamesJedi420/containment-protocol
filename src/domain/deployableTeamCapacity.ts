@@ -126,6 +126,9 @@ export function assessOrganizationDeployableCapacity(args: {
     progressionStep: args.progressionStep,
   })
   const projectedUsage = currentUsage + requestedAdditional
+  if (!Number.isSafeInteger(projectedUsage)) {
+    throw new Error('projectedUsage overflows safe integer range')
+  }
   const allowed = projectedUsage <= capacity
   return Object.freeze({
     allowed,

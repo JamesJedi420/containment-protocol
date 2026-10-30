@@ -1,0 +1,11 @@
+{
+  "kind": "course",
+  "records": [
+    {
+      "id": "shared-collide",
+      "displayName": "Course Collide",
+      "prerequisites": [],
+      "moduleRefs": []
+    }
+  ]
+}

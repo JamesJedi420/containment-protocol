@@ -1,0 +1,11 @@
+{
+  "kind": "course",
+  "records": [
+    {
+      "id": "course-bad",
+      "displayName": "Bad",
+      "prerequisites": "not-an-array",
+      "moduleRefs": []
+    }
+  ]
+}

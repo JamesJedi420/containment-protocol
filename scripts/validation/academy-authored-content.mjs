@@ -481,25 +481,9 @@ export function validateAcademyAuthoredContent(contentRoot = DEFAULT_CONTENT_ROO
     }
   }
 
-  // Prerequisite cycles + refs to missing same-kind records (impossible)
-  for (const [kindId, loaded] of recordsByKind) {
+  // Prerequisite cycles only (missing targets already reported as dangling-reference)
+  for (const [, loaded] of recordsByKind) {
     const byId = new Map(loaded.map((item) => [item.id, item]))
-    for (const item of loaded) {
-      const prereqs = asStringArray(item.record.prerequisites)
-      for (const ref of prereqs) {
-        if (!byId.has(ref)) {
-          diagnostics.push({
-            relativePath: item.relativePath,
-            line: item.line,
-            rule: 'impossible-prerequisite',
-            recordId: item.id,
-            fieldPath: 'prerequisites',
-            message: `prerequisite ${JSON.stringify(ref)} does not exist in kind ${kindId}`,
-          })
-        }
-      }
-    }
-
     const visiting = new Set()
     const visited = new Set()
     const stack = []

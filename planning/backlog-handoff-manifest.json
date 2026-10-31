@@ -1,7 +1,8 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-399"],
+  "inProgress": ["SPE-471"],
   "recentlyShipped": [
+    "SPE-399",
     "SPE-313",
     "SPE-312",
     "SPE-311",

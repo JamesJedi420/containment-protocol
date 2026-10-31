@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4552 @ `5639fd45`)            |
 | **Linear** | [SPE-399](https://linear.app/spectranoir/issue/SPE-399) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-399-forced-movement-hazards`                  |

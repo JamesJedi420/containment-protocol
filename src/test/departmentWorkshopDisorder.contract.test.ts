@@ -175,6 +175,22 @@ describe('SPE-2910 deterministic workshop clutter/disorder consequences', () => 
     expect(registered.outcomes['work:records']).toMatchObject({ quality: 'nominal' })
     expect(registered.outcomes['work:records']?.operationalConsequence).toBeUndefined()
 
+    const combined = registerDepartmentWorkshopCompletionOutcomes(source, ['work:emergency'], 4, {
+      'work:emergency': {
+        inputQuality: 'poor',
+        specialistCondition: 'good',
+        roomContamination: 'good',
+      },
+    })
+    expect(combined.outcomes['work:emergency']).toMatchObject({
+      quality: 'degraded',
+      qualityReason: 'poor_input_quality',
+      operationalConsequence: 'wrong_kit_assembly',
+    })
+    expect(
+      sanitizeDepartmentWorkshopCompletionOutcomes(combined.outcomes)['work:emergency']
+    ).toEqual(combined.outcomes['work:emergency'])
+
     const clutteredQuality = deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
       workshopSource(0.6, 1),
       ['work:emergency']
@@ -186,7 +202,7 @@ describe('SPE-2910 deterministic workshop clutter/disorder consequences', () => 
     ).toMatchObject({ quality: 'nominal' })
   })
 
-  it('rejects a forged wrong-kit consequence that lacks the disorder quality reason', () => {
+  it('rejects wrong-kit receipt mismatches while allowing an earlier degraded reason', () => {
     const base = {
       workOrderId: 'work:forged',
       departmentId: EMERGENCY,

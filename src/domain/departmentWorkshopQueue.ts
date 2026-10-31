@@ -1526,9 +1526,10 @@ function normalizeCompletionOutcome(
 
   const operationalConsequence = outcome.operationalConsequence
   if (
+    (operationalConsequence !== undefined &&
+      (operationalConsequence !== 'wrong_kit_assembly' || quality !== 'degraded')) ||
     (qualityReason === 'poor_workshop_disorder' &&
-      operationalConsequence !== 'wrong_kit_assembly') ||
-    (qualityReason !== 'poor_workshop_disorder' && operationalConsequence !== undefined)
+      operationalConsequence !== 'wrong_kit_assembly')
   ) {
     return null
   }
@@ -1642,9 +1643,8 @@ export function registerDepartmentWorkshopCompletionOutcomes(
     if (!workOrder) {
       continue
     }
-    const graded = resolveDepartmentWorkshopCompletionQuality(
-      conditionsByWorkOrderId?.[workOrderId]
-    )
+    const qualityConditions = conditionsByWorkOrderId?.[workOrderId]
+    const graded = resolveDepartmentWorkshopCompletionQuality(qualityConditions)
     const safetyGraded = resolveDepartmentWorkshopCompletionSafety(
       projectedSafetyConditions[workOrderId] ?? safetyConditionsByWorkOrderId?.[workOrderId]
     )
@@ -1659,7 +1659,7 @@ export function registerDepartmentWorkshopCompletionOutcomes(
         outcome: 'completed',
         quality: graded.quality,
         ...(graded.qualityReason ? { qualityReason: graded.qualityReason } : {}),
-        ...(graded.qualityReason === 'poor_workshop_disorder'
+        ...(qualityConditions?.workshopDisorder === 'poor'
           ? { operationalConsequence: 'wrong_kit_assembly' as const }
           : {}),
         safety: safetyGraded.safety,

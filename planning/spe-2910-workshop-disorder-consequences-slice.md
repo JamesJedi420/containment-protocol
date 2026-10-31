@@ -22,15 +22,15 @@ Consume an authoritative bounded room physical-condition packet through the exis
 
 ## Deterministic behavior
 
-| Clutter score | Processing                               | Completion quality                                           |
-| ------------- | ---------------------------------------- | ------------------------------------------------------------ |
-| `< 0.5`       | Existing throughput                      | Existing quality                                             |
-| `0.5`–`< 0.8` | Cap the mapped workshop at one work unit | Existing quality                                             |
-| `>= 0.8`      | Cap at one work unit                     | `degraded` / `poor_workshop_disorder` / `wrong_kit_assembly` |
+| Clutter score | Processing                               | Completion quality                                                               |
+| ------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `< 0.5`       | Existing throughput                      | Existing quality                                                                 |
+| `0.5`–`< 0.8` | Cap the mapped workshop at one work unit | Existing quality                                                                 |
+| `>= 0.8`      | Cap at one work unit                     | `degraded` + `wrong_kit_assembly`; established primary-reason precedence remains |
 
 The production facility-section graph already gives emergency response adjacent input/output staging and therefore a two-unit path. The disorder cap reduces that exact mapped path to one unit while siblings retain their existing staging and throughput.
 
-The live completion wrapper composes the disorder axis after room contamination and before dependency/equipment/reagent axes. A newly completed severely disordered order stores `operationalConsequence: wrong_kit_assembly` on its immutable receipt. Existing receipts win across replay and save/load, so later cleanup cannot rewrite history.
+The live completion wrapper composes the disorder axis after room contamination and before dependency/equipment/reagent axes. A newly completed severely disordered order stores `operationalConsequence: wrong_kit_assembly` on its immutable receipt even when an earlier poor axis owns the primary quality reason. Existing receipts win across replay and save/load, so later cleanup cannot rewrite history.
 
 ## Acceptance
 

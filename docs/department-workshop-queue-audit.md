@@ -434,8 +434,10 @@ At canonical week-close, clutter at or above `0.5` caps the mapped workshop at
 one work unit, reducing its existing adjacent-staging two-unit path. Clutter at
 or above `0.8` additionally composes a poor workshop-disorder quality axis for
 newly completed work. The existing receipt registrar stores
-`poor_workshop_disorder` with `wrong_kit_assembly`; sibling workshops retain
-their prior throughput and quality.
+`wrong_kit_assembly` whenever that axis is poor. `poor_workshop_disorder` is the
+primary reason only when no earlier input, specialist, or room axis is poor;
+the operational consequence survives those established reason-precedence
+rules. Sibling workshops retain their prior throughput and quality.
 
 The existing workshop receipt remains the replay and save/load authority.
 Later room cleanup cannot regrade or remove a stored consequence. The adapter

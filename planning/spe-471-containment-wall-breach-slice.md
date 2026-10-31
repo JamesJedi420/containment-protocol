@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4553 @ `61fcc132`)            |
 | **Linear** | [SPE-471](https://linear.app/spectranoir/issue/SPE-471) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-471-containment-wall-breach`                  |

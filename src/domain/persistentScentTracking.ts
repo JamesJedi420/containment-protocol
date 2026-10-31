@@ -27,7 +27,7 @@ export interface ScentLock {
   readonly targetId: string
   readonly source: ScentAcquisitionSource
   readonly channel: PursuitChannel
-  /** Remaining ticks the lock persists across locations (1–100). */
+  /** Remaining ticks the lock persists across locations (0–100). */
   readonly persistenceTicks: number
   readonly active: boolean
   readonly owner: typeof PERSISTENT_SCENT_TRACKING_OWNER
@@ -46,6 +46,8 @@ export interface MaskingPreparation {
 export interface ScentPursuitState {
   readonly lock: ScentLock
   readonly masking: MaskingPreparation | null
+  /** Extra reliability from contamination (preserved across masking ticks). */
+  readonly contaminationBonus: number
   /** Pursuit reliability 0–100 after masking/contamination. */
   readonly pursuitReliability: number
   readonly reacquisitionRisk: boolean
@@ -72,6 +74,7 @@ const CHANNELS = new Set<PursuitChannel>([
 ])
 
 const BASE_DURABLE_RELIABILITY = 80 as const
+const CONTAMINATION_RELIABILITY_BUMP = 15 as const
 
 export function acquireDurableScentLock(input: {
   readonly id: string
@@ -130,9 +133,15 @@ function assertScentLock(lock: ScentLock): ScentLock {
   return lock
 }
 
-function reliabilityWithMasking(masking: MaskingPreparation | null): number {
-  if (!masking || masking.durationTicks < 1) return BASE_DURABLE_RELIABILITY
-  return Math.max(0, BASE_DURABLE_RELIABILITY - masking.quality * 6)
+function reliabilityFromParts(
+  masking: MaskingPreparation | null,
+  contaminationBonus: number
+): number {
+  const masked =
+    !masking || masking.durationTicks < 1
+      ? BASE_DURABLE_RELIABILITY
+      : Math.max(0, BASE_DURABLE_RELIABILITY - masking.quality * 6)
+  return Math.min(100, masked + contaminationBonus)
 }
 
 /**
@@ -144,11 +153,11 @@ export function openScentPursuit(
 ): ScentPursuitState {
   const lock = assertScentLock(lockInput)
   const masking = maskingInput === null ? null : createMaskingPreparation(maskingInput)
-  const pursuitReliability = reliabilityWithMasking(masking)
   return Object.freeze({
     lock,
     masking,
-    pursuitReliability,
+    contaminationBonus: 0,
+    pursuitReliability: reliabilityFromParts(masking, 0),
     reacquisitionRisk: false,
     planChangeRequired: false,
     planChangeReason: null,
@@ -157,49 +166,62 @@ export function openScentPursuit(
   })
 }
 
-/** Tick masking duration; expired masking restores base reliability. */
+/**
+ * Advance masking duration and lock persistence together. Contamination bonus
+ * is preserved when reliability is recomputed.
+ */
 export function advanceScentMasking(
   state: ScentPursuitState,
   ticks: number = 1
 ): ScentPursuitState {
   assertPursuitState(state)
+  if (!state.lock.active) throw new Error('scent lock is inactive')
   const tickCount = assertSafeIntegerInRange(ticks, 'ticks', 1, 20)
-  if (!state.masking) {
-    return Object.freeze({ ...state })
+
+  const persistenceRemaining = Math.max(0, state.lock.persistenceTicks - tickCount)
+  const lock = Object.freeze({
+    ...state.lock,
+    persistenceTicks: persistenceRemaining,
+    active: persistenceRemaining > 0,
+  })
+
+  let masking = state.masking
+  if (masking) {
+    const remaining = Math.max(0, masking.durationTicks - tickCount)
+    masking = remaining === 0 ? null : Object.freeze({ ...masking, durationTicks: remaining })
   }
-  const remaining = Math.max(0, state.masking.durationTicks - tickCount)
-  if (remaining === 0) {
-    return Object.freeze({
-      ...state,
-      masking: null,
-      pursuitReliability: BASE_DURABLE_RELIABILITY,
-    })
-  }
-  const masking = Object.freeze({ ...state.masking, durationTicks: remaining })
+
   return Object.freeze({
     ...state,
+    lock,
     masking,
-    pursuitReliability: reliabilityWithMasking(masking),
+    pursuitReliability: lock.active ? reliabilityFromParts(masking, state.contaminationBonus) : 0,
   })
 }
 
 /**
  * Apply contamination / reacquisition. Raises risk and requires a plan change
- * when a durable lock is still active.
+ * when a durable lock is still active. Bonus persists across masking advances.
  */
 export function applyScentContamination(
   state: ScentPursuitState,
   trigger: ContaminationTrigger
 ): ScentPursuitState {
   assertPursuitState(state)
+  if (!state.lock.active) throw new Error('scent lock is inactive')
   if (!CONTAMINATION.has(trigger)) throw new Error('contamination trigger is invalid')
+  const contaminationBonus = Math.min(
+    100,
+    state.contaminationBonus + CONTAMINATION_RELIABILITY_BUMP
+  )
   const reason = `scent reacquisition risk from ${trigger}`
   return Object.freeze({
     ...state,
+    contaminationBonus,
     reacquisitionRisk: true,
     planChangeRequired: true,
     planChangeReason: reason,
-    pursuitReliability: Math.min(100, state.pursuitReliability + 15),
+    pursuitReliability: reliabilityFromParts(state.masking, contaminationBonus),
   })
 }
 

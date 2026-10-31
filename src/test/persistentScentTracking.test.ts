@@ -65,6 +65,29 @@ describe('SPE-953 persistent scent tracking and masking', () => {
     expect(contaminated.planChangeRequired).toBe(true)
     expect(contaminated.planChangeReason).toMatch(/injury/)
     expect(contaminated.pursuitReliability).toBeGreaterThan(masked.pursuitReliability)
+    expect(contaminated.contaminationBonus).toBe(15)
+
+    const afterTick = advanceScentMasking(contaminated, 1)
+    expect(afterTick.contaminationBonus).toBe(15)
+    expect(afterTick.pursuitReliability).toBe(contaminated.pursuitReliability)
+  })
+
+  it('expires the durable lock when persistence ticks reach zero', () => {
+    const short = acquireDurableScentLock({
+      id: 'lock-short',
+      hostileId: 'predator-a',
+      targetId: 'op-1',
+      source: 'object',
+      persistenceTicks: 2,
+    })
+    const open = openScentPursuit(short, null)
+    const mid = advanceScentMasking(open, 1)
+    expect(mid.lock.active).toBe(true)
+    expect(mid.lock.persistenceTicks).toBe(1)
+    const done = advanceScentMasking(mid, 1)
+    expect(done.lock.active).toBe(false)
+    expect(done.lock.persistenceTicks).toBe(0)
+    expect(done.pursuitReliability).toBe(0)
   })
 
   it('supports pre-encounter prep on gear and route surfaces', () => {

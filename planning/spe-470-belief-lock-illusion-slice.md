@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4554 @ `bfdea122`)            |
 | **Linear** | [SPE-470](https://linear.app/spectranoir/issue/SPE-470) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-470-belief-lock-illusion`                     |

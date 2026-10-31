@@ -8,6 +8,7 @@ import {
   detectMissingRequiredValidation,
   matchGlob,
   probeValidatorAvailability,
+  readPackageScripts,
   readRequirementRegistry,
   resolveValidationRequirements,
   validateRequirementRegistry,
@@ -23,6 +24,35 @@ test('canonical registry validates', () => {
   assert.ok(registry.validators.some((v) => v.id === 'academy-authored-content'))
   assert.ok(registry.validators.some((v) => v.id === 'governance-contract'))
   assert.ok(registry.validators.some((v) => v.id === 'requirements-model-tests'))
+})
+
+test('every registered npm invocation exists in package.json', () => {
+  // A registry entry may name a script via npmScript/ciNpmScript or a command,
+  // but a named npm script that is absent is silently unrunnable. Catch it here
+  // instead of discovering it only when the validator is selected.
+  // An empty scripts map must not pass vacuously: readPackageScripts() throws on
+  // an unreadable package.json, but returns {} when the scripts key is absent.
+  const scripts = readPackageScripts()
+  assert.ok(
+    scripts && Object.keys(scripts).length > 0,
+    'package.json exposes no scripts — the dangling-script assertion would pass vacuously',
+  )
+  const dangling = []
+  for (const validator of registry.validators) {
+    for (const field of ['npmScript', 'ciNpmScript']) {
+      const name = validator[field]
+      if (name && !scripts[name]) dangling.push(`${validator.id}.${field}=${name}`)
+    }
+  }
+  assert.deepEqual(dangling, [], `dangling npm invocations: ${dangling.join(', ')}`)
+})
+
+test('architecture-index resolves through its command, not a phantom npm script', () => {
+  const entry = registry.validators.find((v) => v.id === 'architecture-index')
+  assert.ok(entry, 'architecture-index must stay registered')
+  assert.equal(entry.npmScript, undefined)
+  assert.equal(entry.command, 'node scripts/verify-architecture-index.mjs')
+  assert.equal(probeValidatorAvailability(entry, readPackageScripts()), 'available')
 })
 
 test('glob matcher is deterministic for ** and *', () => {

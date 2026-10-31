@@ -142,7 +142,8 @@ export function bootConstructRuntime(
     attackPriority: 'none' as const,
     unattendedTicks: 0,
     failSafeActive: false,
-    failSafeMode: 'none' as const,
+    /** Configured mode is inspectable before arming; active flag gates behavior. */
+    failSafeMode: construct.failSafeMode,
     delegatedAuthority: construct.delegatedAuthority,
     owner: FINITE_COMMAND_CONSTRUCT_OWNER,
   })
@@ -176,8 +177,8 @@ export function issueConstructCommand(
 }
 
 /**
- * Advance unattended time. When delay elapses, arm the configured fail-safe
- * and clear active command channel.
+ * Advance unattended time. Fail-safe arms once unattendedTicks reaches
+ * failSafeDelayTicks (inclusive). Mode `none` never arms.
  */
 export function advanceConstructUnattended(
   constructInput: FiniteCommandConstruct,
@@ -189,11 +190,8 @@ export function advanceConstructUnattended(
   if (state.failSafeActive) throw new Error('fail-safe already active')
   const tickCount = assertSafeIntegerInRange(ticks, 'ticks', 1, 100)
   const unattendedTicks = state.unattendedTicks + tickCount
-  if (unattendedTicks < construct.failSafeDelayTicks) {
-    return Object.freeze({ ...state, unattendedTicks })
-  }
-  if (construct.failSafeMode === 'none') {
-    return Object.freeze({ ...state, unattendedTicks })
+  if (unattendedTicks < construct.failSafeDelayTicks || construct.failSafeMode === 'none') {
+    return Object.freeze({ ...state, unattendedTicks, failSafeMode: construct.failSafeMode })
   }
   return Object.freeze({
     ...state,

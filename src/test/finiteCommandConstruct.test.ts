@@ -44,6 +44,7 @@ describe('SPE-330 finite-command construct control', () => {
   })
 
   it('activates a delayed fail-safe after unattended time', () => {
+    expect(runtime.failSafeMode).toBe('return')
     const mid = advanceConstructUnattended(construct, runtime, 4)
     expect(mid.failSafeActive).toBe(false)
     const armed = advanceConstructUnattended(construct, mid, 1)
@@ -52,6 +53,33 @@ describe('SPE-330 finite-command construct control', () => {
     expect(armed.movementMode).toBe('retreat')
     expect(armed.activeCommand).toBeNull()
     expect(() => issueConstructCommand(construct, armed, 'move')).toThrow(/fail-safe/)
+  })
+
+  it('never arms when failSafeMode is none', () => {
+    const inert = createFiniteCommandConstruct({
+      ...construct,
+      id: 'proxy-inert',
+      failSafeMode: 'none',
+      failSafeDelayTicks: 2,
+    })
+    const state = bootConstructRuntime(inert)
+    expect(state.failSafeMode).toBe('none')
+    const after = advanceConstructUnattended(inert, state, 5)
+    expect(after.failSafeActive).toBe(false)
+    expect(after.failSafeMode).toBe('none')
+  })
+
+  it('arms intrusion_kill with high attack priority', () => {
+    const killer = createFiniteCommandConstruct({
+      ...construct,
+      id: 'proxy-kill',
+      failSafeMode: 'intrusion_kill',
+      failSafeDelayTicks: 1,
+    })
+    const armed = advanceConstructUnattended(killer, bootConstructRuntime(killer), 1)
+    expect(armed.failSafeActive).toBe(true)
+    expect(armed.failSafeMode).toBe('intrusion_kill')
+    expect(armed.attackPriority).toBe('high')
   })
 
   it('rejects commands without delegated authority', () => {

@@ -184,6 +184,22 @@ describe('entityEncounterStatblockPacket (SPE-2197 slice 1)', () => {
     )
     expect(missingAction).toContain('missing_recharge_action')
 
+    const invalidAction = baseRecord().actions[1]!
+    const invalidActionReference = issueCodes(
+      baseRecord({
+        actions: [{ ...invalidAction, label: ' ' }],
+        rechargeActions: [
+          {
+            actionRef: invalidAction.id,
+            recharge: { mode: 'recovery_interval', recoverySteps: 1 },
+          },
+        ],
+      })
+    )
+    expect(invalidActionReference).toEqual(
+      expect.arrayContaining(['invalid_action', 'missing_recharge_action'])
+    )
+
     const malformed = issueCodes(
       baseRecord({
         rechargeActions: [

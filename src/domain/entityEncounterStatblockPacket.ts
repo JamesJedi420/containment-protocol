@@ -415,6 +415,7 @@ function validateActions(
   issues: EntityEncounterPacketValidationIssue[]
 ): Set<string> {
   const actionIds = new Set<string>()
+  const seenActionIds = new Set<string>()
   if (!Array.isArray(value)) {
     addIssue(issues, 'invalid_action', `Entity encounter packet ${id} actions must be an array.`)
     return actionIds
@@ -447,14 +448,15 @@ function validateActions(
         `Entity encounter packet ${id} contains an invalid action ${actionId || '(unknown)'}.`
       )
     }
-    if (actionId && actionIds.has(actionId)) {
+    if (actionId && seenActionIds.has(actionId)) {
       addIssue(
         issues,
         'duplicate_action_id',
         `Entity encounter packet ${id} repeats action ${actionId}.`
       )
     }
-    if (actionId) actionIds.add(actionId)
+    if (actionId) seenActionIds.add(actionId)
+    if (valid && actionId) actionIds.add(actionId)
   }
   return actionIds
 }

@@ -114,8 +114,10 @@ export function applySurveyTick(
   if (remaining === 0) {
     throw new Error('survey area is already complete')
   }
-  const cellsCleared = Math.min(remaining, profile.areaPerTick * tickCount)
-  const timeSpent = profile.timeCostPerTick * tickCount
+  const ticksNeeded = Math.ceil(remaining / profile.areaPerTick)
+  const effectiveTicks = Math.min(tickCount, ticksNeeded)
+  const cellsCleared = Math.min(remaining, profile.areaPerTick * effectiveTicks)
+  const timeSpent = profile.timeCostPerTick * effectiveTicks
   const clearedCells = area.clearedCells + cellsCleared
   const nextState = Object.freeze({
     areaId: area.areaId,

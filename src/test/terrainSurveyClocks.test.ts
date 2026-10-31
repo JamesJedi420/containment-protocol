@@ -91,4 +91,17 @@ describe('SPE-312 terrain-scaled survey clocks and coverage', () => {
       /already complete/
     )
   })
+
+  it('does not charge extra ticks after the area completes mid-batch', () => {
+    const almostDone = createSurveyAreaState({
+      areaId: 'near',
+      totalCells: 10,
+      clearedCells: 8,
+    })
+    // open: 8 cells/tick, 1 time/tick — 2 remaining needs 1 tick, not 5
+    const result = applySurveyTick(almostDone, TERRAIN_SURVEY_PROFILES.open, 5)
+    expect(result.cellsCleared).toBe(2)
+    expect(result.timeSpent).toBe(1)
+    expect(result.complete).toBe(true)
+  })
 })

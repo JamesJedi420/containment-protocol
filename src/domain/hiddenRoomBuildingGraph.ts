@@ -20,8 +20,7 @@ export type HiddenRoomPurpose =
   | 'witness_confinement'
   | 'family_secret'
 
-export type DiscoveryStage =
-  'concealed' | 'switch_found' | 'room_revealed' | 'occupant_or_body_found'
+export type DiscoveryStage = 'concealed' | 'room_revealed' | 'occupant_or_body_found'
 
 export type RoomVisibility = 'visible' | 'hidden'
 
@@ -64,6 +63,7 @@ export interface HiddenBuildingGraph {
 export interface HiddenBuildingDiscoveryState {
   readonly buildingId: string
   readonly discoveryByHiddenRoomId: Readonly<Record<string, DiscoveryStage>>
+  readonly activatedTriggerIds: readonly string[]
   readonly openAlternateRouteIds: readonly string[]
   readonly owner: typeof HIDDEN_ROOM_BUILDING_GRAPH_OWNER
 }
@@ -84,12 +84,7 @@ const PURPOSES = new Set<HiddenRoomPurpose | 'ordinary'>([
   'family_secret',
   'ordinary',
 ])
-const STAGES = new Set<DiscoveryStage>([
-  'concealed',
-  'switch_found',
-  'room_revealed',
-  'occupant_or_body_found',
-])
+const STAGES = new Set<DiscoveryStage>(['concealed', 'room_revealed', 'occupant_or_body_found'])
 
 function assertRooms(rooms: readonly BuildingRoom[]): readonly BuildingRoom[] {
   if (!Array.isArray(rooms) || rooms.length < 2) {
@@ -129,7 +124,6 @@ export function createHiddenBuildingGraph(input: HiddenBuildingGraph): HiddenBui
     if (triggerIds.has(tid)) throw new Error('trigger ids must be unique')
     triggerIds.add(tid)
     if (!TRIGGERS.has(t.kind)) throw new Error('access trigger kind is invalid')
-    if (t.kind === undefined) throw new Error('access trigger kind is invalid')
     const matchingMechanismId = assertNonEmptyId(t.matchingMechanismId, 'matchingMechanismId')
     const fromRoomId = assertNonEmptyId(t.fromRoomId, 'fromRoomId')
     const toHiddenRoomId = assertNonEmptyId(t.toHiddenRoomId, 'toHiddenRoomId')
@@ -164,6 +158,9 @@ export function createHiddenBuildingGraph(input: HiddenBuildingGraph): HiddenBui
       e.requiresTriggerId === null
         ? null
         : assertNonEmptyId(e.requiresTriggerId, 'requiresTriggerId')
+    if (requiresTriggerId !== null && !e.alternateRoute) {
+      throw new Error('trigger-gated edges must set alternateRoute true')
+    }
     if (e.alternateRoute && requiresTriggerId === null) {
       throw new Error('alternate routes require a trigger id')
     }
@@ -220,6 +217,7 @@ export function bootHiddenBuildingDiscovery(
   return Object.freeze({
     buildingId: graph.id,
     discoveryByHiddenRoomId: Object.freeze(discoveryByHiddenRoomId),
+    activatedTriggerIds: Object.freeze([] as string[]),
     openAlternateRouteIds: Object.freeze([] as string[]),
     owner: HIDDEN_ROOM_BUILDING_GRAPH_OWNER,
   })
@@ -242,24 +240,30 @@ export function activateConcealedTrigger(
   if (trigger.matchingMechanismId !== matchingMechanismId) {
     throw new Error('matching mechanism mismatch')
   }
+  if (state.activatedTriggerIds.includes(triggerId)) {
+    throw new Error('trigger already activated')
+  }
   const stage = state.discoveryByHiddenRoomId[trigger.toHiddenRoomId]
   if (!stage || !STAGES.has(stage)) throw new Error('hidden room discovery state missing')
-  if (stage !== 'concealed' && stage !== 'switch_found') {
-    throw new Error('trigger already fully activated')
-  }
 
   const discoveryByHiddenRoomId = Object.freeze({
     ...state.discoveryByHiddenRoomId,
-    [trigger.toHiddenRoomId]: 'room_revealed' as const,
+    [trigger.toHiddenRoomId]:
+      stage === 'occupant_or_body_found'
+        ? ('occupant_or_body_found' as const)
+        : ('room_revealed' as const),
   })
-  const openAlternateRouteIds = Object.freeze(
-    graph.edges
-      .filter((e) => e.requiresTriggerId === triggerId)
-      .map((e) => `${e.fromRoomId}->${e.toRoomId}`)
-  )
+  const newlyOpened = graph.edges
+    .filter((e) => e.requiresTriggerId === triggerId)
+    .map((e) => `${e.fromRoomId}->${e.toRoomId}`)
+  const openAlternateRouteIds = Object.freeze([
+    ...state.openAlternateRouteIds,
+    ...newlyOpened.filter((id) => !state.openAlternateRouteIds.includes(id)),
+  ])
   return Object.freeze({
     ...state,
     discoveryByHiddenRoomId,
+    activatedTriggerIds: Object.freeze([...state.activatedTriggerIds, triggerId]),
     openAlternateRouteIds,
   })
 }
@@ -301,7 +305,7 @@ export function reachableRoomIds(
   const out: string[] = []
   for (const edge of graph.edges) {
     if (edge.fromRoomId !== from) continue
-    if (edge.alternateRoute) {
+    if (edge.requiresTriggerId !== null || edge.alternateRoute) {
       const key = `${edge.fromRoomId}->${edge.toRoomId}`
       if (!open.has(key)) continue
     }

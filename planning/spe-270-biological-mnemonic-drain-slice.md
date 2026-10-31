@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4555 @ `fe8509fe`)            |
 | **Linear** | [SPE-270](https://linear.app/spectranoir/issue/SPE-270) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-270-biological-mnemonic-drain`                |

@@ -44,6 +44,8 @@ export interface ContainmentWallBreachState {
   readonly eventKind: BreachEventKind
   readonly medium: ExternalHazardMedium
   readonly spreadMode: BreachSpreadMode
+  /** Planned adjacent zones captured at initiation (authoritative flood set). */
+  readonly plannedZoneIds: readonly string[]
   readonly floodedZoneIds: readonly string[]
   readonly ticksRemaining: number
   readonly complete: boolean
@@ -122,9 +124,18 @@ export function createContainmentWallBreachPlan(
 
 function couplingForBarrier(barrier: ContainmentWallBarrier): BreachCouplingTrigger {
   if (!barrier.pressureBoundary) return 'none'
-  if (barrier.heldMedium === 'water' || barrier.heldMedium === 'pressure') return 'flow_loss'
-  if (barrier.heldMedium === 'vacuum') return 'power_loss'
-  return 'flow_loss'
+  switch (barrier.heldMedium) {
+    case 'water':
+    case 'pressure':
+    case 'toxic_atmosphere':
+      return 'flow_loss'
+    case 'vacuum':
+      return 'power_loss'
+    default: {
+      const _exhaustive: never = barrier.heldMedium
+      throw new Error(`unhandled heldMedium in couplingForBarrier: ${_exhaustive}`)
+    }
+  }
 }
 
 /**
@@ -146,6 +157,7 @@ export function initiateContainmentWallBreach(
       eventKind: 'ordinary_trap_discharge',
       medium: barrier.heldMedium,
       spreadMode: plan.spreadMode,
+      plannedZoneIds: plan.adjacentZoneIds,
       floodedZoneIds: Object.freeze([] as string[]),
       ticksRemaining: 0,
       complete: true,
@@ -161,6 +173,7 @@ export function initiateContainmentWallBreach(
     eventKind: 'catastrophic_wall_breach',
     medium: barrier.heldMedium,
     spreadMode: plan.spreadMode,
+    plannedZoneIds: plan.adjacentZoneIds,
     floodedZoneIds: Object.freeze([] as string[]),
     ticksRemaining: plan.spreadDelayTicks,
     complete: false,
@@ -174,7 +187,6 @@ export function initiateContainmentWallBreach(
 /** Advance the breach timer; on zero, flood all planned adjacent zones. */
 export function advanceContainmentWallBreach(
   state: ContainmentWallBreachState,
-  adjacentZoneIds: readonly string[],
   ticks: number = 1
 ): ContainmentWallBreachState {
   if (typeof state !== 'object' || state === null || Array.isArray(state)) {
@@ -188,7 +200,6 @@ export function advanceContainmentWallBreach(
   }
   if (state.complete) throw new Error('breach spread already complete')
   const tickCount = assertSafeIntegerInRange(ticks, 'ticks', 1, 10)
-  const zones = assertUniqueZoneIds(adjacentZoneIds)
   const ticksRemaining = Math.max(0, state.ticksRemaining - tickCount)
   if (ticksRemaining > 0) {
     return Object.freeze({ ...state, ticksRemaining })
@@ -197,7 +208,7 @@ export function advanceContainmentWallBreach(
     ...state,
     ticksRemaining: 0,
     complete: true,
-    floodedZoneIds: zones,
+    floodedZoneIds: state.plannedZoneIds,
   })
 }
 

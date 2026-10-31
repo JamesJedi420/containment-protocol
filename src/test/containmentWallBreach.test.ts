@@ -1,20 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   advanceContainmentWallBreach,
   createContainmentWallBarrier,
   createContainmentWallBreachPlan,
   initiateContainmentWallBreach,
   isCatastrophicWallBreach,
+  type ContainmentWallBarrier,
 } from '../domain/containmentWallBreach'
 
-const submergedShell = createContainmentWallBarrier({
-  id: 'shell-a',
-  heldMedium: 'water',
-  intact: true,
-  pressureBoundary: true,
-})
-
 describe('SPE-471 catastrophic containment-wall breach states', () => {
+  let submergedShell: ContainmentWallBarrier
+
+  beforeEach(() => {
+    submergedShell = createContainmentWallBarrier({
+      id: 'shell-a',
+      heldMedium: 'water',
+      intact: true,
+      pressureBoundary: true,
+    })
+  })
+
   it('holds a real environmental medium behind an intact barrier', () => {
     expect(submergedShell.heldMedium).toBe('water')
     expect(submergedShell.intact).toBe(true)
@@ -31,17 +36,33 @@ describe('SPE-471 catastrophic containment-wall breach states', () => {
     })
     const open = initiateContainmentWallBreach(submergedShell, plan)
     expect(open.complete).toBe(false)
+    expect(open.plannedZoneIds).toEqual(['zone-1', 'zone-2'])
     expect(open.floodedZoneIds).toEqual([])
     expect(open.actuationHandoff).toBe('seal')
     expect(isCatastrophicWallBreach(open)).toBe(true)
 
-    const mid = advanceContainmentWallBreach(open, plan.adjacentZoneIds, 1)
+    const mid = advanceContainmentWallBreach(open, 1)
     expect(mid.ticksRemaining).toBe(1)
     expect(mid.complete).toBe(false)
 
-    const done = advanceContainmentWallBreach(mid, plan.adjacentZoneIds, 1)
+    const done = advanceContainmentWallBreach(mid, 1)
     expect(done.complete).toBe(true)
     expect(done.floodedZoneIds).toEqual(['zone-1', 'zone-2'])
+  })
+
+  it('floods only the planned zones captured at initiation', () => {
+    const plan = createContainmentWallBreachPlan({
+      barrierId: 'shell-a',
+      eventKind: 'catastrophic_wall_breach',
+      spreadMode: 'flood',
+      adjacentZoneIds: ['planned-a', 'planned-b'],
+      spreadDelayTicks: 1,
+      actuation: 'seal',
+    })
+    const open = initiateContainmentWallBreach(submergedShell, plan)
+    const done = advanceContainmentWallBreach(open, 1)
+    expect(done.floodedZoneIds).toEqual(['planned-a', 'planned-b'])
+    expect(done.floodedZoneIds).toEqual(open.plannedZoneIds)
   })
 
   it('couples submerged/pressure breaches to flow-loss or power-loss', () => {
@@ -70,6 +91,22 @@ describe('SPE-471 catastrophic containment-wall breach states', () => {
       actuation: 'vent',
     })
     expect(initiateContainmentWallBreach(vacuumShell, vacPlan).coupling).toBe('power_loss')
+
+    const toxicShell = createContainmentWallBarrier({
+      id: 'tox-1',
+      heldMedium: 'toxic_atmosphere',
+      intact: true,
+      pressureBoundary: true,
+    })
+    const toxPlan = createContainmentWallBreachPlan({
+      barrierId: 'tox-1',
+      eventKind: 'catastrophic_wall_breach',
+      spreadMode: 'vent',
+      adjacentZoneIds: ['lab'],
+      spreadDelayTicks: 1,
+      actuation: 'lockdown',
+    })
+    expect(initiateContainmentWallBreach(toxicShell, toxPlan).coupling).toBe('flow_loss')
   })
 
   it('distinguishes ordinary trap discharge from catastrophic wall breach', () => {
@@ -85,7 +122,7 @@ describe('SPE-471 catastrophic containment-wall breach states', () => {
     expect(result.catastrophic).toBe(false)
     expect(result.actuationHandoff).toBeNull()
     expect(result.floodedZoneIds).toEqual([])
-    expect(() => advanceContainmentWallBreach(result, ['zone-1'])).toThrow(/ordinary trap/)
+    expect(() => advanceContainmentWallBreach(result)).toThrow(/ordinary trap/)
   })
 
   it('is deterministic and does not mutate inputs', () => {

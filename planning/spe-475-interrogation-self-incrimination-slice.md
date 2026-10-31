@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4558 @ `da6fac97`)            |
 | **Linear** | [SPE-475](https://linear.app/spectranoir/issue/SPE-475) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-475-interrogation-self-incrimination`         |

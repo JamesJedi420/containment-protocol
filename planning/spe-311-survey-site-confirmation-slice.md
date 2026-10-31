@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4549 @ `d68646f5`)            |
 | **Linear** | [SPE-311](https://linear.app/spectranoir/issue/SPE-311) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-311-survey-site-confirmation`                 |

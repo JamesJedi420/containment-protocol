@@ -417,6 +417,12 @@ export function projectOperationalStatusRecord(
   record: OperationalStatusRecord
 ): OperationalStatusProjection {
   assertValidRecord(record)
+  return projectValidatedOperationalStatusRecord(record)
+}
+
+function projectValidatedOperationalStatusRecord(
+  record: OperationalStatusRecord
+): OperationalStatusProjection {
   return Object.freeze({
     id: record.id,
     domain: record.domain,
@@ -445,7 +451,9 @@ export function projectOperationalStatusExpansionRegistry(
       `invalid operational status registry: ${validation.issues.map((issue) => issue.code).join(', ')}`
     )
   }
-  return Object.freeze(registry.entries.map((entry) => projectOperationalStatusRecord(entry)))
+  return Object.freeze(
+    registry.entries.map((entry) => projectValidatedOperationalStatusRecord(entry))
+  )
 }
 
 function defineStatus(

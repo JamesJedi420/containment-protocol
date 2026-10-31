@@ -21,7 +21,9 @@ import {
 } from '../domain/operationalStatusExpansionRegistry'
 
 function baseRecord(overrides: Partial<OperationalStatusRecord> = {}): OperationalStatusRecord {
-  const fixture = DEFAULT_OPERATIONAL_STATUS_EXPANSION_REGISTRY.entries[0]!
+  const fixture = DEFAULT_OPERATIONAL_STATUS_EXPANSION_REGISTRY.entries.find(
+    (entry) => entry.domain === 'physical'
+  )!
   return {
     ...fixture,
     id: 'operational-status:test:bounded-record',
@@ -257,6 +259,11 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
         null as unknown as OperationalStatusExpansionRegistry
       ).issues.map((issue) => issue.code)
     ).toEqual(['invalid_registry'])
+    expect(
+      validateOperationalStatusExpansionRegistry({
+        entries: [null as unknown as OperationalStatusRecord],
+      }).issues.map((issue) => issue.code)
+    ).toEqual(['invalid_record'])
     expect(() =>
       projectOperationalStatusRecord(
         baseRecord({ domain: 'unknown' as OperationalStatusRecord['domain'] })

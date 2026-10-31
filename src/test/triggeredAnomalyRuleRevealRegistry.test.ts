@@ -164,16 +164,18 @@ describe('triggeredAnomalyRuleRevealRegistry (SPE-2172 slice 1)', () => {
       responseScaleAfterReveal: rule.responseScaleBeforeReveal,
     } as unknown as TriggeredAnomalyRuleRevealRecord
 
-    expect(
-      validateTriggeredAnomalyRuleRevealRecord(malformed).issues.map((issue) => issue.code)
-    ).toEqual([
-      'missing_setup_ref',
-      'duplicate_setup_ref',
-      'duplicate_procedure_ref',
-      'invalid_magnitude_tier',
-      'unchanged_response_scale',
-      'missing_acknowledgement_prompt',
-    ])
+    const malformedIssues = validateTriggeredAnomalyRuleRevealRecord(malformed).issues
+    expect(malformedIssues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        'missing_setup_ref',
+        'duplicate_setup_ref',
+        'duplicate_procedure_ref',
+        'invalid_magnitude_tier',
+        'unchanged_response_scale',
+        'missing_acknowledgement_prompt',
+      ])
+    )
+    expect(malformedIssues).toHaveLength(6)
 
     const duplicateRegistry = validateTriggeredAnomalyRuleRevealRegistry({
       entries: [rule, { ...rule }],

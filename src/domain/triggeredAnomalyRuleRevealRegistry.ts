@@ -436,6 +436,14 @@ function hiddenEvaluation(
   })
 }
 
+function requireAcknowledgementPrompt(record: TriggeredAnomalyRuleRevealRecord): string {
+  const prompt = record.acknowledgementPrompt
+  if (typeof prompt !== 'string' || !prompt.trim()) {
+    throw new TypeError('acknowledgementPrompt is required when acknowledgementRequired is true')
+  }
+  return prompt
+}
+
 /** Evaluate one caller-owned action without mutating rule, setup, or acknowledgement state. */
 export function evaluateTriggeredAnomalyRuleReveal(
   record: TriggeredAnomalyRuleRevealRecord,
@@ -488,7 +496,7 @@ export function evaluateTriggeredAnomalyRuleReveal(
       hiddenRuleRef: record.hiddenRuleRef,
       procedureRefs: Object.freeze([...record.procedureRefs]),
       acknowledgementRequired: true,
-      acknowledgementPrompt: record.acknowledgementPrompt!,
+      acknowledgementPrompt: requireAcknowledgementPrompt(record),
       owner: TRIGGERED_ANOMALY_RULE_REVEAL_OWNER,
       magnitudeOwner: ANOMALY_INTERACTION_PACKAGE_OWNER,
     })

@@ -177,7 +177,9 @@ export type EntityEncounterPacketValidationCode =
   | 'invalid_protection_profile'
   | 'duplicate_protection_channel'
   | 'invalid_immunity_profile'
+  | 'duplicate_immunity_channel'
   | 'invalid_weakness_profile'
+  | 'duplicate_weakness_channel'
   | 'contradictory_resistance_profile'
   | 'invalid_action'
   | 'duplicate_action_id'
@@ -386,14 +388,20 @@ function validateChannelList(
   issues: EntityEncounterPacketValidationIssue[]
 ): Set<string> {
   const code = kind === 'immunity' ? 'invalid_immunity_profile' : 'invalid_weakness_profile'
+  const duplicateCode =
+    kind === 'immunity' ? 'duplicate_immunity_channel' : 'duplicate_weakness_channel'
   const valid = new Set<string>()
   if (!Array.isArray(value)) {
     addIssue(issues, code, `Entity encounter packet ${id} ${kind} profile must be an array.`)
     return valid
   }
   for (const channel of value) {
-    if (typeof channel !== 'string' || !PROTECTION_CHANNEL_SET.has(channel) || valid.has(channel)) {
+    if (typeof channel !== 'string' || !PROTECTION_CHANNEL_SET.has(channel)) {
       addIssue(issues, code, `Entity encounter packet ${id} has an invalid ${kind} channel.`)
+      continue
+    }
+    if (valid.has(channel)) {
+      addIssue(issues, duplicateCode, `Entity encounter packet ${id} repeats ${kind} ${channel}.`)
       continue
     }
     valid.add(channel)
@@ -661,25 +669,33 @@ function assertValidRecord(record: EntityEncounterPacketRecord): void {
 function freezeProtectionProfile(
   profile: readonly EncounterProtectionEntry[]
 ): readonly EncounterProtectionEntry[] {
-  return Object.freeze(profile.map((entry) => Object.freeze({ ...entry })))
+  return Object.freeze(profile.map(({ channel, rating }) => Object.freeze({ channel, rating })))
 }
 
 function freezeActions(
   actions: readonly EncounterActionOption[]
 ): readonly EncounterActionOption[] {
   return Object.freeze(
-    actions.map((action) =>
-      Object.freeze({ ...action, outcomeRefs: Object.freeze([...action.outcomeRefs]) })
+    actions.map(({ id, label, delivery, outcomeRefs }) =>
+      Object.freeze({ id, label, delivery, outcomeRefs: Object.freeze([...outcomeRefs]) })
     )
   )
+}
+
+function freezeRechargeDefinition(
+  recharge: EncounterRechargeDefinition
+): EncounterRechargeDefinition {
+  return recharge.mode === 'recovery_interval'
+    ? Object.freeze({ mode: recharge.mode, recoverySteps: recharge.recoverySteps })
+    : Object.freeze({ mode: recharge.mode, resetStateRef: recharge.resetStateRef })
 }
 
 function freezeRechargeActions(
   actions: readonly EncounterRechargeAction[]
 ): readonly EncounterRechargeAction[] {
   return Object.freeze(
-    actions.map((action) =>
-      Object.freeze({ ...action, recharge: Object.freeze({ ...action.recharge }) })
+    actions.map(({ actionRef, recharge }) =>
+      Object.freeze({ actionRef, recharge: freezeRechargeDefinition(recharge) })
     )
   )
 }
@@ -687,7 +703,9 @@ function freezeRechargeActions(
 function freezePassiveTraits(
   traits: readonly EncounterPassiveTrait[]
 ): readonly EncounterPassiveTrait[] {
-  return Object.freeze(traits.map((trait) => Object.freeze({ ...trait })))
+  return Object.freeze(
+    traits.map(({ id, label, effectRef }) => Object.freeze({ id, label, effectRef }))
+  )
 }
 
 function definePacket(input: EntityEncounterPacketRecord): EntityEncounterPacketRecord {

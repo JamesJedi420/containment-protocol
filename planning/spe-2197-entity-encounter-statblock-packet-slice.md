@@ -33,7 +33,7 @@ Add a pure deterministic entity encounter packet for mobility, morale, senses, p
 
 ## Validation
 
-- Focused packet, adjacent-owner, and boundary tests: 35 passed.
+- Focused packet, adjacent-owner, and boundary tests: 36 passed after review fixes.
 - `npm run verify:requirements -- --base origin/main`: required backlog handoff, lint, and
   10,695 unit tests passed; advisory Playwright passed 11 tests.
 - `npm run verify:backlog-handoff`: passed.

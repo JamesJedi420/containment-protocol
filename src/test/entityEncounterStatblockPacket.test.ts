@@ -130,6 +130,15 @@ describe('entityEncounterStatblockPacket (SPE-2197 slice 1)', () => {
     expect(result).toEqual(
       expect.arrayContaining(['invalid_immunity_profile', 'contradictory_resistance_profile'])
     )
+
+    expect(
+      issueCodes(
+        baseRecord({
+          immunityProfile: ['ritual', 'ritual'],
+          weaknessProfile: ['spatial', 'spatial'],
+        })
+      )
+    ).toEqual(expect.arrayContaining(['duplicate_immunity_channel', 'duplicate_weakness_channel']))
   })
 
   it('rejects malformed and duplicate action definitions', () => {
@@ -290,6 +299,36 @@ describe('entityEncounterStatblockPacket (SPE-2197 slice 1)', () => {
       'substrateSchemaOwner',
       'operationalStatusOwner',
     ])
+  })
+
+  it('projects only known nested packet fields', () => {
+    const source = baseRecord()
+    const extra = { amount: 3 }
+    const projected = projectEntityEncounterPacketRecord({
+      ...source,
+      protectionProfile: source.protectionProfile.map((entry) => ({
+        ...entry,
+        notes: extra,
+      })) as EntityEncounterPacketRecord['protectionProfile'],
+      actions: source.actions.map((action) => ({
+        ...action,
+        damage: extra,
+      })) as EntityEncounterPacketRecord['actions'],
+      rechargeActions: source.rechargeActions.map((action) => ({
+        ...action,
+        recharge: { ...action.recharge, internalClock: extra },
+      })) as EntityEncounterPacketRecord['rechargeActions'],
+      passiveTraits: source.passiveTraits.map((trait) => ({
+        ...trait,
+        privateDetails: extra,
+      })) as EntityEncounterPacketRecord['passiveTraits'],
+    })
+
+    expect(projected.protectionProfile[0]).not.toHaveProperty('notes')
+    expect(projected.actions[0]).not.toHaveProperty('damage')
+    expect(projected.rechargeActions[0]?.recharge).not.toHaveProperty('internalClock')
+    expect(projected.passiveTraits[0]).not.toHaveProperty('privateDetails')
+    expect(Object.isFrozen(extra)).toBe(false)
   })
 
   it('fails closed for invalid records and registries', () => {

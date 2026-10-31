@@ -78,4 +78,25 @@ describe('SPE-313 catastrophic survey misinformation', () => {
       /surveyId/
     )
   })
+
+  it('rejects malformed caller-built state on reveal', () => {
+    expect(() =>
+      revealSurveyMisinformation({
+        surveyId: '',
+        belief: 'false_absence',
+        active: true,
+        revealed: false,
+        owner: 'SPE-313',
+      })
+    ).toThrow(/surveyId/)
+    expect(() =>
+      revealSurveyMisinformation({
+        surveyId: 'survey-bad',
+        belief: 'garbage' as 'false_absence',
+        active: true,
+        revealed: false,
+        owner: 'SPE-313',
+      })
+    ).toThrow(/no active survey misinformation/)
+  })
 })

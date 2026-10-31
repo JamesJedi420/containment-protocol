@@ -80,14 +80,19 @@ export function revealSurveyMisinformation(
   if (state.owner !== SURVEY_MISINFORMATION_OWNER) {
     throw new Error('survey misinformation owner mismatch')
   }
+  const surveyId = assertNonEmptyId(state.surveyId, 'surveyId')
   if (state.revealed) {
     throw new Error('survey misinformation already revealed')
   }
-  if (!state.active || state.belief === 'none') {
+  if (
+    !state.active ||
+    state.belief === 'none' ||
+    !CATASTROPHIC_BELIEFS.has(state.belief as Exclude<MisinformationBelief, 'none'>)
+  ) {
     throw new Error('no active survey misinformation to reveal')
   }
   return Object.freeze({
-    surveyId: state.surveyId,
+    surveyId,
     belief: state.belief,
     active: false,
     revealed: true,

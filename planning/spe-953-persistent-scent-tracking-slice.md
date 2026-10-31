@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4557 @ `7850aaf1`)            |
 | **Linear** | [SPE-953](https://linear.app/spectranoir/issue/SPE-953) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-953-persistent-scent-tracking`                |

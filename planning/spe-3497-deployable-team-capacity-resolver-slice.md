@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                                  |
 | ---------- | -------------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                        |
+| **Status** | **Recently shipped** (PR #4548 @ `348270b9`)                                           |
 | **Linear** | [SPE-3497](https://linear.app/spectranoir/issue/SPE-3497)                              |
 | **Parent** | [SPE-3045](https://linear.app/spectranoir/issue/SPE-3045) (Backlog); umbrella SPE-1023 |
 | **Branch** | `feat/spe-3497-deployable-team-capacity-resolver`                                      |

@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4551 @ `8d248a60`)            |
 | **Linear** | [SPE-313](https://linear.app/spectranoir/issue/SPE-313) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-313-survey-misinformation`                    |

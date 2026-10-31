@@ -8,6 +8,7 @@ import {
   EFFECT_STACK_POLICY_OWNER,
   OPERATIONAL_STATUS_DOMAINS,
   OPERATIONAL_STATUS_EXPANSION_OWNER,
+  OPERATIONAL_STATUS_LABEL_TONES,
   OPERATIONAL_STATUS_OWNER_REFERENCES,
   STATUS_EFFECT_REGISTRY_OWNER,
   TRIGGER_COUNTED_DURATION_OWNER,
@@ -65,6 +66,7 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
     expect(EFFECT_STACK_POLICY_OWNER).toBe('SPE-780')
     expect(EFFECT_DURATION_MODE_OWNER).toBe('SPE-2191')
     expect(TRIGGER_COUNTED_DURATION_OWNER).toBe('SPE-1369')
+    expect(OPERATIONAL_STATUS_LABEL_TONES).toEqual(['neutral', 'supportive', 'procedural'])
   })
 
   it('rejects unknown domains and severity tiers', () => {
@@ -91,6 +93,13 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
       issueCodes(
         baseRecord({
           stackPolicy: { policyRef: 'stack-policy:replace', maxInstances: 3 },
+        })
+      )
+    ).toContain('contradictory_stack_policy')
+    expect(
+      issueCodes(
+        baseRecord({
+          stackPolicy: { policyRef: 'stack-policy:bounded-additive', maxInstances: 1 },
         })
       )
     ).toContain('contradictory_stack_policy')
@@ -181,6 +190,16 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
       entries: [duplicate, { ...duplicate }],
     })
     expect(validation.issues.map((issue) => issue.code)).toContain('duplicate_id')
+
+    const canonicalCollision = validateOperationalStatusExpansionRegistry({
+      entries: [
+        baseRecord({ id: ' operational-status:test:canonical-collision ' }),
+        baseRecord({ id: 'operational-status:test:canonical-collision' }),
+      ],
+    })
+    expect(canonicalCollision.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(['untrimmed_reference', 'duplicate_id'])
+    )
   })
 
   it('projects stable immutable rows without mutating the source record', () => {
@@ -219,6 +238,8 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
 
     expect(Object.isFrozen(projections)).toBe(true)
     expect(byDomain.get('physical')?.reportingCategory).toBe('wellbeing')
+    expect(byDomain.get('physical')?.visibility).toBe('restricted')
+    expect(byDomain.get('cognitive')?.visibility).toBe('private')
     expect(byDomain.get('legal')?.reportingCategory).toBe('compliance')
     expect(byDomain.get('social')?.reportingCategory).toBe('relationship')
     expect(byDomain.get('memory')?.reportingCategory).toBe('knowledge_integrity')
@@ -254,7 +275,8 @@ describe('operationalStatusExpansionRegistry (SPE-2166 slice 1)', () => {
       'utf8'
     )
 
-    expect(source).not.toMatch(/from ['"].*app\/store/)
+    expect(source).not.toMatch(/from ['"].*app\//)
+    expect(source).not.toMatch(/from ['"].*components\//)
     expect(source).not.toMatch(/from ['"].*features/)
     expect(source).not.toMatch(/from ['"]react/)
     expect(source).not.toContain('GameState')

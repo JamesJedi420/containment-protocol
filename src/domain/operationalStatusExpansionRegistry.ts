@@ -46,6 +46,7 @@ export const EFFECT_STACK_POLICY_REFS: readonly EffectStackPolicyRef[] = Object.
 
 export interface OperationalStatusStackPolicyReference {
   readonly policyRef: EffectStackPolicyRef
+  /** Required for bounded policies; must be an integer greater than or equal to 2. */
   readonly maxInstances?: number
 }
 
@@ -55,6 +56,12 @@ export const OPERATIONAL_STATUS_VISIBILITIES: readonly OperationalStatusVisibili
   Object.freeze(['private', 'restricted', 'team', 'public_record'])
 
 export type OperationalStatusLabelTone = 'neutral' | 'supportive' | 'procedural'
+
+export const OPERATIONAL_STATUS_LABEL_TONES: readonly OperationalStatusLabelTone[] = Object.freeze([
+  'neutral',
+  'supportive',
+  'procedural',
+])
 
 export interface CareAwareStatusLabel {
   readonly displayLabel: string
@@ -151,7 +158,7 @@ const DOMAIN_SET = new Set<string>(OPERATIONAL_STATUS_DOMAINS)
 const SEVERITY_TIER_SET = new Set<string>(OPERATIONAL_STATUS_SEVERITY_TIERS)
 const STACK_POLICY_REF_SET = new Set<string>(EFFECT_STACK_POLICY_REFS)
 const VISIBILITY_SET = new Set<string>(OPERATIONAL_STATUS_VISIBILITIES)
-const LABEL_TONE_SET = new Set<string>(['neutral', 'supportive', 'procedural'])
+const LABEL_TONE_SET = new Set<string>(OPERATIONAL_STATUS_LABEL_TONES)
 const REPORTING_CATEGORY_SET = new Set<string>(OPERATIONAL_STATUS_REPORTING_CATEGORIES)
 const BOUNDED_STACK_POLICY_REFS = new Set<EffectStackPolicyRef>([
   'stack-policy:bounded-additive',
@@ -441,11 +448,32 @@ export function projectOperationalStatusExpansionRegistry(
   return Object.freeze(registry.entries.map((entry) => projectOperationalStatusRecord(entry)))
 }
 
-function defineStatus(input: OperationalStatusRecord): OperationalStatusRecord {
+function defineStatus(
+  id: string,
+  domain: OperationalStatusDomain,
+  severityTier: OperationalStatusSeverityTier,
+  policyRef: EffectStackPolicyRef,
+  maxInstances: number | null,
+  durationModeRef: EffectDurationModeId,
+  visibility: OperationalStatusVisibility,
+  removalPathRef: string,
+  displayLabel: string,
+  tone: OperationalStatusLabelTone,
+  reportingCategory: OperationalStatusReportingCategory
+): OperationalStatusRecord {
   return Object.freeze({
-    ...input,
-    stackPolicy: Object.freeze({ ...input.stackPolicy }),
-    label: Object.freeze({ ...input.label }),
+    id,
+    domain,
+    severityTier,
+    stackPolicy: Object.freeze({
+      policyRef,
+      ...(maxInstances === null ? {} : { maxInstances }),
+    }),
+    durationModeRef,
+    visibility,
+    removalPathRef,
+    label: reviewedLabel(displayLabel, tone),
+    reportingCategory,
     owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
   })
 }
@@ -460,95 +488,96 @@ function reviewedLabel(
 export const DEFAULT_OPERATIONAL_STATUS_EXPANSION_REGISTRY: OperationalStatusExpansionRegistry =
   Object.freeze({
     entries: Object.freeze([
-      defineStatus({
-        id: 'operational-status:physical:mobility-support-needed',
-        domain: 'physical',
-        severityTier: 'constrained',
-        stackPolicy: { policyRef: 'stack-policy:highest-severity' },
-        durationModeRef: 'timed',
-        visibility: 'restricted',
-        removalPathRef: 'removal-path:care-plan-review',
-        label: reviewedLabel('Mobility support needed', 'supportive'),
-        reportingCategory: 'wellbeing',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:cognitive:attention-bandwidth-limited',
-        domain: 'cognitive',
-        severityTier: 'advisory',
-        stackPolicy: { policyRef: 'stack-policy:replace' },
-        durationModeRef: 'timed',
-        visibility: 'private',
-        removalPathRef: 'removal-path:capacity-reassessment',
-        label: reviewedLabel('Attention bandwidth limited', 'neutral'),
-        reportingCategory: 'capacity',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:emotional:recovery-support-requested',
-        domain: 'emotional',
-        severityTier: 'advisory',
-        stackPolicy: { policyRef: 'stack-policy:replace' },
-        durationModeRef: 'timed',
-        visibility: 'private',
-        removalPathRef: 'removal-path:care-plan-review',
-        label: reviewedLabel('Recovery support requested', 'supportive'),
-        reportingCategory: 'wellbeing',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:legal:access-authorization-under-review',
-        domain: 'legal',
-        severityTier: 'constrained',
-        stackPolicy: { policyRef: 'stack-policy:replace' },
-        durationModeRef: 'dismiss_only',
-        visibility: 'restricted',
-        removalPathRef: 'removal-path:administrative-clearance',
-        label: reviewedLabel('Access authorization under review', 'procedural'),
-        reportingCategory: 'compliance',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:financial:disbursement-temporarily-held',
-        domain: 'financial',
-        severityTier: 'constrained',
-        stackPolicy: {
-          policyRef: 'stack-policy:independent-instances',
-          maxInstances: 3,
-        },
-        durationModeRef: 'dismiss_only',
-        visibility: 'restricted',
-        removalPathRef: 'removal-path:account-review',
-        label: reviewedLabel('Disbursement temporarily held', 'procedural'),
-        reportingCategory: 'resource',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:social:liaison-trust-strained',
-        domain: 'social',
-        severityTier: 'constrained',
-        stackPolicy: { policyRef: 'stack-policy:highest-severity' },
-        durationModeRef: 'timed',
-        visibility: 'team',
-        removalPathRef: 'removal-path:relationship-reconciliation',
-        label: reviewedLabel('Liaison trust strained', 'neutral'),
-        reportingCategory: 'relationship',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
-      defineStatus({
-        id: 'operational-status:memory:recall-confidence-reduced',
-        domain: 'memory',
-        severityTier: 'advisory',
-        stackPolicy: {
-          policyRef: 'stack-policy:bounded-additive',
-          maxInstances: 3,
-        },
-        durationModeRef: 'timed',
-        visibility: 'private',
-        removalPathRef: 'removal-path:memory-review',
-        label: reviewedLabel('Recall confidence reduced', 'supportive'),
-        reportingCategory: 'knowledge_integrity',
-        owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
-      }),
+      defineStatus(
+        'operational-status:physical:mobility-support-needed',
+        'physical',
+        'constrained',
+        'stack-policy:highest-severity',
+        null,
+        'timed',
+        'restricted',
+        'removal-path:care-plan-review',
+        'Mobility support needed',
+        'supportive',
+        'wellbeing'
+      ),
+      defineStatus(
+        'operational-status:cognitive:attention-bandwidth-limited',
+        'cognitive',
+        'advisory',
+        'stack-policy:replace',
+        null,
+        'timed',
+        'private',
+        'removal-path:capacity-reassessment',
+        'Attention bandwidth limited',
+        'neutral',
+        'capacity'
+      ),
+      defineStatus(
+        'operational-status:emotional:recovery-support-requested',
+        'emotional',
+        'advisory',
+        'stack-policy:replace',
+        null,
+        'timed',
+        'private',
+        'removal-path:care-plan-review',
+        'Recovery support requested',
+        'supportive',
+        'wellbeing'
+      ),
+      defineStatus(
+        'operational-status:legal:access-authorization-under-review',
+        'legal',
+        'constrained',
+        'stack-policy:replace',
+        null,
+        'dismiss_only',
+        'restricted',
+        'removal-path:administrative-clearance',
+        'Access authorization under review',
+        'procedural',
+        'compliance'
+      ),
+      defineStatus(
+        'operational-status:financial:disbursement-temporarily-held',
+        'financial',
+        'constrained',
+        'stack-policy:independent-instances',
+        3,
+        'dismiss_only',
+        'restricted',
+        'removal-path:account-review',
+        'Disbursement temporarily held',
+        'procedural',
+        'resource'
+      ),
+      defineStatus(
+        'operational-status:social:liaison-trust-strained',
+        'social',
+        'constrained',
+        'stack-policy:highest-severity',
+        null,
+        'timed',
+        'team',
+        'removal-path:relationship-reconciliation',
+        'Liaison trust strained',
+        'neutral',
+        'relationship'
+      ),
+      defineStatus(
+        'operational-status:memory:recall-confidence-reduced',
+        'memory',
+        'advisory',
+        'stack-policy:bounded-additive',
+        3,
+        'timed',
+        'private',
+        'removal-path:memory-review',
+        'Recall confidence reduced',
+        'supportive',
+        'knowledge_integrity'
+      ),
     ]),
   })

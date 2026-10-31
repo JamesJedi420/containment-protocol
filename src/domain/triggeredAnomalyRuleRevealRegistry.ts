@@ -153,7 +153,7 @@ function isResponseScale(value: unknown): value is AnomalyResponseScale {
 
 function normalizeStringList(value: unknown, label: string): readonly string[] {
   if (!Array.isArray(value)) {
-    throw new Error(`${label} must be an array`)
+    throw new TypeError(`${label} must be an array`)
   }
   return Object.freeze(value.map((entry, index) => assertNonEmptyId(entry, `${label}[${index}]`)))
 }
@@ -167,25 +167,45 @@ function duplicateValues(values: readonly string[]): readonly string[] {
     }
     seen.add(value)
   }
-  return [...duplicates].sort()
+  return [...duplicates].sort((left, right) => left.localeCompare(right))
 }
 
-export function validateTriggeredAnomalyRuleRevealRecord(
+interface ParsedRevealRecordValidationFields {
+  readonly id: string
+  readonly anomalyRef: string
+  readonly hiddenRuleRef: string
+  readonly trigger: Record<string, unknown> | undefined
+  readonly actionRef: string
+  readonly rawSetupRefs: readonly unknown[]
+  readonly setupRefs: readonly string[]
+  readonly rawProcedureRefs: readonly unknown[]
+  readonly procedureRefs: readonly string[]
+  readonly hasUntrimmedReference: boolean
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function asUnknownArray(value: unknown): readonly unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function parseRevealRecordValidationFields(
   record: TriggeredAnomalyRuleRevealRecord
-): TriggeredAnomalyRuleRevealValidationResult {
-  const issues: TriggeredAnomalyRuleRevealValidationIssue[] = []
-  const rawId = typeof record?.id === 'string' ? record.id : ''
+): ParsedRevealRecordValidationFields {
+  const rawId = asString(record?.id)
   const id = rawId.trim()
-  const rawAnomalyRef = typeof record?.anomalyRef === 'string' ? record.anomalyRef : ''
+  const rawAnomalyRef = asString(record?.anomalyRef)
   const anomalyRef = rawAnomalyRef.trim()
-  const rawHiddenRuleRef = typeof record?.hiddenRuleRef === 'string' ? record.hiddenRuleRef : ''
+  const rawHiddenRuleRef = asString(record?.hiddenRuleRef)
   const hiddenRuleRef = rawHiddenRuleRef.trim()
   const trigger = isObject(record?.trigger) ? record.trigger : undefined
-  const rawActionRef = typeof trigger?.actionRef === 'string' ? trigger.actionRef : ''
+  const rawActionRef = asString(trigger?.actionRef)
   const actionRef = rawActionRef.trim()
-  const rawSetupRefs = Array.isArray(trigger?.requiredSetupRefs) ? trigger.requiredSetupRefs : []
+  const rawSetupRefs = asUnknownArray(trigger?.requiredSetupRefs)
   const setupRefs = rawSetupRefs.filter((value): value is string => typeof value === 'string')
-  const rawProcedureRefs = Array.isArray(record?.procedureRefs) ? record.procedureRefs : []
+  const rawProcedureRefs = asUnknownArray(record?.procedureRefs)
   const procedureRefs = rawProcedureRefs.filter(
     (value): value is string => typeof value === 'string'
   )
@@ -197,105 +217,187 @@ export function validateTriggeredAnomalyRuleRevealRecord(
     setupRefs.some((value) => value !== value.trim()) ||
     procedureRefs.some((value) => value !== value.trim())
 
-  if (!id) issues.push({ code: 'missing_id', detail: 'Rule reveal record is missing id.' })
-  if (!anomalyRef) {
-    issues.push({
-      code: 'missing_anomaly_ref',
-      detail: `Rule ${id || '(unknown)'} is missing anomalyRef.`,
-    })
+  return {
+    id,
+    anomalyRef,
+    hiddenRuleRef,
+    trigger,
+    actionRef,
+    rawSetupRefs,
+    setupRefs,
+    rawProcedureRefs,
+    procedureRefs,
+    hasUntrimmedReference,
   }
-  if (!hiddenRuleRef) {
-    issues.push({
-      code: 'missing_hidden_rule_ref',
-      detail: `Rule ${id || '(unknown)'} is missing hiddenRuleRef.`,
-    })
+}
+
+function addValidationIssue(
+  issues: TriggeredAnomalyRuleRevealValidationIssue[],
+  code: TriggeredAnomalyRuleRevealValidationCode,
+  detail: string
+): void {
+  issues.push({ code, detail })
+}
+
+function validateRequiredRecordReferences(
+  fields: ParsedRevealRecordValidationFields,
+  issues: TriggeredAnomalyRuleRevealValidationIssue[]
+): void {
+  const { id } = fields
+  if (!id) addValidationIssue(issues, 'missing_id', 'Rule reveal record is missing id.')
+  if (!fields.anomalyRef) {
+    addValidationIssue(
+      issues,
+      'missing_anomaly_ref',
+      `Rule ${id || '(unknown)'} is missing anomalyRef.`
+    )
   }
-  if (!actionRef || trigger?.kind !== 'high_impact_action') {
-    issues.push({
-      code: 'missing_action_ref',
-      detail: `Rule ${id || '(unknown)'} requires a high-impact actionRef.`,
-    })
+  if (!fields.hiddenRuleRef) {
+    addValidationIssue(
+      issues,
+      'missing_hidden_rule_ref',
+      `Rule ${id || '(unknown)'} is missing hiddenRuleRef.`
+    )
   }
-  if (hasUntrimmedReference) {
-    issues.push({
-      code: 'untrimmed_reference',
-      detail: `Rule ${id || '(unknown)'} contains an identifier or reference with surrounding whitespace.`,
-    })
+  if (!fields.actionRef || fields.trigger?.kind !== 'high_impact_action') {
+    addValidationIssue(
+      issues,
+      'missing_action_ref',
+      `Rule ${id || '(unknown)'} requires a high-impact actionRef.`
+    )
   }
+  if (fields.hasUntrimmedReference) {
+    addValidationIssue(
+      issues,
+      'untrimmed_reference',
+      `Rule ${id || '(unknown)'} contains an identifier or reference with surrounding whitespace.`
+    )
+  }
+}
+
+function validateSetupReferences(
+  fields: ParsedRevealRecordValidationFields,
+  issues: TriggeredAnomalyRuleRevealValidationIssue[]
+): void {
+  const { id, setupRefs, rawSetupRefs } = fields
   if (
     setupRefs.length === 0 ||
     setupRefs.length !== rawSetupRefs.length ||
     setupRefs.some((value) => !value.trim())
   ) {
-    issues.push({
-      code: 'missing_setup_ref',
-      detail: `Rule ${id || '(unknown)'} requires at least one non-empty setup ref.`,
-    })
+    addValidationIssue(
+      issues,
+      'missing_setup_ref',
+      `Rule ${id || '(unknown)'} requires at least one non-empty setup ref.`
+    )
   }
   if (duplicateValues(setupRefs.map((value) => value.trim())).length > 0) {
-    issues.push({
-      code: 'duplicate_setup_ref',
-      detail: `Rule ${id || '(unknown)'} has duplicate setup refs.`,
-    })
+    addValidationIssue(
+      issues,
+      'duplicate_setup_ref',
+      `Rule ${id || '(unknown)'} has duplicate setup refs.`
+    )
   }
+}
+
+function validateProcedureReferences(
+  fields: ParsedRevealRecordValidationFields,
+  issues: TriggeredAnomalyRuleRevealValidationIssue[]
+): void {
+  const { id, procedureRefs, rawProcedureRefs } = fields
   if (
     procedureRefs.length === 0 ||
     procedureRefs.length !== rawProcedureRefs.length ||
     procedureRefs.some((value) => !value.trim())
   ) {
-    issues.push({
-      code: 'missing_procedure_ref',
-      detail: `Rule ${id || '(unknown)'} requires at least one non-empty procedure ref.`,
-    })
+    addValidationIssue(
+      issues,
+      'missing_procedure_ref',
+      `Rule ${id || '(unknown)'} requires at least one non-empty procedure ref.`
+    )
   }
   if (duplicateValues(procedureRefs.map((value) => value.trim())).length > 0) {
-    issues.push({
-      code: 'duplicate_procedure_ref',
-      detail: `Rule ${id || '(unknown)'} has duplicate procedure refs.`,
-    })
+    addValidationIssue(
+      issues,
+      'duplicate_procedure_ref',
+      `Rule ${id || '(unknown)'} has duplicate procedure refs.`
+    )
   }
-  if (!isMagnitudeTier(trigger?.minimumMagnitudeTier)) {
-    issues.push({
-      code: 'invalid_magnitude_tier',
-      detail: `Rule ${id || '(unknown)'} has invalid minimumMagnitudeTier.`,
-    })
+}
+
+function validateMagnitudeAndResponseScale(
+  record: TriggeredAnomalyRuleRevealRecord,
+  fields: ParsedRevealRecordValidationFields,
+  issues: TriggeredAnomalyRuleRevealValidationIssue[]
+): void {
+  const { id } = fields
+  if (!isMagnitudeTier(fields.trigger?.minimumMagnitudeTier)) {
+    addValidationIssue(
+      issues,
+      'invalid_magnitude_tier',
+      `Rule ${id || '(unknown)'} has invalid minimumMagnitudeTier.`
+    )
   }
   if (!isResponseScale(record?.responseScaleBeforeReveal)) {
-    issues.push({
-      code: 'invalid_response_scale',
-      detail: `Rule ${id || '(unknown)'} has invalid responseScaleBeforeReveal.`,
-    })
+    addValidationIssue(
+      issues,
+      'invalid_response_scale',
+      `Rule ${id || '(unknown)'} has invalid responseScaleBeforeReveal.`
+    )
   }
   if (!isResponseScale(record?.responseScaleAfterReveal)) {
-    issues.push({
-      code: 'invalid_response_scale',
-      detail: `Rule ${id || '(unknown)'} has invalid responseScaleAfterReveal.`,
-    })
+    addValidationIssue(
+      issues,
+      'invalid_response_scale',
+      `Rule ${id || '(unknown)'} has invalid responseScaleAfterReveal.`
+    )
   }
   if (
     isResponseScale(record?.responseScaleBeforeReveal) &&
     record.responseScaleBeforeReveal === record.responseScaleAfterReveal
   ) {
-    issues.push({
-      code: 'unchanged_response_scale',
-      detail: `Rule ${id || '(unknown)'} must change allowed response scale after reveal.`,
-    })
+    addValidationIssue(
+      issues,
+      'unchanged_response_scale',
+      `Rule ${id || '(unknown)'} must change allowed response scale after reveal.`
+    )
   }
+}
+
+function validateAcknowledgementRequirement(
+  record: TriggeredAnomalyRuleRevealRecord,
+  id: string,
+  issues: TriggeredAnomalyRuleRevealValidationIssue[]
+): void {
   if (typeof record?.acknowledgementRequired !== 'boolean') {
-    issues.push({
-      code: 'invalid_acknowledgement_requirement',
-      detail: `Rule ${id || '(unknown)'} must declare whether acknowledgement is required.`,
-    })
+    addValidationIssue(
+      issues,
+      'invalid_acknowledgement_requirement',
+      `Rule ${id || '(unknown)'} must declare whether acknowledgement is required.`
+    )
   }
   if (
     record?.acknowledgementRequired &&
     (typeof record.acknowledgementPrompt !== 'string' || !record.acknowledgementPrompt.trim())
   ) {
-    issues.push({
-      code: 'missing_acknowledgement_prompt',
-      detail: `Rule ${id || '(unknown)'} requires an acknowledgement prompt.`,
-    })
+    addValidationIssue(
+      issues,
+      'missing_acknowledgement_prompt',
+      `Rule ${id || '(unknown)'} requires an acknowledgement prompt.`
+    )
   }
+}
+
+export function validateTriggeredAnomalyRuleRevealRecord(
+  record: TriggeredAnomalyRuleRevealRecord
+): TriggeredAnomalyRuleRevealValidationResult {
+  const issues: TriggeredAnomalyRuleRevealValidationIssue[] = []
+  const fields = parseRevealRecordValidationFields(record)
+  validateRequiredRecordReferences(fields, issues)
+  validateSetupReferences(fields, issues)
+  validateProcedureReferences(fields, issues)
+  validateMagnitudeAndResponseScale(record, fields, issues)
+  validateAcknowledgementRequirement(record, fields.id, issues)
 
   return Object.freeze({ valid: issues.length === 0, issues: Object.freeze(issues) })
 }

@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4550 @ `b57249c6`)            |
 | **Linear** | [SPE-312](https://linear.app/spectranoir/issue/SPE-312) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-312-terrain-survey-clocks`                    |

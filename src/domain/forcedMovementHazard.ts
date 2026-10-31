@@ -124,16 +124,16 @@ export function applyForcedMovementHazard(
     case 'short_knockback':
     case 'long_range_horizontal': {
       const nodeId = assertNonEmptyId(destinationNodeId, 'destinationNodeId')
-      to = Object.freeze({ nodeId, level: from.level })
+      to = createOccupantPosition({ nodeId, level: from.level })
       break
     }
     case 'vertical_level_change': {
       const nodeId = assertNonEmptyId(destinationNodeId, 'destinationNodeId')
-      to = Object.freeze({ nodeId, level: from.level + hazard.levelDelta })
+      to = createOccupantPosition({ nodeId, level: from.level + hazard.levelDelta })
       break
     }
     case 'one_way_exit':
-      to = Object.freeze({
+      to = createOccupantPosition({
         nodeId: hazard.exitNodeId as string,
         level: from.level + hazard.levelDelta,
       })

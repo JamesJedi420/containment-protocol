@@ -107,4 +107,16 @@ describe('SPE-399 long-range and vertical forced-movement hazards', () => {
       /destinationNodeId/
     )
   })
+
+  it('rejects destination levels outside occupant bounds', () => {
+    const hazard = createForcedMovementHazard({
+      id: 'overshoot',
+      kind: 'vertical_level_change',
+      rangeCells: 0,
+      levelDelta: 10,
+    })
+    expect(() => applyForcedMovementHazard(hazard, { nodeId: 'high', level: 95 }, 'sky')).toThrow(
+      /level/
+    )
+  })
 })

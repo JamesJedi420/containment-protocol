@@ -28,11 +28,20 @@ import {
   deriveDepartmentWorkshopEquipmentConditionFromIntegrity,
   type DepartmentWorkshopIntegrityQualityMapping,
 } from './departmentWorkshopIntegrityQualityMapping'
+import { projectDepartmentWorkshopDisorderByDepartment } from './departmentWorkshopDisorder'
 import type { GameState } from './models'
 
 /** Live safety reads facility axes plus operational staff/clearance/PPE facts. */
 export type DepartmentWorkshopLiveFacilitySafetySource = DepartmentWorkshopStateSource &
-  Pick<GameState, 'facilityState' | 'agents' | 'agency' | 'clearanceLevel' | 'equipmentInstances'>
+  Pick<
+    GameState,
+    | 'facilityState'
+    | 'facilityLayoutSnapshot'
+    | 'agents'
+    | 'agency'
+    | 'clearanceLevel'
+    | 'equipmentInstances'
+  >
 
 function compareCodeUnits(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0
@@ -45,6 +54,9 @@ function freezeQualityConditions(
     inputQuality: conditions.inputQuality,
     specialistCondition: conditions.specialistCondition,
     roomContamination: conditions.roomContamination,
+    ...(conditions.workshopDisorder !== undefined
+      ? { workshopDisorder: conditions.workshopDisorder }
+      : {}),
     ...(conditions.dependencyCondition !== undefined
       ? { dependencyCondition: conditions.dependencyCondition }
       : {}),
@@ -69,6 +81,9 @@ export function composeDepartmentWorkshopQualityConditionsWithRoomContamination(
     inputQuality: callerConditions?.inputQuality ?? 'good',
     specialistCondition: callerConditions?.specialistCondition ?? 'good',
     roomContamination,
+    ...(callerConditions?.workshopDisorder !== undefined
+      ? { workshopDisorder: callerConditions.workshopDisorder }
+      : {}),
     ...(callerConditions?.dependencyCondition !== undefined
       ? { dependencyCondition: callerConditions.dependencyCondition }
       : {}),
@@ -95,10 +110,35 @@ export function composeDepartmentWorkshopQualityConditionsWithEquipmentCondition
     inputQuality: callerConditions?.inputQuality ?? 'good',
     specialistCondition: callerConditions?.specialistCondition ?? 'good',
     roomContamination: callerConditions?.roomContamination ?? 'good',
+    ...(callerConditions?.workshopDisorder !== undefined
+      ? { workshopDisorder: callerConditions.workshopDisorder }
+      : {}),
     ...(callerConditions?.dependencyCondition !== undefined
       ? { dependencyCondition: callerConditions.dependencyCondition }
       : {}),
     equipmentCondition,
+    ...(callerConditions?.reagentGrade !== undefined
+      ? { reagentGrade: callerConditions.reagentGrade }
+      : {}),
+  })
+}
+
+/** Compose the SPE-2910 room-owner disorder axis without replacing sibling axes. */
+export function composeDepartmentWorkshopQualityConditionsWithDisorder(
+  disorderCondition: DepartmentWorkshopConditionLevel,
+  callerConditions?: DepartmentWorkshopQualityConditions
+): DepartmentWorkshopQualityConditions {
+  return freezeQualityConditions({
+    inputQuality: callerConditions?.inputQuality ?? 'good',
+    specialistCondition: callerConditions?.specialistCondition ?? 'good',
+    roomContamination: callerConditions?.roomContamination ?? 'good',
+    workshopDisorder: disorderCondition,
+    ...(callerConditions?.dependencyCondition !== undefined
+      ? { dependencyCondition: callerConditions.dependencyCondition }
+      : {}),
+    ...(callerConditions?.equipmentCondition !== undefined
+      ? { equipmentCondition: callerConditions.equipmentCondition }
+      : {}),
     ...(callerConditions?.reagentGrade !== undefined
       ? { reagentGrade: callerConditions.reagentGrade }
       : {}),
@@ -201,6 +241,9 @@ export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
   }
 
   const workOrders = readDepartmentWorkshopState(source).workOrders
+  const disorderByDepartment = projectDepartmentWorkshopDisorderByDepartment(
+    source.facilityLayoutSnapshot
+  )
   const entries = [...new Set(workOrderIds)]
     .filter((workOrderId) => typeof workOrderId === 'string' && workOrderId.length > 0)
     .sort(compareCodeUnits)
@@ -221,8 +264,13 @@ export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
         workOrder.departmentId,
         integrityMappings
       )
+      const disorder = disorderByDepartment[workOrder.departmentId]
 
-      if (roomContamination === undefined && equipmentCondition === undefined) {
+      if (
+        roomContamination === undefined &&
+        equipmentCondition === undefined &&
+        disorder?.sourceStatus !== 'available'
+      ) {
         return callerConditions
           ? ([[workOrderId, freezeQualityConditions(callerConditions)]] as const)
           : []
@@ -238,6 +286,12 @@ export function deriveDepartmentWorkshopQualityByWorkOrderIdFromFacilities(
       if (equipmentCondition !== undefined) {
         composed = composeDepartmentWorkshopQualityConditionsWithEquipmentCondition(
           equipmentCondition,
+          composed
+        )
+      }
+      if (disorder?.sourceStatus === 'available') {
+        composed = composeDepartmentWorkshopQualityConditionsWithDisorder(
+          disorder.level === 'disordered' ? 'poor' : 'good',
           composed
         )
       }

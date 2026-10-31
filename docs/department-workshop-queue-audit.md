@@ -422,6 +422,25 @@ regrade historical output. This slice does not project staff, equipment,
 reagents, dependencies, staging, operating mode, upgrades, clutter, disorder,
 or broader lifecycle consequences.
 
+## SPE-2910 workshop clutter/disorder consequences
+
+SPE-2910 reuses SPE-1060's normalized room physical-condition packet on the
+persisted facility-layout room record. The authored `med_bay` room maps only to
+`department:emergency-response`; no generic clutter generator or second room
+state is introduced. Missing, malformed, and unmapped room condition resolves
+to an inspectable unavailable baseline.
+
+At canonical week-close, clutter at or above `0.5` caps the mapped workshop at
+one work unit, reducing its existing adjacent-staging two-unit path. Clutter at
+or above `0.8` additionally composes a poor workshop-disorder quality axis for
+newly completed work. The existing receipt registrar stores
+`poor_workshop_disorder` with `wrong_kit_assembly`; sibling workshops retain
+their prior throughput and quality.
+
+The existing workshop receipt remains the replay and save/load authority.
+Later room cleanup cannot regrade or remove a stored consequence. The adapter
+does not add a queue, safety rule, secondary incident, or week-close hook, and
+generic room clutter generation remains owned by SPE-1724.
 ## SPE-2866 live workshop integrity mapping
 
 SPE-2866 adds one authored completion-quality projection without changing the

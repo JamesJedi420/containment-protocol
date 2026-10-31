@@ -62,6 +62,7 @@ export type DepartmentWorkshopThroughputEffect =
   | 'overload_throughput_cap'
   | 'degraded_dependency_cap'
   | 'capped_degraded_dependency_and_overload'
+  | 'workshop_disorder_throughput_cap'
   | 'unavailable_dependency_block'
 
 export interface DepartmentWorkshopThroughputResult {
@@ -111,6 +112,16 @@ export interface DepartmentWorkshopDependencyAvailabilityResult {
 
 /** Unknown values are accepted so malformed external context can safely use the baseline. */
 export type DepartmentWorkshopDependencyAvailabilityByDepartment = Readonly<Record<string, unknown>>
+
+/** SPE-2910: transient room-owner projection; never persisted in workshop state. */
+export type DepartmentWorkshopDisorderLevel = 'ordered' | 'cluttered' | 'disordered'
+
+export interface DepartmentWorkshopDisorderContext {
+  readonly level: DepartmentWorkshopDisorderLevel | 'baseline'
+}
+
+/** Unknown values fail neutral to preserve existing workshop behavior. */
+export type DepartmentWorkshopDisorderContextsByDepartment = Readonly<Record<string, unknown>>
 
 /** SPE-2780: transient caller-owned workshop certification profile. */
 export type DepartmentWorkshopCertificationProfile = 'basic' | 'certified'
@@ -214,6 +225,7 @@ export type DepartmentWorkshopQualityReason =
   | 'poor_input_quality'
   | 'poor_specialist_condition'
   | 'poor_room_contamination'
+  | 'poor_workshop_disorder'
   | 'poor_dependency_condition'
   | 'poor_equipment_condition'
   | 'poor_reagent_grade'
@@ -222,6 +234,7 @@ export interface DepartmentWorkshopQualityConditions {
   readonly inputQuality: DepartmentWorkshopConditionLevel
   readonly specialistCondition: DepartmentWorkshopConditionLevel
   readonly roomContamination: DepartmentWorkshopConditionLevel
+  readonly workshopDisorder?: DepartmentWorkshopConditionLevel
   readonly dependencyCondition?: DepartmentWorkshopConditionLevel
   readonly equipmentCondition?: DepartmentWorkshopConditionLevel
   readonly reagentGrade?: DepartmentWorkshopConditionLevel
@@ -283,6 +296,8 @@ export interface DepartmentWorkshopCompletionOutcome {
   readonly outcome: 'completed'
   readonly quality: DepartmentWorkshopCompletionQuality
   readonly qualityReason?: DepartmentWorkshopQualityReason
+  /** SPE-2910: resolved once on the durable receipt; never re-read from live room state. */
+  readonly operationalConsequence?: 'wrong_kit_assembly'
   readonly safety: DepartmentWorkshopCompletionSafety
   readonly safetyReason?: DepartmentWorkshopSafetyReason
 }
@@ -891,6 +906,7 @@ const DEPARTMENT_WORKSHOP_QUALITY_REASONS = new Set<DepartmentWorkshopQualityRea
   'poor_input_quality',
   'poor_specialist_condition',
   'poor_room_contamination',
+  'poor_workshop_disorder',
   'poor_dependency_condition',
   'poor_equipment_condition',
   'poor_reagent_grade',
@@ -910,8 +926,8 @@ const DEPARTMENT_WORKSHOP_SAFETY_REASONS = new Set<DepartmentWorkshopSafetyReaso
  * Resolve completion output quality from caller-owned condition axes.
  * Missing conditions default to nominal. Any poor axis yields degraded with a
  * stable primary reason
- * (input → specialist → room → dependency → equipment → reagent). Optional
- * dependency, equipment, and reagent axes fail neutral without invalidating
+ * (input → specialist → room → disorder → dependency → equipment → reagent). Optional
+ * disorder, dependency, equipment, and reagent axes fail neutral without invalidating
  * the required SPE-2768 axes.
  */
 export function resolveDepartmentWorkshopCompletionQuality(
@@ -943,6 +959,12 @@ export function resolveDepartmentWorkshopCompletionQuality(
     return Object.freeze({
       quality: 'degraded',
       qualityReason: 'poor_room_contamination',
+    })
+  }
+  if (conditions.workshopDisorder === 'poor') {
+    return Object.freeze({
+      quality: 'degraded',
+      qualityReason: 'poor_workshop_disorder',
     })
   }
   if (conditions.dependencyCondition === 'poor') {
@@ -1016,7 +1038,7 @@ export function projectDepartmentWorkshopSafetyConditions(
           ],
         ]
       }),
-    ),
+    )
   )
 }
 
@@ -1371,7 +1393,8 @@ export function resolveDepartmentWorkshopThroughput(
   conditions?: unknown,
   operatingMode?: unknown,
   loadPressure?: unknown,
-  dependencyAvailability?: unknown
+  dependencyAvailability?: unknown,
+  disorderContext?: unknown
 ): DepartmentWorkshopThroughputResult {
   const hasAdjacentStaging =
     isRecord(conditions) &&
@@ -1380,9 +1403,20 @@ export function resolveDepartmentWorkshopThroughput(
   const operatingModel = resolveDepartmentWorkshopOperatingModel(operatingMode)
   const pressure = resolveDepartmentWorkshopLoadPressure(loadPressure)
   const dependency = resolveDepartmentWorkshopDependencyAvailability(dependencyAvailability)
+  const disorderLevel =
+    isRecord(disorderContext) &&
+    (disorderContext.level === 'ordered' ||
+      disorderContext.level === 'cluttered' ||
+      disorderContext.level === 'disordered')
+      ? disorderContext.level
+      : 'baseline'
 
   if (!dependency.allowsProcessing) {
     return Object.freeze({ workUnits: 0, effect: dependency.effect })
+  }
+
+  if (disorderLevel === 'cluttered' || disorderLevel === 'disordered') {
+    return Object.freeze({ workUnits: 1, effect: 'workshop_disorder_throughput_cap' })
   }
 
   if (dependency.throughputCap === 1 && pressure.throughputCap === 1) {
@@ -1434,6 +1468,9 @@ function frozenCompletionOutcome(
     completedWeek: outcome.completedWeek,
     outcome: 'completed' as const,
     ...qualityFields,
+    ...(outcome.operationalConsequence !== undefined
+      ? { operationalConsequence: outcome.operationalConsequence }
+      : {}),
     ...safetyFields,
   })
 }
@@ -1487,6 +1524,15 @@ function normalizeCompletionOutcome(
     qualityReason = reason as DepartmentWorkshopQualityReason
   }
 
+  const operationalConsequence = outcome.operationalConsequence
+  if (
+    (qualityReason === 'poor_workshop_disorder' &&
+      operationalConsequence !== 'wrong_kit_assembly') ||
+    (qualityReason !== 'poor_workshop_disorder' && operationalConsequence !== undefined)
+  ) {
+    return null
+  }
+
   let safetyReason: DepartmentWorkshopSafetyReason | undefined
   if (safety === 'unsafe') {
     const reason = outcome.safetyReason
@@ -1508,6 +1554,7 @@ function normalizeCompletionOutcome(
     outcome: 'completed',
     quality,
     ...(qualityReason ? { qualityReason } : {}),
+    ...(operationalConsequence !== undefined ? { operationalConsequence } : {}),
     safety,
     ...(safetyReason ? { safetyReason } : {}),
   })
@@ -1612,6 +1659,9 @@ export function registerDepartmentWorkshopCompletionOutcomes(
         outcome: 'completed',
         quality: graded.quality,
         ...(graded.qualityReason ? { qualityReason: graded.qualityReason } : {}),
+        ...(graded.qualityReason === 'poor_workshop_disorder'
+          ? { operationalConsequence: 'wrong_kit_assembly' as const }
+          : {}),
         safety: safetyGraded.safety,
         ...(safetyGraded.safetyReason ? { safetyReason: safetyGraded.safetyReason } : {}),
       }),
@@ -1934,7 +1984,8 @@ export function advanceDepartmentWorkshopQueue(
   stationContext?: unknown,
   automationContext?: unknown,
   specializationContext?: unknown,
-  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId
+  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId,
+  disorderContext?: unknown
 ): DepartmentWorkshopAdvanceResult {
   const validation = validateWorkshop(snapshot, workOrders, registry, authorityGraph)
   if (!validation.valid) {
@@ -1958,7 +2009,8 @@ export function advanceDepartmentWorkshopQueue(
     stagingConditions,
     operatingMode,
     loadPressure,
-    dependencyAvailability
+    dependencyAvailability,
+    disorderContext
   )
 
   if (throughput.workUnits === 0) {
@@ -2046,8 +2098,9 @@ export function advanceDepartmentWorkshopQueue(
  * GameState nor any non-workshop queue. Optional staging, operating-mode,
  * load-pressure, dependency-availability, certification, station, automation,
  * anomaly-specialization, and specialist-labor gate maps are caller-owned
- * transient context. Staging maps are isolated by exact department ID; gate
- * inputs are isolated by exact work-order ID.
+ * transient context. SPE-2910 disorder projections are likewise transient.
+ * Staging/disorder maps are isolated by exact department ID; gate inputs are
+ * isolated by exact work-order ID.
  */
 export function processDepartmentWorkshopTick(
   source: DepartmentWorkshopStateSource,
@@ -2061,7 +2114,8 @@ export function processDepartmentWorkshopTick(
   stationContextsByDepartment?: DepartmentWorkshopStationContextsByDepartment,
   automationContextsByDepartment?: DepartmentWorkshopAutomationContextsByDepartment,
   specializationContextsByDepartment?: DepartmentWorkshopSpecializationContextsByDepartment,
-  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId
+  gateInputsByWorkOrderId?: DepartmentWorkshopSpecialistLaborGateInputsByWorkOrderId,
+  disorderContextsByDepartment?: DepartmentWorkshopDisorderContextsByDepartment
 ): DepartmentWorkshopProcessingTickResult {
   const workshopState = readDepartmentWorkshopState(source, registry, authorityGraph)
   let snapshots = workshopState.snapshots
@@ -2112,7 +2166,11 @@ export function processDepartmentWorkshopTick(
         Object.hasOwn(specializationContextsByDepartment, departmentId)
         ? specializationContextsByDepartment[departmentId]
         : undefined,
-      gateInputsByWorkOrderId
+      gateInputsByWorkOrderId,
+      isRecord(disorderContextsByDepartment) &&
+        Object.hasOwn(disorderContextsByDepartment, departmentId)
+        ? disorderContextsByDepartment[departmentId]
+        : undefined
     )
     reasons.push(...advanceResult.reasons)
 

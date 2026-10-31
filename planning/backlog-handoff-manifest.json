@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": ["SPE-330"],
   "recentlyShipped": [
+    "SPE-2189",
     "SPE-475",
     "SPE-953",
     "SPE-270",
@@ -149,6 +150,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-2189-forced-movement-collision-resolver-slice.md": "Recently shipped",
     "planning/spe-3088-paid-equipment-repair-settlement-slice.md": "Recently shipped",
     "planning/spe-2271-patrol-escort-doctrine-slice.md": "Recently shipped",
     "planning/spe-807-cross-zone-contamination-slice.md": "Recently shipped",

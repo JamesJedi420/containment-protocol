@@ -80,4 +80,15 @@ describe('SPE-312 terrain-scaled survey clocks and coverage', () => {
     )
     expect(() => getTerrainSurveyProfile('swamp' as never)).toThrow(/terrain class/)
   })
+
+  it('refuses to charge time on an already-complete area', () => {
+    const complete = createSurveyAreaState({
+      areaId: 'done',
+      totalCells: 8,
+      clearedCells: 8,
+    })
+    expect(() => applySurveyTick(complete, TERRAIN_SURVEY_PROFILES.open, 1)).toThrow(
+      /already complete/
+    )
+  })
 })

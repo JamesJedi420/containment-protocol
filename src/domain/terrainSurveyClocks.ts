@@ -2,10 +2,12 @@
  * SPE-312 — terrain-scaled survey clocks and coverage (pure, caller-owned).
  *
  * Terrain class changes both difficulty and search throughput. Survey actions
- * always consume time and clear a bounded area; no instant full-scan.
+ * consume time only while uncleared cells remain; no instant full-scan.
  * Persistent area state supports repeated surveying. Site confirmation stays
  * with SPE-311; catastrophic misinformation with SPE-313.
  */
+
+import { assertNonEmptyId, assertSafeIntegerInRange } from './assertBoundedInteger'
 
 export const TERRAIN_SURVEY_CLOCKS_OWNER = 'SPE-312' as const
 
@@ -67,20 +69,6 @@ export const TERRAIN_SURVEY_PROFILES: Readonly<Record<TerrainSurveyClassId, Terr
     }),
   })
 
-function assertSafeIntegerInRange(value: unknown, label: string, min: number, max: number): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < min || value > max) {
-    throw new Error(`${label} must be a safe integer ${min}–${max}`)
-  }
-  return value
-}
-
-function assertNonEmptyId(value: unknown, label: string): string {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`${label} is required`)
-  }
-  return value.trim()
-}
-
 export function getTerrainSurveyProfile(
   terrainClassId: TerrainSurveyClassId
 ): TerrainSurveyProfile {
@@ -101,8 +89,8 @@ export function createSurveyAreaState(input: SurveyAreaState): SurveyAreaState {
 }
 
 /**
- * Advance persistent survey coverage for a bounded area. Always spends time;
- * never clears more cells than remain.
+ * Advance persistent survey coverage for a bounded area. Spends time only while
+ * uncleared cells remain; never clears more cells than remain.
  */
 export function applySurveyTick(
   areaInput: SurveyAreaState,
@@ -123,6 +111,9 @@ export function applySurveyTick(
   }
   const tickCount = assertSafeIntegerInRange(ticks, 'ticks', 1, 10_000)
   const remaining = area.totalCells - area.clearedCells
+  if (remaining === 0) {
+    throw new Error('survey area is already complete')
+  }
   const cellsCleared = Math.min(remaining, profile.areaPerTick * tickCount)
   const timeSpent = profile.timeCostPerTick * tickCount
   const clearedCells = area.clearedCells + cellsCleared

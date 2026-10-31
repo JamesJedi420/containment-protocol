@@ -2,6 +2,7 @@
   "primary": "SPE-1052",
   "inProgress": ["SPE-330"],
   "recentlyShipped": [
+    "SPE-2910",
     "SPE-2197",
     "SPE-2166",
     "SPE-2172",
@@ -153,6 +154,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-2910-workshop-disorder-consequences-slice.md": "Recently shipped",
     "planning/spe-2197-entity-encounter-statblock-packet-slice.md": "Recently shipped",
     "planning/spe-2166-operational-status-expansion-registry-slice.md": "Recently shipped",
     "planning/spe-2172-triggered-anomaly-rule-reveal-registry-slice.md": "Recently shipped",

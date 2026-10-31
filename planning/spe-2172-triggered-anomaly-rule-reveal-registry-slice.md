@@ -32,7 +32,7 @@ Add a pure deterministic registry for anomaly rules that remain hidden until a m
 
 ## Validation
 
-- `npm run test:run -- src/test/triggeredAnomalyRuleRevealRegistry.test.ts` — 1 file / 10 tests passed
+- `npm run test:run -- src/test/triggeredAnomalyRuleRevealRegistry.test.ts` — 1 file / 11 tests passed
 - `npm run test:run` — 984 files / 10,666 tests passed
 - `npm run lint`
 - `npx prettier --check src/domain/triggeredAnomalyRuleRevealRegistry.ts src/test/triggeredAnomalyRuleRevealRegistry.test.ts planning/spe-2172-triggered-anomaly-rule-reveal-registry-slice.md`

@@ -63,6 +63,7 @@ export type TriggeredAnomalyRuleRevealValidationCode =
   | 'unchanged_response_scale'
   | 'invalid_acknowledgement_requirement'
   | 'missing_acknowledgement_prompt'
+  | 'untrimmed_reference'
   | 'duplicate_id'
 
 export interface TriggeredAnomalyRuleRevealValidationIssue {
@@ -173,17 +174,28 @@ export function validateTriggeredAnomalyRuleRevealRecord(
   record: TriggeredAnomalyRuleRevealRecord
 ): TriggeredAnomalyRuleRevealValidationResult {
   const issues: TriggeredAnomalyRuleRevealValidationIssue[] = []
-  const id = typeof record?.id === 'string' ? record.id.trim() : ''
-  const anomalyRef = typeof record?.anomalyRef === 'string' ? record.anomalyRef.trim() : ''
-  const hiddenRuleRef = typeof record?.hiddenRuleRef === 'string' ? record.hiddenRuleRef.trim() : ''
+  const rawId = typeof record?.id === 'string' ? record.id : ''
+  const id = rawId.trim()
+  const rawAnomalyRef = typeof record?.anomalyRef === 'string' ? record.anomalyRef : ''
+  const anomalyRef = rawAnomalyRef.trim()
+  const rawHiddenRuleRef = typeof record?.hiddenRuleRef === 'string' ? record.hiddenRuleRef : ''
+  const hiddenRuleRef = rawHiddenRuleRef.trim()
   const trigger = isObject(record?.trigger) ? record.trigger : undefined
-  const actionRef = typeof trigger?.actionRef === 'string' ? trigger.actionRef.trim() : ''
+  const rawActionRef = typeof trigger?.actionRef === 'string' ? trigger.actionRef : ''
+  const actionRef = rawActionRef.trim()
   const rawSetupRefs = Array.isArray(trigger?.requiredSetupRefs) ? trigger.requiredSetupRefs : []
   const setupRefs = rawSetupRefs.filter((value): value is string => typeof value === 'string')
   const rawProcedureRefs = Array.isArray(record?.procedureRefs) ? record.procedureRefs : []
   const procedureRefs = rawProcedureRefs.filter(
     (value): value is string => typeof value === 'string'
   )
+  const hasUntrimmedReference =
+    (rawId.length > 0 && rawId !== id) ||
+    (rawAnomalyRef.length > 0 && rawAnomalyRef !== anomalyRef) ||
+    (rawHiddenRuleRef.length > 0 && rawHiddenRuleRef !== hiddenRuleRef) ||
+    (rawActionRef.length > 0 && rawActionRef !== actionRef) ||
+    setupRefs.some((value) => value !== value.trim()) ||
+    procedureRefs.some((value) => value !== value.trim())
 
   if (!id) issues.push({ code: 'missing_id', detail: 'Rule reveal record is missing id.' })
   if (!anomalyRef) {
@@ -202,6 +214,12 @@ export function validateTriggeredAnomalyRuleRevealRecord(
     issues.push({
       code: 'missing_action_ref',
       detail: `Rule ${id || '(unknown)'} requires a high-impact actionRef.`,
+    })
+  }
+  if (hasUntrimmedReference) {
+    issues.push({
+      code: 'untrimmed_reference',
+      detail: `Rule ${id || '(unknown)'} contains an identifier or reference with surrounding whitespace.`,
     })
   }
   if (

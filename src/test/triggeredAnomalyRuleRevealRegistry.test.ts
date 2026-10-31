@@ -181,6 +181,20 @@ describe('triggeredAnomalyRuleRevealRegistry (SPE-2172 slice 1)', () => {
     expect(duplicateRegistry.issues.map((issue) => issue.code)).toContain('duplicate_id')
   })
 
+  it('rejects padded authored refs before evaluation can compare normalized caller input', () => {
+    const paddedRecord: TriggeredAnomalyRuleRevealRecord = {
+      ...rule,
+      anomalyRef: `${rule.anomalyRef} `,
+    }
+
+    expect(
+      validateTriggeredAnomalyRuleRevealRecord(paddedRecord).issues.map((issue) => issue.code)
+    ).toContain('untrimmed_reference')
+    expect(() => evaluateTriggeredAnomalyRuleReveal(paddedRecord, input())).toThrow(
+      'untrimmed_reference'
+    )
+  })
+
   it('fails closed for malformed evaluation inputs', () => {
     expect(() =>
       evaluateTriggeredAnomalyRuleReveal(rule, input({ completedSetupRefs: [''] }))

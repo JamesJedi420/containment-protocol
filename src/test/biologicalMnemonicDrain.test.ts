@@ -56,6 +56,16 @@ describe('SPE-270 biological and mnemonic drain', () => {
     })
     expect(applyDualResourceDrain(target, identity).aftermath).toBe('typed_subsystem_loss')
 
+    const bloodIdentity = createDualResourceDrainEffect({
+      id: 'blood-id',
+      biologicalTarget: 'blood',
+      mnemonicTarget: 'identity',
+      biologicalAmount: 5,
+      mnemonicAmount: 5,
+      cognitionFragmentId: 'frag-bi',
+    })
+    expect(applyDualResourceDrain(target, bloodIdentity).aftermath).toBe('typed_subsystem_loss')
+
     const knowledge = createDualResourceDrainEffect({
       id: 'know-siphon',
       biologicalTarget: 'stamina',

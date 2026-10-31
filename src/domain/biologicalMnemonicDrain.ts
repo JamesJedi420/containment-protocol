@@ -64,8 +64,9 @@ const BIO = new Set<BiologicalSubstrate>(['blood', 'vitality', 'stamina'])
 const MNEMONIC = new Set<MnemonicKind>(['memory', 'knowledge', 'identity'])
 
 function aftermathFor(biological: BiologicalSubstrate, mnemonic: MnemonicKind): DrainAftermath {
-  if (biological === 'blood') return 'sedation_vulnerability'
+  // Identity subsystem loss outranks blood sedation when both apply.
   if (mnemonic === 'identity') return 'typed_subsystem_loss'
+  if (biological === 'blood') return 'sedation_vulnerability'
   return 'deeper_depletion'
 }
 

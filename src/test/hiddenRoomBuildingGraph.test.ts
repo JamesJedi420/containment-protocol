@@ -81,6 +81,56 @@ describe('SPE-992 hidden-room building graph', () => {
     )
   })
 
+  it('accumulates alternate routes across multiple trigger activations', () => {
+    const multi = createHiddenBuildingGraph({
+      id: 'manor-b',
+      rooms: [
+        { id: 'hall', visibility: 'visible', purpose: 'ordinary' },
+        { id: 'cellar-hidden', visibility: 'hidden', purpose: 'body_concealment' },
+        { id: 'attic-hidden', visibility: 'hidden', purpose: 'supply_storage' },
+      ],
+      triggers: [
+        {
+          id: 'trig-panel',
+          kind: 'panel',
+          matchingMechanismId: 'panel-latch',
+          fromRoomId: 'hall',
+          toHiddenRoomId: 'cellar-hidden',
+        },
+        {
+          id: 'trig-clock',
+          kind: 'clock',
+          matchingMechanismId: 'clock-key',
+          fromRoomId: 'hall',
+          toHiddenRoomId: 'attic-hidden',
+        },
+      ],
+      edges: [
+        {
+          fromRoomId: 'hall',
+          toRoomId: 'cellar-hidden',
+          alternateRoute: true,
+          requiresTriggerId: 'trig-panel',
+        },
+        {
+          fromRoomId: 'hall',
+          toRoomId: 'attic-hidden',
+          alternateRoute: true,
+          requiresTriggerId: 'trig-clock',
+        },
+      ],
+      contentsByRoomId: {
+        'cellar-hidden': { activeResident: false, concealedBody: true },
+        'attic-hidden': { activeResident: false, concealedBody: false },
+      },
+    })
+    const boot = bootHiddenBuildingDiscovery(multi)
+    const afterPanel = activateConcealedTrigger(multi, boot, 'trig-panel', 'panel-latch')
+    const afterBoth = activateConcealedTrigger(multi, afterPanel, 'trig-clock', 'clock-key')
+    expect(afterBoth.openAlternateRouteIds).toEqual(['hall->cellar-hidden', 'hall->attic-hidden'])
+    expect(reachableRoomIds(multi, afterBoth, 'hall')).toEqual(['cellar-hidden', 'attic-hidden'])
+  })
+
   it('is deterministic and does not mutate inputs', () => {
     const input = {
       id: 'b',

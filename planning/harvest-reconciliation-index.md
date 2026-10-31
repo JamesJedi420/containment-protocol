@@ -1,6 +1,6 @@
 # Harvest reconciliation index
 
-**Purpose:** Track historical pattern-harvest batches reconciled to Linear and forward batches whose canonical candidate-ledger state is `applied` or `pending apply`. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). Historical rows mirror closure already posted on Linear; forward `pending apply` rows explicitly do not claim canonical closure.
+**Purpose:** Track historical pattern-harvest batches reconciled to Linear and forward batches whose **batch-level canonical-ledger synchronization outcome** is `applied` or `pending apply`. These two batch outcomes are distinct from the four candidate-level ledger persistence states (`preliminary`, `durably staged`, `pending apply`, `canonically applied`). These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). Historical rows mirror closure already posted on Linear; forward `pending apply` rows explicitly do not claim canonical closure.
 
 **Content policy:** Do not add franchise names, wiki URLs, or imported canon labels to extracted prose/copy in this repo. Existing internal batch IDs, planning filenames, and SPE issue links may retain established identifiers used for reconciliation and traceability.
 
@@ -87,7 +87,7 @@ Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/
 
 For every **new** reconciliation batch, record the candidate-only result using this schema. Proposed or matched owners are evidence/navigation only until the normal approval workflow establishes authoritative ownership.
 
-| Batch ID | Candidates | Disposition counts | Matched/proposed owner(s) | Planning doc | Canonical candidate-ledger state | Ledger reference / pending apply |
+| Batch ID | Candidates | Disposition counts | Matched/proposed owner(s) | Planning doc | Batch canonical-ledger synchronization outcome | Ledger reference / pending apply |
 | --- | ---: | --- | --- | --- | --- | --- |
 | `<batch-id>` | `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/<batch-id>-harvest.md` | `applied` or `pending apply` | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
 

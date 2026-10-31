@@ -60,6 +60,10 @@ describe('SPE-2189 forced-movement collision resolver', () => {
       occupantKnockedDown: false,
       targetImpact: 0,
     })
+    expect(
+      resolveForcedMovementCollision({ ...base, impactForce: 80, moverStability: 10 })
+        .moverKnockedDown
+    ).toBe(true)
   })
 
   it('is immutable, byte-stable for identical inputs, and does not mutate callers', () => {

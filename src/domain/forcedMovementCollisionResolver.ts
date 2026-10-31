@@ -142,7 +142,7 @@ export function resolveForcedMovementCollision(
       kind: 'clear',
       obstructed: false,
       occupiedSpaceHarm: Object.freeze({ mover: 0, occupant: 0 }),
-      moverKnockedDown: false,
+      moverKnockedDown: impactForce > moverStability,
       occupantKnockedDown: false,
       targetImpact: 0,
       infrastructurePropagation: 'not_evaluated',

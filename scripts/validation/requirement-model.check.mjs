@@ -30,7 +30,13 @@ test('every registered npm invocation exists in package.json', () => {
   // A registry entry may name a script via npmScript/ciNpmScript or a command,
   // but a named npm script that is absent is silently unrunnable. Catch it here
   // instead of discovering it only when the validator is selected.
+  // An empty scripts map must not pass vacuously: readPackageScripts() throws on
+  // an unreadable package.json, but returns {} when the scripts key is absent.
   const scripts = readPackageScripts()
+  assert.ok(
+    scripts && Object.keys(scripts).length > 0,
+    'package.json exposes no scripts — the dangling-script assertion would pass vacuously',
+  )
   const dangling = []
   for (const validator of registry.validators) {
     for (const field of ['npmScript', 'ciNpmScript']) {

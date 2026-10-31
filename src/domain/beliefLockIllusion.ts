@@ -39,6 +39,10 @@ export interface BeliefLockState {
   readonly illusionId: string
   readonly actorId: string
   readonly scale: IllusionScale
+  /** Snapshot of vulnerability at entry; drives extraction impairment. */
+  readonly lockedVulnerable: boolean
+  /** Snapshot of wisdom at entry. */
+  readonly lockedWisdom: number
   readonly beliefLocked: boolean
   readonly refusedActions: readonly ContradictoryAction[]
   readonly extractionImpairment: ExtractionImpairment
@@ -100,6 +104,8 @@ export function enterEnvironmentalIllusion(
     illusionId: illusion.id,
     actorId: actor.id,
     scale: illusion.scale,
+    lockedVulnerable: actor.vulnerable,
+    lockedWisdom: actor.wisdom,
     beliefLocked,
     refusedActions: beliefLocked ? ALL_CONTRADICTORY : Object.freeze([] as ContradictoryAction[]),
     extractionImpairment: 'none',
@@ -121,20 +127,16 @@ export function refusesContradictoryAction(
 
 /**
  * Forced extraction from a belief-locked environment. Produces collapse (or
- * incap when vulnerable) impairment. Cosmetic / unlocked actors extract clean.
+ * incap when entry-time vulnerability was set). Cosmetic / unlocked extract clean.
+ * Impairment uses the entry snapshot on state — not a re-supplied actor record.
  */
-export function forceExtractFromIllusion(
-  state: BeliefLockState,
-  actorInput: IllusionActor
-): BeliefLockState {
+export function forceExtractFromIllusion(state: BeliefLockState): BeliefLockState {
   assertBeliefLockState(state)
   if (state.extracted) throw new Error('actor already extracted from illusion')
-  const actor = createIllusionActor(actorInput)
-  if (actor.id !== state.actorId) throw new Error('extraction actorId mismatch')
 
   let impairment: ExtractionImpairment = 'none'
   if (state.beliefLocked) {
-    impairment = actor.vulnerable ? 'incap' : 'collapse'
+    impairment = state.lockedVulnerable ? 'incap' : 'collapse'
   }
   if (!IMPAIRMENTS.has(impairment)) {
     throw new Error('extraction impairment is invalid')

@@ -10,12 +10,10 @@
 
 ## Boundary and plan
 
-Pure `src/domain/beliefLockIllusion.ts`: environment-scale illusions belief-lock low-wisdom or vulnerable actors and refuse contradictory actions; forced extraction yields collapse/incap impairment. Cosmetic concealment never belief-locks. No dream simulator or GameState.
+Pure `src/domain/beliefLockIllusion.ts`: environment-scale illusions belief-lock low-wisdom or vulnerable actors and refuse contradictory actions; forced extraction yields collapse/incap from the entry vulnerability snapshot. Cosmetic concealment never belief-locks. No dream simulator or GameState.
 
 ## Deferred
 
-| Item                              | Owner    | Boundary                                       |
-| --------------------------------- | -------- | ---------------------------------------------- |
-| Hidden-state illusion lifecycle   | SPE-2285 | Existing concealment lifecycle stays separate. |
-| Psychological scenario generation | future   | Pure packets only.                             |
-| Live week-close / UI wire         | future   | Pure packets only.                             |
+| Item                            | Owner    | Boundary                                                               |
+| ------------------------------- | -------- | ---------------------------------------------------------------------- |
+| Hidden-state illusion lifecycle | SPE-2285 | Existing concealment lifecycle stays separate from belief-lock states. |

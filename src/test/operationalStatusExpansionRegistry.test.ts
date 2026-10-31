@@ -23,7 +23,8 @@ import {
 function baseRecord(overrides: Partial<OperationalStatusRecord> = {}): OperationalStatusRecord {
   const fixture = DEFAULT_OPERATIONAL_STATUS_EXPANSION_REGISTRY.entries.find(
     (entry) => entry.domain === 'physical'
-  )!
+  )
+  if (!fixture) throw new Error('baseRecord: no physical fixture found in default registry')
   return {
     ...fixture,
     id: 'operational-status:test:bounded-record',

@@ -469,7 +469,7 @@ function defineStatus(
   tone: OperationalStatusLabelTone,
   reportingCategory: OperationalStatusReportingCategory
 ): OperationalStatusRecord {
-  return Object.freeze({
+  const record: OperationalStatusRecord = Object.freeze({
     id,
     domain,
     severityTier,
@@ -484,6 +484,8 @@ function defineStatus(
     reportingCategory,
     owners: OPERATIONAL_STATUS_OWNER_REFERENCES,
   })
+  assertValidRecord(record)
+  return record
 }
 
 function reviewedLabel(

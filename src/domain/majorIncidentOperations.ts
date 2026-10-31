@@ -781,7 +781,7 @@ export function buildPlannedMajorIncidentRuntime(
   currentCase: CaseInstance,
   state: GameState,
   options: MajorIncidentLaunchOptions = {}
-) {
+): ActiveMajorIncidentRuntime | null {
   const base = buildDerivedMajorIncidentRuntime(currentCase, state)
   if (!base) {
     return null

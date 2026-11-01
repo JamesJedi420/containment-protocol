@@ -44,7 +44,7 @@ export function resolveTargetComplianceStateFromDecayBand(
   const current = record.complianceState
 
   if (band === 'critical') {
-    if (record.breachConsequence !== undefined && current !== 'breach') {
+    if (record.breachConsequence !== undefined) {
       return 'breach'
     }
 

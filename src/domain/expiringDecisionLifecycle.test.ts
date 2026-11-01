@@ -78,6 +78,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 5,
     })
     expect(timeout.ok).toBe(false)
+    if (timeout.ok) return
     expect(timeout.reason).toBe('terminal')
     expect(timeout.effect).toBeUndefined()
   })
@@ -109,6 +110,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 11,
     })
     expect(second.ok).toBe(false)
+    if (second.ok) return
     expect(second.reason).toBe('already_timeout_resolved')
   })
 
@@ -154,6 +156,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       at: 4,
     })
     expect(late.ok).toBe(false)
+    if (late.ok) return
     expect(late.reason).toBe('terminal')
     expect(timed.record.lifecycleState).toBe('expired')
   })
@@ -188,6 +191,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 5,
     })
     expect(notYet.ok).toBe(false)
+    if (notYet.ok) return
     expect(notYet.reason).toBe('not_yet_expired')
 
     const due = resolveTimeoutIfDue(shifted.record, {
@@ -248,6 +252,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 99,
     })
     expect(replay.ok).toBe(false)
+    if (replay.ok) return
     expect(replay.reason).toBe('already_timeout_resolved')
     expect(replay.effect).toBeUndefined()
   })
@@ -556,6 +561,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       now: 2,
     })
     expect(replay.ok).toBe(false)
+    if (replay.ok) return
     expect(replay.reason).toBe('already_timeout_resolved')
     expect(replay.effect).toBeUndefined()
   })
@@ -611,6 +617,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       at: 3,
     })
     expect(late.ok).toBe(false)
+    if (late.ok) return
     expect(late.reason).toBe('terminal')
 
     const provenance = projectTerminalProvenanceForDuty(canceled.record)
@@ -743,6 +750,7 @@ describe('SPE-2805 expiring decision lifecycle', () => {
       at: 3,
     })
     expect(late.ok).toBe(false)
+    if (late.ok) return
     expect(late.reason).toBe('terminal')
 
     const provenance = projectTerminalProvenanceForDuty(superseded.record)

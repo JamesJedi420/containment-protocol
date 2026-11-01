@@ -10,7 +10,6 @@ import type {
   ActiveMajorIncidentRuntime,
   CaseInstance,
   ContractMaterialDrop,
-  ContractModifier,
   MajorIncidentRewardItem,
   ResolutionOutcome,
 } from './models'
@@ -24,7 +23,8 @@ export interface MajorIncidentRewardEligibility {
   readonly materials: ContractMaterialDrop[]
   readonly gear: MajorIncidentRewardItem[]
   readonly progressionUnlocks: string[]
-  readonly rumorLoot: ContractModifier[]
+  /** Reward-shaped rumor loot from the authoritative runtime, not contract modifiers. */
+  readonly rumorLoot: MajorIncidentRewardItem[]
 }
 
 export interface MajorIncidentTerminalSettlementReceipt {

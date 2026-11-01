@@ -202,7 +202,7 @@ export function decideSubjectiveVsAuthoritativeTime(): SubjectiveVsAuthoritative
     authoritativeOwner: AUTHORITATIVE_TIME_OWNER_ISSUE_ID,
     localElapsedRepresentation: 'per_entity_accumulated',
     localRateProjectionOwnerIssueId: 'SPE-3384',
-    perceptionDistortionOwners: Object.freeze(['SPE-815', 'SPE-227']),
+    perceptionDistortionOwners: Object.freeze(['SPE-815', 'SPE-227'] as const),
     multiplayerCompatibilityIssueId: 'SPE-3161',
     subsystemConsumptionRules: SUBSYSTEM_CONSUMPTION_RULES,
     transferRejoinSemantics: TRANSFER_REJOIN_SEMANTICS,
@@ -349,7 +349,7 @@ function validateAcceleratedLocalExposure(
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Malformed accelerated-local exposure fixture.',
     })
   }
@@ -391,7 +391,7 @@ function validateDistortedPerception(input: DistortedPerceptionInput): ScenarioV
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Malformed distorted-perception fixture.',
     })
   }
@@ -429,7 +429,7 @@ function validateScheduledEventDuringLocal(
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Malformed scheduled-event fixture.',
     })
   }
@@ -461,7 +461,7 @@ function validateSaveLoadAroundDivergence(
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Save/load scenario requires before, during, and after boundaries.',
     })
   }
@@ -516,7 +516,7 @@ function validateLocalTaskRejoin(input: LocalTaskRejoinInput): ScenarioValidatio
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Malformed local-task rejoin fixture.',
     })
   }
@@ -558,7 +558,7 @@ function validateMultiplayerPauseSpeed(input: MultiplayerPauseSpeedInput): Scena
     return Object.freeze({
       scenarioId: id,
       ok: false,
-      codes: Object.freeze(['invalid_input']),
+      codes: Object.freeze(['invalid_input'] as const),
       detail: 'Malformed multiplayer pause/speed fixture.',
     })
   }

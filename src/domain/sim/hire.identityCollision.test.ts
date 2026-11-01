@@ -3,8 +3,23 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { createAgent } from '../agent/factory'
 import { appendAgentHistoryEntry, createAgentHistoryEntry } from '../agent/lifecycle'
+import type { OperationEvent, OperationEventPayloadMap } from '../events/types'
 import { type AgentData, type Candidate, type GameState, type StaffData } from '../models'
 import { hireCandidate } from './hire'
+
+function hireEvent(
+  id: string,
+  payload: OperationEventPayloadMap['agent.hired']
+): OperationEvent<'agent.hired'> {
+  return {
+    id,
+    schemaVersion: 1,
+    type: 'agent.hired',
+    sourceSystem: 'agent',
+    timestamp: '2026-01-01T00:00:00.000Z',
+    payload,
+  }
+}
 
 function makeAgentCandidate(
   overrides?: Partial<Extract<Candidate, { category: 'agent' }>>
@@ -247,20 +262,13 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
       candidates: [candidate],
       agents: { ...createStartingState().agents, [candidate.id]: completed },
       events: [
-        {
-          id: 'evt-prior-hire',
-          schemaVersion: 1,
-          type: 'agent.hired',
-          sourceSystem: 'agent',
-          timestamp: '2026-01-01T00:00:00.000Z',
-          payload: {
-            week: 1,
-            candidateId: candidate.id,
-            agentId: candidate.id,
-            agentName: candidate.name,
-            recruitCategory: 'agent',
-          },
-        },
+        hireEvent('evt-prior-hire', {
+          week: 1,
+          candidateId: candidate.id,
+          agentId: candidate.id,
+          agentName: candidate.name,
+          recruitCategory: 'agent',
+        }),
       ],
     }
 
@@ -289,20 +297,13 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
         },
       },
       events: [
-        {
-          id: 'evt-instructor-hire',
-          schemaVersion: 1,
-          type: 'agent.hired',
-          sourceSystem: 'agent',
-          timestamp: '2026-01-01T00:00:00.000Z',
-          payload: {
-            week: 1,
-            candidateId: candidate.id,
-            agentId: candidate.id,
-            agentName: candidate.name,
-            recruitCategory: 'instructor',
-          },
-        },
+        hireEvent('evt-instructor-hire', {
+          week: 1,
+          candidateId: candidate.id,
+          agentId: candidate.id,
+          agentName: candidate.name,
+          recruitCategory: 'instructor',
+        }),
       ],
     }
 
@@ -353,20 +354,13 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
         },
       },
       events: [
-        {
-          id: 'evt-staff-hire',
-          schemaVersion: 1,
-          type: 'agent.hired',
-          sourceSystem: 'agent',
-          timestamp: '2026-01-01T00:00:00.000Z',
-          payload: {
-            week: 1,
-            candidateId: candidate.id,
-            agentId: candidate.id,
-            agentName: candidate.name,
-            recruitCategory: 'staff',
-          },
-        },
+        hireEvent('evt-staff-hire', {
+          week: 1,
+          candidateId: candidate.id,
+          agentId: candidate.id,
+          agentName: candidate.name,
+          recruitCategory: 'staff',
+        }),
       ],
     }
 

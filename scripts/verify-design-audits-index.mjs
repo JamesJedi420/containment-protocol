@@ -29,22 +29,22 @@ const diskSet = new Set(diskAudits)
 
 const body = fs.readFileSync(indexPath, 'utf8')
 const startMarker = '## Audits (alphabetical)'
-const endMarker = '## Related'
+const endMarker = '## UX and QA specifications'
 const start = body.indexOf(startMarker)
 const end = body.indexOf(endMarker, start + 1)
 if (start === -1) fail(`${indexPath}: missing "${startMarker}" section`)
 if (end === -1) fail(`${indexPath}: missing "${endMarker}" after audits section`)
 
 const section = body.slice(start, end)
-const lineRe = /^- \[`([^`]+)`\]\(\.\/([^)]+)\)\s*$/
+const lineRe = /^\|\s*\[`([^`]+)`\]\(\.\/([^)]+)\)\s*\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*(?:Active reference|Review needed|Workflow review needed)\s*\|$/
 const indexed = []
 for (const line of section.split('\n')) {
   const trimmed = line.trim()
-  if (!trimmed.startsWith('- ')) continue
+  if (!trimmed.startsWith('| [`')) continue
   const m = trimmed.match(lineRe)
   if (!m) {
     fail(
-      `${indexPath}: audits list lines must match - [\`name\`](./name) (got: ${JSON.stringify(trimmed)})`
+      `${indexPath}: audit table rows require | [\`name\`](./name) | YYYY-MM-DD | status | (got: ${JSON.stringify(trimmed)})`
     )
   }
   const label = m[1]
@@ -75,8 +75,8 @@ if (missingOnDisk.length) {
 const missingInIndex = diskAudits.filter((f) => !indexedSet.has(f))
 if (missingInIndex.length) {
   fail(
-    `${indexPath}: missing bullets for docs audit files: ${missingInIndex.join(', ')}\n` +
-      `Fix: add one line per file under "## Audits (alphabetical)" in strict order:\n` +
+    `${indexPath}: missing rows for docs audit files: ${missingInIndex.join(', ')}\n` +
+      `Fix: add one dated table row per file under "## Audits (alphabetical)" in strict order:\n` +
       missingInIndex.map((f) => `- [\`${f}\`](./${f})`).join('\n')
   )
 }
@@ -84,7 +84,7 @@ if (missingInIndex.length) {
 const sorted = [...indexed].sort((a, b) => a.localeCompare(b, 'en'))
 if (indexed.join('\n') !== sorted.join('\n')) {
   fail(
-    `${indexPath}: audits section must be strictly alphabetical by filename.\n` +
+    `${indexPath}: audit table must be strictly alphabetical by filename.\n` +
       `Expected order (first mismatch):\n` +
       sorted.map((f) => `- [\`${f}\`](./${f})`).join('\n')
   )

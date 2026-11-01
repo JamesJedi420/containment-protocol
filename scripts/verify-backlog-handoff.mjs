@@ -26,11 +26,11 @@ function readJson(filePath) {
   }
 }
 
-function extractHandoffSection(body) {
+function extractHandoffSection(body, sourcePath = backlogPath) {
   const startMarker = '## Recommended next step (agent handoff)'
   const start = body.indexOf(startMarker)
   if (start === -1) {
-    fail(`${backlogPath}: missing "${startMarker}" section`)
+    fail(`${sourcePath}: missing "${startMarker}" section`)
   }
 
   const nextHeading = body.indexOf('\n## ', start + startMarker.length)
@@ -82,7 +82,7 @@ const handoffSection = extractHandoffSection(backlogBody)
 const historyBody = manifest.historyFile
   ? fs.readFileSync(path.join(root, manifest.historyFile), 'utf8')
   : backlogBody
-const historyHandoff = extractHandoffSection(historyBody)
+const historyHandoff = extractHandoffSection(historyBody, manifest.historyFile ?? backlogPath)
 
 if (manifest.historyFile) {
   const queue = backlogBody.split('## Active queue\n')[1]?.split('\n## ')[0] ?? ''

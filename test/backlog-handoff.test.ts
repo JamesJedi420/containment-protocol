@@ -51,6 +51,14 @@ describe('compact backlog handoff', () => {
     expect(verify().status).toBe(0)
   })
 
+  it('identifies the archive when its handoff section is missing', () => {
+    const result = verify((root) =>
+      fs.writeFileSync(path.join(root, 'planning/history.md'), '# History\n')
+    )
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('planning/history.md: missing')
+  })
+
   it('accepts Windows line endings in the active queue', () => {
     expect(
       verify((root) => {

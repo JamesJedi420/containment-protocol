@@ -105,7 +105,7 @@ export function buildReportCaseSnapshots(
   performanceByCaseId: Partial<Record<string, PerformanceMetricSummary>> = {},
   rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>> = {},
   missionResultByCaseId: Partial<Record<string, MissionResult>> = {},
-  stateForFactionDistortion?: Pick<GameState, 'factions'>
+  stateForFactionDistortion?: Parameters<typeof buildFactionStates>[0]
 ) {
   const anchorDistortion = stateForFactionDistortion
     ? (buildFactionStates(stateForFactionDistortion)[0]?.distortion ?? 0)

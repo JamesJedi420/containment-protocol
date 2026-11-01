@@ -21,6 +21,19 @@ function hireEvent(
   }
 }
 
+function hirePayload(
+  candidate: Candidate,
+  recruitCategory: OperationEventPayloadMap['agent.hired']['recruitCategory']
+): OperationEventPayloadMap['agent.hired'] {
+  return {
+    week: 1,
+    candidateId: candidate.id,
+    agentId: candidate.id,
+    agentName: candidate.name,
+    recruitCategory,
+  }
+}
+
 function makeAgentCandidate(
   overrides?: Partial<Extract<Candidate, { category: 'agent' }>>
 ): Extract<Candidate, { category: 'agent' }> {
@@ -262,13 +275,7 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
       candidates: [candidate],
       agents: { ...createStartingState().agents, [candidate.id]: completed },
       events: [
-        hireEvent('evt-prior-hire', {
-          week: 1,
-          candidateId: candidate.id,
-          agentId: candidate.id,
-          agentName: candidate.name,
-          recruitCategory: 'agent',
-        }),
+        hireEvent('evt-prior-hire', hirePayload(candidate, 'agent')),
       ],
     }
 
@@ -297,13 +304,7 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
         },
       },
       events: [
-        hireEvent('evt-instructor-hire', {
-          week: 1,
-          candidateId: candidate.id,
-          agentId: candidate.id,
-          agentName: candidate.name,
-          recruitCategory: 'instructor',
-        }),
+        hireEvent('evt-instructor-hire', hirePayload(candidate, 'instructor')),
       ],
     }
 
@@ -354,13 +355,7 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
         },
       },
       events: [
-        hireEvent('evt-staff-hire', {
-          week: 1,
-          candidateId: candidate.id,
-          agentId: candidate.id,
-          agentName: candidate.name,
-          recruitCategory: 'staff',
-        }),
+        hireEvent('evt-staff-hire', hirePayload(candidate, 'staff')),
       ],
     }
 

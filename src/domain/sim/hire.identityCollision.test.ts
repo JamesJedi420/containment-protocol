@@ -249,8 +249,10 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
       events: [
         {
           id: 'evt-prior-hire',
+          schemaVersion: 1,
           type: 'agent.hired',
-          week: 1,
+          sourceSystem: 'agent',
+          timestamp: '2026-01-01T00:00:00.000Z',
           payload: {
             week: 1,
             candidateId: candidate.id,
@@ -289,8 +291,10 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
       events: [
         {
           id: 'evt-instructor-hire',
+          schemaVersion: 1,
           type: 'agent.hired',
-          week: 1,
+          sourceSystem: 'agent',
+          timestamp: '2026-01-01T00:00:00.000Z',
           payload: {
             week: 1,
             candidateId: candidate.id,
@@ -351,8 +355,10 @@ describe('hireCandidate identity collision (SPE-3366)', () => {
       events: [
         {
           id: 'evt-staff-hire',
+          schemaVersion: 1,
           type: 'agent.hired',
-          week: 1,
+          sourceSystem: 'agent',
+          timestamp: '2026-01-01T00:00:00.000Z',
           payload: {
             week: 1,
             candidateId: candidate.id,

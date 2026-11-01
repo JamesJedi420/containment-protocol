@@ -22,7 +22,7 @@ function buildOperationalMajorIncidentCase() {
     deadlineRemaining: 0,
     raid: { minTeams: 2, maxTeams: 4 },
     requiredTags: [] as string[],
-    requiredRoles: [] as string[],
+    requiredRoles: [],
     assignedTeamIds: [] as string[],
   }
   const runtime = buildDerivedMajorIncidentRuntime(currentCase, state)
@@ -55,7 +55,7 @@ describe('SPE-3076 major-incident terminal settlement', () => {
       majorIncident: {
         ...currentCase.majorIncident!,
         rewards: {
-          materials: [{ itemId: 'stale-loot', quantity: 99 }],
+          materials: [{ itemId: 'stale-loot', label: 'Stale loot', quantity: 99 }],
           gear: [],
           progressionUnlocks: ['should-not-appear'],
         },

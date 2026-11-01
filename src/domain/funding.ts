@@ -926,7 +926,14 @@ export function getCanonicalFundingState(
 export function assessFundingPressure(
   game: Pick<
     GameState,
-    'agency' | 'config' | 'funding' | 'supportStaff' | 'week' | 'inventory' | 'compromisedAuthority'
+    | 'agency'
+    | 'config'
+    | 'funding'
+    | 'supportStaff'
+    | 'week'
+    | 'inventory'
+    | 'compromisedAuthority'
+    | 'factions'
   >
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)

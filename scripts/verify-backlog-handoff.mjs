@@ -1,5 +1,5 @@
 /**
- * Verifies planning/backlog.md handoff text and slice-doc status rows match
+ * Verifies the compact queue, archived shipped evidence, and current slice-doc statuses match
  * planning/backlog-handoff-manifest.json (git-visible handoff source of truth).
  *
  * Update the manifest whenever you change backlog handoff or slice-doc status.
@@ -26,11 +26,11 @@ function readJson(filePath) {
   }
 }
 
-function extractHandoffSection(body) {
+function extractHandoffSection(body, sourcePath = backlogPath) {
   const startMarker = '## Recommended next step (agent handoff)'
   const start = body.indexOf(startMarker)
   if (start === -1) {
-    fail(`${backlogPath}: missing "${startMarker}" section`)
+    fail(`${sourcePath}: missing "${startMarker}" section`)
   }
 
   const nextHeading = body.indexOf('\n## ', start + startMarker.length)
@@ -65,10 +65,7 @@ function parseSliceDocStatus(sliceDocPath) {
 function parseBacklogTableStatus(backlogBody, sliceDocPath) {
   const sliceDocFile = path.basename(sliceDocPath)
   const escaped = sliceDocFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(
-    `\\|\\s*\`${escaped}\`\\s*\\|\\s*\\*\\*([^*]+)\\*\\*\\s*\\|`,
-    'm'
-  )
+  const re = new RegExp(`\\|\\s*\`${escaped}\`\\s*\\|\\s*\\*\\*([^*]+)\\*\\*\\s*\\|`, 'm')
   const match = backlogBody.match(re)
   if (!match) {
     fail(
@@ -79,8 +76,32 @@ function parseBacklogTableStatus(backlogBody, sliceDocPath) {
 }
 
 const manifest = readJson(manifestPath)
-const backlogBody = fs.readFileSync(backlogPath, 'utf8')
+const backlogBody = fs.readFileSync(backlogPath, 'utf8').replace(/\r\n/g, '\n')
 const handoffSection = extractHandoffSection(backlogBody)
+// Frozen history retains shipped evidence; current slice statuses live in the manifest.
+const historyBody = manifest.historyFile
+  ? fs.readFileSync(path.join(root, manifest.historyFile), 'utf8')
+  : backlogBody
+const historyHandoff = extractHandoffSection(historyBody, manifest.historyFile ?? backlogPath)
+
+if (manifest.historyFile) {
+  const queue = backlogBody.split('## Active queue\n')[1]?.split('\n## ')[0] ?? ''
+  const entries = queue.split('\n').filter((line) => line.startsWith('- '))
+  if (entries.length === 0 || entries.length > 12)
+    fail('backlog: keep 1–12 one-line active entries')
+  if (entries.some((line) => line.length > 350))
+    fail('backlog: queue entries must be concise (350 characters max)')
+  if (Buffer.byteLength(backlogBody) > 6000)
+    fail('backlog: keep the live queue under 6 KB; put history in Linear')
+  if (/Recently shipped|\*\*Shipped\*\*/i.test(backlogBody))
+    fail('backlog: shipped records belong in history or Linear')
+  const queueIds = entries.map((line) => extractIssueIds(line)[0])
+  if (queueIds.some((id) => !id) || new Set(queueIds).size !== queueIds.length)
+    fail('backlog: each entry needs one distinct owning issue')
+  for (const id of [manifest.primary, ...(manifest.inProgress ?? [])].filter(Boolean)) {
+    if (!queueIds.includes(id)) fail(`backlog: handoff issue ${id} is missing from active queue`)
+  }
+}
 
 const primaryLine = lineValue(handoffSection, 'Current handoff \\(primary\\)')
 const inProgressLine = lineValue(handoffSection, 'In progress')
@@ -93,11 +114,9 @@ if (!inProgressLine) {
 }
 
 const primaryIds = extractIssueIds(primaryLine)
-const inProgressIds = inProgressLine.includes('(none)')
-  ? []
-  : extractIssueIds(inProgressLine)
+const inProgressIds = inProgressLine.includes('(none)') ? [] : extractIssueIds(inProgressLine)
 
-const recentlyShippedBlock = handoffSection
+const recentlyShippedBlock = historyHandoff
   .split('\n')
   .filter((line) => line.startsWith('**Recently shipped:**'))
   .slice(0, 12)
@@ -117,17 +136,13 @@ if (manifestPrimary === null) {
   }
 } else {
   if (!primaryIds.includes(manifestPrimary)) {
-    fail(
-      `${backlogPath}: primary handoff must mention ${manifestPrimary} (got: ${primaryLine})`
-    )
+    fail(`${backlogPath}: primary handoff must mention ${manifestPrimary} (got: ${primaryLine})`)
   }
 }
 
 for (const issueId of manifestInProgress) {
   if (!inProgressIds.includes(issueId)) {
-    fail(
-      `${backlogPath}: "**In progress:**" must include ${issueId} per ${manifestPath}`
-    )
+    fail(`${backlogPath}: "**In progress:**" must include ${issueId} per ${manifestPath}`)
   }
   if (recentlyShippedIds.includes(issueId)) {
     fail(
@@ -151,7 +166,9 @@ for (const issueId of manifestRecentlyShipped) {
 
 const overlap = manifestInProgress.filter((id) => manifestRecentlyShipped.includes(id))
 if (overlap.length) {
-  fail(`${manifestPath}: issue(s) appear in both inProgress and recentlyShipped: ${overlap.join(', ')}`)
+  fail(
+    `${manifestPath}: issue(s) appear in both inProgress and recentlyShipped: ${overlap.join(', ')}`
+  )
 }
 
 for (const [sliceDocFile, expectedStatus] of Object.entries(manifestSliceDocs)) {
@@ -161,7 +178,9 @@ for (const [sliceDocFile, expectedStatus] of Object.entries(manifestSliceDocs)) 
   }
 
   const docStatus = parseSliceDocStatus(sliceDocFile)
-  const tableStatus = parseBacklogTableStatus(backlogBody, sliceDocFile)
+  const tableStatus = manifest.historyFile
+    ? expectedStatus
+    : parseBacklogTableStatus(backlogBody, sliceDocFile)
 
   if (docStatus !== expectedStatus) {
     fail(
@@ -180,5 +199,5 @@ console.log(
   'backlog-handoff: OK',
   `primary=${manifestPrimary ?? 'none'}`,
   `inProgress=${manifestInProgress.join(',') || 'none'}`,
-  `recentlyShipped=${manifestRecentlyShipped.join(',') || 'none'}`
+  `archivedShipped=${manifestRecentlyShipped.length}`
 )

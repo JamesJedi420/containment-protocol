@@ -156,7 +156,6 @@
     {
       "id": "architecture-index",
       "ownerIssue": "SPE-10",
-      "npmScript": "verify:architecture-index",
       "command": "node scripts/verify-architecture-index.mjs",
       "enforcement": "advisory",
       "activation": {

@@ -252,20 +252,22 @@ export function resolveSceneDifficulty(
   const seenDrivers = new Set<string>()
   const drivers: ResolvedDriver[] = []
   let rawPressure = 0
+  const driverInputs: readonly SceneDifficultyDriverInput[] = input.drivers
 
-  for (const raw of input.drivers) {
-    if (!isDriver(raw?.driver)) {
+  for (const raw of driverInputs) {
+    const driver = raw?.driver
+    if (!isDriver(driver)) {
       return {
         ok: false,
         reasonCode: 'unknown_driver',
-        detail: String(raw?.driver),
+        detail: String(driver),
       }
     }
-    if (seenDrivers.has(raw.driver)) {
+    if (seenDrivers.has(driver)) {
       return {
         ok: false,
         reasonCode: 'duplicate_driver',
-        detail: raw.driver,
+        detail: driver,
       }
     }
     if (
@@ -277,17 +279,17 @@ export function resolveSceneDifficulty(
       return {
         ok: false,
         reasonCode: 'malformed_input',
-        detail: `intensity for ${raw.driver} must be integer 1–3`,
+        detail: `intensity for ${driver} must be integer 1–3`,
       }
     }
     const provenance = validateProvenance(raw.provenance)
     if (!provenance.ok) return provenance
-    seenDrivers.add(raw.driver)
-    const weight = DRIVER_WEIGHT[raw.driver] * raw.intensity
+    seenDrivers.add(driver)
+    const weight = DRIVER_WEIGHT[driver] * raw.intensity
     rawPressure += weight
     drivers.push(
       Object.freeze({
-        driver: raw.driver,
+        driver,
         intensity: raw.intensity,
         weight,
         provenance: provenance.provenance,
@@ -306,8 +308,9 @@ export function resolveSceneDifficulty(
   const seenMitigations = new Set<string>()
   const mitigations: ResolvedMitigation[] = []
   let reliefTotal = 0
+  const mitigationInputs: readonly SceneMitigationInput[] = input.mitigations ?? []
 
-  for (const raw of input.mitigations ?? []) {
+  for (const raw of mitigationInputs) {
     if (!isNonEmptyString(raw?.mitigationId)) {
       return {
         ok: false,
@@ -323,11 +326,12 @@ export function resolveSceneDifficulty(
         detail: mitigationId,
       }
     }
-    if (!isMitigation(raw.kind)) {
+    const kind = raw?.kind
+    if (!isMitigation(kind)) {
       return {
         ok: false,
         reasonCode: 'unknown_mitigation',
-        detail: String(raw.kind),
+        detail: String(kind),
       }
     }
     if (
@@ -345,12 +349,12 @@ export function resolveSceneDifficulty(
     const provenance = validateProvenance(raw.provenance)
     if (!provenance.ok) return provenance
     seenMitigations.add(mitigationId)
-    const relief = MITIGATION_RELIEF[raw.kind] * raw.strength
+    const relief = MITIGATION_RELIEF[kind] * raw.strength
     reliefTotal += relief
     mitigations.push(
       Object.freeze({
         mitigationId,
-        kind: raw.kind,
+        kind,
         strength: raw.strength,
         relief,
         provenance: provenance.provenance,

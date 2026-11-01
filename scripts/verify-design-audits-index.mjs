@@ -77,7 +77,7 @@ if (missingInIndex.length) {
   fail(
     `${indexPath}: missing rows for docs audit files: ${missingInIndex.join(', ')}\n` +
       `Fix: add one dated table row per file under "## Audits (alphabetical)" in strict order:\n` +
-      missingInIndex.map((f) => `- [\`${f}\`](./${f})`).join('\n')
+      missingInIndex.map((f) => `| [\`${f}\`](./${f}) | YYYY-MM-DD | Review needed |`).join('\n')
   )
 }
 
@@ -86,7 +86,7 @@ if (indexed.join('\n') !== sorted.join('\n')) {
   fail(
     `${indexPath}: audit table must be strictly alphabetical by filename.\n` +
       `Expected order (first mismatch):\n` +
-      sorted.map((f) => `- [\`${f}\`](./${f})`).join('\n')
+      sorted.map((f) => `| [\`${f}\`](./${f}) | YYYY-MM-DD | Review needed |`).join('\n')
   )
 }
 

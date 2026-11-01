@@ -3,7 +3,10 @@ import {
   resolveEnvironmentalOperationalContext,
   type EnvironmentalDimensionPacket,
 } from '../domain/environmentalOperationalContext'
-import { readRepresentativeFacilityDependencyGraph } from '../domain/facilityDependencyGraph'
+import {
+  readRepresentativeFacilityDependencyGraph,
+  type FacilityDependencyAvailability,
+} from '../domain/facilityDependencyGraph'
 import {
   projectEnvironmentalContextToFacilityDependencyPacket,
   readRepresentativeFacilityEnvBindings,
@@ -33,8 +36,10 @@ function packet(
   }
 }
 
-function readyBaseline(): Record<string, { availability: 'ready'; sourceRef: string }> {
-  const sources: Record<string, { availability: 'ready'; sourceRef: string }> = {}
+type BaselineSource = { availability: FacilityDependencyAvailability; sourceRef: string }
+
+function readyBaseline(): Record<string, BaselineSource> {
+  const sources: Record<string, BaselineSource> = {}
   for (const id of NODE_IDS) {
     sources[id] = { availability: 'ready', sourceRef: `baseline:${id}` }
   }
@@ -296,7 +301,7 @@ describe('SPE-3415 facility env dependency projection', () => {
       { dimensionId: 'terrain_buildability' as const, nodeId: HUB },
     ]
     const baseline = readyBaseline()
-    const reversedBaseline: Record<string, { availability: 'ready'; sourceRef: string }> = {}
+    const reversedBaseline: Record<string, BaselineSource> = {}
     for (const id of [...NODE_IDS].reverse()) {
       reversedBaseline[id] = baseline[id]!
     }

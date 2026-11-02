@@ -15,6 +15,10 @@ simulation, store, and CI. Ownership: SPE-3516.
    npx trigger.dev@4.8.3 tasks trigger hello-world --payload '{}' --wait --timeout 60
    ```
 
+Use Node 22 and npm 10.9.9, matching CI, when regenerating the lockfile.
+Newer npm versions can omit an optional peer entry that npm 10 requires during
+`npm ci`; retain the nested Prisma/c12 `magicast@0.3.5` lock entry.
+
 The exported `helloWorldTask` logs a message, waits five seconds through
 Trigger.dev, and returns the message. An optional `message` payload overrides
 the default greeting. The configured task runtime is Node 22.

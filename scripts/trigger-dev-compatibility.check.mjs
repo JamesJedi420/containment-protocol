@@ -9,10 +9,10 @@ import { emitDecoratorMetadata } from '@trigger.dev/build/extensions/typescript'
 
 async function fixture(run) {
   const root = await mkdtemp(join(tmpdir(), 'cp-trigger-compat-'))
+  assert.equal(dirname(resolve(root)), resolve(tmpdir()))
   try {
     await run(root)
   } finally {
-    assert.equal(dirname(resolve(root)), resolve(tmpdir()))
     await rm(root, { recursive: true, force: true })
   }
 }

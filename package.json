@@ -26,7 +26,10 @@
     "verify:academy-authored-content": "node scripts/validation/academy-authored-content.mjs && node --test scripts/validation/academy-authored-content.check.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=list,html",
-    "verify:trigger-compatibility": "node --test scripts/trigger-dev-compatibility.check.mjs"
+    "verify:trigger-compatibility": "node --test scripts/trigger-dev-compatibility.check.mjs",
+    "project:approved-work": "node scripts/project-approved-work.mjs",
+    "test:approved-work": "node --test scripts/project-approved-work.test.mjs scripts/export-linear-approved-work.test.mjs",
+    "export:approved-work": "node scripts/export-linear-approved-work.mjs"
   },
   "dependencies": {
     "@trigger.dev/sdk": "4.8.3",

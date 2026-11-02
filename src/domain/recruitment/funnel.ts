@@ -136,8 +136,11 @@ export function listCandidatesByFunnelStage(state: Pick<GameState, 'candidates'>
   return state.candidates.filter((candidate) => getCandidateFunnelStage(candidate) === normalizedStage)
 }
 
+type RecruitmentFunnelSummaryInput = Parameters<typeof assessAttritionPressure>[0] &
+  Pick<GameState, 'candidates'>
+
 export function buildRecruitmentFunnelSummary(
-  state: Pick<GameState, 'week' | 'candidates' | 'agents' | 'agency' | 'config' | 'funding'>
+  state: RecruitmentFunnelSummaryInput
 ): RecruitmentFunnelSummary {
   const attritionPressure = assessAttritionPressure(state)
   const stageCounts: RecruitmentFunnelSummary['stageCounts'] = {

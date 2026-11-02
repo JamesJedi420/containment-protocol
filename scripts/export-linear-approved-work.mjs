@@ -18,9 +18,10 @@ const QUERY = `query ApprovedIssues($project: String!, $after: String) {
     }
   }}
 }`
-export function normalizeLinearIssues(projectPages, evidence, asOf, coverage) {
-  if(!coverage || coverage.source !== 'approved-planning' || coverage.complete !== true || !Array.isArray(coverage.issueIds) || !coverage.issueIds.length || new Set(coverage.issueIds).size!==coverage.issueIds.length) error('missing independently verified approved-work coverage')
-  if (!evidence || evidence.source !== 'SPE-3276' || evidence.complete !== true || !evidence.issues || Array.isArray(evidence.issues)) error('SPE-3276 classification coverage not attested')
+export function normalizeLinearIssues(projectPages, evidence, asOf, coverage, fetchedProjectIds=coverage?.projectIds) {
+  if(!coverage || coverage.source !== 'approved-planning' || coverage.complete !== true || !Array.isArray(coverage.issueIds) || !coverage.issueIds.length || new Set(coverage.issueIds).size!==coverage.issueIds.length || !Array.isArray(coverage.projectIds) || !coverage.projectIds.length || new Set(coverage.projectIds).size!==coverage.projectIds.length) error('missing independently verified approved-work coverage')
+  if (!Array.isArray(fetchedProjectIds) || JSON.stringify([...fetchedProjectIds].sort())!==JSON.stringify([...coverage.projectIds].sort()) || projectPages.length!==fetchedProjectIds.length) error('project IDs differ from approved planning inventory')
+  if (!evidence || evidence.source !== 'SPE-3276' || evidence.complete !== true || !evidence.issues || typeof evidence.issues !== 'object' || Array.isArray(evidence.issues) || Object.keys(evidence.issues).length===0) error('SPE-3276 classification coverage not attested')
   const byId=new Map()
   for (const page of projectPages) for (const row of page) {
     if (!row || !/^[A-Z]+-\d+$/.test(row.identifier) || !row.state?.type || !Array.isArray(row.labels?.nodes) || !Array.isArray(row.relations?.nodes) || !row.relations?.pageInfo || row.relations.pageInfo.hasNextPage !== false || !Array.isArray(row.inverseRelations?.nodes) || !row.inverseRelations?.pageInfo || row.inverseRelations.pageInfo.hasNextPage !== false) error('incomplete issue or relation pagination')
@@ -41,12 +42,12 @@ export function normalizeLinearIssues(projectPages, evidence, asOf, coverage) {
     // incoming blocks is owned by the actual prerequisite issue.
     for (const rel of row.relations.nodes) {
       if (!['blocks','related','duplicate','similar'].includes(rel.type) ||
-          !/^[A-Z]+-\\d+$/.test(rel.relatedIssue?.identifier ?? ''))
+          !/^[A-Z]+-\d+$/.test(rel.relatedIssue?.identifier ?? ''))
         error(row.identifier+' invalid outgoing relationship')
     }
     for (const rel of row.inverseRelations.nodes) {
       if (!['blocks','related','duplicate','similar'].includes(rel.type) ||
-          !/^[A-Z]+-\\d+$/.test(rel.issue?.identifier ?? ''))
+          !/^[A-Z]+-\d+$/.test(rel.issue?.identifier ?? ''))
         error(row.identifier+' invalid incoming relationship')
       if (rel.type === 'blocks') blockedBy.push(rel.issue.identifier)
     }
@@ -85,7 +86,7 @@ if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
     const coverage=JSON.parse(fs.readFileSync(coveragePath,'utf8'))
     const {pages,asOf}=await fetchLinearAuthority({apiKey:process.env.LINEAR_API_KEY,projectIds:(process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean)})
     if(JSON.stringify([...new Set((process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))].sort())!==JSON.stringify([...coverage.projectIds].sort())) error('project IDs differ from approved planning inventory')
-    const snapshot=normalizeLinearIssues(pages,evidence,asOf,coverage)
+    const snapshot=normalizeLinearIssues(pages,evidence,asOf,coverage,(process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))
     const projection=projectApprovedWork(snapshot)
     // Do not write a partial output; every validation must finish first.
     fs.writeFileSync(outputPath,serializeProjection(projection))

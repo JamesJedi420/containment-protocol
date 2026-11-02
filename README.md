@@ -25,6 +25,7 @@ The project is intentionally client-only: no backend, database, external service
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [Planning and Documentation](#planning-and-documentation)
+- [License and Copyright](#license-and-copyright)
 
 ## Quick Start
 
@@ -190,3 +191,7 @@ After a PR merges, sync local `main` before starting the next approved slice.
 - Dependency boundaries: `docs/dependency-boundaries.md`
 
 When adding a new top-level `docs/*audit*.md`, update `docs/design-audits-index.md` in strict alphabetical order and run `npm run verify:audits-index`.
+
+## License and Copyright
+
+**All rights reserved.** Containment Protocol is publicly viewable, but its original project material is not released under an open-source license. See [LICENSE](LICENSE) for the rights notice. Third-party components and materials retain their own licenses.

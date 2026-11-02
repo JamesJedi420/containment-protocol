@@ -177,7 +177,7 @@ export function createHiddenBuildingGraph(input: HiddenBuildingGraph): HiddenBui
     )
   }
 
-  const contentsByRoomId: Record<string, HiddenRoomContents> = {}
+  const contentsByRoomId: Record<string, HiddenRoomContents> = Object.create(null)
   if (typeof input.contentsByRoomId !== 'object' || input.contentsByRoomId === null) {
     throw new Error('contentsByRoomId is required')
   }
@@ -208,7 +208,7 @@ export function bootHiddenBuildingDiscovery(
   graphInput: HiddenBuildingGraph
 ): HiddenBuildingDiscoveryState {
   const graph = createHiddenBuildingGraph(graphInput)
-  const discoveryByHiddenRoomId: Record<string, DiscoveryStage> = {}
+  const discoveryByHiddenRoomId: Record<string, DiscoveryStage> = Object.create(null)
   for (const room of graph.rooms) {
     if (room.visibility === 'hidden') {
       discoveryByHiddenRoomId[room.id] = 'concealed'

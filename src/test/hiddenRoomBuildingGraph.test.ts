@@ -226,6 +226,24 @@ describe('SPE-992 hidden-room building graph', () => {
     expect(opened.discoveryByHiddenRoomId['b->c']).toBe('concealed')
   })
 
+  it('preserves prototype-named room IDs through construction and discovery', () => {
+    const named = createHiddenBuildingGraph({
+      ...graph,
+      rooms: [graph.rooms[0]!, { ...graph.rooms[2]!, id: '__proto__' }],
+      triggers: [{ ...graph.triggers[0]!, toHiddenRoomId: '__proto__' }],
+      edges: [{ ...graph.edges[1]!, toRoomId: '__proto__' }],
+      contentsByRoomId: JSON.parse('{"__proto__":{"activeResident":true,"concealedBody":false}}'),
+    })
+    const boot = bootHiddenBuildingDiscovery(named)
+    expect(Object.hasOwn(named.contentsByRoomId, '__proto__')).toBe(true)
+    expect(Object.hasOwn(boot.discoveryByHiddenRoomId, '__proto__')).toBe(true)
+    expect(boot.discoveryByHiddenRoomId['__proto__']).toBe('concealed')
+    const opened = activateConcealedTrigger(named, boot, 'trig-book', 'family-crest-tome')
+    expect(reachableRoomIds(named, opened, 'library')).toEqual(['__proto__'])
+    const inspected = inspectRevealedHiddenRoom(named, opened, '__proto__')
+    expect(inspected.discoveryByHiddenRoomId['__proto__']).toBe('occupant_or_body_found')
+  })
+
   it('is deterministic and does not mutate inputs', () => {
     const input = {
       id: 'b',

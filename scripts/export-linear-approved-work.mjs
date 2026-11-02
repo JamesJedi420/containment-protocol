@@ -14,6 +14,7 @@ const QUERY = `query ApprovedIssues($project: String!, $after: String) {
     nodes {identifier id title priority
       state {type} labels {nodes {name}}
       relations(first:100) {pageInfo {hasNextPage} nodes {type relatedIssue {identifier}}}
+      inverseRelations(first:100) {pageInfo {hasNextPage} nodes {type issue {identifier}}}
     }
   }}
 }`
@@ -22,7 +23,7 @@ export function normalizeLinearIssues(projectPages, evidence, asOf, coverage) {
   if (!evidence || evidence.source !== 'SPE-3276' || evidence.complete !== true || !evidence.issues || Array.isArray(evidence.issues)) error('SPE-3276 classification coverage not attested')
   const byId=new Map()
   for (const page of projectPages) for (const row of page) {
-    if (!row || !/^[A-Z]+-\d+$/.test(row.identifier) || !row.state?.type || !Array.isArray(row.labels?.nodes) || !Array.isArray(row.relations?.nodes) || !row.relations?.pageInfo || row.relations.pageInfo.hasNextPage !== false) error('incomplete issue or relation pagination')
+    if (!row || !/^[A-Z]+-\d+$/.test(row.identifier) || !row.state?.type || !Array.isArray(row.labels?.nodes) || !Array.isArray(row.relations?.nodes) || !row.relations?.pageInfo || row.relations.pageInfo.hasNextPage !== false || !Array.isArray(row.inverseRelations?.nodes) || !row.inverseRelations?.pageInfo || row.inverseRelations.pageInfo.hasNextPage !== false) error('incomplete issue or relation pagination')
     const labels=row.labels.nodes.map(x=>x.name)
     const ws=WORKSTREAMS.filter(w=>labels.includes('workstream:'+w))
     // Unknown approval and ownership do not become actionable.
@@ -36,13 +37,18 @@ export function normalizeLinearIssues(projectPages, evidence, asOf, coverage) {
     const record=evidence.issues[row.identifier]
     if (!record || record.verified !== true || typeof record.evidenceDrift!=='boolean' || !['unstarted','partial','merged','current-main','superseded','missing','evidence-conflicted'].includes(record.implementationEvidence?.state)) error(row.identifier+' missing verified SPE-3276 evidence classification')
     const blockedBy=[],dependsOn=[]
-    for(const rel of row.relations.nodes){
-      const id=rel.relatedIssue?.identifier
-      if(!id || !/^[A-Z]+-\d+$/.test(id)) error(row.identifier+' unresolved relationship')
-      if(rel.type==='blocks') continue
-      if(rel.type==='blocked_by') blockedBy.push(id)
-      else if(rel.type==='depends_on') dependsOn.push(id)
-      else if(!['related','duplicate'].includes(rel.type)) error(row.identifier+' unrecognized relation type '+rel.type)
+    // Linear uses positional direction: outgoing blocks points to a blocked target;
+    // incoming blocks is owned by the actual prerequisite issue.
+    for (const rel of row.relations.nodes) {
+      if (!['blocks','related','duplicate','similar'].includes(rel.type) ||
+          !/^[A-Z]+-\\d+$/.test(rel.relatedIssue?.identifier ?? ''))
+        error(row.identifier+' invalid outgoing relationship')
+    }
+    for (const rel of row.inverseRelations.nodes) {
+      if (!['blocks','related','duplicate','similar'].includes(rel.type) ||
+          !/^[A-Z]+-\\d+$/.test(rel.issue?.identifier ?? ''))
+        error(row.identifier+' invalid incoming relationship')
+      if (rel.type === 'blocks') blockedBy.push(rel.issue.identifier)
     }
     issues.push({id:row.identifier,approved:true,workstream:WORKSTREAMS.find(w=>row.labels.nodes.some(l=>l.name==='workstream:'+w)),statusType:row.state.type,priority:row.priority,blockedBy,dependsOn,implementationEvidence:record.implementationEvidence,evidenceDrift:record.evidenceDrift})
   }

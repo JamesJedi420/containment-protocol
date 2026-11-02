@@ -2,7 +2,15 @@
 
 [![Test](https://github.com/JamesJedi420/containment-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/JamesJedi420/containment-protocol/actions/workflows/test.yml)
 
-**Containment Protocol** is a deterministic, domain-driven containment operations simulation built as a React and TypeScript single-page app. It models weekly incident response, squad assignment, procurement, recruitment, faction pressure, reports, and explicit cross-system state handoffs.
+**Run a containment operation where every week is a set of tradeoffs.**
+
+Containment Protocol is a deterministic, browser-based management simulation built with React and TypeScript. Manage incident response, assign squads, plan recruitment and procurement, weigh institutional pressures, and trace outcomes through explicit system handoffs. The focus is on operational decisions and their consequences, not direct tactical combat.
+
+**Explore:** [Project website](https://jamesjedi420.github.io/containment-protocol/) · [Run locally](#quick-start) · [How it's built](#architecture)
+
+**Interested in management sims or deterministic game systems?** [Star the repository](https://github.com/JamesJedi420/containment-protocol) to bookmark it and help other developers discover the project.
+
+> **Development status:** Actively developed work in progress. Individual systems and the hosted experience may be incomplete.
 
 The project is intentionally client-only: no backend, database, external services, or secrets are required to run the app locally.
 
@@ -17,6 +25,7 @@ The project is intentionally client-only: no backend, database, external service
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [Planning and Documentation](#planning-and-documentation)
+- [License and Copyright](#license-and-copyright)
 
 ## Quick Start
 
@@ -182,3 +191,7 @@ After a PR merges, sync local `main` before starting the next approved slice.
 - Dependency boundaries: `docs/dependency-boundaries.md`
 
 When adding a new top-level `docs/*audit*.md`, update `docs/design-audits-index.md` in strict alphabetical order and run `npm run verify:audits-index`.
+
+## License and Copyright
+
+**All rights reserved.** Containment Protocol is publicly viewable, but its original project material is not released under an open-source license. See [LICENSE](LICENSE) for the rights notice. Third-party components and materials retain their own licenses.

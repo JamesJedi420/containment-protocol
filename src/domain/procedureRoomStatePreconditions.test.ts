@@ -8,6 +8,7 @@ import {
   parseFacilityConfigurationSnapshot,
   parseRoomStateSnapshot,
   type FacilityConfigurationSnapshot,
+  type ProcedureRoomStateCheckSpec,
   type RoomStateSnapshot,
 } from './procedureRoomStatePreconditions'
 
@@ -28,11 +29,11 @@ function makeContainmentFacility(
 ): FacilityConfigurationSnapshot {
   return Object.freeze({
     facilityId: 'facility:hq-alpha',
-    activeRoomIds: Object.freeze(['containment_cell', 'med_bay']),
+    activeRoomIds: Object.freeze(['containment_cell', 'med_bay'] as const),
     roomZoneAssignments: Object.freeze([
       Object.freeze({ roomId: 'containment_cell', zoneId: 'containment' }),
       Object.freeze({ roomId: 'med_bay', zoneId: 'medical' }),
-    ]),
+    ] as const),
     containmentLayoutMode: 'secure_clean',
     ...overrides,
   })
@@ -266,7 +267,10 @@ describe('SPE-1896 procedure room-state preconditions', () => {
             {
               procedureId: 'binding_sigil',
               requiredRoomId: 'containment_cell',
-              checks: [{ kind: 'lighting', minimum: 'blinding' }],
+              // Intentionally non-canonical lighting level for runtime rejection.
+              checks: [
+                { kind: 'lighting', minimum: 'blinding' } as unknown as ProcedureRoomStateCheckSpec,
+              ],
             },
           ],
         })

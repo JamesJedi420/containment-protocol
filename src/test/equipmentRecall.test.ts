@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
+import type { GameState } from '../domain/models'
 import {
   repairStoredEquipmentInstanceCondition,
   stabilizeContainmentClassDeficiency,
@@ -43,7 +44,7 @@ function instance(
   }
 }
 
-function recallState() {
+function recallState(): GameState {
   const starting = createStartingState()
   return {
     ...starting,

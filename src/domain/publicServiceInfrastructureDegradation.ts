@@ -177,7 +177,7 @@ function transitionKey(
 }
 
 /** Authored deterministic degrade transitions (fail-closed: unknown pairs hold state). */
-const DEGRADE_TRANSITION_MAP: Readonly<Record<TransitionKey, ServiceReliabilityState>> =
+const DEGRADE_TRANSITION_MAP: Readonly<Partial<Record<TransitionKey, ServiceReliabilityState>>> =
   Object.freeze({
     'functional:overload': 'overloaded',
     'functional:contamination': 'contaminated',

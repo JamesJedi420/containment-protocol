@@ -52,3 +52,12 @@ test('missing or truncated incoming connections fail closed',()=>{
  const truncated=issue('SPE-1',{inverseRelations:{pageInfo:{hasNextPage:true},nodes:[]}})
  assert.throws(()=>normalizeLinearIssues([[truncated]],evidence(['SPE-1']),'2026-10-28T01:00:00Z',coverage(['SPE-1'])),/pagination/)
 })
+
+test('malformed and empty SPE-3276 evidence fail at attestation boundary',()=>{
+ for(const issues of ['complete',{},[]]){
+  assert.throws(()=>normalizeLinearIssues([[issue('SPE-1')]],{source:'SPE-3276',complete:true,issues},'2026-10-28T01:00:00Z',coverage(['SPE-1'])),/classification coverage not attested/)
+ }
+})
+test('project ID mismatch fails for direct normalization callers',()=>{
+ assert.throws(()=>normalizeLinearIssues([[issue('SPE-1')]],evidence(['SPE-1']),'2026-10-28T01:00:00Z',coverage(['SPE-1']),['different-project']),/project IDs differ/)
+})

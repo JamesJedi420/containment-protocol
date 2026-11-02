@@ -864,7 +864,8 @@ function wiringSkipReason(
 function interruptStatus(
   interrupt: VolatileActionInterruptInput
 ): Exclude<VolatileActionPhaseStatus, 'skipped' | 'held' | 'aborted' | 'delayed'> {
-  switch (interrupt.kind) {
+  const kind = interrupt.kind
+  switch (kind) {
     case 'none':
       return 'ran'
     case 'prepend':
@@ -874,7 +875,7 @@ function interruptStatus(
     case 'redirect':
       return 'redirected'
     default: {
-      const exhaustive: never = interrupt.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported interrupt kind: ${String(exhaustive)}`)
     }
   }
@@ -884,7 +885,8 @@ function holdStatus(
   id: VolatileActionV1PhaseId,
   hold: VolatileActionHoldInput
 ): VolatileActionPhaseStatus {
-  switch (hold.kind) {
+  const kind = hold.kind
+  switch (kind) {
     case 'none':
       return 'ran'
     case 'hold_aim':
@@ -894,7 +896,7 @@ function holdStatus(
     case 'delayed_emission':
       return id === 'effect_emission' ? 'delayed' : 'ran'
     default: {
-      const exhaustive: never = hold.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported hold kind: ${String(exhaustive)}`)
     }
   }
@@ -928,7 +930,8 @@ function resolveHazardDeclaration(
   hazard: VolatileActionHazardInput,
   bypassed: boolean
 ): VolatileActionHazardDeclaration {
-  switch (hazard.kind) {
+  const kind = hazard.kind
+  switch (kind) {
     case 'none':
       return {
         declaredAtPhaseId: VOLATILE_ACTION_HAZARD_DECLARATION_PHASE_ID,
@@ -940,7 +943,7 @@ function resolveHazardDeclaration(
         status: bypassed ? 'bypassed' : 'declared',
       }
     default: {
-      const exhaustive: never = hazard.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported hazard kind: ${String(exhaustive)}`)
     }
   }
@@ -951,7 +954,8 @@ function resolveConsequenceReduction(
   phases: readonly VolatileActionPhaseRecord[],
   bypassed: boolean
 ): readonly VolatileActionHazardReductionStep[] {
-  switch (hazard.kind) {
+  const kind = hazard.kind
+  switch (kind) {
     case 'none':
       return []
     case 'impending':
@@ -968,7 +972,7 @@ function resolveConsequenceReduction(
         }
       })
     default: {
-      const exhaustive: never = hazard.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported hazard kind: ${String(exhaustive)}`)
     }
   }
@@ -1015,7 +1019,8 @@ function explainPhaseStatus(
 function explainInterrupt(
   interrupt: VolatileActionInterruptInput
 ): VolatileActionInterruptExplanation {
-  switch (interrupt.kind) {
+  const kind = interrupt.kind
+  switch (kind) {
     case 'none':
       return { kind: 'none', reason: 'interrupt_none' }
     case 'prepend':
@@ -1025,14 +1030,15 @@ function explainInterrupt(
     case 'redirect':
       return { kind: 'redirect', reason: 'interrupt_redirect' }
     default: {
-      const exhaustive: never = interrupt.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported interrupt kind: ${String(exhaustive)}`)
     }
   }
 }
 
 function explainHold(hold: VolatileActionHoldInput): VolatileActionHoldExplanation {
-  switch (hold.kind) {
+  const kind = hold.kind
+  switch (kind) {
     case 'none':
       return { kind: 'none', reason: 'hold_none' }
     case 'hold_aim':
@@ -1042,7 +1048,7 @@ function explainHold(hold: VolatileActionHoldInput): VolatileActionHoldExplanati
     case 'delayed_emission':
       return { kind: 'delayed_emission', reason: 'hold_delayed_emission' }
     default: {
-      const exhaustive: never = hold.kind
+      const exhaustive: never = kind
       throw new Error(`unsupported hold kind: ${String(exhaustive)}`)
     }
   }

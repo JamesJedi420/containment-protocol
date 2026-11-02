@@ -7,7 +7,6 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-2910](https://linear.app/spectranoir/issue/SPE-2910) — Workshop clutter/disorder consequences (In Progress).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; finish live-source verification).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
@@ -20,7 +19,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-2910, SPE-1064, SPE-3338.
+**In progress:** SPE-1064, SPE-3338.
 
 ## Maintenance and history
 

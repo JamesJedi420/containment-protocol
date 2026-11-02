@@ -83,6 +83,7 @@ const historyBody = manifest.historyFile
   ? fs.readFileSync(path.join(root, manifest.historyFile), 'utf8')
   : backlogBody
 const historyHandoff = extractHandoffSection(historyBody, manifest.historyFile ?? backlogPath)
+const historyPath = manifest.historyFile ?? backlogPath
 
 if (manifest.historyFile) {
   const queue = backlogBody.split('## Active queue\n')[1]?.split('\n## ')[0] ?? ''
@@ -145,22 +146,18 @@ for (const issueId of manifestInProgress) {
     fail(`${backlogPath}: "**In progress:**" must include ${issueId} per ${manifestPath}`)
   }
   if (recentlyShippedIds.includes(issueId)) {
-    fail(
-      `${backlogPath}: ${issueId} is listed under both In progress and Recently shipped in the handoff block`
-    )
+    fail(`${issueId}: In progress in ${backlogPath} overlaps Recently shipped in ${historyPath}`)
   }
 }
 
 for (const issueId of manifestRecentlyShipped) {
   if (!recentlyShippedIds.includes(issueId)) {
     fail(
-      `${backlogPath}: Recently shipped handoff lines must include ${issueId} per ${manifestPath}`
+      `${historyPath}: Recently shipped handoff lines must include ${issueId} per ${manifestPath}`
     )
   }
   if (inProgressIds.includes(issueId)) {
-    fail(
-      `${backlogPath}: ${issueId} is listed under both In progress and Recently shipped in the handoff block`
-    )
+    fail(`${issueId}: In progress in ${backlogPath} overlaps Recently shipped in ${historyPath}`)
   }
 }
 

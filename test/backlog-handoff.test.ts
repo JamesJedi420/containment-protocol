@@ -68,6 +68,25 @@ describe('compact backlog handoff', () => {
     ).toBe(0)
   })
 
+  it('identifies the archive when shipped evidence is missing', () => {
+    const result = verify((root) => {
+      const file = path.join(root, 'planning/history.md')
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('SPE-2', 'SPE-3'))
+    })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('planning/history.md: Recently shipped')
+  })
+
+  it('identifies both sources when active and archived handoffs overlap', () => {
+    const result = verify((root) => {
+      const file = path.join(root, 'planning/history.md')
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('SPE-2', 'SPE-1'))
+    })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('overlaps Recently shipped in planning/history.md')
+    expect(result.stderr).toContain('backlog.md')
+  })
+
   it('allows current slice status updates without rewriting the archive', () => {
     expect(
       verify((root) => {

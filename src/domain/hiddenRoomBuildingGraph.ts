@@ -255,7 +255,7 @@ export function activateConcealedTrigger(
   })
   const newlyOpened = graph.edges
     .filter((e) => e.requiresTriggerId === triggerId)
-    .map((e) => `${e.fromRoomId}->${e.toRoomId}`)
+    .map((e) => JSON.stringify([e.fromRoomId, e.toRoomId, e.requiresTriggerId]))
   const openAlternateRouteIds = Object.freeze([
     ...state.openAlternateRouteIds,
     ...newlyOpened.filter((id) => !state.openAlternateRouteIds.includes(id)),
@@ -306,7 +306,7 @@ export function reachableRoomIds(
   for (const edge of graph.edges) {
     if (edge.fromRoomId !== from) continue
     if (edge.requiresTriggerId !== null || edge.alternateRoute) {
-      const key = `${edge.fromRoomId}->${edge.toRoomId}`
+      const key = JSON.stringify([edge.fromRoomId, edge.toRoomId, edge.requiresTriggerId])
       if (!open.has(key)) continue
     }
     out.push(edge.toRoomId)

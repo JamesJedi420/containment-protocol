@@ -127,8 +127,103 @@ describe('SPE-992 hidden-room building graph', () => {
     const boot = bootHiddenBuildingDiscovery(multi)
     const afterPanel = activateConcealedTrigger(multi, boot, 'trig-panel', 'panel-latch')
     const afterBoth = activateConcealedTrigger(multi, afterPanel, 'trig-clock', 'clock-key')
-    expect(afterBoth.openAlternateRouteIds).toEqual(['hall->cellar-hidden', 'hall->attic-hidden'])
+    expect(afterBoth.openAlternateRouteIds).toEqual([
+      JSON.stringify(['hall', 'cellar-hidden', 'trig-panel']),
+      JSON.stringify(['hall', 'attic-hidden', 'trig-clock']),
+    ])
     expect(reachableRoomIds(multi, afterBoth, 'hall')).toEqual(['cellar-hidden', 'attic-hidden'])
+  })
+
+  it('rejects repeated activation of the same trigger', () => {
+    const opened = activateConcealedTrigger(graph, state, 'trig-book', 'family-crest-tome')
+    expect(() => activateConcealedTrigger(graph, opened, 'trig-book', 'family-crest-tome')).toThrow(
+      'trigger already activated'
+    )
+  })
+
+  it('rejects trigger-gated edges declared as ordinary routes', () => {
+    expect(() =>
+      createHiddenBuildingGraph({
+        ...graph,
+        edges: [{ ...graph.edges[1]!, alternateRoute: false }],
+      })
+    ).toThrow('trigger-gated edges must set alternateRoute true')
+  })
+
+  it('opens a second entrance without losing resident discovery', () => {
+    const multi = createHiddenBuildingGraph({
+      ...graph,
+      triggers: [
+        ...graph.triggers,
+        {
+          ...graph.triggers[0]!,
+          id: 'second',
+          fromRoomId: 'passage',
+        },
+      ],
+      edges: [
+        ...graph.edges,
+        {
+          fromRoomId: 'passage',
+          toRoomId: 'hidden-study',
+          alternateRoute: true,
+          requiresTriggerId: 'second',
+        },
+      ],
+    })
+    const opened = activateConcealedTrigger(
+      multi,
+      bootHiddenBuildingDiscovery(multi),
+      'trig-book',
+      'family-crest-tome'
+    )
+    const inspected = inspectRevealedHiddenRoom(multi, opened, 'hidden-study')
+    const second = activateConcealedTrigger(multi, inspected, 'second', 'family-crest-tome')
+    expect(second.discoveryByHiddenRoomId['hidden-study']).toBe('occupant_or_body_found')
+    expect(reachableRoomIds(multi, second, 'passage')).toEqual(['hidden-study'])
+    expect(reachableRoomIds(multi, second, 'library')).toEqual(['passage', 'hidden-study'])
+  })
+
+  it('keeps delimiter-containing route endpoints isolated', () => {
+    const collision = createHiddenBuildingGraph({
+      id: 'collision',
+      rooms: [
+        { id: 'a->b', visibility: 'visible', purpose: 'ordinary' },
+        { id: 'a', visibility: 'visible', purpose: 'ordinary' },
+        { id: 'c', visibility: 'hidden', purpose: 'supply_storage' },
+        { id: 'b->c', visibility: 'hidden', purpose: 'supply_storage' },
+      ],
+      triggers: [
+        {
+          id: 'first',
+          kind: 'panel',
+          matchingMechanismId: 'key',
+          fromRoomId: 'a->b',
+          toHiddenRoomId: 'c',
+        },
+        {
+          id: 'second',
+          kind: 'panel',
+          matchingMechanismId: 'key',
+          fromRoomId: 'a',
+          toHiddenRoomId: 'b->c',
+        },
+      ],
+      edges: [
+        { fromRoomId: 'a->b', toRoomId: 'c', alternateRoute: true, requiresTriggerId: 'first' },
+        { fromRoomId: 'a', toRoomId: 'b->c', alternateRoute: true, requiresTriggerId: 'second' },
+      ],
+      contentsByRoomId: {},
+    })
+    const opened = activateConcealedTrigger(
+      collision,
+      bootHiddenBuildingDiscovery(collision),
+      'first',
+      'key'
+    )
+    expect(reachableRoomIds(collision, opened, 'a->b')).toEqual(['c'])
+    expect(reachableRoomIds(collision, opened, 'a')).toEqual([])
+    expect(opened.discoveryByHiddenRoomId['b->c']).toBe('concealed')
   })
 
   it('is deterministic and does not mutate inputs', () => {

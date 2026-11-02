@@ -50,7 +50,7 @@ test('Trigger.dev emits decorator metadata with the repository compiler and conf
     })
     const output = await onLoad({ path: source })
     assert.match(output.contents, /__decorate/)
-    assert.match(output.contents, /__metadata\("design:paramtypes"/)
+    assert.match(output.contents, /__metadata\("design:paramtypes",\s*\[String\]\)/)
   })
 })
 

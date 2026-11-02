@@ -21,7 +21,8 @@ Newer npm versions can omit an optional peer entry that npm 10 requires during
 
 The exported `helloWorldTask` logs a message, waits five seconds through
 Trigger.dev, and returns the message. An optional `message` payload overrides
-the default greeting. The configured task runtime is Node 22.
+the default greeting. Missing or null payloads use the default greeting.
+The configured task runtime is Node 22.
 
 The [development dashboard](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/test?environment=dev)
 lists `hello-world` while the worker is connected. CLI authentication is

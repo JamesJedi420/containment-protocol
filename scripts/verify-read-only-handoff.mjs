@@ -5,6 +5,10 @@ import { fileURLToPath } from 'node:url'
 
 const requiredFields = {
   'Session metadata': ['Session mode', 'Session type', 'Workstream'],
+  'Issues inspected': [],
+  'Evidence and uncertainty': [],
+  'Candidate status': [],
+  'Governance / authorization state': [],
   'Phase progression map': [],
   'Next-phase pre-condition check': [
     'Current phase / phase work',
@@ -62,10 +66,27 @@ export function validateHandoffTemplate(markdown) {
         errors.push('Workstream must retain all four template choices')
       }
       for (const field of ['Linear writes', 'Repository / external writes']) {
-        if (!lines.includes(`- ${field}: none`)) errors.push(`${field} must be none`)
+        const declarations = lines.filter((line) => line.startsWith(`- ${field}:`))
+        if (declarations.length !== 1 || declarations[0] !== `- ${field}: none`) {
+          errors.push(`${field} must have exactly one declaration: none`)
+        }
       }
     }
     if (name === 'Phase progression map') {
+      const table = lines.join('\n').trim().split('\n')
+      const cells = (row) =>
+        (row ?? '')
+          .split('|')
+          .slice(1, -1)
+          .map((cell) => cell.trim())
+      if (
+        table.length !== 6 ||
+        cells(table[0]).join('|') !== 'Phase|Status|Evidence|Blocker|Next actor' ||
+        cells(table[1]).length !== 5 ||
+        !cells(table[1]).every((cell) => /^:?-{3,}:?$/.test(cell))
+      ) {
+        errors.push('Phase table needs its five-column header, separator and four contiguous rows')
+      }
       for (let phase = 1; phase <= 4; phase++) {
         const rows = lines.filter((line) =>
           new RegExp(`^\\|\\s*Phase ${phase}(?:\\s|\\|)`).test(line)
@@ -87,9 +108,18 @@ export function validateHandoffTemplate(markdown) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const target = process.argv[2] ?? 'docs/read-only-session-handoff.md'
   try {
-    const errors = validateHandoffTemplate(readFileSync(target, 'utf8'))
+    const args = process.argv.slice(2)
+    if (args.length > 1 || (args.length === 1 && args[0] !== '--stdin')) {
+      throw new Error(
+        'Usage: verify-read-only-handoff [--stdin]; file-path arguments are not accepted'
+      )
+    }
+    const content =
+      args[0] === '--stdin'
+        ? readFileSync(0, 'utf8')
+        : readFileSync(new URL('../docs/read-only-session-handoff.md', import.meta.url), 'utf8')
+    const errors = validateHandoffTemplate(content)
     if (errors.length) {
       console.error(errors.join('\n'))
       process.exitCode = 1
@@ -99,7 +129,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       )
     }
   } catch (error) {
-    console.error(`Cannot read ${target}: ${error.message}`)
+    console.error(`Handoff template check failed: ${error.message}`)
     process.exitCode = 1
   }
 }

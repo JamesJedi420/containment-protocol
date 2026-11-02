@@ -1,5 +1,4 @@
-import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
@@ -8,17 +7,36 @@ const script = path.resolve('scripts/verify-read-only-handoff.mjs')
 const template = readFileSync('docs/read-only-session-handoff.md', 'utf8')
 
 function run(content: string) {
-  const directory = mkdtempSync(path.join(tmpdir(), 'cp-handoff-'))
-  try {
-    const file = path.join(directory, 'template.md')
-    writeFileSync(file, content)
-    return spawnSync(process.execPath, [script, file], { encoding: 'utf8' })
-  } finally {
-    rmSync(directory, { recursive: true, force: true })
-  }
+  return spawnSync(process.execPath, [script, '--stdin'], { encoding: 'utf8', input: content })
 }
 
 describe('read-only handoff template CLI', () => {
+  it('checks the fixed repository template by default', () => {
+    expect(spawnSync(process.execPath, [script], { encoding: 'utf8' }).status).toBe(0)
+  })
+
+  it.each([
+    'Issues inspected',
+    'Evidence and uncertainty',
+    'Candidate status',
+    'Governance / authorization state',
+  ])('requires section %s', (section) => {
+    expect(run(template.replace('### ' + section, '### Removed section')).status).toBe(1)
+  })
+
+  it('requires a table header and separator', () => {
+    expect(run(template.replace(/^\| Phase +\|[^\n]*\n/m, '')).status).toBe(1)
+    expect(run(template.replace(/^\| -+[^\n]*\n/m, '')).status).toBe(1)
+  })
+
+  it('rejects contradictory write declarations', () => {
+    expect(
+      run(
+        template.replace('- Linear writes: none', '- Linear writes: none\n- Linear writes: updated')
+      ).status
+    ).toBe(1)
+  })
+
   it('checks the real template and states its verification limits', () => {
     const result = run(template)
     expect(result.status).toBe(0)
@@ -79,11 +97,11 @@ describe('read-only handoff template CLI', () => {
     expect(run(template.replace(/\r?\n/g, '\r\n')).status).toBe(0)
   })
 
-  it('reports a missing file as a failed check', () => {
+  it('rejects arbitrary file-path arguments', () => {
     const result = spawnSync(process.execPath, [script, 'missing-handoff-fixture.md'], {
       encoding: 'utf8',
     })
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain('Cannot read')
+    expect(result.stderr).toContain('file-path arguments are not accepted')
   })
 })

@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 const WORKSTREAMS = new Set(['CP-core', 'Academy', 'shared-system', 'cross-project'])
-const TERMINAL = new Set(['completed', 'canceled'])
+const TERMINAL = new Set(['completed', 'canceled', 'cancelled'])
 const READY = new Set(['backlog', 'unstarted', 'started'])
 const issueId = value => typeof value === 'string' && /^[A-Z]+-\d+$/.test(value)
 const ordered = (a,b) => a.localeCompare(b, 'en')

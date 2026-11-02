@@ -226,7 +226,9 @@ function sanitizeOwnerIncentives(value: unknown): ContentOwnerIncentives | null 
     return null
   }
 
-  const incentives: ContentOwnerIncentives = {}
+  const incentives: {
+    -readonly [K in keyof ContentOwnerIncentives]?: ContentOwnerIncentives[K]
+  } = {}
   let hasValidField = false
 
   for (const key of ['audience', 'status', 'profit', 'identity'] as const) {

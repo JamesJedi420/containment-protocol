@@ -74,19 +74,12 @@ export function buildInfiltrationCoverProfileFromAuthored(
     return undefined
   }
 
-  const profile: InfiltrationCoverProfile = { claimedRole }
-
-  if (documentTier !== undefined) {
-    profile.documentTier = documentTier
+  return {
+    claimedRole,
+    ...(documentTier !== undefined ? { documentTier } : {}),
+    ...(doctrineBand !== undefined ? { doctrineBand } : {}),
+    ...(routeViolationTags !== undefined ? { routeViolationTags } : {}),
   }
-  if (doctrineBand !== undefined) {
-    profile.doctrineBand = doctrineBand
-  }
-  if (routeViolationTags !== undefined) {
-    profile.routeViolationTags = routeViolationTags
-  }
-
-  return profile
 }
 
 export function buildInfiltrationCoverProfileFromAuthoredRecord(

@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Done** (effective on merge)                           |
 | **Linear** | [SPE-992](https://linear.app/spectranoir/issue/SPE-992) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-992-hidden-room-building-graph`               |

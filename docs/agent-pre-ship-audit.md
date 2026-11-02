@@ -58,8 +58,8 @@ Update docs, comments, fixtures, schemas, or authoring guidance when part of the
 
 **Backlog handoff (mandatory when the approved slice closes or changes truthful status):**
 
-- [ ] `planning/backlog.md` handoff block matches Linear: primary, **In progress**, **Recently shipped** (no issue listed in both in-progress and recently-shipped handoff lines).
-- [ ] Active slice doc `| **Status** |` and backlog slice-doc table row agree.
+- [ ] `planning/backlog.md` contains roughly ten one-line active entries and its primary / **In progress** handoff matches Linear. Remove completed/canceled work; record new shipped evidence in Linear and slice docs, not the live queue.
+- [ ] Active slice doc `| **Status** |` agrees with `sliceDocStatus` in the handoff manifest. The dated backlog archive is frozen historical evidence; do not update its old status table or handoffs.
 - [ ] `planning/backlog-handoff-manifest.json` updated in the **same commit** as backlog/slice-doc status changes.
 - [ ] `npm run verify:backlog-handoff` passes before commit/PR (CI enforces on `planning/**` changes).
 
@@ -102,10 +102,10 @@ Then run the **ship loop**: commit → push → open PR → lifecycle/evidence c
 
 ## Session flow (order)
 
-| Phase | Doc / rule |
-| --- | --- |
-| Pre-coding summary | This doc — Before coding |
-| Implement | `implementation-lite.mdc` — Implementation rules |
-| Pre-ship audit | This doc — Six passes + validation |
-| Ship loop | `implementation-lite.mdc` — Commit / push / PR |
-| Closeout | `docs/agent-session-closeout.md` — approved next-issue plan when one exists; otherwise candidate/governance handoff |
+| Phase              | Doc / rule                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Pre-coding summary | This doc — Before coding                                                                                            |
+| Implement          | `implementation-lite.mdc` — Implementation rules                                                                    |
+| Pre-ship audit     | This doc — Six passes + validation                                                                                  |
+| Ship loop          | `implementation-lite.mdc` — Commit / push / PR                                                                      |
+| Closeout           | `docs/agent-session-closeout.md` — approved next-issue plan when one exists; otherwise candidate/governance handoff |

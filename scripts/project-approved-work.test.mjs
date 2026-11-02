@@ -31,3 +31,9 @@ test('one shared identity, independent workstream filtered views, empty queue',(
   assert.equal(filterWorkstream(p,'CP-core').active.length,1)
   assert.deepEqual(projectApprovedWork(snapshot([])).runnable,[])
 })
+
+test('both canceled and cancelled lifecycle spellings are terminal',()=>{
+ const p=projectApprovedWork(snapshot([issue('SPE-9',{statusType:'cancelled'}),issue('SPE-10',{statusType:'canceled'})]))
+ assert.equal(p.active.length,0)
+ assert.deepEqual(p.history.map(x=>x.id),['SPE-10','SPE-9'])
+})

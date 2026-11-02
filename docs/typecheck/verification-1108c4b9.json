@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "revision": "1108c4b969b0f118bf642c3cae32a7ab9a09b7c0",
+  "compilerInputHash": "618f59d6f3edbe3fca17f70248a965cff04f27e09aaabe54cd4a2e753ac46373",
+  "workingTreeStatus": "",
+  "nodeVersion": "v22.23.4",
+  "typescriptVersion": "6.0.3",
+  "platform": "win32",
+  "packageLockHash": "f751fb28f41a3f297530c612d3519345ebec27d959be1b4ea2ba47a8d00ca8b7",
+  "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+  "runs": [
+    {
+      "exitCode": 2,
+      "rawHash": "26be6fa13d17e94e890efb22b7198adf086d6553a4710015d8d6366ddd1b816a"
+    },
+    {
+      "exitCode": 2,
+      "rawHash": "26be6fa13d17e94e890efb22b7198adf086d6553a4710015d8d6366ddd1b816a"
+    }
+  ],
+  "reproducible": true,
+  "identityDelta": [],
+  "summary": {
+    "occurrences": 681,
+    "uniqueIdentities": 466,
+    "repeatedIdentityOccurrences": 215,
+    "exactDuplicateOccurrences": 0,
+    "files": 178,
+    "byProject": {
+      "tsconfig.app.json": 681
+    },
+    "byCode": {
+      "TS1117": 2,
+      "TS1360": 3,
+      "TS18046": 7,
+      "TS18048": 45,
+      "TS2304": 3,
+      "TS2322": 172,
+      "TS2339": 81,
+      "TS2344": 2,
+      "TS2345": 175,
+      "TS2352": 53,
+      "TS2353": 39,
+      "TS2367": 3,
+      "TS2418": 2,
+      "TS2459": 4,
+      "TS2538": 5,
+      "TS2540": 37,
+      "TS2551": 5,
+      "TS2552": 3,
+      "TS2554": 1,
+      "TS2559": 2,
+      "TS2571": 1,
+      "TS2677": 1,
+      "TS2698": 1,
+      "TS2724": 1,
+      "TS2739": 6,
+      "TS2740": 2,
+      "TS2741": 3,
+      "TS2769": 2,
+      "TS2790": 3,
+      "TS2820": 1,
+      "TS4104": 1,
+      "TS6133": 6,
+      "TS7006": 9
+    },
+    "bySurface": {
+      "production-source": 218,
+      "test-fixture": 463
+    }
+  },
+  "baseline": "41873280/census.json",
+  "normalizedBaselineSha256": "1ffa9c872f823bb50eb17870f1710c34a07743ece8e3583abfdb16e5de8f3289",
+  "diagnosticsMatchBaseline": true
+}

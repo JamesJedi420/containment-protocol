@@ -33,6 +33,10 @@ Run a six-part pre-ship audit, repeating after fixes: **(1)** scope/integration,
 
 Start with targeted tests. Use `npm run verify:requirements -- --base origin/main` for the required-validator selection where available; use the relevant `npm run test:run`, `npm run lint`, `npm run format:check`, and repository-specific checks. If `planning/**` or its queue projection changes, run `npm run verify:backlog-handoff`; if a new design audit is added, insert a dated status-table row in strict alphabetical order in `docs/design-audits-index.md` and run `npm run verify:audits-index`. Do not call a failed or unrun check green. Known baseline TypeScript build drift is not permission to introduce new failures; separately assess touched code. The exact check matrix lives in `docs/repository-validation-requirements.md`. Keep the compact live queue and `planning/backlog-handoff-manifest.json` synchronized with any changed slice status; do not rewrite the frozen dated backlog archive. Changes to the external theme mirror/contracts also require `npm run verify:theme-contracts`.
 
+### Hermes shipping checkpoints
+
+During an authorized shipping loop, assess the checkpoints in [Hermes shipping checkpoints](hermes-shipping-checkpoints.md). Delegate substantial evidence comparisons or log triage to the configured local Qwen3.5 9B; run small checks directly and record applicability. Hermes returns read-only evidence and drafts. The coding agent retains scope decisions, verification, publication and Linear mutations. Missing or failed Hermes access uses the documented bounded direct fallback; never change providers or infer approval from its output.
+
 ## 4. Ship, review, update Linear, and close out
 
 1. Once the current slice passes pre-ship audit, **commit → push → open PR** against `main` using `.github/pull_request_template.md`. The PR must cite the actual slice issue, parent when relevant, exact implemented/approved children, validation, documentation, and residual candidate scope.

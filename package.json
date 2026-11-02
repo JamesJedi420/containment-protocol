@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "verify-read-only-handoff": "node scripts/verify-read-only-handoff.mjs",
     "dev": "vite --config app.vite.config.ts --configLoader native",
     "build": "tsc -b && vite build --config app.vite.config.ts --configLoader native",
     "lint": "eslint .",

@@ -126,3 +126,5 @@ Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 2. Cite file paths; explain **why** something fails acceptance.
 3. Prefer the smallest in-boundary fix when suggesting changes.
 4. Do not weaken tests, CI, or lint rules to pass.
+
+Read [Hermes shipping checkpoints](docs/hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

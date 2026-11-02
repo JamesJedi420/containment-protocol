@@ -4,12 +4,12 @@
  *
  * Runs the reproducible collector, compares the summary with the committed
  * budget, and exits nonzero only when the census itself cannot be produced.
- * The red baseline is reported, not enforced; Phase 10 flips enforcement.
+ * The red baseline is reported, not enforced; Any enforcement change requires separate authorization.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { compareBudget } from './typecheck-census.mjs'
+import { compareBudget, compareText } from './typecheck-census.mjs'
 import { spawnSafe } from './validation/spawn-safe.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -62,7 +62,7 @@ for (const diagnostic of census.diagnostics) {
   counts.set(diagnostic.file, (counts.get(diagnostic.file) ?? 0) + 1)
 }
 const topFiles = [...counts.entries()]
-  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  .sort((a, b) => b[1] - a[1] || compareText(a[0], b[0]))
   .slice(0, 5)
 const signed = (value) => (value > 0 ? `+${value}` : String(value))
 
@@ -75,6 +75,8 @@ console.log(
 for (const [file, count] of topFiles) console.log(`  ${count}\t${file}`)
 console.log('typecheck advisory: census published at .tmp/typecheck-census/census.json')
 if (comparison.overBudget) {
-  console.warn('typecheck advisory: above the committed budget; non-blocking until Phase 10')
+  console.warn(
+    'typecheck advisory: above the committed budget; non-blocking; enforcement requires separate authorization'
+  )
 }
 process.exit(0)

@@ -4,13 +4,13 @@
 
 **Standing policy** is split three ways so new agents do not rely on an old chat:
 
-| Layer | What belongs there |
-| --- | --- |
-| **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
-| **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
-| **Cursor autonomous authority** | `docs/cursor-autonomous-authority.md` + `.cursor/rules/cursor-autonomous-authority.mdc` — Cursor may reconcile/create Linear scope under safeguards; ChatGPT Phase 1–4 gates do not bind Cursor. |
-| **Agent capability quick reference** | [`docs/agent-capabilities.md`](docs/agent-capabilities.md) — non-authoritative summary of ChatGPT, Cursor, and Codex permissions; defer to canonical policy and actual tool access. |
-| **Linear + `planning/*-slice.md` + first message** | Active implementation task: issue link, slice doc, branch name, `main` SHA. Cursor may select or create the next bounded issue when continuation is expected. |
+| Layer                                              | What belongs there                                                                                                                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cursor User Rules** (Settings → Rules)           | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`.                                                                |
+| **`AGENTS.md` + `docs/agent-session-handoff.md`**  | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`.                                                                                        |
+| **Cursor autonomous authority**                    | `docs/cursor-autonomous-authority.md` + `.cursor/rules/cursor-autonomous-authority.mdc` — Cursor may reconcile/create Linear scope under safeguards; ChatGPT Phase 1–4 gates do not bind Cursor. |
+| **Agent capability quick reference**               | [`docs/agent-capabilities.md`](docs/agent-capabilities.md) — non-authoritative summary of ChatGPT, Cursor, and Codex permissions; defer to canonical policy and actual tool access.              |
+| **Linear + `planning/*-slice.md` + first message** | Active implementation task: issue link, slice doc, branch name, `main` SHA. Cursor may select or create the next bounded issue when continuation is expected.                                    |
 
 ### After you merge a PR (human)
 
@@ -28,16 +28,16 @@ Linear is the system of record for approved issue state and closure. **Do not** 
 
 **Scope-mutation guardrail:** lifecycle/evidence updates on an existing boundary are always allowed. **Backlog-shape** mutations: **Cursor** may create/fold/reparent under `docs/cursor-autonomous-authority.md` safeguards (no ChatGPT Phase gate). **ChatGPT** still uses Phases 1–4. See `docs/governance/authority-contract.v1.json` and CP-GOV-009. Codex designations are preferences, not exclusive locks.
 
-| When | Action |
-| --- | --- |
-| **Before substantive owned work** | Set the owning slice **In Progress**. If durable scope has no owner, Cursor creates or folds a bounded Linear issue under autonomous-authority safeguards. |
-| **Unowned review/docs analysis** | May start read-only; when durable product scope is confirmed, Cursor creates/folds Linear ownership rather than leaving orphans. |
-| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Prefer existing owners; Cursor may create missing bounded owners when safeguards justify it. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**. |
-| **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
-| **PR opened** | Link the **approved slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
-| **Babysit → merge** | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`. |
-| **On merge** | Slice issue **Done** only when its full approved boundary is satisfied; evaluate the parent separately and keep its **truthful existing status** unless full parent completion is proven. |
-| **After merge** | Short Linear comment on the approved slice: PR URL + what shipped. |
+| When                              | Action                                                                                                                                                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Before substantive owned work** | Set the owning slice **In Progress**. If durable scope has no owner, Cursor creates or folds a bounded Linear issue under autonomous-authority safeguards.                                                              |
+| **Unowned review/docs analysis**  | May start read-only; when durable product scope is confirmed, Cursor creates/folds Linear ownership rather than leaving orphans.                                                                                        |
+| **Harvest / triage closure**      | Follow **`docs/harvest-candidate-triage-agent.md`**. Prefer existing owners; Cursor may create missing bounded owners when safeguards justify it. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**.              |
+| **Slice ready**                   | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
+| **PR opened**                     | Link the **approved slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue.                                                                                                         |
+| **Babysit → merge**               | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`.                                                                                             |
+| **On merge**                      | Slice issue **Done** only when its full approved boundary is satisfied; evaluate the parent separately and keep its **truthful existing status** unless full parent completion is proven.                               |
+| **After merge**                   | Short Linear comment on the approved slice: PR URL + what shipped.                                                                                                                                                      |
 
 If Linear MCP is unavailable during an approved implementation merge, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) once the approved plan is complete and the PR is merged. Do not emit it for planning-only/open PRs, unowned read-only reviews/docs, or harvest-only work. Do not treat GitHub as Linear closure.
 
@@ -62,15 +62,15 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 ### Running services
 
-| Service         | Command                          | Notes                                                               |
-| --------------- | -------------------------------- | ------------------------------------------------------------------- |
-| Dev server      | `npm run dev`                    | Vite on http://localhost:5173 with HMR                              |
-| Lint            | `npm run lint`                   | ESLint 10                                                           |
-| Tests           | `npm run test:run`               | Vitest (302 files, ~2700 tests, ~55s)                               |
-| Format check    | `npm run format:check`           | Prettier                                                            |
-| Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                   |
-| Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`    |
-| Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md` |
+| Service         | Command                          | Notes                                                                                                 |
+| --------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Dev server      | `npm run dev`                    | Vite on http://localhost:5173 with HMR                                                                |
+| Lint            | `npm run lint`                   | ESLint 10                                                                                             |
+| Tests           | `npm run test:run`               | Vitest (302 files, ~2700 tests, ~55s)                                                                 |
+| Format check    | `npm run format:check`           | Prettier                                                                                              |
+| Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                                                     |
+| Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`                                      |
+| Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md`                                   |
 | Req. validators | `npm run verify:requirements`    | SPE-3348 path→validator selection (local/CI parity); see `docs/repository-validation-requirements.md` |
 
 ### Non-obvious caveats
@@ -89,7 +89,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 - **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI). Any stale backlog text that says to create a child/issue is non-authoritative unless the required governance approvals already authorize Phase 4.
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
-- **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
+- **New design audits:** when adding `docs/*audit*.md`, insert a dated status-table row in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
 - **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.

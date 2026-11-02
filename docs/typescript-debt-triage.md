@@ -204,7 +204,9 @@ The largest single mechanism: 136 test occurrences where a literal describes a d
 
 **Mixed ownership.** Each file needs a disposition; there is no safe bulk edit. The semantic questions in `docs/typecheck/README.md` (`missionIntakeRouting`, `divisionMetrics`, `weeklyReportInvariants`, `advanceWeek`) are part of this cluster and require the owning subsystem to decide intended behavior before code changes.
 
-## 3. Phased remediation
+## 3. Proposed remediation sequence
+
+Phases 1–10 below are candidate analysis, not approved implementation scope or an automatic enforcement schedule. SPE-3376 owns census evidence and partitioning only. Reconcile the proposals with the occurrence-level partition in `docs/typecheck/partition.json`, existing owners, and semantic-review dispositions before authorizing repairs. SPE-3348 retains validation-orchestration authority; a required gate needs separately verified authorization. Numeric phase targets are estimates, not acceptance imposed on future slices.
 
 Principles:
 

@@ -89,16 +89,6 @@ const BLOCKING_SERVICE_STATES: ReadonlySet<ServiceReliabilityState> = new Set([
   'overloaded',
 ])
 
-const RELEASE_ELIGIBLE_SERVICE_STATES: ReadonlySet<ServiceReliabilityState> = new Set([
-  'functional',
-  'recovering',
-])
-
-const REVISE_SERVICE_STATES: ReadonlySet<ServiceReliabilityState> = new Set([
-  'strained',
-  'degraded',
-])
-
 const ACTION_DEFAULT_SERVICE_CATEGORIES: Readonly<
   Record<GuidanceRecommendedAction, readonly PublicServiceCategory[]>
 > = Object.freeze({
@@ -268,12 +258,21 @@ function isServiceCheckAvailable(state: ServiceReliabilityState | 'missing'): bo
 function serviceStateBlocksAction(
   state: ServiceReliabilityState | 'missing',
 ): 'block' | 'revise' | 'ok' {
-  if (state === 'missing') return 'block'
-  if (BLOCKING_SERVICE_STATES.has(state)) return 'block'
-  if (REVISE_SERVICE_STATES.has(state)) return 'revise'
-  if (RELEASE_ELIGIBLE_SERVICE_STATES.has(state)) return 'ok'
-  const _exhaustive: never = state
-  throw new Error(`Unhandled service reliability state: ${_exhaustive}`)
+  switch (state) {
+    case 'missing':
+    case 'unavailable':
+    case 'interrupted':
+    case 'contaminated':
+    case 'unsafe':
+    case 'overloaded':
+      return 'block'
+    case 'strained':
+    case 'degraded':
+      return 'revise'
+    case 'functional':
+    case 'recovering':
+      return 'ok'
+  }
 }
 
 function lookupServiceState(

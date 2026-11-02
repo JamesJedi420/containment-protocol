@@ -170,6 +170,12 @@ export type ResolveDifficultyResult =
   | { readonly ok: true; readonly configuration: ResolvedDifficultyRunConfiguration }
   | { readonly ok: false; readonly reason: string }
 
+/**
+ * Mutable accumulator for readonly authored contracts. The accumulator never
+ * escapes; validated values are merged into the frozen resolved configuration.
+ */
+type MutablePartial<T> = { -readonly [K in keyof T]?: T[K] }
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -190,7 +196,7 @@ function validateMultipliers(
 ): { ok: true; value: Partial<DifficultyAxisMultipliers> } | { ok: false; reason: string } {
   if (raw == null) return { ok: true, value: {} }
   if (!isRecord(raw)) return { ok: false, reason: 'multipliers must be an object' }
-  const out: Partial<DifficultyAxisMultipliers> = {}
+  const out: MutablePartial<DifficultyAxisMultipliers> = {}
   for (const key of [
     'xp',
     'renown',
@@ -218,7 +224,7 @@ function validateRunOptions(
   | { ok: false; reason: string } {
   if (raw == null) return { ok: true, value: {} }
   if (!isRecord(raw)) return { ok: false, reason: 'runOptions must be an object' }
-  const out: Partial<DifficultyRunOptions> = {}
+  const out: MutablePartial<DifficultyRunOptions> = {}
 
   if (Object.prototype.hasOwnProperty.call(raw, 'maxDeployableTeams') && raw.maxDeployableTeams != null) {
     if (typeof raw.maxDeployableTeams !== 'number' || !Number.isInteger(raw.maxDeployableTeams) || !inRange(raw.maxDeployableTeams, 6, 30)) {

@@ -36,7 +36,8 @@ if (start === -1) fail(`${indexPath}: missing "${startMarker}" section`)
 if (end === -1) fail(`${indexPath}: missing "${endMarker}" after audits section`)
 
 const section = body.slice(start, end)
-const lineRe = /^\|\s*\[`([^`]+)`\]\(\.\/([^)]+)\)\s*\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*(?:Active reference|Review needed|Workflow review needed)\s*\|$/
+const lineRe =
+  /^\|\s*\[`([^`]+)`\]\(\.\/([^)]+)\)\s*\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*(?:Active reference|Review needed|Workflow review needed)\s*\|$/
 const indexed = []
 for (const line of section.split('\n')) {
   const trimmed = line.trim()

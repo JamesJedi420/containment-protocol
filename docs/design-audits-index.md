@@ -12,7 +12,7 @@ These `docs/*audit*.md` files are **integration and field-naming checklists**: t
 - **Active spec / Active QA reference:** UX or QA reference retained for use; implementation/test conformance has not been independently verified.
 - **Review needed:** a design proposal or documentation-only support note that needs a full architecture/runtime crosscheck before it can be called current.
 - **Workflow review needed:** overlapping agent-process guidance needing operating-manual and governance reconciliation.
-- **Archived / superseded:** archival requires verifiable canonical replacement or approved deprecation; archive path and replacement must remain traceable.
+- **Archived / superseded:** archival requires verifiable canonical replacement or approved deprecation; archive path and replacement must remain traceable. This status belongs only in **Archived audits**, never in the active top-level audit table.
 
 **Archival finding (2026-11-01):** none of these 41 audit files had a verified complete replacement or explicit approved retirement. No files were relocated based on overlap or age alone.
 

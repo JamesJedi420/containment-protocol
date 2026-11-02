@@ -21,6 +21,12 @@ Compiler transcripts preserve exact bytes (including Windows CRLF) using a narro
 
 The required `typecheck-census-tests` validator tests reporting integrity only. SPE-3348 retains production-build enforcement authority.
 
+## Advisory CI budget (Phase 0)
+
+`docs/typecheck/budget.json` records the 681-occurrence / 466-fingerprint baseline at revision `1108c4b…`. The `typecheck` validator is registered as **advisory**: CI publishes the census on application, shared-config, and census-tooling changes without blocking on the red baseline. The [TypeScript debt triage](../typescript-debt-triage.md) proposes a later enforcement phase; it does not authorize that change. SPE-3348 retains validation-orchestration authority. `typecheck-census-tests` covers census parsing, reproducibility evidence, partition integrity, and budget comparison; it does not exercise the advisory CLI output or exit-status paths.
+
+The advisory command is `node scripts/typecheck-advisory.mjs`. It delegates capture to `scripts/report-typecheck.mjs`, prints the counts and top files, compares them with the budget, and exits nonzero only when capture or budget parsing fails.
+
 ## Verified baseline: 41873280
 
 Captured November 2, 2026 against `4187328072490639bfab16fbfb530a60fa067678` using Node **22.23.4**, TypeScript **6.0.3**, Windows x64, and `npm ci --ignore-scripts`. Node was downloaded from the official distribution and verified against its published SHA-256. No dependency versions changed. Compiler inputs (`src`, tsconfigs, package/lockfile, Vite config) match that commit; the working-tree status records the reporting-only changes present at capture time.

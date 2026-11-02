@@ -58,64 +58,23 @@ describe('validateCrossRoleActionProcedure', () => {
     expect(result.procedure.label).toBe('Trimmed Label')
   })
 
-  it('returns invalid_procedure_id for blank procedureId', () => {
-    const result = validateCrossRoleActionProcedure({
-      procedureId: '   ',
-      label: 'Valid',
-      eligibleRoles: ['investigator'],
-      prerequisites: [],
-      requiredParticipantCount: 1,
-    })
-    expect(result.ok).toBe(false)
-    if (result.ok) {
-      throw new Error('Expected failure')
-    }
-    expect(result.error).toBe('invalid_procedure_id')
-  })
-
-  it('returns empty_label for blank label', () => {
-    const result = validateCrossRoleActionProcedure({
-      procedureId: 'valid_id',
-      label: '',
-      eligibleRoles: ['investigator'],
-      prerequisites: [],
-      requiredParticipantCount: 1,
-    })
-    expect(result.ok).toBe(false)
-    if (result.ok) {
-      throw new Error('Expected failure')
-    }
-    expect(result.error).toBe('empty_label')
-  })
-
-  it('returns empty_eligible_roles for empty roles array', () => {
-    const result = validateCrossRoleActionProcedure({
-      procedureId: 'valid_id',
-      label: 'Valid',
-      eligibleRoles: [],
-      prerequisites: [],
-      requiredParticipantCount: 1,
-    })
-    expect(result.ok).toBe(false)
-    if (result.ok) {
-      throw new Error('Expected failure')
-    }
-    expect(result.error).toBe('empty_eligible_roles')
-  })
-
-  it('returns invalid_participant_count for zero count', () => {
+  it.each([
+    { name: 'blank procedureId', overrides: { procedureId: '   ' }, error: 'invalid_procedure_id' },
+    { name: 'blank label', overrides: { label: '' }, error: 'empty_label' },
+    { name: 'empty eligible roles', overrides: { eligibleRoles: [] }, error: 'empty_eligible_roles' },
+    { name: 'zero participants', overrides: { requiredParticipantCount: 0 }, error: 'invalid_participant_count' },
+  ] as const)('returns $error for $name', ({ overrides, error }) => {
     const result = validateCrossRoleActionProcedure({
       procedureId: 'valid_id',
       label: 'Valid',
       eligibleRoles: ['investigator'],
       prerequisites: [],
-      requiredParticipantCount: 0,
+      requiredParticipantCount: 1,
+      ...overrides,
     })
     expect(result.ok).toBe(false)
-    if (result.ok) {
-      throw new Error('Expected failure')
-    }
-    expect(result.error).toBe('invalid_participant_count')
+    if (result.ok) throw new Error('Expected failure')
+    expect(result.error).toBe(error)
   })
 
   it('returns invalid_prerequisite for negative min_stat value', () => {

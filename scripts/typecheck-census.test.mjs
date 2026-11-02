@@ -96,3 +96,43 @@ test('test helper directories are fixtures without misclassifying production loo
   const [record] = parseDiagnostics('src/testingRuntime.ts(1,1): error TS2322: mismatch', project)
   assert.equal(record.surface, 'production-source')
 })
+
+test('partition assigns every baseline occurrence once and binds analysis to verified compiler evidence', () => {
+  const base = new URL('../docs/typecheck/', import.meta.url)
+  const baseline = JSON.parse(fs.readFileSync(new URL('41873280/census.json', base), 'utf8'))
+  const partition = JSON.parse(fs.readFileSync(new URL('partition.json', base), 'utf8'))
+  const verification = JSON.parse(
+    fs.readFileSync(new URL('verification-1108c4b9.json', base), 'utf8')
+  )
+  assert.equal(partition.baselineSha256, sha256(JSON.stringify(baseline)))
+  assert.equal(verification.normalizedBaselineSha256, partition.baselineSha256)
+  assert.equal(verification.revision, partition.analysisRevision)
+  assert.equal(verification.compilerInputHash, baseline.compilerInputHash)
+  assert.equal(verification.packageLockHash, baseline.packageLockHash)
+  assert.equal(verification.reproducible, true)
+  assert.equal(verification.workingTreeStatus, '')
+  assert.equal(verification.diagnosticsMatchBaseline, true)
+  assert.deepEqual(verification.runs, baseline.runs)
+  assert.deepEqual(verification.summary, baseline.summary)
+  assert.deepEqual(verification.identityDelta, [])
+  const assigned = partition.groups.flatMap((group) => group.occurrences)
+  assert.equal(new Set(partition.groups.map((group) => group.id)).size, partition.groups.length)
+  assert.deepEqual(
+    assigned.toSorted((a, b) => a - b),
+    baseline.diagnostics.map((_, index) => index)
+  )
+  for (const group of partition.groups) {
+    assert.ok(group.occurrences.length > 0, group.id)
+    assert.ok(group.cause && group.canonicalContract && group.cascadeAssessment, group.id)
+    assert.equal(group.reconciliationOwner, 'SPE-3376')
+    assert.ok(['repair-candidate', 'semantic-review'].includes(group.disposition), group.id)
+    assert.deepEqual(group.evidence, [
+      ...new Set(
+        group.occurrences.map((index) => {
+          const diagnostic = baseline.diagnostics[index]
+          return `${diagnostic.file}:${diagnostic.line}`
+        })
+      ),
+    ])
+  }
+})

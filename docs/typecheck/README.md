@@ -45,7 +45,7 @@ Evidence: [compiler transcript](41873280/compiler.txt), [normalized census and h
 
 The latest SPE-3376 F-cluster merge comment reports 681 / 178 on the same commit; this capture confirms that count. Older counts (including 673, 685, and 744) describe different revisions and are preserved as historical evidence, not a current regression calculation.
 
-## Inspected repair partition
+## Initial inspected repair partition (superseded by complete partition)
 
 These are evidence-backed cohorts, not guaranteed repair deltas. Existing remediation children remain subject to their prerequisite and implementation-authorization rules. No remediation issue is created or unblocked by this report.
 
@@ -60,7 +60,9 @@ These are evidence-backed cohorts, not guaranteed repair deltas. Existing remedi
 | SPE-3455       | `hiddenStateActivationAuthoring.ts`                                                                                                                |           8 | Incremental writes into readonly trigger/output shapes. Construction typing requires a bounded repair, not relaxed canonical contracts.                                                                                                                                               |
 | SPE-3456       | `authorityGraphPersistence.ts`                                                                                                                     |           5 | Unknown persisted enum values reach string-only Set membership checks. Preserve fail-closed runtime validation.                                                                                                                                                                       |
 
-These eight cohorts cover **209 occurrences**. The other **472 remain outside this inspected partition**; the census retains their exact files, coordinates, codes, and complete messages. They are not silently assigned to the nearest folder or treated as one repair. Other existing children SPE-3446/3447/3449/3453 remain available for scope reconciliation; their existence alone does not attribute every remaining diagnostic.
+The initial pass covered **209 occurrences**. The [complete provisional partition](partition.md) now assigns every one of the 681 occurrences, including the other 472, with code authority, owner disposition and cascade assessment. The following paragraph records the earlier partial-pass limit.
+
+At that initial pass, these eight cohorts covered **209 occurrences**. The other **472 remained outside the inspected partition**; the census retains their exact files, coordinates, codes, and complete messages. They are not silently assigned to the nearest folder or treated as one repair. Other existing children SPE-3446/3447/3449/3453 were available for scope reconciliation; their existence alone does not attribute every remaining diagnostic.
 
 ## Semantic questions found during inspection
 
@@ -71,13 +73,10 @@ These eight cohorts cover **209 occurrences**. The other **472 remain outside th
 
 These observations are provisional evidence under SPE-3376, not new approved repair scope or canonical gameplay decisions. The reporting script deliberately does not infer root cause from error code alone.
 
-## Deferred / completion status
+## Partition completion and recovery status
 
-| Item                                                                                                                            | Existing owner                                                         | State                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Complete causal grouping, canonical-owner reconciliation, and cascade/independence assessment for the remaining 472 occurrences | SPE-3376                                                               | Outstanding in-boundary work; this capture does not complete the issue |
-| Confirm repair deltas through approved bounded implementation                                                                   | Existing SPE-3375 repair children                                      | Prerequisite/authorization rules remain in force                       |
-| Resolve semantic contract questions                                                                                             | SPE-3376 routes evidence through normal governance to subsystem owners | No runtime decision or new issue made here                             |
-| Restore full strict TypeScript + Vite production build                                                                          | SPE-3375                                                               | Still red; unchanged by reporting tooling                              |
+See [the complete provisional partition](partition.md), [machine-readable assignments](partition.json), and [fresh main verification](verification-1108c4b9.json). Every occurrence is assigned exactly once. The 472 previously unpartitioned diagnostics now have explicit provisional causes or semantic-review questions.
 
-SPE-3376 remains In Progress. SPE-3375 remains Backlog. The prior Chromium duplicate `buildReportCaseSnapshots` startup failure is historical: the existing Playwright harness documentation records its removal, and this current compiler transcript does not reproduce that duplicate declaration. No new browser verification is claimed here.
+SPE-3376 is ready for completion only after this partition is reviewed and merged. SPE-3375 remains Backlog: the build is still red and all repairs require their normal approved boundaries. No repair children or relationships are created or changed. Semantic decisions and measured repair deltas remain outstanding in the recovery program.
+
+The prior Chromium duplicate buildReportCaseSnapshots startup failure is historical: existing harness documentation records its removal, and this compiler transcript does not reproduce that declaration. No new browser verification is claimed.

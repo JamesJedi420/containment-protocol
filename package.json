@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --config app.vite.config.ts --configLoader native",
     "build": "tsc -b && vite build --config app.vite.config.ts --configLoader native",
+    "build:bundle": "vite build --config app.vite.config.ts --configLoader native",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

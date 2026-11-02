@@ -62,7 +62,9 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                         |
 | `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                             |
 
-`npm run build` is a type-contract gate, not the current day-to-day development gate. The app, tests, and dev server use Vite successfully, but strict project build can expose known type-contract drift that should be fixed in scoped follow-up slices before treating build as a deployment blocker.
+`npm run build` is currently a diagnostic TypeScript/project-build check, **not yet a blocking pull-request or release gate**. Known repository-wide type-contract drift is being repaired under [SPE-3375](https://linear.app/spectranoir/issue/SPE-3375); successful Vite development and test runs do not establish that the production build is green.
+
+**Build-gate activation policy — single owner: [SPE-3348](https://linear.app/spectranoir/issue/SPE-3348) (shared repository validation orchestration).** Make `npm run build` required and fail-closed for application, build/configuration, and release-related changes **only after** SPE-3375's approved recovery work is complete; `npm run build` exits 0 on a verified current-`main` commit with applicable lint and regression tests green; and SPE-3348's shared validation registry and CI actually enforce the build check. From activation onward, a failed or unavailable required build blocks the affected merge or release; later regressions do not silently make it advisory. SPE-3375 owns build recovery, not validation-enforcement policy. This README rule does not itself enable the CI gate.
 
 ## Validation
 
@@ -122,7 +124,7 @@ Recent shipped work includes:
 - **Registry umbrella grooming** for SPE-947 and SPE-1046, with parent issues kept in Backlog until full parent acceptance is satisfied.
 - **Mission triage and hidden-state slices** for concealment, intake signal chips, modality tells, and deterministic report notes.
 
-The canonical live queue is `planning/backlog.md`. Avoid duplicating long tactical lists in this README.
+The repository's near-term queue projection is `planning/backlog.md`; authoritative scope, priority, and lifecycle state live in Linear (see SPE-3338). Avoid duplicating long tactical lists in this README.
 
 ## Project Structure
 
@@ -148,7 +150,9 @@ Archived prototype work lives in `docs/archived/incident-shell/` and is not part
 
 ## Contributing
 
-Work is tracked in Linear, not GitHub Issues:
+**Linear is the authoritative tracker** for approved scope, issue status, ownership, priority, dependencies, and blockers. GitHub Issues includes **synchronized/mirrored copies of Linear issues** (for example, [GitHub #4268](https://github.com/JamesJedi420/containment-protocol/issues/4268) links back to [SPE-3376](https://linear.app/spectranoir/issue/SPE-3376)); it may also contain GitHub-native automation issues. The roughly 1.8k issues shown in that tab are **not a second independently governed backlog**. Use the corresponding Linear issue for planning and lifecycle changes; do not create duplicate GitHub backlog issues.
+
+Authoritative planning and contribution references:
 
 - Linear team queue: [SpectraNoir SPE](https://linear.app/spectranoir/team/SPE/all)
 - PR template: `.github/pull_request_template.md`
@@ -170,7 +174,7 @@ After a PR merges, sync local `main` before starting the next approved slice.
 
 ## Planning and Documentation
 
-- Canonical near-term queue: `planning/backlog.md`
+- Near-term queue projection (from Linear): `planning/backlog.md`
 - Deferred deep design: `planning/deferred-design-documents.md`
 - Documentation curation rhythm: `planning/documentation-curation.md`
 - Schema ownership: `SCHEMA_REGISTRY.md`

@@ -3,7 +3,7 @@
 | Field               | Value                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2910](https://linear.app/spectranoir/issue/SPE-2910/deterministic-workshop-clutterdisorder-consequences) |
-| **Status**          | **Recently shipped** (effective on merge)                                                                     |
+| **Status**          | **Done** (effective on merge)                                                                                 |
 | **Parent**          | [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028/department-workshop-and-processing-queue-model)      |
 | **Branch**          | `jamesdyedbq/spe-2910-deterministic-workshop-clutterdisorder-consequences`                                    |
 | **Base `main` SHA** | `777d4efd7b9ea2c0d328ed56bfb1da81cc7671e3`                                                                    |

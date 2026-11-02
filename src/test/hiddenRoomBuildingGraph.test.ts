@@ -9,6 +9,10 @@ import {
   type HiddenBuildingGraph,
 } from '../domain/hiddenRoomBuildingGraph'
 
+function panelTrigger(id: string, fromRoomId: string, toHiddenRoomId: string) {
+  return { id, kind: 'panel' as const, matchingMechanismId: 'key', fromRoomId, toHiddenRoomId }
+}
+
 describe('SPE-992 hidden-room building graph', () => {
   let graph: HiddenBuildingGraph
   let state: HiddenBuildingDiscoveryState
@@ -193,22 +197,7 @@ describe('SPE-992 hidden-room building graph', () => {
         { id: 'c', visibility: 'hidden', purpose: 'supply_storage' },
         { id: 'b->c', visibility: 'hidden', purpose: 'supply_storage' },
       ],
-      triggers: [
-        {
-          id: 'first',
-          kind: 'panel',
-          matchingMechanismId: 'key',
-          fromRoomId: 'a->b',
-          toHiddenRoomId: 'c',
-        },
-        {
-          id: 'second',
-          kind: 'panel',
-          matchingMechanismId: 'key',
-          fromRoomId: 'a',
-          toHiddenRoomId: 'b->c',
-        },
-      ],
+      triggers: [panelTrigger('first', 'a->b', 'c'), panelTrigger('second', 'a', 'b->c')],
       edges: [
         { fromRoomId: 'a->b', toRoomId: 'c', alternateRoute: true, requiresTriggerId: 'first' },
         { fromRoomId: 'a', toRoomId: 'b->c', alternateRoute: true, requiresTriggerId: 'second' },

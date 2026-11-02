@@ -33,8 +33,8 @@ Captured November 2, 2026 against `4187328072490639bfab16fbfb530a60fa067678` usi
 | Location-independent fingerprints                              |                                                  466 |
 | Repeated fingerprint occurrences                               |                                                  215 |
 | Exact duplicate occurrences (same fingerprint and coordinates) |                                                    0 |
-| Production-source occurrences                                  |                                                  220 |
-| Test/fixture occurrences                                       |                                                  461 |
+| Production-source occurrences                                  |                                                  218 |
+| Test/fixture occurrences                                       |                                                  463 |
 | `tsconfig.app.json`                                            |                                                  681 |
 | `tsconfig.node.json`                                           |                                                    0 |
 | Unparsed records                                               |                      0; capture fails if encountered |

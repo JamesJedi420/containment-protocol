@@ -3,7 +3,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { spawnSafe } from './validation/spawn-safe.mjs'
-import { compareCensuses, parseDiagnostics, sha256, summarize } from './typecheck-census.mjs'
+import {
+  compareCensuses,
+  compareText,
+  parseDiagnostics,
+  sha256,
+  summarize,
+} from './typecheck-census.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -47,7 +53,9 @@ for (const reference of rootConfig.config.references) {
 const inputDigest = () =>
   sha256(
     JSON.stringify(
-      [...inputFiles].sort().map((file) => [file, sha256(fs.readFileSync(path.join(root, file)))])
+      [...inputFiles]
+        .sort(compareText)
+        .map((file) => [file, sha256(fs.readFileSync(path.join(root, file)))])
     )
   )
 const compilerInputHash = inputDigest()

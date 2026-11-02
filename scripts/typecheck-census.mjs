@@ -2,24 +2,45 @@ import { createHash } from 'node:crypto'
 
 export const sha256 = (value) => createHash('sha256').update(value).digest('hex')
 
+// Code-unit ordering keeps census hashes independent of the host locale.
+export function compareText(a, b) {
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
+}
+
+function diagnosticRecord(match, projectForFile) {
+  const file = match[1]?.replaceAll('\\', '/') ?? null
+  const project = file ? projectForFile(file) : 'tsconfig.json'
+  if (!project) throw new Error(`Cannot attribute diagnostic: ${match[0]}`)
+  return {
+    project,
+    file,
+    line: match[2] ? Number(match[2]) : null,
+    column: match[3] ? Number(match[3]) : null,
+    code: `TS${match[4]}`,
+    message: match[5],
+  }
+}
+
+function classifySurface(file) {
+  if (!file) return 'configuration'
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(file) || /(^|\/)(__tests__|tests?)(\/)/.test(file)) {
+    return 'test-fixture'
+  }
+  if (file.startsWith('src/')) return 'production-source'
+  return 'tooling'
+}
+
 /** Preserve occurrences; identity intentionally ignores line movement. */
 export function parseDiagnostics(raw, projectForFile) {
   const records = []
   let current
-  for (const line of raw.replace(/\r\n/g, '\n').split('\n')) {
+  for (const line of raw.replaceAll('\r\n', '\n').split('\n')) {
     if (!line.trim()) continue
     const match = /^(?:(.+)\((\d+),(\d+)\): )?error TS(\d+): (.*)$/.exec(line)
     if (match) {
-      const file = match[1]?.replaceAll('\\', '/') ?? null
-      current = {
-        project: file ? projectForFile(file) : 'tsconfig.json',
-        file,
-        line: match[2] ? Number(match[2]) : null,
-        column: match[3] ? Number(match[3]) : null,
-        code: `TS${match[4]}`,
-        message: match[5],
-      }
-      if (!current.project) throw new Error(`Cannot attribute diagnostic: ${line}`)
+      current = diagnosticRecord(match, projectForFile)
       records.push(current)
     } else if (/^\s/.test(line) && current && !/error TS\d+:/.test(line)) {
       current.message += `\n${line.trimEnd()}`
@@ -30,14 +51,7 @@ export function parseDiagnostics(raw, projectForFile) {
   return records.map((record) => ({
     ...record,
     identity: sha256(JSON.stringify([record.project, record.file, record.code, record.message])),
-    surface:
-      record.file === null
-        ? 'configuration'
-        : /\.(test|spec)\.[cm]?[jt]sx?$/.test(record.file)
-          ? 'test-fixture'
-          : record.file.startsWith('src/')
-            ? 'production-source'
-            : 'tooling',
+    surface: classifySurface(record.file),
   }))
 }
 
@@ -45,7 +59,7 @@ export function summarize(records) {
   const countBy = (field) =>
     Object.fromEntries(
       [...new Set(records.map((record) => record[field]))]
-        .sort()
+        .sort(compareText)
         .map((key) => [key, records.filter((record) => record[field] === key).length])
     )
   const identities = new Set(records.map((record) => record.identity))
@@ -74,7 +88,9 @@ export function compareCensuses(before, after) {
   const oldCounts = counts(before)
   const newCounts = counts(after)
   const delta = []
-  for (const identity of [...new Set([...oldCounts.keys(), ...newCounts.keys()])].sort()) {
+  for (const identity of [...new Set([...oldCounts.keys(), ...newCounts.keys()])].sort(
+    compareText
+  )) {
     const change = (newCounts.get(identity) ?? 0) - (oldCounts.get(identity) ?? 0)
     if (change) delta.push({ identity, change })
   }

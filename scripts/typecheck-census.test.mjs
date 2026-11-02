@@ -79,3 +79,20 @@ test('empty successful output and global configuration diagnostics are explicit'
   assert.equal(record.file, null)
   assert.equal(record.surface, 'configuration')
 })
+
+test('test helper directories are fixtures without misclassifying production lookalikes', () => {
+  for (const file of [
+    'src/test/fixtures/payloads.ts',
+    'src/test/helpers/proof.ts',
+    'test/setup.ts',
+    'src/__tests__/helper.ts',
+  ]) {
+    const [record] = parseDiagnostics(
+      `${file}(1,1): error TS2322: mismatch`,
+      () => 'tsconfig.app.json'
+    )
+    assert.equal(record.surface, 'test-fixture')
+  }
+  const [record] = parseDiagnostics('src/testingRuntime.ts(1,1): error TS2322: mismatch', project)
+  assert.equal(record.surface, 'production-source')
+})

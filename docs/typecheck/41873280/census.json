@@ -65,8 +65,8 @@
       "TS7006": 9
     },
     "bySurface": {
-      "production-source": 220,
-      "test-fixture": 461
+      "production-source": 218,
+      "test-fixture": 463
     }
   },
   "diagnostics": [
@@ -5458,7 +5458,7 @@
       "code": "TS2352",
       "message": "Conversion of type '{ id: string; schemaVersion: 1; type: keyof OperationEventPayloadMap; sourceSystem: OperationEventSourceSystemFor<TType>; timestamp: string; payload: { ...; } | ... 66 more ... | { ...; }; } & Partial<...>' to type 'OperationEvent<TType>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
       "identity": "096877e559e213d157108de4103f2a0a205fa1a27c621526a8c1868451874f94",
-      "surface": "production-source"
+      "surface": "test-fixture"
     },
     {
       "project": "tsconfig.app.json",
@@ -5538,7 +5538,7 @@
       "code": "TS18048",
       "message": "'state.globalFlags' is possibly 'undefined'.",
       "identity": "2aaea904d33affdee85b0b184248f092dd86bd8973675536059ca2b0e3dcb8e9",
-      "surface": "production-source"
+      "surface": "test-fixture"
     },
     {
       "project": "tsconfig.app.json",

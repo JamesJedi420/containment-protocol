@@ -55,6 +55,18 @@ export function parseDiagnostics(raw, projectForFile) {
   }))
 }
 
+export function compareBudget(summary, budget) {
+  const occurrenceDelta = summary.occurrences - budget.occurrences
+  const fingerprintDelta = summary.uniqueIdentities - budget.fingerprints
+  const fileDelta = summary.files - budget.files
+  return {
+    occurrenceDelta,
+    fingerprintDelta,
+    fileDelta,
+    overBudget: occurrenceDelta > 0 || fingerprintDelta > 0,
+  }
+}
+
 export function summarize(records) {
   const countBy = (field) =>
     Object.fromEntries(

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import fs from 'node:fs'
-import { compareCensuses, parseDiagnostics, sha256, summarize } from './typecheck-census.mjs'
+import {
+  compareBudget,
+  compareCensuses,
+  parseDiagnostics,
+  sha256,
+  summarize,
+} from './typecheck-census.mjs'
 
 const project = (file) => (file.startsWith('src/') ? 'tsconfig.app.json' : undefined)
 const diagnostic = 'src/a.test.ts(2,3): error TS2322: Type mismatch.\n  Missing member.\n'
@@ -95,4 +101,32 @@ test('test helper directories are fixtures without misclassifying production loo
   }
   const [record] = parseDiagnostics('src/testingRuntime.ts(1,1): error TS2322: mismatch', project)
   assert.equal(record.surface, 'production-source')
+})
+
+test('budget comparison reports deltas and treats growth as over budget', () => {
+  const summary = { occurrences: 681, uniqueIdentities: 466, files: 178 }
+  const budget = { occurrences: 681, fingerprints: 466, files: 178 }
+  assert.deepEqual(compareBudget(summary, budget), {
+    occurrenceDelta: 0,
+    fingerprintDelta: 0,
+    fileDelta: 0,
+    overBudget: false,
+  })
+  assert.equal(compareBudget({ ...summary, occurrences: 682 }, budget).overBudget, true)
+  assert.equal(compareBudget({ ...summary, uniqueIdentities: 467 }, budget).overBudget, true)
+  assert.equal(compareBudget({ ...summary, occurrences: 680 }, budget).overBudget, false)
+})
+
+test('advisory budget matches the committed baseline census', () => {
+  const report = JSON.parse(
+    fs.readFileSync(new URL('../docs/typecheck/41873280/census.json', import.meta.url), 'utf8')
+  )
+  const budget = JSON.parse(
+    fs.readFileSync(new URL('../docs/typecheck/budget.json', import.meta.url), 'utf8')
+  )
+  assert.equal(budget.schemaVersion, 1)
+  assert.equal(budget.occurrences, report.summary.occurrences)
+  assert.equal(budget.fingerprints, report.summary.uniqueIdentities)
+  assert.equal(budget.files, report.summary.files)
+  assert.match(budget.revision, /^[0-9a-f]{40}$/)
 })

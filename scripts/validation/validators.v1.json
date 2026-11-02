@@ -57,10 +57,28 @@
         "pathGlobs": [
           "scripts/report-typecheck.mjs",
           "scripts/typecheck-census*.mjs",
+          "scripts/typecheck-advisory.mjs",
           "docs/typecheck/**"
         ]
       },
       "whenUnavailable": "fail"
+    },
+    {
+      "id": "typecheck",
+      "ownerIssue": "SPE-3376",
+      "ownerNote": "Advisory census publication for the SPE-3375 recovery. SPE-3348 retains production-build enforcement authority; required only at Phase 10 of docs/typescript-debt-triage.md.",
+      "command": "node scripts/typecheck-advisory.mjs",
+      "enforcement": "advisory",
+      "activation": {
+        "changeClasses": ["application", "shared-config", "academy"],
+        "pathGlobs": [
+          "scripts/report-typecheck.mjs",
+          "scripts/typecheck-census*.mjs",
+          "scripts/typecheck-advisory.mjs",
+          "docs/typecheck/**"
+        ]
+      },
+      "whenUnavailable": "report-unavailable"
     },
     {
       "id": "lint",

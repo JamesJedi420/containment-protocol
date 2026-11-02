@@ -1,0 +1,2 @@
+# Preserve the exact captured compiler bytes used by the census integrity test.
+docs/typecheck/**/compiler.txt -text whitespace=cr-at-eol

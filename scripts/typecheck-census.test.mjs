@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import fs from 'node:fs'
-import { compareCensuses, parseDiagnostics, sha256, summarize } from './typecheck-census.mjs'
+import {
+  compareCensuses,
+  compareText,
+  parseDiagnostics,
+  sha256,
+  summarize,
+} from './typecheck-census.mjs'
 
 const project = (file) => (file.startsWith('src/') ? 'tsconfig.app.json' : undefined)
 const diagnostic = 'src/a.test.ts(2,3): error TS2322: Type mismatch.\n  Missing member.\n'
@@ -123,16 +129,23 @@ test('partition assigns every baseline occurrence once and binds analysis to ver
   )
   for (const group of partition.groups) {
     assert.ok(group.occurrences.length > 0, group.id)
-    assert.ok(group.cause && group.canonicalContract && group.cascadeAssessment, group.id)
+    assert.ok(group.cause, `${group.id}: missing cause`)
+    assert.ok(group.canonicalContract, `${group.id}: missing canonicalContract`)
+    assert.ok(group.cascadeAssessment, `${group.id}: missing cascadeAssessment`)
     assert.equal(group.reconciliationOwner, 'SPE-3376')
     assert.ok(['repair-candidate', 'semantic-review'].includes(group.disposition), group.id)
-    assert.deepEqual(group.evidence, [
+    const expectedEvidence = [
       ...new Set(
         group.occurrences.map((index) => {
           const diagnostic = baseline.diagnostics[index]
           return `${diagnostic.file}:${diagnostic.line}`
         })
       ),
-    ])
+    ]
+    assert.deepEqual(
+      group.evidence.toSorted(compareText),
+      expectedEvidence.toSorted(compareText),
+      `${group.id}: evidence must match occurrence coordinates`
+    )
   }
 })

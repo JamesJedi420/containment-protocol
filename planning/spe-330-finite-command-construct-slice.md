@@ -2,7 +2,7 @@
 
 | Field      | Value                                                   |
 | ---------- | ------------------------------------------------------- |
-| **Status** | **In Progress**                                         |
+| **Status** | **Recently shipped** (PR #4559 @ `370131ef`)            |
 | **Linear** | [SPE-330](https://linear.app/spectranoir/issue/SPE-330) |
 | **Parent** | none                                                    |
 | **Branch** | `feat/spe-330-finite-command-construct`                 |

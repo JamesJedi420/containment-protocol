@@ -157,7 +157,7 @@ export function resolveCrossRoleAction(
   return {
     ok: true,
     outcome: 'success',
-    contributingRoles: participants.map((p) => p.role),
+    contributingRoles: [...new Set(participants.map((p) => p.role))],
   }
 }
 

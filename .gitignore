@@ -89,3 +89,5 @@ coverage_out_*.txt
 # Local MCP secrets (Linear API key header) — never commit
 .cursor/mcp.json
 
+# Trigger.dev local worker artifacts
+.trigger

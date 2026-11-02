@@ -75,6 +75,9 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 
 **Build-gate activation policy — single owner: [SPE-3348](https://linear.app/spectranoir/issue/SPE-3348) (shared repository validation orchestration).** Make `npm run build` required and fail-closed for application, build/configuration, and release-related changes **only after** SPE-3375's approved recovery work is complete; `npm run build` exits 0 on a verified current-`main` commit with applicable lint and regression tests green; and SPE-3348's shared validation registry and CI actually enforce the build check. From activation onward, a failed or unavailable required build blocks the affected merge or release; later regressions do not silently make it advisory. SPE-3375 owns build recovery, not validation-enforcement policy. This README rule does not itself enable the CI gate.
 
+Run `npm run verify:trigger-compatibility` to check the Trigger.dev dependency overrides;
+see [Trigger.dev development setup](docs/trigger-dev-development.md).
+
 ## Validation
 
 Before opening a pull request, prefer the shared requirement resolver (SPE-3348), which selects the same validators CI will run:

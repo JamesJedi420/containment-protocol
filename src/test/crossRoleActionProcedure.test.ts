@@ -165,6 +165,7 @@ describe('resolveCrossRoleAction — joint_evidence_processing exemplar', () => 
       throw new Error('Expected success')
     }
     expect(result.outcome).toBe('success')
+    expect(result.contributingRoles).toHaveLength(2)
     expect(result.contributingRoles).toContain('investigator')
     expect(result.contributingRoles).toContain('field_recon')
   })
@@ -296,6 +297,19 @@ describe('resolveCrossRoleAction — generic contract edges', () => {
       throw new Error('Expected success')
     }
     expect(result.outcome).toBe('success')
+    expect(result.contributingRoles).toEqual(['field_recon'])
+  })
+
+  it('returns each contributing role once when eligible participants share one role', () => {
+    const result = resolveCrossRoleAction({
+      procedure: singleRoleSingleParticipant,
+      participants: [
+        makeParticipant({ agentId: 'a_recon_1', role: 'field_recon' }),
+        makeParticipant({ agentId: 'a_recon_2', role: 'field_recon' }),
+      ],
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected success')
     expect(result.contributingRoles).toEqual(['field_recon'])
   })
 

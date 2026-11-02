@@ -17,9 +17,15 @@ The previous agent-record constraint required an index signature absent from can
 
 ## Causal reconciliation
 
-The first comparison removes 54 existing occurrences: workshop persistence 16, live integrity 12, layout staging 12, local staging 8, section staging 6. Of the original 47-file cohort, 40 disappear; all 14 additional consumer errors disappear.
+The committed-source comparison removes 54 existing occurrences: workshop persistence 16, live integrity 12, layout staging 12, local staging 8, section staging 6. Of the original 47-occurrence cohort across three files, 40 disappear; all 14 additional consumer errors disappear.
 
-Seven unchanged persistence diagnostics are independent of the helper: line 705 passes completion outcomes missing canonical `quality`/`safety`; lines 1978, 1981, 2056, 2059, 2134 and 2137 read optional completion outcomes without narrowing. Those tests do not pass their affected values through this helper. They remain visible in the SPE-3375 recovery census; this slice does not claim their removal or invent a separate repair owner. SPE-3444 acceptance explicitly permits reconciliation of remaining identities. Exact final evidence follows after committed-source capture.
+Seven unchanged persistence diagnostics are independent of the helper: line 705 passes completion outcomes missing canonical `quality`/`safety`; lines 1978, 1981, 2056, 2059, 2134 and 2137 read optional completion outcomes without narrowing. Those tests do not pass their affected values through this helper. They remain visible in the SPE-3375 recovery census; this slice does not claim their removal or invent a separate repair owner. SPE-3444 acceptance explicitly permits reconciliation of remaining identities.
+
+## Committed-source evidence
+
+[Identity-level evidence](../docs/typecheck/spe-3444-evidence.json) compares clean base `326c65b4d33c41854702fcb3e9c3d02b19ddbd57` with clean implementation `0de8204fabe9a3d9ac2930e90b84801b436c32c5`, using Node 22.23.4 / TypeScript 6.0.3. Both captures have two byte-identical forced compiler runs, each compiler exit 2. Occurrences fall **635 → 581**, fingerprints **430 → 397**, files **170 → 166**. All 33 changed identities are removals (54 occurrences), with zero additions. Production diagnostics remain 172. The build remains red.
+
+Validation: all **991 files / 10,748 tests** pass with `npm run test:run -- --maxWorkers=4`; the initial targeted nine-suite run passed 120 tests. Full lint, final changed-file ESLint/Prettier, backlog-handoff, audit-index and theme-contract checks pass. These later documentation changes do not alter compiler inputs. The existing advisory budget and historical partition remain unchanged; review/CI/merge evidence is recorded on the PR and Linear.
 
 ## Pre-ship audit
 

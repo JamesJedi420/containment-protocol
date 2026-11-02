@@ -126,8 +126,11 @@ export function computeReplacementPressureWithFunding(
   }
 }
 
+type ReplacementPressureStateInput = Parameters<typeof assessFundingPressure>[0] &
+  Pick<GameState, 'agents'>
+
 export function buildReplacementPressureState(
-  state: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>,
+  state: ReplacementPressureStateInput,
   criticalRoles: readonly string[] = DEFAULT_CRITICAL_REPLACEMENT_ROLES
 ): ReplacementPressureState {
   const fundingPressure = assessFundingPressure(state)
@@ -140,7 +143,7 @@ export function buildReplacementPressureState(
 }
 
 export function assessAttritionPressure(
-  state: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>,
+  state: ReplacementPressureStateInput,
   criticalRoles: readonly string[] = DEFAULT_CRITICAL_REPLACEMENT_ROLES
 ): AttritionPressureAssessment {
   const replacementPressureState = buildReplacementPressureState(state, criticalRoles)

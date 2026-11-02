@@ -118,7 +118,7 @@ test('budget comparison reports deltas and treats growth as over budget', () => 
   assert.equal(compareBudget({ ...summary, occurrences: 680 }, budget).overBudget, false)
 })
 
-test('advisory budget matches the committed baseline census', () => {
+test('advisory budget does not exceed the committed baseline census', () => {
   const report = JSON.parse(
     fs.readFileSync(new URL('../docs/typecheck/41873280/census.json', import.meta.url), 'utf8')
   )
@@ -126,9 +126,10 @@ test('advisory budget matches the committed baseline census', () => {
     fs.readFileSync(new URL('../docs/typecheck/budget.json', import.meta.url), 'utf8')
   )
   assert.equal(budget.schemaVersion, 1)
-  assert.equal(budget.occurrences, report.summary.occurrences)
-  assert.equal(budget.fingerprints, report.summary.uniqueIdentities)
-  assert.equal(budget.files, report.summary.files)
+  // The historical capture is immutable; each phase may ratchet the budget down.
+  assert.ok(budget.occurrences <= report.summary.occurrences)
+  assert.ok(budget.fingerprints <= report.summary.uniqueIdentities)
+  assert.ok(budget.files <= report.summary.files)
   assert.match(budget.revision, /^[0-9a-f]{40}$/)
 })
 

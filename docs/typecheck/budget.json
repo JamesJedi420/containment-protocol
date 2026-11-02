@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "occurrences": 681,
-  "fingerprints": 466,
-  "files": 178,
-  "revision": "1108c4b969b0f118bf642c3cae32a7ab9a09b7c0",
+  "occurrences": 635,
+  "fingerprints": 430,
+  "files": 170,
+  "revision": "9f718fce65f46803297e2de1c32e5ae893f33830",
   "capturedAt": "2026-11-02",
   "typescriptVersion": "6.0.3",
-  "nodeVersion": "22.23.4"
+  "nodeVersion": "26.13.0"
 }

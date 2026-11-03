@@ -5,8 +5,6 @@ import { pathToFileURL } from 'node:url'
 import { evaluateSessionPreflight } from './session-preflight-core.mjs'
 import { spawnSafe } from './validation/spawn-safe.mjs'
 
-const ISSUE_PATTERN = /\b[A-Z][A-Z0-9]+-\d+\b/g
-
 function trimOutput(result) {
   return typeof result.stdout === 'string' ? result.stdout.trim() : ''
 }
@@ -52,15 +50,19 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
   }
 }
 
+function findIssueIds(value) {
+  return [...new Set((value ?? '').match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? [])]
+}
+
 function extractIssueIdentity(title, body) {
-  const titleMatches = [...new Set((title ?? '').match(ISSUE_PATTERN) ?? [])]
+  const titleMatches = findIssueIds(title)
   if (titleMatches.length === 1) {
     return { issueId: titleMatches[0], ownershipVerified: true }
   }
   if (titleMatches.length > 1) {
     return { issueId: null, ownershipVerified: false }
   }
-  const bodyMatches = [...new Set((body ?? '').match(ISSUE_PATTERN) ?? [])]
+  const bodyMatches = findIssueIds(body)
   return {
     issueId: bodyMatches.length === 1 ? bodyMatches[0] : null,
     ownershipVerified: bodyMatches.length === 1,
@@ -74,6 +76,8 @@ export function collectGitHubEvidence({ repository, checkedAt, cwd = process.cwd
     cwd
   )
   if (remoteMain.status !== 0) return failedEvidence(checkedAt, `github:${repository}`, 'remote-main-unavailable')
+  const remoteMainSha = trimOutput(remoteMain) || null
+  if (!remoteMainSha) return failedEvidence(checkedAt, `github:${repository}`, 'remote-main-unavailable')
 
   const pullRequests = run(
     'gh',
@@ -105,7 +109,7 @@ export function collectGitHubEvidence({ repository, checkedAt, cwd = process.cwd
     collectionStatus: 'ready',
     checkedAt,
     sourceRef: `github:${repository}:open-prs`,
-    remoteMainSha: trimOutput(remoteMain),
+    remoteMainSha,
     openPullRequests: parsed.map((pullRequest) => {
       const ownership = extractIssueIdentity(pullRequest.title, pullRequest.body)
       return {

@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import {pathToFileURL} from 'node:url'
 import {projectApprovedWork, serializeProjection} from './project-approved-work.mjs'
 const error = message => { throw new Error('Linear authority unavailable: '+message) }
+const compareIds = (a,b) => a.localeCompare(b, 'en')
 const WORKSTREAMS = ['CP-core','Academy','shared-system','cross-project']
 const QUERY = `query ApprovedIssues($project: String!, $after: String) {
   project(id:$project) { id name issues(first:100, after:$after, includeArchived:false) {
@@ -20,7 +21,7 @@ const QUERY = `query ApprovedIssues($project: String!, $after: String) {
 }`
 export function normalizeLinearIssues(projectPages, evidence, asOf, coverage, fetchedProjectIds=coverage?.projectIds) {
   if(!coverage || coverage.source !== 'approved-planning' || coverage.complete !== true || !Array.isArray(coverage.issueIds) || !coverage.issueIds.length || new Set(coverage.issueIds).size!==coverage.issueIds.length || !Array.isArray(coverage.projectIds) || !coverage.projectIds.length || new Set(coverage.projectIds).size!==coverage.projectIds.length) error('missing independently verified approved-work coverage')
-  if (!Array.isArray(fetchedProjectIds) || JSON.stringify([...fetchedProjectIds].sort())!==JSON.stringify([...coverage.projectIds].sort()) || projectPages.length!==fetchedProjectIds.length) error('project IDs differ from approved planning inventory')
+  if (!Array.isArray(fetchedProjectIds) || JSON.stringify([...fetchedProjectIds].sort(compareIds))!==JSON.stringify([...coverage.projectIds].sort(compareIds)) || projectPages.length!==fetchedProjectIds.length) error('project IDs differ from approved planning inventory')
   if (!evidence || evidence.source !== 'SPE-3276' || evidence.complete !== true || !evidence.issues || typeof evidence.issues !== 'object' || Array.isArray(evidence.issues) || Object.keys(evidence.issues).length===0) error('SPE-3276 classification coverage not attested')
   const byId=new Map()
   for (const page of projectPages) for (const row of page) {
@@ -68,6 +69,7 @@ export async function fetchLinearAuthority({apiKey,projectIds,request=fetch,cloc
       if(body.errors?.length || !body.data?.project?.issues?.pageInfo || !Array.isArray(body.data.project.issues.nodes)) error('GraphQL partial result for '+project)
       if(body.data.project.id!==project) error('project identity mismatch '+project)
       const connection=body.data.project.issues
+      if (typeof connection.pageInfo.hasNextPage !== 'boolean') error('incomplete pagination for '+project)
       all.push(...connection.nodes)
       if(!connection.pageInfo.hasNextPage) break
       const next=connection.pageInfo.endCursor
@@ -85,7 +87,7 @@ if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
     const evidence=JSON.parse(fs.readFileSync(evidencePath,'utf8'))
     const coverage=JSON.parse(fs.readFileSync(coveragePath,'utf8'))
     const {pages,asOf}=await fetchLinearAuthority({apiKey:process.env.LINEAR_API_KEY,projectIds:(process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean)})
-    if(JSON.stringify([...new Set((process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))].sort())!==JSON.stringify([...coverage.projectIds].sort())) error('project IDs differ from approved planning inventory')
+    if(JSON.stringify([...new Set((process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))].sort(compareIds))!==JSON.stringify([...coverage.projectIds].sort(compareIds))) error('project IDs differ from approved planning inventory')
     const snapshot=normalizeLinearIssues(pages,evidence,asOf,coverage,(process.env.LINEAR_PROJECT_IDS||'').split(',').filter(Boolean))
     const projection=projectApprovedWork(snapshot)
     // Do not write a partial output; every validation must finish first.

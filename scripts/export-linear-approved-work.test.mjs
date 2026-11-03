@@ -61,3 +61,10 @@ test('malformed and empty SPE-3276 evidence fail at attestation boundary',()=>{
 test('project ID mismatch fails for direct normalization callers',()=>{
  assert.throws(()=>normalizeLinearIssues([[issue('SPE-1')]],evidence(['SPE-1']),'2026-10-28T01:00:00Z',coverage(['SPE-1']),['different-project']),/project IDs differ/)
 })
+
+test('missing or malformed pagination completion fails closed',async()=>{
+ for(const pageInfo of [{},{hasNextPage:null},{hasNextPage:0},{hasNextPage:'false'}]){
+  const request=async()=>({ok:true,json:async()=>({data:{project:{id:'project-1',issues:{pageInfo,nodes:[issue('SPE-1')]}}}})})
+  await assert.rejects(fetchLinearAuthority({apiKey:'test',projectIds:['project-1'],request}),/incomplete pagination/)
+ }
+})

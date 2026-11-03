@@ -2,6 +2,7 @@ const SCHEMA_VERSION = 1
 const SHA_RE = /^[0-9a-f]{40}$/i
 const ISSUE_RE = /^[A-Z][A-Z0-9]+-\d+$/
 const REPOSITORY_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+const ZONED_ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
 const WORKSTREAMS = new Set(['CP-core', 'Academy', 'shared-system', 'cross-project'])
 const OPERATIONS = new Set(['start', 'resume'])
 const EXECUTION_MODES = new Set(['local-checkout', 'codex-managed-worktree'])
@@ -31,7 +32,11 @@ function isIssueArray(value) {
 }
 
 function isIsoTimestamp(value) {
-  return isNonEmptyString(value) && Number.isFinite(Date.parse(value))
+  return (
+    isNonEmptyString(value) &&
+    ZONED_ISO_RE.test(value) &&
+    Number.isFinite(Date.parse(value))
+  )
 }
 
 function isSha(value) {
@@ -58,7 +63,7 @@ function validateEvidenceHeader(errors, value, path, allowedStatuses = COLLECTIO
   pushError(errors, isObject(value), `${path} must be an object`)
   if (!isObject(value)) return
   pushError(errors, allowedStatuses.has(value.collectionStatus), `${path}.collectionStatus is invalid`)
-  pushError(errors, isIsoTimestamp(value.checkedAt), `${path}.checkedAt must be ISO-8601`)
+  pushError(errors, isIsoTimestamp(value.checkedAt), `${path}.checkedAt must be timezone-qualified ISO-8601`)
   pushError(errors, isNonEmptyString(value.sourceRef), `${path}.sourceRef is required`)
 }
 
@@ -69,7 +74,7 @@ function validateRootFields(errors, input) {
     isNonEmptyString(input.repository) && REPOSITORY_RE.test(input.repository),
     'repository must be owner/name'
   )
-  pushError(errors, isIsoTimestamp(input.observedAt), 'observedAt must be ISO-8601')
+  pushError(errors, isIsoTimestamp(input.observedAt), 'observedAt must be timezone-qualified ISO-8601')
   pushError(
     errors,
     Number.isSafeInteger(input.freshnessWindowSeconds) && input.freshnessWindowSeconds > 0,
@@ -152,6 +157,16 @@ function validateImplementationEvidence(errors, evidence) {
   if (!isObject(evidence)) return
   pushError(
     errors,
+    isIsoTimestamp(evidence.checkedAt),
+    'github.implementationEvidence.checkedAt must be timezone-qualified ISO-8601'
+  )
+  pushError(
+    errors,
+    isNonEmptyString(evidence.sourceRef),
+    'github.implementationEvidence.sourceRef is required'
+  )
+  pushError(
+    errors,
     typeof evidence.mergedCurrentMain === 'boolean',
     'github.implementationEvidence.mergedCurrentMain must be boolean'
   )
@@ -164,7 +179,9 @@ function validateImplementationEvidence(errors, evidence) {
 
 function validateGitHubEvidence(errors, github) {
   validateEvidenceHeader(errors, github, 'github', READ_ONLY_COLLECTION_STATUSES)
-  if (!isObject(github) || github.collectionStatus !== 'ready') return
+  if (!isObject(github)) return
+  validateImplementationEvidence(errors, github.implementationEvidence)
+  if (github.collectionStatus !== 'ready') return
   pushError(errors, isSha(github.remoteMainSha), 'github.remoteMainSha is invalid')
   pushError(errors, Array.isArray(github.openPullRequests), 'github.openPullRequests must be an array')
   if (Array.isArray(github.openPullRequests)) {
@@ -172,7 +189,6 @@ function validateGitHubEvidence(errors, github) {
       validatePullRequest(errors, pullRequest, index)
     )
   }
-  validateImplementationEvidence(errors, github.implementationEvidence)
 }
 
 function validateGitEvidence(errors, git) {
@@ -201,8 +217,24 @@ function makeReason(code, source, detail) {
   return { code, source, detail }
 }
 
+function addTimestampFreshnessReason({ checkedAt, observedAt, freshnessWindowSeconds, source, codePrefix }, reasons) {
+  const ageSeconds = Math.floor((Date.parse(observedAt) - Date.parse(checkedAt)) / 1000)
+  if (ageSeconds < -30) {
+    reasons.push(
+      makeReason(
+        `${codePrefix}_from_future`,
+        source,
+        `${source} evidence is ${Math.abs(ageSeconds)}s in the future`
+      )
+    )
+  } else if (ageSeconds > freshnessWindowSeconds) {
+    reasons.push(
+      makeReason(`${codePrefix}_stale`, source, `${source} evidence is ${ageSeconds}s old`)
+    )
+  }
+}
+
 function addFreshnessReasons(input, reasons) {
-  const observedAt = Date.parse(input.observedAt)
   for (const [source, evidence] of [
     ['linear', input.linear],
     ['github', input.github],
@@ -218,21 +250,30 @@ function addFreshnessReasons(input, reasons) {
       )
       continue
     }
-    const checkedAt = Date.parse(evidence.checkedAt)
-    const ageSeconds = Math.floor((observedAt - checkedAt) / 1000)
-    if (ageSeconds < -30) {
-      reasons.push(
-        makeReason(
-          `${source}_evidence_from_future`,
-          source,
-          `${source} evidence is ${Math.abs(ageSeconds)}s in the future`
-        )
-      )
-    } else if (ageSeconds > input.freshnessWindowSeconds) {
-      reasons.push(
-        makeReason(`${source}_evidence_stale`, source, `${source} evidence is ${ageSeconds}s old`)
-      )
-    }
+    addTimestampFreshnessReason(
+      {
+        checkedAt: evidence.checkedAt,
+        observedAt: input.observedAt,
+        freshnessWindowSeconds: input.freshnessWindowSeconds,
+        source,
+        codePrefix: `${source}_evidence`,
+      },
+      reasons
+    )
+  }
+
+  const implementationEvidence = input.github.implementationEvidence
+  if (isObject(implementationEvidence)) {
+    addTimestampFreshnessReason(
+      {
+        checkedAt: implementationEvidence.checkedAt,
+        observedAt: input.observedAt,
+        freshnessWindowSeconds: input.freshnessWindowSeconds,
+        source: 'github-implementation',
+        codePrefix: 'github_implementation_evidence',
+      },
+      reasons
+    )
   }
 }
 
@@ -273,9 +314,17 @@ function evaluateLinear(input, reasons) {
   if (linear.statusType === 'completed' || linear.statusType === 'canceled') {
     reasons.push(makeReason('issue_not_active', 'linear', `issue lifecycle is ${linear.statusType}`))
   }
-  if (requestedOperation === 'start' && linear.statusType === 'started') {
+  if (
+    requestedOperation === 'start' &&
+    linear.statusType === 'started' &&
+    handoff.sliceRef === null
+  ) {
     reasons.push(
-      makeReason('issue_already_started', 'linear', 'start was requested for an issue already in progress')
+      makeReason(
+        'issue_already_started',
+        'linear',
+        'start on an In Progress issue requires an explicitly named approved slice'
+      )
     )
   }
   if (requestedOperation === 'resume' && linear.statusType !== 'started') {
@@ -383,32 +432,34 @@ function evaluateResumePullRequests(pullRequests, handoff, reasons) {
 
 function evaluateGitHub(input, reasons) {
   const { github, handoff, requestedOperation } = input
-  if (github.collectionStatus !== 'ready') return
-  if (github.remoteMainSha !== handoff.expectedBaseMainSha) {
-    reasons.push(
-      makeReason(
-        'remote_main_advanced',
-        'github',
-        `expected ${handoff.expectedBaseMainSha}; observed ${github.remoteMainSha}`
+  if (github.collectionStatus === 'ready') {
+    if (github.remoteMainSha !== handoff.expectedBaseMainSha) {
+      reasons.push(
+        makeReason(
+          'remote_main_advanced',
+          'github',
+          `expected ${handoff.expectedBaseMainSha}; observed ${github.remoteMainSha}`
+        )
       )
+    }
+    const pullRequests = [...github.openPullRequests].sort(
+      (left, right) => left.number - right.number
     )
-  }
-  const pullRequests = [...github.openPullRequests].sort(
-    (left, right) => left.number - right.number
-  )
-  if (requestedOperation === 'start' && pullRequests.length > 0) {
-    reasons.push(
-      makeReason(
-        'open_pr_blocks_start',
-        'github',
-        `open pull requests: ${formatPullRequestNumbers(pullRequests)}`
+    if (requestedOperation === 'start' && pullRequests.length > 0) {
+      reasons.push(
+        makeReason(
+          'open_pr_blocks_start',
+          'github',
+          `open pull requests: ${formatPullRequestNumbers(pullRequests)}`
+        )
       )
-    )
-  } else if (requestedOperation === 'resume') {
-    evaluateResumePullRequests(pullRequests, handoff, reasons)
+    } else if (requestedOperation === 'resume') {
+      evaluateResumePullRequests(pullRequests, handoff, reasons)
+    }
   }
+
   if (
-    github.implementationEvidence?.mergedCurrentMain &&
+    input.github.implementationEvidence?.mergedCurrentMain &&
     input.linear.collectionStatus === 'ready' &&
     input.linear.statusType !== 'completed'
   ) {
@@ -540,6 +591,8 @@ const UNKNOWN_CODES = new Set([
   'linear_evidence_from_future',
   'github_evidence_from_future',
   'git_evidence_from_future',
+  'github_implementation_evidence_stale',
+  'github_implementation_evidence_from_future',
   'linear_issue_mismatch',
   'linear_parent_mismatch',
   'approval_state_unknown',
@@ -589,6 +642,65 @@ function invalidInputResult(input, validationErrors) {
   }
 }
 
+function projectLinearLifecycle(linear) {
+  const ready = linear.collectionStatus === 'ready'
+  return {
+    status: ready ? linear.status : null,
+    statusType: ready ? linear.statusType : null,
+    checkedAt: linear.checkedAt,
+    sourceRef: linear.sourceRef,
+  }
+}
+
+function projectOpenPullRequests(github) {
+  if (github.collectionStatus !== 'ready' || !Array.isArray(github.openPullRequests)) return []
+  return github.openPullRequests.map((pullRequest) => ({
+    number: pullRequest.number,
+    url: pullRequest.url,
+    headBranch: pullRequest.headBranch,
+    baseBranch: pullRequest.baseBranch,
+    issueId: pullRequest.issueId,
+    ownershipVerified: pullRequest.ownershipVerified,
+  }))
+}
+
+function projectGitHubImplementation(github) {
+  const implementationEvidence = isObject(github.implementationEvidence)
+    ? github.implementationEvidence
+    : null
+  return {
+    checkedAt: github.checkedAt,
+    sourceRef: github.sourceRef,
+    openPullRequests: projectOpenPullRequests(github),
+    mergedCurrentMain: implementationEvidence?.mergedCurrentMain ?? null,
+    mergedPrUrls: implementationEvidence?.mergedPrUrls ?? [],
+    implementationEvidenceCheckedAt: implementationEvidence?.checkedAt ?? null,
+    implementationEvidenceSourceRef: implementationEvidence?.sourceRef ?? null,
+  }
+}
+
+function projectGitEvidence(git) {
+  const ready = git.collectionStatus === 'ready'
+  return {
+    checkedAt: git.checkedAt,
+    sourceRef: git.sourceRef,
+    headSha: ready ? git.headSha : null,
+    currentBranch: ready ? git.currentBranch : null,
+    detachedHead: ready ? git.detachedHead : null,
+    trackedDirty: ready ? git.trackedDirty : null,
+    localMainSha: ready ? git.localMainSha : null,
+    remoteMainSha: ready ? git.remoteMainSha : null,
+  }
+}
+
+function collectSourceRefs(input) {
+  const sourceRefs = [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef]
+  if (isObject(input.github.implementationEvidence)) {
+    sourceRefs.push(input.github.implementationEvidence.sourceRef)
+  }
+  return [...new Set(sourceRefs)].sort(compareStrings)
+}
+
 export function evaluateSessionPreflight(input) {
   const validationErrors = validateSessionPreflightInput(input)
   if (validationErrors.length > 0) return invalidInputResult(input, validationErrors)
@@ -610,38 +722,11 @@ export function evaluateSessionPreflight(input) {
     executionMode: input.executionMode,
     reasons: orderedReasons,
     evidence: {
-      linearLifecycle: {
-        status: input.linear.status ?? null,
-        statusType: input.linear.statusType ?? null,
-        checkedAt: input.linear.checkedAt,
-        sourceRef: input.linear.sourceRef,
-      },
-      githubImplementation: {
-        checkedAt: input.github.checkedAt,
-        sourceRef: input.github.sourceRef,
-        openPullRequests: (input.github.openPullRequests ?? []).map((pullRequest) => ({
-          number: pullRequest.number,
-          url: pullRequest.url,
-          headBranch: pullRequest.headBranch,
-          baseBranch: pullRequest.baseBranch,
-          issueId: pullRequest.issueId,
-          ownershipVerified: pullRequest.ownershipVerified,
-        })),
-        mergedCurrentMain: input.github.implementationEvidence?.mergedCurrentMain ?? false,
-        mergedPrUrls: input.github.implementationEvidence?.mergedPrUrls ?? [],
-      },
-      git: {
-        checkedAt: input.git.checkedAt,
-        sourceRef: input.git.sourceRef,
-        headSha: input.git.headSha ?? null,
-        currentBranch: input.git.currentBranch ?? null,
-        detachedHead: input.git.detachedHead ?? null,
-        trackedDirty: input.git.trackedDirty ?? null,
-        localMainSha: input.git.localMainSha ?? null,
-        remoteMainSha: input.git.remoteMainSha ?? null,
-      },
+      linearLifecycle: projectLinearLifecycle(input.linear),
+      githubImplementation: projectGitHubImplementation(input.github),
+      git: projectGitEvidence(input.git),
     },
-    sources: [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef].sort(compareStrings),
+    sources: collectSourceRefs(input),
     validationErrors: [],
   }
 }

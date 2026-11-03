@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs'
+import { readFileSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -274,8 +274,12 @@ test('Markdown preserves source, revision and observation while escaping table-b
 test('real CLI uses pinned Git registry, emits both formats, and rejects invalid inputs without stdout', (t) => {
   const directory = mkdtempSync(path.join(tmpdir(), 'spe3352-report-'))
   const manifestPath = path.join(directory, 'manifest.json')
+  const fakeGit = path.join(directory, process.platform === 'win32' ? 'git.exe' : 'git')
+  writeFileSync(fakeGit, 'This executable must never be selected from ambient PATH.\n')
+  if (process.platform !== 'win32') chmodSync(fakeGit, 0o755)
   t.after(() => {
     unlinkSync(manifestPath)
+    unlinkSync(fakeGit)
     rmdirSync(directory)
   })
   writeFileSync(manifestPath, JSON.stringify(seed))
@@ -284,6 +288,13 @@ test('real CLI uses pinned Git registry, emits both formats, and rejects invalid
   const json = run('--manifest', manifestPath)
   assert.equal(json.status, 0, json.stderr)
   assert.equal(JSON.parse(json.stdout).assessment, 'incomplete')
+  const poisonedPath = spawnSync(process.execPath, [cli, '--manifest', manifestPath], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, PATH: directory },
+  })
+  assert.equal(poisonedPath.status, 0, poisonedPath.stderr)
+  assert.equal(poisonedPath.stdout, json.stdout)
   const markdown = run('--manifest', manifestPath, '--format', 'markdown')
   assert.equal(markdown.status, 0, markdown.stderr)
   assert.match(markdown.stdout, /\*\*incomplete\*\*/)

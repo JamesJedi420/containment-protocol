@@ -32,6 +32,10 @@ Hermes documentation/communication checkpoint `local-1a3e08191e117895d39e94a6306
 
 Six direct pre-ship passes assessed scope/integration, malformed/missing/historical/duplicate edge cases, deterministic non-mutating output, canonical-resolver and CLI integration, documentation/ownership accuracy, and cleanup. No game/runtime/browser behavior or package changes require a simulation suite, browser inspection, Modern Web Guidance or Sonatype package fetch review. The existing backlog queue, slice-status map, audit index and theme mirrors are unchanged; local consistency checks do not claim a full live-backlog reconciliation.
 
+PR #4632's independent full-diff review found no implementation defect. Amazon Q subsequently identified the unbounded local Git subprocess; added a 15-second registry-lookup timeout so an unavailable/hung lookup reaches the existing exit-2 error path. This bounded robustness fix does not change report semantics. Rerun targeted tests, changed-file formatting and selected required validators after the fix; CI/review evidence is retained on the PR. No simulated timeout execution is claimed.
+
+The first Sonar analysis flagged ambient PATH resolution (`javascript:S4036`). Reused SPE-3348's existing `resolveBin`/`spawnSafe` helper, require an absolute resolved Git executable and retain its fixed child PATH. The real CLI test supplies a fake Git binary through ambient PATH and requires identical successful output, proving that this path cannot replace Git. No scanner suppression or gate weakening is used.
+
 ## Deferred
 
 | Item                                                                                          | Existing owner                            | Disposition                                                                                |

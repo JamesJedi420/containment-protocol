@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -6,6 +5,7 @@ import {
   resolveValidationRequirements,
   validateRequirementRegistry,
 } from '../validation/requirement-model.mjs'
+import { resolveBin, spawnSafe } from '../validation/spawn-safe.mjs'
 
 // Stable v1 mapping to SPE-3352's twelve acceptance criteria, plus the owner
 // dimensions explicitly required by AC06. Missing assessments retain their rows.
@@ -363,13 +363,24 @@ function main(argv) {
   const root = fileURLToPath(new URL('../../', import.meta.url))
   // No shell interpolation, network retrieval, or use of a possibly modified
   // working-tree registry: policy comes from the assessed commit itself.
-  const registry = JSON.parse(
-    execFileSync(
-      'git',
-      ['show', `${manifest.subjectRevision}:scripts/validation/validators.v1.json`],
-      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
-    )
+  const git = resolveBin('git')
+  requireValue(path.isAbsolute(git), 'Git executable unavailable in the fixed trusted search paths')
+  const lookup = spawnSafe(
+    git,
+    ['show', `${manifest.subjectRevision}:scripts/validation/validators.v1.json`],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 15_000,
+      windowsHide: true,
+    }
   )
+  requireValue(
+    !lookup.error && lookup.status === 0,
+    lookup.error?.message || lookup.stderr || 'Git registry lookup failed'
+  )
+  const registry = JSON.parse(lookup.stdout)
   const report = buildAcceptanceReport(manifest, registry)
   process.stdout.write(options.format === 'json' ? renderJson(report) : renderMarkdown(report))
 }

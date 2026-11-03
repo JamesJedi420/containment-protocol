@@ -97,6 +97,9 @@ export function collectGitHubEvidence({ repository, checkedAt, cwd = process.cwd
   } catch {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
   }
+  if (!Array.isArray(parsed)) {
+    return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
+  }
 
   return {
     collectionStatus: 'ready',

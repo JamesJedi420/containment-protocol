@@ -78,6 +78,12 @@ Focused coverage includes:
 
 ## Validation
 
+Current direct evidence:
+
+- Node 22 focused preflight suite: **17/17 passed** after SHA, issue-ID, argument-parser, timestamp, and PR-ownership hardening.
+- Full-diff audit caught and corrected a malformed duplicate manifest entry before review.
+- Hosted exact-head requirements, lint, formatting, backlog-handoff, and independent review remain merge gates.
+
 Run, at minimum:
 
 - `npm run verify:session-preflight`

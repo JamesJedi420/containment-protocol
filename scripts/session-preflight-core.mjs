@@ -237,7 +237,11 @@ function evaluateGitHub(input, reasons) {
       }
     }
   }
-  if (github.implementationEvidence?.mergedCurrentMain && input.linear.statusType !== 'completed') {
+  if (
+    github.implementationEvidence?.mergedCurrentMain &&
+    input.linear.collectionStatus === 'ready' &&
+    input.linear.statusType !== 'completed'
+  ) {
     reasons.push(makeReason('lifecycle_evidence_conflict', 'github', 'implementation is on current main while Linear lifecycle is not completed'))
   }
 }
@@ -326,6 +330,7 @@ function stableReasons(reasons) {
 export function evaluateSessionPreflight(input) {
   const validationErrors = validateSessionPreflightInput(input)
   if (validationErrors.length > 0) {
+    const sortedValidationErrors = [...validationErrors].sort()
     return {
       schemaVersion: SCHEMA_VERSION,
       status: 'unknown',
@@ -333,10 +338,10 @@ export function evaluateSessionPreflight(input) {
       issueId: isObject(input?.handoff) ? (input.handoff.issueId ?? null) : null,
       requestedOperation: input?.requestedOperation ?? null,
       executionMode: input?.executionMode ?? null,
-      reasons: [makeReason('invalid_input', 'input', validationErrors.sort().join('; '))],
+      reasons: [makeReason('invalid_input', 'input', sortedValidationErrors.join('; '))],
       evidence: null,
       sources: [],
-      validationErrors: validationErrors.sort(),
+      validationErrors: sortedValidationErrors,
     }
   }
 

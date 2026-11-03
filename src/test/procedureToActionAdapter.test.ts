@@ -226,6 +226,41 @@ describe('SPE-2995 ProcedureDefinition -> cross-role action adapter', () => {
     expect(result.actionResult.outcome).toBe('unmet_prerequisites')
   })
 
+  it('keeps distinct prerequisite decisions collision-safe in the fingerprint', () => {
+    const first = evaluateCanonicalProcedureExecutionReadiness(
+      makeInput({
+        requiredPrerequisites: [
+          { prerequisiteClass: 'authorization', ownerRef: 'SPE-2078:foo' },
+        ],
+        prerequisiteDecisions: [
+          {
+            prerequisiteClass: 'authorization',
+            ownerRef: 'SPE-2078:foo',
+            state: 'blocked',
+            reason: 'bar',
+          },
+        ],
+      })
+    )
+    const second = evaluateCanonicalProcedureExecutionReadiness(
+      makeInput({
+        requiredPrerequisites: [
+          { prerequisiteClass: 'authorization', ownerRef: 'SPE-2078' },
+        ],
+        prerequisiteDecisions: [
+          {
+            prerequisiteClass: 'authorization',
+            ownerRef: 'SPE-2078',
+            state: 'blocked',
+            reason: 'foo:bar',
+          },
+        ],
+      })
+    )
+
+    expect(first.evaluationFingerprint).not.toBe(second.evaluationFingerprint)
+  })
+
   it('is stable for unchanged authoritative inputs', () => {
     const input = makeInput()
     const first = evaluateCanonicalProcedureExecutionReadiness(input)

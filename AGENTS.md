@@ -10,6 +10,7 @@ Read [the Agent Operating Manual](docs/agent-operating-manual.md) before substan
 - **Existing issue approval:** an issue recorded in Linear is approved for its current recorded scope. Do not require historical approval records, an originating chat, an approval label, or a separate approval census. Follow [manual §1](docs/agent-operating-manual.md#1-select-the-actor-owner-and-legal-work) for the distinction between approval, scope and readiness.
 - **Ship loop:** pre-ship audit → commit → push → PR → independent review, review fixes and green CI → merge → sync main. Honor explicit user limits. Resolve open PRs before the next slice under the tracked clean-main rule.
 - **Closeout:** use [phase A/B formats](docs/agent-session-closeout.md). After merge, sync main in-session and remind the user to start a new agent chat for the next task. Do not select or implement new scope in merge closeout.
+- **Response closeout:** every response ends with the next concrete step, or — when none exists — an explicit recommendation to archive the chat. Where closeout forbids new scope (phase A), recommend archiving instead.
 - **Handoffs:** [session routing](docs/agent-session-handoff.md), [read-only format](docs/read-only-session-handoff.md), and [implementation-only cloud-to-local Linear payload](docs/cloud-agent-linear-handoff.md) retain their distinct triggers. A GitHub linkback is not a Linear update.
 - **Tools:** [plugin keep-list](docs/agent-cursor-plugins.md) and [capability summary](docs/agent-capabilities.md); the latter is non-authoritative.
 

@@ -609,13 +609,13 @@ Pure domain module `src/domain/procedureToActionAdapter.ts` is the bounded inter
 | `schemaVersion`, `procedureId`, `canonicalName` | Validated through SPE-1274; identity/name project into the SPE-1434 action contract |
 | `requirements.toolTags`, `requirements.deviceTags` | Deterministically deduplicated and mapped to SPE-1434 `item_tag` prerequisites |
 | `restrictions.forbiddenRoles` | Filters caller-supplied eligible role lanes before SPE-1434 validation |
-| Reagents/quantities, certifications/access, environment, knowledge, authorization, competency, compatibility, doctrine, exhaustion, subject-fit | Remain authoritative at their existing owners; consumed only as typed `ProcedureExecutionPrerequisiteDecision` inputs with `ownerRef`, class, state and reason |
+| Reagents/quantities, certifications/access, environment, knowledge, authorization, competency, compatibility, doctrine, exhaustion, subject-fit | Remain authoritative at their existing owners; the caller declares applicable `ProcedureExecutionPrerequisiteRequirement` owner/class pairs and supplies typed decisions. Missing required owner decisions fail closed. |
 | SPE-3308 exhaustion / blacklist state | Consumed by reference as `procedure_exhaustion`; not copied or persisted |
 | Subject-fit | Consumed only when the owning caller supplies it; the adapter never infers universal validity |
 | Cross-role execution | Delegated to `resolveCrossRoleAction`; no second resolver |
 | Repeat evaluation | Stable fingerprint over canonical identity, selected role lanes, participants and owned prerequisite decisions |
 | Duplicate durable consequence | Caller-owned prior receipt with `consequenceApplied=true` returns `already_applied`; the adapter never persists a retry ledger or applies the consequence itself |
 
-Readiness is typed as `permitted`, `degraded`, or an explicit blocked result. Changed authoritative inputs produce a different fingerprint and may be reevaluated deterministically. A prior blocked attempt does not lock future reevaluation; a prior committed consequence suppresses duplicate application for the same caller-owned execution key.
+Readiness is typed as `permitted`, `degraded`, or an explicit blocked result. Required owner/class pairs are part of the fingerprint alongside their decisions. Changed authoritative inputs produce a different fingerprint and may be reevaluated deterministically. A prior blocked attempt does not lock future reevaluation; a prior committed consequence suppresses duplicate application for the same caller-owned execution key.
 
 This slice adds no `GameState` field, scheduler, procedure-instance ledger, registry, `OperationEvent` kind, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change.

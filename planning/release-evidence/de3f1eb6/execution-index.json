@@ -169,8 +169,9 @@
     "durationMs": 105538.704,
     "observationSource": "planning/release-evidence/de3f1eb6/browser-observations.json",
     "configuredRetries": 1,
-    "actualRetries": [0, 0, 0],
-    "screenshotInspection": "Both after-reload screenshots were opened and visually inspected. See browser-observations.json."
+    "actualRetries": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "screenshotInspection": "Both after-reload screenshots were opened and visually inspected. See browser-observations.json.",
+    "retryScope": "One entry per test in the full retained HTML report file/test order: all 14 tests had exactly one passed attempt, retry 0. The browser-observations attachment subset covers three selected scenarios."
   },
   "owners": [
     {

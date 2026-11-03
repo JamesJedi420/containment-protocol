@@ -151,6 +151,8 @@
     "connectedReplay": "The attached seed-1337 outcomes match byte for byte. The executed test checks reload equality in each of two fresh contexts and reaches Week 3.",
     "maintenanceScreenshot": "Inspected: Equipment maintenance recovered 2 item(s); 3 item(s) remain delayed. Other incident notes also appear.",
     "supportScreenshot": "Inspected: Partial cases includes Support shortfall: degraded to partial. The snapshot metadata also says Resolved after hydration; this known limitation remains outside the asserted contract.",
-    "limits": "Visible output and selected carryover only; no full-state replay, whole-report equality, human comprehension, fresh-player import journey, or recovering-agent return-to-duty claim."
+    "limits": "Visible output and selected carryover only; no full-state replay, whole-report equality, human comprehension, fresh-player import journey, or recovering-agent return-to-duty claim.",
+    "errorProbeInterpretation": "Unexpected browser errors:\\n is the custom assertion message supplied by expectNoPageErrors at e2e/support/cpApp.ts:305-309. The helper asserts probe.errors equals []; the text is shown as a successful Playwright assertion step when empty. It is not evidence of a swallowed browser error. The deliberately injected harness-isolation error belongs to its separate detection test.",
+    "errorProbeSource": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/e2e/support/cpApp.ts#L305"
   }
 }

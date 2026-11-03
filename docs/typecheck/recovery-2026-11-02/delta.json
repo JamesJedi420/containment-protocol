@@ -1023,5 +1023,75 @@
       }
     },
     "identityDeltaFromRepairCapture": []
+  },
+  "reviewFollowup": {
+    "revision": "1b516e2f926a4aa7df388767d9a84ad74347132d",
+    "sourceState": "Committed PR repair plus the two review fixture lifecycle corrections; resulting commit is recorded in PR and Linear evidence.",
+    "compilerInputHash": "71d2a8aaacc04c67d30151efd4bf051895d98e5658b446d9c2f07ced489df833",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      }
+    ],
+    "reproducible": true,
+    "workingTreeStatus": "M src/test/sim.advanceWeek.test.ts\n M src/test/teamStateMachine.test.ts",
+    "summary": {
+      "occurrences": 409,
+      "uniqueIdentities": 293,
+      "repeatedIdentityOccurrences": 116,
+      "exactDuplicateOccurrences": 0,
+      "files": 144,
+      "byProject": {
+        "tsconfig.app.json": 409
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 126,
+        "TS2339": 46,
+        "TS2345": 45,
+        "TS2352": 53,
+        "TS2353": 19,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS6133": 6,
+        "TS7006": 6
+      },
+      "bySurface": {
+        "production-source": 157,
+        "test-fixture": 252
+      }
+    },
+    "identityDeltaFromIntegration": []
   }
 }

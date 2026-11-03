@@ -29,6 +29,8 @@ enforcement changes. Production changes are restricted to the existing protocol
 and authority-graph sanitizers. Added tests exercise invalid enums, valid siblings,
 aliases, protocol trimming/deduplication, invalid limits and independent field absence.
 
+Independent review follow-up in SPE-3446 preserves the resolving phase while clearing assignment in the release/recovery fixture and removes the redundant assignment override after `assignTeam`. Both affected suites pass (97 tests); two new forced Node 22 captures retain exactly the same 409-diagnostic multiset.
+
 ## Compiler evidence
 
 Use the committed collector: `node scripts/report-typecheck.mjs --output <ignored-directory>`.
@@ -70,7 +72,7 @@ review and closeout use the direct fallback; no provider/model configuration cha
 
 ## Remaining recovery
 
-No in-boundary deferrals. The remaining diagnostics are retained under SPE-3375's
+No in-boundary deferrals. The review fixture follow-up is included and its input hashes/reproducibility are recorded under `reviewFollowup` in the diagnostic evidence. The remaining diagnostics are retained under SPE-3375's
 existing partition, including semantic/test-intent questions without approved repair
 owners. No issues, relationships or expanded backlog scope are created here, and
 no claim of a green repository build is made. A subsequent implementation slice uses

@@ -3669,10 +3669,6 @@ describe('advanceWeek', () => {
 
   it('preserves immutability when advancing with fatigue-heavy operations', () => {
     const state = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
-    state.teams['t_nightwatch'] = {
-      ...state.teams['t_nightwatch'],
-      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
-    }
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       assignedTeamIds: ['t_nightwatch'],

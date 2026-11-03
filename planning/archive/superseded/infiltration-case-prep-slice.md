@@ -1,5 +1,7 @@
 # SPE-521 deferred UX — Infiltration case prep panel
 
+> **Superseded:** by the SPE-521 infiltration case-prep chain ([infiltration-case-prep-encounter-preview-slice.md](../shipped/infiltration-case-prep-encounter-preview-slice.md), PR #2479; PR #2824–#2833). Archived for history; not a live slice.
+
 ## Goal
 
 Case-detail prep for covert infiltration: probe/awareness tracks, cover posture summary, and optional weekly probe action override before `advanceWeek`.

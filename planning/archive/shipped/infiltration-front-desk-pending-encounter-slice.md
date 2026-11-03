@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration Front Desk pending-encounter attention
 
-One-page implementation plan. Linear: [SPE-2460](https://linear.app/spectranoir/issue/SPE-2460) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [infiltration case prep encounter preview](planning/infiltration-case-prep-encounter-preview-slice.md) (SPE-2308 / PR #2479).
+One-page implementation plan. Linear: [SPE-2460](https://linear.app/spectranoir/issue/SPE-2460) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [infiltration case prep encounter preview](infiltration-case-prep-encounter-preview-slice.md) (SPE-2308 / PR #2479).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

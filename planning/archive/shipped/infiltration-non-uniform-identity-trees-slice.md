@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration non-uniform identity trees (case prep)
 
-One-page implementation plan. Linear: [SPE-2463](https://linear.app/spectranoir/issue/SPE-2463) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [civilian long-horizon roles](planning/infiltration-civilian-long-horizon-roles-slice.md) (PR #2830 @ `2cf23287`).
+One-page implementation plan. Linear: [SPE-2463](https://linear.app/spectranoir/issue/SPE-2463) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [civilian long-horizon roles](infiltration-civilian-long-horizon-roles-slice.md) (PR #2830 @ `2cf23287`).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

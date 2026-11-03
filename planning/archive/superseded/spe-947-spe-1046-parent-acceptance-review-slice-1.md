@@ -1,5 +1,7 @@
 # SPE-947 / SPE-1046 — Parent acceptance review (grooming slice 1)
 
+> **Superseded:** by [spe-947-parent-ac-matrix-reconciliation-slice-1.md](spe-947-parent-ac-matrix-reconciliation-slice-1.md), then [spe-947-parent-umbrella-reconciliation-slice-2.md](../shipped/spe-947-parent-umbrella-reconciliation-slice-2.md) (SPE-2618, PR #3137). Archived for history; not a live slice.
+
 One-page grooming record. Parents [SPE-947](https://linear.app/spectranoir/issue/SPE-947) and [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stay **Backlog** — registry children [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) and [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) shipped slices 1–4; parent AC not met at umbrella scope.
 
 | Field               | Value                                                                                                                                                                    |

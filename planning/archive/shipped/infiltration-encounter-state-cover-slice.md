@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration encounter-state cover (case prep)
 
-One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [Front Desk pending-encounter attention](planning/infiltration-front-desk-pending-encounter-slice.md) (SPE-2460 / PR #2824).
+One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [Front Desk pending-encounter attention](infiltration-front-desk-pending-encounter-slice.md) (SPE-2460 / PR #2824).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

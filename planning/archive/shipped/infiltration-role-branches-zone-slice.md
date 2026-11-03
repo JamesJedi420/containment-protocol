@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration role branches per zone (case prep)
 
-One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [guides and documents](planning/infiltration-guides-documents-slice.md) (PR #2827 @ `b2df4866`).
+One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [guides and documents](infiltration-guides-documents-slice.md) (PR #2827 @ `b2df4866`).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

@@ -1,6 +1,6 @@
 # SPE-70 — Concealment Front Desk pending-activation attention
 
-One-page implementation plan. Linear: SPE-70 follow-up — **Concealment Front Desk pending-activation attention** (create/claim on start). Follows shipped [concealment case prep activation preview](planning/concealment-case-prep-activation-preview-slice.md) (PR #2821).
+One-page implementation plan. Linear: SPE-70 follow-up — **Concealment Front Desk pending-activation attention** (create/claim on start). Follows shipped [concealment case prep activation preview](concealment-case-prep-activation-preview-slice.md) (PR #2821).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

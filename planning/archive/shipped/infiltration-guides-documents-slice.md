@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration guides and documents (case prep)
 
-One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [cover stance weekly tick](planning/infiltration-cover-stance-weekly-tick-slice.md) (PR #2826 @ `6279930b`).
+One-page implementation plan. Linear: child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (create on session start). Follows shipped [cover stance weekly tick](infiltration-cover-stance-weekly-tick-slice.md) (PR #2826 @ `6279930b`).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

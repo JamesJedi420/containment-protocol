@@ -5,6 +5,13 @@ This is a curated shortlist checked on 2026-11-01, not an automated readiness pr
 Continue existing work first; confirm blockers and an approved bounded slice in Linear before starting a Backlog item.
 Parent entries coordinate child work, not whole-umbrella implementation.
 
+## Start here (under two minutes)
+
+1. Read the eight Active queue lines below; the primary handoff is **SPE-1052**.
+2. Open that Linear issue. Linear owns scope, status, and the next action; this file only orders the queue.
+3. If a slice doc for that issue exists under `planning/`, open it. If none exists, Linear is the task — do not infer work from an older planning file.
+4. Every other `planning/*-slice.md` is a historical record. See the [planning corpus audit](planning-corpus-audit.md) for its state and retention rule.
+
 ## Active queue
 
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress).
@@ -27,4 +34,5 @@ Keep roughly ten active items, one line each; remove completed or canceled items
 Record shipped evidence in Linear and the relevant slice doc, never in this queue.
 Update [the handoff manifest](backlog-handoff-manifest.json) in the same commit and run `npm run verify:backlog-handoff`.
 The [frozen former backlog](backlog-history-2026-11-01.md) preserves shipped history, old handoffs, harvest notes, and the slice index verbatim; its status and priority claims are historical, not current instructions.
+Corpus retention: the [planning corpus audit](planning-corpus-audit.md) classifies every planning file and sets the archive boundary; new slices follow its naming rule.
 See [roadmap](roadmap.md) for sequencing constraints and [curation](documentation-curation.md) for maintenance rules.

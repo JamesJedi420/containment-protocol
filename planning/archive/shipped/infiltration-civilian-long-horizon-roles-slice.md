@@ -1,6 +1,6 @@
 # SPE-521 — Infiltration civilian long-horizon roles (case prep)
 
-One-page implementation plan. Linear: [SPE-2461](https://linear.app/spectranoir/issue/SPE-2461) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [role branches per zone](planning/infiltration-role-branches-zone-slice.md) (PR #2828 @ `192986f8`).
+One-page implementation plan. Linear: [SPE-2461](https://linear.app/spectranoir/issue/SPE-2461) (child under [SPE-521](https://linear.app/spectranoir/issue/SPE-521)). Follows shipped [role branches per zone](infiltration-role-branches-zone-slice.md) (PR #2828 @ `192986f8`).
 
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |

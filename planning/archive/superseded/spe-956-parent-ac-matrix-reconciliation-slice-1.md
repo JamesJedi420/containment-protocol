@@ -1,5 +1,7 @@
 # SPE-956 — Parent AC matrix reconciliation after SPE-2639/2640 (slice 1)
 
+> **Superseded:** by [spe-956-parent-umbrella-acceptance-slice-1.md](../shipped/spe-956-parent-umbrella-acceptance-slice-1.md) (SPE-2642, PR #3194). Archived for history; not a live slice.
+
 One-page hygiene record. Linear: [SPE-2641](https://linear.app/spectranoir/issue/SPE-2641) (child under [SPE-956](https://linear.app/spectranoir/issue/SPE-956)). Follows shipped [SPE-2639](https://linear.app/spectranoir/issue/SPE-2639)–[SPE-2640](https://linear.app/spectranoir/issue/SPE-2640); parent stays **Backlog**. Pattern: [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575) / `planning/spe-947-parent-ac-matrix-reconciliation-slice-1.md`.
 
 | Field               | Value                                                                                                                                                         |

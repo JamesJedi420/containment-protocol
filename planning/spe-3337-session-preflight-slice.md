@@ -100,4 +100,10 @@ Run, at minimum:
 
 ## Completion and follow-up
 
+### PR #4630 discovery and branch-syntax review fixes
+
+The existing trusted executable search now includes `%ProgramFiles%\GitHub CLI`, correcting `ENOENT` for standard Windows installations without using an arbitrary caller PATH or shell. The input validator rejects malformed literal intended branch names before returning readiness. A focused regression compares valid/invalid names with read-only `git check-ref-format --branch` in both execution modes; checkout-history shorthand is not an accepted literal branch.
+
+Node 22 validation for this correction: 38 focused preflight/selection checks passed on Windows, including the actual `spawnSafe('gh', ['--version'])` launch. That installed-binary check explicitly skips on non-Windows hosts or when the standard installation is absent. No package manifest or lockfile change. Review and hosted CI must validate the pushed correction before merge. Hermes checkpoints for this bounded correction are direct: delegation overhead exceeds the small evidence volume; earlier failed Hermes access is not counted as successful review.
+
 Slice A is complete only after merge evidence and truthful Linear reconciliation. SPE-3337 remains open because Slice B and the parent’s original handoff/diagnostic acceptance remain separate obligations. Slice B must begin in a new implementation session after Slice A merges and the clean-main/open-PR gate passes.

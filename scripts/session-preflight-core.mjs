@@ -19,6 +19,22 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+// Literal branch names only; do not expand checkout/reflog expressions using
+// repository state. Mirrors git check-ref-format --branch syntax.
+function isBranchName(value) {
+  if (!isNonEmptyString(value) || value === 'HEAD' || value.startsWith('-')) return false
+  if (value.endsWith('.') || value.includes('..') || value.includes('@{')) return false
+  if (
+    [...value].some(
+      (char) => char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127 || '~^:?*[\\'.includes(char)
+    )
+  )
+    return false
+  return value
+    .split('/')
+    .every((part) => part.length > 0 && !part.startsWith('.') && !part.endsWith('.lock'))
+}
+
 export function isSessionPreflightRepository(value) {
   return isNonEmptyString(value) && REPOSITORY_RE.test(value)
 }
@@ -103,7 +119,11 @@ function validateHandoff(errors, handoff) {
     'handoff.parentId is invalid'
   )
   pushError(errors, isNullableString(handoff.sliceRef), 'handoff.sliceRef must be a string or null')
-  pushError(errors, isNonEmptyString(handoff.intendedBranch), 'handoff.intendedBranch is required')
+  pushError(
+    errors,
+    isBranchName(handoff.intendedBranch),
+    'handoff.intendedBranch must be a valid literal Git branch name'
+  )
   pushError(errors, isSha(handoff.expectedBaseMainSha), 'handoff.expectedBaseMainSha is invalid')
   pushError(errors, isIssueArray(handoff.blockerIds), 'handoff.blockerIds must be issue identifiers')
   pushError(

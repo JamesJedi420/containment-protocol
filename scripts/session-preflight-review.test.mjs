@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+import { spawnSafe } from './validation/spawn-safe.mjs'
 import { evaluateSessionPreflight } from './session-preflight-core.mjs'
 import {
   collectGitHubEvidence,
@@ -13,6 +16,75 @@ import {
   baseInput,
   reasonCodes,
 } from './session-preflight-test-fixtures.mjs'
+
+test('intended branch syntax fails closed and agrees with Git for literal names', () => {
+  const invalid = [
+    '',
+    'codex/bad..branch',
+    'codex/has space',
+    '-branch',
+    'HEAD',
+    '/branch',
+    'branch/',
+    'codex//branch',
+    '.hidden',
+    'codex/.hidden',
+    'branch.',
+    'branch.lock',
+    'codex/branch.lock/child',
+    'branch@{1}',
+    'branch~1',
+    'branch^',
+    'branch:name',
+    'branch?',
+    'branch*',
+    'branch[1]',
+    'branch\\child',
+    'branch\tname',
+    'branch\nname',
+    'branch\u007f',
+  ]
+  const valid = ['main', 'codex/fix', 'codex/nested/fix', 'codex/修正', 'codex/a./b', '@']
+  for (const branch of [null, undefined, {}, [], '@{-1}']) {
+    const result = evaluateSessionPreflight(baseInput({ handoff: { intendedBranch: branch } }))
+    assert.equal(result.status, 'unknown')
+    assert.ok(reasonCodes(result).includes('invalid_input'))
+  }
+  for (const [names, expected] of [
+    [invalid, false],
+    [valid, true],
+  ]) {
+    for (const branch of names) {
+      const git = spawnSafe('git', ['check-ref-format', '--branch', branch], { encoding: 'utf8' })
+      assert.ifError(git.error)
+      assert.equal(git.status === 0, expected, `Git syntax: ${JSON.stringify(branch)}`)
+      for (const executionMode of ['local-checkout', 'codex-managed-worktree']) {
+        const result = evaluateSessionPreflight(
+          baseInput({
+            executionMode,
+            handoff: { intendedBranch: branch },
+            ...(executionMode === 'codex-managed-worktree'
+              ? { git: { currentBranch: null, detachedHead: true } }
+              : {}),
+          })
+        )
+        assert.equal(result.status, expected ? 'ready' : 'unknown', JSON.stringify(branch))
+        if (!expected) assert.ok(reasonCodes(result).includes('invalid_input'))
+      }
+    }
+  }
+})
+
+test('standard Windows GitHub CLI installation launches through the real collector runner', (t) => {
+  if (process.platform !== 'win32') return t.skip('Windows installation integration check')
+  const installed =
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'GitHub CLI', 'gh.exe')
+  if (!installed || !existsSync(installed)) return t.skip('Standard GitHub CLI installation absent')
+  const result = spawnSafe('gh', ['--version'], { encoding: 'utf8', timeout: 10000 })
+  assert.ifError(result.error)
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /^gh version /)
+})
 
 function collectorResponses(prOutput = '[]') {
   return new Map([

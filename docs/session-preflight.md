@@ -32,6 +32,8 @@ The command writes one JSON result to standard output.
 
 Arbitrary file-path arguments are not accepted. Use standard input so the tool does not become a repository handoff store.
 
+On Windows, the trusted executable search includes the standard GitHub CLI installation at `%ProgramFiles%\GitHub CLI`. The collector still uses a fixed search path and never invokes a shell.
+
 ## Version 1 input
 
 The top-level envelope carries:
@@ -48,6 +50,8 @@ The top-level envelope carries:
 - `git`: source-attributed local checkout/worktree evidence.
 
 Every timestamp must end in `Z` or an explicit numeric offset such as `-06:00`. Ambiguous local timestamps are rejected.
+
+`handoff.intendedBranch` must be a valid literal Git branch name. Invalid names (including spaces, `..`, `.lock` components, and `HEAD`) return `unknown` as malformed input before readiness evaluation. Checkout-history expressions such as `@{-1}` are rejected rather than resolved from local history. Nested and Unicode branch names remain supported.
 
 With `--collect-local`, the caller may omit current GitHub open-PR and Git observations; the command replaces them with fresh read-only observations. Linear evidence remains caller supplied because SPE-3337 does not introduce another Linear transport or credential path. Supplied `implementationEvidence` is preserved rather than replaced with an invented negative result.
 

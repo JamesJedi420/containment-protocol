@@ -44,7 +44,8 @@ function getManualChunk(id: string) {
   return undefined
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === 'pages' ? '/containment-protocol/' : '/',
   plugins: [react(), tailwindcss()],
   build: {
     rolldownOptions: {
@@ -75,4 +76,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

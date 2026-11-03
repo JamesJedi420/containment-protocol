@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { InPageLink } from '../../components/InPageLink'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   getBestContractTeamSuggestion,
@@ -166,12 +167,12 @@ export default function CasesPage() {
   return (
     <section className="space-y-4">
       <nav className="skip-links" aria-label="Cases keyboard shortcuts">
-        <a href="#cases-filters" className="skip-link">
+        <InPageLink targetId="cases-filters" className="skip-link">
           Skip to case filters
-        </a>
-        <a href="#cases-results" className="skip-link">
+        </InPageLink>
+        <InPageLink targetId="cases-results" className="skip-link">
           Skip to case results
-        </a>
+        </InPageLink>
       </nav>
 
       <article
@@ -404,6 +405,7 @@ export default function CasesPage() {
 
       <article
         id="cases-filters"
+        tabIndex={-1}
         className="panel panel-primary space-y-4"
         role="region"
         aria-label="Case filters"
@@ -555,7 +557,13 @@ export default function CasesPage() {
         <p className="text-xs text-amber-200/90">⚠ {CASES_GUIDANCE.stageWarning}</p>
       </article>
 
-      <div id="cases-results" className="space-y-3" role="region" aria-label="Case triage queue">
+      <div
+        id="cases-results"
+        tabIndex={-1}
+        className="space-y-3"
+        role="region"
+        aria-label="Case triage queue"
+      >
         {cases.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
             <ul className="space-y-2" aria-label="Triage list">

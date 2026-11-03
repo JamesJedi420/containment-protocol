@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { InPageLink } from '../../components/InPageLink'
 import { toSearchString } from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { type AgentRole, type GameState } from '../../domain/models'
@@ -98,18 +99,18 @@ export default function TeamsPage() {
   return (
     <section className="space-y-6">
       <nav className="skip-links" aria-label="Teams keyboard shortcuts">
-        <a href="#teams-builder" className="skip-link">
+        <InPageLink targetId="teams-builder" className="skip-link">
           Skip to squad builder
-        </a>
-        <a href="#teams-filters" className="skip-link">
+        </InPageLink>
+        <InPageLink targetId="teams-filters" className="skip-link">
           Skip to team filters
-        </a>
-        <a href="#teams-results" className="skip-link">
+        </InPageLink>
+        <InPageLink targetId="teams-results" className="skip-link">
           Skip to team results
-        </a>
+        </InPageLink>
       </nav>
 
-      <article id="teams-builder" className="panel panel-primary space-y-4 p-4">
+      <article id="teams-builder" tabIndex={-1} className="panel panel-primary space-y-4 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold">Squad builder</h2>
@@ -192,6 +193,7 @@ export default function TeamsPage() {
 
       <header
         id="teams-filters"
+        tabIndex={-1}
         className="panel panel-primary space-y-4 p-4"
         role="region"
         aria-label="Team filters"
@@ -271,7 +273,7 @@ export default function TeamsPage() {
       </header>
 
       {teamViews.length > 0 ? (
-        <ul id="teams-results" className="space-y-4" aria-label="Team results">
+        <ul id="teams-results" tabIndex={-1} className="space-y-4" aria-label="Team results">
           {teamViews.map((view) => (
             <TeamCard
               key={view.team.id}
@@ -287,6 +289,7 @@ export default function TeamsPage() {
       ) : (
         <div
           id="teams-results"
+          tabIndex={-1}
           className="panel panel-support space-y-3 p-4"
           role="region"
           aria-label="No matching teams"

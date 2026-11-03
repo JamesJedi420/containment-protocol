@@ -86,6 +86,8 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                               |
 | `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks). |
 | `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                         |
+| `npm run session:preflight`               | Evaluate a versioned SPE-3337 evidence envelope from stdin and return `ready`/`blocked`/`unknown`; see [`docs/session-preflight.md`](docs/session-preflight.md). |
+| `npm run verify:session-preflight`        | Run the focused read-only preflight test suite.                                                              |
 | `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                             |
 
 `npm run build` is currently a diagnostic TypeScript/project-build check, **not yet a blocking pull-request or release gate**. Known repository-wide type-contract drift is being repaired under [SPE-3375](https://linear.app/spectranoir/issue/SPE-3375); successful Vite development and test runs do not establish that the production build is green.

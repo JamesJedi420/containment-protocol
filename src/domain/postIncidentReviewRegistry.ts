@@ -630,7 +630,9 @@ function parseMilestoneTimings(value: unknown): PostIncidentMilestoneTimings | u
     return undefined
   }
 
-  const timings: PostIncidentMilestoneTimings = {}
+  const timings: {
+    -readonly [K in keyof PostIncidentMilestoneTimings]?: PostIncidentMilestoneTimings[K]
+  } = {}
   let hasValue = false
 
   for (const field of MILESTONE_WEEK_FIELDS) {

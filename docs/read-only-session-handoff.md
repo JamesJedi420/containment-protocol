@@ -22,9 +22,11 @@ Copy the block below into the session's final handoff or an already-authorized d
 ```markdown
 ## Read-only session handoff
 
-- Session mode: read-only
-- Session type: review | docs | harvest-triage
-- Workstream: CP-core | Academy | shared-system | cross-project
+### Session metadata
+
+- **Session mode**: read-only
+- **Session type**: review | docs | harvest-triage
+- **Workstream**: CP-core | Academy | shared-system | cross-project
 - Recorded at / evidence snapshot: <ISO date, source revision or "unknown">
 - Linear writes: none
 - Repository / external writes: none
@@ -56,29 +58,29 @@ Copy the block below into the session's final handoff or an already-authorized d
 
 ### Phase progression map (ChatGPT candidate governance)
 
-| Phase                                                           | Status                                                                       | Evidence                                                                        | Blocker                                             | Next actor                                 |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------ |
-| Phase 1 — design and decomposition                              | <not started; prepared — approval pending; authorized approval verified; not applicable>   | <specific decision/approval link or none>                                       | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
-| Phase 2 — parent reconciliation                                 | <not started; prepared — approval pending; authorized approval verified; not applicable>   | <specific parent disposition and approval link or none>                         | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
-| Phase 3 — child/support reconciliation and contradiction review | <not started; prepared — approval pending; authorized approval verified; not applicable>   | <specific dispositions, contradiction-review result, and approval link or none> | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
-| Phase 4 — authorized Linear application                         | <not authorized; approved — pending apply; verified applied; not applicable> | <approval reference and verified Linear changes or none>                        | <unapproved scope, missing write evidence, or none> | <ChatGPT / human / other authorized actor> |
+| Phase                                                           | Status                                                                                   | Evidence                                                                        | Blocker                                             | Next actor                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------ |
+| Phase 1 — design and decomposition                              | <not started; prepared — approval pending; authorized approval verified; not applicable> | <specific decision/approval link or none>                                       | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 2 — parent reconciliation                                 | <not started; prepared — approval pending; authorized approval verified; not applicable> | <specific parent disposition and approval link or none>                         | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 3 — child/support reconciliation and contradiction review | <not started; prepared — approval pending; authorized approval verified; not applicable> | <specific dispositions, contradiction-review result, and approval link or none> | <unresolved prerequisite or none>                   | <ChatGPT / human / other authorized actor> |
+| Phase 4 — authorized Linear application                         | <not authorized; approved — pending apply; verified applied; not applicable>             | <approval reference and verified Linear changes or none>                        | <unapproved scope, missing write evidence, or none> | <ChatGPT / human / other authorized actor> |
 
 ### Next-phase pre-condition check (ChatGPT candidate governance; read-only)
 
-- Current phase / phase work: <Phase X; prepared, complete or blocked; exact evidence/revision link or unknown>
-- Phase X authorized approval: <verified user decision or independently verified scoped delegate decision and reference; pending/invalid/unknown>
-- Unresolved blockers: <none with evidence, or specific blocking issue/contradiction/authority gap>
-- Phase 3 contradiction review: <matrix/review link and complete/incomplete/not applicable with reason; unresolved blocking findings or none>
-- Next phase: <Phase Y / no applicable phase, with disposition rationale>
-- Next phase allowed: <yes / no — exact reason; unverified authorization is no>
-- Phase 4 state, if applicable: <not authorized / authorized — apply pending / verified applied with actual Linear result>
+- **Current phase / phase work**: <Phase X; prepared, complete or blocked; exact evidence/revision link or unknown>
+- **Phase X authorized approval**: <verified user decision or independently verified scoped delegate decision and reference; pending/invalid/unknown>
+- **Unresolved blockers**: <none with evidence, or specific blocking issue/contradiction/authority gap>
+- **Phase 3 contradiction review**: <matrix/review link and complete/incomplete/not applicable with reason; unresolved blocking findings or none>
+- **Next phase**: <Phase Y / no applicable phase, with disposition rationale>
+- **Next phase allowed**: <yes / no — exact reason; unverified authorization is no>
+- **Phase 4 state, if applicable**: <not authorized / authorized — apply pending / verified applied with actual Linear result>
 
 ### Next authorized action
 
-- Owner: ChatGPT | Cursor | human <role if relevant>
-- Action: <specific read, decision, approval, or in-boundary execution; not an implied authorization>
-- Prerequisites / blockers: <approval, evidence, credentials, dependencies, or none>
-- Stop conditions: <unverified authority, changed issue boundary, stale or conflicting evidence, or none>
+- **Owner**: ChatGPT | Cursor | human <role if relevant>
+- **Action**: <specific read, decision, approval, or in-boundary execution; not an implied authorization>
+- **Prerequisites / blockers**: <approval, evidence, credentials, dependencies, or none>
+- **Stop conditions**: <unverified authority, changed issue boundary, stale or conflicting evidence, or none>
 ```
 
 ## Phase-map interpretation
@@ -137,3 +139,7 @@ The `EXAMPLE-*` identifiers below are **fictional fixtures**, not registered can
 - Governance: ChatGPT Phase 1 **not approved**; next owner **ChatGPT**; next action: return the preliminary evidence for Phase 1 assessment and identify authorized durable staging as outstanding. Neither a completed harvest nor any Phase 2/3/4 or Linear mutation is authorized.
 
 These examples test all three session types, separation of inspected evidence from writes, ledger absence handling, actor-specific authorization, and fail-closed advancement. They do not establish a new validation service or registry.
+
+## Template structure check
+
+Run `npm run verify-read-only-handoff` to check the fenced template headings, required fields, metadata choices, no-write declarations and four phase-table rows. Use `npm run verify-read-only-handoff -- --stdin` to check template text supplied through stdin. File-path arguments are not accepted. This is a template regression check, not a completed-session validator: placeholders are intentional. It does not verify evidence links, actual approval, phase sequencing, candidate dispositions or live Linear state. Use the interpretation and consistency checks above for those judgments.

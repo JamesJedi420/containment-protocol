@@ -7,6 +7,9 @@
  * staging, retune kernel metrics, or register week-close / UI surfaces.
  */
 
+import { projectRoomPhysicalCondition } from './roomQualityFacilitySatisfaction'
+import type { RoomPhysicalCondition } from './roomQualityFacilitySatisfaction'
+
 export const LAYOUT_ARCHETYPES = [
   'compact_headquarters',
   'distributed_campus',
@@ -479,6 +482,8 @@ export function summarizeLayoutForDebug(input: unknown): LayoutDebugSummary | un
 export interface FacilityLayoutRoomRecord {
   readonly roomId: FacilityRoomId
   readonly adjacentToCritical: boolean
+  /** SPE-2910: optional SPE-1060-owned physical condition for this authored room. */
+  readonly physicalCondition?: RoomPhysicalCondition
 }
 
 /**
@@ -534,21 +539,37 @@ function parseZoneAdjacencies(value: unknown): readonly ZoneAdjacencyEdge[] {
 
 function parseRoomRecords(value: unknown): readonly FacilityLayoutRoomRecord[] {
   if (!Array.isArray(value)) return Object.freeze([])
-  const chosen = new Map<FacilityRoomId, boolean>()
+  const chosen = new Map<
+    FacilityRoomId,
+    { readonly adjacentToCritical: boolean; readonly physicalCondition?: RoomPhysicalCondition }
+  >()
   for (const entry of value) {
     if (!isRecord(entry)) continue
     if (!hasOwn(entry, 'roomId') || !hasOwn(entry, 'adjacentToCritical')) continue
     if (!isFacilityRoomId(entry.roomId)) continue
     if (typeof entry.adjacentToCritical !== 'boolean') continue
     if (chosen.has(entry.roomId)) continue
-    chosen.set(entry.roomId, entry.adjacentToCritical)
+    const physicalCondition = hasOwn(entry, 'physicalCondition')
+      ? projectRoomPhysicalCondition(entry.physicalCondition)
+      : undefined
+    chosen.set(entry.roomId, {
+      adjacentToCritical: entry.adjacentToCritical,
+      ...(physicalCondition !== undefined ? { physicalCondition } : {}),
+    })
   }
   const next: FacilityLayoutRoomRecord[] = []
   for (const roomId of FACILITY_ROOM_IDS) {
-    if (!chosen.has(roomId)) continue
-    const adjacentToCritical = chosen.get(roomId)
-    if (adjacentToCritical === undefined) continue
-    next.push(Object.freeze({ roomId, adjacentToCritical }))
+    const record = chosen.get(roomId)
+    if (record === undefined) continue
+    next.push(
+      Object.freeze({
+        roomId,
+        adjacentToCritical: record.adjacentToCritical,
+        ...(record.physicalCondition !== undefined
+          ? { physicalCondition: record.physicalCondition }
+          : {}),
+      })
+    )
   }
   return Object.freeze(next)
 }

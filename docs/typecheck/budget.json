@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "occurrences": 635,
+  "fingerprints": 430,
+  "files": 170,
+  "revision": "9f718fce65f46803297e2de1c32e5ae893f33830",
+  "capturedAt": "2026-11-02",
+  "typescriptVersion": "6.0.3",
+  "nodeVersion": "26.13.0"
+}

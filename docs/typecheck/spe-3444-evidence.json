@@ -1,0 +1,386 @@
+{
+  "owner": "SPE-3444",
+  "before": {
+    "schemaVersion": 1,
+    "revision": "326c65b4d33c41854702fcb3e9c3d02b19ddbd57",
+    "compilerInputHash": "f8f6831c3f6187312cd89e38b9496465430f1544acd0fc8703aa0bbfce847f06",
+    "workingTreeStatus": "",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "packageLockHash": "343c2c43269fad75b2f81994f2c1943d470edda433528766cc3d26028c140016",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "1b688bf91c3bb2448255c631710e5cbece62d7653c58e81b94571a232e6ace15"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "1b688bf91c3bb2448255c631710e5cbece62d7653c58e81b94571a232e6ace15"
+      }
+    ],
+    "reproducible": true,
+    "summary": {
+      "occurrences": 635,
+      "uniqueIdentities": 430,
+      "repeatedIdentityOccurrences": 205,
+      "exactDuplicateOccurrences": 0,
+      "files": 170,
+      "byProject": {
+        "tsconfig.app.json": 635
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 166,
+        "TS2339": 75,
+        "TS2344": 2,
+        "TS2345": 175,
+        "TS2352": 53,
+        "TS2353": 39,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 2,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS4104": 1,
+        "TS6133": 6,
+        "TS7006": 9
+      },
+      "bySurface": {
+        "production-source": 172,
+        "test-fixture": 463
+      }
+    }
+  },
+  "after": {
+    "schemaVersion": 1,
+    "revision": "0de8204fabe9a3d9ac2930e90b84801b436c32c5",
+    "compilerInputHash": "a0fd126fb9c7a94219738c0779b7b3c2ba25515fec6ce852e41d6305648a821b",
+    "workingTreeStatus": "",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "packageLockHash": "343c2c43269fad75b2f81994f2c1943d470edda433528766cc3d26028c140016",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "d0832049c2c6177ac28c78d3f2cdc33b0314a5e106ba387d204dae1992b77b9f"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "d0832049c2c6177ac28c78d3f2cdc33b0314a5e106ba387d204dae1992b77b9f"
+      }
+    ],
+    "reproducible": true,
+    "summary": {
+      "occurrences": 581,
+      "uniqueIdentities": 397,
+      "repeatedIdentityOccurrences": 184,
+      "exactDuplicateOccurrences": 0,
+      "files": 166,
+      "byProject": {
+        "tsconfig.app.json": 581
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 166,
+        "TS2339": 50,
+        "TS2344": 2,
+        "TS2345": 147,
+        "TS2352": 53,
+        "TS2353": 39,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS4104": 1,
+        "TS6133": 6,
+        "TS7006": 9
+      },
+      "bySurface": {
+        "production-source": 172,
+        "test-fixture": 409
+      }
+    }
+  },
+  "removedOccurrences": 54,
+  "addedOccurrences": 0,
+  "identityDelta": [
+    {
+      "identity": "003d668f3044cffc8ff635ba90794ed4438973e276770828dd752cacc926d3a3",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "00a5f7bace2c7b41d1bc6ae7e92c516ec2c27653359a6e61c967d18424e591ab",
+      "change": -1,
+      "file": "src/test/facilitySectionStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "0175e4769da369dd9c41ce0dde47d2383afe3706ad9c7cbe0ee63b521b358833",
+      "change": -1,
+      "file": "src/test/facilitySectionStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "07bb5a7e84bf3dc9f7cd6422e81fa889a5352cd1f311a3265e7d09995b141fc9",
+      "change": -2,
+      "file": "src/test/facilityLayoutStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "0ef0ae1a540aef1a04f4b615434960edb7e54087e96866b8eda69ff2d8446e87",
+      "change": -2,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "11e0298288b0c9eff87815633e3096d6379fa54eaa7ea493f8ab92e9b475995e",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "1fa285cfbede44146ddc2bdb55a9c517076461d0da5e48dafe03a4e2a40545a3",
+      "change": -2,
+      "file": "src/test/departmentLocalStaging.contract.test.ts"
+    },
+    {
+      "identity": "26e0d9394514a3d92b9cbb956b73e83a19b6580d02eb9d208dd17d7e429b891f",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "3930df5ae57168fc2f4e29d39ddb386b6b07b5601d7eb2e7f36edb3be92d4f0f",
+      "change": -1,
+      "file": "src/test/facilityLayoutStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "4948ff91fecdd59ed8c44cacb9ca0e37869cafda46d90fa428aae620c00a8b82",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "4c7c92d48a7d91b02435b86397ccb7cc895896621afd9c844c18305b57339eea",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "554eb30812f1639a697c710787e8f7d3da678f90190b75a89dc1f2a370f703cc",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "67d79580eed8c2346e5e6ec5f3967e2b454ccf80e8c5dd062cb7312d56e9b015",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "75577933b4ba86a0c380020dbc175b97e39daa19a6609c57fe51ce6fdd11d078",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "79223817630b189fc5b36f516d0463e12e0670632e7515a4981420b95ed73e57",
+      "change": -7,
+      "file": "src/test/facilityLayoutStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "7f0e7f8ff6b77f5c84a837e654ce639df5deb2a682d72459f15ad13cfd16c2bc",
+      "change": -1,
+      "file": "src/test/facilitySectionStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "842e3898e39ffd1e827e5bef9198cffe8758cbf9f16a974882da34a1a74a14df",
+      "change": -1,
+      "file": "src/test/facilitySectionStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "861da913d33ee2c2324c0f32e49e8515c3513375b68c8d62867b059e6916159f",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "8d66cea048037de8b9406a5ce3bfc9d5bfc19571eda945e377994f5f0ec059aa",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "8f3e6e147528165c37beac38f6ff6719880fb382e4a7d3e6ab9410a3a68fcb69",
+      "change": -4,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "969ebbeed4a15f19f529d08a3629047a006f99f510e551eed1a115979983abdc",
+      "change": -4,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "979b7d27923f941d4d5c6af159e977857e25f9599de498acb17e0634b87bff1f",
+      "change": -2,
+      "file": "src/test/facilitySectionStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "9ae9568d84da26d4db28bb755fc0505d01dbe461f27044d8d45bfa2292edfa54",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "9c521a7e65c7497f61e275c5f1ecfe184dd420df1f324048dc178e9f752c6405",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "9e5056fd2387b43d9978474c79bf0df3f83abed38ffe69f0326a73dcbc24c18f",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "a2e35cc28bba476f66b888ea34fc3975b15e03408d8668f99bd3e79644d92cb4",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "a5f9fea2e02beb796b203c52fef29b22feb99557300f0bf18741d8e5296a3772",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "b171e18f2a23910b2168cc9cc10c757e51443ea2669d64e3f36ab0585a17ff3b",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "baf072a5a9a236d5d04d24b4db37733ad8541fc55c1f96054008412d426916af",
+      "change": -2,
+      "file": "src/test/departmentLocalStaging.contract.test.ts"
+    },
+    {
+      "identity": "d07e1d364ad486ad3fe76c658176ff046ed779f2c431b5db59720e587df8b200",
+      "change": -1,
+      "file": "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts"
+    },
+    {
+      "identity": "e3511742bfd1660d8344c1fbd40872b2f8c0e6be104f8372b6f1ac849c79c07c",
+      "change": -2,
+      "file": "src/test/facilityLayoutStagingProjection.contract.test.ts"
+    },
+    {
+      "identity": "efa00fcb149b5dd5c890aafb3c1e7ff48031ef9b40101f3cfda9965fbb33c8da",
+      "change": -1,
+      "file": "src/test/departmentWorkshopPersistence.test.ts"
+    },
+    {
+      "identity": "f1633c4fc14badb2b477113cdfd98fe094c25a62d9b98f76b2a12fd398eab60b",
+      "change": -4,
+      "file": "src/test/departmentLocalStaging.contract.test.ts"
+    }
+  ],
+  "remainingPersistenceDiagnostics": [
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 705,
+      "column": 34,
+      "code": "TS2345",
+      "message": "Argument of type '{ gameOver: boolean; cases: { [x: string]: CaseInstance | { departmentWorkshopCompletionWorkOrderIds: string[]; departmentWorkshopFinalizationRequest: { finalRecipeId: string; requiredWorkOrderIds: string[]; }; ... 72 more ...; lifecycleBreachReadinessDueWeek?: number; }; }; ... 175 more ...; globalFlags?: Record<st...' is not assignable to parameter of type 'GameState'.\n  Types of property 'departmentWorkshopCompletionOutcomes' are incompatible.\n    Type '{ 'work:trusted': { workOrderId: string; departmentId: string; caseId: string; taskType: \"containment_response\"; completedWeek: number; outcome: \"completed\"; }; 'work:forged': { workOrderId: string; ... 4 more ...; outcome: \"completed\"; }; }' is not assignable to type 'DepartmentWorkshopCompletionOutcomeRegistry'.\n      Property ''work:trusted'' is incompatible with index signature.\n        Type '{ workOrderId: string; departmentId: string; caseId: string; taskType: \"containment_response\"; completedWeek: number; outcome: \"completed\"; }' is missing the following properties from type 'DepartmentWorkshopCompletionOutcome': quality, safety",
+      "identity": "e19c534e9a37128db6d7021ca60fb1aba305c85d1ddd46380c84f96292755e58",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 1978,
+      "column": 12,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 1981,
+      "column": 37,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 2056,
+      "column": 12,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 2059,
+      "column": 36,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 2134,
+      "column": 12,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    },
+    {
+      "project": "tsconfig.app.json",
+      "file": "src/test/departmentWorkshopPersistence.test.ts",
+      "line": 2137,
+      "column": 30,
+      "code": "TS18048",
+      "message": "'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.",
+      "identity": "b9d9642c63e74160876f55b3eaad2790a5a6fa810f1ef0e29a70ecf81b6d08af",
+      "surface": "test-fixture"
+    }
+  ]
+}

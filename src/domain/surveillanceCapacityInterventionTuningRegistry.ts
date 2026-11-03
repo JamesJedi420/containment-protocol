@@ -584,7 +584,9 @@ function sanitizeHorizonOutcomes(value: unknown): InterventionHorizonOutcomes | 
     return undefined
   }
 
-  const next: Partial<InterventionHorizonOutcomes> = {}
+  const next: {
+    -readonly [K in keyof InterventionHorizonOutcomes]?: InterventionHorizonOutcomes[K]
+  } = {}
 
   for (const band of INTERVENTION_HORIZON_BANDS) {
     const outcome = value[band]

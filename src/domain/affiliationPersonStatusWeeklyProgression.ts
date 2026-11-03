@@ -104,20 +104,21 @@ export function advanceAffiliationPersonStatusRecordForWeek(
       entry.oathContractSigned
     )
 
+    const listPatches: Partial<Record<(typeof STRING_LIST_FIELDS)[number], readonly string[]>> = {}
+
+    for (const field of STRING_LIST_FIELDS) {
+      const merged = mergeStringEvidence(next[field], entry[field])
+      if (merged && !arraysEqual(next[field], merged)) {
+        listPatches[field] = merged
+      }
+    }
+
     const candidate: AffiliationPersonStatusRecord = {
       ...next,
       ...(backgroundCleared !== undefined ? { backgroundCleared } : {}),
       ...(trainingCompleted !== undefined ? { trainingCompleted } : {}),
       ...(oathContractSigned !== undefined ? { oathContractSigned } : {}),
-    }
-    const candidateWithLists = candidate as AffiliationPersonStatusRecord &
-      Partial<Record<(typeof STRING_LIST_FIELDS)[number], readonly string[]>>
-
-    for (const field of STRING_LIST_FIELDS) {
-      const merged = mergeStringEvidence(next[field], entry[field])
-      if (merged && !arraysEqual(next[field], merged)) {
-        candidateWithLists[field] = merged
-      }
+      ...listPatches,
     }
 
     if (

@@ -86,6 +86,8 @@ export function formatDepartmentWorkshopQualityReasonLabel(
       return 'Poor specialist condition'
     case 'poor_room_contamination':
       return 'Poor room contamination'
+    case 'poor_workshop_disorder':
+      return 'Poor workshop disorder'
     case 'poor_dependency_condition':
       return 'Poor dependency condition'
     case 'poor_equipment_condition':

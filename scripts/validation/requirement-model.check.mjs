@@ -8,6 +8,7 @@ import {
   detectMissingRequiredValidation,
   matchGlob,
   probeValidatorAvailability,
+  readPackageScripts,
   readRequirementRegistry,
   resolveValidationRequirements,
   validateRequirementRegistry,
@@ -25,6 +26,35 @@ test('canonical registry validates', () => {
   assert.ok(registry.validators.some((v) => v.id === 'requirements-model-tests'))
 })
 
+test('every registered npm invocation exists in package.json', () => {
+  // A registry entry may name a script via npmScript/ciNpmScript or a command,
+  // but a named npm script that is absent is silently unrunnable. Catch it here
+  // instead of discovering it only when the validator is selected.
+  // An empty scripts map must not pass vacuously: readPackageScripts() throws on
+  // an unreadable package.json, but returns {} when the scripts key is absent.
+  const scripts = readPackageScripts()
+  assert.ok(
+    scripts && Object.keys(scripts).length > 0,
+    'package.json exposes no scripts — the dangling-script assertion would pass vacuously'
+  )
+  const dangling = []
+  for (const validator of registry.validators) {
+    for (const field of ['npmScript', 'ciNpmScript']) {
+      const name = validator[field]
+      if (name && !scripts[name]) dangling.push(`${validator.id}.${field}=${name}`)
+    }
+  }
+  assert.deepEqual(dangling, [], `dangling npm invocations: ${dangling.join(', ')}`)
+})
+
+test('architecture-index resolves through its command, not a phantom npm script', () => {
+  const entry = registry.validators.find((v) => v.id === 'architecture-index')
+  assert.ok(entry, 'architecture-index must stay registered')
+  assert.equal(entry.npmScript, undefined)
+  assert.equal(entry.command, 'node scripts/verify-architecture-index.mjs')
+  assert.equal(probeValidatorAvailability(entry, readPackageScripts()), 'available')
+})
+
 test('glob matcher is deterministic for ** and *', () => {
   assert.equal(matchGlob('src/domain/foo.ts', 'src/**'), true)
   assert.equal(matchGlob('docs/governance/x.json', 'docs/governance/**'), true)
@@ -37,7 +67,7 @@ test('glob matcher is deterministic for ** and *', () => {
 test('docs-only change selects audits-index and format-check; not unit-tests', () => {
   const resolution = resolveValidationRequirements(
     ['docs/design-audits-index.md', 'docs/some-feature-audit.md'],
-    registry,
+    registry
   )
   assert.ok(resolution.classification.activeClasses.includes('docs'))
   assert.ok(resolution.requiredIds.includes('audits-index'))
@@ -58,7 +88,7 @@ test('planning-only change requires backlog-handoff', () => {
   const resolution = resolveValidationRequirements(['planning/backlog.md'], registry)
   assert.deepEqual(
     resolution.requiredIds.filter((id) => id === 'backlog-handoff'),
-    ['backlog-handoff'],
+    ['backlog-handoff']
   )
   assert.ok(!resolution.requiredIds.includes('unit-tests'))
   assert.ok(!resolution.requiredIds.includes('governance-contract'))
@@ -67,7 +97,7 @@ test('planning-only change requires backlog-handoff', () => {
 test('governance-only change requires governance-contract without absorbing SPE-3271', () => {
   const resolution = resolveValidationRequirements(
     ['docs/governance/authority-contract.v1.json', 'scripts/governance/authority-contract.mjs'],
-    registry,
+    registry
   )
   assert.ok(resolution.requiredIds.includes('governance-contract'))
   const gov = resolution.selected.find((s) => s.id === 'governance-contract')
@@ -76,20 +106,64 @@ test('governance-only change requires governance-contract without absorbing SPE-
 })
 
 test('application change requires lint + unit-tests; playwright advisory', () => {
-  const resolution = resolveValidationRequirements(
-    ['src/features/teams/TeamsPage.tsx'],
-    registry,
-  )
+  const resolution = resolveValidationRequirements(['src/features/teams/TeamsPage.tsx'], registry)
   assert.ok(resolution.requiredIds.includes('lint'))
   assert.ok(resolution.requiredIds.includes('unit-tests'))
   assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
   assert.ok(!resolution.requiredIds.includes('playwright-e2e'))
 })
 
+test('application, shared-config, academy, and Vite entry changes require the bundle build gate', () => {
+  for (const file of [
+    'src/features/teams/TeamsPage.tsx',
+    'package.json',
+    'app.vite.config.ts',
+    'academy/content/courses.json',
+    'src/domain/academy/catalog.ts',
+    'index.html',
+    'src/main.tsx',
+  ]) {
+    const resolution = resolveValidationRequirements([file], registry)
+    assert.ok(
+      resolution.requiredIds.includes('vite-build'),
+      `expected vite-build required for ${file}`
+    )
+  }
+})
+
+test('index.html-only change requires the bundle gate without widening other validators', () => {
+  const resolution = resolveValidationRequirements(['index.html'], registry)
+  assert.deepEqual(resolution.requiredIds, ['vite-build'])
+  assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
+})
+
+test('bundle build gate stays inactive for docs and planning-only changes', () => {
+  for (const files of [['docs/agent-session-handoff.md'], ['planning/backlog.md']]) {
+    const resolution = resolveValidationRequirements(files, registry)
+    assert.ok(!resolution.selected.some((s) => s.id === 'vite-build'))
+  }
+})
+
+test('bundle build gate is additive and does not replace the full tsc build', () => {
+  const scripts = readPackageScripts()
+  assert.match(scripts.build, /^tsc -b && vite build/)
+  assert.equal(
+    scripts['build:bundle'],
+    'vite build --config app.vite.config.ts --configLoader native'
+  )
+  const entry = registry.validators.find((v) => v.id === 'vite-build')
+  assert.ok(entry, 'vite-build must stay registered')
+  assert.equal(entry.enforcement, 'required')
+  assert.equal(entry.whenUnavailable, 'fail')
+  assert.equal(entry.npmScript, 'build:bundle')
+  assert.deepEqual(entry.activation.changeClasses, ['application', 'shared-config', 'academy'])
+  assert.deepEqual(entry.activation.pathGlobs, ['index.html', 'src/main.ts', 'src/main.tsx'])
+})
+
 test('e2e harness change promotes playwright-e2e to required', () => {
   const resolution = resolveValidationRequirements(
     ['e2e/cp-smoke.spec.ts', 'playwright.config.ts'],
-    registry,
+    registry
   )
   assert.ok(resolution.requiredIds.includes('playwright-e2e'))
   assert.ok(resolution.requiredIds.includes('lint'))
@@ -106,7 +180,7 @@ test('player-critical Front Desk / Advance Week / persist promote playwright-e2e
     const resolution = resolveValidationRequirements([file], registry)
     assert.ok(
       resolution.requiredIds.includes('playwright-e2e'),
-      `expected playwright-e2e required for ${file}`,
+      `expected playwright-e2e required for ${file}`
     )
   }
 })
@@ -127,7 +201,7 @@ test('smoke-path Cases / Agents / Recruitment / Agency / Containment promote pla
     const resolution = resolveValidationRequirements([file], registry)
     assert.ok(
       resolution.requiredIds.includes('playwright-e2e'),
-      `expected playwright-e2e required for ${file}`,
+      `expected playwright-e2e required for ${file}`
     )
   }
 })
@@ -135,7 +209,7 @@ test('smoke-path Cases / Agents / Recruitment / Agency / Containment promote pla
 test('non-critical feature UI keeps playwright-e2e advisory', () => {
   const resolution = resolveValidationRequirements(
     ['src/features/factions/FactionsPage.tsx'],
-    registry,
+    registry
   )
   assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
   assert.ok(!resolution.requiredIds.includes('playwright-e2e'))
@@ -144,7 +218,7 @@ test('non-critical feature UI keeps playwright-e2e advisory', () => {
 test('academy content change selects SPE-3304 owner without copying its rules', () => {
   const resolution = resolveValidationRequirements(
     ['academy/content/courses.json', 'src/domain/academy/catalog.ts'],
-    registry,
+    registry
   )
   assert.ok(resolution.requiredIds.includes('academy-authored-content'))
   const academy = resolution.selected.find((s) => s.id === 'academy-authored-content')
@@ -164,12 +238,13 @@ test('mixed workstream change unions validators deterministically', () => {
   assert.deepEqual(a.requiredIds, b.requiredIds)
   assert.deepEqual(
     a.selected.map((s) => `${s.id}:${s.enforcement}`),
-    b.selected.map((s) => `${s.id}:${s.enforcement}`),
+    b.selected.map((s) => `${s.id}:${s.enforcement}`)
   )
   assert.ok(a.requiredIds.includes('unit-tests'))
   assert.ok(a.requiredIds.includes('backlog-handoff'))
   assert.ok(a.requiredIds.includes('governance-contract'))
   assert.ok(a.requiredIds.includes('playwright-e2e'))
+  assert.ok(a.requiredIds.includes('vite-build'))
 })
 
 test('explicit exception skips a selected validator', () => {
@@ -202,7 +277,7 @@ test('unavailable required academy validator is detected as missing required val
           status: 'passed',
           whenUnavailable: 'fail',
           enforcement: 'required',
-        },
+        }
   )
   const missing = detectMissingRequiredValidation(resolution, results)
   assert.equal(missing.length, 1)
@@ -222,7 +297,7 @@ test('missing required detection when required validator never executed', () => 
 test('classifyChangedFiles sorts files and classes stably', () => {
   const classification = classifyChangedFiles(
     ['planning/a.md', 'src/z.ts', 'docs/governance/c.json'],
-    registry,
+    registry
   )
   assert.deepEqual(classification.files, ['docs/governance/c.json', 'planning/a.md', 'src/z.ts'])
   assert.ok(classification.activeClasses.includes('application'))
@@ -240,7 +315,7 @@ test('CLI accepts --exclude=id equals form used by npm/CI', async () => {
       '--files=e2e/cp-smoke.spec.ts',
       '--exclude=playwright-e2e',
     ],
-    { encoding: 'utf8', cwd: process.cwd() },
+    { encoding: 'utf8', cwd: process.cwd() }
   )
   assert.equal(result.status, 0, result.stderr || result.stdout)
   assert.match(result.stdout, /required:/)
@@ -256,7 +331,7 @@ test('deleted application path still requires lint and unit-tests', () => {
 test('SPE mirror doc activates theme-contracts', () => {
   const resolution = resolveValidationRequirements(
     ['docs/linear-external-documentation-follow-ups.md'],
-    registry,
+    registry
   )
   assert.ok(resolution.requiredIds.includes('theme-contracts'))
 })
@@ -321,4 +396,17 @@ test('real spawn failure is described with its error code, not a signal', () => 
   assert.ok(result.error, 'expected a spawn error for a missing binary')
   assert.equal(result.status, null)
   assert.match(describeSpawnError(result.error), /^spawn [A-Z]+$/)
+})
+
+test('typecheck is advisory for application and compiler-input changes', () => {
+  for (const file of ['src/domain/foo.ts', 'tsconfig.app.json', 'docs/typecheck/budget.json']) {
+    const resolution = resolveValidationRequirements([file], registry)
+    const selected = resolution.selected.find((s) => s.id === 'typecheck')
+    assert.ok(selected, `expected typecheck selected for ${file}`)
+    assert.equal(selected.enforcement, 'advisory')
+    assert.ok(resolution.advisoryIds.includes('typecheck'))
+    assert.ok(!resolution.requiredIds.includes('typecheck'))
+  }
+  const docs = resolveValidationRequirements(['docs/agent-session-handoff.md'], registry)
+  assert.ok(!docs.selected.some((s) => s.id === 'typecheck'))
 })

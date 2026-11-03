@@ -48,6 +48,39 @@
   },
   "validators": [
     {
+      "id": "typecheck-census-tests",
+      "ownerIssue": "SPE-3376",
+      "ownerNote": "Diagnostic reporting integrity only; does not activate the production build gate.",
+      "command": "node scripts/typecheck-census.test.mjs",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": [
+          "scripts/report-typecheck.mjs",
+          "scripts/typecheck-census*.mjs",
+          "scripts/typecheck-advisory.mjs",
+          "docs/typecheck/**"
+        ]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "typecheck",
+      "ownerIssue": "SPE-3376",
+      "ownerNote": "Advisory census publication for the SPE-3375 recovery. SPE-3348 retains production-build enforcement authority; any required gate needs separate authorization; docs/typescript-debt-triage.md is a proposal.",
+      "command": "node scripts/typecheck-advisory.mjs",
+      "enforcement": "advisory",
+      "activation": {
+        "changeClasses": ["application", "shared-config", "academy"],
+        "pathGlobs": [
+          "scripts/report-typecheck.mjs",
+          "scripts/typecheck-census*.mjs",
+          "scripts/typecheck-advisory.mjs",
+          "docs/typecheck/**"
+        ]
+      },
+      "whenUnavailable": "report-unavailable"
+    },
+    {
       "id": "lint",
       "ownerIssue": "SPE-10",
       "ownerNote": "Organizational tooling container; lint command ownership is repository DX.",
@@ -68,6 +101,18 @@
       "activation": {
         "changeClasses": ["application", "shared-config", "academy"],
         "pathGlobs": ["src/test/**", "test/**"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "vite-build",
+      "ownerIssue": "SPE-3348",
+      "ownerNote": "Bundle-integrity gate only: Vite production bundling without tsc. The advisory typecheck census and the full npm run build (tsc -b && vite build) keep their existing authority; this gate does not replace or weaken either.",
+      "npmScript": "build:bundle",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["application", "shared-config", "academy"],
+        "pathGlobs": ["index.html", "src/main.ts", "src/main.tsx"]
       },
       "whenUnavailable": "fail"
     },
@@ -156,7 +201,6 @@
     {
       "id": "architecture-index",
       "ownerIssue": "SPE-10",
-      "npmScript": "verify:architecture-index",
       "command": "node scripts/verify-architecture-index.mjs",
       "enforcement": "advisory",
       "activation": {

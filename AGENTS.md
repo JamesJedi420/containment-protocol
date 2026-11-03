@@ -2,61 +2,18 @@
 
 ## Session handoff (read first)
 
-**Standing policy** is split three ways so new agents do not rely on an old chat:
+Read [the Agent Operating Manual](docs/agent-operating-manual.md) before substantive work. It consolidates the standing implementation, Linear, review, handoff, and harvest procedure. Current user governance and approved Linear boundaries remain authoritative; the manual and governance contract are projections, not new grants of authority.
 
-| Layer | What belongs there |
-| --- | --- |
-| **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
-| **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). Plugin keep-list: `docs/agent-cursor-plugins.md`. |
-| **Cursor autonomous authority** | `docs/cursor-autonomous-authority.md` + `.cursor/rules/cursor-autonomous-authority.mdc` — Cursor may reconcile/create Linear scope under safeguards; ChatGPT Phase 1–4 gates do not bind Cursor. |
-| **Agent capability quick reference** | [`docs/agent-capabilities.md`](docs/agent-capabilities.md) — non-authoritative summary of ChatGPT, Cursor, and Codex permissions; defer to canonical policy and actual tool access. |
-| **Linear + `planning/*-slice.md` + first message** | Active implementation task: issue link, slice doc, branch name, `main` SHA. Cursor may select or create the next bounded issue when continuation is expected. |
+- **Actor authority:** Cursor follows [its canonical autonomous authority](docs/cursor-autonomous-authority.md); ChatGPT uses its Phase 1–4 gates for backlog-shape mutations. Codex acts within its assigned authorized boundary. Verified existing-boundary lifecycle/evidence updates remain distinct.
+- **Loading:** retain tracked `.cursor/rules/*.mdc` entry points and their frontmatter. They direct agents to read the manual; links alone do not imply automatic editor loading. [User Rules snippets](docs/cursor-user-rules-snippet.md) remain pasteable entry points.
+- **Owned work:** Linear is mandatory for truthful scope, status, PR and merge evidence. Set an active implementation slice In Progress before substantive work; Done requires full acceptance, and parent completion is separate. Unowned read-only analysis needs no invented issue.
+- **Ship loop:** pre-ship audit → commit → push → PR → independent review, review fixes and green CI → merge → sync main. Honor explicit user limits. Resolve open PRs before the next slice under the tracked clean-main rule.
+- **Closeout:** use [phase A/B formats](docs/agent-session-closeout.md). After merge, sync main in-session and remind the user to start a new agent chat for the next task. Do not select or implement new scope in merge closeout.
+- **Response closeout:** every response ends with the next concrete step, or — when none exists — an explicit recommendation to archive the chat. Where closeout forbids new scope (phase A), recommend archiving instead.
+- **Handoffs:** [session routing](docs/agent-session-handoff.md), [read-only format](docs/read-only-session-handoff.md), and [implementation-only cloud-to-local Linear payload](docs/cloud-agent-linear-handoff.md) retain their distinct triggers. A GitHub linkback is not a Linear update.
+- **Tools:** [plugin keep-list](docs/agent-cursor-plugins.md) and [capability summary](docs/agent-capabilities.md); the latter is non-authoritative.
 
-### After you merge a PR (human)
-
-1. `git checkout main` and `git pull origin main`.
-2. **Start a new agent chat** before the next slice—not the thread that opened or babysat the merged PR.
-   Closing a response with neither a next step nor an archive recommendation violates § End of every response — next step or archive.
-3. First message: Linear issue, `planning/…-slice.md`, new branch name, confirm current `main` commit.
-
-Agents: when merge is complete, sync `main` in-session, then remind the user to **start a new agent** for the next task.
-
-### Linear — mandatory (every session, every agent)
-
-**Non-negotiable** for all agents (local, Cloud, background, subagents) and all task types: implementation, harvest reconciliation, PR babysit, reviews, and docs-only slices. Cursor loads **`.cursor/rules/linear-always-update.mdc`** and **`.cursor/rules/cloud-agent-linear-handoff.mdc`** (`alwaysApply: true`) on every session.
-
-Linear is the system of record for approved issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because an owned task feels "metadata only." An unowned review/docs analysis may remain read-only with no Linear mutation; do not manufacture an issue for bookkeeping.
-
-**Scope-mutation guardrail:** lifecycle/evidence updates on an existing boundary are always allowed. **Backlog-shape** mutations: **Cursor** may create/fold/reparent under `docs/cursor-autonomous-authority.md` safeguards (no ChatGPT Phase gate). **ChatGPT** still uses Phases 1–4. See `docs/governance/authority-contract.v1.json` and CP-GOV-009. Codex designations are preferences, not exclusive locks.
-
-| When | Action |
-| --- | --- |
-| **Before substantive owned work** | Set the owning slice **In Progress**. If durable scope has no owner, Cursor creates or folds a bounded Linear issue under autonomous-authority safeguards. |
-| **Unowned review/docs analysis** | May start read-only; when durable product scope is confirmed, Cursor creates/folds Linear ownership rather than leaving orphans. |
-| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Prefer existing owners; Cursor may create missing bounded owners when safeguards justify it. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**. |
-| **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
-| **PR opened** | Link the **approved slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
-| **Babysit → merge** | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`. |
-| **On merge** | Slice issue **Done** only when its full approved boundary is satisfied; evaluate the parent separately and keep its **truthful existing status** unless full parent completion is proven. |
-| **After merge** | Short Linear comment on the approved slice: PR URL + what shipped. |
-
-If Linear MCP is unavailable during an approved implementation merge, emit a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) once the approved plan is complete and the PR is merged. Do not emit it for planning-only/open PRs, unowned read-only reviews/docs, or harvest-only work. Do not treat GitHub as Linear closure.
-
-Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation. Also paste **`docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`** so Cloud Agent sessions leave a Linear apply block after an approved implementation merge.
-
-### During an open PR
-
-One session on the **same branch** is fine (implement, CI, review). New session when the task or merged PR changes.
-
-### End of every response — next step or archive
-
-**Non-negotiable** for every agent response (local, Cloud, subagent): close with a recommendation — the **next concrete step** (task, check, or handoff) — or, when there is genuinely none (work complete, blocked on a human, nothing left in boundary), an explicit recommendation to **archive the chat**. Never end on a bare status update with neither. Where `docs/agent-session-closeout.md` forbids a next-issue plan (phase A after PR open), recommend archiving instead.
-
-### Cloud / Move to local
-
-If checkout of a migrated branch fails (`couldn't find remote ref`), use updated **`main`** and a new branch; do not chase deleted remote branch names from old sessions.
-
-Whenever a Cloud Agent **implements a plan to completion and merges that PR**, it must provide a **local-agent Linear handoff** (`docs/cloud-agent-linear-handoff.md`) when Linear was not updated in-session. Planning-only and open PRs do not trigger it. Newly discovered durable scope should be listed as lifecycle notes plus any Cursor-authorized backlog-shape items already applied or still needed.
+Active task details belong in Linear, the relevant `planning/*-slice.md`, and the task message: issue, approved boundary, branch, and base/main SHA. Preserve the original checkout and other active worktrees when working in isolation.
 
 ---
 
@@ -67,22 +24,22 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 ### Running services
 
-| Service         | Command                          | Notes                                                               |
-| --------------- | -------------------------------- | ------------------------------------------------------------------- |
-| Dev server      | `npm run dev`                    | Vite on http://localhost:5173 with HMR                              |
-| Lint            | `npm run lint`                   | ESLint 10                                                           |
-| Tests           | `npm run test:run`               | Vitest (302 files, ~2700 tests, ~55s)                               |
-| Format check    | `npm run format:check`           | Prettier                                                            |
-| Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                   |
-| Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`    |
-| Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md` |
+| Service         | Command                          | Notes                                                                                                 |
+| --------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Dev server      | `npm run dev`                    | Vite on http://localhost:5173 with HMR                                                                |
+| Lint            | `npm run lint`                   | ESLint 10                                                                                             |
+| Tests           | `npm run test:run`               | Vitest; use the current run for counts and timing                                                     |
+| Format check    | `npm run format:check`           | Prettier                                                                                              |
+| Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                                                     |
+| Backlog handoff | `npm run verify:backlog-handoff` | `planning/backlog.md` ↔ `planning/backlog-handoff-manifest.json`                                      |
+| Theme contracts | `npm run verify:theme-contracts` | mirror SPE list ↔ `architecture/external-design-theme-contracts.md`                                   |
 | Req. validators | `npm run verify:requirements`    | SPE-3348 path→validator selection (local/CI parity); see `docs/repository-validation-requirements.md` |
 
 ### Non-obvious caveats
 
 - **`npm run build` currently has baseline TS errors outside dev-environment setup.** Treat those as known type-contract drift, not as production-ignored failures; fix them in scoped follow-up changes before using `build` as a deployment gate. They do not block tests or the dev server because Vite transpiles TypeScript without strict type checking.
 - **This repo is pinned to Vite 8 (`vite` `^8.0.1`) with the native config loader.** Type-only exports are stripped at the ESM boundary. If you import an `interface` or `type` alias as a value import, the dev server will throw `SyntaxError: does not provide an export named '...'`. Always use `import type { ... }` for type-only imports in source files that the Vite dev server loads.
-- **Tests use `--pool vmThreads`** locally and the `jsdom` environment. The full suite runs in ~55s locally. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
+- **Tests use `--pool vmThreads`** locally and the `jsdom` environment. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
 - **No environment variables or secrets** are required. The only optional env var is `STRICT_TEST_CONSOLE=1` (used in CI to fail on console warnings in tests).
 - **Node.js 22** is required (matches CI configuration in `.github/workflows/test.yml`).
 
@@ -94,10 +51,10 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 - **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI). Any stale backlog text that says to create a child/issue is non-authoritative unless the required governance approvals already authorize Phase 4.
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
-- **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
+- **New design audits:** when adding `docs/*audit*.md`, insert a dated status-table row in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
-- **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
+- **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste entry point from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
 - **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
 - **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-approved-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
 - **Deferred work:** same session — record in-boundary deferrals in the slice doc + existing owner comment. A new durable boundary: Cursor creates/folds Linear under `docs/cursor-autonomous-authority.md`; see `docs/agent-session-closeout.md` and `.cursor/rules/implementation-lite.mdc`.
@@ -170,3 +127,5 @@ Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 2. Cite file paths; explain **why** something fails acceptance.
 3. Prefer the smallest in-boundary fix when suggesting changes.
 4. Do not weaken tests, CI, or lint rules to pass.
+
+Read [Hermes shipping checkpoints](docs/hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

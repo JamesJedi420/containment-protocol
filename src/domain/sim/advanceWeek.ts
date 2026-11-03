@@ -94,6 +94,7 @@ import {
   sanitizeDepartmentWorkshopCompletionOutcomes,
 } from '../departmentWorkshopQueue'
 import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
+import { projectDepartmentWorkshopDisorderByDepartment } from '../departmentWorkshopDisorder'
 import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
 import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
 import {
@@ -5150,7 +5151,8 @@ export function advanceWeek(
     undefined,
     undefined,
     undefined,
-    specialistLaborGateInputs
+    specialistLaborGateInputs,
+    projectDepartmentWorkshopDisorderByDepartment(inputWeeklyState.facilityLayoutSnapshot)
   )
   outputWeeklyState.staffTimeAllocations = finishWorkshopStaffTimeWindow(
     inputWeeklyState,

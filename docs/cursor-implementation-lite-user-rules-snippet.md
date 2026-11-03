@@ -1,37 +1,9 @@
-# Cursor User Rules — implementation lite (paste into Settings → Rules)
+# Cursor User Rules — implementation lite (paste block)
 
-Paste this block into **Cursor → Settings → Rules → User Rules** for normal Containment Protocol implementation sessions. Tracked repo copy: `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`).
-
-Full detail: `AGENTS.md`. Authority: `docs/cursor-autonomous-authority.md`. Pre-ship audit: `docs/cursor-pre-ship-audit-user-rules-snippet.md`. Closeout: `docs/cursor-session-closeout-user-rules-snippet.md`.
+Paste the block below into **Cursor → Settings → Rules → User Rules**. This is a reading instruction, not a claim that linked Markdown auto-loads. Tracked repository rules remain in place with their existing loading metadata.
 
 ---
 
-## Containment Protocol — Implementation Lite
+Read docs/agent-operating-manual.md §§1–4 and follow the tracked .cursor/rules/implementation-lite.mdc entry point. Inspect the existing owner, summarize the boundary before edits, run all six audit passes, and complete commit/push/PR/review/CI/merge/main-sync unless the user explicitly limits the ship loop. Preserve actor-specific authority and truthful Linear lifecycle.
 
-### Source of truth
-
-Linear is authoritative for scope, status, and closure. GitHub provides implementation evidence. Cursor may create/fold Linear scope under autonomous-authority safeguards; ChatGPT Phase gates do not bind Cursor.
-
-Before coding: read the Linear issue, comments, parent/children, evidence, and slice doc. Treat Goal, Scope, Constraints, Acceptance as binding for the active boundary.
-
-### Scope discipline
-
-Implement the smallest coherent deterministic slice that satisfies the active issue.
-
-Do not:
-- expand the active PR past acceptance without updating Linear first;
-- create parallel systems;
-- rewrite unrelated code;
-- fix nearby issues unless required by acceptance;
-- close a parent because only one child shipped.
-
-New durable boundaries discovered mid-work: create or fold Linear ownership under safeguards; prefer a separate PR when the diff would bloat.
-
-### Deferred work
-
-- In-boundary deferral: slice doc + existing owner comment.
-- New durable boundary: Cursor Linear create/fold under `docs/cursor-autonomous-authority.md`.
-
-### Ship loop
-
-Pre-ship audit → commit → push → PR → independent review + bot triage + CI → merge → sync `main`. Do not end with only local files or an open unmerged PR unless the user says no commit / no PR / do not merge.
+Read [Hermes shipping checkpoints](hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

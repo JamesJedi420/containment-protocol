@@ -1,89 +1,14 @@
 # Agent session closeout (implementation)
 
-Canonical closeout after the **current approved slice** is committed, validated, and Linear lifecycle evidence is current. **Do not implement the next issue** in the same session.
-
-Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Paste duplicate: `docs/cursor-session-closeout-user-rules-snippet.md`.
-
----
+The shared procedure lives in [Agent Operating Manual §4](agent-operating-manual.md#4-ship-review-update-linear-and-close-out). This page retains the response formats. Tracked loader: [implementation-lite](../.cursor/rules/implementation-lite.mdc).
 
 ## Session order (mandatory)
 
-1. Pre-ship audit → commit → push → open PR → Linear PR comment (approved slice **In Progress**).
-2. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable.
-3. **`git checkout main` && `git pull origin main`** — agent syncs local `main` before closeout.
-4. Linear slice **Done** only when its full approved boundary is satisfied + merge comment.
-5. **Phase B closeout** — next-issue plan only when an already-approved next issue exists; otherwise stop and ask for the next approved Linear issue. **Do not** code the next issue in the merge closeout session. **Do not** perform candidate reconciliation in this closeout. Remind the human that a **new** Cursor session may assess/select/reconcile under canonical Cursor autonomous-authority safeguards when continuation is requested; do not set the next issue In Progress, reconcile candidates, or implement in merge closeout.
-
-**Next-issue implementation planning is phase B only** — after merge and local `main` sync, not while the PR is open, and only for already-approved issue scope (or a reminder that a later Cursor session may exercise its canonical autonomous selection authority).
-
-## Two phases (closeout format)
-
-| Phase | When | Agent does | Agent does **not** |
-| ----- | ---- | ---------- | ------------------- |
-| **A — Babysit blocked** | PR open; merge cannot complete in-session | Interim status, PR URL, CI/blocker | Next-issue plan; mark slice **Done** |
-| **B — After merge** | PR merged; current slice lifecycle updated when justified; local `main` synced | Plan an already-approved next issue, or stop and ask for one; remind that a **new** Cursor agent chat may use its canonical autonomous authority | Code the next issue; perform candidate reconciliation; create a new issue/child/parent from follow-up discovery; set a new issue In Progress under delegated authority in this closeout |
-
-Phase B reminder: **new agent chat** for the next approved slice (Linear URL, slice doc, branch name, `main` SHA). If there is no approved next slice, stop and ask for one. ChatGPT candidate-derived scope requires its Phase 1–4 approvals; Cursor may independently reconcile under `docs/cursor-autonomous-authority.md` in a **subsequent authorized session**, not in merge closeout.
-
----
-
-## After merge: next slice (phase B)
-
-When the current slice PR is **merged** and its approved boundary is satisfied:
-
-1. **Do not** start coding the next Linear issue in merge/babysit closeout; a requested next implementation starts in a separate agent session.
-2. If an **already-approved next issue** is explicitly identified by the authoritative queue/user, produce its implementation plan.
-3. If the only next work comes from a deferred row, review finding, or newly discovered durable boundary that is not already approved, preserve it as candidate input and report its current governance phase. Do **not** create or select a new issue merely to populate closeout.
-4. Remind the human: sync `main`, then **new agent chat** to implement the next approved slice.
-
-### Next-approved-issue plan content (research only)
-
-1. Issue ID and title
-2. Smallest correct implementation boundary
-3. Relevant files to inspect first
-4. Existing systems likely to reuse
-5. Risks and edge cases
-6. Required tests
-7. Required docs
-8. What not to change
-9. Proposed step-by-step implementation sequence
-
----
+Pre-ship audit → commit/push/PR → independent review and CI → merge → sync main → truthful Linear evidence → phase B. Phase A is an interim blocked/open-PR report. No next-issue implementation or candidate reconciliation in merge closeout; later Cursor continuation retains its canonical autonomous authority.
 
 ## Deferred work recording (mandatory)
 
-Agents do not retain deferred work across new chats. When something is **out of slice** or **left for later**, write it down in the **same session** before ending, but distinguish approved scope from candidate scope:
-
-| Where | What to write |
-| ----- | --------------- |
-| **Active slice doc** | `## Deferred` — item, existing approved owner if one truthfully owns it, one-line boundary, and whether it is in-boundary deferral or a new candidate. Never write “create child” as an instruction. |
-| **Linear existing owner** | Comment with mechanic/repo anchor only when the deferred work remains inside that already-approved boundary. |
-| **Candidate/reconciliation ledger** | New durable boundary, missing owner, contradiction, or scope expansion: provenance + candidate disposition + current approval phase. |
-| **Parent issue** | Keep **In Progress** / **Backlog** until its existing approved acceptance/completion rule is truly met. |
-| **This closeout block** | `Remaining risks or deferred work` must match the durable record and separate approved deferral from candidate scope. |
-
-Optional: add a **Backlog** row in `planning/backlog.md` only when the referenced issue already exists and the queue update itself is authorized. Do not turn a candidate into a backlog issue from closeout.
-
-**Do not** rely on: chat history, PR description only, GitHub linkback bots, or closeout text with no durable anchor.
-
-Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording.
-
----
-
-## Session rules (closeout)
-
-- Do not expand the current issue.
-- Do not implement the next issue.
-- Do not create a new Linear issue, child, parent, contradiction issue, relationship, or durable scope from deferred work or closeout.
-- ChatGPT-originated new or changed durable scope requires explicit Phase 1 → Phase 2 → Phase 3 (including contradiction review) → Phase 4 before backlog-shape mutation. Cursor follows `docs/cursor-autonomous-authority.md` instead; neither actor starts next-slice reconciliation or scope mutation during this merge closeout. Verified in-boundary lifecycle/evidence updates are separately permitted.
-- Do not create a parallel system when an existing system can absorb the approved work.
-- Do not mark the issue complete unless implemented and validated work satisfies the **full** issue boundary.
-- Keep parent issues open when this is only a child slice.
-- Prefer small, deterministic, testable changes.
-- Preserve old mistaken records and later corrections instead of overwriting them silently.
-- If Linear lifecycle updates are part of the workflow, apply the smallest accurate status change supported by validated evidence.
-
----
+Use manual §§1, 3–5: record in-boundary deferrals on the slice and existing owner; new boundaries follow the actor’s candidate/authority route. Closeout must match those durable records. No invented issue or silent parent closure to populate a handoff.
 
 ## Final response format (mandatory)
 
@@ -158,4 +83,6 @@ Handoff:
 - Agent already synced main in-session; prefer a new agent chat with Linear URL, slice doc, branch name, main SHA. Cursor may continue under autonomous authority when the user requests continuation.
 ```
 
-Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next issue. ChatGPT Phase gates do not bind Cursor (`docs/cursor-autonomous-authority.md`). **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).
+Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** report actual merge evidence and only an already-approved next-issue plan, if one exists. ChatGPT Phase gates do not bind Cursor (`docs/cursor-autonomous-authority.md`). **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).
+
+Read [Hermes shipping checkpoints](hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

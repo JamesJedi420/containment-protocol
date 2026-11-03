@@ -21,6 +21,8 @@ test('preflight implementation and canonical handoff docs select the focused val
     'scripts/session-preflight-core.mjs',
     'scripts/session-preflight.mjs',
     'scripts/session-preflight.test.mjs',
+    'scripts/validation/session-preflight-selection.check.mjs',
+    'scripts/validation/validators.v1.json',
     'docs/session-preflight.md',
     'docs/agent-session-handoff.md',
   ]) {

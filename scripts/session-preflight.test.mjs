@@ -58,6 +58,19 @@ test('matching issue and branch can resume its sole open pull request', () => {
   assert.equal(result.status, 'ready')
 })
 
+test('resume rejects a sole verified pull request owned by another issue', () => {
+  const result = evaluateSessionPreflight(
+    baseInput({
+      requestedOperation: 'resume',
+      linear: { status: 'In Progress', statusType: 'started' },
+      github: { openPullRequests: [matchingPullRequest({ issueId: 'SPE-100' })] },
+      git: { currentBranch: 'codex/spe-3337-session-preflight', headSha: OTHER_SHA },
+    })
+  )
+  assert.notEqual(result.status, 'ready')
+  assert.ok(reasonCodes(result).includes('pr_issue_mismatch'))
+})
+
 test('an open pull request blocks start, including the same issue', () => {
   const result = evaluateSessionPreflight(baseInput({ github: { openPullRequests: [matchingPullRequest()] } }))
   assert.equal(result.status, 'blocked')

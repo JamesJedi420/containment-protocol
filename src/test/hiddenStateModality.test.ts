@@ -42,7 +42,7 @@ import {
   detectionScanTierOrder,
   resolveScoutingWithCaseHiddenState,
 } from '../domain/revealPayloadScoutingIntegration'
-import { resolveScouting } from '../domain/scoutingResolution'
+import { resolveScouting, type ScoutingInput } from '../domain/scoutingResolution'
 import type { CaseInstance } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
 
@@ -53,10 +53,14 @@ const SCOUTING_INPUT = {
   gearTags: ['thermal-vision'],
 } as const
 
-const SCOUTING_LOW_CONCEALMENT = {
-  ...SCOUTING_INPUT,
-  anomalyConcealment: 0,
-} as const
+function createScoutingInput(anomalyConcealment: number = SCOUTING_INPUT.anomalyConcealment) {
+  return {
+    ...SCOUTING_INPUT,
+    anomalyConcealment,
+    teamTags: [...SCOUTING_INPUT.teamTags],
+    gearTags: [...SCOUTING_INPUT.gearTags],
+  } satisfies ScoutingInput
+}
 
 const SUBJECT = {
   exactIdentity: 'entity:chapel-wraith',
@@ -233,7 +237,9 @@ describe('hiddenStateModality (SPE-2281)', () => {
   })
 
   it('maps out-of-phase presence to authored out-of-phase layer', () => {
-    expect(hiddenStateModalityLayer('out_of_phase_presence')?.id).toBe('layer:authored-out-of-phase')
+    expect(hiddenStateModalityLayer('out_of_phase_presence')?.id).toBe(
+      'layer:authored-out-of-phase'
+    )
   })
 
   it('maps glamour overlay to authored glamour layer', () => {
@@ -255,7 +261,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('builds concealed-presence truth with modality layer ahead of scouting layers', () => {
     const caseData = createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
 
     expect(truth.present).toBe(true)
     expect(truth.concealmentLayers[0]?.id).toBe('layer:concealed-presence')
@@ -264,7 +270,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('blocks category on concealed presence until a modality layer is stripped', () => {
     const caseData = createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
 
     const blocked = resolveDetectionScan(truth, { family: 'category_pass' })
     expect(detectionScanTierOrder(blocked)).toEqual(['presence'])
@@ -280,7 +286,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       hiddenState: 'displaced',
       displacementTarget: 'sector-east-wing',
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
     const scan = resolveDetectionScan(truth, { family: 'category_pass' })
     const projected = applyFalsePositionScanProjection(scan, caseData)
 
@@ -307,7 +313,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: ['concealment'],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
     const scanInput = scoutingOutcomeToDetectionScanForCase(
       { outcome: 'success', revealed: true, withheld: false },
       caseData
@@ -326,7 +332,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: ['concealment'],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
     const scanInput = scoutingOutcomeToDetectionScanForCase(
       { outcome: 'strong', revealed: true, withheld: false },
       caseData
@@ -342,12 +348,12 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('produces distinct detection scans across the three modalities in one compose path', () => {
     const concealed = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] }),
     })
     const displaced = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'displaced',
@@ -355,7 +361,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const disguised = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -389,7 +395,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       hiddenState: 'hidden',
       tags: [MODALITY_SIGNATURE_MASK_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
     const scan = applySignatureMaskScanProjection(
       resolveDetectionScan(truth, { family: 'category_pass' })
     )
@@ -409,7 +415,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: [MODALITY_SIGNATURE_MASK_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
     const scanInput = scoutingOutcomeToDetectionScanForCase(
       { outcome: 'strong', revealed: true, withheld: false },
       caseData
@@ -420,9 +426,9 @@ describe('hiddenStateModality (SPE-2281)', () => {
     const scan = resolveDetectionScan(truth, scanInput)
     expect(scan.strippedLayerIds).toEqual(['layer:authored-signature-mask'])
     expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
-    expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:signature-mask')).toBe(
-      true
-    )
+    expect(
+      scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:signature-mask')
+    ).toBe(true)
     expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
   })
 
@@ -432,7 +438,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: [MODALITY_SIGNATURE_MASK_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
 
     expect(truth.concealmentLayers.map((layer) => layer.id)).toEqual([
       'layer:authored-signature-mask',
@@ -458,7 +464,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       hiddenState: 'hidden',
       tags: [MODALITY_FALSE_DETECTION_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
     const scan = applyFalseDetectionScanProjection(
       resolveDetectionScan(truth, { family: 'category_pass' })
     )
@@ -481,7 +487,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: [MODALITY_FALSE_DETECTION_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
     const scanInput = scoutingOutcomeToDetectionScanForCase(
       { outcome: 'strong', revealed: true, withheld: false },
       caseData
@@ -497,7 +503,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('includes false-detection output in distinct modality compose path', () => {
     const falseDetection = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -505,12 +511,12 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const concealed = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] }),
     })
     const signatureMasked = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -518,7 +524,9 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
 
-    expect(falseDetection.detectionScan.strippedLayerIds).toEqual(['layer:authored-false-detection'])
+    expect(falseDetection.detectionScan.strippedLayerIds).toEqual([
+      'layer:authored-false-detection',
+    ])
     expect(
       falseDetection.detectionScan.fields.find((field) => field.tier === 'category')
         ?.playerFacingValue
@@ -534,7 +542,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('includes signature masking in distinct modality compose path', () => {
     const signatureMasked = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -542,7 +550,9 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
 
-    expect(signatureMasked.detectionScan.strippedLayerIds).toEqual(['layer:authored-signature-mask'])
+    expect(signatureMasked.detectionScan.strippedLayerIds).toEqual([
+      'layer:authored-signature-mask',
+    ])
     expect(
       signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')
         ?.playerFacingValue
@@ -554,7 +564,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       hiddenState: 'hidden',
       tags: [MODALITY_GLAMOUR_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(0), SUBJECT)
     const blocked = resolveDetectionScan(truth, { family: 'category_pass' })
 
     expect(detectionScanTierOrder(blocked)).toEqual(['presence'])
@@ -589,7 +599,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: [MODALITY_GLAMOUR_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
     const scanInput = scoutingOutcomeToDetectionScanForCase(
       { outcome: 'strong', revealed: true, withheld: false },
       caseData
@@ -609,7 +619,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       counterDetection: true,
       tags: [MODALITY_GLAMOUR_TAG],
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
 
     expect(truth.concealmentLayers.map((layer) => layer.id)).toEqual([
       'layer:authored-glamour',
@@ -628,7 +638,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('includes glamour overlay in distinct modality compose path', () => {
     const glamourOverlay = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -636,7 +646,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const signatureMasked = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -644,7 +654,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const falseDetection = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -654,22 +664,26 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
     expect(glamourOverlay.detectionScan.strippedLayerIds).toEqual(['layer:authored-glamour'])
     expect(
-      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
     ).toBe(GLAMOUR_OVERLAY_CATEGORY_SKEW)
     expect(
-      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'hostility')?.playerFacingValue
+      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'hostility')
+        ?.playerFacingValue
     ).toBe(GLAMOUR_OVERLAY_HOSTILITY_SKEW)
     expect(
-      signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+      signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
     ).toBe(SIGNATURE_MASK_CATEGORY_SKEW)
     expect(
-      falseDetection.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+      falseDetection.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
     ).toBe(FALSE_DETECTION_FABRICATED_CATEGORY)
   })
 
   it('preserves rating-derived glamour layer when modality tag absent', () => {
     const caseData = createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
 
     expect(truth.concealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
     expect(truth.concealmentLayers.some((layer) => layer.id === 'layer:authored-glamour')).toBe(
@@ -683,7 +697,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       tags: [MODALITY_OUT_OF_PHASE_TAG],
       route: 'ritual-corridor-alpha',
     })
-    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, createScoutingInput(), SUBJECT)
 
     expect(truth.present).toBe(false)
     expect(truth.concealmentLayers[0]?.id).toBe('layer:authored-out-of-phase')
@@ -697,7 +711,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
     })
     const truth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      { ...SCOUTING_INPUT, teamTags: ['ritual-corridor-alpha'] },
+      { ...createScoutingInput(), teamTags: ['ritual-corridor-alpha'] },
       SUBJECT
     )
 
@@ -713,13 +727,13 @@ describe('hiddenStateModality (SPE-2281)', () => {
     })
     const misalignedTruth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      SCOUTING_LOW_CONCEALMENT,
+      createScoutingInput(0),
       SUBJECT
     )
     const misalignedScan = applyOutOfPhaseScanProjection(
       resolveDetectionScan(misalignedTruth, { family: 'presence_sweep' }),
       caseData,
-      SCOUTING_LOW_CONCEALMENT.teamTags
+      createScoutingInput(0).teamTags
     )
 
     expect(
@@ -728,7 +742,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
     const alignedTruth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      { ...SCOUTING_LOW_CONCEALMENT, teamTags: [LIMINAL_FREQUENCY_TAG] },
+      { ...createScoutingInput(0), teamTags: [LIMINAL_FREQUENCY_TAG] },
       SUBJECT
     )
     const alignedScan = applyOutOfPhaseScanProjection(
@@ -737,9 +751,9 @@ describe('hiddenStateModality (SPE-2281)', () => {
       [LIMINAL_FREQUENCY_TAG]
     )
 
-    expect(
-      alignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
-    ).toBe(OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW)
+    expect(alignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue).toBe(
+      OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW
+    )
     expect(alignedScan.fields.some((field) => field.tier === 'category')).toBe(false)
   })
 
@@ -752,7 +766,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
     })
     const truth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      { ...SCOUTING_INPUT, teamTags: [LIMINAL_FREQUENCY_TAG] },
+      { ...createScoutingInput(), teamTags: [LIMINAL_FREQUENCY_TAG] },
       SUBJECT
     )
     const scanInput = scoutingOutcomeToDetectionScanForCase(
@@ -772,13 +786,13 @@ describe('hiddenStateModality (SPE-2281)', () => {
       route: 'ritual-corridor-alpha',
     })
 
-    expect(outOfPhaseScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).delta).toBe(0.25)
-    expect(outOfPhaseScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).reason).toContain(
-      'route caution'
+    expect(outOfPhaseScoutingScoreAdjustment(caseData, createScoutingInput().teamTags).delta).toBe(
+      0.25
     )
     expect(
-      outOfPhaseScoutingScoreAdjustment(caseData, [LIMINAL_FREQUENCY_TAG]).delta
-    ).toBe(0)
+      outOfPhaseScoutingScoreAdjustment(caseData, createScoutingInput().teamTags).reason
+    ).toContain('route caution')
+    expect(outOfPhaseScoutingScoreAdjustment(caseData, [LIMINAL_FREQUENCY_TAG]).delta).toBe(0)
   })
 
   it('suppresses route-caution score when alignment comes from agent tags only', () => {
@@ -800,13 +814,13 @@ describe('hiddenStateModality (SPE-2281)', () => {
     })
     const misalignedTruth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      SCOUTING_LOW_CONCEALMENT,
+      createScoutingInput(0),
       SUBJECT
     )
     const misalignedScan = applyAntiScanCompartmentScanProjection(
       resolveDetectionScan(misalignedTruth, { family: 'presence_sweep' }),
       caseData,
-      SCOUTING_LOW_CONCEALMENT.teamTags
+      createScoutingInput(0).teamTags
     )
 
     expect(misalignedTruth.present).toBe(true)
@@ -816,7 +830,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
     const alignedTruth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      { ...SCOUTING_LOW_CONCEALMENT, teamTags: [SCAN_BYPASS_TAG] },
+      { ...createScoutingInput(0), teamTags: [SCAN_BYPASS_TAG] },
       SUBJECT
     )
     const alignedScan = applyAntiScanCompartmentScanProjection(
@@ -825,13 +839,11 @@ describe('hiddenStateModality (SPE-2281)', () => {
       [SCAN_BYPASS_TAG]
     )
 
-    expect(
-      alignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
-    ).toBe(ANTI_SCAN_PARTIAL_PRESENCE_SKEW)
+    expect(alignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue).toBe(
+      ANTI_SCAN_PARTIAL_PRESENCE_SKEW
+    )
     expect(isAntiScanCompartmentAligned(caseData, [EM_SWEEP_TAG])).toBe(true)
-    expect(
-      isAntiScanCompartmentAligned(caseData, ['warded-volume-alpha'])
-    ).toBe(true)
+    expect(isAntiScanCompartmentAligned(caseData, ['warded-volume-alpha'])).toBe(true)
   })
 
   it('strips anti-scan layer on counter-detection without solving other families', () => {
@@ -843,7 +855,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
     })
     const truth = buildSubjectTruthFromCaseHiddenState(
       caseData,
-      { ...SCOUTING_INPUT, teamTags: [SCAN_BYPASS_TAG] },
+      { ...createScoutingInput(), teamTags: [SCAN_BYPASS_TAG] },
       SUBJECT
     )
     const scanInput = scoutingOutcomeToDetectionScanForCase(
@@ -862,11 +874,11 @@ describe('hiddenStateModality (SPE-2281)', () => {
       compartment: 'warded-volume-alpha',
     })
 
-    expect(antiScanCompartmentScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).delta).toBe(
-      0.3
-    )
     expect(
-      antiScanCompartmentScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).reason
+      antiScanCompartmentScoutingScoreAdjustment(caseData, createScoutingInput().teamTags).delta
+    ).toBe(0.3)
+    expect(
+      antiScanCompartmentScoutingScoreAdjustment(caseData, createScoutingInput().teamTags).reason
     ).toContain('scan caution')
     expect(antiScanCompartmentScoutingScoreAdjustment(caseData, [SCAN_BYPASS_TAG]).delta).toBe(0)
   })
@@ -878,10 +890,10 @@ describe('hiddenStateModality (SPE-2281)', () => {
       compartment: 'warded-volume-alpha',
     })
     const integrated = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData,
-      teamTags: SCOUTING_LOW_CONCEALMENT.teamTags,
+      teamTags: createScoutingInput(0).teamTags,
     })
 
     expect(integrated.outcome).toBe('strong')
@@ -898,7 +910,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('includes anti-scan compartment in distinct modality compose path', () => {
     const antiScan = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -907,7 +919,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const outOfPhase = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -925,7 +937,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
         tags: [MODALITY_ANTI_SCAN_TAG],
         compartment: 'warded-volume-alpha',
       }),
-      SCOUTING_LOW_CONCEALMENT,
+      createScoutingInput(0),
       SUBJECT
     )
     expect(
@@ -938,7 +950,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
   it('includes out-of-phase presence in distinct modality compose path', () => {
     const outOfPhase = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -947,7 +959,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
     const glamourOverlay = resolveScoutingWithCaseHiddenState({
-      ...SCOUTING_LOW_CONCEALMENT,
+      ...createScoutingInput(0),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',
@@ -964,13 +976,14 @@ describe('hiddenStateModality (SPE-2281)', () => {
       )
     ).toBe(true)
     expect(
-      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
     ).toBe(GLAMOUR_OVERLAY_CATEGORY_SKEW)
   })
 
   it('preserves legacy scouting fields while attaching modality-aware detection scans', () => {
     const input = {
-      ...SCOUTING_INPUT,
+      ...createScoutingInput(),
       subject: SUBJECT,
       caseData: createModalityCase({
         hiddenState: 'hidden',

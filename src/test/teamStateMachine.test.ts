@@ -78,7 +78,7 @@ describe('teamStateMachine', () => {
 
     assigned.teams['t_nightwatch'] = {
       ...assigned.teams['t_nightwatch'],
-      assignedCaseId: undefined,
+      status: { state: 'ready' as const, assignedCaseId: null },
     }
     assigned.cases['case-001'] = {
       ...assigned.cases['case-001'],

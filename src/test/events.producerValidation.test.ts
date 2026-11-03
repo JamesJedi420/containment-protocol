@@ -51,120 +51,171 @@ import { validateOperationEventPayload } from '../domain/events/eventValidation'
 import { EVENT_TYPE_TO_SOURCE_SYSTEM } from '../domain/events/types'
 import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
 
-function createFactoryDraft<TType extends (typeof OPERATION_EVENT_FACTORY_TYPES)[number]>(
-  type: TType
-): OperationEventDraft<TType> {
-  const payload = minimalOperationEventPayloads[type]
+type FactoryType = (typeof OPERATION_EVENT_FACTORY_TYPES)[number]
+type FactoryDraft = { [TType in FactoryType]: OperationEventDraft<TType> }[FactoryType]
 
+function createFactoryDraft(type: FactoryType): FactoryDraft {
   switch (type) {
     case 'assignment.team_assigned':
-      return createAssignmentTeamAssignedDraft(payload)
+      return createAssignmentTeamAssignedDraft(
+        minimalOperationEventPayloads['assignment.team_assigned']
+      )
     case 'assignment.team_unassigned':
-      return createAssignmentTeamUnassignedDraft(payload)
+      return createAssignmentTeamUnassignedDraft(
+        minimalOperationEventPayloads['assignment.team_unassigned']
+      )
     case 'agent.hired':
-      return createAgentHiredDraft(payload)
+      return createAgentHiredDraft(minimalOperationEventPayloads['agent.hired'])
     case 'agent.training_started':
-      return createAgentTrainingStartedDraft(payload)
+      return createAgentTrainingStartedDraft(
+        minimalOperationEventPayloads['agent.training_started']
+      )
     case 'agent.training_completed':
-      return createAgentTrainingCompletedDraft(payload)
+      return createAgentTrainingCompletedDraft(
+        minimalOperationEventPayloads['agent.training_completed']
+      )
     case 'agent.training_cancelled':
-      return createAgentTrainingCancelledDraft(payload)
+      return createAgentTrainingCancelledDraft(
+        minimalOperationEventPayloads['agent.training_cancelled']
+      )
     case 'agent.relationship_changed':
-      return createAgentRelationshipChangedDraft(payload)
+      return createAgentRelationshipChangedDraft(
+        minimalOperationEventPayloads['agent.relationship_changed']
+      )
     case 'agent.instructor_assigned':
-      return createAgentInstructorAssignedDraft(payload)
+      return createAgentInstructorAssignedDraft(
+        minimalOperationEventPayloads['agent.instructor_assigned']
+      )
     case 'agent.instructor_unassigned':
-      return createAgentInstructorUnassignedDraft(payload)
+      return createAgentInstructorUnassignedDraft(
+        minimalOperationEventPayloads['agent.instructor_unassigned']
+      )
     case 'agent.injured':
-      return createAgentInjuredDraft(payload)
+      return createAgentInjuredDraft(minimalOperationEventPayloads['agent.injured'])
     case 'agent.killed':
-      return createAgentKilledDraft(payload)
+      return createAgentKilledDraft(minimalOperationEventPayloads['agent.killed'])
     case 'agent.betrayed':
-      return createAgentBetrayedDraft(payload)
+      return createAgentBetrayedDraft(minimalOperationEventPayloads['agent.betrayed'])
     case 'agent.resigned':
-      return createAgentResignedDraft(payload)
+      return createAgentResignedDraft(minimalOperationEventPayloads['agent.resigned'])
     case 'agent.promoted':
-      return createAgentPromotedDraft(payload)
+      return createAgentPromotedDraft(minimalOperationEventPayloads['agent.promoted'])
     case 'recruitment.scouting_initiated':
-      return createRecruitmentScoutingInitiatedDraft(payload)
+      return createRecruitmentScoutingInitiatedDraft(
+        minimalOperationEventPayloads['recruitment.scouting_initiated']
+      )
     case 'recruitment.scouting_refined':
-      return createRecruitmentScoutingRefinedDraft(payload)
+      return createRecruitmentScoutingRefinedDraft(
+        minimalOperationEventPayloads['recruitment.scouting_refined']
+      )
     case 'recruitment.intel_confirmed':
-      return createRecruitmentIntelConfirmedDraft(payload)
+      return createRecruitmentIntelConfirmedDraft(
+        minimalOperationEventPayloads['recruitment.intel_confirmed']
+      )
     case 'progression.xp_gained':
-      return createProgressionXpGainedDraft(payload)
+      return createProgressionXpGainedDraft(minimalOperationEventPayloads['progression.xp_gained'])
     case 'production.queue_started':
-      return createProductionQueueStartedDraft(payload)
+      return createProductionQueueStartedDraft(
+        minimalOperationEventPayloads['production.queue_started']
+      )
     case 'production.queue_completed':
-      return createProductionQueueCompletedDraft(payload)
+      return createProductionQueueCompletedDraft(
+        minimalOperationEventPayloads['production.queue_completed']
+      )
     case 'equipment.recovery_started':
-      return createEquipmentRecoveryStartedDraft(payload)
+      return createEquipmentRecoveryStartedDraft(
+        minimalOperationEventPayloads['equipment.recovery_started']
+      )
     case 'equipment.recovery_completed':
-      return createEquipmentRecoveryCompletedDraft(payload)
+      return createEquipmentRecoveryCompletedDraft(
+        minimalOperationEventPayloads['equipment.recovery_completed']
+      )
     case 'equipment.auto_scrap_policy_changed':
-      return createEquipmentAutoScrapPolicyChangedDraft(payload)
+      return createEquipmentAutoScrapPolicyChangedDraft(
+        minimalOperationEventPayloads['equipment.auto_scrap_policy_changed']
+      )
     case 'equipment.auto_scrap_routed':
-      return createEquipmentAutoScrapRoutedDraft(payload)
+      return createEquipmentAutoScrapRoutedDraft(
+        minimalOperationEventPayloads['equipment.auto_scrap_routed']
+      )
     case 'equipment.instance_materialized':
-      return createEquipmentInstanceMaterializedDraft(payload)
+      return createEquipmentInstanceMaterializedDraft(
+        minimalOperationEventPayloads['equipment.instance_materialized']
+      )
     case 'equipment.instance_destroyed':
       return createEquipmentInstanceDestroyedDraft(
         minimalOperationEventPayloads['equipment.instance_destroyed']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.instance_reaggregated':
       return createEquipmentInstanceReaggregatedDraft(
         minimalOperationEventPayloads['equipment.instance_reaggregated']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.instance_condition_repaired':
       return createEquipmentInstanceConditionRepairedDraft(
         minimalOperationEventPayloads['equipment.instance_condition_repaired']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.containment_class_deficiency_recorded':
       return createContainmentClassDeficiencyRecordedDraft(
         minimalOperationEventPayloads['equipment.containment_class_deficiency_recorded']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.containment_class_inspected':
       return createContainmentClassInspectedDraft(
         minimalOperationEventPayloads['equipment.containment_class_inspected']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.containment_class_stabilized':
       return createContainmentClassStabilizedDraft(
         minimalOperationEventPayloads['equipment.containment_class_stabilized']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.instance_station_mutated':
       return createEquipmentInstanceStationMutatedDraft(
         minimalOperationEventPayloads['equipment.instance_station_mutated']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.containment_barrier_integrity_changed':
       return createContainmentBarrierIntegrityChangedDraft(
         minimalOperationEventPayloads['equipment.containment_barrier_integrity_changed']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.combat_stim_activated':
-      return createCombatStimActivatedDraft(payload)
+      return createCombatStimActivatedDraft(
+        minimalOperationEventPayloads['equipment.combat_stim_activated']
+      )
     case 'equipment.combat_stim_overdrive_expired':
-      return createCombatStimOverdriveExpiredDraft(payload)
+      return createCombatStimOverdriveExpiredDraft(
+        minimalOperationEventPayloads['equipment.combat_stim_overdrive_expired']
+      )
     case 'equipment.combat_stim_disposed':
       return createCombatStimDisposedDraft(
         minimalOperationEventPayloads['equipment.combat_stim_disposed']
-      ) as OperationEventDraft<TType>
+      )
     case 'equipment.combat_stim_reaggregated':
       return createCombatStimReaggregatedDraft(
         minimalOperationEventPayloads['equipment.combat_stim_reaggregated']
-      ) as OperationEventDraft<TType>
+      )
     case 'market.shifted':
-      return createMarketShiftedDraft(payload)
+      return createMarketShiftedDraft(minimalOperationEventPayloads['market.shifted'])
     case 'market.transaction_recorded':
-      return createMarketTransactionRecordedDraft(payload)
+      return createMarketTransactionRecordedDraft(
+        minimalOperationEventPayloads['market.transaction_recorded']
+      )
     case 'faction.standing_changed':
-      return createFactionStandingChangedDraft(payload)
+      return createFactionStandingChangedDraft(
+        minimalOperationEventPayloads['faction.standing_changed']
+      )
     case 'faction.unlock_available':
-      return createFactionUnlockAvailableDraft(payload)
+      return createFactionUnlockAvailableDraft(
+        minimalOperationEventPayloads['faction.unlock_available']
+      )
     case 'agency.front_business.opened':
-      return createAgencyFrontBusinessOpenedDraft(payload)
+      return createAgencyFrontBusinessOpenedDraft(
+        minimalOperationEventPayloads['agency.front_business.opened']
+      )
     case 'agency.front_business.resolved':
-      return createAgencyFrontBusinessResolvedDraft(payload)
+      return createAgencyFrontBusinessResolvedDraft(
+        minimalOperationEventPayloads['agency.front_business.resolved']
+      )
     case 'system.academy_upgraded':
-      return createSystemAcademyUpgradedDraft(payload)
+      return createSystemAcademyUpgradedDraft(
+        minimalOperationEventPayloads['system.academy_upgraded']
+      )
     default: {
       const _exhaustive: never = type
       throw new Error(`Unhandled factory type: ${_exhaustive}`)
@@ -177,6 +228,7 @@ describe('operation event producer drafts validate against schemas', () => {
     'factory draft for %s passes validateOperationEventPayload',
     (type) => {
       const draft = createFactoryDraft(type)
+      expect(draft.type).toBe(type)
       const validation = validateOperationEventPayload(type, draft.payload)
       expect(validation.success, validation.error).toBe(true)
       expect(draft.sourceSystem).toBe(EVENT_TYPE_TO_SOURCE_SYSTEM[type])

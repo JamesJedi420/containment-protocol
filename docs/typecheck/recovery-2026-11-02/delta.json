@@ -1,0 +1,1027 @@
+{
+  "schemaVersion": 1,
+  "parent": "SPE-3375",
+  "children": ["SPE-3442", "SPE-3443", "SPE-3446", "SPE-3447", "SPE-3450", "SPE-3453", "SPE-3456"],
+  "before": {
+    "revision": "25b6a063bd35f0b8590cb06a2b8f1337ec5baa01",
+    "sourceState": "Clean recorded main revision.",
+    "compilerInputHash": "b1f57e4242c2bb245f9eaa987815603da39db25ad95744cd8575844daa364d18",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "2c55cb81fe6218dd3e9030832f415b00823c275a3f9280ff06a2ef9d78d2f5c0"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "2c55cb81fe6218dd3e9030832f415b00823c275a3f9280ff06a2ef9d78d2f5c0"
+      }
+    ],
+    "reproducible": true,
+    "workingTreeStatus": "",
+    "summary": {
+      "occurrences": 578,
+      "uniqueIdentities": 394,
+      "repeatedIdentityOccurrences": 184,
+      "exactDuplicateOccurrences": 0,
+      "files": 165,
+      "byProject": {
+        "tsconfig.app.json": 578
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 163,
+        "TS2339": 50,
+        "TS2344": 2,
+        "TS2345": 147,
+        "TS2352": 53,
+        "TS2353": 39,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS4104": 1,
+        "TS6133": 6,
+        "TS7006": 9
+      },
+      "bySurface": {
+        "production-source": 169,
+        "test-fixture": 409
+      }
+    }
+  },
+  "after": {
+    "revision": "25b6a063bd35f0b8590cb06a2b8f1337ec5baa01",
+    "sourceState": "Recorded revision plus working-tree repairs; final committed head is recorded in PR/Linear evidence.",
+    "compilerInputHash": "ffeb35e6d5d239be4017f974d674d6747cb061e6d6dd537be19c7983d910dc34",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      }
+    ],
+    "reproducible": true,
+    "workingTreeStatus": "M src/domain/authorityGraphPersistence.ts\n M src/domain/protocols.ts\n M src/test/advanceWeek.fieldBaseResolutionWire.test.ts\n M src/test/authorityGraphPersistence.test.ts\n M src/test/campaignToIncidentHook.integration.test.ts\n M src/test/containmentClassWeekClose.contract.test.ts\n M src/test/crossScaleContracts.test.ts\n M src/test/deployment.readiness.timeCost.test.ts\n M src/test/events.producerValidation.test.ts\n M src/test/globalStateMetrics.test.ts\n M src/test/hiddenStateModality.test.ts\n M src/test/historicalRouteReplayActivation.contract.test.ts\n M src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts\n M src/test/historicalRouteReplayWeekClose.contract.test.ts\n M src/test/protocols.test.ts\n M src/test/rivalExpeditionWeekClose.test.ts\n M src/test/sim.advanceWeek.test.ts\n M src/test/sim.fatiguePipeline.test.ts\n M src/test/sim.investigationEconomy.integration.test.ts\n M src/test/sim.pipeline.invariants.test.ts\n M src/test/sim.relationshipEvolution.test.ts\n M src/test/teamStateMachine.test.ts\n M src/test/weeklyMvpLoopProof.calibration.test.ts\n M src/test/weeklyMvpLoopProof.slice2.integration.test.ts\n?? docs/typecheck/recovery-2026-11-02/delta.json\n?? planning/build-type-contract-recovery-slice.md",
+    "summary": {
+      "occurrences": 409,
+      "uniqueIdentities": 293,
+      "repeatedIdentityOccurrences": 116,
+      "exactDuplicateOccurrences": 0,
+      "files": 144,
+      "byProject": {
+        "tsconfig.app.json": 409
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 126,
+        "TS2339": 46,
+        "TS2345": 45,
+        "TS2352": 53,
+        "TS2353": 19,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS6133": 6,
+        "TS7006": 6
+      },
+      "bySurface": {
+        "production-source": 157,
+        "test-fixture": 252
+      }
+    }
+  },
+  "removedOccurrences": 169,
+  "addedOccurrences": 0,
+  "removals": [
+    {
+      "identity": "01cf33e9560030f4b77c121a216fc2d1f0f64ea6830549148218427953aa4815",
+      "project": "tsconfig.app.json",
+      "file": "src/test/crossScaleContracts.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "03baafc91bb8f81d367dfe8e693dcb9adc10ac8fa11e60f1ed4adecab86bd039",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; severity: string; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; severity: string; }': agentId, agentName, severity",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "0429764c45a73df2abd6d6f1a2cfe1d3edac2f34fe2a578cd79bcc30f59be57c",
+      "project": "tsconfig.app.json",
+      "file": "src/test/sim.fatiguePipeline.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "05fb22bc2d95d08df8f74155e8a6cb8e04cbb1b7c29ae0f35a9ddbcaa5513251",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.recovery_started\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.recovery_started\"' is not assignable to type 'TType'.\n    '\"equipment.recovery_started\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "0631336b24ad3d294bbab7fda7419bb543eb48760d58f1bbfadc2dccfdbd5171",
+      "project": "tsconfig.app.json",
+      "file": "src/test/sim.pipeline.invariants.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "06ac64a7076a52e4564603e54dbfac033c03152b2f8108af5cc65bf90e41ee78",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; trainingId: string; trainingName: string; refund: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; trainingId: string; trainingName: string; refund: number; }': agentId, agentName, trainingId, trainingName, refund",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "079bb3a0251e3fa4a47b0c839b7bf990f1829410e45620fde4450337f40a6718",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; counterpartId: string; counterpartName: string; previousValue: number; nextValue: number; delta: number; reason: \"mission_success\" | \"mission_partial\" | ... 5 more ... | \"betrayal\"; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; counterpartId: string; counterpartName: string; previousValue: number; nextValue: number; delta: number; reason: \"mission_success\" | \"mission_partial\" | ... 5 more ... | \"betrayal\"; }': agentId, agentName, counterpartId, counterpartName, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "0bdb418e2983d5d5dc9d613cc99da190d0af9697d40492a31d67bc73ce73de12",
+      "project": "tsconfig.app.json",
+      "file": "src/test/deployment.readiness.timeCost.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "0c32d1d844ff1e5034df7626ac89ae35baef7e562dca99b6d167d49fb3cba38e",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; staffId: string; instructorName: string; agentId: string; agentName: string; instructorSpecialty: StatKey; bonus: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; staffId: string; instructorName: string; agentId: string; agentName: string; instructorSpecialty: StatKey; bonus: number; }': staffId, instructorName, agentId, agentName, and 2 more.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "0e0bc941c465562dab1171547c6ff45d81fb14dea45a0e1e968920477b7d7205",
+      "project": "tsconfig.app.json",
+      "file": "src/test/historicalRouteReplayActivation.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'GameState' is not assignable to parameter of type 'Record<string, unknown>'.\n  Index signature for type 'string' is missing in type 'GameState'.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "100e419bb202d7b13ec9c646191db2d19e5983d59c41076c4854e66a87ece7e0",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.training_started\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.training_started\"' is not assignable to type 'TType'.\n    '\"agent.training_started\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "18472bda774d086852f619152cc8a6854b2c4444c47716cef0010aa85080c8d8",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; factionId: string; factionName: string; contactId?: string | undefined; contactName?: string | undefined; label: string; summary: string; disposition: \"supportive\" | \"adversarial\"; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; factionId: string; factionName: string; contactId?: string | undefined; contactName?: string | undefined; label: string; summary: string; disposition: \"supportive\" | \"adversarial\"; }': factionId, factionName, label, summary, disposition",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "1b5029b27010c13e9118f968dbd4278012b79458168af2b684c2accef8b47d5b",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"progression.xp_gained\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"progression.xp_gained\"' is not assignable to type 'TType'.\n    '\"progression.xp_gained\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "1c4995aede15a3f543e1942279e743a6c3892802e002e4766be39a3229b18761",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; xpAmount: number; reason: string; totalXp: number; level: number; levelsGained: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; xpAmount: number; reason: string; totalXp: number; level: number; levelsGained: number; }': agentId, agentName, xpAmount, reason, and 3 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "1d3ee2116260a1898e7bda7edd178e723246eeb2c8ced66d974a86ee6fe839a2",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/protocols.ts",
+      "code": "TS7006",
+      "message": "Parameter 'id' implicitly has an 'any' type.",
+      "removedOccurrences": 3
+    },
+    {
+      "identity": "211833781e430d49feb36c123f700f72871bfda1ee4210324f5c3665b278c647",
+      "project": "tsconfig.app.json",
+      "file": "src/test/sim.relationshipEvolution.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "24dcfeeab53897bbb25f50541055044637fb545f71f3ed55a7eb9b9b90922570",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.training_cancelled\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.training_cancelled\"' is not assignable to type 'TType'.\n    '\"agent.training_cancelled\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "262469c752013d2975bac3bdabe9891b6eade83baaaa40d7bcc931edac30c697",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"recruitment.intel_confirmed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"recruitment.intel_confirmed\"' is not assignable to type 'TType'.\n    '\"recruitment.intel_confirmed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "2651085b51852810df4854c7fbed027855433993c142f94f82c0737afab73b3b",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/protocols.ts",
+      "code": "TS2322",
+      "message": "Type '{ activeProtocolIds?: unknown[] | undefined; protocolSelectionLimit?: number | undefined; }' is not assignable to type 'Pick<AgencyState, \"protocolSelectionLimit\" | \"activeProtocolIds\">'.\n  Types of property 'activeProtocolIds' are incompatible.\n    Type 'unknown[] | undefined' is not assignable to type 'string[] | undefined'.\n      Type 'unknown[]' is not assignable to type 'string[]'.\n        Type 'unknown' is not assignable to type 'string'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "28de16ee8ed2cac056740caace6c30d1e312855353a53792f26c97b85c61a730",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; candidateId: string; agentId: string; agentName: string; recruitCategory: RecruitCategory; sourceFactionId?: string | undefined; sourceFactionName?: string | undefined; sourceContactId?: string | undefined; sourceContactName?: string | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; candidateId: string; agentId: string; agentName: string; recruitCategory: RecruitCategory; sourceFactionId?: string | undefined; sourceFactionName?: string | undefined; sourceContactId?: string | undefined; sourceContactName?: string | undefined; }': candidateId, agentId, agentName, recruitCategory",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "29a950b60bcf8176ff67615d0c583a39ad2c6434fd44e67168b0d72c7064161a",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ teamTags: string[]; anomalyConcealment: 0; teamCapability: 3; gearTags: readonly [\"thermal-vision\"]; }' is not assignable to parameter of type 'ScoutingInput'.\n  Types of property 'gearTags' are incompatible.\n    The type 'readonly [\"thermal-vision\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "2a046edb656cdd1fdce863ef96eafc4af59f5820405ce98a76b4c9a261fb6c1b",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.resigned\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.resigned\"' is not assignable to type 'TType'.\n    '\"agent.resigned\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "2cd165ae45e48a3652a4d3cffedd49885e1aebbe4330266f3306f7c904b8becf",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; tierBefore: number; tierAfter: number; fundingBefore: number; fundingAfter: number; cost: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; tierBefore: number; tierAfter: number; fundingBefore: number; fundingAfter: number; cost: number; }': tierBefore, tierAfter, fundingBefore, fundingAfter, cost",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "31062d20ed50e31f2597fb95c91d5f2f4c107737b897142998bca960e1e69266",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ subject: { exactIdentity: string; category: string; hostility: \"latent\"; activeEffects: string[]; dormantEffects: string[]; activeProtections: string[]; }; caseData: CaseInstance; teamCapability: 3; anomalyConcealment: 2; teamTags: readonly [...]; gearTags: readonly [...]; }' is not assignable to parameter of type 'CaseScoutingRevealIntegrationInput'.\n  Types of property 'teamTags' are incompatible.\n    The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "34978c1a81e0e87f5459c5eb88aca5d3193e60ef28d3a5476f2f0e8ecc43d1b5",
+      "project": "tsconfig.app.json",
+      "file": "src/test/sim.investigationEconomy.integration.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "393182f737eb87fe491a8bd40cf0e74cd10aafb13b3300be586979991ea71bfc",
+      "project": "tsconfig.app.json",
+      "file": "src/test/weeklyMvpLoopProof.calibration.test.ts",
+      "code": "TS2322",
+      "message": "Type '{ [x: string]: { assignedCaseId: string; id: Id; name: string; memberIds?: Id[]; leaderId?: Id | null; derivedStats?: TeamDerivedStats; ... 6 more ...; recoveryPressure?: number; }; }' is not assignable to type 'Record<string, Team>'.\n  'string' index signatures are incompatible.\n    Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "3a024867717cfb42ca3259e7d1f1c628f797626644ce78e83bd03e4ada5e874e",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; featuredRecipeId: string; featuredRecipeName: string; pressure: MarketPressure; costMultiplier: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; featuredRecipeId: string; featuredRecipeName: string; pressure: MarketPressure; costMultiplier: number; }': featuredRecipeId, featuredRecipeName, pressure, costMultiplier",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "3c5af3c7fc2cff01aa6b0371f29585b5eec86a631e7421c07d8d5b2a6b81702c",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; marketWeek: number; transactionId: string; action: \"buy\" | \"sell\" | \"favor_exchange\" | \"callable_obligation\" | \"order\" | \"fulfill\"; listingId: string; itemId: string; itemName: string; ... 14 more ...; allocations?: { ...; }[] | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; marketWeek: number; transactionId: string; action: \"buy\" | \"sell\" | \"favor_exchange\" | \"callable_obligation\" | \"order\" | \"fulfill\"; listingId: string; itemId: string; itemName: string; ... 14 more ...; allocations?: { ...; }[] | undefined; }': marketWeek, transactionId, action, listingId, and 8 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "3ee1f5b5a1ca547f471b6545e3ae3409136ea3d1d23a1e822a4aba31bb2b4d22",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; queueName: string; recipeId: string; outputId: string; outputName: string; outputQuantity: number; fundingCost: number; inputMaterials: ProductionMaterialRequirement[]; outputGradeId?: EquipmentGradeId | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; queueName: string; recipeId: string; outputId: string; outputName: string; outputQuantity: number; fundingCost: number; inputMaterials: ProductionMaterialRequirement[]; outputGradeId?: EquipmentGradeId | undefined; }': queueId, queueName, recipeId, outputId, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "401b59ec4c3455f28fb16eb9006fdd4c61c48f403cd5c38e1321792eaf8c9bdb",
+      "project": "tsconfig.app.json",
+      "file": "src/test/rivalExpeditionWeekClose.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'GameState' is not assignable to parameter of type 'Record<string, unknown>'.\n  Index signature for type 'string' is missing in type 'GameState'.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "40354406efa0b622dc57b9a8cf42ca53d9e984f41ffc2b1e7f40cea4c77da2f8",
+      "project": "tsconfig.app.json",
+      "file": "src/test/teamStateMachine.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "4589755114200a5541b9bdcb6171e25dd9a8403a1b083eec1045f8ac0c65365e",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"market.shifted\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"market.shifted\"' is not assignable to type 'TType'.\n    '\"market.shifted\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "4920a580c1dff2b0be2952f941abc9b0b8bac81ac73e6c903c64031106b64397",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.auto_scrap_routed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.auto_scrap_routed\"' is not assignable to type 'TType'.\n    '\"equipment.auto_scrap_routed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "49f521af54b1052ca030ae45fae8bef746d0ab731ce1f5277971313f0bd49191",
+      "project": "tsconfig.app.json",
+      "file": "src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'GameState' is not assignable to parameter of type 'Record<string, unknown>'.\n  Index signature for type 'string' is missing in type 'GameState'.",
+      "removedOccurrences": 4
+    },
+    {
+      "identity": "4bee4b16de4b19c10a87e8159a8f3e45a555d33774ded62b6fda94a688e30174",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.killed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.killed\"' is not assignable to type 'TType'.\n    '\"agent.killed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "4c98c3bb77410ee58ee8c5f39c9b43f0ab229a291750120d7df9174876975241",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.relationship_changed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.relationship_changed\"' is not assignable to type 'TType'.\n    '\"agent.relationship_changed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "50369c821fbce30e24acfd0558e3014e3c528d4543b10ddd02e44072f64ebb95",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agency.front_business.resolved\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agency.front_business.resolved\"' is not assignable to type 'TType'.\n    '\"agency.front_business.resolved\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "5623dd0dde9bbafa66e88bfc89d5ded9c217be9f699b5d90a9e3b5b8cf288b6f",
+      "project": "tsconfig.app.json",
+      "file": "src/test/campaignToIncidentHook.integration.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "5b6a3c7e884c686f6a311383a82d45fea0ad819cfe54c603684af9bd867464d0",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ readonly teamCapability: 3; readonly anomalyConcealment: 2; readonly teamTags: readonly [\"recon-specialist\"]; readonly gearTags: readonly [\"thermal-vision\"]; }' is not assignable to parameter of type 'ScoutingInput'.\n  Types of property 'teamTags' are incompatible.\n    The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 9
+    },
+    {
+      "identity": "616eb27bcf2445380ab1e5164719a761e60c87bedfd8639618c6f50f891e917e",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.combat_stim_activated\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.combat_stim_activated\"' is not assignable to type 'TType'.\n    '\"equipment.combat_stim_activated\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "656b993de552e8929874ce59a541d874dc778249c0c3ea7bf5a76ec2b9eb1f33",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"recruitment.scouting_refined\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"recruitment.scouting_refined\"' is not assignable to type 'TType'.\n    '\"recruitment.scouting_refined\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "669a96bdd076b1ba856dab16cd844ba15f24acfac27f964c63888cbe3800c55d",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.injured\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.injured\"' is not assignable to type 'TType'.\n    '\"agent.injured\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "6d9d76b41013c0ecd59f05d3f741717db9f20ddaae1b72fff7ce427c2a1495bc",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.instance_materialized\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.instance_materialized\"' is not assignable to type 'TType'.\n    '\"equipment.instance_materialized\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "74c7a34b9eded845ca7d6d081c948977e525c62e87ca65864bf2feaf51395b8c",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; itemId: string; itemName: string; pathId: \"component_reclamation\" | \"ritual_disassembly\"; sourceGradeId: EquipmentGradeId; sourceFabricationQueueId?: string | undefined; ... 6 more ...; wasteQuantity: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; itemId: string; itemName: string; pathId: \"component_reclamation\" | \"ritual_disassembly\"; sourceGradeId: EquipmentGradeId; sourceFabricationQueueId?: string | undefined; ... 6 more ...; wasteQuantity: number; }': queueId, itemId, itemName, pathId, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "751082d1acfee65d3a70bbb71c84353e382d204549970e21aa2e92b9b3e964ac",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ subject: { exactIdentity: string; category: string; hostility: \"latent\"; activeEffects: string[]; dormantEffects: string[]; activeProtections: string[]; }; caseData: CaseInstance; anomalyConcealment: 0; teamCapability: 3; teamTags: readonly [...]; gearTags: readonly [...]; }' is not assignable to parameter of type 'CaseScoutingRevealIntegrationInput'.\n  Types of property 'teamTags' are incompatible.\n    The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 14
+    },
+    {
+      "identity": "76f8a8650b8941d2691af5a4c9862af7e2365fc36f659e3a1d798b05b60b8719",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; agentId: string; agentName: string; trainingId: string; trainingName: string; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; agentId: string; agentName: string; trainingId: string; trainingName: string; }': queueId, agentId, agentName, trainingId, trainingName",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "77b60918d76e114b0754b6189fa4b8b19463625ef9afc56a0e7739d478ef2158",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; activationId: string; instanceId: string; agentId: string; agentName: string; caseId: string; recoveryDebt: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; activationId: string; instanceId: string; agentId: string; agentName: string; caseId: string; recoveryDebt: number; }': activationId, instanceId, agentId, agentName, recoveryDebt",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "77eb8acae46d6169ed45db2965d50de9d430be6392e7f44bdc06f976b360bce2",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.recovery_completed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.recovery_completed\"' is not assignable to type 'TType'.\n    '\"equipment.recovery_completed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "7c3eb926645592a85f7d14a99db88864bfad9ccd819dcf67d5735ba75cc042c4",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/protocols.ts",
+      "code": "TS2339",
+      "message": "Property 'filter' does not exist on type '{}'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "7c613ae4881f3c84f55d61d2de8c9152e16a5a5c632d0eaf9329953820ec60ac",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/protocols.ts",
+      "code": "TS2344",
+      "message": "Type '\"protocolSelectionLimit\"' does not satisfy the constraint 'never'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "7cac814a55834a555ada4408f9b36a6d55a51a7328de4f8765e7d7eb909377b0",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; candidateId: string; candidateName: string; fundingCost: number; stage: CandidateScoutStage; projectedTier: ExactPotentialTier; ... 8 more ...; sourceContactName?: string | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; candidateId: string; candidateName: string; fundingCost: number; stage: CandidateScoutStage; projectedTier: ExactPotentialTier; ... 8 more ...; sourceContactName?: string | undefined; }': candidateId, candidateName, fundingCost, stage, and 3 more.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "7e223497c79e3f8f3a2f12c1ac705c5161d285b07b8b2acb30bc8a3334f6c498",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; instanceId: string; definitionId: string; definitionName: string; condition: \"operational\" | \"damaged\"; locationState: \"stored\" | \"equipped\"; agentId?: string | undefined; ... 7 more ...; fabricationCompletedWeek?: number | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; instanceId: string; definitionId: string; definitionName: string; condition: \"operational\" | \"damaged\"; locationState: \"stored\" | \"equipped\"; agentId?: string | undefined; ... 7 more ...; fabricationCompletedWeek?: number | undefined; }': instanceId, definitionId, definitionName, condition, locationState",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "7e42c1e625150dd6fdfdcb114f1ab3b415f3475055b86d8726b32c8664bb18cf",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agency.front_business.opened\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agency.front_business.opened\"' is not assignable to type 'TType'.\n    '\"agency.front_business.opened\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "7eee4dcf0caeff71e5e04af35d520913a5740ccf3efa1e37baf6a64472fa3c7a",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"production.queue_completed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"production.queue_completed\"' is not assignable to type 'TType'.\n    '\"production.queue_completed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "85a507ec48b64eec9c98fefad1a4bf5324b672f2a8c5fde302e7877ede0d83f6",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; factionId: string; factionName: string; delta: number; standingBefore: number; standingAfter: number; reputationBefore?: number | undefined; reputationAfter?: number | undefined; ... 8 more ...; contactDelta?: number | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; factionId: string; factionName: string; delta: number; standingBefore: number; standingAfter: number; reputationBefore?: number | undefined; reputationAfter?: number | undefined; ... 8 more ...; contactDelta?: number | undefined; }': factionId, factionName, delta, standingBefore, and 2 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "8781b1519653e7fe4afe012c9a936f2284da11621b4b3b8a0027419ec145f266",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; thresholdGradeId: EquipmentGradeId; routedQueueIds: string[]; routedQuantity: number; includedItemCount: number; excludedItemCount: number; excludedQuantity: number; exclusionReasonCounts: { ...; }[]; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; thresholdGradeId: EquipmentGradeId; routedQueueIds: string[]; routedQuantity: number; includedItemCount: number; excludedItemCount: number; excludedQuantity: number; exclusionReasonCounts: { ...; }[]; }': thresholdGradeId, routedQueueIds, routedQuantity, includedItemCount, and 3 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "892ad7b5364d189c75030a3ebeddbf314297026e9b5c6a506d0f7fe54967c65e",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; }'.\n  Property 'remainingTeamCount' is missing in type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' but required in type '{ week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; }'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "8c5c59c3f8b135e99634484c68e3fdf385ec0f2f0ab8e7f0a16b50959e7f61a5",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"recruitment.scouting_initiated\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"recruitment.scouting_initiated\"' is not assignable to type 'TType'.\n    '\"recruitment.scouting_initiated\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "8df9c40fe207395d075d0267047b4aadd080dc8b85f35d5b9c8b5b9b5d5698a2",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.combat_stim_overdrive_expired\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.combat_stim_overdrive_expired\"' is not assignable to type 'TType'.\n    '\"equipment.combat_stim_overdrive_expired\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "953ff5be3c5f3e47ef095ed2c893d9cb31480894f188a3748b8da0ec87dec335",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.instructor_unassigned\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.instructor_unassigned\"' is not assignable to type 'TType'.\n    '\"agent.instructor_unassigned\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "9a1f40791bd6729f563445ed6035bdc80913a42f318f5e5758cead04b2f1badb",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"equipment.auto_scrap_policy_changed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"equipment.auto_scrap_policy_changed\"' is not assignable to type 'TType'.\n    '\"equipment.auto_scrap_policy_changed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "9f510d3aa31257df4f0bc0632e923bc1cd082bd565ecef5bab7d58e8baabdc83",
+      "project": "tsconfig.app.json",
+      "file": "src/test/containmentClassWeekClose.contract.test.ts",
+      "code": "TS2339",
+      "message": "Property 'type' does not exist on type '{ payload?: { instanceId?: string | undefined; } | undefined; }'.",
+      "removedOccurrences": 3
+    },
+    {
+      "identity": "9f6bd89456dd34590e9c9859f493d8340556636028fe2f4e17f5bfde6ec88dd2",
+      "project": "tsconfig.app.json",
+      "file": "src/test/historicalRouteReplayWeekClose.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'GameState' is not assignable to parameter of type 'Record<string, unknown>'.\n  Index signature for type 'string' is missing in type 'GameState'.",
+      "removedOccurrences": 4
+    },
+    {
+      "identity": "a0e3407f3d7eca336bc6165a1eb0452c06a93f13f01d610e203037b3c6218e0b",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"faction.standing_changed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"faction.standing_changed\"' is not assignable to type 'TType'.\n    '\"faction.standing_changed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "a18ac63f3a2ba42b665ff0f034fed279b3dff6dbd1ab1161511ee8af751026a8",
+      "project": "tsconfig.app.json",
+      "file": "src/test/containmentClassWeekClose.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ equipmentInstances: { [x: string]: EquipmentInstance | { containmentIntegrity: { classId: string; lastInspectionWeek: number; cycleCount: number; deficiency: { kind: string; }; extra: boolean; }; ... 6 more ...; stationMutation?: EquipmentInstanceStationMutation; }; }; ... 176 more ...; globalFlags?: Record<string...' is not assignable to parameter of type 'GameState'.\n  Types of property 'equipmentInstances' are incompatible.\n    Type '{ [x: string]: EquipmentInstance | { containmentIntegrity: { classId: string; lastInspectionWeek: number; cycleCount: number; deficiency: { kind: string; }; extra: boolean; }; ... 6 more ...; stationMutation?: EquipmentInstanceStationMutation; }; }' is not assignable to type 'EquipmentInstanceRegistry'.\n      'string' index signatures are incompatible.\n        Type 'EquipmentInstance | { containmentIntegrity: { classId: string; lastInspectionWeek: number; cycleCount: number; deficiency: { kind: string; }; extra: boolean; }; instanceId?: string | undefined; ... 5 more ...; stationMutation?: EquipmentInstanceStationMutation | undefined; }' is not assignable to type 'EquipmentInstance'.\n          Type '{ containmentIntegrity: { classId: string; lastInspectionWeek: number; cycleCount: number; deficiency: { kind: string; }; extra: boolean; }; instanceId?: string | undefined; definitionId?: string | undefined; ... 4 more ...; stationMutation?: EquipmentInstanceStationMutation; }' is not assignable to type 'EquipmentInstance'.\n            Types of property 'instanceId' are incompatible.\n              Type 'string | undefined' is not assignable to type 'string'.\n                Type 'undefined' is not assignable to type 'string'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "a6de9a387a5307bd7e7174e0834caef12181f9526dc937ccc491b137cd7969e9",
+      "project": "tsconfig.app.json",
+      "file": "src/test/advanceWeek.fieldBaseResolutionWire.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "aa7f9d42bfad4cecd527907ecfe15b64cfa9b4d6ec1c44d3d426d783a1d506f5",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ readonly anomalyConcealment: 0; readonly teamCapability: 3; readonly teamTags: readonly [\"recon-specialist\"]; readonly gearTags: readonly [\"thermal-vision\"]; }' is not assignable to parameter of type 'ScoutingInput'.\n  Types of property 'teamTags' are incompatible.\n    The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 9
+    },
+    {
+      "identity": "aa855dd5cabf055ca7b55e90566fb563ec124cd169ad9f014cb286add7bfab57",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"system.academy_upgraded\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"system.academy_upgraded\"' is not assignable to type 'TType'.\n    '\"system.academy_upgraded\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "ac7a388322681ad5bd5924b4a8362ee28bba6f231912b0b9bd07b782b3b21c88",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; action: \"enabled\" | \"disabled\"; thresholdGradeId?: EquipmentGradeId | undefined; includedItemCount: number; includedQuantity: number; excludedItemCount: number; excludedQuantity: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; action: \"enabled\" | \"disabled\"; thresholdGradeId?: EquipmentGradeId | undefined; includedItemCount: number; includedQuantity: number; excludedItemCount: number; excludedQuantity: number; }': action, includedItemCount, includedQuantity, excludedItemCount, excludedQuantity",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "aca56d004525cf87148506fef87e3f909e91c1ef09f87c64f579edd399c337ad",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; agentId: string; agentName: string; trainingId: string; trainingName: string; teamName?: string | undefined; etaWeeks: number; fundingCost: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; agentId: string; agentName: string; trainingId: string; trainingName: string; teamName?: string | undefined; etaWeeks: number; fundingCost: number; }': queueId, agentId, agentName, trainingId, and 3 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "b0c47afbe68f1261809830adc0efa554779ebb1165f9ffc6492b29d23aadeb73",
+      "project": "tsconfig.app.json",
+      "file": "src/test/weeklyMvpLoopProof.slice2.integration.test.ts",
+      "code": "TS2322",
+      "message": "Type '{ [x: string]: { assignedCaseId: string; id: Id; name: string; memberIds?: Id[]; leaderId?: Id | null; derivedStats?: TeamDerivedStats; ... 6 more ...; recoveryPressure?: number; }; }' is not assignable to type 'Record<string, Team>'.\n  'string' index signatures are incompatible.\n    Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "b0feaed1e91992ee0a5d933823e762c84197ea766a997439b84aa090773d5071",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS4104",
+      "message": "The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "b7ff12e908bca18cfce961b2a2ab6f7ed1ce2d8821d5375d39ff2df0cafaa6a1",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\" | \"raid\" | \"standard\" | \"anomaly\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; }' is missing the following properties from type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\" | \"raid\" | \"standard\" | \"anomaly\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }': caseKind, assignedTeamCount, maxTeams",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "ba37f7fcaab386f4c7ac8b91a21fa14937cf52dcb5d8775b723bc6b2280b6fc0",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.training_completed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.training_completed\"' is not assignable to type 'TType'.\n    '\"agent.training_completed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "bb2b543126c85aeea2d8e2315eef616a47c9b50a55047a41d559e5af0d637f65",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"production.queue_started\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"production.queue_started\"' is not assignable to type 'TType'.\n    '\"production.queue_started\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "bc55769313e1bc57a3cecbdf7cf8c126bb31de983f23b0805d8b2d27ecbb26b5",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; caseId: string; caseTitle: string; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; caseId: string; caseTitle: string; }': agentId, agentName",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "c479d1ef0a3460c303cde845f1f4327380d19a03efd5840dfd1b2dd633d05c95",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; kind: \"courierShell\"; startupCost: number; fundingBefore: number; fundingAfter: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; kind: \"courierShell\"; startupCost: number; fundingBefore: number; fundingAfter: number; }': kind, startupCost, fundingBefore, fundingAfter",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "c67c53afd07175e7a3f753d6c7be80a4d7e72927e0bc1e0a69854b4615e7b714",
+      "project": "tsconfig.app.json",
+      "file": "src/test/containmentClassWeekClose.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'AnyOperationEventDraft[]' is not assignable to parameter of type 'readonly { payload?: { instanceId?: string | undefined; } | undefined; }[]'.\n  Type 'AnyOperationEventDraft' is not assignable to type '{ payload?: { instanceId?: string | undefined; } | undefined; }'.\n    Type 'OperationEventDraft<\"case.resolved\">' is not assignable to type '{ payload?: { instanceId?: string | undefined; } | undefined; }'.\n      Types of property 'payload' are incompatible.\n        Type '{ week: number; caseId: string; caseTitle: string; mode: \"standard\" | \"threshold\" | \"probability\" | \"deterministic\"; kind: \"case\" | \"raid\" | \"standard\" | \"anomaly\"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefined; }' has no properties in common with type '{ instanceId?: string | undefined; }'.",
+      "removedOccurrences": 9
+    },
+    {
+      "identity": "c9c5cabcf527e6a122b549cd85b9e6b9414b33f28daa33936f6e491b9508788a",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/authorityGraphPersistence.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'unknown' is not assignable to parameter of type 'string'.",
+      "removedOccurrences": 5
+    },
+    {
+      "identity": "cb99c131ebb5a1aa03544f071a5136f853e602aa58199e16dfa6157b91efd98b",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"assignment.team_unassigned\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"assignment.team_unassigned\"' is not assignable to type 'TType'.\n    '\"assignment.team_unassigned\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "cfaa9958cceb31133f3a9fbd998cea949b8ac701af3eb3545c0f68e4247e2f4d",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.betrayed\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.betrayed\"' is not assignable to type 'TType'.\n    '\"agent.betrayed\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "cfb842be711841569d2f071e69a03bba049f36c49a73ffe7af22bde03ef4dc12",
+      "project": "tsconfig.app.json",
+      "file": "src/domain/protocols.ts",
+      "code": "TS2344",
+      "message": "Type '\"protocolSelectionLimit\" | \"activeProtocolIds\"' does not satisfy the constraint 'never'.\n  Type '\"protocolSelectionLimit\"' is not assignable to type 'never'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "d00c247f8f3221ed475cd0ea827c5f76079ecfcce2ba1e30bd078c559738deb4",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"assignment.team_assigned\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"assignment.team_assigned\"' is not assignable to type 'TType'.\n    '\"assignment.team_assigned\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "d535032bbe1b67c6ee77f61f0bec6550f31ba7bbe915ec3770cd3cd6354399d4",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; reason: \"trust_failure_cumulative\"; counterpartId?: string | undefined; counterpartName?: string | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; reason: \"trust_failure_cumulative\"; counterpartId?: string | undefined; counterpartName?: string | undefined; }': agentId, agentName, reason",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "da7fcf11558ae12efe75a525a89a6801465b7b5c066eb7b1411a5dc8110108f3",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.hired\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.hired\"' is not assignable to type 'TType'.\n    '\"agent.hired\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "da9026fcd435490608390d1358bc70cb93e476cbadc97c0eb8318a9febc0998d",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; kind: \"courierShell\"; statusBefore: \"active\" | \"strained\" | \"collapsed\"; statusAfter: \"active\" | \"strained\" | \"collapsed\"; fundingDelta: number; riskScore: number; lockoutCount: number; residueCount: number; budgetPressure: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; kind: \"courierShell\"; statusBefore: \"active\" | \"strained\" | \"collapsed\"; statusAfter: \"active\" | \"strained\" | \"collapsed\"; fundingDelta: number; riskScore: number; lockoutCount: number; residueCount: number; budgetPressure: number; }': kind, statusBefore, statusAfter, fundingDelta, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "dc21287a858b1b30da1b0ae304a86fb75288e7d8c785e75ae0dcb4efb3e975eb",
+      "project": "tsconfig.app.json",
+      "file": "src/test/sim.advanceWeek.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 10
+    },
+    {
+      "identity": "dc78882b0df169c39a88aa01db05326e30bc42fb9f60b23ba0148c022801f5a1",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"faction.unlock_available\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"faction.unlock_available\"' is not assignable to type 'TType'.\n    '\"faction.unlock_available\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "dcb8e7a1c6eb30b11530aca8864f1d037d30c05e744aad2733651c10cde27c46",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"market.transaction_recorded\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"market.transaction_recorded\"' is not assignable to type 'TType'.\n    '\"market.transaction_recorded\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "dd41d54407eb4f24e33dc13569768a5c0bc2162bb3c1254d10760f653b38cc10",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; activationId: string; instanceId: string; agentId: string; agentName: string; caseId: string; caseTitle: string; dosesBefore: number; dosesAfter: number; underlyingBand: \"depleted\" | \"overdrawn\"; effectiveBand: \"depleted\" | \"taxed\"; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; activationId: string; instanceId: string; agentId: string; agentName: string; caseId: string; caseTitle: string; dosesBefore: number; dosesAfter: number; underlyingBand: \"depleted\" | \"overdrawn\"; effectiveBand: \"depleted\" | \"taxed\"; }': activationId, instanceId, agentId, agentName, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "dd9e0ec367d20ee90667fc189e3ee1c6963f5c0ce2137cef85696e21fe68f674",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.promoted\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.promoted\"' is not assignable to type 'TType'.\n    '\"agent.promoted\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "dde102f3c1e84fbf485e2a133a3a2cbb2a37ee35676ab13c494761e2ff887ba0",
+      "project": "tsconfig.app.json",
+      "file": "src/test/globalStateMetrics.test.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'assignedCaseId' does not exist in type 'Team'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "df415ff8ff51438fe42a1da6a03920dd2b456532d081b3b2e8b0d207ab98c2f9",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; itemId: string; itemName: string; pathId: \"component_reclamation\" | \"ritual_disassembly\"; sourceGradeId: EquipmentGradeId; sourceFabricationQueueId?: string | undefined; ... 7 more ...; etaWeeks: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; itemId: string; itemName: string; pathId: \"component_reclamation\" | \"ritual_disassembly\"; sourceGradeId: EquipmentGradeId; sourceFabricationQueueId?: string | undefined; ... 7 more ...; etaWeeks: number; }': queueId, itemId, itemName, pathId, and 5 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "e3e8127e63f16c364e1afa43691d9983c7f3896bd2e4210b982842a92de47a7f",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ teamTags: string[]; teamCapability: 3; anomalyConcealment: 2; gearTags: readonly [\"thermal-vision\"]; }' is not assignable to parameter of type 'ScoutingInput'.\n  Types of property 'gearTags' are incompatible.\n    The type 'readonly [\"thermal-vision\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 3
+    },
+    {
+      "identity": "eaad2b03e3f90b00c5ffcd29ba6a5fc9cc1885c213e9a6a9f0ec625bd7dbd494",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2322",
+      "message": "Type 'OperationEventDraft<\"agent.instructor_assigned\">' is not assignable to type 'OperationEventDraft<TType>'.\n  Type '\"agent.instructor_assigned\"' is not assignable to type 'TType'.\n    '\"agent.instructor_assigned\"' is assignable to the constraint of type 'TType', but 'TType' could be instantiated with a different subtype of constraint '\"assignment.team_assigned\" | \"assignment.team_unassigned\" | \"agent.training_started\" | \"agent.training_completed\" | \"agent.training_cancelled\" | \"agent.relationship_changed\" | ... 37 more ... | \"system.academy_upgraded\"'.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "ed1c208116f0fa82692cfbebf01177f41cfb019f0f65e9c0b88c28e2ce10d101",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; betrayerId: string; betrayerName: string; betrayedId: string; betrayedName: string; trustDamageDelta: number; trustDamageTotal: number; triggeredConsequences: (\"benching\" | \"performance_penalty\" | \"disciplinary\" | \"resignation\")[]; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; betrayerId: string; betrayerName: string; betrayedId: string; betrayedName: string; trustDamageDelta: number; trustDamageTotal: number; triggeredConsequences: (\"benching\" | \"performance_penalty\" | \"disciplinary\" | \"resignation\")[]; }': betrayerId, betrayerName, betrayedId, betrayedName, and 3 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "f0afa2a61e22395f521c0905b2f65be7307cf191feba5e96cafc1ed06b5b4609",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; agentId: string; agentName: string; newRole: AgentRole; previousLevel: number; newLevel: number; levelsGained: number; skillPointsGranted: number; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; agentId: string; agentName: string; newRole: AgentRole; previousLevel: number; newLevel: number; levelsGained: number; skillPointsGranted: number; }': agentId, agentName, newRole, previousLevel, and 3 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "f6e288bf19b7741a2904965983f6a451f4538b536f2c9a7cb95ffd2aec735e64",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; queueId: string; queueName: string; recipeId: string; outputId: string; outputName: string; outputQuantity: number; etaWeeks: number; fundingCost: number; inputMaterials: ProductionMaterialRequirement[]; outputGradeId?: EquipmentGradeId | undefined; outputGradeVisibility?: EquipmentGradeVisibility | ...'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; queueId: string; queueName: string; recipeId: string; outputId: string; outputName: string; outputQuantity: number; etaWeeks: number; fundingCost: number; inputMaterials: ProductionMaterialRequirement[]; outputGradeId?: EquipmentGradeId | undefined; outputGradeVisibility?: EquipmentGradeVisibility | ...': queueId, queueName, recipeId, outputId, and 5 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "fb6eda677cd8ddbdc98d3449298e4af85461f9d38cc6e32f8675e464bfda5943",
+      "project": "tsconfig.app.json",
+      "file": "src/test/events.producerValidation.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; } | { week: number; caseId: string; caseTitle: string; teamId: string; teamName: string; remainingTeamCount: number; } | ... 41 more ... | { ...; }' is not assignable to parameter of type '{ week: number; candidateId: string; candidateName: string; fundingCost: number; stage: CandidateScoutStage; projectedTier: ExactPotentialTier; ... 8 more ...; sourceContactName?: string | undefined; }'.\n  Type '{ week: number; caseId: string; caseTitle: string; caseKind: \"case\"; teamId: string; teamName: string; assignedTeamCount: number; maxTeams: number; }' is missing the following properties from type '{ week: number; candidateId: string; candidateName: string; fundingCost: number; stage: CandidateScoutStage; projectedTier: ExactPotentialTier; ... 8 more ...; sourceContactName?: string | undefined; }': candidateId, candidateName, fundingCost, stage, and 4 more.",
+      "removedOccurrences": 1
+    },
+    {
+      "identity": "fc9dc962b4201685e77424d99484dd7e2cf474a928ce5ef64cd0f2544b8c5f95",
+      "project": "tsconfig.app.json",
+      "file": "src/test/containmentClassWeekClose.contract.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'OperationEvent[]' is not assignable to parameter of type 'readonly { type: string; payload?: { instanceId?: string | undefined; } | undefined; }[]'.\n  Type 'OperationEvent' is not assignable to type '{ type: string; payload?: { instanceId?: string | undefined; } | undefined; }'.\n    Type '{ readonly id: string; readonly schemaVersion: 1 | 2; readonly type: \"case.resolved\"; readonly sourceSystem: \"incident\"; readonly payload: Readonly<{ week: number; caseId: string; caseTitle: string; mode: \"standard\" | ... 2 more ... | \"deterministic\"; ... 4 more ...; rewardBreakdown?: MissionRewardBreakdown | undefi...' is not assignable to type '{ type: string; payload?: { instanceId?: string | undefined; } | undefined; }'.\n      Types of property 'payload' are incompatible.\n        Type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: \"standard\" | \"threshold\" | \"probability\" | \"deterministic\"; kind: \"case\" | \"raid\" | \"standard\" | \"anomaly\"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...' has no properties in common with type '{ instanceId?: string | undefined; }'.",
+      "removedOccurrences": 2
+    },
+    {
+      "identity": "fdbcc3c17b82eef01789c956f139fd33054c1ccf6341a5b33063294cd487e28a",
+      "project": "tsconfig.app.json",
+      "file": "src/test/hiddenStateModality.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ subject: { exactIdentity: string; category: string; hostility: \"latent\"; activeEffects: string[]; dormantEffects: string[]; activeProtections: string[]; }; caseData: CaseInstance; teamCapability: 3; anomalyConcealment: 2; teamTags: readonly [...]; gearTags: readonly [...]; }' is not assignable to parameter of type 'ScoutingInput'.\n  Types of property 'teamTags' are incompatible.\n    The type 'readonly [\"recon-specialist\"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+      "removedOccurrences": 1
+    }
+  ],
+  "integration": {
+    "revision": "d7f11e48ac50c7e09c00ac2baa0db1666bae3e9d",
+    "sourceState": "Recorded main revision plus the same seven-child repair diff; final committed head is recorded in PR/Linear evidence.",
+    "compilerInputHash": "7ab3dd0ac636b42f0bbe5e8a002eade98dd86af4939748180b06e40b9ef2a09e",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "30d67b1d64ecdd0e83c5bad4a97865c8ffb035cdc49160c1ad40edcd020a5fb4"
+      }
+    ],
+    "reproducible": true,
+    "workingTreeStatus": "A  docs/typecheck/recovery-2026-11-02/delta.json\nA  planning/build-type-contract-recovery-slice.md\nM  src/domain/authorityGraphPersistence.ts\nM  src/domain/protocols.ts\nM  src/test/advanceWeek.fieldBaseResolutionWire.test.ts\nM  src/test/authorityGraphPersistence.test.ts\nM  src/test/campaignToIncidentHook.integration.test.ts\nM  src/test/containmentClassWeekClose.contract.test.ts\nM  src/test/crossScaleContracts.test.ts\nM  src/test/deployment.readiness.timeCost.test.ts\nM  src/test/events.producerValidation.test.ts\nM  src/test/globalStateMetrics.test.ts\nM  src/test/hiddenStateModality.test.ts\nM  src/test/historicalRouteReplayActivation.contract.test.ts\nM  src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts\nM  src/test/historicalRouteReplayWeekClose.contract.test.ts\nM  src/test/protocols.test.ts\nM  src/test/rivalExpeditionWeekClose.test.ts\nM  src/test/sim.advanceWeek.test.ts\nM  src/test/sim.fatiguePipeline.test.ts\nM  src/test/sim.investigationEconomy.integration.test.ts\nM  src/test/sim.pipeline.invariants.test.ts\nM  src/test/sim.relationshipEvolution.test.ts\nM  src/test/teamStateMachine.test.ts\nM  src/test/weeklyMvpLoopProof.calibration.test.ts\nM  src/test/weeklyMvpLoopProof.slice2.integration.test.ts",
+    "summary": {
+      "occurrences": 409,
+      "uniqueIdentities": 293,
+      "repeatedIdentityOccurrences": 116,
+      "exactDuplicateOccurrences": 0,
+      "files": 144,
+      "byProject": {
+        "tsconfig.app.json": 409
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 126,
+        "TS2339": 46,
+        "TS2345": 45,
+        "TS2352": 53,
+        "TS2353": 19,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS6133": 6,
+        "TS7006": 6
+      },
+      "bySurface": {
+        "production-source": 157,
+        "test-fixture": 252
+      }
+    },
+    "identityDeltaFromRepairCapture": []
+  }
+}

@@ -131,11 +131,11 @@ it('keeps launched major incident teams locked while weeks remain', () => {
     assignedTeamIds: [],
   }
 
-  const launched = launchMajorIncident(
-    state,
-    'major-incident',
-    ['team-alpha', 'team-bravo', 'team-charlie']
-  )
+  const launched = launchMajorIncident(state, 'major-incident', [
+    'team-alpha',
+    'team-bravo',
+    'team-charlie',
+  ])
   const next = advanceWeek(launched)
 
   expect(next.cases['major-incident'].status).toBe('in_progress')
@@ -701,9 +701,9 @@ describe('advanceWeek', () => {
         'spe-540-queued-weekly',
       ])
       expect(packetsA.every((packet) => packet.link.scope === 'two_site')).toBe(true)
-      expect(packetsA.every((packet) => packet.link.sourceSiteId !== packet.link.targetSiteId)).toBe(
-        true
-      )
+      expect(
+        packetsA.every((packet) => packet.link.sourceSiteId !== packet.link.targetSiteId)
+      ).toBe(true)
     })
 
     it('feeds derived weekly packets into the existing bounded world-activity path in the same week', () => {
@@ -913,7 +913,11 @@ describe('advanceWeek', () => {
       const singlePacket = [makePacket('pkt-flood-2', 'site-a', 'site-b', 0.8, 'flood-2')]
 
       const multiModifier = deriveCrossSiteAuthorityModifierForTargetSite(multiPackets, 'site-b', 1)
-      const singleModifier = deriveCrossSiteAuthorityModifierForTargetSite(singlePacket, 'site-b', 1)
+      const singleModifier = deriveCrossSiteAuthorityModifierForTargetSite(
+        singlePacket,
+        'site-b',
+        1
+      )
 
       // Multi-packet same-source produces the same outcome as the single strongest packet
       expect(multiModifier.totalDelta).toBe(singleModifier.totalDelta)
@@ -951,9 +955,7 @@ describe('advanceWeek', () => {
     })
 
     it('no citywide propagation: modifier is strictly bounded to two_site scope packets', () => {
-      const twoSitePackets = [
-        makePacket('pkt-bounded', 'site-a', 'site-b', 0.9, 'bounded-seed'),
-      ]
+      const twoSitePackets = [makePacket('pkt-bounded', 'site-a', 'site-b', 0.9, 'bounded-seed')]
       const modifier = deriveCrossSiteAuthorityModifierForTargetSite(twoSitePackets, 'site-b', 1)
 
       // totalDelta bounded to [-0.3, 0.3], weightModifier bounded to [0.75, 1.25]
@@ -1022,7 +1024,10 @@ describe('advanceWeek', () => {
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
       // Simulate event consumption: clear the queued events
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
 
       const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
 
@@ -1055,7 +1060,10 @@ describe('advanceWeek', () => {
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
       // Simulate event consumption
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
 
       const storedSources = week2State.civicAuthoritySources ?? []
       const storedIds = storedSources.map((s) => s.sourceId)
@@ -1167,7 +1175,10 @@ describe('advanceWeek', () => {
       })
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
       const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
 
       // site-b targeted packet is present in the output (source persisted correctly)
@@ -1378,12 +1389,14 @@ describe('advanceWeek', () => {
         },
       }),
     ])
-    expect(advanceWeek(next).events.filter((event) => event.type === 'recruitment.candidate_departed')).toHaveLength(1)
+    expect(
+      advanceWeek(next).events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toHaveLength(1)
 
     const hydrated = hydrateGame(JSON.parse(JSON.stringify(next)), createStartingState())
-    expect(hydrated.events.filter((event) => event.type === 'recruitment.candidate_departed')).toEqual(
-      departureEvents
-    )
+    expect(
+      hydrated.events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toEqual(departureEvents)
   })
 
   it('does not synthesize historical departure events while hydrating a legacy candidate pool', () => {
@@ -1582,7 +1595,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -1725,7 +1738,9 @@ describe('advanceWeek', () => {
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
     expect(
       next.events
-        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .filter(
+          (event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated'
+        )
         .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
     ).toBe(true)
   })
@@ -1767,7 +1782,9 @@ describe('advanceWeek', () => {
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
     expect(
       next.events
-        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .filter(
+          (event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated'
+        )
         .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
     ).toBe(true)
   })
@@ -1943,7 +1960,6 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
       status: {
         ...(state.teams['t_nightwatch'].status ?? { state: 'ready', assignedCaseId: null }),
         assignedCaseId: 'case-001',
@@ -2080,7 +2096,7 @@ describe('advanceWeek', () => {
           memberIds: ['leader-strong', 'leader-weak'],
           leaderId,
           tags: [],
-          assignedCaseId: 'case-001',
+          status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
         },
       }
       state.cases = {
@@ -2842,7 +2858,9 @@ describe('advanceWeek', () => {
       active: [],
       paused: [{ workOrderId: 'work:invalid-terminal', completedWork: 1 }],
     })
-    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:valid-terminal']).toBeUndefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:valid-terminal']
+    ).toBeUndefined()
     expect(
       next.caseScopedPrerequisiteProcessingReservations?.['work:invalid-terminal']
     ).toBeDefined()
@@ -3016,12 +3034,8 @@ describe('advanceWeek', () => {
     expect(aggregateBattle?.parallelObjective?.objectiveId).toBe(
       'case-ritual-battle-ritual-stabilization'
     )
-    expect(['success', 'partial', 'fail']).toContain(
-      aggregateBattle?.parallelObjective?.outcome
-    )
-    expect(battleEvent?.payload.parallelObjectiveId).toBe(
-      'case-ritual-battle-ritual-stabilization'
-    )
+    expect(['success', 'partial', 'fail']).toContain(aggregateBattle?.parallelObjective?.outcome)
+    expect(battleEvent?.payload.parallelObjectiveId).toBe('case-ritual-battle-ritual-stabilization')
     expect(battleEvent?.payload.parallelObjectiveOutcome).toBe(
       aggregateBattle?.parallelObjective?.outcome
     )
@@ -3130,7 +3144,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3253,7 +3267,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3330,7 +3344,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3351,8 +3365,7 @@ describe('advanceWeek', () => {
     expect(
       next.reports[0].notes.some(
         (note) =>
-          note.type === 'faction.unlock_available' &&
-          note.metadata?.factionId === 'black_budget'
+          note.type === 'faction.unlock_available' && note.metadata?.factionId === 'black_budget'
       )
     ).toBe(true)
   })
@@ -3394,7 +3407,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3410,7 +3423,7 @@ describe('advanceWeek', () => {
       name: 'Empty',
       agentIds: [],
       tags: [],
-      assignedCaseId: undefined,
+      status: { state: 'ready' as const, assignedCaseId: null },
     }
 
     const next = advanceWeek(state)
@@ -3440,34 +3453,39 @@ describe('advanceWeek', () => {
     expect(next.gameOverReason).toBe('All active operations concluded. Directorate stands down.')
   })
 
-// SPE-1071 slice 1: campaign-calendar date stamping on weekly reports.
-it('stamps WeeklyReport.date with the source week and progresses monotonically across advanceWeek calls', () => {
-  let state = createStartingState()
-  const stampedDates: Array<{ absoluteWeek: number; year: number; weekOfYear: number; season: string }> = []
+  // SPE-1071 slice 1: campaign-calendar date stamping on weekly reports.
+  it('stamps WeeklyReport.date with the source week and progresses monotonically across advanceWeek calls', () => {
+    let state = createStartingState()
+    const stampedDates: Array<{
+      absoluteWeek: number
+      year: number
+      weekOfYear: number
+      season: string
+    }> = []
 
-  for (let i = 0; i < 4; i++) {
-    const sourceWeek = state.week
-    const reportsBefore = state.reports.length
-    state = advanceWeek(state)
-    if (state.reports.length === reportsBefore) {
-      // No new report appended this tick (e.g., game-over short-circuit); skip.
-      continue
+    for (let i = 0; i < 4; i++) {
+      const sourceWeek = state.week
+      const reportsBefore = state.reports.length
+      state = advanceWeek(state)
+      if (state.reports.length === reportsBefore) {
+        // No new report appended this tick (e.g., game-over short-circuit); skip.
+        continue
+      }
+      const latestReport = state.reports[state.reports.length - 1]
+      expect(latestReport.date).toBeDefined()
+      // The report covers the source week (state.week BEFORE this tick).
+      expect(latestReport.week).toBe(sourceWeek)
+      expect(latestReport.date!.absoluteWeek).toBe(sourceWeek)
+      expect(latestReport.date!.absoluteWeek).toBe(latestReport.week)
+      stampedDates.push(latestReport.date!)
     }
-    const latestReport = state.reports[state.reports.length - 1]
-    expect(latestReport.date).toBeDefined()
-    // The report covers the source week (state.week BEFORE this tick).
-    expect(latestReport.week).toBe(sourceWeek)
-    expect(latestReport.date!.absoluteWeek).toBe(sourceWeek)
-    expect(latestReport.date!.absoluteWeek).toBe(latestReport.week)
-    stampedDates.push(latestReport.date!)
-  }
 
-  // At least two stamped reports needed to verify monotonicity.
-  expect(stampedDates.length).toBeGreaterThanOrEqual(2)
-  for (let i = 1; i < stampedDates.length; i++) {
-    expect(stampedDates[i].absoluteWeek).toBeGreaterThan(stampedDates[i - 1].absoluteWeek)
-  }
-})
+    // At least two stamped reports needed to verify monotonicity.
+    expect(stampedDates.length).toBeGreaterThanOrEqual(2)
+    for (let i = 1; i < stampedDates.length; i++) {
+      expect(stampedDates[i].absoluteWeek).toBeGreaterThan(stampedDates[i - 1].absoluteWeek)
+    }
+  })
 
   it('ends the game when active cases exceed maxActiveCases', () => {
     const state = createStartingState()
@@ -3558,7 +3576,7 @@ it('stamps WeeklyReport.date with the source week and progresses monotonically a
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3653,7 +3671,7 @@ it('stamps WeeklyReport.date with the source week and progresses monotonically a
     const state = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
     state.cases['case-001'] = {
       ...state.cases['case-001'],

@@ -6,7 +6,7 @@ const mockTeamId = 't-1'
 const mockTeam: Team = {
   id: mockTeamId,
   name: 'Bravo',
-  assignedCaseId: 'c-1',
+  status: { state: 'deployed' as const, assignedCaseId: 'c-1' },
   agentIds: [],
   memberIds: [],
   tags: [],

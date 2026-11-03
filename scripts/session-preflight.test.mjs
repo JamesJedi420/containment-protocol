@@ -396,3 +396,39 @@ test('GitHub collector fails closed when PR JSON is valid but not an array', () 
   assert.equal(result.collectionStatus, 'failed')
   assert.equal(result.failureCode, 'open-prs-malformed')
 })
+
+test('GitHub collector fails closed when a PR array entry is malformed', () => {
+  const malformedEntries = [
+    null,
+    {
+      number: 42,
+      url: 'https://github.com/JamesJedi420/containment-protocol/pull/42',
+      headRefName: 'codex/spe-3337-session-preflight',
+      baseRefName: 'main',
+      title: 42,
+      body: '',
+    },
+    {
+      number: 42,
+      url: 'https://github.com/JamesJedi420/containment-protocol/pull/42',
+      headRefName: 'codex/spe-3337-session-preflight',
+      baseRefName: 'main',
+      title: 'feat(SPE-3337): preflight',
+      body: 42,
+    },
+  ]
+
+  for (const malformedEntry of malformedEntries) {
+    const run = (_command, args) => {
+      if (args[0] === 'api') return { status: 0, stdout: `${SHA}\n` }
+      return { status: 0, stdout: JSON.stringify([malformedEntry]) }
+    }
+    const result = collectGitHubEvidence({
+      repository: 'JamesJedi420/containment-protocol',
+      checkedAt: CHECKED_AT,
+      run,
+    })
+    assert.equal(result.collectionStatus, 'failed')
+    assert.equal(result.failureCode, 'open-prs-malformed')
+  }
+})

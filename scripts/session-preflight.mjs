@@ -64,6 +64,25 @@ function findIssueIds(value) {
   return [...new Set((value ?? '').match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? [])]
 }
 
+function isCollectedPullRequest(value) {
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Number.isInteger(value.number) &&
+    value.number > 0 &&
+    typeof value.url === 'string' &&
+    value.url.length > 0 &&
+    typeof value.headRefName === 'string' &&
+    value.headRefName.length > 0 &&
+    typeof value.baseRefName === 'string' &&
+    value.baseRefName.length > 0 &&
+    typeof value.title === 'string' &&
+    value.title.length > 0 &&
+    (typeof value.body === 'string' || value.body === null)
+  )
+}
+
 function extractIssueIdentity(title, body) {
   const titleMatches = findIssueIds(title)
   if (titleMatches.length === 1) {
@@ -128,7 +147,7 @@ export function collectGitHubEvidence({
   } catch {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
   }
-  if (!Array.isArray(parsed)) {
+  if (!Array.isArray(parsed) || !parsed.every(isCollectedPullRequest)) {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
   }
 

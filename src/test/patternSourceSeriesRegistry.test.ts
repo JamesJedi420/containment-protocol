@@ -9,6 +9,7 @@ import {
   classifyBlurbDomains,
   projectSeriesProcessingQueue,
   validatePatternSourceSeriesRecord,
+  type PatternSourceBlurbStub,
   type PatternSourceSeriesRecord,
 } from '../domain/patternSourceSeriesRegistry'
 

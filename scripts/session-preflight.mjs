@@ -9,8 +9,8 @@ function trimOutput(result) {
   return typeof result.stdout === 'string' ? result.stdout.trim() : ''
 }
 
-function runReadOnly(command, args, cwd) {
-  return spawnSafe(command, args, { cwd, encoding: 'utf8' })
+function runReadOnly(command, args, cwd, env = {}) {
+  return spawnSafe(command, args, { cwd, encoding: 'utf8', env })
 }
 
 function failedEvidence(checkedAt, sourceRef, failureCode) {
@@ -33,8 +33,9 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
 
   const status = run(
     'git',
-    ['--no-optional-locks', 'status', '--porcelain=v1', '--untracked-files=no'],
-    cwd
+    ['status', '--porcelain=v1', '--untracked-files=no'],
+    cwd,
+    { GIT_OPTIONAL_LOCKS: '0' }
   )
   if (status.status !== 0) {
     return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'status-unavailable')

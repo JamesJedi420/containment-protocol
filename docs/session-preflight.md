@@ -14,11 +14,13 @@ Evaluate a complete evidence envelope supplied on standard input:
 npm run session:preflight < session-preflight-input.json
 ```
 
-Collect the local Git state and current GitHub `main`/open-PR state through fixed read-only `git` and `gh` commands, while retaining caller-supplied read-only Linear evidence:
+Collect the local Git state and current GitHub `main`/open-PR state through fixed read-only `git` and `gh` commands, while retaining caller-supplied read-only Linear and implementation evidence:
 
 ```sh
 npm run session:preflight -- --collect-local < session-preflight-input.json
 ```
+
+Local collection stamps Git and GitHub evidence at collection start and sets `observedAt` only after both collectors finish. This makes the freshness calculation conservative. The Git status probe uses `--no-optional-locks` so the read-only preflight does not refresh or write the index.
 
 The command writes one JSON result to standard output.
 
@@ -36,18 +38,20 @@ The top-level envelope carries:
 
 - `schemaVersion`: `1`;
 - `repository`: GitHub `owner/name`;
-- `observedAt`: ISO-8601 evaluation time;
+- `observedAt`: timezone-qualified ISO-8601 evaluation time;
 - `freshnessWindowSeconds`: maximum accepted evidence age;
 - `requestedOperation`: `start` or `resume`;
 - `executionMode`: `local-checkout` or `codex-managed-worktree`;
 - `handoff`: approved issue, workstream, optional parent/slice reference, intended branch, expected base-main SHA, and blocker/dependency snapshot;
 - `linear`: source-attributed lifecycle, approval, parent, blocker, and dependency evidence;
-- `github`: source-attributed remote-main, open-PR, and optional implementation evidence;
+- `github`: source-attributed remote-main and open-PR evidence plus optional independently attributed implementation evidence;
 - `git`: source-attributed local checkout/worktree evidence.
 
-With `--collect-local`, the caller may omit `github` and `git`; the command replaces them with fresh read-only observations. Linear evidence remains caller supplied because SPE-3337 does not introduce another Linear transport or credential path.
+Every timestamp must end in `Z` or an explicit numeric offset such as `-06:00`. Ambiguous local timestamps are rejected.
 
-Evidence with `collectionStatus` other than `ready` may omit current source-specific fields. The evaluator reports it as unavailable and returns `unknown`.
+With `--collect-local`, the caller may omit current GitHub open-PR and Git observations; the command replaces them with fresh read-only observations. Linear evidence remains caller supplied because SPE-3337 does not introduce another Linear transport or credential path. Supplied `implementationEvidence` is preserved rather than replaced with an invented negative result.
+
+Evidence with `collectionStatus` other than `ready` may omit current source-specific fields. The evaluator reports it as unavailable and returns `unknown`. Malformed residual payloads on an unavailable source are not projected into the result.
 
 ### Minimal start example
 
@@ -88,6 +92,8 @@ Evidence with `collectionStatus` other than `ready` may omit current source-spec
     "remoteMainSha": "1111111111111111111111111111111111111111",
     "openPullRequests": [],
     "implementationEvidence": {
+      "checkedAt": "2026-11-03T03:29:20.000Z",
+      "sourceRef": "github:JamesJedi420/containment-protocol:implementation:SPE-3337",
       "mergedCurrentMain": false,
       "mergedPrUrls": []
     }
@@ -108,6 +114,12 @@ Evidence with `collectionStatus` other than `ready` may omit current source-spec
 
 ## Start and resume policy
 
+### Linear lifecycle
+
+A `start` may target a Backlog/unstarted issue. It may also target an In Progress parent when the handoff explicitly names the next approved non-child slice through `sliceRef`; this supports SPE-3337’s sequential Slice A/Slice B delivery without closing the parent between slices. A `start` on an In Progress issue without an explicit slice reference is blocked.
+
+A `resume` requires the issue to remain In Progress and the sole open pull request to match the named issue and branch.
+
 ### Local checkout
 
 For `start`, the tracked working tree must be clean, the current branch must be `main`, and local `main`, remote `main`, `HEAD`, and the authorized expected base must agree.
@@ -126,13 +138,15 @@ Any open pull request blocks `start` under the current one-active-slice policy.
 
 `resume` is ready only when there is exactly one open pull request and its verified issue ID, head branch, and `main` base match the handoff. Ambiguous ownership returns `unknown`; an unrelated or additional PR returns `blocked`.
 
-The GitHub collector resolves issue ownership from one issue identifier in the PR title. Only when the title contains none does it accept one unique identifier from the body. Multiple identifiers at the selected level are not guessed.
+The GitHub collector resolves issue ownership from one issue identifier in the PR title. Only when the title contains none does it accept one unique identifier from the body. Multiple identifiers at the selected level are not guessed. Empty or malformed PR output fails closed rather than being interpreted as an empty list.
 
 ## Evidence and output
 
-Linear lifecycle remains separate from GitHub implementation evidence. A merged/current-main implementation does not close an open Linear issue. When supplied evidence says implementation is on current `main` while Linear is not completed, the result is `unknown` with a lifecycle/evidence conflict rather than inferred completion.
+Linear lifecycle remains separate from GitHub implementation evidence. A merged/current-main implementation does not close an open Linear issue. When independently attributed implementation evidence says work is on current `main` while Linear is not completed, the result is `unknown` with a lifecycle/evidence conflict rather than inferred completion.
 
-Reasons use stable codes, source names, and details, sorted deterministically. The result also preserves source references and the inspected lifecycle, pull requests, and Git state. It grants no authority beyond the approved issue boundary.
+Implementation evidence carries its own `checkedAt` and `sourceRef`; its freshness is evaluated independently from open-PR collection. When no implementation check was supplied, the output reports `mergedCurrentMain: null` rather than inventing `false`.
+
+Reasons use stable codes, source names, and details, sorted deterministically by code point. The result also preserves source references and the inspected lifecycle, pull requests, and Git state. It grants no authority beyond the approved issue boundary.
 
 ## Explicit exclusions
 

@@ -1222,7 +1222,9 @@ function EquipmentPage() {
           if (recommendations.length > 0) {
             return (
               <article>
-                <a href={`/cases/${recommendations[0].caseId}`}>{recommendations[0].caseTitle}</a>
+                <Link to={APP_ROUTES.caseDetail(recommendations[0].caseId)}>
+                  {recommendations[0].caseTitle}
+                </Link>
                 <div>{recommendations[0].itemName}</div>
                 <div>Stock 0 / Queue 0</div>
               </article>

@@ -50,6 +50,18 @@ test('Pages compiled assets, hash routes and campaign continuity', async ({ page
     await page.reload()
     await expect(page.getByRole('region', { name: 'Contract board' })).toBeVisible()
     await launchContractFromMissionBoard(page)
+
+    await page.goto('./#/equipment')
+    const recommendations = page
+      .getByRole('heading', { name: /Active case recommendations/i })
+      .locator('..')
+    const caseLink = recommendations.getByRole('link').first()
+    await expect(caseLink).toHaveAttribute('href', /^#\/cases\//)
+    const caseTitle = await caseLink.innerText()
+    await caseLink.click()
+    await expect(page).toHaveURL(/\/containment-protocol\/#\/cases\//)
+    await expect(page.getByRole('heading', { level: 1, name: caseTitle })).toBeVisible()
+
     await page.goto('./#/')
     await openFrontDesk(page)
     await advanceOperationalWeek(page)
@@ -68,6 +80,32 @@ test('Pages compiled assets, hash routes and campaign continuity', async ({ page
     await expect(page.getByText(/Week 2\s*\/\s*Active cap/i).first()).toBeVisible()
     expectNoPageErrors(probe)
     expect(failedRequests).toEqual([])
+  } finally {
+    probe.dispose()
+  }
+})
+
+test('Pages keyboard skip links retain the current route and focus their destinations', async ({
+  page,
+}) => {
+  const probe = attachPageErrorProbe(page)
+  try {
+    for (const [route, targets] of [
+      ['cases', ['cases-filters', 'cases-results']],
+      ['teams', ['teams-builder', 'teams-filters', 'teams-results']],
+      ['training-division', ['training-summary', 'training-active-queue', 'training-roster']],
+    ] as const) {
+      await page.goto(`./#/${route}`)
+      for (const id of targets) {
+        const shortcut = page.locator(`a[href="#${id}"]`)
+        await shortcut.focus()
+        await page.keyboard.press('Enter')
+        await expect(page.locator(`#${id}`)).toBeFocused()
+        await expect(page.locator(`#${id}`)).toBeInViewport()
+        expect(new URL(page.url()).hash).toBe(`#/${route}`)
+      }
+    }
+    expectNoPageErrors(probe)
   } finally {
     probe.dispose()
   }

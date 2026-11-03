@@ -9,9 +9,9 @@ The repository owner authorized this bounded deployment repair under SPE-3502.
 Use Node 22 and the existing lockfile:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
 npm run build:bundle -- --mode pages
-npx playwright test --config e2e/pages.config.ts
+node node_modules/@playwright/test/cli.js test --config e2e/pages.config.ts
 ```
 
 Pages mode sets Vite's base to `/containment-protocol/` and uses hash routing, so
@@ -19,6 +19,9 @@ links such as `/containment-protocol/#/cases` survive direct entry and reload on
 static hosting. Other modes retain the existing root base and browser routing.
 The smoke reuses the existing Chromium harness and starts Vite preview on port 5184. It checks compiled assets, favicon, lazy navigation, back/forward, direct
 links, mission assignment, week advance, report viewing and save continuity.
+It also verifies keyboard skip links on Cases, Teams and Training, and the
+Equipment recommendation-to-case path. Pages skip links scroll and focus their
+targets without replacing the route fragment; other modes retain native anchors.
 Failure traces and screenshots use `test-results/pages/`, separate from the
 development harness output. The deployment workflow retains failure artifacts
 for 14 days.
@@ -27,7 +30,7 @@ To verify the public deployment in a fresh, disposable browser context:
 
 ```powershell
 $env:CP_PAGES_URL = 'https://jamesjedi420.github.io/containment-protocol/'
-npx playwright test --config e2e/pages.config.ts
+node node_modules/@playwright/test/cli.js test --config e2e/pages.config.ts
 Remove-Item Env:CP_PAGES_URL
 ```
 

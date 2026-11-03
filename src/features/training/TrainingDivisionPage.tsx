@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
+import { InPageLink } from '../../components/InPageLink'
 import type { TrainingImpactPreview } from '../../domain/academy'
 import { assessAgentTrainingQueue, assessTeamTrainingQueue } from '../../domain/sim/training'
 import { RECONCILIATION_COST } from '../../domain/sim/reconciliation'
@@ -74,18 +75,18 @@ export default function TrainingDivisionPage() {
   return (
     <section className="space-y-4">
       <nav className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] opacity-70">
-        <a href="#training-summary" className="hover:opacity-100">
+        <InPageLink targetId="training-summary" className="hover:opacity-100">
           Skip to training summary
-        </a>
-        <a href="#training-active-queue" className="hover:opacity-100">
+        </InPageLink>
+        <InPageLink targetId="training-active-queue" className="hover:opacity-100">
           Skip to active queue
-        </a>
-        <a href="#training-roster" className="hover:opacity-100">
+        </InPageLink>
+        <InPageLink targetId="training-roster" className="hover:opacity-100">
           Skip to eligible roster
-        </a>
+        </InPageLink>
       </nav>
 
-      <article id="training-summary" className="panel space-y-4">
+      <article id="training-summary" tabIndex={-1} className="panel space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Training Division</h2>
@@ -172,7 +173,7 @@ export default function TrainingDivisionPage() {
           </ul>
         </article>
 
-        <article id="training-active-queue" className="panel space-y-3">
+        <article id="training-active-queue" tabIndex={-1} className="panel space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold">Active Queue</h3>
@@ -216,7 +217,7 @@ export default function TrainingDivisionPage() {
           )}
         </article>
 
-        <article id="training-roster" className="panel space-y-4">
+        <article id="training-roster" tabIndex={-1} className="panel space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold">Eligible Roster</h3>

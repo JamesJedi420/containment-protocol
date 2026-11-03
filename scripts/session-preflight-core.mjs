@@ -78,8 +78,8 @@ export function validateSessionPreflightInput(input) {
     pushError(errors, isNullableString(handoff.sliceRef), 'handoff.sliceRef must be a string or null')
     pushError(errors, isNonEmptyString(handoff.intendedBranch), 'handoff.intendedBranch is required')
     pushError(errors, isSha(handoff.expectedBaseMainSha), 'handoff.expectedBaseMainSha is invalid')
-    pushError(errors, isIssueArray(handoff.blockerIds), 'handoff.blockerIds must be strings')
-    pushError(errors, isIssueArray(handoff.dependencyIds), 'handoff.dependencyIds must be strings')
+    pushError(errors, isIssueArray(handoff.blockerIds), 'handoff.blockerIds must be issue identifiers')
+    pushError(errors, isIssueArray(handoff.dependencyIds), 'handoff.dependencyIds must be issue identifiers')
   }
 
   const linear = input.linear
@@ -90,8 +90,8 @@ export function validateSessionPreflightInput(input) {
     pushError(errors, isNonEmptyString(linear.status), 'linear.status is required')
     pushError(errors, LIFECYCLE_TYPES.has(linear.statusType), 'linear.statusType is invalid')
     pushError(errors, APPROVAL_STATES.has(linear.approvalState), 'linear.approvalState is invalid')
-    pushError(errors, isIssueArray(linear.blockerIds), 'linear.blockerIds must be strings')
-    pushError(errors, isIssueArray(linear.dependencyIds), 'linear.dependencyIds must be strings')
+    pushError(errors, isIssueArray(linear.blockerIds), 'linear.blockerIds must be issue identifiers')
+    pushError(errors, isIssueArray(linear.dependencyIds), 'linear.dependencyIds must be issue identifiers')
   }
 
   const github = input.github
@@ -279,10 +279,8 @@ function evaluateGit(input, reasons) {
     if (git.headSha !== handoff.expectedBaseMainSha) {
       reasons.push(makeReason('managed_worktree_base_mismatch', 'git', `expected ${handoff.expectedBaseMainSha}; observed ${git.headSha ?? 'unknown'}`))
     }
-  } else {
-    if (git.detachedHead || git.currentBranch !== handoff.intendedBranch) {
-      reasons.push(makeReason('managed_resume_branch_mismatch', 'git', `resume requires branch ${handoff.intendedBranch}; observed ${git.currentBranch ?? 'detached'}`))
-    }
+  } else if (git.detachedHead || git.currentBranch !== handoff.intendedBranch) {
+    reasons.push(makeReason('managed_resume_branch_mismatch', 'git', `resume requires branch ${handoff.intendedBranch}; observed ${git.currentBranch ?? 'detached'}`))
   }
 }
 
@@ -305,6 +303,14 @@ const UNKNOWN_CODES = new Set([
   'lifecycle_evidence_conflict',
 ])
 
+export function compareSessionPreflightReasons(left, right) {
+  const leftKey = `${left.source}:${left.code}:${left.detail}`
+  const rightKey = `${right.source}:${right.code}:${right.detail}`
+  if (leftKey < rightKey) return -1
+  if (leftKey > rightKey) return 1
+  return 0
+}
+
 function stableReasons(reasons) {
   const seen = new Set()
   return reasons
@@ -314,7 +320,7 @@ function stableReasons(reasons) {
       seen.add(key)
       return true
     })
-    .sort((left, right) => `${left.source}:${left.code}:${left.detail}`.localeCompare(`${right.source}:${right.code}:${right.detail}`))
+    .sort(compareSessionPreflightReasons)
 }
 
 export function evaluateSessionPreflight(input) {
@@ -324,7 +330,7 @@ export function evaluateSessionPreflight(input) {
       schemaVersion: SCHEMA_VERSION,
       status: 'unknown',
       readOnly: true,
-      issueId: isObject(input?.handoff) ? input.handoff.issueId ?? null : null,
+      issueId: isObject(input?.handoff) ? (input.handoff.issueId ?? null) : null,
       requestedOperation: input?.requestedOperation ?? null,
       executionMode: input?.executionMode ?? null,
       reasons: [makeReason('invalid_input', 'input', validationErrors.sort().join('; '))],

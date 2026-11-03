@@ -1,6 +1,6 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-1064", "SPE-3338"],
+  "inProgress": ["SPE-1064", "SPE-3338", "SPE-3337"],
   "recentlyShipped": [
     "SPE-2197",
     "SPE-2166",
@@ -505,7 +505,8 @@
     "planning/spe-2907-seven-beat-presentation-slice.md": "Recently shipped",
     "planning/spe-2920-tutorial-delivery-slice.md": "Recently shipped",
     "planning/spe-3491-recraft-prompt-human-generate-rule-slice.md": "Recently shipped",
-    "planning/spe-992-hidden-room-building-graph-slice.md": "Done",
+    "planning/spe-330-finite-command-construct-slice.md": "Recently shipped",
+    "planning/spe-3337-session-preflight-slice.md": "In Progress"
     "planning/spe-330-finite-command-construct-slice.md": "Recently shipped"
   },
   "historyFile": "planning/backlog-history-2026-11-01.md"

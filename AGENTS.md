@@ -16,6 +16,7 @@
 
 1. `git checkout main` and `git pull origin main`.
 2. **Start a new agent chat** before the next slice—not the thread that opened or babysat the merged PR.
+   Closing a response with neither a next step nor an archive recommendation violates § End of every response — next step or archive.
 3. First message: Linear issue, `planning/…-slice.md`, new branch name, confirm current `main` commit.
 
 Agents: when merge is complete, sync `main` in-session, then remind the user to **start a new agent** for the next task.
@@ -46,6 +47,10 @@ Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal
 ### During an open PR
 
 One session on the **same branch** is fine (implement, CI, review). New session when the task or merged PR changes.
+
+### End of every response — next step or archive
+
+**Non-negotiable** for every agent response (local, Cloud, subagent): close with a recommendation — the **next concrete step** (task, check, or handoff) — or, when there is genuinely none (work complete, blocked on a human, nothing left in boundary), an explicit recommendation to **archive the chat**. Never end on a bare status update with neither. Where `docs/agent-session-closeout.md` forbids a next-issue plan (phase A after PR open), recommend archiving instead.
 
 ### Cloud / Move to local
 

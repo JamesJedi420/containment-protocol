@@ -122,33 +122,32 @@ function normalizeText(value: string): string {
 function stableRequirementKey(
   requirement: ProcedureExecutionPrerequisiteRequirement
 ): string {
-  return [
+  return JSON.stringify([
     requirement.prerequisiteClass,
     normalizeText(requirement.ownerRef),
-  ].join(':')
+  ])
 }
 
 function stableDecisionKey(decision: ProcedureExecutionPrerequisiteDecision): string {
-  return [
+  return JSON.stringify([
     decision.prerequisiteClass,
     normalizeText(decision.ownerRef),
     decision.state,
     normalizeText(decision.reason),
-  ].join(':')
+  ])
 }
 
 function stableParticipantKey(participant: CrossRoleActionParticipant): string {
-  const statDomains = Object.entries(participant.statDomains)
-    .sort(([a], [b]) => codeUnitCompare(a, b))
-    .map(([domain, value]) => `${domain}=${String(value)}`)
-    .join(',')
-  const itemTags = [...participant.itemTags].sort(codeUnitCompare).join(',')
-  return [
+  const statDomains = Object.entries(participant.statDomains).sort(([a], [b]) =>
+    codeUnitCompare(a, b)
+  )
+  const itemTags = [...participant.itemTags].sort(codeUnitCompare)
+  return JSON.stringify([
     participant.agentId,
     participant.role,
     statDomains,
     itemTags,
-  ].join('|')
+  ])
 }
 
 function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): string {
@@ -166,16 +165,16 @@ function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): strin
     .sort(codeUnitCompare)
     .join(';')
 
-  return [
-    input.definition.schemaVersion,
-    input.definition.procedureId.trim(),
-    input.executionKey.trim(),
-    `roles=${roles}`,
-    `count=${input.requiredParticipantCount}`,
-    `participants=${participants}`,
-    `requirements=${requirements}`,
-    `decisions=${decisions}`,
-  ].join('|')
+  return JSON.stringify({
+    schemaVersion: input.definition.schemaVersion,
+    procedureId: input.definition.procedureId.trim(),
+    executionKey: input.executionKey.trim(),
+    roles,
+    requiredParticipantCount: input.requiredParticipantCount,
+    participants,
+    requirements,
+    decisions,
+  })
 }
 
 function mapProcedurePrerequisites(definition: ProcedureDefinition): readonly ProcedurePrerequisite[] {

@@ -6,6 +6,14 @@ Read [the Agent Operating Manual](agent-operating-manual.md) for the shared stan
 
 See manual §1 and [Cursor autonomous authority](cursor-autonomous-authority.md). A handoff does not supply missing approval or expand an issue. Linear owns approved scope/lifecycle; repository and GitHub evidence do not approve scope.
 
+## Executable start/resume preflight
+
+Before substantive implementation of an explicitly named approved boundary, use the [SPE-3337 session preflight](session-preflight.md). It evaluates source-attributed Linear, GitHub, and Git evidence and returns `ready`, `blocked`, or `unknown`.
+
+Both `blocked` and `unknown` prohibit implementation. The preflight is read-only: it does not choose another issue, change lifecycle, reserve work, create a branch, or mutate a pull request. Local checkouts and Codex managed worktrees use separate branch-form checks while preserving the same current-base and one-active-slice policy.
+
+A `ready` result does not itself move the issue In Progress. The authorized implementation agent performs the existing lifecycle action separately after the gate passes.
+
 ## Read-only session closeout
 
 Use [the read-only template](read-only-session-handoff.md) only when no Linear, repository, or external writes occurred. Distinguish preliminary findings, pending durable transport, and verified canonical application.
@@ -20,7 +28,7 @@ Follow manual §4: sync main, post truthful existing-boundary evidence, and use 
 
 ## During an open PR
 
-Continue implementation, review fixes, and CI on the same active boundary. Use phase A if merge is blocked; do not start unrelated scope.
+Continue implementation, review fixes, and CI on the same active boundary. Use phase A if merge is blocked; do not start unrelated scope. A `resume` preflight is ready only when the sole open PR has a verified issue and branch matching the named handoff.
 
 ## Cloud / move to local
 
@@ -28,7 +36,7 @@ Verify current refs before checkout (manual §2). Use [the cloud-agent payload](
 
 ## Each new implementation task
 
-Use manual §§1–3 to verify actor authority, current issue/parent/children, clean main, pre-coding summary, lifecycle state, and validation boundary. Preserve unrelated changes and worktrees.
+Use manual §§1–3 to verify actor authority, current issue/parent/children, clean main, pre-coding summary, lifecycle state, and validation boundary. Preserve unrelated changes and worktrees. Run the session preflight before creating the implementation branch or changing lifecycle state.
 
 ## Session closeout
 

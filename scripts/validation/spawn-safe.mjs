@@ -18,6 +18,9 @@ function fixedPathDirs() {
         ? path.join(process.env.ProgramFiles, 'Git', 'cmd')
         : null,
       process.env.ProgramFiles
+        ? path.join(process.env.ProgramFiles, 'GitHub CLI')
+        : null,
+      process.env.ProgramFiles
         ? path.join(process.env.ProgramFiles, 'nodejs')
         : null,
       process.env.LOCALAPPDATA

@@ -73,7 +73,7 @@ describe('SPE-626 tactical-read live integration', () => {
       agentIds: [agentId],
       memberIds: [agentId],
       leaderId: agentId,
-      assignedCaseId: caseId,
+      status: { state: 'deployed' as const, assignedCaseId: caseId },
       tags: ['recon', 'surveillance'],
     }
 
@@ -81,11 +81,15 @@ describe('SPE-626 tactical-read live integration', () => {
 
     expect(next.reports.at(-1)?.resolvedCases).toContain(caseId)
 
-    expect(readProgressClock(next, buildInvestigationBudgetClockId(caseId, 'tactical', 'granted'))).toMatchObject({
+    expect(
+      readProgressClock(next, buildInvestigationBudgetClockId(caseId, 'tactical', 'granted'))
+    ).toMatchObject({
       value: 1,
       max: 6,
     })
-    expect(readProgressClock(next, buildInvestigationBudgetClockId(caseId, 'tactical', 'spent'))).toMatchObject({
+    expect(
+      readProgressClock(next, buildInvestigationBudgetClockId(caseId, 'tactical', 'spent'))
+    ).toMatchObject({
       value: 1,
       max: 6,
     })
@@ -95,7 +99,9 @@ describe('SPE-626 tactical-read live integration', () => {
       completed: true,
     })
 
-    expect(readPersistentFlag(next, `investigation.case.${caseId}.reward.progress-applied`)).toBe(true)
+    expect(readPersistentFlag(next, `investigation.case.${caseId}.reward.progress-applied`)).toBe(
+      true
+    )
     expect(
       readPersistentFlag(next, `investigation.case.${caseId}.leverage.staged-ingress-advantage`)
     ).toBe(true)
@@ -103,8 +109,9 @@ describe('SPE-626 tactical-read live integration', () => {
     expect(
       next.reports
         .at(-1)
-        ?.caseSnapshots?.[caseId]
-        ?.missionResult?.explanationNotes.some((note) => note.includes('Tactical read leverage'))
+        ?.caseSnapshots?.[caseId]?.missionResult?.explanationNotes.some((note) =>
+          note.includes('Tactical read leverage')
+        )
     ).toBe(true)
   })
 })

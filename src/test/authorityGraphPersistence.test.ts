@@ -36,6 +36,48 @@ function createAuthorityGraphState(strength = 50): AuthorityGraphState {
 }
 
 describe('authority graph persisted week-close foundation (SPE-2720)', () => {
+  it.each([undefined, null, 42, {}, [], '', 'invalid', '__proto__', 'constructor', 'toString'])(
+    'rejects malformed enum values while preserving valid siblings (%j)',
+    (invalidEnum) => {
+      const input = createAuthorityGraphState()
+      const node = input.graph.nodes[0]!
+      const edge = input.graph.edges[0]!
+      const sanitized = sanitizeAuthorityGraphState({
+        ...input,
+        graph: {
+          nodes: [
+            ...input.graph.nodes,
+            { ...node, id: 'invalid-node', nodeType: invalidEnum },
+            {
+              ...node,
+              id: 'alias-node',
+              aliases: [
+                { aliasId: 'valid-alias', label: 'Valid alias', confidence: 'verified' },
+                { aliasId: 'invalid-alias', label: 'Invalid alias', confidence: invalidEnum },
+              ],
+            },
+          ],
+          edges: [
+            edge,
+            { ...edge, id: 'invalid-kind', kind: invalidEnum },
+            { ...edge, id: 'invalid-status', status: invalidEnum },
+            { ...edge, id: 'invalid-confidence', sourceConfidence: invalidEnum },
+          ],
+        },
+      })
+      expect(sanitized.graph.nodes.map((entry) => entry.id)).toEqual([
+        'agency-core',
+        'alias-node',
+        'regional-office',
+      ])
+      expect(sanitized.graph.nodes.find((entry) => entry.id === 'alias-node')?.aliases).toEqual([
+        { aliasId: 'valid-alias', label: 'Valid alias', confidence: 'verified' },
+      ])
+      expect(sanitized.graph.edges).toEqual(input.graph.edges)
+      expect(input).toEqual(createAuthorityGraphState())
+    }
+  )
+
   it('applies one deterministic, bounded consequence-driven mutation', () => {
     const input = createAuthorityGraphState()
 
@@ -181,9 +223,9 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
       mutationHistory: [],
     })
 
-    expect(
-      sanitized.graph.nodes.find((node) => node.id === 'unit-node')?.linkedUnitIds
-    ).toEqual(['unit:records-research'])
+    expect(sanitized.graph.nodes.find((node) => node.id === 'unit-node')?.linkedUnitIds).toEqual([
+      'unit:records-research',
+    ])
     expect(
       sanitized.graph.nodes.find((node) => node.id === 'legacy-unit-node')?.linkedUnitIds
     ).toBeUndefined()

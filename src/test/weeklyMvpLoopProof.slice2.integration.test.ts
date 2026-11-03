@@ -76,7 +76,7 @@ describe('MVP weekly loop proof (slice 2)', () => {
       teams: {
         [teamId]: {
           ...fixtureState.teams[teamId]!,
-          assignedCaseId: MVP_LOOP_PROOF_CASE_ID,
+          status: { state: 'deployed' as const, assignedCaseId: MVP_LOOP_PROOF_CASE_ID },
         },
       },
       reports: [],

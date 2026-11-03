@@ -13,7 +13,7 @@ describe('fatiguePipeline', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const nextAgents = applyWeeklyAgentFatigue({

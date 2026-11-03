@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import type { GameState } from '../domain/models'
 import {
   advanceHistoricalRouteReplay,
   applyHistoricalRouteReplayRegistryAtWeekClose,
@@ -76,7 +77,7 @@ function buildEnded(eventId: string): HistoricalRouteReplayRecord {
   )
 }
 
-function withoutHistoricalRouteReplays<T extends Record<string, unknown>>(state: T) {
+function withoutHistoricalRouteReplays<T extends GameState>(state: T) {
   const { historicalRouteReplays: _replays, ...unrelated } = state
   void _replays
   return unrelated

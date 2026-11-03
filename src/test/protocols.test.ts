@@ -4,6 +4,7 @@ import { evaluateAgentBreakdown } from '../domain/evaluateAgent'
 import {
   buildAgencyProtocolState,
   listProtocolCatalog,
+  sanitizePersistedAgencyProtocols,
   PROTOCOL_TYPE_DEFINITIONS,
 } from '../domain/protocols'
 import type { Agent, CaseInstance, DomainStats, GameState } from '../domain/models'
@@ -336,5 +337,53 @@ describe('protocols', () => {
     expect(protocolBreakdown.performance.stressImpact).toBeLessThan(
       baseBreakdown.performance.stressImpact
     )
+  })
+})
+
+describe('persisted agency protocol selection', () => {
+  it.each([undefined, null, 42, 'invalid', [], {}, { activeProtocolIds: 'invalid' }])(
+    'leaves absent or malformed selections absent (%j)',
+    (raw) => {
+      expect(sanitizePersistedAgencyProtocols(raw, 2)).toBeUndefined()
+    }
+  )
+
+  it('trims, filters and stably deduplicates IDs before capping selection', () => {
+    const [first, second, third] = listProtocolCatalog().map((entry) => entry.id)
+    expect(first).toBeDefined()
+    expect(second).toBeDefined()
+    const raw = {
+      activeProtocolIds: [first, ' ' + second + ' ', first, '__proto__', 42, null, '', third],
+      protocolSelectionLimit: 2.9,
+    }
+    const snapshot = structuredClone(raw)
+    expect(sanitizePersistedAgencyProtocols(raw, 1)).toEqual({
+      activeProtocolIds: [first, second],
+      protocolSelectionLimit: 2,
+    })
+    expect(raw).toEqual(snapshot)
+  })
+
+  it.each([NaN, Infinity, -Infinity, '2', null])(
+    'omits invalid limits and uses clearance only to cap supplied IDs (%j)',
+    (protocolSelectionLimit) => {
+      const [first, second] = listProtocolCatalog().map((entry) => entry.id)
+      expect(sanitizePersistedAgencyProtocols({ protocolSelectionLimit }, 1)).toBeUndefined()
+      expect(
+        sanitizePersistedAgencyProtocols(
+          { protocolSelectionLimit, activeProtocolIds: [first, second] },
+          1
+        )
+      ).toEqual({ activeProtocolIds: [first] })
+    }
+  )
+
+  it('preserves independent field absence and normalizes nonpositive finite limits', () => {
+    expect(sanitizePersistedAgencyProtocols({ protocolSelectionLimit: -3 }, 2)).toEqual({
+      protocolSelectionLimit: 1,
+    })
+    expect(sanitizePersistedAgencyProtocols({ activeProtocolIds: [] }, 2)).toEqual({
+      activeProtocolIds: [],
+    })
   })
 })

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "verify-read-only-handoff": "node scripts/verify-read-only-handoff.mjs",
+    "session:preflight": "node scripts/session-preflight.mjs --stdin",
+    "verify:session-preflight": "node --test scripts/session-preflight.test.mjs",
     "dev": "vite --config app.vite.config.ts --configLoader native",
     "build": "tsc -b && vite build --config app.vite.config.ts --configLoader native",
     "build:bundle": "vite build --config app.vite.config.ts --configLoader native",
@@ -23,7 +25,7 @@
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs",
     "verify:governance-contract": "node --test scripts/governance/authority-contract.check.mjs",
     "verify:requirements": "node scripts/validation/run-requirements.mjs",
-    "verify:requirements:test": "node --test scripts/validation/requirement-model.check.mjs scripts/validation/academy-authored-content.check.mjs",
+    "verify:requirements:test": "node --test scripts/validation/requirement-model.check.mjs scripts/validation/session-preflight-selection.check.mjs scripts/validation/academy-authored-content.check.mjs",
     "verify:academy-authored-content": "node scripts/validation/academy-authored-content.mjs && node --test scripts/validation/academy-authored-content.check.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=list,html",

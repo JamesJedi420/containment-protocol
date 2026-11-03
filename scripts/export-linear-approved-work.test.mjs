@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import {fileURLToPath,pathToFileURL} from 'node:url'
 import {spawnSync} from 'node:child_process'
 import {fetchLinearAuthority,normalizeLinearIssues} from './export-linear-approved-work.mjs'
 import {projectApprovedWork} from './project-approved-work.mjs'
@@ -81,7 +81,7 @@ test('CLI exports without an approval inventory and preserves legacy positional 
   fs.writeFileSync(responseFile,JSON.stringify(response))
   fs.writeFileSync(mock,"import fs from 'node:fs'\nconst response=JSON.parse(fs.readFileSync(process.env.CP_LINEAR_TEST_RESPONSE,'utf8'))\nglobalThis.fetch=async()=>({ok:true,json:async()=>response})\n")
   const script=fileURLToPath(new URL('./export-linear-approved-work.mjs',import.meta.url))
-  const run=args=>spawnSync(process.execPath,['--import',mock,script,...args],{cwd:dir,encoding:'utf8',windowsHide:true,env:{...process.env,CP_LINEAR_TEST_RESPONSE:responseFile,LINEAR_API_KEY:'test',LINEAR_PROJECT_IDS:'project-1'}})
+  const run=args=>spawnSync(process.execPath,['--import',pathToFileURL(mock).href,script,...args],{cwd:dir,encoding:'utf8',windowsHide:true,env:{...process.env,CP_LINEAR_TEST_RESPONSE:responseFile,LINEAR_API_KEY:'test',LINEAR_PROJECT_IDS:'project-1'}})
   for(const args of [[input,'--output',output],[input,inventory,legacyOutput],[input]]) {
    const result=run(args);assert.equal(result.status,0,result.stderr)
   }

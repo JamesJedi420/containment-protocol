@@ -54,6 +54,7 @@ describe('golden pressure campaign', () => {
     expect(result.first.caseStatus).toBe('open')
     expect(result.first.supportShortfall).toBe(true)
     expect(result.first.gameOver).toBe(false)
+    expect(result.first.pressure).toBeGreaterThanOrEqual(2)
     // The SPE-2251 calibration can exceed the save schema's stat cap, and
     // hydration deliberately clears supportShortfall. Compare only the
     // carryover fields this fixture's existing contract asserts across load.

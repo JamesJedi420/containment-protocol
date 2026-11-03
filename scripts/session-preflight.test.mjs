@@ -275,6 +275,23 @@ test('merged evidence disagreement stays explicit and never infers completion', 
   assert.equal(result.evidence.githubImplementation.mergedCurrentMain, true)
 })
 
+test('merged evidence does not invent a lifecycle conflict when Linear is unavailable', () => {
+  const result = evaluateSessionPreflight(
+    baseInput({
+      linear: { collectionStatus: 'needsAuth' },
+      github: {
+        implementationEvidence: {
+          mergedCurrentMain: true,
+          mergedPrUrls: ['https://example.test/pr/1'],
+        },
+      },
+    })
+  )
+  assert.equal(result.status, 'unknown')
+  assert.ok(reasonCodes(result).includes('linear_evidence_unavailable'))
+  assert.ok(!reasonCodes(result).includes('lifecycle_evidence_conflict'))
+})
+
 test('CP core and Academy consume the same contract', () => {
   const cp = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'CP-core' } }))
   const academy = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'Academy' } }))
@@ -375,6 +392,20 @@ test('GitHub collector uses read-only gh commands and verifies one issue identit
   assert.equal(result.openPullRequests[0].issueId, 'SPE-3337')
   assert.equal(result.openPullRequests[0].ownershipVerified, true)
   assert.ok(calls.every((call) => !/\b(create|close|merge|edit|ready|review)\b/.test(call)))
+})
+
+test('GitHub collector fails closed when remote main output is empty', () => {
+  const run = (_command, args) => {
+    if (args[0] === 'api') return { status: 0, stdout: '\n' }
+    throw new Error('PR collection must not run after missing remote main')
+  }
+  const result = collectGitHubEvidence({
+    repository: 'JamesJedi420/containment-protocol',
+    checkedAt: CHECKED_AT,
+    run,
+  })
+  assert.equal(result.collectionStatus, 'failed')
+  assert.equal(result.failureCode, 'remote-main-unavailable')
 })
 
 test('GitHub collector fails closed when PR JSON is valid but not an array', () => {

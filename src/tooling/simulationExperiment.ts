@@ -34,6 +34,7 @@ export async function executeExperimentSeed(
   controls: ExperimentControls
 ): Promise<SeedEvidence> {
   const now = controls.now ?? (() => performance.now())
+  let initialized = false
   function checkBudget() {
     if (controls.signal?.aborted) throw new ExperimentError('cancelled', 'Experiment cancelled.')
     if (now() - controls.startedAt >= request.budgetMs) {
@@ -50,7 +51,10 @@ export async function executeExperimentSeed(
         'Canonical initializer did not apply the requested seed.'
       )
     }
-    controls.onInitialized?.(state.rngSeed)
+    if (!initialized) {
+      initialized = true
+      controls.onInitialized?.(state.rngSeed)
+    }
     let weeksExecuted = 0
     while (weeksExecuted < request.weeks && !state.gameOver) {
       checkBudget()

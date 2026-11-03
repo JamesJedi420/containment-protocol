@@ -188,12 +188,23 @@ describe('SPE-3521 real canonical Node execution', () => {
   it('checks budgets during canonical execution and starts the next run fresh after failure', async () => {
     const request = parseExperimentRequest(raw)
     let ticks = 0
+    const onInitialized = vi.fn()
     await expect(
-      executeExperimentSeed(request, 11, { startedAt: 0, now: () => ++ticks * 10_000 })
+      executeExperimentSeed(request, 11, {
+        startedAt: 0,
+        now: () => ++ticks * 10_000,
+        onInitialized,
+      })
     ).rejects.toMatchObject({ status: 'budget_exhausted' })
-    const result = await executeExperimentSeed(request, 11, { startedAt: performance.now() })
+    expect(onInitialized).toHaveBeenCalledExactlyOnceWith(11)
+    onInitialized.mockClear()
+    const result = await executeExperimentSeed(request, 11, {
+      startedAt: performance.now(),
+      onInitialized,
+    })
     expect(result.replay).toBe('matched')
     expect(result.finalWeek).toBe(3)
+    expect(onInitialized).toHaveBeenCalledExactlyOnceWith(11)
   })
 
   it('exposes replay mismatch as unavailable rather than successful determinism', async () => {

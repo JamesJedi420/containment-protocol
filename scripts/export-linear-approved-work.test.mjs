@@ -71,15 +71,17 @@ test('omitting an approval inventory does not waive project identity or exact ev
 test('CLI exports without an approval inventory and preserves legacy positional output',()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'linear-approval-cli-'))
  const input=path.join(dir,'evidence.json'),inventory=path.join(dir,'inventory.json')
+ const mock=path.join(dir,'mock-fetch.mjs'),responseFile=path.join(dir,'response.json')
  const output=path.join(dir,'output.json'),legacyOutput=path.join(dir,'legacy.json'),planning=path.join(dir,'planning'),defaultOutput=path.join(planning,'approved-work-projection.json')
  try {
   fs.writeFileSync(input,JSON.stringify(evidence(['SPE-1'])))
   fs.writeFileSync(inventory,JSON.stringify(coverage(['SPE-1'])))
   fs.mkdirSync(planning)
   const response={data:{project:{id:'project-1',issues:{pageInfo:{hasNextPage:false},nodes:[issue('SPE-1')]}}}}
-  const mock='data:text/javascript,'+encodeURIComponent(`globalThis.fetch=async()=>({ok:true,json:async()=>(${JSON.stringify(response)})})`)
+  fs.writeFileSync(responseFile,JSON.stringify(response))
+  fs.writeFileSync(mock,"import fs from 'node:fs'\nconst response=JSON.parse(fs.readFileSync(process.env.CP_LINEAR_TEST_RESPONSE,'utf8'))\nglobalThis.fetch=async()=>({ok:true,json:async()=>response})\n")
   const script=fileURLToPath(new URL('./export-linear-approved-work.mjs',import.meta.url))
-  const run=args=>spawnSync(process.execPath,['--import',mock,script,...args],{cwd:dir,encoding:'utf8',windowsHide:true,env:{...process.env,LINEAR_API_KEY:'test',LINEAR_PROJECT_IDS:'project-1'}})
+  const run=args=>spawnSync(process.execPath,['--import',mock,script,...args],{cwd:dir,encoding:'utf8',windowsHide:true,env:{...process.env,CP_LINEAR_TEST_RESPONSE:responseFile,LINEAR_API_KEY:'test',LINEAR_PROJECT_IDS:'project-1'}})
   for(const args of [[input,'--output',output],[input,inventory,legacyOutput],[input]]) {
    const result=run(args);assert.equal(result.status,0,result.stderr)
   }
@@ -87,7 +89,7 @@ test('CLI exports without an approval inventory and preserves legacy positional 
   assert.notEqual(run([input,'--output']).status,0)
   assert.notEqual(run([input,'--unknown',output]).status,0)
  } finally {
-  for(const file of [input,inventory,output,legacyOutput,defaultOutput])if(fs.existsSync(file))fs.unlinkSync(file)
+  for(const file of [input,inventory,mock,responseFile,output,legacyOutput,defaultOutput])if(fs.existsSync(file))fs.unlinkSync(file)
   if(fs.existsSync(planning))fs.rmdirSync(planning)
   fs.rmdirSync(dir)
  }

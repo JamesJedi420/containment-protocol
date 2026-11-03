@@ -95,10 +95,7 @@ function collectorResponses(prOutput = '[]') {
   return new Map([
     ['git rev-parse HEAD', { status: 0, stdout: `${SHA}\n` }],
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
-    [
-      'git --no-optional-locks status --porcelain=v1 --untracked-files=no',
-      { status: 0, stdout: '' },
-    ],
+    ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
     [
       'git ls-remote origin refs/heads/main',
@@ -180,9 +177,9 @@ test('implementation evidence has independent freshness', () => {
 test('local collection evaluates after collection and preserves supplied implementation evidence', () => {
   const responses = collectorResponses()
   const calls = []
-  const run = (command, args) => {
+  const run = (command, args, _cwd, env = {}) => {
     const key = `${command} ${args.join(' ')}`
-    calls.push(key)
+    calls.push({ key, env })
     return responses.get(key)
   }
   const times = [CHECKED_AT, OBSERVED_AT]
@@ -195,7 +192,10 @@ test('local collection evaluates after collection and preserves supplied impleme
   assert.equal(collected.git.checkedAt, CHECKED_AT)
   assert.equal(collected.observedAt, OBSERVED_AT)
   assert.deepEqual(collected.github.implementationEvidence, input().github.implementationEvidence)
-  assert.ok(calls.includes('git --no-optional-locks status --porcelain=v1 --untracked-files=no'))
+  const statusCall = calls.find(
+    (call) => call.key === 'git status --porcelain=v1 --untracked-files=no'
+  )
+  assert.equal(statusCall?.env.GIT_OPTIONAL_LOCKS, '0')
 })
 
 test('empty pull-request output fails closed instead of becoming an empty list', () => {

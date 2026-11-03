@@ -194,3 +194,26 @@ executed seeds 11, 22, 11 for two weeks. Seed 11 repeated the full-state digest
 seed 22 produced
 `ae4650540de3653ae5ea3bb6acf87f4aff0c15b36ba23b48944526f3573df729`.
 This is local preflight evidence, not a Trigger.dev integration run.
+
+Development integration on 2026-11-03 UTC used clean commit
+`78aa6c874c5989d665335c24f2ef263c20d090d0`, Node 22.23.4 and worker
+`20261103.2` on branch `spe-3521-experiments`. The successful run completed in
+1.17 seconds with requested and executed seeds `[11, 22]`, two weeks each,
+and matching independent replay fingerprints. Its complete compact output is
+recorded in [the evidence JSON](evidence/spe-3521-development-run.json).
+
+| Check                | Run ID                                                                                                                                | Observed result                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Seeded proof         | [run_06gptqivct049ghrindpb9ava2](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/runs/run_06gptqivct049ghrindpb9ava2) | `success`; both seeds executed and replay matched                        |
+| Duplicate submission | Same run as above                                                                                                                     | CLI returned the existing run for the canonical key; no second execution |
+| Scoped replay        | [run_06gptqus6umgf83a7u6rrs72a2](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/runs/run_06gptqus6umgf83a7u6rrs72a2) | `replay_unavailable`; no executed seeds                                  |
+| 1 ms budget          | [run_06gptr03jml2ngov8o683u9ka2](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/runs/run_06gptr03jml2ngov8o683u9ka2) | `budget_exhausted`; no executed seeds                                    |
+| Malformed payload    | [run_06gpti92a4k8pao51lucaho5a2](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/runs/run_06gpti92a4k8pao51lucaho5a2) | `invalid_input`; no executed seeds                                       |
+| Uncommitted build    | [run_06gptjpcrb1l84hdg308ubl6a2](https://cloud.trigger.dev/projects/v3/proj_nqtjupmbfusgzufhnobk/runs/run_06gptjpcrb1l84hdg308ubl6a2) | `missing_capability`; no executed seeds                                  |
+
+The last two checks preceded the clean commit. All rejected runs were visibly
+failed with computational retries skipped. Seed 11 ended at week 3 with seven
+unresolved cases and no game-over; seed 22 ended at week 3 with nine unresolved
+cases and canonical game-over. Their full-state digests match the preflight
+values above. These observations demonstrate seed diversity, not balance quality
+or cross-version replay guarantees.

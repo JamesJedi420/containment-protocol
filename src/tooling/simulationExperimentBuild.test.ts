@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 const git = vi.hoisted(() => ({ commit: 'a'.repeat(40), status: '', unavailable: false }))
 vi.mock('node:child_process', () => ({
-  execFileSync: (_command: string, args: string[]) => {
-    if (git.unavailable) throw new Error('git unavailable')
-    return args[0] === 'rev-parse' ? git.commit : git.status
+  spawnSync: (_command: string, args: string[]) => {
+    if (git.unavailable) return { status: 1, stdout: '' }
+    return { status: 0, stdout: args[0] === 'rev-parse' ? git.commit : git.status }
   },
 }))
 vi.mock('@trigger.dev/sdk', () => ({ defineConfig: <T>(config: T) => config }))

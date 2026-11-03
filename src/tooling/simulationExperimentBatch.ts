@@ -38,6 +38,21 @@ type SeedExecutor = (
   controls: ExperimentControls
 ) => Promise<SeedEvidence>
 
+function validateExecutionContext(request: ExperimentRequest, context: ExperimentContext) {
+  if (context.environment !== 'DEVELOPMENT') {
+    throw new ExperimentError('missing_capability', 'Only Development execution is supported.')
+  }
+  if (!context.build || context.build.dirty || context.build.commit !== request.commit) {
+    throw new ExperimentError(
+      'missing_capability',
+      'A clean worker build at the requested commit is required.'
+    )
+  }
+  if (request.replay === 'scoped') {
+    throw new ExperimentError('replay_unavailable', 'Scoped stochastic replay requires SPE-3162.')
+  }
+}
+
 /** The lazy loader keeps malformed requests away from even bootstrap module side effects. */
 export async function runExperimentBatch(
   raw: unknown,
@@ -64,18 +79,7 @@ export async function runExperimentBatch(
     report.request = request
     report.requestedSeeds = request.seeds
     report.idempotencyKey = experimentIdempotencyKey(request)
-    if (context.environment !== 'DEVELOPMENT') {
-      throw new ExperimentError('missing_capability', 'Only Development execution is supported.')
-    }
-    if (!context.build || context.build.dirty || context.build.commit !== request.commit) {
-      throw new ExperimentError(
-        'missing_capability',
-        'A clean worker build at the requested commit is required.'
-      )
-    }
-    if (request.replay === 'scoped') {
-      throw new ExperimentError('replay_unavailable', 'Scoped stochastic replay requires SPE-3162.')
-    }
+    validateExecutionContext(request, context)
     if (context.signal?.aborted) throw new ExperimentError('cancelled', 'Experiment cancelled.')
     let execute: SeedExecutor
     try {

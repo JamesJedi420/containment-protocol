@@ -1,11 +1,13 @@
-import { execFileSync } from 'node:child_process'
+import { spawnSafe } from './validation/spawn-safe.mjs'
 import {
   experimentIdempotencyKey,
   parseExperimentRequest,
 } from '../src/tooling/simulationExperimentRequest.ts'
 
 // Node 22 --experimental-strip-types. Prints arguments only; never submits or reads credentials.
-const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+const revision = spawnSafe('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 5000 })
+if (revision.status !== 0 || revision.error) throw new Error('Git identity unavailable.')
+const commit = revision.stdout.trim()
 const request = parseExperimentRequest({
   fixture: 'starter-no-commands',
   version: 'spe-3521.v1',

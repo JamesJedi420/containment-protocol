@@ -1,5 +1,5 @@
 import { defineConfig } from '@trigger.dev/sdk'
-import { execFileSync } from 'node:child_process'
+import { spawnSafe } from './scripts/validation/spawn-safe.mjs'
 
 export default defineConfig({
   project: 'proj_nqtjupmbfusgzufhnobk',
@@ -27,12 +27,16 @@ export default defineConfig({
         onBuildStart(context) {
           const readIdentity = () => {
             try {
-              const git = (args: string[]) =>
-                execFileSync('git', args, {
+              const git = (args: string[]) => {
+                const result = spawnSafe('git', args, {
                   cwd: context.workingDir,
                   encoding: 'utf8',
                   timeout: 5000,
-                }).trim()
+                })
+                if (result.status !== 0 || result.error)
+                  throw new Error('Git identity unavailable.')
+                return result.stdout.trim()
+              }
               return {
                 commit: git(['rev-parse', 'HEAD']),
                 dirty: git(['status', '--porcelain', '--untracked-files=all']) !== '',

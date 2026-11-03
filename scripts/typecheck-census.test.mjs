@@ -360,9 +360,24 @@ test('approved canonical import cohort removes only its fourteen diagnostics and
       ['SPE-3533', 1],
     ]
   )
+  const archiveBase = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const archive = JSON.parse(fs.readFileSync(new URL('census.json', archiveBase), 'utf8'))
+  const packet = JSON.parse(fs.readFileSync(new URL('reconciliation.json', archiveBase), 'utf8'))
   const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
   assert.deepEqual(compareCensuses(removed, []), delta.identityDelta)
   for (const root of delta.roots) {
+    const approvedGroup = packet.groups.find((group) => group.id === root.root)
+    assert.ok(approvedGroup, root.root)
+    const expectedIdentities = new Set(
+      approvedGroup.diagnosticIndices.map((index) => archive.diagnostics[index].identity)
+    )
+    for (const diagnostic of root.removedDiagnostics) {
+      assert.equal(diagnostic.file, root.file)
+      assert.ok(
+        expectedIdentities.has(diagnostic.identity),
+        root.issue + ': diagnostic must belong to its own baseline root'
+      )
+    }
     assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
     assert.equal(root.expectedRemovals, root.measuredRemovals)
     assert.ok(root.canonicalContract)

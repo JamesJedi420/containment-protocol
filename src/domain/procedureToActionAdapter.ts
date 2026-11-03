@@ -9,10 +9,7 @@ import {
   type CrossRoleActionResolutionResult,
   type ProcedurePrerequisite,
 } from './crossRoleActionProcedure'
-import {
-  validateProcedureDefinition,
-  type ProcedureDefinition,
-} from './procedureDefinition'
+import { validateProcedureDefinition, type ProcedureDefinition } from './procedureDefinition'
 
 export type ProcedureExecutionPrerequisiteClass =
   | 'knowledge_readiness'
@@ -31,8 +28,7 @@ export interface ProcedureExecutionPrerequisiteRequirement {
   readonly prerequisiteClass: ProcedureExecutionPrerequisiteClass
 }
 
-export interface ProcedureExecutionPrerequisiteDecision
-  extends ProcedureExecutionPrerequisiteRequirement {
+export interface ProcedureExecutionPrerequisiteDecision extends ProcedureExecutionPrerequisiteRequirement {
   /** Stable canonical owner, e.g. SPE-58, SPE-2078, SPE-1059, SPE-714, SPE-1896, SPE-874, SPE-3308, SPE-1907. */
   readonly state: ProcedureExecutionPrerequisiteState
   readonly reason: string
@@ -75,9 +71,7 @@ export type ProcedureExecutionReadinessResult =
   | {
       ok: false
       outcome:
-        | 'invalid_procedure_definition'
-        | 'invalid_action_contract'
-        | 'owned_prerequisite_blocked'
+        'invalid_procedure_definition' | 'invalid_action_contract' | 'owned_prerequisite_blocked'
       evaluationFingerprint: string
       blockedReasons: readonly ProcedureExecutionPrerequisiteDecision[]
       detail?: string
@@ -94,7 +88,7 @@ export type CanonicalProcedureExecutionResult =
   | {
       ok: true
       outcome: 'already_applied'
-      readiness: ProcedureExecutionReadinessResult & { ok: true }
+      readiness: ProcedureExecutionReadinessResult
       consequenceDisposition: 'do_not_reapply'
     }
   | {
@@ -119,13 +113,8 @@ function normalizeText(value: string): string {
   return value.trim()
 }
 
-function stableRequirementKey(
-  requirement: ProcedureExecutionPrerequisiteRequirement
-): string {
-  return JSON.stringify([
-    requirement.prerequisiteClass,
-    normalizeText(requirement.ownerRef),
-  ])
+function stableRequirementKey(requirement: ProcedureExecutionPrerequisiteRequirement): string {
+  return JSON.stringify([requirement.prerequisiteClass, normalizeText(requirement.ownerRef)])
 }
 
 function stableDecisionKey(decision: ProcedureExecutionPrerequisiteDecision): string {
@@ -142,32 +131,41 @@ function stableParticipantKey(participant: CrossRoleActionParticipant): string {
     codeUnitCompare(a, b)
   )
   const itemTags = [...participant.itemTags].sort(codeUnitCompare)
-  return JSON.stringify([
-    participant.agentId,
-    participant.role,
-    statDomains,
-    itemTags,
-  ])
+  return JSON.stringify([participant.agentId, participant.role, statDomains, itemTags])
+}
+
+function normalizedTags(tags: readonly string[]): string[] {
+  return [...new Set(tags.map(normalizeText).filter((tag) => tag !== ''))].sort(codeUnitCompare)
 }
 
 function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): string {
   const requirements = [...input.requiredPrerequisites]
     .map(stableRequirementKey)
     .sort(codeUnitCompare)
-    .join(';')
-  const decisions = [...input.prerequisiteDecisions]
-    .map(stableDecisionKey)
-    .sort(codeUnitCompare)
-    .join(';')
-  const roles = [...input.eligibleRoles].sort(codeUnitCompare).join(',')
-  const participants = [...input.participants]
-    .map(stableParticipantKey)
-    .sort(codeUnitCompare)
-    .join(';')
+  const decisions = [...input.prerequisiteDecisions].map(stableDecisionKey).sort(codeUnitCompare)
+  const roles = [...input.eligibleRoles].sort(codeUnitCompare)
+  const participants = [...input.participants].map(stableParticipantKey).sort(codeUnitCompare)
+  const { definition } = input
 
   return JSON.stringify({
-    schemaVersion: input.definition.schemaVersion,
-    procedureId: input.definition.procedureId.trim(),
+    // Include every canonical input read by validation or action construction,
+    // plus scene devices whose readiness remains with the declared owner.
+    definition: {
+      schemaVersion: definition.schemaVersion,
+      procedureId: definition.procedureId.trim(),
+      canonicalName: definition.canonicalName.trim(),
+      tier: definition.tier,
+      intent: definition.taxonomy.intent,
+      executionMethod: definition.taxonomy.executionMethod,
+      speech: definition.requirements.speech,
+      toolTags: normalizedTags(definition.requirements.toolTags),
+      deviceTags: normalizedTags(definition.requirements.deviceTags),
+      reagentQuantities: definition.requirements.reagents.map(({ quantity }) => quantity),
+      forbiddenRoles: [...new Set(definition.restrictions.forbiddenRoles)].sort(codeUnitCompare),
+      rangeMeters: definition.targeting.rangeMeters,
+      sourceCount: definition.availability.sourceCount,
+      hasEntityPayload: definition.entityPayload !== undefined,
+    },
     executionKey: input.executionKey.trim(),
     roles,
     requiredParticipantCount: input.requiredParticipantCount,
@@ -177,20 +175,15 @@ function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): strin
   })
 }
 
-function mapProcedurePrerequisites(definition: ProcedureDefinition): readonly ProcedurePrerequisite[] {
-  const itemTags = new Set<string>()
-  for (const tag of definition.requirements.toolTags) {
-    const normalized = tag.trim()
-    if (normalized !== '') itemTags.add(normalized)
-  }
-  for (const tag of definition.requirements.deviceTags) {
-    const normalized = tag.trim()
-    if (normalized !== '') itemTags.add(normalized)
-  }
-
-  return [...itemTags]
-    .sort(codeUnitCompare)
-    .map((tag) => ({ type: 'item_tag' as const, tag }))
+function mapProcedurePrerequisites(
+  definition: ProcedureDefinition
+): readonly ProcedurePrerequisite[] {
+  // Only toolTags describe participant loadout. Scene devices are evaluated by
+  // caller-declared compatibility/equipment and facility/environment owners.
+  return normalizedTags(definition.requirements.toolTags).map((tag) => ({
+    type: 'item_tag' as const,
+    tag,
+  }))
 }
 
 function buildActionProcedure(
@@ -216,8 +209,8 @@ function buildActionProcedure(
  * Evaluate canonical procedure execution readiness without mutating any owned state.
  *
  * Canonical authoring fields are mapped only where the restored SPE-1434 contract
- * has a truthful representation (procedure identity/name and tool/device item tags).
- * Reagent quantities, certification/access, environment, doctrine, exhaustion,
+ * has a truthful representation (procedure identity/name and operator tool tags).
+ * Scene devices, reagent quantities, certification/access, environment, doctrine, exhaustion,
  * knowledge, authorization, competency, and subject-fit remain externally owned.
  * The caller declares which owner decisions are required for this execution;
  * a missing required decision fails closed rather than silently permitting work.
@@ -262,18 +255,12 @@ export function evaluateCanonicalProcedureExecutionReadiness(
     }
   }
 
-  const decisionByRequirement = new Map(
-    input.prerequisiteDecisions.map((decision) => [
-      stableRequirementKey(decision),
-      decision,
-    ])
-  )
+  // Membership only: retain all owner evidence below. For duplicate owner/class
+  // pairs, any block wins; otherwise any degradation wins, independent of order.
+  const decidedRequirements = new Set(input.prerequisiteDecisions.map(stableRequirementKey))
   const missingRequiredDecisions: ProcedureExecutionPrerequisiteDecision[] =
     input.requiredPrerequisites
-      .filter(
-        (requirement) =>
-          !decisionByRequirement.has(stableRequirementKey(requirement))
-      )
+      .filter((requirement) => !decidedRequirements.has(stableRequirementKey(requirement)))
       .map((requirement) => ({
         ...requirement,
         state: 'blocked' as const,
@@ -282,9 +269,7 @@ export function evaluateCanonicalProcedureExecutionReadiness(
 
   const blockedReasons = [
     ...missingRequiredDecisions,
-    ...input.prerequisiteDecisions.filter(
-      (decision) => decision.state === 'blocked'
-    ),
+    ...input.prerequisiteDecisions.filter((decision) => decision.state === 'blocked'),
   ].sort((a, b) => codeUnitCompare(stableDecisionKey(a), stableDecisionKey(b)))
   if (blockedReasons.length > 0) {
     return {
@@ -319,18 +304,9 @@ export function executeCanonicalProcedureThroughCrossRoleAction(
   input: ProcedureToActionAdapterInput
 ): CanonicalProcedureExecutionResult {
   const readiness = evaluateCanonicalProcedureExecutionReadiness(input)
-  if (!readiness.ok) {
-    return {
-      ok: false,
-      outcome: 'readiness_blocked',
-      readiness,
-      consequenceDisposition: 'do_not_apply',
-    }
-  }
-
   const alreadyApplied = (input.priorReceipts ?? []).some(
     (receipt) =>
-      receipt.executionKey === input.executionKey &&
+      normalizeText(receipt.executionKey) === normalizeText(input.executionKey) &&
       receipt.consequenceApplied
   )
   if (alreadyApplied) {
@@ -339,6 +315,14 @@ export function executeCanonicalProcedureThroughCrossRoleAction(
       outcome: 'already_applied',
       readiness,
       consequenceDisposition: 'do_not_reapply',
+    }
+  }
+  if (!readiness.ok) {
+    return {
+      ok: false,
+      outcome: 'readiness_blocked',
+      readiness,
+      consequenceDisposition: 'do_not_apply',
     }
   }
 
@@ -371,7 +355,7 @@ export function createProcedureExecutionReceipt(
   consequenceApplied: boolean
 ): ProcedureExecutionReceipt {
   return {
-    executionKey,
+    executionKey: normalizeText(executionKey),
     evaluationFingerprint,
     consequenceApplied,
   }

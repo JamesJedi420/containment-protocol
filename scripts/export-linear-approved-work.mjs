@@ -10,10 +10,10 @@ const error = message => { throw new Error('Linear authority unavailable: '+mess
 const compareIds = (a,b) => a.localeCompare(b, 'en')
 const WORKSTREAMS = ['CP-core','Academy','shared-system','cross-project']
 const QUERY = `query ApprovedIssues($project: String!, $after: String) {
-  project(id:$project) { id name issues(first:100, after:$after, includeArchived:false) {
+  project(id:$project) { id name issues(first:100, after:$after, includeArchived:true) {
     pageInfo {hasNextPage endCursor}
     nodes {identifier id title priority
-      state {type} labels {nodes {name}}
+      state {type} labels(first:100) {pageInfo {hasNextPage} nodes {name}}
       relations(first:100) {pageInfo {hasNextPage} nodes {type relatedIssue {identifier}}}
       inverseRelations(first:100) {pageInfo {hasNextPage} nodes {type issue {identifier}}}
     }
@@ -26,6 +26,7 @@ export function normalizeLinearIssues(projectPages, evidence, asOf, coverage, fe
   const byId=new Map()
   for (const page of projectPages) for (const row of page) {
     if (!row || !/^[A-Z]+-\d+$/.test(row.identifier) || !row.state?.type || !Array.isArray(row.labels?.nodes) || !Array.isArray(row.relations?.nodes) || !row.relations?.pageInfo || row.relations.pageInfo.hasNextPage !== false || !Array.isArray(row.inverseRelations?.nodes) || !row.inverseRelations?.pageInfo || row.inverseRelations.pageInfo.hasNextPage !== false) error('incomplete issue or relation pagination')
+    if (row.labels.pageInfo?.hasNextPage !== false) error(row.identifier+' incomplete label pagination')
     const labels=row.labels.nodes.map(x=>x.name)
     const ws=WORKSTREAMS.filter(w=>labels.includes('workstream:'+w))
     // Unknown approval and ownership do not become actionable.

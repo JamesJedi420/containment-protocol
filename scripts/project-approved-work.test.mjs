@@ -37,3 +37,20 @@ test('both canceled and cancelled lifecycle spellings are terminal',()=>{
  assert.equal(p.active.length,0)
  assert.deepEqual(p.history.map(x=>x.id),['SPE-10','SPE-9'])
 })
+
+test('terminal records with missing prerequisites reject the entire snapshot',()=>{
+ for(const statusType of ['completed','canceled','cancelled']){
+  for(const relation of ['blockedBy','dependsOn']){
+   assert.throws(()=>projectApprovedWork(snapshot([issue('SPE-1'),issue('SPE-2',{statusType,[relation]:['SPE-3']})])),/SPE-2 references absent SPE-3/)
+  }
+ }
+})
+
+test('historical evidence conflicts remain visible without changing lifecycle',()=>{
+ const projection=projectApprovedWork(snapshot([issue('SPE-1',{statusType:'completed',implementationEvidence:{state:'merged'},evidenceDrift:true})]))
+ assert.equal(projection.history[0].statusType,'completed')
+ assert.equal(projection.history[0].implementationEvidence.state,'merged')
+ assert.equal(projection.history[0].evidenceDrift,true)
+ assert.deepEqual(projection.active,[])
+ assert.deepEqual(projection.runnable,[])
+})

@@ -33,6 +33,11 @@ export function projectApprovedWork(snapshot) {
     invariant(typeof row.evidenceDrift === 'boolean', row.id + ' missing SPE-3276 classification')
     byId.set(row.id, row)
   }
+  for (const row of byId.values()) {
+    for (const dep of unique([...row.blockedBy,...row.dependsOn])) {
+      invariant(byId.has(dep), row.id + ' references absent ' + dep)
+    }
+  }
   const active=[], history=[], runnable=[]
   for (const row of [...byId.values()].sort((a,b)=>ordered(a.id,b.id))) {
     const reasons=[]
@@ -40,14 +45,13 @@ export function projectApprovedWork(snapshot) {
       if (row.evidenceDrift || row.implementationEvidence.state === 'evidence-conflicted') reasons.push('evidence-conflicted')
       for (const dep of unique([...row.blockedBy,...row.dependsOn])) {
         const prerequisite = byId.get(dep)
-        invariant(prerequisite, row.id + ' references absent ' + dep)
         if (prerequisite.evidenceDrift || prerequisite.implementationEvidence.state === 'evidence-conflicted') reasons.push('dependency-evidence-conflicted:' + dep)
         if (prerequisite.statusType !== 'completed') reasons.push('dependency-not-completed:' + dep)
       }
       const record={id:row.id,workstream:row.workstream,statusType:row.statusType,priority:row.priority,blockedBy:unique(row.blockedBy),dependsOn:unique(row.dependsOn),implementationEvidence:row.implementationEvidence,readiness:reasons.length?'non-runnable':'runnable',reasons:unique(reasons)}
       active.push(record)
       if (!reasons.length) runnable.push(record)
-    } else history.push({id:row.id,workstream:row.workstream,statusType:row.statusType,implementationEvidence:row.implementationEvidence})
+    } else history.push({id:row.id,workstream:row.workstream,statusType:row.statusType,implementationEvidence:row.implementationEvidence,evidenceDrift:row.evidenceDrift})
   }
   runnable.sort((a,b)=>(a.priority===0?5:a.priority)-(b.priority===0?5:b.priority)||ordered(a.id,b.id))
   return {schemaVersion:1,source:'Linear',asOf:snapshot.asOf,workstreamCoverage:snapshot.workstreamCoverage,active,history,runnable}

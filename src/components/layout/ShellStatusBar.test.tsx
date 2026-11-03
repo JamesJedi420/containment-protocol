@@ -224,6 +224,25 @@ describe('ShellStatusBar', () => {
     )
   })
 
+  it('announces a store-driven advance so the Front Desk control is covered too', () => {
+    renderShellStatusBar('/')
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+
+    // Front Desk advances through the store directly; the shell button is not involved.
+    act(() => {
+      useGameStore.getState().advanceWeek()
+    })
+
+    const weekStatus = screen.getByTestId('shell-week-status')
+    expect(weekStatus).toHaveFocus()
+    expect(within(weekStatus).getByRole('status')).toHaveTextContent(/week 9 closed/i)
+    expect(within(weekStatus).getByRole('link', { name: /open week 9 report/i })).toHaveAttribute(
+      'href',
+      '/report/9'
+    )
+  })
+
   it('clears the status when the simulation returns to an earlier week', async () => {
     const user = userEvent.setup()
     renderShellStatusBar('/')

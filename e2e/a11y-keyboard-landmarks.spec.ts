@@ -152,6 +152,33 @@ test.describe('SPE-1080 keyboard bypass, landmarks, and week-close announcement'
       probe.dispose()
     }
   })
+
+  test('advancing from the Front Desk control also announces the close', async ({ page }) => {
+    const probe = attachPageErrorProbe(page)
+    try {
+      await clearCampaignStorage(page)
+      await openFrontDesk(page)
+
+      // The dashboard advances through the store directly rather than through the
+      // shell button, so a click-scoped announcement guard would leave `/` silent.
+      const frontDeskAdvance = page.getByRole('button', { name: /^advance week\s*→$/i })
+      await expect(frontDeskAdvance).toBeVisible()
+      await frontDeskAdvance.click()
+
+      const panel = page.getByTestId('shell-week-status')
+      await expect(panel).toBeVisible()
+      await expect(panel).toBeFocused()
+      await expect(panel.getByRole('status')).toContainText(/Week 1 closed/i)
+      await expect(panel.getByRole('link', { name: /Open week 1 report/i })).toHaveAttribute(
+        'href',
+        '/report/1'
+      )
+
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
+  })
 })
 
 function normalize(text: string | null): string {

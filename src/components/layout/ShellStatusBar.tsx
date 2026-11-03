@@ -56,15 +56,15 @@ export function ShellStatusBar() {
     [view.signals, extensionSignals]
   )
   const [weekAnnouncement, setWeekAnnouncement] = useState<WeekCloseAnnouncement | null>(null)
-  const pendingAdvanceRef = useRef(false)
   const announcedWeekRef = useRef(view.currentWeek)
   const weekStatusRef = useRef<HTMLDivElement>(null)
 
+  // Derive the announcement from observed week movement rather than from which control was
+  // pressed: the Front Desk advances through the store directly, so a click-scoped guard
+  // would leave the primary weekly path (`/`) silent.
   useEffect(() => {
-    if (!pendingAdvanceRef.current) {
-      if (view.currentWeek < announcedWeekRef.current) {
-        setWeekAnnouncement(null)
-      }
+    if (view.currentWeek < announcedWeekRef.current) {
+      setWeekAnnouncement(null)
       announcedWeekRef.current = view.currentWeek
       return
     }
@@ -73,7 +73,6 @@ export function ShellStatusBar() {
       return
     }
 
-    pendingAdvanceRef.current = false
     announcedWeekRef.current = view.currentWeek
 
     const latestReport = game.reports.at(-1)
@@ -94,11 +93,6 @@ export function ShellStatusBar() {
   useEffect(() => {
     weekStatusRef.current?.focus()
   }, [weekAnnouncement])
-
-  const handleAdvanceWeek = () => {
-    pendingAdvanceRef.current = true
-    advanceWeek()
-  }
 
   return (
     <>
@@ -185,7 +179,7 @@ export function ShellStatusBar() {
             type="button"
             className="btn btn-sm btn-primary"
             aria-label="Advance week"
-            onClick={handleAdvanceWeek}
+            onClick={advanceWeek}
             disabled={game.gameOver}
             title={game.gameOver ? 'Simulation halted' : 'Advance week'}
             data-topbar-action="advance-week"

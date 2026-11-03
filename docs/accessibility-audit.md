@@ -142,6 +142,8 @@ Near-misses: `/equipment` (rank 11 — gear destruction and repair confirmations
 
 ## 2. Audit summary
 
+**Resolution status (2026-11-03):** A11Y-01, A11Y-02 and A11Y-04 are fixed in [#4653](https://github.com/JamesJedi420/containment-protocol/pull/4653) and guarded by `e2e/a11y-keyboard-landmarks.spec.ts`. The entries below are retained as the dated baseline evidence, including their original line citations; every other row in this table is still open.
+
 | ID      | Sev     | Pri | Area               | Route(s)                      | One-line impact                                                       |
 | ------- | ------- | --- | ------------------ | ----------------------------- | --------------------------------------------------------------------- |
 | A11Y-01 | Blocker | P1  | Keyboard / bypass  | All                           | 17 nav links precede content on every route, with no shell skip link. |

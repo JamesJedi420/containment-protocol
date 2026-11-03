@@ -42,13 +42,13 @@ Authenticated verification exhausted both configured projects and every requeste
 
 This is a non-transactional observation. One issue changed its update timestamp between the full retrieval and independent check. The single verification retry was stopped by HTTP 429; no further API retry or production-current/atomic-snapshot claim is made. `updatedAt` comparison is a consistency check, not a provider-enforced snapshot guarantee.
 
-| Input | Verified result |
-| --- | --- |
-| Complete transport and identifier coverage | Full authenticated traversal and independent identifier sets agree for the observed 3,032 issues. |
-| Source freshness | Unverified: one concurrent update, followed by a rate-limited retry. |
-| Workstream metadata | All 3,032 returned issues lack a `workstream:*` label; local mapping proposals are not ingestion inputs. |
-| SPE-3276 feed | No authoritative complete feed located or qualified in the inspected owner records, referenced GitHub mirror and implementation/artifact sources. Done status and fixtures do not establish a feed. |
-| Production projection | Not generated or activated; the issue remains In Progress, its parent stays open and downstream work stays blocked. |
+| Input                                      | Verified result                                                                                                                                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Complete transport and identifier coverage | Full authenticated traversal and independent identifier sets agree for the observed 3,032 issues.                                                                                                   |
+| Source freshness                           | Unverified: one concurrent update, followed by a rate-limited retry.                                                                                                                                |
+| Workstream metadata                        | All 3,032 returned issues lack a `workstream:*` label; local mapping proposals are not ingestion inputs.                                                                                            |
+| SPE-3276 feed                              | No authoritative complete feed located or qualified in the inspected owner records, referenced GitHub mirror and implementation/artifact sources. Done status and fixtures do not establish a feed. |
+| Production projection                      | Not generated or activated; the issue remains In Progress, its parent stays open and downstream work stays blocked.                                                                                 |
 
 The precise missing feed input is a versioned authoritative SPE-3276 artifact with provenance/source revision, the exact identifiers of a current complete retrieval, and a verified implementation-evidence state plus material-drift classification for each record. No classifier or synthetic all-clear feed is introduced. Verified conflicts may remain explicitly non-runnable; they need not be repaired before a safe projection can exist.
 

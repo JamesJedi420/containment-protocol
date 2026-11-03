@@ -4783,6 +4783,17 @@ function sanitizeMissionResult(
       : fallback?.hiddenState
         ? { hiddenState: fallback.hiddenState }
         : {}),
+    ...(typeof value.detectionConfidence === 'number' && Number.isFinite(value.detectionConfidence)
+      ? { detectionConfidence: clamp(value.detectionConfidence, 0, 1) }
+      : {}),
+    ...(typeof value.counterDetection === 'boolean'
+      ? { counterDetection: value.counterDetection }
+      : {}),
+    ...(value.displacementTarget === null
+      ? { displacementTarget: null }
+      : typeof value.displacementTarget === 'string' && value.displacementTarget.trim().length > 0
+        ? { displacementTarget: value.displacementTarget.trim() }
+        : {}),
     ...(typeof value.route === 'string'
       ? { route: value.route }
       : fallback?.route

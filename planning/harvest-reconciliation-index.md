@@ -90,7 +90,7 @@ For every **new** reconciliation batch, record the candidate-only result using t
 | Batch ID     | Candidates | Disposition counts                                                                                        | Matched/proposed owner(s)                  | Planning doc                     | Batch canonical-ledger synchronization outcome | Ledger reference / pending apply                                              |
 | ------------ | ---------: | --------------------------------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
 | `<batch-id>` |      `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/<batch-id>-harvest.md` | `applied` or `pending apply`                   | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
-
+| `<batch-id>` |      `<n>` | `fold_in=<n>; no_op=<n>; contradiction_check=<n>; documentation_only=<n>; missing_boundary_candidate=<n>` | existing SPE references or `TBD — Phase 2` | `planning/archive/harvest/<batch-id>-harvest.md` | `applied` or `pending apply`                   | Linear ledger reference, or mirror `## Pending canonical-ledger apply` anchor |
 The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`, `documentation_only`, and `missing_boundary_candidate`. None creates a child, parent, relationship, or authoritative owner. A missing boundary remains candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog-shape Linear mutation (candidate extraction/reconciliation only; not ordinary lifecycle/evidence updates).
 
 ## How to add a row
@@ -98,7 +98,7 @@ The only valid triage dispositions are `fold_in`, `no_op`, `contradiction_check`
 **Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, durable-ledger rules, unavailable-Linear fallback). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
 
 1. Adjudicate every candidate using only the five dispositions above. Do not create a child during triage.
-2. Add `planning/<batch-id>-harvest.md` with provenance, per-candidate outcome, matched/proposed owner evidence, contradiction findings, and summary counts. The mirror is non-authoritative for Linear ownership.
+2. Add `planning/archive/harvest/<batch-id>-harvest.md` with provenance, per-candidate outcome, matched/proposed owner evidence, contradiction findings, and summary counts. The mirror is non-authoritative for Linear ownership.
 3. Persist the batch/candidates to the canonical Linear candidate ledger when Linear is available. Post rich traceability comments only to existing approved owners when those comments do not expand their approved scope.
 4. If Linear is unavailable, add the exact `## Pending canonical-ledger apply` payload required by `docs/harvest-candidate-triage-agent.md`; set the index ledger state to `pending apply`. Do not claim canonical closure.
 5. Append the new batch to the **Forward batch tracking schema** above with ledger state `applied` or `pending apply` and the corresponding reference.

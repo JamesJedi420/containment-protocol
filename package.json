@@ -6,7 +6,7 @@
   "scripts": {
     "verify-read-only-handoff": "node scripts/verify-read-only-handoff.mjs",
     "session:preflight": "node scripts/session-preflight.mjs --stdin",
-    "verify:session-preflight": "node --test scripts/session-preflight.test.mjs",
+    "verify:session-preflight": "node --test scripts/session-preflight.test.mjs scripts/session-preflight-review.test.mjs",
     "dev": "vite --config app.vite.config.ts --configLoader native",
     "build": "tsc -b && vite build --config app.vite.config.ts --configLoader native",
     "build:bundle": "vite build --config app.vite.config.ts --configLoader native",

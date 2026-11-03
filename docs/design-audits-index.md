@@ -26,6 +26,7 @@ For each new top-level `docs/*audit*.md` file (not this index), add **one alphab
 
 | Audit                                                                                                | Last reviewed | Status                 |
 | ---------------------------------------------------------------------------------------------------- | ------------- | ---------------------- |
+| [`accessibility-audit.md`](./accessibility-audit.md)                                                 | 2026-11-03    | Active reference       |
 | [`agency-progression-audit.md`](./agency-progression-audit.md)                                       | 2026-11-01    | Active reference       |
 | [`agent-pre-ship-audit.md`](./agent-pre-ship-audit.md)                                               | 2026-11-01    | Workflow review needed |
 | [`aggregate-battle-audit.md`](./aggregate-battle-audit.md)                                           | 2026-11-01    | Active reference       |

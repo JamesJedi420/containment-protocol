@@ -1,5 +1,5 @@
 import '../test/setup'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import AppShell from './AppShell'
@@ -73,6 +73,24 @@ describe('minimal shell layout', () => {
     }
   })
 
+  it('provides a skip link that moves focus past the shell navigation', async () => {
+    const user = userEvent.setup()
+    renderShell()
+
+    const skipLink = screen.getByRole('link', { name: /skip to main content/i })
+    const main = screen.getByRole('main')
+
+    expect(skipLink).toHaveClass('skip-link')
+    expect(main).toHaveAttribute('id', 'main-content')
+    expect(within(main).queryByRole('navigation')).not.toBeInTheDocument()
+
+    await user.tab()
+    expect(skipLink).toHaveFocus()
+
+    await user.keyboard('{Enter}')
+    expect(main).toHaveFocus()
+  })
+
   it('renders the agents shell page', async () => {
     const user = userEvent.setup()
     renderShell()
@@ -84,6 +102,11 @@ describe('minimal shell layout', () => {
     expect(screen.getByText(/current roster/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ava brooks/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /ava brooks/i })).toBeInTheDocument()
+
+    expect(screen.getAllByRole('main')).toHaveLength(1)
+    expect(
+      within(screen.getByRole('main')).getByRole('region', { name: /agent detail panel/i })
+    ).toBeInTheDocument()
   })
 
   it('renders the recruitment shell page', async () => {

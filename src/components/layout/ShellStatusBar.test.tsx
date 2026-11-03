@@ -25,8 +25,14 @@ function renderShellStatusBar(route = '/') {
       <Routes>
         <Route element={<ShellStatusBarLayout />}>
           <Route path="/" element={<div data-testid="home-route">Home</div>} />
-          <Route path="/report" element={<div data-testid="report-index-route">Report index</div>} />
-          <Route path="/report/:week" element={<div data-testid="report-route">Report route</div>} />
+          <Route
+            path="/report"
+            element={<div data-testid="report-index-route">Report index</div>}
+          />
+          <Route
+            path="/report/:week"
+            element={<div data-testid="report-route">Report route</div>}
+          />
           <Route path="/agency" element={<div data-testid="agency-route">Agency route</div>} />
           <Route path="/help" element={<div data-testid="help-route">Help route</div>} />
           <Route
@@ -191,17 +197,45 @@ describe('ShellStatusBar', () => {
       (node) => node.getAttribute('data-topbar-action')
     )
 
-    expect(orderedActions).toEqual([
-      'help',
-      'mute',
-      'weekly-report',
-      'settings',
-      'advance-week',
-    ])
+    expect(orderedActions).toEqual(['help', 'mute', 'weekly-report', 'settings', 'advance-week'])
 
     const advanceButton = screen.getByTestId('topbar-advance-button')
     expect(advanceButton).toHaveClass('btn-primary')
     expect(orderedActions.at(-1)).toBe('advance-week')
+  })
+
+  it('announces the closed week outcome, links to its report, and moves focus', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('topbar-advance-button'))
+
+    const weekStatus = screen.getByTestId('shell-week-status')
+    const liveMessage = within(weekStatus).getByRole('status')
+
+    expect(weekStatus).toHaveFocus()
+    expect(liveMessage).toHaveTextContent(/week 9 closed/i)
+    expect(liveMessage).toHaveTextContent(/\d+ resolved, \d+ partial, \d+ failed/i)
+    expect(within(weekStatus).getByRole('link', { name: /open week 9 report/i })).toHaveAttribute(
+      'href',
+      '/report/9'
+    )
+  })
+
+  it('clears the status when the simulation returns to an earlier week', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    expect(screen.getByTestId('shell-week-status')).toBeInTheDocument()
+
+    act(() => {
+      useGameStore.setState({ game: createBaseGame() })
+    })
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
   })
 
   it('drills weekly report to the latest available report when the current week report is missing', async () => {
@@ -327,7 +361,9 @@ describe('ShellStatusBar', () => {
 
     renderShellStatusBar('/agency')
     const agencySignals = screen.getByTestId('shell-status-signals-row')
-    expect(within(agencySignals).queryByTestId('shell-status-triage-routable')).not.toBeInTheDocument()
+    expect(
+      within(agencySignals).queryByTestId('shell-status-triage-routable')
+    ).not.toBeInTheDocument()
     cleanup()
 
     renderShellStatusBar('/cases')

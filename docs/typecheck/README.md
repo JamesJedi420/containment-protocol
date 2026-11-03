@@ -21,9 +21,9 @@ Compiler transcripts preserve exact bytes (including Windows CRLF) using a narro
 
 The required `typecheck-census-tests` validator tests reporting integrity only. SPE-3348 retains production-build enforcement authority.
 
-## Advisory CI budget (Phase 0)
+## Advisory CI budget (Phase 1 ratchet)
 
-`docs/typecheck/budget.json` records the 681-occurrence / 466-fingerprint baseline at revision `1108c4b…`. The `typecheck` validator is registered as **advisory**: CI publishes the census on application, shared-config, and census-tooling changes without blocking on the red baseline. The [TypeScript debt triage](../typescript-debt-triage.md) proposes a later enforcement phase; it does not authorize that change. SPE-3348 retains validation-orchestration authority. `typecheck-census-tests` covers census parsing, reproducibility evidence, partition integrity, and budget comparison; it does not exercise the advisory CLI output or exit-status paths.
+`docs/typecheck/budget.json` records the Phase 1 ratchet at **635 occurrences / 430 fingerprints / 170 files**, captured at revision `9f718fc…` with Node 26.13.0 and TypeScript 6.0.3. The historical Phase 0 baseline remains **681 / 466 / 178** at revision `1108c4b…` and is preserved in the verified capture below. The `typecheck` validator remains **advisory**: CI publishes the census on application, shared-config, and census-tooling changes without blocking on the red baseline. The [TypeScript debt triage](../typescript-debt-triage.md) proposes a later enforcement phase; it does not authorize that change. SPE-3348 retains validation-orchestration authority. `typecheck-census-tests` covers census parsing, reproducibility evidence, partition integrity, and budget comparison; it does not exercise the advisory CLI output or exit-status paths. The integrity test requires the committed budget not to exceed the verified baseline, allowing later phase PRs to ratchet it downward without invalidating the historical census.
 
 The advisory command is `node scripts/typecheck-advisory.mjs`. It delegates capture to `scripts/report-typecheck.mjs`, prints the counts and top files, compares them with the budget, and exits nonzero only when capture or budget parsing fails.
 

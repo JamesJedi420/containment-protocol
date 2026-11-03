@@ -22,3 +22,5 @@ Follow manual §3 and [the requirement matrix](repository-validation-requirement
 ## Completion criteria (ready for commit / PR)
 
 Boundary satisfied; edge cases handled or durably deferred to the appropriate owner/candidate route; meaningful tests pass; required docs and projections updated; no unrelated changes. Proceed through manual §4’s ship loop and [closeout formats](agent-session-closeout.md). Do not implement the next issue.
+
+Read [Hermes shipping checkpoints](hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

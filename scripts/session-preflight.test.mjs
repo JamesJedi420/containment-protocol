@@ -4,29 +4,16 @@ import {
   evaluateSessionPreflight,
   validateSessionPreflightInput,
 } from './session-preflight-core.mjs'
-import { collectGitHubEvidence, collectLocalGitEvidence } from './session-preflight.mjs'
+import {
+  collectGitHubEvidence,
+  collectLocalGitEvidence,
+  parseSessionPreflightArguments,
+} from './session-preflight.mjs'
 
 const SHA = '1'.repeat(40)
 const OTHER_SHA = '2'.repeat(40)
 const OBSERVED_AT = '2026-11-03T03:30:00.000Z'
 const CHECKED_AT = '2026-11-03T03:29:30.000Z'
-
-function deepMerge(base, overrides) {
-  const output = structuredClone(base)
-  for (const [key, value] of Object.entries(overrides)) {
-    if (
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      typeof output[key] === 'object'
-    ) {
-      output[key] = deepMerge(output[key], value)
-    } else {
-      output[key] = value
-    }
-  }
-  return output
-}
 
 function baseInput(overrides = {}) {
   const input = {
@@ -84,6 +71,18 @@ function baseInput(overrides = {}) {
   return deepMerge(input, overrides)
 }
 
+function deepMerge(base, overrides) {
+  const output = structuredClone(base)
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && typeof output[key] === 'object') {
+      output[key] = deepMerge(output[key], value)
+    } else {
+      output[key] = value
+    }
+  }
+  return output
+}
+
 function reasonCodes(result) {
   return result.reasons.map((reason) => reason.code)
 }
@@ -126,18 +125,14 @@ test('matching issue and branch can resume its sole open pull request', () => {
 })
 
 test('an open pull request blocks start, including the same issue', () => {
-  const result = evaluateSessionPreflight(
-    baseInput({ github: { openPullRequests: [matchingPullRequest()] } })
-  )
+  const result = evaluateSessionPreflight(baseInput({ github: { openPullRequests: [matchingPullRequest()] } }))
   assert.equal(result.status, 'blocked')
   assert.ok(reasonCodes(result).includes('open_pr_blocks_start'))
 })
 
 test('unrelated and multiple pull requests block execution', () => {
   const unrelated = evaluateSessionPreflight(
-    baseInput({
-      github: { openPullRequests: [matchingPullRequest({ issueId: 'SPE-100' })] },
-    })
+    baseInput({ github: { openPullRequests: [matchingPullRequest({ issueId: 'SPE-100' })] } })
   )
   assert.equal(unrelated.status, 'blocked')
   assert.ok(reasonCodes(unrelated).includes('open_pr_blocks_start'))
@@ -149,10 +144,7 @@ test('unrelated and multiple pull requests block execution', () => {
       github: {
         openPullRequests: [matchingPullRequest(), matchingPullRequest({ number: 43 })],
       },
-      git: {
-        currentBranch: 'codex/spe-3337-session-preflight',
-        headSha: OTHER_SHA,
-      },
+      git: { currentBranch: 'codex/spe-3337-session-preflight', headSha: OTHER_SHA },
     })
   )
   assert.equal(multiple.status, 'blocked')
@@ -167,10 +159,7 @@ test('unverifiable pull request ownership is unknown', () => {
       github: {
         openPullRequests: [matchingPullRequest({ issueId: null, ownershipVerified: false })],
       },
-      git: {
-        currentBranch: 'codex/spe-3337-session-preflight',
-        headSha: OTHER_SHA,
-      },
+      git: { currentBranch: 'codex/spe-3337-session-preflight', headSha: OTHER_SHA },
     })
   )
   assert.equal(result.status, 'unknown')
@@ -199,12 +188,7 @@ test('Codex managed worktree may start detached only at the exact expected base'
   const wrong = evaluateSessionPreflight(
     baseInput({
       executionMode: 'codex-managed-worktree',
-      git: {
-        currentBranch: null,
-        detachedHead: true,
-        localMainSha: null,
-        headSha: OTHER_SHA,
-      },
+      git: { currentBranch: null, detachedHead: true, localMainSha: null, headSha: OTHER_SHA },
     })
   )
   assert.equal(wrong.status, 'blocked')
@@ -212,9 +196,7 @@ test('Codex managed worktree may start detached only at the exact expected base'
 })
 
 test('unavailable and stale evidence are unknown', () => {
-  const unavailable = evaluateSessionPreflight(
-    baseInput({ linear: { collectionStatus: 'needsAuth' } })
-  )
+  const unavailable = evaluateSessionPreflight(baseInput({ linear: { collectionStatus: 'needsAuth' } }))
   assert.equal(unavailable.status, 'unknown')
   assert.ok(reasonCodes(unavailable).includes('linear_evidence_unavailable'))
 
@@ -269,9 +251,7 @@ test('unavailable evidence may omit current source-specific fields', () => {
 
 test('completed, canceled, and changed prerequisites are blocked', () => {
   for (const statusType of ['completed', 'canceled']) {
-    const result = evaluateSessionPreflight(
-      baseInput({ linear: { statusType, status: statusType } })
-    )
+    const result = evaluateSessionPreflight(baseInput({ linear: { statusType, status: statusType } }))
     assert.equal(result.status, 'blocked')
     assert.ok(reasonCodes(result).includes('issue_not_active'))
   }
@@ -286,14 +266,7 @@ test('completed, canceled, and changed prerequisites are blocked', () => {
 
 test('merged evidence disagreement stays explicit and never infers completion', () => {
   const result = evaluateSessionPreflight(
-    baseInput({
-      github: {
-        implementationEvidence: {
-          mergedCurrentMain: true,
-          mergedPrUrls: ['https://example.test/pr/1'],
-        },
-      },
-    })
+    baseInput({ github: { implementationEvidence: { mergedCurrentMain: true, mergedPrUrls: ['https://example.test/pr/1'] } } })
   )
   assert.equal(result.status, 'unknown')
   assert.ok(reasonCodes(result).includes('lifecycle_evidence_conflict'))
@@ -319,6 +292,31 @@ test('malformed input fails closed with deterministic validation errors', () => 
   assert.ok(validateSessionPreflightInput(malformed).length > 0)
 })
 
+test('ready evidence requires current Git and GitHub SHAs', () => {
+  for (const overrides of [
+    { github: { remoteMainSha: null } },
+    { git: { headSha: null } },
+    { git: { remoteMainSha: null } },
+  ]) {
+    const result = evaluateSessionPreflight(baseInput(overrides))
+    assert.equal(result.status, 'unknown')
+    assert.ok(reasonCodes(result).includes('invalid_input'))
+  }
+})
+
+test('CLI argument parser rejects file paths and requires standard input', () => {
+  assert.deepEqual(parseSessionPreflightArguments(['--stdin']), {
+    ok: true,
+    collectLocal: false,
+  })
+  assert.deepEqual(parseSessionPreflightArguments(['--stdin', '--collect-local']), {
+    ok: true,
+    collectLocal: true,
+  })
+  assert.equal(parseSessionPreflightArguments(['payload.json']).ok, false)
+  assert.equal(parseSessionPreflightArguments([]).ok, false)
+})
+
 test('local Git collector uses only fixed read-only commands', () => {
   const calls = []
   const responses = new Map([
@@ -326,10 +324,7 @@ test('local Git collector uses only fixed read-only commands', () => {
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
-    [
-      'git ls-remote origin refs/heads/main',
-      { status: 0, stdout: `${SHA}\trefs/heads/main\n` },
-    ],
+    ['git ls-remote origin refs/heads/main', { status: 0, stdout: `${SHA}\trefs/heads/main\n` }],
   ])
   const run = (command, args) => {
     const key = `${command} ${args.join(' ')}`
@@ -340,9 +335,7 @@ test('local Git collector uses only fixed read-only commands', () => {
   assert.equal(result.collectionStatus, 'ready')
   assert.equal(result.detachedHead, true)
   assert.deepEqual(calls, [...responses.keys()])
-  assert.ok(
-    calls.every((call) => !/\b(checkout|switch|commit|push|merge|reset|clean)\b/.test(call))
-  )
+  assert.ok(calls.every((call) => !/\b(checkout|switch|commit|push|merge|reset|clean)\b/.test(call)))
 })
 
 test('GitHub collector uses read-only gh commands and verifies one issue identity', () => {

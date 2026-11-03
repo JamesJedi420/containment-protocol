@@ -60,7 +60,7 @@ export function validateCrossRoleActionProcedure(input: {
     return { ok: false, error: 'invalid_participant_count' }
   }
   for (const prereq of input.prerequisites) {
-    if (prereq.type === 'min_stat' && prereq.minValue < 0) {
+    if (prereq.type === 'min_stat' && (!Number.isFinite(prereq.minValue) || prereq.minValue < 0)) {
       return { ok: false, error: 'invalid_prerequisite' }
     }
     if (prereq.type === 'item_tag' && (!prereq.tag || prereq.tag.trim() === '')) {
@@ -163,7 +163,7 @@ export function resolveCrossRoleAction(
 
 // ─── Exemplar action ──────────────────────────────────────────────────────────
 
-// joint_evidence_processing: requires two participants (investigator + field_recon),
+// joint_evidence_processing: requires two participants with eligible investigator or field_recon roles,
 // minimum insight stat of 3, and at least one participant carrying evidence_kit.
 export const JOINT_EVIDENCE_PROCESSING: CrossRoleActionProcedure = {
   procedureId: 'joint_evidence_processing',

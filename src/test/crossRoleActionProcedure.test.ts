@@ -77,12 +77,12 @@ describe('validateCrossRoleActionProcedure', () => {
     expect(result.error).toBe(error)
   })
 
-  it('returns invalid_prerequisite for negative min_stat value', () => {
+  it.each([-1, NaN, Infinity, -Infinity])('returns invalid_prerequisite for min_stat value %s', (minValue) => {
     const result = validateCrossRoleActionProcedure({
       procedureId: 'valid_id',
       label: 'Valid',
       eligibleRoles: ['investigator'],
-      prerequisites: [{ type: 'min_stat', domain: 'insight', minValue: -1 }],
+      prerequisites: [{ type: 'min_stat', domain: 'insight', minValue }],
       requiredParticipantCount: 1,
     })
     expect(result.ok).toBe(false)

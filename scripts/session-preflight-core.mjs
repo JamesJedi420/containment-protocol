@@ -27,8 +27,12 @@ function isStringArray(value) {
   return Array.isArray(value) && value.every(isNonEmptyString)
 }
 
+function isIssueId(value) {
+  return typeof value === 'string' && ISSUE_RE.test(value)
+}
+
 function isIssueArray(value) {
-  return Array.isArray(value) && value.every((item) => ISSUE_RE.test(item))
+  return Array.isArray(value) && value.every(isIssueId)
 }
 
 function isIsoTimestamp(value) {
@@ -87,11 +91,11 @@ function validateRootFields(errors, input) {
 function validateHandoff(errors, handoff) {
   pushError(errors, isObject(handoff), 'handoff must be an object')
   if (!isObject(handoff)) return
-  pushError(errors, ISSUE_RE.test(handoff.issueId ?? ''), 'handoff.issueId is invalid')
+  pushError(errors, isIssueId(handoff.issueId), 'handoff.issueId is invalid')
   pushError(errors, WORKSTREAMS.has(handoff.workstream), 'handoff.workstream is invalid')
   pushError(
     errors,
-    handoff.parentId === null || ISSUE_RE.test(handoff.parentId ?? ''),
+    handoff.parentId === null || isIssueId(handoff.parentId),
     'handoff.parentId is invalid'
   )
   pushError(errors, isNullableString(handoff.sliceRef), 'handoff.sliceRef must be a string or null')
@@ -108,10 +112,10 @@ function validateHandoff(errors, handoff) {
 function validateLinearEvidence(errors, linear) {
   validateEvidenceHeader(errors, linear, 'linear')
   if (!isObject(linear) || linear.collectionStatus !== 'ready') return
-  pushError(errors, ISSUE_RE.test(linear.issueId ?? ''), 'linear.issueId is invalid')
+  pushError(errors, isIssueId(linear.issueId), 'linear.issueId is invalid')
   pushError(
     errors,
-    linear.parentId === null || ISSUE_RE.test(linear.parentId ?? ''),
+    linear.parentId === null || isIssueId(linear.parentId),
     'linear.parentId is invalid'
   )
   pushError(errors, isNonEmptyString(linear.status), 'linear.status is required')
@@ -139,7 +143,7 @@ function validatePullRequest(errors, pullRequest, index) {
   pushError(errors, isNonEmptyString(pullRequest.baseBranch), `${path}.baseBranch is required`)
   pushError(
     errors,
-    pullRequest.issueId === null || ISSUE_RE.test(pullRequest.issueId ?? ''),
+    pullRequest.issueId === null || isIssueId(pullRequest.issueId),
     `${path}.issueId is invalid`
   )
   pushError(

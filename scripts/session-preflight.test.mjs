@@ -258,6 +258,25 @@ test('malformed input fails closed with deterministic validation errors', () => 
   assert.ok(validateSessionPreflightInput(malformed).length > 0)
 })
 
+test('malformed issue identifier types fail closed without coercion', () => {
+  const malformedIssueId = { toString: null }
+  for (const overrides of [
+    { handoff: { issueId: malformedIssueId } },
+    { handoff: { parentId: malformedIssueId } },
+    { handoff: { blockerIds: [malformedIssueId] } },
+    { handoff: { dependencyIds: [malformedIssueId] } },
+    { linear: { issueId: malformedIssueId } },
+    { linear: { parentId: malformedIssueId } },
+    { linear: { blockerIds: [malformedIssueId] } },
+    { linear: { dependencyIds: [malformedIssueId] } },
+    { github: { openPullRequests: [matchingPullRequest({ issueId: malformedIssueId })] } },
+  ]) {
+    const result = evaluateSessionPreflight(baseInput(overrides))
+    assert.equal(result.status, 'unknown')
+    assert.ok(reasonCodes(result).includes('invalid_input'))
+  }
+})
+
 test('ready evidence requires current Git and GitHub SHAs', () => {
   for (const overrides of [
     { github: { remoteMainSha: null } },

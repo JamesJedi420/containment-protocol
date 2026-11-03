@@ -8,6 +8,7 @@ import {
 import {
   collectGitHubEvidence,
   collectLocalGitEvidence,
+  collectLocalSessionEvidence,
   parseSessionPreflightArguments,
 } from './session-preflight.mjs'
 
@@ -366,6 +367,33 @@ test('local Git collector uses only fixed read-only commands', () => {
   assert.equal(result.detachedHead, true)
   assert.deepEqual(calls, [...responses.keys()])
   assert.ok(calls.every((call) => !/\b(checkout|switch|commit|push|merge|reset|clean)\b/.test(call)))
+})
+
+test('local Git collector fails closed when remote main output is empty', () => {
+  const responses = new Map([
+    ['git rev-parse HEAD', { status: 0, stdout: `${SHA}\n` }],
+    ['git symbolic-ref --quiet --short HEAD', { status: 0, stdout: 'main\n' }],
+    ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
+    ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
+    ['git ls-remote origin refs/heads/main', { status: 0, stdout: '\n' }],
+  ])
+  const run = (command, args) => responses.get(`${command} ${args.join(' ')}`)
+  const result = collectLocalGitEvidence({ checkedAt: CHECKED_AT, run })
+  assert.equal(result.collectionStatus, 'failed')
+  assert.equal(result.failureCode, 'remote-main-unavailable')
+})
+
+test('local collection leaves invalid top-level input for evaluator validation', () => {
+  const collected = collectLocalSessionEvidence(null, {
+    now: () => CHECKED_AT,
+    run: () => {
+      throw new Error('collectors must not run for invalid top-level input')
+    },
+  })
+  assert.equal(collected, null)
+  const result = evaluateSessionPreflight(collected)
+  assert.equal(result.status, 'unknown')
+  assert.ok(result.validationErrors.length > 0)
 })
 
 test('GitHub collector uses read-only gh commands and verifies one issue identity', () => {

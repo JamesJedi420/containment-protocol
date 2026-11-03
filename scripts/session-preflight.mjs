@@ -43,11 +43,10 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
 
   const localMain = run('git', ['rev-parse', 'refs/heads/main'], cwd)
   const remoteMain = run('git', ['ls-remote', 'origin', 'refs/heads/main'], cwd)
-  if (remoteMain.status !== 0) {
+  const remoteMainSha = trimOutput(remoteMain).split(/\s+/)[0] || null
+  if (remoteMain.status !== 0 || !remoteMainSha) {
     return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'remote-main-unavailable')
   }
-
-  const remoteMainSha = trimOutput(remoteMain).split(/\s+/)[0] || null
   return {
     collectionStatus: 'ready',
     checkedAt,
@@ -178,6 +177,8 @@ export function collectLocalSessionEvidence(
     now = () => new Date().toISOString(),
   } = {}
 ) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input
+
   const checkedAt = now()
   const github = collectGitHubEvidence({
     repository: input.repository,

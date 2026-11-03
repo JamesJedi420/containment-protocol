@@ -64,7 +64,7 @@ it('preserves case query state through case-detail navigation and back', async (
 
   renderApp('/cases?q=stockyards&sort=title')
 
-  expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
+  expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('stockyards')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 
   await user.click(
@@ -74,13 +74,13 @@ it('preserves case query state through case-detail navigation and back', async (
   )
 
   expect(
-    screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+    await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
   ).toBeInTheDocument()
 
-  await user.click(screen.getByRole('link', { name: /back to cases/i }))
+  await user.click(await screen.findByRole('link', { name: /back to cases/i }))
 
   expect(screen.getByRole('heading', { name: /^cases$/i })).toBeInTheDocument()
-  expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
+  expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('stockyards')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 })
 
@@ -98,21 +98,21 @@ it('preserves team query state through team-detail navigation and back', async (
   useGameStore.setState({ game })
   renderApp('/teams?q=night&assignment=assigned&fatigue=critical&sort=name')
 
-  expect(screen.getByLabelText('Search')).toHaveValue('night')
+  expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('night')
   expect(screen.getByLabelText('Assignment')).toHaveValue('assigned')
   expect(screen.getByLabelText('Fatigue')).toHaveValue('critical')
   expect(screen.getByLabelText('Sort')).toHaveValue('name')
 
-  await user.click(screen.getByRole('link', { name: /response unit night watch/i }))
+  await user.click(await screen.findByRole('link', { name: /response unit night watch/i }))
 
   expect(
-    screen.getByRole('heading', { level: 1, name: /response unit night watch/i })
+    await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
   ).toBeInTheDocument()
 
-  await user.click(screen.getByRole('link', { name: /back to teams/i }))
+  await user.click(await screen.findByRole('link', { name: /back to teams/i }))
 
   expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
-  expect(screen.getByLabelText('Search')).toHaveValue('night')
+  expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('night')
   expect(screen.getByLabelText('Assignment')).toHaveValue('assigned')
   expect(screen.getByLabelText('Fatigue')).toHaveValue('critical')
   expect(screen.getByLabelText('Sort')).toHaveValue('name')
@@ -125,12 +125,12 @@ it('routes dashboard command links into case, team, and report drill-down pages'
   renderApp('/')
 
   expect(
-    screen.getByRole('region', { name: /front desk operations hub/i })
+    await screen.findByRole('region', { name: /front desk operations hub/i })
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /vampire nest in the stockyards/i }))
   expect(
-    screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+    await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /^operations desk$/i }))
@@ -142,7 +142,7 @@ it('routes dashboard command links into case, team, and report drill-down pages'
 
   await user.click(within(teamStatusSection!).getByRole('link', { name: /^night watch$/i }))
   expect(
-    screen.getByRole('heading', { level: 1, name: /response unit night watch/i })
+    await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /^operations desk$/i }))

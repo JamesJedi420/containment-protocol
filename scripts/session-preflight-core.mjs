@@ -25,6 +25,10 @@ function isStringArray(value) {
   return Array.isArray(value) && value.every(isNonEmptyString)
 }
 
+function isIssueArray(value) {
+  return Array.isArray(value) && value.every((item) => ISSUE_RE.test(item))
+}
+
 function isIsoTimestamp(value) {
   return isNonEmptyString(value) && Number.isFinite(Date.parse(value))
 }
@@ -55,11 +59,7 @@ export function validateSessionPreflightInput(input) {
   if (!isObject(input)) return errors
 
   pushError(errors, input.schemaVersion === SCHEMA_VERSION, `schemaVersion must be ${SCHEMA_VERSION}`)
-  pushError(
-    errors,
-    isNonEmptyString(input.repository) && REPOSITORY_RE.test(input.repository),
-    'repository must be owner/name'
-  )
+  pushError(errors, isNonEmptyString(input.repository) && REPOSITORY_RE.test(input.repository), 'repository must be owner/name')
   pushError(errors, isIsoTimestamp(input.observedAt), 'observedAt must be ISO-8601')
   pushError(
     errors,
@@ -74,66 +74,42 @@ export function validateSessionPreflightInput(input) {
   if (isObject(handoff)) {
     pushError(errors, ISSUE_RE.test(handoff.issueId ?? ''), 'handoff.issueId is invalid')
     pushError(errors, WORKSTREAMS.has(handoff.workstream), 'handoff.workstream is invalid')
-    pushError(
-      errors,
-      handoff.parentId === null || ISSUE_RE.test(handoff.parentId ?? ''),
-      'handoff.parentId is invalid'
-    )
+    pushError(errors, handoff.parentId === null || ISSUE_RE.test(handoff.parentId ?? ''), 'handoff.parentId is invalid')
     pushError(errors, isNullableString(handoff.sliceRef), 'handoff.sliceRef must be a string or null')
     pushError(errors, isNonEmptyString(handoff.intendedBranch), 'handoff.intendedBranch is required')
     pushError(errors, isSha(handoff.expectedBaseMainSha), 'handoff.expectedBaseMainSha is invalid')
-    pushError(errors, isStringArray(handoff.blockerIds), 'handoff.blockerIds must be strings')
-    pushError(errors, isStringArray(handoff.dependencyIds), 'handoff.dependencyIds must be strings')
+    pushError(errors, isIssueArray(handoff.blockerIds), 'handoff.blockerIds must be strings')
+    pushError(errors, isIssueArray(handoff.dependencyIds), 'handoff.dependencyIds must be strings')
   }
 
   const linear = input.linear
   validateEvidenceHeader(errors, linear, 'linear')
   if (isObject(linear) && linear.collectionStatus === 'ready') {
     pushError(errors, ISSUE_RE.test(linear.issueId ?? ''), 'linear.issueId is invalid')
-    pushError(
-      errors,
-      linear.parentId === null || ISSUE_RE.test(linear.parentId ?? ''),
-      'linear.parentId is invalid'
-    )
+    pushError(errors, linear.parentId === null || ISSUE_RE.test(linear.parentId ?? ''), 'linear.parentId is invalid')
     pushError(errors, isNonEmptyString(linear.status), 'linear.status is required')
     pushError(errors, LIFECYCLE_TYPES.has(linear.statusType), 'linear.statusType is invalid')
     pushError(errors, APPROVAL_STATES.has(linear.approvalState), 'linear.approvalState is invalid')
-    pushError(errors, isStringArray(linear.blockerIds), 'linear.blockerIds must be strings')
-    pushError(errors, isStringArray(linear.dependencyIds), 'linear.dependencyIds must be strings')
+    pushError(errors, isIssueArray(linear.blockerIds), 'linear.blockerIds must be strings')
+    pushError(errors, isIssueArray(linear.dependencyIds), 'linear.dependencyIds must be strings')
   }
 
   const github = input.github
   validateEvidenceHeader(errors, github, 'github', new Set(['ready', 'failed', 'unchecked']))
   if (isObject(github) && github.collectionStatus === 'ready') {
-    pushError(
-      errors,
-      github.remoteMainSha === null || isSha(github.remoteMainSha),
-      'github.remoteMainSha is invalid'
-    )
+    pushError(errors, isSha(github.remoteMainSha), 'github.remoteMainSha is invalid')
     pushError(errors, Array.isArray(github.openPullRequests), 'github.openPullRequests must be an array')
     if (Array.isArray(github.openPullRequests)) {
       github.openPullRequests.forEach((pullRequest, index) => {
         const path = `github.openPullRequests[${index}]`
         pushError(errors, isObject(pullRequest), `${path} must be an object`)
         if (!isObject(pullRequest)) return
-        pushError(
-          errors,
-          Number.isSafeInteger(pullRequest.number) && pullRequest.number > 0,
-          `${path}.number is invalid`
-        )
+        pushError(errors, Number.isSafeInteger(pullRequest.number) && pullRequest.number > 0, `${path}.number is invalid`)
         pushError(errors, isNonEmptyString(pullRequest.url), `${path}.url is required`)
         pushError(errors, isNonEmptyString(pullRequest.headBranch), `${path}.headBranch is required`)
         pushError(errors, isNonEmptyString(pullRequest.baseBranch), `${path}.baseBranch is required`)
-        pushError(
-          errors,
-          pullRequest.issueId === null || ISSUE_RE.test(pullRequest.issueId ?? ''),
-          `${path}.issueId is invalid`
-        )
-        pushError(
-          errors,
-          typeof pullRequest.ownershipVerified === 'boolean',
-          `${path}.ownershipVerified must be boolean`
-        )
+        pushError(errors, pullRequest.issueId === null || ISSUE_RE.test(pullRequest.issueId ?? ''), `${path}.issueId is invalid`)
+        pushError(errors, typeof pullRequest.ownershipVerified === 'boolean', `${path}.ownershipVerified must be boolean`)
         pushError(errors, pullRequest.state === 'open', `${path}.state must be open`)
         pushError(errors, pullRequest.merged === false, `${path}.merged must be false`)
       })
@@ -142,16 +118,8 @@ export function validateSessionPreflightInput(input) {
       const evidence = github.implementationEvidence
       pushError(errors, isObject(evidence), 'github.implementationEvidence must be an object')
       if (isObject(evidence)) {
-        pushError(
-          errors,
-          typeof evidence.mergedCurrentMain === 'boolean',
-          'github.implementationEvidence.mergedCurrentMain must be boolean'
-        )
-        pushError(
-          errors,
-          isStringArray(evidence.mergedPrUrls),
-          'github.implementationEvidence.mergedPrUrls must be strings'
-        )
+        pushError(errors, typeof evidence.mergedCurrentMain === 'boolean', 'github.implementationEvidence.mergedCurrentMain must be boolean')
+        pushError(errors, isStringArray(evidence.mergedPrUrls), 'github.implementationEvidence.mergedPrUrls must be strings')
       }
     }
   }
@@ -159,20 +127,12 @@ export function validateSessionPreflightInput(input) {
   const git = input.git
   validateEvidenceHeader(errors, git, 'git', new Set(['ready', 'failed', 'unchecked']))
   if (isObject(git) && git.collectionStatus === 'ready') {
-    pushError(errors, git.headSha === null || isSha(git.headSha), 'git.headSha is invalid')
+    pushError(errors, isSha(git.headSha), 'git.headSha is invalid')
     pushError(errors, isNullableString(git.currentBranch), 'git.currentBranch must be a string or null')
     pushError(errors, typeof git.detachedHead === 'boolean', 'git.detachedHead must be boolean')
     pushError(errors, typeof git.trackedDirty === 'boolean', 'git.trackedDirty must be boolean')
-    pushError(
-      errors,
-      git.localMainSha === null || isSha(git.localMainSha),
-      'git.localMainSha is invalid'
-    )
-    pushError(
-      errors,
-      git.remoteMainSha === null || isSha(git.remoteMainSha),
-      'git.remoteMainSha is invalid'
-    )
+    pushError(errors, git.localMainSha === null || isSha(git.localMainSha), 'git.localMainSha is invalid')
+    pushError(errors, isSha(git.remoteMainSha), 'git.remoteMainSha is invalid')
   }
 
   return errors
@@ -202,21 +162,9 @@ function addFreshnessReasons(input, reasons) {
     const checkedAt = Date.parse(evidence.checkedAt)
     const ageSeconds = Math.floor((observedAt - checkedAt) / 1000)
     if (ageSeconds < -30) {
-      reasons.push(
-        makeReason(
-          `${source}_evidence_from_future`,
-          source,
-          `${source} evidence is ${Math.abs(ageSeconds)}s in the future`
-        )
-      )
+      reasons.push(makeReason(`${source}_evidence_from_future`, source, `${source} evidence is ${Math.abs(ageSeconds)}s in the future`))
     } else if (ageSeconds > input.freshnessWindowSeconds) {
-      reasons.push(
-        makeReason(
-          `${source}_evidence_stale`,
-          source,
-          `${source} evidence is ${ageSeconds}s old`
-        )
-      )
+      reasons.push(makeReason(`${source}_evidence_stale`, source, `${source} evidence is ${ageSeconds}s old`))
     }
   }
 }
@@ -225,80 +173,36 @@ function evaluateLinear(input, reasons) {
   const { handoff, linear, requestedOperation } = input
   if (linear.collectionStatus !== 'ready') return
   if (linear.issueId !== handoff.issueId) {
-    reasons.push(
-      makeReason(
-        'linear_issue_mismatch',
-        'linear',
-        `expected ${handoff.issueId}; observed ${linear.issueId}`
-      )
-    )
+    reasons.push(makeReason('linear_issue_mismatch', 'linear', `expected ${handoff.issueId}; observed ${linear.issueId}`))
   }
   if (linear.parentId !== handoff.parentId) {
-    reasons.push(
-      makeReason(
-        'linear_parent_mismatch',
-        'linear',
-        `expected parent ${handoff.parentId ?? 'none'}; observed ${linear.parentId ?? 'none'}`
-      )
-    )
+    reasons.push(makeReason('linear_parent_mismatch', 'linear', `expected parent ${handoff.parentId ?? 'none'}; observed ${linear.parentId ?? 'none'}`))
   }
   if (linear.approvalState === 'unknown') {
-    reasons.push(
-      makeReason('approval_state_unknown', 'linear', 'current approval state could not be verified')
-    )
+    reasons.push(makeReason('approval_state_unknown', 'linear', 'current approval state could not be verified'))
   } else if (linear.approvalState === 'not-approved') {
-    reasons.push(
-      makeReason('scope_not_approved', 'linear', 'the named implementation boundary is not approved')
-    )
+    reasons.push(makeReason('scope_not_approved', 'linear', 'the named implementation boundary is not approved'))
   }
   if (linear.statusType === 'completed' || linear.statusType === 'canceled') {
     reasons.push(makeReason('issue_not_active', 'linear', `issue lifecycle is ${linear.statusType}`))
   }
   if (requestedOperation === 'start' && linear.statusType === 'started') {
-    reasons.push(
-      makeReason('issue_already_started', 'linear', 'start was requested for an issue already in progress')
-    )
+    reasons.push(makeReason('issue_already_started', 'linear', 'start was requested for an issue already in progress'))
   }
   if (requestedOperation === 'resume' && linear.statusType !== 'started') {
-    reasons.push(
-      makeReason(
-        'issue_not_started',
-        'linear',
-        `resume requires started lifecycle; observed ${linear.statusType}`
-      )
-    )
+    reasons.push(makeReason('issue_not_started', 'linear', `resume requires started lifecycle; observed ${linear.statusType}`))
   }
   if (!sameStrings(handoff.blockerIds, linear.blockerIds)) {
-    reasons.push(
-      makeReason('blocker_snapshot_changed', 'linear', 'current blockers differ from the handoff snapshot')
-    )
+    reasons.push(makeReason('blocker_snapshot_changed', 'linear', 'current blockers differ from the handoff snapshot'))
   }
   if (!sameStrings(handoff.dependencyIds, linear.dependencyIds)) {
-    reasons.push(
-      makeReason(
-        'dependency_snapshot_changed',
-        'linear',
-        'current dependencies differ from the handoff snapshot'
-      )
-    )
+    reasons.push(makeReason('dependency_snapshot_changed', 'linear', 'current dependencies differ from the handoff snapshot'))
   }
   if (linear.blockerIds.length > 0) {
-    reasons.push(
-      makeReason(
-        'issue_blocked',
-        'linear',
-        `unresolved blockers: ${[...linear.blockerIds].sort().join(', ')}`
-      )
-    )
+    reasons.push(makeReason('issue_blocked', 'linear', `unresolved blockers: ${[...linear.blockerIds].sort().join(', ')}`))
   }
   if (linear.dependencyIds.length > 0) {
-    reasons.push(
-      makeReason(
-        'dependency_unresolved',
-        'linear',
-        `unresolved dependencies: ${[...linear.dependencyIds].sort().join(', ')}`
-      )
-    )
+    reasons.push(makeReason('dependency_unresolved', 'linear', `unresolved dependencies: ${[...linear.dependencyIds].sort().join(', ')}`))
   }
 }
 
@@ -306,85 +210,35 @@ function evaluateGitHub(input, reasons) {
   const { github, handoff, requestedOperation } = input
   if (github.collectionStatus !== 'ready') return
   if (github.remoteMainSha !== handoff.expectedBaseMainSha) {
-    reasons.push(
-      makeReason(
-        'remote_main_advanced',
-        'github',
-        `expected ${handoff.expectedBaseMainSha}; observed ${github.remoteMainSha ?? 'unknown'}`
-      )
-    )
+    reasons.push(makeReason('remote_main_advanced', 'github', `expected ${handoff.expectedBaseMainSha}; observed ${github.remoteMainSha ?? 'unknown'}`))
   }
   const pullRequests = [...github.openPullRequests].sort((a, b) => a.number - b.number)
   if (requestedOperation === 'start') {
     if (pullRequests.length > 0) {
-      reasons.push(
-        makeReason(
-          'open_pr_blocks_start',
-          'github',
-          `open pull requests: ${pullRequests.map((pr) => `#${pr.number}`).join(', ')}`
-        )
-      )
+      reasons.push(makeReason('open_pr_blocks_start', 'github', `open pull requests: ${pullRequests.map((pr) => `#${pr.number}`).join(', ')}`))
     }
   } else if (pullRequests.length === 0) {
-    reasons.push(
-      makeReason('resume_pr_missing', 'github', 'resume requires the matching open pull request')
-    )
+    reasons.push(makeReason('resume_pr_missing', 'github', 'resume requires the matching open pull request'))
   } else if (pullRequests.length > 1) {
-    reasons.push(
-      makeReason(
-        'multiple_open_prs',
-        'github',
-        `open pull requests: ${pullRequests.map((pr) => `#${pr.number}`).join(', ')}`
-      )
-    )
+    reasons.push(makeReason('multiple_open_prs', 'github', `open pull requests: ${pullRequests.map((pr) => `#${pr.number}`).join(', ')}`))
   } else {
     const pullRequest = pullRequests[0]
     if (!pullRequest.ownershipVerified || pullRequest.issueId === null) {
-      reasons.push(
-        makeReason(
-          'pr_ownership_unverified',
-          'github',
-          `pull request #${pullRequest.number} has no single verified issue owner`
-        )
-      )
+      reasons.push(makeReason('pr_ownership_unverified', 'github', `pull request #${pullRequest.number} has no single verified issue owner`))
     } else {
       if (pullRequest.issueId !== handoff.issueId) {
-        reasons.push(
-          makeReason(
-            'pr_issue_mismatch',
-            'github',
-            `pull request #${pullRequest.number} belongs to ${pullRequest.issueId}`
-          )
-        )
+        reasons.push(makeReason('pr_issue_mismatch', 'github', `pull request #${pullRequest.number} belongs to ${pullRequest.issueId}`))
       }
       if (pullRequest.headBranch !== handoff.intendedBranch) {
-        reasons.push(
-          makeReason(
-            'pr_branch_mismatch',
-            'github',
-            `expected ${handoff.intendedBranch}; observed ${pullRequest.headBranch}`
-          )
-        )
+        reasons.push(makeReason('pr_branch_mismatch', 'github', `expected ${handoff.intendedBranch}; observed ${pullRequest.headBranch}`))
       }
       if (pullRequest.baseBranch !== 'main') {
-        reasons.push(
-          makeReason(
-            'pr_base_mismatch',
-            'github',
-            `pull request #${pullRequest.number} targets ${pullRequest.baseBranch}`
-          )
-        )
+        reasons.push(makeReason('pr_base_mismatch', 'github', `pull request #${pullRequest.number} targets ${pullRequest.baseBranch}`))
       }
     }
   }
   if (github.implementationEvidence?.mergedCurrentMain && input.linear.statusType !== 'completed') {
-    reasons.push(
-      makeReason(
-        'lifecycle_evidence_conflict',
-        'github',
-        'implementation is on current main while Linear lifecycle is not completed'
-      )
-    )
+    reasons.push(makeReason('lifecycle_evidence_conflict', 'github', 'implementation is on current main while Linear lifecycle is not completed'))
   }
 }
 
@@ -395,88 +249,40 @@ function evaluateGit(input, reasons) {
     reasons.push(makeReason('tracked_worktree_dirty', 'git', 'tracked changes are present'))
   }
   if (github.collectionStatus === 'ready' && git.remoteMainSha !== github.remoteMainSha) {
-    reasons.push(
-      makeReason(
-        'remote_main_observation_conflict',
-        'git',
-        `git observed ${git.remoteMainSha ?? 'unknown'}; GitHub observed ${github.remoteMainSha ?? 'unknown'}`
-      )
-    )
+    reasons.push(makeReason('remote_main_observation_conflict', 'git', `git observed ${git.remoteMainSha ?? 'unknown'}; GitHub observed ${github.remoteMainSha ?? 'unknown'}`))
   }
   if (git.remoteMainSha !== handoff.expectedBaseMainSha) {
-    reasons.push(
-      makeReason(
-        'git_remote_main_mismatch',
-        'git',
-        `expected ${handoff.expectedBaseMainSha}; observed ${git.remoteMainSha ?? 'unknown'}`
-      )
-    )
+    reasons.push(makeReason('git_remote_main_mismatch', 'git', `expected ${handoff.expectedBaseMainSha}; observed ${git.remoteMainSha ?? 'unknown'}`))
   }
 
   if (executionMode === 'local-checkout') {
     if (git.detachedHead) {
-      reasons.push(
-        makeReason('local_checkout_detached', 'git', 'local checkout mode cannot use detached HEAD')
-      )
+      reasons.push(makeReason('local_checkout_detached', 'git', 'local checkout mode cannot use detached HEAD'))
     }
     const expectedBranch = requestedOperation === 'start' ? 'main' : handoff.intendedBranch
     if (git.currentBranch !== expectedBranch) {
-      reasons.push(
-        makeReason(
-          'local_branch_mismatch',
-          'git',
-          `expected ${expectedBranch}; observed ${git.currentBranch ?? 'detached'}`
-        )
-      )
+      reasons.push(makeReason('local_branch_mismatch', 'git', `expected ${expectedBranch}; observed ${git.currentBranch ?? 'detached'}`))
     }
     if (git.localMainSha !== handoff.expectedBaseMainSha) {
-      reasons.push(
-        makeReason(
-          'local_main_diverged',
-          'git',
-          `expected ${handoff.expectedBaseMainSha}; observed ${git.localMainSha ?? 'unknown'}`
-        )
-      )
+      reasons.push(makeReason('local_main_diverged', 'git', `expected ${handoff.expectedBaseMainSha}; observed ${git.localMainSha ?? 'unknown'}`))
     }
     if (requestedOperation === 'start' && git.headSha !== handoff.expectedBaseMainSha) {
-      reasons.push(
-        makeReason(
-          'local_head_mismatch',
-          'git',
-          `expected ${handoff.expectedBaseMainSha}; observed ${git.headSha ?? 'unknown'}`
-        )
-      )
+      reasons.push(makeReason('local_head_mismatch', 'git', `expected ${handoff.expectedBaseMainSha}; observed ${git.headSha ?? 'unknown'}`))
     }
     return
   }
 
   if (requestedOperation === 'start') {
     if (!git.detachedHead || git.currentBranch !== null) {
-      reasons.push(
-        makeReason(
-          'managed_worktree_not_detached',
-          'git',
-          'a new Codex managed worktree must begin at detached HEAD'
-        )
-      )
+      reasons.push(makeReason('managed_worktree_not_detached', 'git', 'a new Codex managed worktree must begin at detached HEAD'))
     }
     if (git.headSha !== handoff.expectedBaseMainSha) {
-      reasons.push(
-        makeReason(
-          'managed_worktree_base_mismatch',
-          'git',
-          `expected ${handoff.expectedBaseMainSha}; observed ${git.headSha ?? 'unknown'}`
-        )
-      )
+      reasons.push(makeReason('managed_worktree_base_mismatch', 'git', `expected ${handoff.expectedBaseMainSha}; observed ${git.headSha ?? 'unknown'}`))
     }
-  } else if (git.detachedHead || git.currentBranch !== handoff.intendedBranch) {
-    reasons.push(
-      makeReason(
-        'managed_resume_branch_mismatch',
-        'git',
-        `resume requires branch ${handoff.intendedBranch}; observed ${git.currentBranch ?? 'detached'}`
-      )
-    )
+  } else {
+    if (git.detachedHead || git.currentBranch !== handoff.intendedBranch) {
+      reasons.push(makeReason('managed_resume_branch_mismatch', 'git', `resume requires branch ${handoff.intendedBranch}; observed ${git.currentBranch ?? 'detached'}`))
+    }
   }
 }
 
@@ -508,11 +314,7 @@ function stableReasons(reasons) {
       seen.add(key)
       return true
     })
-    .sort((left, right) =>
-      `${left.source}:${left.code}:${left.detail}`.localeCompare(
-        `${right.source}:${right.code}:${right.detail}`
-      )
-    )
+    .sort((left, right) => `${left.source}:${left.code}:${left.detail}`.localeCompare(`${right.source}:${right.code}:${right.detail}`))
 }
 
 export function evaluateSessionPreflight(input) {
@@ -522,7 +324,7 @@ export function evaluateSessionPreflight(input) {
       schemaVersion: SCHEMA_VERSION,
       status: 'unknown',
       readOnly: true,
-      issueId: isObject(input?.handoff) ? (input.handoff.issueId ?? null) : null,
+      issueId: isObject(input?.handoff) ? input.handoff.issueId ?? null : null,
       requestedOperation: input?.requestedOperation ?? null,
       executionMode: input?.executionMode ?? null,
       reasons: [makeReason('invalid_input', 'input', validationErrors.sort().join('; '))],

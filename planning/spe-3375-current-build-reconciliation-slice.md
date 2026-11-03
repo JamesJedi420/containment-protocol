@@ -160,3 +160,68 @@ removals, existing contracts and emitted-output identity; its clean verdict is
 not treated as approval or proof of unrun hosted checks. Six pre-ship passes
 reviewed scope, optional/malformed contracts, determinism/state, regressions,
 documentation/provenance and cleanup. No other repair roots were admitted.
+
+## Literal-context cohort — SPE-3538 through SPE-3541
+
+The human explicitly requested implementation of the next four-root plan.
+Branch: `codex/spe-3375-literal-context`; clean pinned main:
+`0a092029c685cbefe7b3a87bc60b3b72e391294d`. The original dirty checkout, adapter
+PR #4634/worktree and independently active UI PR #4653 are preserved. This current
+instruction authorizes the bounded recovery continuation; no unrelated PR is
+merged or included here.
+
+Ordered Phase 1–4 review retained SPE-3375 as the existing shared-system parent,
+checked current contracts and overlapping owners, and admitted exactly four
+children In Progress before source edits: SPE-3538 allocation return context,
+SPE-3539 production grade snapshot return context, SPE-3540 emergency fallout
+return context and SPE-3541 frozen candidate context. These correspond to the
+four existing reconciliation roots; historical completed children stay Done.
+
+The [immutable cohort evidence](../docs/typecheck/literal-context-2026-11-03/README.md)
+records paired **395 → 388** compiles: seven removals, zero additions, 280 → 273
+identities and 138 → 137 files. Each compiler exits 2. The baseline identity
+multiset equals the preceding import cohort. Root removals are respectively
+1 / 2 / 3 / 1. All 99 semantic-review occurrences remain unchanged.
+
+Only three source files change, using existing canonical type context and two
+type-only imports. Their transpiled JavaScript is byte-identical before/after;
+no gameplay, hidden-information, persistence, schema, dependency, compiler-policy
+or browser behavior change is introduced. Frontend guidance, external research
+and package-security decisions are not applicable to this type-only diff.
+
+Five targeted suites / 470 tests, full lint and Vite bundling pass. Final
+registered checks, literal-build evidence, review, CI and Hermes disposition are
+recorded below or on the cohort PR/children before completion. Census collectors
+ran on stable inputs; preliminary incomplete attempts are distinguished in the
+evidence README. The six pre-ship passes cover exact scope/provenance, retained
+malformed/legacy branches, deterministic state, consumer regression, documentation
+and cleanup. Source mapping and small checks use the direct Hermes path; the
+documentation/communication and mandatory post-merge checkpoints still apply.
+
+SPE-3375 remains In Progress and SPE-2995/#4634 retain literal full-build
+acceptance. No other repair or semantic obligation is admitted. After merging
+this cohort, complete current-slice closeout and start a new chat before another
+implementation slice.
+
+### Literal-context final local verification
+
+All 14 census-integrity tests pass, including the separate literal build's exact
+388-diagnostic agreement with the paired after-state. Full local lint, changed
+Node-test lint, changed-file Prettier and whitespace checks pass. Audits-index
+reports 41 files, backlog-handoff passes and theme-contracts reports 108 mirrored
+IDs. SPE-3348 requires backlog-handoff, lint, census tests, unit tests and Vite
+bundling; exact-head hosted CI supplies the full unit run. Local targeted evidence
+remains five suites / 470 tests. Literal `npm run build` exits 2, while separate
+Vite bundling exits 0. No full green-build or hosted-regression pass is inferred.
+
+Hermes documentation/communication checkpoint
+`local-086d7dcea136f1dae71385991f63182de2f7f5e632ae4af4dff7a0e9344790b9`
+returned exit 0 but skipped requested delta/execution inspection and presented
+prompt text as document quotations, with unsupported section anchors. Its clean
+verdict is rejected as incomplete. Direct fallback inspected the actual appended
+slice, README, delta and execution metadata against raw-bound integrity tests,
+source diff, emitted-JavaScript hashes and live child/parent states. No unsupported
+helper claim is promoted to evidence. Local provider/model were preserved; token
+usage was not reported and no savings are claimed. The PR description is drafted
+directly from verified results. Independent PR review and hosted checks remain
+required before merge.

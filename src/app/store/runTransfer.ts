@@ -88,6 +88,7 @@ import {
   isWeeklyDirectiveId,
 } from '../../domain/directives'
 import { buildOperationEventTimestamp, inferOperationEventSourceSystem } from '../../domain/events'
+import type { OperationEventPayloadMap } from '../../domain/events'
 import { operationEventPayloadSchemas } from '../../domain/events/eventValidation'
 import {
   getKnownProcurementItemIds,
@@ -255,6 +256,7 @@ import {
 import { RIVAL_PRESSURE_PEER_BASELINE } from '../../domain/rivalPressure'
 import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import { reconcileMarketShiftedFields, sanitizePersistedMarketState } from '../../domain/market'
+import type { ProcurementAllocationPacket } from '../../domain/market'
 import {
   reconcileAgentPromotedFields,
   reconcileProgressionXpGainedFields,
@@ -1549,7 +1551,9 @@ function reconcileMarketTotalPrice(
   return expected
 }
 
-function sanitizeOperationEventMarketProcurementAllocation(value: unknown) {
+function sanitizeOperationEventMarketProcurementAllocation(
+  value: unknown
+): ProcurementAllocationPacket | undefined {
   if (!isRecord(value)) {
     return undefined
   }
@@ -2684,7 +2688,12 @@ function sanitizeOperationEventCaseMode(value: unknown): CaseMode {
 }
 
 /** Hydration 588: reconcile fallout tick outcome with risk and before/after metrics. */
-function reconcileEmergencyGrayMarketFalloutTickFields(payload: Record<string, unknown>) {
+function reconcileEmergencyGrayMarketFalloutTickFields(
+  payload: Record<string, unknown>
+): Omit<
+  OperationEventPayloadMap['market.emergency_gray_market_fallout_tick'],
+  'week' | 'institutionKey'
+> {
   const outcome =
     payload.outcome === 'resolved_closed' ? 'resolved_closed' : 'escalated_pending_oversight'
   const falloutRiskBefore = outcome === 'resolved_closed' ? 'costly' : 'risk'

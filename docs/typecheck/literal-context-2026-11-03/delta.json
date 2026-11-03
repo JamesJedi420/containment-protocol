@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "parent": "SPE-3375",
+  "authority": {
+    "source": "Human explicitly requested implementation of this exact four-root plan on 2026-11-03; recorded autonomous phase and Linear delegation retained.",
+    "phase1": "Approved only these four existing reconciliation roots.",
+    "phase2": "Retain existing SPE-3375 recovery parent; no duplicate parent or historical reopening.",
+    "phase3": "Canonical contracts and current expressions agree; type context only, no semantic obligations admitted.",
+    "phase4": "Applied SPE-3538 through SPE-3541 In Progress before source edits.",
+    "linearApprovalCommentId": "8512e8f9-047e-4797-baf7-9612cda38044"
+  },
+  "before": {
+    "census": "before/census.json",
+    "revision": "0a092029c685cbefe7b3a87bc60b3b72e391294d",
+    "compilerInputHash": "3d3332a3243f2b120a097fe849e2eb6a31a38aef2e919c741db7538daa7d7f2d",
+    "normalizedDiagnosticRecordsSha256": "3d37d992fa8b901048b4a4722d8a95cf762dc2c254cdb7e66ebe87e2147f7592"
+  },
+  "after": {
+    "census": "census.json",
+    "revision": "0a092029c685cbefe7b3a87bc60b3b72e391294d",
+    "compilerInputHash": "05d0fc338959ec3f0a44cac45b7744da3e561669b3f2202852630fb3985afd5a",
+    "normalizedDiagnosticRecordsSha256": "d55fa5fcc711ce3fe2ce55ba3c2364c548dbc5e9ff2a5c048f02f856f6e83919"
+  },
+  "previousImportCohortComparison": {
+    "census": "../import-repair-2026-11-03/census.json",
+    "identityDelta": []
+  },
+  "identityDelta": [
+    {
+      "identity": "1b25b0222b1492f831a8c98892f8184249ed549ffa59432ff8176d7daab104e7",
+      "change": -1
+    },
+    {
+      "identity": "6424c21342325ddca2c6bb21d713d0ab2b1c04e99bc607482a3808c14baa75fc",
+      "change": -1
+    },
+    {
+      "identity": "8747d49bf3e1e8df5d4098593e154807cf3e3460fd587cece0427e052c069e3e",
+      "change": -1
+    },
+    {
+      "identity": "bb2669ce5b32ed7c964c8da5dece6f3517e57639d94b28efd2b98a2555eae9e6",
+      "change": -1
+    },
+    {
+      "identity": "c247a41f9c9ff7d562e52d9d81a95ed87b667536fddd94c8d44e0e6b20a9da59",
+      "change": -1
+    },
+    {
+      "identity": "f9de402e9d473484948143138a39496c37f830033d242ae52e6985d3562c7d43",
+      "change": -1
+    },
+    {
+      "identity": "fde4fb445399cf77f6be9ee460e0377fffdc3e0bd0cef6050e808451cd13b050",
+      "change": -1
+    }
+  ],
+  "removedOccurrences": 7,
+  "addedOccurrences": 0,
+  "roots": [
+    {
+      "issue": "SPE-3538",
+      "root": "allocation-literal-inference",
+      "implementationFile": "src/app/store/runTransfer.ts",
+      "canonicalContract": "ProcurementAllocationPacket from src/domain/market.ts",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 9399,
+          "column": 13,
+          "code": "TS2322",
+          "message": "Type '{ callableObligationLabel?: string | undefined; callableObligationFavorId?: string | undefined; callableObligationFactionId?: string | undefined; favorExchangeLabel?: string | undefined; ... 17 more ...; remainingAvailability: number; }' is not assignable to type 'Readonly<{ week: number; marketWeek: number; transactionId: string; action: \"order\" | \"buy\" | \"sell\" | \"favor_exchange\" | \"callable_obligation\" | \"fulfill\"; listingId: string; itemId: string; ... 15 more ...; allocations?: { ...; }[] | undefined; }>'.\n  Types of property 'allocation' are incompatible.\n    Type '{ substitutionSummary?: string | undefined; substitutionStatus: string; displacedAlternativeUse?: string | undefined; allocationId: string; resourceClass: \"supplier_attention_slot\" | \"reagent_stock\" | \"licensed_handling_capacity\"; ... 7 more ...; delayWeeks: number; } | undefined' is not assignable to type '{ allocationId: string; resourceClass: \"supplier_attention_slot\" | \"reagent_stock\" | \"licensed_handling_capacity\"; source: string; sourceLabel: string; destinationUse: string; ... 7 more ...; substitutionSummary?: string | undefined; } | undefined'.\n      Type '{ substitutionSummary?: string | undefined; substitutionStatus: string; displacedAlternativeUse?: string | undefined; allocationId: string; resourceClass: \"supplier_attention_slot\" | \"reagent_stock\" | \"licensed_handling_capacity\"; ... 7 more ...; delayWeeks: number; }' is not assignable to type '{ allocationId: string; resourceClass: \"supplier_attention_slot\" | \"reagent_stock\" | \"licensed_handling_capacity\"; source: string; sourceLabel: string; destinationUse: string; destinationLabel: string; ... 6 more ...; substitutionSummary?: string | undefined; }'.\n        Types of property 'urgency' are incompatible.\n          Type 'string' is not assignable to type '\"standard\" | \"contingency\"'.",
+          "identity": "8747d49bf3e1e8df5d4098593e154807cf3e3460fd587cece0427e052c069e3e",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [
+        {
+          "historicalIdentity": "f8e23693c6adc7ac95ffb65fde018ba3c060dbfdb1adc799acf67f13f8946171",
+          "currentIdentity": "8747d49bf3e1e8df5d4098593e154807cf3e3460fd587cece0427e052c069e3e",
+          "replacedText": "action: \"buy\" | \"sell\" | \"favor_exchange\" | \"callable_obligation\" | \"order\" | \"fulfill\";",
+          "replacementText": "action: \"order\" | \"buy\" | \"sell\" | \"favor_exchange\" | \"callable_obligation\" | \"fulfill\";",
+          "reason": "Only the compiler-rendered action union order differs from the older reconciliation snapshot; full messages otherwise match. No repair is attributed to that earlier context change."
+        }
+      ],
+      "targetedTests": [
+        "src/app/store/runTransfer.test.ts",
+        "src/test/procurementEmergency.test.ts"
+      ]
+    },
+    {
+      "issue": "SPE-3539",
+      "root": "grade-visibility-inference",
+      "implementationFile": "src/domain/sim/production.ts",
+      "canonicalContract": "Pick<ProductionQueueEntry, 'outputGradeId' | 'outputGradeVisibility' | 'outputGradeExplanationCodes'>",
+      "expectedRemovals": 2,
+      "measuredRemovals": 2,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 5650,
+          "column": 7,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type 'EquipmentGradeVisibility'.",
+          "identity": "bb2669ce5b32ed7c964c8da5dece6f3517e57639d94b28efd2b98a2555eae9e6",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 8943,
+          "column": 17,
+          "code": "TS2322",
+          "message": "Type 'string | undefined' is not assignable to type 'EquipmentGradeVisibility | undefined'.\n  Type 'string' is not assignable to type 'EquipmentGradeVisibility | undefined'.",
+          "identity": "6424c21342325ddca2c6bb21d713d0ab2b1c04e99bc607482a3808c14baa75fc",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": [
+        "src/app/store/runTransfer.test.ts",
+        "src/test/equipmentGradeFabrication.contract.test.ts"
+      ]
+    },
+    {
+      "issue": "SPE-3540",
+      "root": "fallout-literal-inference",
+      "implementationFile": "src/app/store/runTransfer.ts",
+      "canonicalContract": "Omit<OperationEventPayloadMap['market.emergency_gray_market_fallout_tick'], 'week' | 'institutionKey'>",
+      "expectedRemovals": 3,
+      "measuredRemovals": 3,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 9523,
+          "column": 15,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"escalated_pending_oversight\" | \"resolved_closed\"'.",
+          "identity": "fde4fb445399cf77f6be9ee460e0377fffdc3e0bd0cef6050e808451cd13b050",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 9524,
+          "column": 15,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"risk\" | \"costly\"'.",
+          "identity": "f9de402e9d473484948143138a39496c37f830033d242ae52e6985d3562c7d43",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 9525,
+          "column": 15,
+          "code": "TS2322",
+          "message": "Type 'string' is not assignable to type '\"none\" | \"costly\"'.",
+          "identity": "1b25b0222b1492f831a8c98892f8184249ed549ffa59432ff8176d7daab104e7",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": [
+        "src/app/store/runTransfer.test.ts",
+        "src/test/procurementEmergency.test.ts"
+      ]
+    },
+    {
+      "issue": "SPE-3541",
+      "root": "candidate-potential-inference",
+      "implementationFile": "src/domain/affiliationFileWorkQueueRepairActionRecords.ts",
+      "canonicalContract": "Candidate from src/domain/recruitment",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/affiliationFileWorkQueueRepairActionRecords.ts",
+          "line": 104,
+          "column": 3,
+          "code": "TS2322",
+          "message": "Type 'Readonly<{ id: string; name: string; age: 30; category: \"agent\"; hireStatus: \"available\"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: \"affiliation-file-work-queue-repair\"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type 'Candidate'.\n  Type 'Readonly<{ id: string; name: string; age: 30; category: \"agent\"; hireStatus: \"available\"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: \"affiliation-file-work-queue-repair\"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type 'CandidateBase & { category: \"agent\"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.\n    Type 'Readonly<{ id: string; name: string; age: 30; category: \"agent\"; hireStatus: \"available\"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: \"affiliation-file-work-queue-repair\"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type '{ category: \"agent\"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.\n      The types of 'evaluation.potentialTier' are incompatible between these types.\n        Type 'string' is not assignable to type 'CandidatePotentialTier | undefined'.",
+          "identity": "c247a41f9c9ff7d562e52d9d81a95ed87b667536fddd94c8d44e0e6b20a9da59",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": [
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts",
+        "src/test/affiliationFileWorkQueueDecisions.test.ts"
+      ]
+    }
+  ],
+  "runtimeIdentity": {
+    "typescriptVersion": "6.0.3",
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "ESNext",
+      "verbatimModuleSyntax": true
+    },
+    "baseRevision": "0a092029c685cbefe7b3a87bc60b3b72e391294d",
+    "files": [
+      {
+        "file": "src/app/store/runTransfer.ts",
+        "beforeSourceSha256": "c8da6bb6470f8ba05eb8607d727a512f3cc33dd960ec534f994a14895a2b809a",
+        "afterSourceSha256": "3f8f1bba82f60d1d48f66bde1d7ac11aa7bafbbb70b2570b547673f75a578c42",
+        "beforeEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "afterEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "identical": true
+      },
+      {
+        "file": "src/domain/sim/production.ts",
+        "beforeSourceSha256": "e6b3f34fa0a35945e25c79791de7597524da0fe3071a70df858323252ba3d2c3",
+        "afterSourceSha256": "6d0cbff7baec982dcd05344d764d66bf25fb1f4eb3829a0a75d3217235eb680d",
+        "beforeEmittedJavaScriptSha256": "4a87d4a15f94439ee7d472918b6640e6e14916293f03c7f68e72acdc3eb3e347",
+        "afterEmittedJavaScriptSha256": "4a87d4a15f94439ee7d472918b6640e6e14916293f03c7f68e72acdc3eb3e347",
+        "identical": true
+      },
+      {
+        "file": "src/domain/affiliationFileWorkQueueRepairActionRecords.ts",
+        "beforeSourceSha256": "2f954ee67ca2448ec3ac39b58288482ae6744a4822a62c1aa5a13dde0fc93bab",
+        "afterSourceSha256": "912083194fc2b87c67d32a1900b28914bf51bac5fe4bb4a1e995d79b03480c79",
+        "beforeEmittedJavaScriptSha256": "748dbb669620baf9f379eb138b5ec4276b0dd0fa2ea76f5e1dfd48fa9943e4fc",
+        "afterEmittedJavaScriptSha256": "748dbb669620baf9f379eb138b5ec4276b0dd0fa2ea76f5e1dfd48fa9943e4fc",
+        "identical": true
+      }
+    ]
+  },
+  "remaining": {
+    "occurrences": 388,
+    "semanticReviewOccurrences": 99,
+    "fullGreenBuild": false
+  }
+}

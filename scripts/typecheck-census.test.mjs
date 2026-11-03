@@ -179,3 +179,136 @@ test('partition assigns every baseline occurrence once and binds analysis to ver
     )
   }
 })
+
+test('November reconciliation binds its clean current-main census to both raw compiler captures', () => {
+  const base = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const censusText = fs.readFileSync(new URL('census.json', base), 'utf8')
+  const census = JSON.parse(censusText)
+  const packet = JSON.parse(fs.readFileSync(new URL('reconciliation.json', base), 'utf8'))
+  const raw = fs.readFileSync(new URL('compiler.txt', base), 'utf8')
+  const diagnostics = parseDiagnostics(raw, (file) =>
+    file.startsWith('src/') ? 'tsconfig.app.json' : undefined
+  )
+  assert.equal(packet.censusSha256, sha256(JSON.stringify(census)))
+  assert.equal(packet.revision, census.revision)
+  assert.equal(census.revision, 'ad21424a4804e22a40a6bbef10454cdc84835016')
+  assert.equal(census.workingTreeStatus, '')
+  assert.equal(census.nodeVersion, 'v22.23.4')
+  assert.equal(census.reproducible, true)
+  assert.deepEqual(census.identityDelta, [])
+  assert.equal(census.runs.length, 2)
+  for (const run of census.runs) {
+    assert.equal(run.exitCode, 2)
+    assert.equal(run.rawHash, sha256(raw))
+  }
+  assert.deepEqual(diagnostics, census.diagnostics)
+  assert.deepEqual(summarize(diagnostics), census.summary)
+  assert.deepEqual(packet.summary.current, census.summary)
+  const execution = JSON.parse(fs.readFileSync(new URL('execution.json', base), 'utf8'))
+  const buildLog = fs.readFileSync(new URL(execution.log, base), 'utf8').replaceAll('\r\n', '\n')
+  assert.equal(execution.command, 'npm run build')
+  assert.equal(execution.exitCode, 2)
+  assert.equal(execution.revision, census.revision)
+  assert.equal(execution.nodeVersion, census.nodeVersion)
+  assert.equal(execution.compilerInputHash, census.compilerInputHash)
+  assert.equal(execution.normalizedLogSha256, sha256(buildLog))
+  assert.match(buildLog, /tsc -b && vite build/)
+  assert.equal(execution.diagnosticLines, census.diagnostics.length)
+  assert.deepEqual(
+    parseDiagnostics(buildLog.slice(buildLog.indexOf('src/')), (file) =>
+      file.startsWith('src/') ? 'tsconfig.app.json' : undefined
+    ),
+    census.diagnostics
+  )
+})
+
+test('November reconciliation assigns all current occurrences once without reviving completed owners', () => {
+  const base = new URL('../docs/typecheck/', import.meta.url)
+  const packet = JSON.parse(
+    fs.readFileSync(new URL('reconciliation-2026-11-03/reconciliation.json', base), 'utf8')
+  )
+  const census = JSON.parse(
+    fs.readFileSync(new URL('reconciliation-2026-11-03/census.json', base), 'utf8')
+  )
+  const historicalText = fs.readFileSync(new URL('41873280/census.json', base), 'utf8')
+  const partitionText = fs.readFileSync(new URL('partition.json', base), 'utf8')
+  const historical = JSON.parse(historicalText)
+  const partition = JSON.parse(partitionText)
+  assert.equal(packet.baselineSha256, sha256(JSON.stringify(historical)))
+  assert.equal(packet.historicalPartitionSha256, sha256(JSON.stringify(partition)))
+  assert.deepEqual(
+    packet.comparisons.originalBaseline.identityDelta,
+    compareCensuses(historical.diagnostics, census.diagnostics)
+  )
+  assert.ok(packet.comparisons.originalBaseline.identityDelta.every((row) => row.change < 0))
+  const allIndices = packet.groups.flatMap((group) => group.diagnosticIndices)
+  assert.deepEqual(
+    allIndices.toSorted((a, b) => a - b),
+    census.diagnostics.map((_, index) => index)
+  )
+  assert.equal(new Set(packet.groups.map((group) => group.id)).size, packet.groups.length)
+  assert.equal(packet.groups.length, 187)
+  assert.equal(new Set(packet.groups.map((group) => group.historicalGroupId)).size, 186)
+  for (const group of packet.groups) {
+    const source = partition.groups.find((row) => row.id === group.historicalGroupId)
+    assert.ok(source, group.id)
+    assert.equal(group.occurrenceCount, group.diagnosticIndices.length)
+    assert.equal(group.disposition, source.disposition)
+    assert.equal(group.historicalCanonicalContract, source.canonicalContract)
+    assert.ok(group.canonicalContract, group.id)
+    assert.equal(group.repairOwner, null)
+    assert.equal(group.approvalState, 'proposed-not-admitted')
+    assert.ok(group.proposedRepair.length > 30, group.id)
+    assert.ok(group.additionalTestRequirement, group.id)
+    assert.deepEqual(
+      group.sourceAnchors,
+      group.diagnosticIndices.map((index) => {
+        const row = census.diagnostics[index]
+        assert.ok(
+          group.historicalOccurrenceIndices.some(
+            (oldIndex) => historical.diagnostics[oldIndex].identity === row.identity
+          ),
+          `${group.id}: current identity must be in its historical cohort`
+        )
+        return `${row.file}:${row.line}:${row.column}`
+      })
+    )
+    assert.ok(
+      group.historicalOccurrenceIndices.every((index) => source.occurrences.includes(index))
+    )
+    for (const file of group.testCandidates) {
+      assert.match(file, /\.test\.tsx?$/)
+      assert.ok(fs.existsSync(new URL(`../${file}`, import.meta.url)), file)
+    }
+  }
+  const count = (predicate) =>
+    packet.groups.filter(predicate).reduce((total, group) => total + group.occurrenceCount, 0)
+  assert.equal(
+    count((group) => group.disposition === 'semantic-review'),
+    99
+  )
+  assert.equal(
+    count((group) => group.disposition === 'repair-candidate'),
+    310
+  )
+  const residuals = packet.groups.filter((group) => group.priorRepairOwner)
+  assert.deepEqual(
+    residuals.map((group) => [group.id, group.priorRepairOwner, group.occurrenceCount]),
+    [
+      ['workshop-persistence-map-presence', 'SPE-3444', 6],
+      ['workshop-persistence-outcome-shape', 'SPE-3444', 1],
+    ]
+  )
+  const completedHelper = JSON.parse(
+    fs.readFileSync(new URL('spe-3444-evidence.json', base), 'utf8')
+  )
+  assert.deepEqual(
+    compareCensuses(
+      completedHelper.remainingPersistenceDiagnostics,
+      residuals.flatMap((group) =>
+        group.diagnosticIndices.map((index) => census.diagnostics[index])
+      )
+    ),
+    []
+  )
+})

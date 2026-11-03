@@ -35,7 +35,7 @@ test('every registered npm invocation exists in package.json', () => {
   const scripts = readPackageScripts()
   assert.ok(
     scripts && Object.keys(scripts).length > 0,
-    'package.json exposes no scripts — the dangling-script assertion would pass vacuously',
+    'package.json exposes no scripts — the dangling-script assertion would pass vacuously'
   )
   const dangling = []
   for (const validator of registry.validators) {
@@ -111,6 +111,53 @@ test('application change requires lint + unit-tests; playwright advisory', () =>
   assert.ok(resolution.requiredIds.includes('unit-tests'))
   assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
   assert.ok(!resolution.requiredIds.includes('playwright-e2e'))
+})
+
+test('application, shared-config, academy, and Vite entry changes require the bundle build gate', () => {
+  for (const file of [
+    'src/features/teams/TeamsPage.tsx',
+    'package.json',
+    'app.vite.config.ts',
+    'academy/content/courses.json',
+    'src/domain/academy/catalog.ts',
+    'index.html',
+    'src/main.tsx',
+  ]) {
+    const resolution = resolveValidationRequirements([file], registry)
+    assert.ok(
+      resolution.requiredIds.includes('vite-build'),
+      `expected vite-build required for ${file}`
+    )
+  }
+})
+
+test('index.html-only change requires the bundle gate without widening other validators', () => {
+  const resolution = resolveValidationRequirements(['index.html'], registry)
+  assert.deepEqual(resolution.requiredIds, ['vite-build'])
+  assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
+})
+
+test('bundle build gate stays inactive for docs and planning-only changes', () => {
+  for (const files of [['docs/agent-session-handoff.md'], ['planning/backlog.md']]) {
+    const resolution = resolveValidationRequirements(files, registry)
+    assert.ok(!resolution.selected.some((s) => s.id === 'vite-build'))
+  }
+})
+
+test('bundle build gate is additive and does not replace the full tsc build', () => {
+  const scripts = readPackageScripts()
+  assert.match(scripts.build, /^tsc -b && vite build/)
+  assert.equal(
+    scripts['build:bundle'],
+    'vite build --config app.vite.config.ts --configLoader native'
+  )
+  const entry = registry.validators.find((v) => v.id === 'vite-build')
+  assert.ok(entry, 'vite-build must stay registered')
+  assert.equal(entry.enforcement, 'required')
+  assert.equal(entry.whenUnavailable, 'fail')
+  assert.equal(entry.npmScript, 'build:bundle')
+  assert.deepEqual(entry.activation.changeClasses, ['application', 'shared-config', 'academy'])
+  assert.deepEqual(entry.activation.pathGlobs, ['index.html', 'src/main.ts', 'src/main.tsx'])
 })
 
 test('e2e harness change promotes playwright-e2e to required', () => {
@@ -197,6 +244,7 @@ test('mixed workstream change unions validators deterministically', () => {
   assert.ok(a.requiredIds.includes('backlog-handoff'))
   assert.ok(a.requiredIds.includes('governance-contract'))
   assert.ok(a.requiredIds.includes('playwright-e2e'))
+  assert.ok(a.requiredIds.includes('vite-build'))
 })
 
 test('explicit exception skips a selected validator', () => {

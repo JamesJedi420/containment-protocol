@@ -91,6 +91,7 @@ Or run checks that match the scope of your change manually:
 ```bash
 npm run lint
 npm run test:run
+npm run build:bundle   # application / shared-config / academy + Vite entry
 npm run format:check
 ```
 
@@ -104,7 +105,7 @@ npm run verify:theme-contracts
 
 See `docs/repository-validation-requirements.md`.
 
-GitHub Actions on pull requests runs lint, audit verification, theme-contract verification, and tests. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
+GitHub Actions on pull requests runs the requirement resolver: lint, tests, and bundle build for application / shared-config / academy and Vite entry changes, plus the activated audit, theme-contract, governance, and Academy validators. Playwright runs in a separate selected job. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 
 ## Architecture
 

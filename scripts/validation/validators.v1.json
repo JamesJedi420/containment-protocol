@@ -105,6 +105,18 @@
       "whenUnavailable": "fail"
     },
     {
+      "id": "vite-build",
+      "ownerIssue": "SPE-3348",
+      "ownerNote": "Bundle-integrity gate only: Vite production bundling without tsc. The advisory typecheck census and the full npm run build (tsc -b && vite build) keep their existing authority; this gate does not replace or weaken either.",
+      "npmScript": "build:bundle",
+      "enforcement": "required",
+      "activation": {
+        "changeClasses": ["application", "shared-config", "academy"],
+        "pathGlobs": ["index.html", "src/main.ts", "src/main.tsx"]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
       "id": "format-check",
       "ownerIssue": "SPE-10",
       "npmScript": "format:check",

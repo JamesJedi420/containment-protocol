@@ -358,6 +358,19 @@ test('local collection leaves invalid top-level input for evaluator validation',
   assert.ok(result.validationErrors.length > 0)
 })
 
+test('local collection leaves an invalid repository for evaluator validation', () => {
+  const malformed = baseInput({ repository: { toString: null } })
+  const collected = collectLocalSessionEvidence(malformed, {
+    now: () => CHECKED_AT,
+    run: () => {
+      throw new Error('collectors must not run for an invalid repository')
+    },
+  })
+  const result = evaluateSessionPreflight(collected)
+  assert.equal(result.status, 'unknown')
+  assert.ok(reasonCodes(result).includes('invalid_input'))
+})
+
 test('GitHub collector uses read-only gh commands and verifies one issue identity', () => {
   const calls = []
   const run = (command, args) => {

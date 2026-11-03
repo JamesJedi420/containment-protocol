@@ -64,7 +64,14 @@ export function baseInput(overrides = {}) {
 function deepMerge(base, overrides) {
   const output = structuredClone(base)
   for (const [key, value] of Object.entries(overrides)) {
-    if (value && typeof value === 'object' && !Array.isArray(value) && typeof output[key] === 'object') {
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      output[key] !== null &&
+      typeof output[key] === 'object' &&
+      !Array.isArray(output[key])
+    ) {
       output[key] = deepMerge(output[key], value)
     } else {
       output[key] = value

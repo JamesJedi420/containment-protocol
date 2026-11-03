@@ -2,7 +2,10 @@
 import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
-import { evaluateSessionPreflight } from './session-preflight-core.mjs'
+import {
+  evaluateSessionPreflight,
+  isSessionPreflightRepository,
+} from './session-preflight-core.mjs'
 import { spawnSafe } from './validation/spawn-safe.mjs'
 
 function trimOutput(result) {
@@ -197,6 +200,7 @@ export function collectLocalSessionEvidence(
   } = {}
 ) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return input
+  if (!isSessionPreflightRepository(input.repository)) return input
 
   const checkedAt = now()
   const github = collectGitHubEvidence({

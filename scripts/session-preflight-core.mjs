@@ -19,6 +19,10 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+export function isSessionPreflightRepository(value) {
+  return isNonEmptyString(value) && REPOSITORY_RE.test(value)
+}
+
 function isNullableString(value) {
   return value === null || isNonEmptyString(value)
 }
@@ -75,7 +79,7 @@ function validateRootFields(errors, input) {
   pushError(errors, input.schemaVersion === SCHEMA_VERSION, `schemaVersion must be ${SCHEMA_VERSION}`)
   pushError(
     errors,
-    isNonEmptyString(input.repository) && REPOSITORY_RE.test(input.repository),
+    isSessionPreflightRepository(input.repository),
     'repository must be owner/name'
   )
   pushError(errors, isIsoTimestamp(input.observedAt), 'observedAt must be timezone-qualified ISO-8601')

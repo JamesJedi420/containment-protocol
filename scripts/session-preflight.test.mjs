@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  compareSessionPreflightReasons,
   evaluateSessionPreflight,
   validateSessionPreflightInput,
 } from './session-preflight-core.mjs'
@@ -317,6 +318,14 @@ test('CLI argument parser rejects file paths and requires standard input', () =>
   assert.equal(parseSessionPreflightArguments([]).ok, false)
 })
 
+test('reason ordering uses explicit code-point comparison rather than locale rules', () => {
+  const ascii = { source: 'git', code: 'z_reason', detail: '' }
+  const nonAscii = { source: 'git', code: 'ä_reason', detail: '' }
+  assert.equal(compareSessionPreflightReasons(ascii, nonAscii), -1)
+  assert.equal(compareSessionPreflightReasons(nonAscii, ascii), 1)
+  assert.equal(compareSessionPreflightReasons(ascii, ascii), 0)
+})
+
 test('local Git collector uses only fixed read-only commands', () => {
   const calls = []
   const responses = new Map([
@@ -366,4 +375,18 @@ test('GitHub collector uses read-only gh commands and verifies one issue identit
   assert.equal(result.openPullRequests[0].issueId, 'SPE-3337')
   assert.equal(result.openPullRequests[0].ownershipVerified, true)
   assert.ok(calls.every((call) => !/\b(create|close|merge|edit|ready|review)\b/.test(call)))
+})
+
+test('GitHub collector fails closed when PR JSON is valid but not an array', () => {
+  const run = (_command, args) => {
+    if (args[0] === 'api') return { status: 0, stdout: `${SHA}\n` }
+    return { status: 0, stdout: JSON.stringify({ number: 42 }) }
+  }
+  const result = collectGitHubEvidence({
+    repository: 'JamesJedi420/containment-protocol',
+    checkedAt: CHECKED_AT,
+    run,
+  })
+  assert.equal(result.collectionStatus, 'failed')
+  assert.equal(result.failureCode, 'open-prs-malformed')
 })

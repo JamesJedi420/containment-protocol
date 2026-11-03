@@ -74,13 +74,15 @@ Focused coverage includes:
 - Linear versus merged/current-main evidence disagreement;
 - shared CP-core/Academy contract behavior;
 - fixed read-only Git and GitHub command sets;
+- deterministic locale-independent reason ordering;
+- fail-closed handling of valid-but-non-array PR JSON;
 - deterministic SPE-3348 validator selection.
 
 ## Validation
 
 Current direct evidence:
 
-- Node 22 focused preflight suite: **17/17 passed** after SHA, issue-ID, argument-parser, timestamp, and PR-ownership hardening.
+- Node 22 focused preflight suite: **19/19 passed** after SHA, issue-ID, argument-parser, timestamp, PR-ownership, ordering, and malformed-collection hardening.
 - Full-diff audit caught and corrected a malformed duplicate manifest entry before review.
 - Hosted exact-head requirements, lint, formatting, backlog-handoff, and independent review remain merge gates.
 

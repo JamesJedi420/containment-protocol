@@ -14,8 +14,25 @@ Containment Protocol is a deterministic, browser-based management simulation bui
 
 The project is intentionally client-only: no backend, database, external services, or secrets are required to run the app locally.
 
+## Inside the simulation
+
+These screenshots show a local development build captured on November 2, 2026, from commit [`30e3f924`](https://github.com/JamesJedi420/containment-protocol/commit/30e3f92441cf818d832aed819ef8ce4424bce8bb). They illustrate the current work in progress; they do not establish availability of the hosted game. Use [Quick Start](#quick-start) to run the project locally. Open an image to inspect its full-size text.
+
+![Operations Overview in Week 1, with agency resources, Advance Week, and navigation to Cases, Agents and Recruitment.](docs/images/gameplay/operations-overview.png)
+
+**Orient your operation.** Start from the Operations Desk and review the current week before choosing your next action.
+
+![Mission board showing four contracts with risk labels, duration, difficulty, funding ranges and recommended teams.](docs/images/gameplay/mission-board.png)
+
+**Choose a contract and commit a team.** Compare the mission board's risks, duration and funding before launching an operation.
+
+![Week 1 report showing incident counts, operational certainty, field notes and team fatigue after advancing the campaign.](docs/images/gameplay/weekly-report.png)
+
+**Review the consequences.** Advancing the week produces a report of incidents, field notes and team status. This example includes early-campaign outcomes.
+
 ## Table of Contents
 
+- [Inside the simulation](#inside-the-simulation)
 - [Quick Start](#quick-start)
 - [Requirements](#requirements)
 - [Common Commands](#common-commands)

@@ -1,0 +1,15 @@
+# SPE-3352 — pressure campaign replay evidence
+
+This is a bounded contribution to [SPE-3352](https://linear.app/spectranoir/issue/SPE-3352), not completion of its release-acceptance program. Base revision: `ec39b6617dc46f04143859cda60cff09a3560a00`. The completed SPE-2251 proof supplies the scenario, including its deliberately calibrated partial band; the browser entry/reload baseline is documented in `spe-3352-milestone2-browser-acceptance-slice.md`.
+
+`src/test/goldenPressureCampaign.integration.test.ts` starts from the SPE-2251 mid-campaign pressure fixture, runs a partial outcome, saves and reloads, advances another week, and repeats the sequence. It checks a selected canonical outcome vector for repeatability, support shortfall and an open case after partial resolution, no game over, and funding pressure, recovery status and report history across reload. This is not a fresh campaign, a full-state replay, a successful terminal campaign, or proof of human understanding. The second week continues under pressure; the test does not establish that a recovering agent returns to active duty.
+
+## Reload boundary discovered during fixture construction
+
+An initial full vector equality assertion failed: `supportShortfall` changed from true to absent and triage's `threat-high` changed to `threat-medium`. `normalizeCaseInstance` explicitly deletes `supportShortfall`, while its difficulty sanitizer clamps to `BASE_STAT_MAX` (100). The inherited partial-band fixture calculates a difficulty from the team score and can exceed that cap; triage derives threat from difficulty. This artificially calibrated scenario therefore cannot establish unchanged case state or threat across reload. It is not sufficient evidence that an ordinary campaign has a persistence regression; whether the cleared shortfall should persist for its consumers requires the existing persistence/simulation owners' assessment. The committed test asserts only the narrower carryover contract already exercised by SPE-2251. No broader equivalence is inferred.
+
+## Remaining work
+
+SPE-3352 remains In Progress. A release matrix and reproducible summary must aggregate current owner evidence and assess all its acceptance criteria, including current production-build status, persistence/migration, accessibility/explanation, telemetry, replay, continuity and calibration. Review the six questions and milestone §4/§12 against their individual sources. SPE-1245's [methodology](https://linear.app/spectranoir/document/mvp-observed-player-validation-protocol-b72ebe89f439) separates automated evidence from unavailable human claims; this fixture does not satisfy observed-player requirements. The pressure fixture's schema-valid replay limitation and any needed persistence investigation belong in that assessment. SPE-3171 remains the owner of the terminal-success contradiction; no terminal outcome is assumed here.
+
+The build and exact validator/CI results for this slice are recorded in the PR and owner evidence, not represented by a static passing status here. Do not infer release readiness from this test or from the required Vite bundle gate.

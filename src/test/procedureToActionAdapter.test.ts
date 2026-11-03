@@ -92,6 +92,10 @@ function makeInput(
       makeParticipant('agent-a', 'investigator', ['evidence_kit']),
       makeParticipant('agent-b', 'field_recon'),
     ],
+    requiredPrerequisites: baseDecisions.map(({ prerequisiteClass, ownerRef }) => ({
+      prerequisiteClass,
+      ownerRef,
+    })),
     prerequisiteDecisions: baseDecisions,
     executionKey: 'procedure-execution:case-1:field-binding',
     ...overrides,
@@ -112,6 +116,26 @@ describe('SPE-2995 ProcedureDefinition -> cross-role action adapter', () => {
     ])
     expect(result.actionResult.outcome).toBe('success')
     expect(result.consequenceDisposition).toBe('caller_may_commit')
+  })
+
+  it('fails closed when a declared owner prerequisite has no decision', () => {
+    const result = evaluateCanonicalProcedureExecutionReadiness(
+      makeInput({
+        prerequisiteDecisions: baseDecisions.filter(
+          (decision) => decision.prerequisiteClass !== 'operating_doctrine'
+        ),
+      })
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.outcome).toBe('owned_prerequisite_blocked')
+    if (result.ok) throw new Error('expected blocked readiness')
+    expect(result.blockedReasons).toContainEqual({
+      prerequisiteClass: 'operating_doctrine',
+      ownerRef: 'SPE-874',
+      state: 'blocked',
+      reason: 'missing_required_owner_decision',
+    })
   })
 
   it('preserves owned authorization failure as an explicit readiness block', () => {

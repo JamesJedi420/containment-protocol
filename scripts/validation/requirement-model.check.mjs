@@ -244,6 +244,7 @@ test('mixed workstream change unions validators deterministically', () => {
   assert.ok(a.requiredIds.includes('backlog-handoff'))
   assert.ok(a.requiredIds.includes('governance-contract'))
   assert.ok(a.requiredIds.includes('playwright-e2e'))
+  assert.ok(a.requiredIds.includes('vite-build'))
 })
 
 test('explicit exception skips a selected validator', () => {

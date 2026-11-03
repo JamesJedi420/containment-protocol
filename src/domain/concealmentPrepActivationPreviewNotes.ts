@@ -23,7 +23,7 @@ import {
   type HiddenStateIllusionKind,
   type HiddenStateIllusionPhase,
 } from './hiddenStateIllusionLifecycle'
-import { resolveHiddenStateModality } from './hiddenStateModality'
+import { resolveHiddenStateModality, type HiddenStateModalityKind } from './hiddenStateModality'
 import type { Agent, CaseInstance, GameState } from './models'
 import { countCaseHiddenModifiers } from './recon'
 import { getUniqueTeamMembers } from './teamSimulation'

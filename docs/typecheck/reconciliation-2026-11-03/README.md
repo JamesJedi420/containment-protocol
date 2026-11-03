@@ -1,5 +1,11 @@
 # Current-main build recovery reconciliation — SPE-3375
 
+> Historical reconciliation snapshot at ad21424a. The human later delegated phase
+> approval and Linear updates; the eight approved import repairs and their
+> **409 → 395** result are recorded in [the repair delta](../import-repair-2026-11-03/delta.json)
+> and the [live session slice](../../../planning/spe-3375-current-build-reconciliation-slice.md).
+> Pending-approval statements below describe the snapshot, not a current human gate.
+
 ## Result and authority
 
 On clean main `ad21424a4804e22a40a6bbef10454cdc84835016`, two forced

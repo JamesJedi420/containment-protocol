@@ -87,15 +87,76 @@ The configured local provider/model was preserved. Usage totals were not
 reported; no cost or token savings are claimed. External research, frontend
 guidance and dependency decisions are not applicable to this evidence-only diff.
 
-## Remaining gates
+## Autonomous continuation — first repair cohort
 
-This evidence-only deliverable does not complete the requested full-build
-recovery. Concrete Phase 1 proposal approval remains pending; Phase 2 parent
-reconciliation, Phase 3 child/contradiction review and Phase 4 application must
-precede newly admitted repair implementation. Candidate-ledger record: none
-established. Existing owners remain unchanged; SPE-3375 and SPE-2995 remain
-In Progress. PR #4634 remains open under the build hold.
+The human subsequently authorized: “You can approve phases yourself. And update
+linear autonomously.” That supersedes the earlier approval pause for this recovery
+session. The preceding evidence-only deliverable and immutable census retain their
+historical meaning. Codex assessed and approved the phases in order, retained the
+existing parent, checked declaration ownership/compatibility, and admitted only
+the following eight independent type-import repair roots. No global governance
+policy, historical completed issue or unrelated semantic obligation was changed.
 
-After approved repairs restore green main lineage, revalidate #4634's exact
-integrated head with its six targeted suites, full build and required hosted
-checks. Assess SPE-1434 separately. No merge or closure is implied by this packet.
+| Child    | Root                                                      | Measured diagnostic removals |
+| -------- | --------------------------------------------------------- | ---------------------------: |
+| SPE-3526 | Missing EquipmentRecoveryOutcome import in hydration      |                            4 |
+| SPE-3527 | Squad types imported from non-exporting model surface     |                            3 |
+| SPE-3528 | Missing hidden-state modality type in concealment preview |                            1 |
+| SPE-3529 | Missing equipment instance type in simulation             |                            1 |
+| SPE-3530 | Missing pattern blurb type in registry fixtures           |                            1 |
+| SPE-3531 | Missing propagation graph map type in weekly fixtures     |                            1 |
+| SPE-3532 | FundingState imported from non-exporting funding surface  |                            2 |
+| SPE-3533 | Social visibility type uses a nonexistent exported name   |                            1 |
+
+All eight children were created In Progress before source edits. Canonical
+declarations already exist. The social visibility type has the six values already
+consumed, and FundingState is owned by models rather than re-exported by funding.
+All seven edited files emit byte-identical JavaScript before/after with TypeScript
+6.0.3, ES2022/ESNext and verbatimModuleSyntax. No public contract, runtime branch,
+persistence shape, event kind, compiler option or dependency changed. Unrelated
+pre-existing formatter drift in three files was preserved instead of reformatted.
+
+Current-main integration baseline: 65786fe501b53588672f2fb32e88e29244e6a43d,
+including main 7547b9392081dc245cb83cbfcba05e6b5fa81cd6. Paired clean-before
+captures report 409 occurrences; paired post-import captures report **395**,
+with **14 removals and zero additions**. Twelve production and two fixture
+occurrences clear. Fresh after-state: 280 identities / 138 files, including
+145 production and 250 test-fixture occurrences. Both compiler exits remain 2.
+
+The [portable repair evidence](../docs/typecheck/import-repair-2026-11-03/delta.json)
+binds the before/after captures, each child's measured removals and emitted-JS
+hashes. The new main changed two verbose diagnostic identities via union ordering
+or property elision; attribution uses the fresh matched pair rather than the older
+archive. These baseline-context changes are not counted as repairs or new failures.
+
+Targeted regression validation: **12 suites / 645 tests passed**, Node 22.23.4,
+forks pool with two workers. Exact suite paths are on the individual children and
+in the repair evidence. Final registered validations and hosted full regression
+results are recorded on the PR and Linear. Small import/source mapping and direct
+delta checks use the Hermes policy's direct path; substantial documentation and
+closeout checkpoints retain their normal evidence requirements.
+
+Fresh repeated compilation disproved the parent's incidental Done state; restored
+SPE-3375 to In Progress. Child completion still requires merge and validation.
+The other reconciliation obligations, including 99 semantic-review occurrences,
+remain outside this cohort. Further phase decisions and Linear work may proceed
+autonomously under the human's delegation; no human approval pause remains here.
+After this cohort merges, follow the repository's new-agent-session rule before
+another slice. Full recovery and #4634 acceptance remain incomplete until literal
+full build is green on main lineage and the integrated adapter head is revalidated.
+
+## Import-cohort pre-ship verification
+
+The literal `npm run build` exits 2 with 395 diagnostics. Full local lint,
+required Vite bundle, backlog handoff, audit index and theme contracts pass.
+All 13 evidence-integrity tests pass. No new formatting drift was introduced;
+three edited files already fail whole-file Prettier on the baseline and retain
+that unrelated body formatting. The complete regression suite is required and
+will be supplied by exact-head hosted CI; it is not claimed from targeted tests.
+
+Hermes checkpoint `local-2e6f19f539355b5094f6d2c12bf63a3eba9696f8ae8b1582345e61f7ff231a60`
+returned bounded evidence/communication findings. Direct checks confirm measured
+removals, existing contracts and emitted-output identity; its clean verdict is
+not treated as approval or proof of unrun hosted checks. Six pre-ship passes
+reviewed scope, optional/malformed contracts, determinism/state, regressions,
+documentation/provenance and cleanup. No other repair roots were admitted.

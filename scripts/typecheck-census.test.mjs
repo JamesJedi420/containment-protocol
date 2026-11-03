@@ -314,3 +314,65 @@ test('November reconciliation assigns all current occurrences once without reviv
     []
   )
 })
+
+test('approved canonical import cohort removes only its fourteen diagnostics and preserves runtime output', () => {
+  const base = new URL('../docs/typecheck/import-repair-2026-11-03/', import.meta.url)
+  const delta = JSON.parse(fs.readFileSync(new URL('delta.json', base), 'utf8'))
+  const readCapture = (relative, metadata) => {
+    const captureUrl = new URL(relative, base)
+    const census = JSON.parse(fs.readFileSync(captureUrl, 'utf8'))
+    const raw = fs.readFileSync(new URL('compiler.txt', captureUrl), 'utf8')
+    const records = parseDiagnostics(raw, (file) =>
+      file.startsWith('src/') ? 'tsconfig.app.json' : undefined
+    )
+    assert.deepEqual(records, census.diagnostics)
+    assert.deepEqual(summarize(records), census.summary)
+    assert.equal(metadata.compilerInputHash, census.compilerInputHash)
+    assert.equal(metadata.normalizedDiagnosticRecordsSha256, sha256(JSON.stringify(records)))
+    assert.equal(census.nodeVersion, 'v22.23.4')
+    assert.equal(census.reproducible, true)
+    assert.equal(census.runs.length, 2)
+    for (const run of census.runs) {
+      assert.equal(run.exitCode, 2)
+      assert.equal(run.rawHash, sha256(raw))
+    }
+    return census
+  }
+  const before = readCapture(delta.before.census, delta.before)
+  const after = readCapture(delta.after.census, delta.after)
+  assert.equal(before.workingTreeStatus, '')
+  assert.equal(before.summary.occurrences, 409)
+  assert.equal(after.summary.occurrences, 395)
+  assert.deepEqual(compareCensuses(before.diagnostics, after.diagnostics), delta.identityDelta)
+  assert.ok(delta.identityDelta.every((row) => row.change < 0))
+  assert.equal(delta.removedOccurrences, 14)
+  assert.equal(delta.addedOccurrences, 0)
+  assert.deepEqual(
+    delta.roots.map((row) => [row.issue, row.measuredRemovals]),
+    [
+      ['SPE-3526', 4],
+      ['SPE-3527', 3],
+      ['SPE-3528', 1],
+      ['SPE-3529', 1],
+      ['SPE-3530', 1],
+      ['SPE-3531', 1],
+      ['SPE-3532', 2],
+      ['SPE-3533', 1],
+    ]
+  )
+  const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
+  assert.deepEqual(compareCensuses(removed, []), delta.identityDelta)
+  for (const root of delta.roots) {
+    assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
+    assert.equal(root.expectedRemovals, root.measuredRemovals)
+    assert.ok(root.canonicalContract)
+    assert.ok(root.targetedTests.length > 0)
+  }
+  assert.equal(delta.runtimeIdentity.files.length, 7)
+  for (const entry of delta.runtimeIdentity.files) {
+    assert.equal(entry.identical, true)
+    assert.match(entry.beforeEmittedJavaScriptSha256, /^[0-9a-f]{64}$/)
+    assert.equal(entry.beforeEmittedJavaScriptSha256, entry.afterEmittedJavaScriptSha256)
+  }
+  assert.equal(delta.remaining.fullGreenBuild, false)
+})

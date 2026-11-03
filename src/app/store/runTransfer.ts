@@ -152,8 +152,9 @@ import {
 } from '../../domain/contracts'
 import { createInitialResearchState, recomputeResearchState } from '../../domain/research'
 import type { HubState } from '../../domain/hub/hubState'
-import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
-import { createSquadMetadata } from '../../domain/squadMetadata'
+import type { SquadKitAssignment } from '../../domain/squadKitAssignment'
+import { createSquadKitTemplate, type SquadKitTemplate } from '../../domain/squadKitTemplate'
+import { createSquadMetadata, type SquadMetadata } from '../../domain/squadMetadata'
 import { sanitizePersistedFieldBasePacket } from '../../domain/fieldBaseStaging'
 import {
   FACTION_DEFINITIONS,
@@ -189,6 +190,7 @@ import {
   type FacilityStatus,
   type FabricatedEquipmentLotRegistry,
   type EquipmentDeconstructionQueueEntry,
+  type EquipmentRecoveryOutcome,
   type EquipmentRecoveryOutcomeRegistry,
   type GameFlagValue,
   type ResearchProject,
@@ -196,9 +198,6 @@ import {
   type ResearchState,
   type ResearchUnlock,
   type RelationshipSnapshot,
-  type SquadKitAssignment,
-  type SquadKitTemplate,
-  type SquadMetadata,
   type StaffData,
   type StatKey,
   type ExternalSupportAssetClass,

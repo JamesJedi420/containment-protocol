@@ -8,7 +8,10 @@ import {
   hasSpe956PropagationGraphWeeklyDelta,
 } from '../domain/spe956PropagationGraphWeeklyOrchestration'
 import { SPE_956_EXAMPLE_PROPAGATION_GRAPH } from '../domain/spe956PropagationGraph'
-import type { Spe956PersistedPropagationGraph } from '../domain/spe956PropagationGraphPersistence'
+import type {
+  Spe956PersistedPropagationGraph,
+  Spe956PropagationGraphRecordsMap,
+} from '../domain/spe956PropagationGraphPersistence'
 
 function graphWithWeeklyDelta(
   overrides: Partial<Spe956PersistedPropagationGraph> = {}

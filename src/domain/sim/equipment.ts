@@ -20,6 +20,7 @@ import {
   reconcileContainmentBarrierIntegritySources,
   relocateEquipmentInstance,
   resolveFabricationOriginForDefinition,
+  type EquipmentInstance,
   type EquipmentInstanceId,
   type EquipmentInstanceMutationResult,
 } from '../equipmentInstance'

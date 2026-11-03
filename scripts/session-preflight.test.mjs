@@ -241,8 +241,8 @@ test('merged evidence does not invent a lifecycle conflict when Linear is unavai
 })
 
 test('CP core and Academy consume the same contract', () => {
-  const cp = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'CP-core' } }))
-  const academy = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'Academy' } }))
+  const cp = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'CP-core' }, linear: { workstream: 'CP-core' } }))
+  const academy = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'Academy' }, linear: { workstream: 'Academy' } }))
   assert.equal(cp.status, 'ready')
   assert.equal(academy.status, 'ready')
   assert.deepEqual(cp.reasons, academy.reasons)
@@ -317,6 +317,7 @@ test('local Git collector uses only fixed read-only commands', () => {
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
+    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
     ['git ls-remote origin refs/heads/main', { status: 0, stdout: `${SHA}\trefs/heads/main\n` }],
   ])
   const run = (command, args) => {
@@ -337,6 +338,7 @@ test('local Git collector fails closed when remote main output is empty', () => 
     ['git symbolic-ref --quiet --short HEAD', { status: 0, stdout: 'main\n' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
+    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
     ['git ls-remote origin refs/heads/main', { status: 0, stdout: '\n' }],
   ])
   const run = (command, args) => responses.get(`${command} ${args.join(' ')}`)

@@ -45,11 +45,17 @@ The top-level envelope carries:
 - `requestedOperation`: `start` or `resume`;
 - `executionMode`: `local-checkout` or `codex-managed-worktree`;
 - `handoff`: approved issue, workstream, optional parent/slice reference, intended branch, expected base-main SHA, and blocker/dependency snapshot;
-- `linear`: source-attributed lifecycle, approval, parent, blocker, and dependency evidence;
+- `linear`: source-attributed lifecycle, approval, workstream, parent, blocker, and dependency evidence;
 - `github`: source-attributed remote-main and open-PR evidence plus optional independently attributed implementation evidence;
 - `git`: source-attributed local checkout/worktree evidence.
 
 Every timestamp must end in `Z` or an explicit numeric offset such as `-06:00`. Ambiguous local timestamps are rejected.
+
+Freshness comparisons preserve milliseconds: evidence exactly at the age limit is accepted, but even one millisecond beyond it returns `unknown`. The same precision applies to the 30-second future-clock tolerance and independent implementation evidence.
+
+Ready Linear evidence must include `linear.workstream` matching `handoff.workstream`; missing or conflicting workstream evidence returns `unknown`. Ready Git evidence must include `git.originRepository` matching the requested `repository` (case-insensitive), independently of matching SHAs. The collector derives this identity with `git remote get-url origin`, accepting canonical `https://github.com/owner/repo`, `git@github.com:owner/repo`, and `ssh://git@github.com/owner/repo` forms, with optional `.git` suffix or trailing slash. Local paths, host aliases, credentials, and other hosts fail closed rather than being guessed. Raw remote URLs are not included in the result.
+
+Every collector command has a 30-second timeout and disables Git/GitHub credential prompts. Command failure or timeout produces unavailable evidence and an `unknown` result. The timeout applies per command, not to the whole multi-command collection.
 
 `handoff.intendedBranch` must be a valid literal Git branch name. Invalid names (including spaces, `..`, `.lock` components, and `HEAD`) return `unknown` as malformed input before readiness evaluation. Checkout-history expressions such as `@{-1}` are rejected rather than resolved from local history. Nested and Unicode branch names remain supported.
 
@@ -81,6 +87,7 @@ Evidence with `collectionStatus` other than `ready` may omit current source-spec
     "collectionStatus": "ready",
     "checkedAt": "2026-11-03T03:29:30.000Z",
     "sourceRef": "linear:SPE-3337@2026-11-03T03:29:30Z",
+    "workstream": "shared-system",
     "issueId": "SPE-3337",
     "parentId": null,
     "status": "Backlog",
@@ -106,6 +113,7 @@ Evidence with `collectionStatus` other than `ready` may omit current source-spec
     "collectionStatus": "ready",
     "checkedAt": "2026-11-03T03:29:30.000Z",
     "sourceRef": "git:1111111111111111111111111111111111111111",
+    "originRepository": "JamesJedi420/containment-protocol",
     "headSha": "1111111111111111111111111111111111111111",
     "currentBranch": "main",
     "detachedHead": false,

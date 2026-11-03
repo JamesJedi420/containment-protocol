@@ -6,6 +6,8 @@ import { spawnSafe } from './validation/spawn-safe.mjs'
 import { evaluateSessionPreflight } from './session-preflight-core.mjs'
 import {
   collectGitHubEvidence,
+  collectLocalGitEvidence,
+  runReadOnly,
   collectLocalSessionEvidence,
 } from './session-preflight.mjs'
 
@@ -92,6 +94,7 @@ function collectorResponses(prOutput = '[]') {
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
+    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
     [
       'git ls-remote origin refs/heads/main',
       { status: 0, stdout: `${SHA}\trefs/heads/main\n` },
@@ -106,6 +109,93 @@ function collectorResponses(prOutput = '[]') {
     ],
   ])
 }
+
+test('freshness boundaries retain millisecond precision for every evidence source', () => {
+  for (const [age, expected] of [[300000, 'ready'], [300001, 'unknown'], [-30000, 'ready'], [-30001, 'unknown']]) {
+    const checkedAt = new Date(Date.parse(OBSERVED_AT) - age).toISOString()
+    for (const source of ['linear', 'github', 'git', 'implementation']) {
+      const override = source === 'implementation'
+        ? { github: { implementationEvidence: { checkedAt } } }
+        : { [source]: { checkedAt } }
+      const result = evaluateSessionPreflight(baseInput(override))
+      assert.equal(result.status, expected, `${source}: ${age}ms`)
+      if (expected === 'unknown') {
+        const prefix = source === 'implementation' ? 'github_implementation' : source
+        assert.ok(reasonCodes(result).includes(`${prefix}_evidence_${age > 0 ? 'stale' : 'from_future'}`))
+      }
+    }
+  }
+})
+
+test('Linear workstream evidence must exist and match the named boundary', () => {
+  for (const workstream of [undefined, null, '', 'unknown', {}]) {
+    const result = evaluateSessionPreflight(baseInput({ linear: { workstream } }))
+    assert.equal(result.status, 'unknown')
+    assert.ok(reasonCodes(result).includes('invalid_input'))
+  }
+  for (const workstream of ['CP-core', 'Academy', 'shared-system', 'cross-project']) {
+    const result = evaluateSessionPreflight(baseInput({
+      handoff: { workstream }, linear: { workstream },
+    }))
+    assert.equal(result.status, 'ready')
+    assert.equal(result.evidence.linearLifecycle.workstream, workstream)
+  }
+  const mismatch = evaluateSessionPreflight(baseInput({ linear: { workstream: 'Academy' } }))
+  assert.equal(mismatch.status, 'unknown')
+  assert.ok(reasonCodes(mismatch).includes('linear_workstream_mismatch'))
+})
+
+test('origin repository identity is independent of matching main SHAs', () => {
+  for (const url of [
+    'https://github.com/JamesJedi420/containment-protocol.git',
+    'git@github.com:JamesJedi420/containment-protocol.git',
+    'ssh://git@github.com/JamesJedi420/containment-protocol.git',
+    'https://GitHub.com/jamesjedi420/Containment-Protocol/',
+    'https://github.com/some-fork/containment-protocol.git',
+    'https://elsewhere.example/JamesJedi420/containment-protocol.git',
+    'https://github.com.evil.example/JamesJedi420/containment-protocol',
+    'https://token@github.com/JamesJedi420/containment-protocol.git',
+    'https://github.com/JamesJedi420/containment-protocol?other',
+    'git@github-alias:JamesJedi420/containment-protocol.git',
+    '../local-repo', '',
+  ]) {
+    const responses = collectorResponses()
+    responses.set('git remote get-url origin', { status: 0, stdout: url })
+    const git = collectLocalGitEvidence({ checkedAt: CHECKED_AT,
+      run: (command, args) => responses.get(`${command} ${args.join(' ')}`) })
+    const result = evaluateSessionPreflight(baseInput({ executionMode: 'codex-managed-worktree', git }))
+    const sameRepo = /^(https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)jamesjedi420\/containment-protocol(?:\.git|\/)?$/i.test(url)
+    assert.equal(result.status, sameRepo ? 'ready' : 'unknown', url)
+    if (url.includes('some-fork')) assert.ok(reasonCodes(result).includes('git_repository_mismatch'))
+    if (git.collectionStatus === 'failed') assert.equal(git.failureCode, 'origin-repository-unavailable')
+    assert.ok(!JSON.stringify(git).includes('token@'))
+  }
+  assert.equal(evaluateSessionPreflight(baseInput({ git: { originRepository: undefined } })).status, 'unknown')
+})
+
+test('collector runner bounds commands and suppresses credential prompts', () => {
+  const timeout = { status: null, error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' }) }
+  const result = runReadOnly('git', ['ls-remote', 'origin', 'refs/heads/main'], '.',
+    { GIT_OPTIONAL_LOCKS: '0' }, (_command, _args, options) => {
+      assert.equal(options.timeout, 30000)
+      assert.equal(options.env.GIT_OPTIONAL_LOCKS, '0')
+      assert.equal(options.env.GIT_TERMINAL_PROMPT, '0')
+      assert.equal(options.env.GH_PROMPT_DISABLED, '1')
+      assert.equal(options.env.GCM_INTERACTIVE, 'Never')
+      return timeout
+    })
+  assert.equal(result, timeout)
+  for (const command of ['git ls-remote origin refs/heads/main', 'gh api repos/JamesJedi420/containment-protocol/git/ref/heads/main --jq .object.sha']) {
+    const responses = collectorResponses()
+    responses.set(command, timeout)
+    const collected = collectLocalSessionEvidence(baseInput({ executionMode: 'codex-managed-worktree' }), {
+      run: (bin, args) => responses.get(`${bin} ${args.join(' ')}`), now: () => OBSERVED_AT,
+    })
+    const source = command.startsWith('git ') ? 'git' : 'github'
+    assert.equal(collected[source].collectionStatus, 'failed')
+    assert.equal(evaluateSessionPreflight(collected).status, 'unknown')
+  }
+})
 
 test('timestamps require an explicit zone and accept numeric offsets', () => {
   const ambiguous = evaluateSessionPreflight(baseInput({ observedAt: '2026-11-03T03:30:00' }))

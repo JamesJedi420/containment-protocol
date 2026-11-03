@@ -137,6 +137,7 @@ function validateLinearEvidence(errors, linear) {
   validateEvidenceHeader(errors, linear, 'linear')
   if (!isObject(linear) || linear.collectionStatus !== 'ready') return
   pushError(errors, isIssueId(linear.issueId), 'linear.issueId is invalid')
+  pushError(errors, WORKSTREAMS.has(linear.workstream), 'linear.workstream is invalid')
   pushError(
     errors,
     linear.parentId === null || isIssueId(linear.parentId),
@@ -223,6 +224,7 @@ function validateGitEvidence(errors, git) {
   validateEvidenceHeader(errors, git, 'git', READ_ONLY_COLLECTION_STATUSES)
   if (!isObject(git) || git.collectionStatus !== 'ready') return
   pushError(errors, isSha(git.headSha), 'git.headSha is invalid')
+  pushError(errors, isSessionPreflightRepository(git.originRepository), 'git.originRepository is invalid')
   pushError(errors, isNullableString(git.currentBranch), 'git.currentBranch must be a string or null')
   pushError(errors, typeof git.detachedHead === 'boolean', 'git.detachedHead must be boolean')
   pushError(errors, typeof git.trackedDirty === 'boolean', 'git.trackedDirty must be boolean')
@@ -246,7 +248,7 @@ function makeReason(code, source, detail) {
 }
 
 function addTimestampFreshnessReason({ checkedAt, observedAt, freshnessWindowSeconds, source, codePrefix }, reasons) {
-  const ageSeconds = Math.floor((Date.parse(observedAt) - Date.parse(checkedAt)) / 1000)
+  const ageSeconds = (Date.parse(observedAt) - Date.parse(checkedAt)) / 1000
   if (ageSeconds < -30) {
     reasons.push(
       makeReason(
@@ -320,6 +322,10 @@ function evaluateLinear(input, reasons) {
         `expected ${handoff.issueId}; observed ${linear.issueId}`
       )
     )
+  }
+  if (linear.workstream !== handoff.workstream) {
+    reasons.push(makeReason('linear_workstream_mismatch', 'linear',
+      `expected ${handoff.workstream}; observed ${linear.workstream}`))
   }
   if (linear.parentId !== handoff.parentId) {
     reasons.push(
@@ -503,6 +509,10 @@ function evaluateGitHub(input, reasons) {
 
 function evaluateRemoteGitState(input, reasons) {
   const { git, github, handoff } = input
+  if (git.originRepository.toLowerCase() !== input.repository.toLowerCase()) {
+    reasons.push(makeReason('git_repository_mismatch', 'git',
+      `expected ${input.repository}; origin names ${git.originRepository}`))
+  }
   if (github.collectionStatus === 'ready' && git.remoteMainSha !== github.remoteMainSha) {
     reasons.push(
       makeReason(
@@ -623,6 +633,8 @@ const UNKNOWN_CODES = new Set([
   'github_implementation_evidence_from_future',
   'linear_issue_mismatch',
   'linear_parent_mismatch',
+  'linear_workstream_mismatch',
+  'git_repository_mismatch',
   'approval_state_unknown',
   'pr_ownership_unverified',
   'remote_main_observation_conflict',
@@ -674,6 +686,7 @@ function projectLinearLifecycle(linear) {
   const ready = linear.collectionStatus === 'ready'
   return {
     status: ready ? linear.status : null,
+    workstream: ready ? linear.workstream : null,
     statusType: ready ? linear.statusType : null,
     checkedAt: linear.checkedAt,
     sourceRef: linear.sourceRef,
@@ -713,6 +726,7 @@ function projectGitEvidence(git) {
     checkedAt: git.checkedAt,
     sourceRef: git.sourceRef,
     headSha: ready ? git.headSha : null,
+    originRepository: ready ? git.originRepository : null,
     currentBranch: ready ? git.currentBranch : null,
     detachedHead: ready ? git.detachedHead : null,
     trackedDirty: ready ? git.trackedDirty : null,

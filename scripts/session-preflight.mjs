@@ -12,8 +12,21 @@ function trimOutput(result) {
   return typeof result.stdout === 'string' ? result.stdout.trim() : ''
 }
 
-function runReadOnly(command, args, cwd, env = {}) {
-  return spawnSafe(command, args, { cwd, encoding: 'utf8', env })
+export function runReadOnly(command, args, cwd, env = {}, spawn = spawnSafe) {
+  return spawn(command, args, {
+    cwd,
+    encoding: 'utf8',
+    timeout: 30000,
+    env: { ...env, GIT_TERMINAL_PROMPT: '0', GH_PROMPT_DISABLED: '1', GCM_INTERACTIVE: 'Never' },
+  })
+}
+
+function originRepositoryFromUrl(value) {
+  // Aliases and local paths cannot establish the requested GitHub repository identity.
+  const match = /^(?:https:\/\/github\.com\/|ssh:\/\/git@github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)\/?$/i.exec(value)
+  if (!match) return null
+  const repository = match[1].replace(/\.git$/, '')
+  return isSessionPreflightRepository(repository) ? repository : null
 }
 
 function failedEvidence(checkedAt, sourceRef, failureCode) {
@@ -45,6 +58,11 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
   }
 
   const localMain = run('git', ['rev-parse', 'refs/heads/main'], cwd)
+  const origin = run('git', ['remote', 'get-url', 'origin'], cwd)
+  const originRepository = origin.status === 0 ? originRepositoryFromUrl(trimOutput(origin)) : null
+  if (!originRepository) {
+    return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'origin-repository-unavailable')
+  }
   const remoteMain = run('git', ['ls-remote', 'origin', 'refs/heads/main'], cwd)
   const remoteMainSha = trimOutput(remoteMain).split(/\s+/)[0] || null
   if (remoteMain.status !== 0 || !remoteMainSha) {
@@ -55,6 +73,7 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
     checkedAt,
     sourceRef: `git:${trimOutput(head)}`,
     headSha: trimOutput(head),
+    originRepository,
     currentBranch: branch.status === 0 ? trimOutput(branch) : null,
     detachedHead: branch.status === 1,
     trackedDirty: trimOutput(status).length > 0,

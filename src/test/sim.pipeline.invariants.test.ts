@@ -255,7 +255,7 @@ function makeSingleResolutionState(options: {
       agentIds: ['agent-integrity'],
       leaderId: 'agent-integrity',
       tags: [],
-      assignedCaseId: caseId,
+      status: { state: 'deployed' as const, assignedCaseId: caseId },
     },
   }
   state.cases = {

@@ -185,6 +185,7 @@ function sanitizeNode(value: unknown): AuthorityGraphNode | null {
     !isPlainRecord(value) ||
     !nonEmptyString(value.id) ||
     !nonEmptyString(value.label) ||
+    typeof value.nodeType !== 'string' ||
     !NODE_TYPES.has(value.nodeType)
   ) {
     return null
@@ -197,6 +198,7 @@ function sanitizeNode(value: unknown): AuthorityGraphNode | null {
             isPlainRecord(entry) &&
             nonEmptyString(entry.aliasId) &&
             nonEmptyString(entry.label) &&
+            typeof entry.confidence === 'string' &&
             SOURCE_CONFIDENCES.has(entry.confidence)
         )
         .map((entry) =>
@@ -233,10 +235,13 @@ function sanitizeEdge(value: unknown): AuthorityGraphEdge | null {
   if (
     !isPlainRecord(value) ||
     !nonEmptyString(value.id) ||
+    typeof value.kind !== 'string' ||
     !RELATIONSHIP_KINDS.has(value.kind) ||
     !nonEmptyString(value.fromNodeId) ||
     !nonEmptyString(value.toNodeId) ||
+    typeof value.status !== 'string' ||
     !RELATIONSHIP_STATUSES.has(value.status) ||
+    typeof value.sourceConfidence !== 'string' ||
     !SOURCE_CONFIDENCES.has(value.sourceConfidence) ||
     !isPlainRecord(value.provenance) ||
     !nonEmptyString(value.provenance.sourceTag)

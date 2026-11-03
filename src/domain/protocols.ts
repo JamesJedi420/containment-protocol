@@ -210,7 +210,7 @@ export function listProtocolCatalog(): ProtocolCatalogEntry[] {
 }
 
 function resolvePersistedProtocolSelectionLimit(
-  agency: Pick<GameState['agency'], 'protocolSelectionLimit'> | undefined,
+  agency: { protocolSelectionLimit?: unknown } | undefined,
   clearanceLevel: number
 ) {
   const explicitLimit = agency?.protocolSelectionLimit
@@ -231,13 +231,14 @@ export function sanitizePersistedAgencyProtocols(
     return undefined
   }
 
-  const record = raw as Pick<GameState['agency'], 'protocolSelectionLimit' | 'activeProtocolIds'>
+  const record = raw as { protocolSelectionLimit?: unknown; activeProtocolIds?: unknown }
   const catalog = new Set(PROTOCOL_CATALOG_IDS)
   const selectionLimit = resolvePersistedProtocolSelectionLimit(record, clearanceLevel)
   const hasLimitField =
     typeof record.protocolSelectionLimit === 'number' &&
     Number.isFinite(record.protocolSelectionLimit)
-  const hasActiveField = Array.isArray(record.activeProtocolIds)
+  const rawActiveProtocolIds = record.activeProtocolIds
+  const hasActiveField = Array.isArray(rawActiveProtocolIds)
 
   if (!hasLimitField && !hasActiveField) {
     return undefined
@@ -246,10 +247,8 @@ export function sanitizePersistedAgencyProtocols(
   const activeProtocolIds = hasActiveField
     ? [
         ...new Set(
-          record
-            .activeProtocolIds!.filter(
-              (id): id is string => typeof id === 'string' && id.trim().length > 0
-            )
+          rawActiveProtocolIds
+            .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
             .map((id) => id.trim())
             .filter((id) => catalog.has(id))
         ),

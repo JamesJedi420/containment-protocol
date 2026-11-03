@@ -18,7 +18,11 @@ import {
 import { advanceContainmentClassInspectionsAtWeekClose } from '../domain/containmentClassWeekClose'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { appendOperationEventDrafts } from '../domain/events'
-import { createContainmentClassInspectedDraft } from '../domain/events/eventBus'
+import {
+  createContainmentClassInspectedDraft,
+  type AnyOperationEventDraft,
+} from '../domain/events/eventBus'
+import type { OperationEvent } from '../domain/events/types'
 import { BLAST_DOOR_SPARE_PART_ID } from '../domain/sparePartSuitability'
 import {
   BLAST_DOOR_MEMBRANE_ZONE_ID,
@@ -27,17 +31,13 @@ import {
 } from '../domain/containmentBarrierIntegrity'
 import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../domain/departmentWorkshopIntegrityQualityMapping'
 
-function draftsForInstance<T extends { payload?: { instanceId?: string } }>(
-  drafts: readonly T[],
-  instanceId: string
-) {
-  return drafts.filter((draft) => draft.payload?.instanceId === instanceId)
+function draftsForInstance(drafts: readonly AnyOperationEventDraft[], instanceId: string) {
+  return drafts.filter(
+    (draft) => 'instanceId' in draft.payload && draft.payload.instanceId === instanceId
+  )
 }
 
-function inspectEventsFor(
-  events: ReadonlyArray<{ type: string; payload?: { instanceId?: string } }>,
-  instanceId: string
-) {
+function inspectEventsFor(events: readonly OperationEvent[], instanceId: string) {
   return events.filter(
     (event) =>
       event.type === 'equipment.containment_class_inspected' &&
@@ -264,19 +264,15 @@ describe('SPE-877 week-close last-inspection auto-advance', () => {
     expect(advanced.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
     expect(created.state.equipmentInstances?.[created.instance.instanceId]).toEqual(snapshot)
 
+    if (!snapshot) throw new Error('missing blast-door instance')
+    const malformedIntegrity = { ...blastDoorIntegrity(), extra: true }
     const malformedState = {
       ...created.state,
       equipmentInstances: {
         ...created.state.equipmentInstances,
         [created.instance.instanceId]: {
           ...snapshot,
-          containmentIntegrity: {
-            classId: 'blast_door',
-            lastInspectionWeek: 1,
-            cycleCount: 0,
-            deficiency: { kind: 'none' },
-            extra: true,
-          },
+          containmentIntegrity: malformedIntegrity,
         },
       },
     }

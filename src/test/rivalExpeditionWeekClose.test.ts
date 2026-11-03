@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import type { GameState } from '../domain/models'
 import {
   advanceRivalExpeditionProgress,
   advanceRivalExpeditionRegistryAtWeekClose,
@@ -51,7 +52,7 @@ function initializePacket(
   return initialized.packet!
 }
 
-function withoutRivalState<T extends Record<string, unknown>>(state: T) {
+function withoutRivalState<T extends GameState>(state: T) {
   const {
     rivalExpeditionProgressPackets: _packets,
     rivalExpeditionClues: _clues,

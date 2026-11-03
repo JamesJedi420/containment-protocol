@@ -11,9 +11,7 @@ vi.mock('../domain/sim/resolve', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../domain/sim/resolve')>()
   return {
     ...actual,
-    previewResolutionForTeamIds(
-      ...args: Parameters<typeof actual.previewResolutionForTeamIds>
-    ) {
+    previewResolutionForTeamIds(...args: Parameters<typeof actual.previewResolutionForTeamIds>) {
       const [caseData, state] = args
       if (caseData.id === 'case_exp') {
         previewStatesForCaseExp.push(state)
@@ -85,7 +83,7 @@ describe('advanceWeek field-base + mission resolution roster (SPE-1654)', () => 
         },
         [deployedTeamId]: {
           ...shell.teams[deployedTeamId]!,
-          assignedCaseId: 'case_exp',
+          status: { state: 'deployed' as const, assignedCaseId: 'case_exp' },
         },
       },
       agents: {

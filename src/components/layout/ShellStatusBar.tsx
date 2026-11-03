@@ -10,13 +10,7 @@ import {
   writeCaseListFilters,
 } from '../../features/cases/caseView'
 import { buildMissionTriageShellExtensionSignals } from '../../features/cases/missionTriageShellExtensionView'
-import {
-  IconAdvance,
-  IconReports,
-  IconSettings,
-  IconVolumeOff,
-  IconVolumeOn,
-} from '../icons'
+import { IconAdvance, IconReports, IconSettings, IconVolumeOff, IconVolumeOn } from '../shellIcons'
 import { buildShellStatusBarView, type ShellStatusSignalView } from './shellStatusBarView'
 
 function isCasesRoute(pathname: string) {

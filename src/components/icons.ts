@@ -1,31 +1,34 @@
+// Shell icons are local SVG components so the shell does not pull lucide-react
+// onto the boot path; re-exported here so existing imports keep working.
 export {
-  // Navigation
-  LayoutDashboard as IconDashboard,
-  BriefcaseBusiness as IconAgency,
-  FolderOpen as IconCases,
-  Layers3 as IconCards,
-  Users as IconTeams,
-  FileText as IconReports,
-  BookOpen as IconIntel,
-  UserPlus as IconRecruitment,
-  ClipboardList as IconRegistry,
-  GraduationCap as IconTraining,
-  Shield as IconContainment,
-  PackageSearch as IconMarkets,
-  HandCoins as IconFactions,
-  Trophy as IconRankings,
-  Hammer as IconFabrication,
-  Backpack as IconEquipment,
+  IconAgency,
+  IconBack,
+  IconCases,
+  IconCards,
+  IconContainment,
+  IconDashboard,
+  IconEquipment,
+  IconFabrication,
+  IconFactions,
+  IconIntel,
+  IconMarkets,
+  IconRankings,
+  IconRecruitment,
+  IconRegistry,
+  IconReports,
+  IconTeams,
+  IconTraining,
+  IconAdvance,
+  IconSettings,
+  IconVolumeOn,
+  IconVolumeOff,
+} from './shellIcons'
 
+export {
   // Actions
-  ArrowLeft as IconBack,
   RotateCcw as IconReset,
   Copy as IconCopy,
-  SkipForward as IconAdvance,
   CircleHelp as IconHelp,
-  Volume2 as IconVolumeOn,
-  VolumeX as IconVolumeOff,
-  Settings as IconSettings,
 
   // Stage indicators
   ShieldCheck as IconStageOk,

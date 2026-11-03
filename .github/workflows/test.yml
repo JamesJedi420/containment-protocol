@@ -43,6 +43,9 @@ jobs:
           fi
           npm run verify:requirements -- --ci --exclude=playwright-e2e
 
+      - name: SPE-3338 approved-work projection tests
+        run: npm run test:approved-work
+
       # Coverage re-runs the full suite under instrumentation (~as long as the test
       # step). Keep it on main pushes only so PR babysit stays one suite deep.
       - name: Coverage
@@ -108,7 +111,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always() && steps.pw.outputs.selected == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |

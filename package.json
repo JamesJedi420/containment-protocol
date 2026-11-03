@@ -7,6 +7,7 @@
     "verify-read-only-handoff": "node scripts/verify-read-only-handoff.mjs",
     "dev": "vite --config app.vite.config.ts --configLoader native",
     "build": "tsc -b && vite build --config app.vite.config.ts --configLoader native",
+    "build:bundle": "vite build --config app.vite.config.ts --configLoader native",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -26,7 +27,10 @@
     "verify:academy-authored-content": "node scripts/validation/academy-authored-content.mjs && node --test scripts/validation/academy-authored-content.check.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=list,html",
-    "verify:trigger-compatibility": "node --test scripts/trigger-dev-compatibility.check.mjs"
+    "verify:trigger-compatibility": "node --test scripts/trigger-dev-compatibility.check.mjs",
+    "project:approved-work": "node scripts/project-approved-work.mjs",
+    "test:approved-work": "node --test scripts/project-approved-work.test.mjs scripts/export-linear-approved-work.test.mjs",
+    "export:approved-work": "node scripts/export-linear-approved-work.mjs"
   },
   "dependencies": {
     "@trigger.dev/sdk": "4.8.3",
@@ -57,7 +61,7 @@
     "jsdom": "^30.1.3",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.0"
   },

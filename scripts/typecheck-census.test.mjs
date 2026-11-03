@@ -214,8 +214,10 @@ test('November reconciliation binds its clean current-main census to both raw co
   assert.equal(execution.normalizedLogSha256, sha256(buildLog))
   assert.match(buildLog, /tsc -b && vite build/)
   assert.equal(execution.diagnosticLines, census.diagnostics.length)
+  const firstDiagnosticOffset = buildLog.indexOf('src/')
+  assert.ok(firstDiagnosticOffset >= 0, 'build log must contain the captured src/ diagnostics')
   assert.deepEqual(
-    parseDiagnostics(buildLog.slice(buildLog.indexOf('src/')), (file) =>
+    parseDiagnostics(buildLog.slice(firstDiagnosticOffset), (file) =>
       file.startsWith('src/') ? 'tsconfig.app.json' : undefined
     ),
     census.diagnostics

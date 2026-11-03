@@ -14,6 +14,23 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Executed snapshot at `de3f1eb6`
+
+The separate [executed snapshot](../planning/spe-3352-release-evidence.de3f1eb6.v1.json) assesses full revision `de3f1eb6caa90be0b87d5e20297dd3d190500e0a`. Its [execution index](../planning/release-evidence/de3f1eb6/execution-index.json) records the clean-checkout provenance, commands, environment, results and SHA-256 references to retained host-local artifacts. The original bootstrap remains unchanged. Neither snapshot automatically advances with HEAD.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.de3f1eb6.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.de3f1eb6.v1.json --format markdown
+```
+
+This snapshot is **blocked** by its actual required unit-test failure: 999 files passed and one failed; 10,849 tests passed and one failed. The unchanged Agency-route maintenance-package test also failed in a separate four-test diagnostic run. Its cause and authoritative subsystem repair owner remain unverified. The reporter retains registry owner SPE-10 on the validator row; that organizational container is not proof of repair ownership, and AC08 remains unavailable.
+
+The other four required validators passed, including all 14 Chromium tests with no retries and the Vite bundle. The standalone full production build exited 2 with 409 TypeScript error lines; SPE-3375 retains remediation ownership. The advisory census command passed by successfully publishing those diagnostics, while repository formatting failed as an advisory check. These results are distinct.
+
+The [browser observations](../planning/release-evidence/de3f1eb6/browser-observations.json) retain connected replay and support attachments. Their assertions cover visible outcomes and selected carryover only. The support screenshot retains the previously documented partial-group/Resolved snapshot-label limitation. Broader canonical replay, whole-report equality, human evidence, thresholds and all eight owner dimensions remain unavailable. No exception is approved here.
+
+The committed validator JSON is a formatted copy of the actual execution report for the historical change set from `265cf70b` to `de3f1eb6`; it is not a release-wide validator census. Artifact `revision` fields identify what was tested, even though these evidence files are published in a later commit. Publication checks assess that later diff separately and do not overwrite the pinned execution.
+
 The bootstrap manifest deliberately assesses `265cf70ba2c6d14c5a583ba512333fff1e409736`, the main commit before this implementation. Running it on a later checkout still reports that snapshot. It does not automatically assess HEAD or current main. The CLI reads SPE-3348's registry from that exact commit using `git show`, without a shell, rather than reading a potentially changed working-tree registry. It reuses the repository's fixed-search-path spawn helper and requires an absolute Git executable; ambient PATH entries cannot supply Git. Registry lookup has a 15-second timeout; a timeout returns exit 2 through the same error path as unavailable history. Missing Git in the helper's supported install locations or missing Git history is an error; use an existing supported Git installation and fetch the intended commit through the normal repository workflow before retrying.
 
 ## Evidence contract v1
@@ -50,6 +67,8 @@ Capture the actual execution JSON, preserving its source artifact and assessed r
 ```
 
 Use the runner's full JSON report here; its additional fields are accepted. For example, retain stdout from `npm run verify:requirements -- --base <recorded-base> --json` with `--silent` passed to npm so npm's command banner does not enter the JSON. Preserve stderr separately. Review the declared changed files and any exclusions against the actual run. This reporter does not authenticate artifacts or infer a release-wide validator set from a narrow change set.
+
+For a parseable execution artifact, also set the existing `VALIDATION_JSON_ISOLATE=1` environment switch: the runner then sends captured child stdout/stderr to stderr, keeping its own stdout JSON clean. Use `--ci` for registered CI-shaped invocations and `CI=true` for the browser harness's isolated server behavior. Preserve the process exit code separately; a valid JSON report can contain required failures.
 
 Required/advisory enforcement is recomputed from `report.files` and the subject commit's canonical registry. Supplied `ok`, `requiredIds`, `missingRequired`, result enforcement and excluded-result lists cannot suppress required rows. Duplicate/unselected validator results and unknown statuses are rejected. Missing, unavailable, selected-only and skipped executions remain unavailable, including skipped exceptions: validator-waiver policy is not added in v1. Historical execution reports cannot pass current rows.
 

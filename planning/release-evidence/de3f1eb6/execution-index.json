@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+  "historicalBase": "265cf70ba2c6d14c5a583ba512333fff1e409736",
+  "collection": {
+    "beforeTrackedEdits": true,
+    "statusBefore": "",
+    "statusAfter": "",
+    "registeredExecutionStartedAt": "2026-11-03T07:20:58.8000050Z",
+    "registeredExecutionEndedAt": "2026-11-03T07:38:57.1372957Z",
+    "fullBuildEndedAt": "2026-11-03T07:35:39.6444590Z",
+    "diagnosticRecordedAt": "2026-11-03T07:41:10.8618394Z"
+  },
+  "environment": {
+    "subjectRevision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+    "trackedAndUntrackedStatus": "",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.23.4",
+    "nodeExecutable": "C:\\Users\\james\\.codex\\worktrees\\spe-3352-current-execution-evidence\\node_modules\\.bin\\node.exe",
+    "lockfileSha256": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "packages": {
+      "vitest": "5.0.5",
+      "@playwright/test": "1.64.1",
+      "vite": "8.3.5"
+    },
+    "ci": true,
+    "validationJsonIsolate": true,
+    "dependencySource": "C:/Users/james/.codex/worktrees/typescript-census/containment-protocol/node_modules",
+    "nodeLaunchers": "Worktree-parent node_modules/.bin has cached Node 22 hardlink and npm CLI shim, outside repository, to preserve Node 22 in npm subprocesses.",
+    "observedNodeExecutables": [
+      "C:\\Users\\james\\.codex\\worktrees\\spe-3352-current-execution-evidence\\node_modules\\.bin\\node.exe"
+    ],
+    "processObservationSource": "C:/Projects/cp-spe3352-current-evidence/environment.json"
+  },
+  "commands": [
+    {
+      "command": "node --test scripts/release-acceptance/report.test.mjs scripts/validation/requirement-model.check.mjs",
+      "exitCode": 0,
+      "result": "50 passed: 17 reporter/CLI and 33 resolver tests",
+      "artifact": "native-tests.log"
+    },
+    {
+      "command": "npm run test:run -- src/test/goldenPressureCampaign.integration.test.ts src/test/supportCampaignFixtures.integration.test.ts src/test/weeklyMvpLoopProof.slice4.integration.test.ts src/test/weeklyMvpLoopProof.slice5.integration.test.ts",
+      "exitCode": 0,
+      "result": "4 files / 7 tests passed",
+      "artifact": "targeted-vitest.log"
+    },
+    {
+      "command": "npm --silent run verify:requirements -- --base 265cf70ba2c6d14c5a583ba512333fff1e409736 --ci --json",
+      "environment": {
+        "CI": "true",
+        "VALIDATION_JSON_ISOLATE": "1",
+        "PLAYWRIGHT_HTML_OPEN": "never",
+        "PLAYWRIGHT_HTML_OUTPUT_DIR": "C:/Projects/cp-spe3352-current-evidence/playwright-report"
+      },
+      "exitCode": 1,
+      "files": [
+        "docs/cp-core-release-evidence.md",
+        "e2e/support-campaigns.spec.ts",
+        "planning/spe-3352-release-evidence-matrix-slice.md",
+        "planning/spe-3352-release-evidence.v1.json",
+        "planning/spe-3352-support-browser-fixtures-slice.md",
+        "scripts/release-acceptance/report.mjs",
+        "scripts/release-acceptance/report.test.mjs",
+        "src/test/helpers/supportCampaignFixtures.ts",
+        "src/test/supportCampaignFixtures.integration.test.ts"
+      ],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "failed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "unitSummary": [
+        " Test Files  1 failed | 999 passed (1000)",
+        "      Tests  1 failed | 10849 passed (10850)",
+        "   Duration  666.96s (environment 60%, setup 13%, import 12%, tests 8%, transform 7%, worker 1%)"
+      ],
+      "artifact": "requirements-execution.json"
+    },
+    {
+      "command": "npm run build",
+      "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+      "startedAt": "2026-11-03T07:33:59.6111116Z",
+      "endedAt": "2026-11-03T07:35:39.6444590Z",
+      "exitCode": 2,
+      "typeScriptErrorLines": 409,
+      "node": "v22.23.4",
+      "artifact": "build.log"
+    },
+    {
+      "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+      "exitCode": 1,
+      "command": "npm run test:run:ci -- src/app/App.systemBoundary.route.test.tsx",
+      "purpose": "One unchanged isolated diagnostic run; does not replace failed full registered execution.",
+      "result": "One file: 1 failed / 3 passed tests. The same missing maintenance-package button failure reproduced without edits.",
+      "artifact": "diagnostic-route.log",
+      "recordedAt": "2026-11-03T07:41:10.8618394Z"
+    }
+  ],
+  "census": {
+    "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+    "workingTreeStatus": "",
+    "nodeVersion": "v22.23.4",
+    "reproducible": true,
+    "occurrences": 409,
+    "fingerprints": 293,
+    "files": 144,
+    "limitation": "The advisory script succeeds when it publishes a reproducible census, including red compiler results; its exit 0 is not a green TypeScript build."
+  },
+  "browser": {
+    "stats": {
+      "total": 14,
+      "expected": 14,
+      "unexpected": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "ok": true
+    },
+    "durationMs": 105538.704,
+    "observationSource": "planning/release-evidence/de3f1eb6/browser-observations.json",
+    "configuredRetries": 1,
+    "actualRetries": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "screenshotInspection": "Both after-reload screenshots were opened and visually inspected. See browser-observations.json.",
+    "retryScope": "One entry per test in the full retained HTML report file/test order: all 14 tests had exactly one passed attempt, retry 0. The browser-observations attachment subset covers three selected scenarios."
+  },
+  "owners": [
+    {
+      "id": "SPE-3352",
+      "status": "In Progress",
+      "role": "Acceptance orchestration; broader parent remains open"
+    },
+    {
+      "id": "SPE-3348",
+      "status": "Done",
+      "role": "Completed canonical validator policy; not reopened"
+    },
+    {
+      "id": "SPE-3375",
+      "status": "In Progress",
+      "role": "Active full-build recovery owner"
+    },
+    {
+      "id": "SPE-3376",
+      "status": "Done",
+      "role": "Completed census implementation; red diagnostic remediation stays with SPE-3375"
+    }
+  ],
+  "ownerVerification": "Live Linear statuses inspected in this session on 2026-11-03; this is not aggregation or approval of the eight release owner dimensions.",
+  "unitFailure": {
+    "file": "src/app/App.systemBoundary.route.test.tsx",
+    "test": "purchases a maintenance package through the production Agency route",
+    "error": "Unable to find role=\"button\" and name \"Buy maintenance package\"",
+    "reproducedInIsolatedRun": true,
+    "cause": "Unverified; no source, assertion, timeout or configuration change was made.",
+    "registryValidatorOwner": "SPE-10",
+    "verifiedSubsystemRemediationOwner": null,
+    "ownershipLimit": "The unchanged reporter emits SPE-10 from the canonical registry. Live SPE-10 is the Tools and Dev organizational container in Backlog, not a verified subsystem repair boundary; AC08 remains unavailable."
+  },
+  "rawArtifacts": [
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/environment.json",
+      "sha256": "505eebe6abcad7f9f87bd3848fce4b1b48810126c7072f57f7666d2205dc9e16"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/native-tests.log",
+      "sha256": "841a393876368bbe5cb3b5d67e9a3ec2bfa1669fad055b41b3d10257f3f3694f"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/targeted-vitest.log",
+      "sha256": "724e6d9cb40f4726082c0ddf48063a51710f673b9b540b939a4ac9a30a5178ba"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/targeted-exits.json",
+      "sha256": "2364e7e5c0c59d5e92ba2de1dfa63d3c677f8ea61a681035396b80f72ce28463"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/requirements-execution.json",
+      "sha256": "a3c774ed6dae1cbd9345c4fcd5b8f5568bdae24575e240615ec642d0199321f8"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/requirements-execution.log",
+      "sha256": "c3768ef7c9a31cd8dba2829737c55c6f4682aca0c2c31fb066c7c81d508fe9be"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/requirements-meta.json",
+      "sha256": "9eaa9a20d818411ae4d92566681e1f4b5bb3a3116bb2e2c32cb88877db019b51"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/build.log",
+      "sha256": "4b802a21a05851e04110e68353ad1280fb256cadae66f6a060706457fd4523ac"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/build-meta.json",
+      "sha256": "70480ebb3632baaa6cddafe92660f605fff09ee8d850b7460d7c09618b619a84"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/typecheck-census.json",
+      "sha256": "d7d44a1ddd0c79efd41fd771daa36843a8b0535fbfbd61263c4941bdb1ecdf9b"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/playwright-report.zip",
+      "sha256": "553921b872d16aa2c6dd6f770a0de0997defbc6a5f2589928736681f168575c0"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/hermes-mapping.log",
+      "sha256": "6405d73fe4434fd63858208ad869ac70cfea4a095318c577050ba45f74c72df8"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/diagnostic-route.log",
+      "sha256": "9f306543425bd4270ed48dba5e0b8861e127cf9073c50e12b1409bf12e8bd6d8"
+    },
+    {
+      "source": "C:/Projects/cp-spe3352-current-evidence/diagnostic-route-meta.json",
+      "sha256": "572a668abf031319d9e84c15db75fc78cb2454101266476b5e76c9ab62101943"
+    }
+  ],
+  "screenshotArtifacts": [
+    {
+      "name": "maintenance-after-reload",
+      "source": "C:/Projects/cp-spe3352-current-evidence/playwright-report/data/3018778880e5684a986e3c96c1fe1da192fc1238.png",
+      "sha256": "26df284f8148f089460dd70bf069e5618e811c1512fb6743b966024d922fce8b"
+    },
+    {
+      "name": "support-explanation-after-reload",
+      "source": "C:/Projects/cp-spe3352-current-evidence/playwright-report/data/da573a9fa936d78f74d73f82bc81f8f6fd564564.png",
+      "sha256": "d4fbd1277e5fa86a1d4646bb64db03884f94e8d9450d463cfd10b2638cdb7d9a"
+    }
+  ],
+  "limitations": [
+    "Host-local artifact references and checksums identify retained evidence; the generator does not authenticate them.",
+    "This snapshot assesses the pinned revision, not the later publication commit or future main.",
+    "All unassessed owner dimensions, broader schema-valid replay, human evidence and thresholds remain unavailable.",
+    "No acceptance exceptions are approved by this slice."
+  ],
+  "archive": {
+    "source": "C:/Projects/cp-spe3352-current-evidence/pinned-execution-artifacts.zip",
+    "sha256": "2c38a60e0b0ca83bc2e9f496593a417ab6a047c225cc2075aac4b32ab3898997",
+    "contains": "All indexed raw artifacts and the full HTML browser report with screenshots; no publication checks are included."
+  }
+}

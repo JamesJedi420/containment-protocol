@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+  "assessments": [
+    {
+      "id": "ac-01",
+      "result": "pass",
+      "rationale": "Named existing golden scenarios have stable inputs and bounded assertions at the assessed revision. This does not establish fixture completeness.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/src/test/goldenPressureCampaign.integration.test.ts",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Existing calibrated mid-campaign pressure fixture."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/src/test/helpers/supportCampaignFixtures.ts",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Two ordinary-range imported support/maintenance scenarios."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/e2e/milestone2-weekly-loop.spec.ts",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Fresh default-seed campaign entry through Week 3 and report reload."
+        }
+      ]
+    },
+    {
+      "id": "ac-02",
+      "result": "unavailable",
+      "rationale": "Visible browser outcomes and selected pressure vectors do not establish full canonical replay. The calibrated pressure fixture can exceed hydration stat limits; schema-valid broader equivalence remains unverified.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/pull/4628",
+          "revision": "cd26b305c0edf06ee1b6e82dba59e94e80a700c7",
+          "scope": "Historical selected pressure-vector repeatability only."
+        }
+      ]
+    },
+    {
+      "id": "ac-03",
+      "result": "pass",
+      "rationale": "Current Chromium execution passes the connected fresh-entry campaign through Week 3, exact visible report equality after reload in each context and matching visible outcomes across two contexts. Broader canonical state is unverified.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Current full Chromium suite and connected scenario observations; actual tested revision is the subject revision."
+        },
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/browser-observations.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Connected scenario passed on retry 0; attached seed-1337 outcomes match."
+        }
+      ]
+    },
+    {
+      "id": "ac-04",
+      "result": "pass",
+      "rationale": "Current pressure fixture passes partial consequences, no game over and selected funding/recovery/report carryover under ongoing pressure. Support/maintenance fixtures add ordinary-range imported consequence evidence. Recovery completion and full hydration equivalence are not established.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Current targeted four-file/seven-test run; calibrated pressure limitations remain."
+        },
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/browser-observations.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Current imported maintenance/support explanations and reload continuity; no fresh-player import journey or whole-report guarantee."
+        }
+      ]
+    },
+    {
+      "id": "ac-05",
+      "result": "pass",
+      "rationale": "The pressure fixture continues to consume SPE-2251 helpers rather than replacing the weekly-loop harness; its slice 4/5 integration baseline also passed in the targeted run.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/src/test/goldenPressureCampaign.integration.test.ts",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Imports existing weeklyMvpLoopProof helpers."
+        },
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "SPE-2251 slice 4/5 suites included in the passing targeted run."
+        }
+      ]
+    },
+    {
+      "id": "ac-06",
+      "result": "unavailable",
+      "rationale": "Owner references are known, but current release evidence has not been gathered and reconciled across all dimensions.",
+      "evidence": []
+    },
+    {
+      "id": "ac-07",
+      "result": "pass",
+      "rationale": "The existing reporter classifies all stable rows and preserves missing evidence, warnings and remediation references. Current reporter/real-CLI tests pass; the reviewed snapshot uses that unchanged contract.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "17 reporter/CLI tests plus 33 resolver tests passed at the subject revision."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/scripts/release-acceptance/report.mjs",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Stable criteria and six result classes; missing evidence cannot disappear."
+        }
+      ]
+    },
+    {
+      "id": "ac-08",
+      "result": "unavailable",
+      "rationale": "Build remediation has an existing owner; the complete release criterion and remediation assessment remains unfinished. Completed retrospective owners are not reopened.",
+      "evidence": []
+    },
+    {
+      "id": "ac-09",
+      "result": "unavailable",
+      "rationale": "No reviewed fixture-level runtime or state-growth thresholds have been established; no numeric budgets or general performance subsystem are invented.",
+      "evidence": []
+    },
+    {
+      "id": "ac-10",
+      "result": "unavailable",
+      "rationale": "No accepted release exceptions are supplied. Missing evidence is not a waiver; the complete exception assessment remains open.",
+      "evidence": []
+    },
+    {
+      "id": "ac-11",
+      "result": "pass",
+      "rationale": "This snapshot retains the existing CP-core ongoing-lifecycle boundary and introduces no Academy-only acceptance or terminal-success assumption.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/planning/spe-3352-release-evidence-matrix-slice.md",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Existing issue-local boundaries preserve SPE-3171 and Academy authority."
+        }
+      ]
+    },
+    {
+      "id": "ac-12",
+      "result": "pass",
+      "rationale": "The unchanged reporter and real-CLI tests establish deterministic JSON/Markdown generation from reviewed inputs. The published snapshot is additionally checked for byte-identical generation; this is a reproducible evidence summary, not whole-release readiness.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Reporter/CLI tests passed at the subject revision; publication reproduction is separately documented."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/scripts/release-acceptance/report.mjs",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Deterministic generator implementation already exists in the assessed commit."
+        }
+      ]
+    },
+    {
+      "id": "owner-persistence",
+      "result": "unavailable",
+      "rationale": "SPE-2607 and SPE-3522 are completed evidence sources. Broader current reload equivalence is not established; SPE-3403 retains unresolved save-version policy. This does not reopen completed owners.",
+      "evidence": []
+    },
+    {
+      "id": "owner-accessibility",
+      "result": "unavailable",
+      "rationale": "SPE-1080 retains accessibility/explainability authority. Accessible browser selectors and report text assertions are not a complete accessibility assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-ux",
+      "result": "unavailable",
+      "rationale": "SPE-1245 retains observed-player authority. Human comprehension, usefulness and recognizability evidence is unavailable, not waived.",
+      "evidence": []
+    },
+    {
+      "id": "owner-telemetry",
+      "result": "unavailable",
+      "rationale": "SPE-1119 is the authoritative telemetry owner; no current release diagnostic evidence has been assessed.",
+      "evidence": []
+    },
+    {
+      "id": "owner-replay",
+      "result": "unavailable",
+      "rationale": "SPE-3162 is the authoritative stochastic identity/replay owner; selected outcome equality does not satisfy its wider contract.",
+      "evidence": []
+    },
+    {
+      "id": "owner-continuity",
+      "result": "unavailable",
+      "rationale": "SPE-1464 remains a completed continuity evidence source. Its release applicability to this subject revision has not been assessed.",
+      "evidence": []
+    },
+    {
+      "id": "owner-calibration",
+      "result": "unavailable",
+      "rationale": "SPE-25 remains a completed calibration evidence source. The deliberately tuned partial band is not current release calibration evidence.",
+      "evidence": []
+    },
+    {
+      "id": "owner-simulation",
+      "result": "unavailable",
+      "rationale": "SPE-26 remains a completed simulation-validation evidence source; current integrated release applicability is unverified.",
+      "evidence": []
+    },
+    {
+      "id": "full-build",
+      "result": "fail",
+      "remediationOwner": "SPE-3375",
+      "rationale": "Current full npm run build exited 2 with 409 TypeScript error lines. This is distinct from the required Vite bundle and advisory census. SPE-3348 retains enforcement authority; SPE-3375 retains build remediation.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/de3f1eb6/execution-index.json",
+          "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+          "scope": "Actual full tsc -b && Vite command at the clean pinned revision; raw build log and checksum retained."
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "revision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+    "source": "repo:planning/release-evidence/de3f1eb6/requirements-execution.json",
+    "report": {
+      "policyOwner": "SPE-3348",
+      "files": [
+        "docs/cp-core-release-evidence.md",
+        "e2e/support-campaigns.spec.ts",
+        "planning/spe-3352-release-evidence-matrix-slice.md",
+        "planning/spe-3352-release-evidence.v1.json",
+        "planning/spe-3352-support-browser-fixtures-slice.md",
+        "scripts/release-acceptance/report.mjs",
+        "scripts/release-acceptance/report.test.mjs",
+        "src/test/helpers/supportCampaignFixtures.ts",
+        "src/test/supportCampaignFixtures.integration.test.ts"
+      ],
+      "activeClasses": ["application", "docs", "e2e", "planning", "tooling"],
+      "requiredIds": ["backlog-handoff", "lint", "playwright-e2e", "unit-tests", "vite-build"],
+      "advisoryIds": ["format-check", "typecheck"],
+      "skippedExceptionIds": [],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "failed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "missingRequired": [],
+      "ok": false,
+      "advisoryFailures": ["format-check"]
+    }
+  }
+}

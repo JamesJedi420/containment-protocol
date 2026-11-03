@@ -12,7 +12,7 @@ describe('App contracts route', () => {
     useGameStore.setState({ game: createStartingState() })
   })
 
-  it('renders the contract board as a routed player-facing screen', () => {
+  it('renders the contract board as a routed player-facing screen', async () => {
     render(
       <MemoryRouter initialEntries={['/contracts']}>
         <App />
@@ -20,7 +20,9 @@ describe('App contracts route', () => {
     )
 
     expect(screen.getByRole('banner', { name: /shell status bar/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: /^contract board$/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /contract list/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^contract board$/i }, { timeout: 5000 })
+    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /contract list/i })).toBeInTheDocument()
   })
 })

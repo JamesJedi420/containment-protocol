@@ -344,20 +344,26 @@ afterEach(() => {
 })
 
 describe('game app routes', () => {
-  it('renders the empty report route before any weeks advance', () => {
+  it('renders the empty report route before any weeks advance', async () => {
     renderApp('/report')
 
-    expect(screen.getByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
     expect(
-      screen.getByText(/no reports yet\. advance a week to begin the run\./i)
+      await screen.findByText(
+        /no reports yet\. advance a week to begin the run\./i,
+        {},
+        { timeout: 5000 }
+      )
     ).toBeInTheDocument()
   })
 
-  it('renders report cards without a notes block when a report has no notes', () => {
+  it('renders report cards without a notes block when a report has no notes', async () => {
     useGameStore.setState({ game: createReportCoverageGame() })
     renderApp('/report')
 
-    expect(screen.getByText(/cumulative score: 50/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/cumulative score: 50/i, {}, { timeout: 5000 })
+    ).toBeInTheDocument()
     expect(screen.getByText(/^Week 4$/i)).toBeInTheDocument()
     expect(screen.queryByText(/field notes/i)).not.toBeInTheDocument()
   })
@@ -366,16 +372,16 @@ describe('game app routes', () => {
     const user = userEvent.setup()
     renderApp('/cases')
 
-    expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /^teams$/i }))
-    expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /^reports$/i }))
-    expect(screen.getByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /^cases$/i }))
-    expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
   })
 
   it('supports direct entry to a case detail route and its back link', async () => {
@@ -383,13 +389,13 @@ describe('game app routes', () => {
     renderApp('/cases/case-001')
 
     expect(
-      screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+      await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /back to cases/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /back to cases/i })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('link', { name: /back to cases/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
   })
 
   it('supports direct entry to a team detail route and its back link', async () => {
@@ -397,13 +403,13 @@ describe('game app routes', () => {
     renderApp('/teams/t_nightwatch')
 
     expect(
-      screen.getByRole('heading', { level: 1, name: /response unit night watch/i })
+      await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /back to teams/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /back to teams/i })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('link', { name: /back to teams/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
   })
 
   it('supports direct entry to a report detail route and its back link', async () => {
@@ -417,44 +423,48 @@ describe('game app routes', () => {
     renderApp(`/report/${latestReport!.week}`)
 
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         level: 1,
         name: new RegExp(`^week ${latestReport!.week}$`, 'i'),
       })
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /back to reports/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /back to reports/i })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('link', { name: /back to reports/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
   })
 
   it('renders a local not-found state for an unknown case id', async () => {
     const user = userEvent.setup()
     renderApp('/cases/not-a-real-case')
 
-    expect(screen.getByRole('heading', { level: 1, name: /case not found/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /case not found/i })
+    ).toBeInTheDocument()
     expect(
       screen.getAllByText(/requested operation is not present in the current state/i).length
     ).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole('link', { name: /back to cases/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
   })
 
   it('renders a local not-found state for an unknown team id', async () => {
     const user = userEvent.setup()
     renderApp('/teams/not-a-real-team')
 
-    expect(screen.getByRole('heading', { level: 1, name: /team not found/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /team not found/i })
+    ).toBeInTheDocument()
     expect(
       screen.getAllByText(/requested response unit is not present in the current state/i).length
     ).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole('link', { name: /back to teams/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
   })
 
   it('renders a local not-found state for an unknown report week', async () => {
@@ -462,14 +472,16 @@ describe('game app routes', () => {
     useGameStore.setState({ game: createGameWithReports() })
     renderApp('/report/999')
 
-    expect(screen.getByRole('heading', { level: 1, name: /report not found/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /report not found/i })
+    ).toBeInTheDocument()
     expect(
       screen.getAllByText(/requested weekly report is not present in the current state/i).length
     ).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole('link', { name: /back to reports/i })[0]!)
 
-    expect(screen.getByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
   })
 
   it('navigates from list pages into detail routes and keeps primary nav working there', async () => {
@@ -482,27 +494,27 @@ describe('game app routes', () => {
     useGameStore.setState({ game })
     renderApp('/cases')
 
-    await user.click(screen.getByRole('link', { name: VAMPIRE_NEST_CASE_TITLE }))
+    await user.click(await screen.findByRole('link', { name: VAMPIRE_NEST_CASE_TITLE }))
     expect(
-      screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+      await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /^teams$/i }))
-    expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: NIGHTWATCH_NAME }))
+    await user.click(await screen.findByRole('link', { name: NIGHTWATCH_NAME }))
     expect(
-      screen.getByRole('heading', { level: 1, name: /response unit night watch/i })
+      await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /^reports$/i }))
-    expect(screen.getByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^reports$/i })).toBeInTheDocument()
 
     await user.click(
-      screen.getByRole('link', { name: new RegExp(`^week ${latestReport!.week}$`, 'i') })
+      await screen.findByRole('link', { name: new RegExp(`^week ${latestReport!.week}$`, 'i') })
     )
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         level: 1,
         name: new RegExp(`^week ${latestReport!.week}$`, 'i'),
       })
@@ -515,7 +527,9 @@ describe('game app routes', () => {
 
     expect(screen.getByRole('heading', { name: /containment protocol/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /^operations desk$/i })).toBeInTheDocument()
-    expect(screen.getByText(/^pending operations$/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/^pending operations$/i, {}, { timeout: 5000 })
+    ).toBeInTheDocument()
     expect(screen.getByText(/^active deployments$/i)).toBeInTheDocument()
     expect(
       screen.getByText(new RegExp(`week 1 / active cap ${activeCaseCap}`, 'i'))
@@ -523,7 +537,7 @@ describe('game app routes', () => {
 
     await user.click(screen.getByRole('link', { name: /^cases$/i }))
 
-    expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
     expect(within(getTriageList()).getByText(VAMPIRE_NEST_CASE_TITLE)).toBeInTheDocument()
   })
 
@@ -687,24 +701,27 @@ describe('game app routes', () => {
     renderApp('/cases')
 
     const stageTwoCase = getCaseListItem(/vampire nest in the stockyards/i)
-    expect(within(stageTwoCase).getByText(/^stage 2$/i).closest('span')).toHaveClass(
-      'bg-yellow-900/50',
-      'text-yellow-300'
-    )
+    expect(
+      within(stageTwoCase)
+        .getByText(/^stage 2$/i)
+        .closest('span')
+    ).toHaveClass('bg-yellow-900/50', 'text-yellow-300')
 
     const stageThreeCase = getCaseListItem(/whispering archive/i)
-    expect(within(stageThreeCase).getByText(/^stage 3$/i).closest('span')).toHaveClass(
-      'bg-orange-900/50',
-      'text-orange-300'
-    )
+    expect(
+      within(stageThreeCase)
+        .getByText(/^stage 3$/i)
+        .closest('span')
+    ).toHaveClass('bg-orange-900/50', 'text-orange-300')
     expect(within(stageThreeCase).getByText(/remaining: 1 week/i)).toBeInTheDocument()
     expect(within(stageThreeCase).getByText(/assigned: night watch/i)).toBeInTheDocument()
 
     const stageFourCase = getCaseListItem(/eclipse ritual/i)
-    expect(within(stageFourCase).getByText(/^stage 4$/i).closest('span')).toHaveClass(
-      'bg-red-900/50',
-      'text-red-300'
-    )
+    expect(
+      within(stageFourCase)
+        .getByText(/^stage 4$/i)
+        .closest('span')
+    ).toHaveClass('bg-red-900/50', 'text-red-300')
     expect(within(stageFourCase).queryByRole('button', { name: /assign/i })).not.toBeInTheDocument()
 
     const oddsFallbackCase = getCaseListItem(/overflow checkpoint/i)
@@ -886,7 +903,9 @@ describe('game app routes', () => {
     useGameStore.setState({ game })
     renderApp()
 
-    expect(screen.getByText(/2 resolved, 2 unresolved triggers, 2 spawned cases/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 resolved, 2 unresolved triggers, 2 spawned cases/i)
+    ).toBeInTheDocument()
     expect(
       screen.getByText(/avg fatigue 12 \/ max stage 4 \/ rng before 2024 -> 2025/i)
     ).toBeInTheDocument()
@@ -1141,9 +1160,15 @@ describe('game app routes', () => {
 
     expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
     const triageList = getTriageList()
-    expect(within(triageList).getByRole('link', { name: /vampire nest in the stockyards/i })).toBeInTheDocument()
-    expect(within(triageList).getByRole('link', { name: /the whispering archive/i })).toBeInTheDocument()
-    expect(within(triageList).getByRole('link', { name: /eclipse ritual at the riverfront/i })).toBeInTheDocument()
+    expect(
+      within(triageList).getByRole('link', { name: /vampire nest in the stockyards/i })
+    ).toBeInTheDocument()
+    expect(
+      within(triageList).getByRole('link', { name: /the whispering archive/i })
+    ).toBeInTheDocument()
+    expect(
+      within(triageList).getByRole('link', { name: /eclipse ritual at the riverfront/i })
+    ).toBeInTheDocument()
   })
 
   it('shows both starter teams and all eight agents on the teams route', () => {

@@ -29,20 +29,14 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
   if (head.status !== 0) return failedEvidence(checkedAt, 'git:local', 'head-unavailable')
 
   const branch = run('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], cwd)
-  if (![0, 1].includes(branch.status)) {
-    return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'branch-unavailable')
-  }
+  if (![0, 1].includes(branch.status)) return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'branch-unavailable')
 
   const status = run('git', ['status', '--porcelain=v1', '--untracked-files=no'], cwd)
-  if (status.status !== 0) {
-    return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'status-unavailable')
-  }
+  if (status.status !== 0) return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'status-unavailable')
 
   const localMain = run('git', ['rev-parse', 'refs/heads/main'], cwd)
   const remoteMain = run('git', ['ls-remote', 'origin', 'refs/heads/main'], cwd)
-  if (remoteMain.status !== 0) {
-    return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'remote-main-unavailable')
-  }
+  if (remoteMain.status !== 0) return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'remote-main-unavailable')
 
   const remoteMainSha = trimOutput(remoteMain).split(/\s+/)[0] || null
   return {
@@ -73,20 +67,13 @@ function extractIssueIdentity(title, body) {
   }
 }
 
-export function collectGitHubEvidence({
-  repository,
-  checkedAt,
-  cwd = process.cwd(),
-  run = runReadOnly,
-} = {}) {
+export function collectGitHubEvidence({ repository, checkedAt, cwd = process.cwd(), run = runReadOnly } = {}) {
   const remoteMain = run(
     'gh',
     ['api', `repos/${repository}/git/ref/heads/main`, '--jq', '.object.sha'],
     cwd
   )
-  if (remoteMain.status !== 0) {
-    return failedEvidence(checkedAt, `github:${repository}`, 'remote-main-unavailable')
-  }
+  if (remoteMain.status !== 0) return failedEvidence(checkedAt, `github:${repository}`, 'remote-main-unavailable')
 
   const pullRequests = run(
     'gh',
@@ -102,9 +89,7 @@ export function collectGitHubEvidence({
     ],
     cwd
   )
-  if (pullRequests.status !== 0) {
-    return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-unavailable')
-  }
+  if (pullRequests.status !== 0) return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-unavailable')
 
   let parsed
   try {
@@ -138,7 +123,7 @@ export function collectGitHubEvidence({
   }
 }
 
-function parseArguments(argv) {
+export function parseSessionPreflightArguments(argv) {
   const allowed = new Set(['--stdin', '--collect-local'])
   const unexpected = argv.filter((arg) => !allowed.has(arg))
   if (unexpected.length > 0 || !argv.includes('--stdin')) {
@@ -157,7 +142,7 @@ function readInput() {
 }
 
 export function runSessionPreflightCli({ argv = process.argv.slice(2), cwd = process.cwd() } = {}) {
-  const argumentsResult = parseArguments(argv)
+  const argumentsResult = parseSessionPreflightArguments(argv)
   if (!argumentsResult.ok) {
     process.stderr.write(`${argumentsResult.message}\n`)
     return 2
@@ -172,9 +157,10 @@ export function runSessionPreflightCli({ argv = process.argv.slice(2), cwd = pro
   }
 
   if (argumentsResult.collectLocal) {
-    const checkedAt = input.observedAt ?? new Date().toISOString()
+    const checkedAt = new Date().toISOString()
     input = {
       ...input,
+      observedAt: checkedAt,
       github: collectGitHubEvidence({ repository: input.repository, checkedAt, cwd }),
       git: collectLocalGitEvidence({ checkedAt, cwd }),
     }

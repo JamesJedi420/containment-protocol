@@ -26,10 +26,14 @@ export type ProcedureExecutionPrerequisiteClass =
 
 export type ProcedureExecutionPrerequisiteState = 'satisfied' | 'degraded' | 'blocked'
 
-export interface ProcedureExecutionPrerequisiteDecision {
-  /** Stable canonical owner, e.g. SPE-58, SPE-2078, SPE-1059, SPE-714, SPE-1896, SPE-874, SPE-3308, SPE-1907. */
+export interface ProcedureExecutionPrerequisiteRequirement {
   readonly ownerRef: string
   readonly prerequisiteClass: ProcedureExecutionPrerequisiteClass
+}
+
+export interface ProcedureExecutionPrerequisiteDecision
+  extends ProcedureExecutionPrerequisiteRequirement {
+  /** Stable canonical owner, e.g. SPE-58, SPE-2078, SPE-1059, SPE-714, SPE-1896, SPE-874, SPE-3308, SPE-1907. */
   readonly state: ProcedureExecutionPrerequisiteState
   readonly reason: string
 }
@@ -52,6 +56,7 @@ export interface ProcedureToActionAdapterInput {
    * it does not recreate knowledge, authorization, competency, equipment, facility,
    * doctrine, exhaustion, or subject-fit state.
    */
+  readonly requiredPrerequisites: readonly ProcedureExecutionPrerequisiteRequirement[]
   readonly prerequisiteDecisions: readonly ProcedureExecutionPrerequisiteDecision[]
   /** Stable caller-owned operation/action identity used only for replay correlation. */
   readonly executionKey: string
@@ -114,6 +119,15 @@ function normalizeText(value: string): string {
   return value.trim()
 }
 
+function stableRequirementKey(
+  requirement: ProcedureExecutionPrerequisiteRequirement
+): string {
+  return [
+    requirement.prerequisiteClass,
+    normalizeText(requirement.ownerRef),
+  ].join(':')
+}
+
 function stableDecisionKey(decision: ProcedureExecutionPrerequisiteDecision): string {
   return [
     decision.prerequisiteClass,
@@ -138,6 +152,10 @@ function stableParticipantKey(participant: CrossRoleActionParticipant): string {
 }
 
 function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): string {
+  const requirements = [...input.requiredPrerequisites]
+    .map(stableRequirementKey)
+    .sort(codeUnitCompare)
+    .join(';')
   const decisions = [...input.prerequisiteDecisions]
     .map(stableDecisionKey)
     .sort(codeUnitCompare)
@@ -155,6 +173,7 @@ function buildEvaluationFingerprint(input: ProcedureToActionAdapterInput): strin
     `roles=${roles}`,
     `count=${input.requiredParticipantCount}`,
     `participants=${participants}`,
+    `requirements=${requirements}`,
     `decisions=${decisions}`,
   ].join('|')
 }
@@ -200,8 +219,9 @@ function buildActionProcedure(
  * Canonical authoring fields are mapped only where the restored SPE-1434 contract
  * has a truthful representation (procedure identity/name and tool/device item tags).
  * Reagent quantities, certification/access, environment, doctrine, exhaustion,
- * knowledge, authorization, competency, and subject-fit remain externally owned
- * readiness decisions supplied by their canonical owners.
+ * knowledge, authorization, competency, and subject-fit remain externally owned.
+ * The caller declares which owner decisions are required for this execution;
+ * a missing required decision fails closed rather than silently permitting work.
  */
 export function evaluateCanonicalProcedureExecutionReadiness(
   input: ProcedureToActionAdapterInput
@@ -243,9 +263,30 @@ export function evaluateCanonicalProcedureExecutionReadiness(
     }
   }
 
-  const blockedReasons = input.prerequisiteDecisions
-    .filter((decision) => decision.state === 'blocked')
-    .sort((a, b) => codeUnitCompare(stableDecisionKey(a), stableDecisionKey(b)))
+  const decisionByRequirement = new Map(
+    input.prerequisiteDecisions.map((decision) => [
+      stableRequirementKey(decision),
+      decision,
+    ])
+  )
+  const missingRequiredDecisions: ProcedureExecutionPrerequisiteDecision[] =
+    input.requiredPrerequisites
+      .filter(
+        (requirement) =>
+          !decisionByRequirement.has(stableRequirementKey(requirement))
+      )
+      .map((requirement) => ({
+        ...requirement,
+        state: 'blocked' as const,
+        reason: 'missing_required_owner_decision',
+      }))
+
+  const blockedReasons = [
+    ...missingRequiredDecisions,
+    ...input.prerequisiteDecisions.filter(
+      (decision) => decision.state === 'blocked'
+    ),
+  ].sort((a, b) => codeUnitCompare(stableDecisionKey(a), stableDecisionKey(b)))
   if (blockedReasons.length > 0) {
     return {
       ok: false,

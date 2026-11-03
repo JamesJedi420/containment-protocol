@@ -72,18 +72,20 @@ Focused coverage includes:
 - unavailable, stale, malformed, and contradictory evidence;
 - completed/canceled lifecycle and changed blockers/dependencies;
 - Linear versus merged/current-main evidence disagreement;
+- merged evidence with unavailable Linear evidence, without an invented lifecycle conflict;
 - shared CP-core/Academy contract behavior;
 - fixed read-only Git and GitHub command sets;
 - deterministic locale-independent reason ordering;
-- fail-closed handling of valid-but-non-array PR JSON;
+- fail-closed handling of empty remote-main output and valid-but-non-array PR JSON;
 - deterministic SPE-3348 validator selection.
 
 ## Validation
 
 Current direct evidence:
 
-- Node 22 focused preflight suite: **19/19 passed** after SHA, issue-ID, argument-parser, timestamp, PR-ownership, ordering, and malformed-collection hardening.
+- Node 22 focused preflight suite: **21/21 passed** after SHA, issue-ID, argument-parser, timestamp, PR-ownership, ordering, malformed-collection, empty-remote, and unavailable-lifecycle hardening.
 - Full-diff audit caught and corrected a malformed duplicate manifest entry before review.
+- Amazon Q review findings for lifecycle evidence, remote-main collection, regex reuse, and validation sorting were addressed with focused regressions.
 - Hosted exact-head requirements, lint, formatting, backlog-handoff, and independent review remain merge gates.
 
 Run, at minimum:

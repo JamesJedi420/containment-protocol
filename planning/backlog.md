@@ -10,7 +10,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 1. Read the eight Active queue lines below; the primary handoff is **SPE-1052**.
 2. Open that Linear issue. Linear owns scope, status, and the next action; this file only orders the queue.
 3. If a slice doc for that issue exists under `planning/`, open it. If none exists, Linear is the task — do not infer work from an older planning file.
-4. Every other `planning/*-slice.md` is a historical record. See the [planning corpus audit](planning-corpus-audit.md) for its state and retention rule.
+4. Verified historical records live under `planning/archive/`. The active `spe-3181` slice, two unresolved handoffs, and 53 orphan records remain at the planning root; do not assume they are complete. See the [planning corpus audit](planning-corpus-audit.md) for each file's state and retention rule.
 
 ## Active queue
 

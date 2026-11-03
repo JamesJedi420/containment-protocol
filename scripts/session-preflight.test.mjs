@@ -53,6 +53,8 @@ function baseInput(overrides = {}) {
       remoteMainSha: SHA,
       openPullRequests: [],
       implementationEvidence: {
+        checkedAt: CHECKED_AT,
+        sourceRef: 'github:JamesJedi420/containment-protocol:implementation:SPE-3337',
         mergedCurrentMain: false,
         mergedPrUrls: [],
       },
@@ -267,7 +269,7 @@ test('completed, canceled, and changed prerequisites are blocked', () => {
 
 test('merged evidence disagreement stays explicit and never infers completion', () => {
   const result = evaluateSessionPreflight(
-    baseInput({ github: { implementationEvidence: { mergedCurrentMain: true, mergedPrUrls: ['https://example.test/pr/1'] } } })
+    baseInput({ github: { implementationEvidence: { checkedAt: CHECKED_AT, sourceRef: 'github:implementation:merged', mergedCurrentMain: true, mergedPrUrls: ['https://example.test/pr/1'] } } })
   )
   assert.equal(result.status, 'unknown')
   assert.ok(reasonCodes(result).includes('lifecycle_evidence_conflict'))
@@ -281,6 +283,8 @@ test('merged evidence does not invent a lifecycle conflict when Linear is unavai
       linear: { collectionStatus: 'needsAuth' },
       github: {
         implementationEvidence: {
+          checkedAt: CHECKED_AT,
+          sourceRef: 'github:implementation:merged',
           mergedCurrentMain: true,
           mergedPrUrls: ['https://example.test/pr/1'],
         },

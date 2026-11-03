@@ -14,6 +14,8 @@ Read [the Agent Operating Manual](docs/agent-operating-manual.md) before substan
 
 Active task details belong in Linear, the relevant `planning/*-slice.md`, and the task message: issue, approved boundary, branch, and base/main SHA. Preserve the original checkout and other active worktrees when working in isolation.
 
+Every final response must recommend a concrete next step within the authorized boundary, or recommend archiving the session when no further action belongs here. State the recommendation directly and name both the model and reasoning level to use for each recommended next step. Express reasoning on the user's light-to-ultra scale and select a level appropriate to the task; map it to the model's supported setting when needed (for example, light maps to low). For archiving alone, state that no model or reasoning level is needed. A recommendation does not change the configured model/provider or reasoning setting, authorize paid delegation or new scope, or automatically archive the chat; preserve the new-session requirement after merge.
+
 ---
 
 ## Cursor Cloud specific instructions
@@ -128,3 +130,5 @@ Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 4. Do not weaken tests, CI, or lint rules to pass.
 
 Read [Hermes shipping checkpoints](docs/hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.
+
+For multiple independent analyses, comprehensive project health checks or coordination across skills, use **Autonomous Agent Orchestration (`autonomous-ai-agents`)** in `docs/hermes-shipping-checkpoints.md`. Codex/Cursor define the bounded workstreams and dispatch limits; Hermes may coordinate explicitly assigned read-only analysis workers and aggregate compact evidence. Favor local evidence synthesis, reuse existing results and keep short checks direct. Additional Codex/Cursor workers require explicit assignment, including any paid use; workers may not delegate further. Hermes oversight does not transfer scope, implementation, publication or Linear authority.

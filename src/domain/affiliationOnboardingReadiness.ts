@@ -12,11 +12,7 @@ import {
 } from './recruitment'
 
 export type AffiliationOnboardingCheckpoint =
-  | 'identity'
-  | 'background'
-  | 'role_fit'
-  | 'training'
-  | 'oath_contract'
+  'identity' | 'background' | 'role_fit' | 'training' | 'oath_contract'
 
 export const AFFILIATION_ONBOARDING_CHECKPOINTS: readonly AffiliationOnboardingCheckpoint[] = [
   'identity',
@@ -29,12 +25,7 @@ export const AFFILIATION_ONBOARDING_CHECKPOINTS: readonly AffiliationOnboardingC
 export type AffiliationOnboardingCheckpointOutcome = 'complete' | 'required' | 'blocked'
 
 export type AffiliationOnboardingStage =
-  | 'prospect'
-  | 'contacted'
-  | 'screening'
-  | 'provisional'
-  | 'cleared'
-  | 'lost'
+  'prospect' | 'contacted' | 'screening' | 'provisional' | 'cleared' | 'lost'
 
 export interface AffiliationOnboardingReadinessContext {
   readonly backgroundClearedCandidateIds?: readonly string[]
@@ -268,7 +259,8 @@ function buildCheckpointDecisions(
   const backgroundComplete =
     backgroundIds.has(candidateId) || candidate.revealLevel === 2 || hasScoutSupport(candidate, 2)
   const roleFitComplete =
-    hasRoleFitEvidence(candidate) && (candidate.revealLevel >= 1 || hasScoutSupport(candidate, 2))
+    hasRoleFitEvidence(candidate) &&
+    ((candidate.revealLevel ?? 0) >= 1 || hasScoutSupport(candidate, 2))
 
   if (stage === 'screening') {
     return [

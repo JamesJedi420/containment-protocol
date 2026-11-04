@@ -1,5 +1,3 @@
-import type { GameState } from '../models'
-
 let pendingInvariantViolations: string[] = []
 
 /** Throw alignment violations in Vitest; record and continue in production sim ticks. */
@@ -27,24 +25,4 @@ export function enforceWeeklyReportInvariant(condition: boolean, message: string
   }
 
   pendingInvariantViolations.push(message)
-}
-
-export function appendWeeklyReportIntegrityIssue(state: GameState, message: string): GameState {
-  const existing = state.weeklyReportIntegrityIssues ?? []
-
-  return {
-    ...state,
-    weeklyReportIntegrityIssues: [...existing, message],
-  }
-}
-
-export function clearWeeklyReportIntegrityIssues(state: GameState): GameState {
-  if (!state.weeklyReportIntegrityIssues?.length) {
-    return state
-  }
-
-  const { weeklyReportIntegrityIssues, ...rest } = state
-  void weeklyReportIntegrityIssues
-
-  return rest
 }

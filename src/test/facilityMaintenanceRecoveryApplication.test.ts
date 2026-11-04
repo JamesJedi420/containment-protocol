@@ -150,7 +150,10 @@ describe('SPE-3184 facility recovery resource authority', () => {
     expect(first.facilityMaintenanceRecoveryResources).not.toBe(
       second.facilityMaintenanceRecoveryResources
     )
-    first.facilityMaintenanceRecoveryResources!.maintenanceHours = 0
+    first.facilityMaintenanceRecoveryResources = {
+      ...first.facilityMaintenanceRecoveryResources!,
+      maintenanceHours: 0,
+    }
     expect(second.facilityMaintenanceRecoveryResources!.maintenanceHours).toBe(10)
     expect(configured.facilityMaintenanceRecoveryResources!.maintenanceHours).toBe(10)
   })

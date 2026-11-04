@@ -104,7 +104,7 @@ describe('patternSourceSeriesWeeklyIntake (SPE-2110 slice 3)', () => {
   })
 
   it('advances deep_pass to reconciled when readiness gate passes', () => {
-    const record = {
+    const record: typeof HIGH_READINESS_QUEUE_FIXTURE = {
       ...HIGH_READINESS_QUEUE_FIXTURE,
       processingHistory: ['unqueued', 'blurb_triaged', 'deep_pass'],
       readinessScore: 0.91,

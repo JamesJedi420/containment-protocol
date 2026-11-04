@@ -13,15 +13,9 @@ import {
   evaluateModifiableDataPackPublishIntegration,
   evaluateModifiableDataPackPublishIntegrationFromRecord,
 } from '../domain/modifiableDataPackPublishIntegration'
-import {
-  CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE,
-} from '../domain/publishAutomationCreditingHooks'
-import {
-  CANONICAL_RELEASE_ARTIFACT_MANIFEST_FIXTURE,
-} from '../domain/modularReleasePackaging'
-import {
-  CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE,
-} from '../domain/submissionGovernanceRights'
+import { CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE } from '../domain/publishAutomationCreditingHooks'
+import { CANONICAL_RELEASE_ARTIFACT_MANIFEST_FIXTURE } from '../domain/modularReleasePackaging'
+import { CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE } from '../domain/submissionGovernanceRights'
 
 describe('modifiableDataPackPublishIntegration (SPE-2494 slice 3)', () => {
   it('returns applied record and ready_to_publish publish-intent for the canonical integration chain', () => {
@@ -94,6 +88,8 @@ describe('modifiableDataPackPublishIntegration (SPE-2494 slice 3)', () => {
     expect(envelope.publishDecision?.status).toBe('needs_revision')
     expect(envelope.reasonCodes).toContain('pack_import_needs_revision')
     expect(envelope.reasonCodes).toContain('schema_version_borderline')
+    expect(envelope.publishDecision?.reasonCodes).not.toContain('pack_import_needs_revision')
+    expect(envelope.publishDecision?.reasonCodes).not.toContain('schema_version_borderline')
     expect(envelope.validationIssues[0]?.code).toBe('pack_import_needs_revision')
   })
 

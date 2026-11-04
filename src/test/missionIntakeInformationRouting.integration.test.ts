@@ -115,7 +115,6 @@ describe('mission intake information routing integration (SPE-854 parent slice 1
       plausibility: 'plausible',
       rumorRisk: 'none',
       verificationStatus: 'partially_corroborated',
-      confidenceScore: 0.55,
     })
 
     state.informationIntakeReports = {
@@ -193,6 +192,8 @@ describe('mission intake information routing integration (SPE-854 parent slice 1
       reasonCodes: [],
       intakeSourceOverride: null,
     })
-    expect(triageMission(state, mission)).toEqual(triageMission({ ...state, informationIntakeReports: {} }, mission))
+    expect(triageMission(state, mission)).toEqual(
+      triageMission({ ...state, informationIntakeReports: {} }, mission)
+    )
   })
 })

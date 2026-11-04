@@ -263,7 +263,7 @@ function clampPercent(value: number, fallback = 0) {
   return clamp(Math.round(value), 0, 100)
 }
 
-export function normalizeAgentRole(role: Agent['role'] | undefined): AgentRole {
+export function normalizeAgentRole(role: unknown): AgentRole {
   if (typeof role === 'string' && AGENT_ROLES.has(role as AgentRole)) {
     return role as AgentRole
   }
@@ -279,15 +279,16 @@ function normalizeLegacyStatValue(value: unknown, fallback: number) {
   return clamp(Math.round(value), 0, 100)
 }
 
-function normalizeBaseStats(
-  baseStats: Agent['baseStats'] | undefined,
+export function normalizeBaseStats(
+  baseStats: unknown,
   fallback: Agent['baseStats']
 ): Agent['baseStats'] {
+  const raw = isRecord(baseStats) ? baseStats : {}
   return {
-    combat: normalizeLegacyStatValue(baseStats?.combat, fallback.combat),
-    investigation: normalizeLegacyStatValue(baseStats?.investigation, fallback.investigation),
-    utility: normalizeLegacyStatValue(baseStats?.utility, fallback.utility),
-    social: normalizeLegacyStatValue(baseStats?.social, fallback.social),
+    combat: normalizeLegacyStatValue(raw.combat, fallback.combat),
+    investigation: normalizeLegacyStatValue(raw.investigation, fallback.investigation),
+    utility: normalizeLegacyStatValue(raw.utility, fallback.utility),
+    social: normalizeLegacyStatValue(raw.social, fallback.social),
   }
 }
 
@@ -612,7 +613,7 @@ function normalizePerformancePenaltyMultiplier(
   return clamp(multiplier, 0.1, 1)
 }
 
-function normalizeAgentStatus(status: Agent['status'] | undefined): Agent['status'] {
+export function normalizeAgentStatus(status: unknown): Agent['status'] {
   if (
     status === 'active' ||
     status === 'injured' ||
@@ -727,7 +728,7 @@ function deriveOperationalRole(role: Agent['role']): Agent['operationalRole'] {
   return 'support'
 }
 
-export function normalizeAgentIdentity(agent: Agent): AgentIdentity {
+export function normalizeAgentIdentity(agent: AgentNormalizationInput): AgentIdentity {
   const fallback = createDefaultAgentIdentity(agent.name)
   const identity = agent.identity ?? fallback
   const name =
@@ -931,7 +932,7 @@ function normalizeSkillTree(
 }
 
 function normalizeTrainingProfile(
-  agent: Agent,
+  agent: AgentNormalizationInput,
   role: AgentRole,
   trainingProfile: AgentProgression['trainingProfile'] | undefined,
   fallback: AgentProgression['trainingProfile']
@@ -992,7 +993,7 @@ function normalizeTrainingProfile(
 }
 
 function normalizeAgentProgression(
-  agent: Agent,
+  agent: AgentNormalizationInput,
   role: AgentRole,
   baseStats: Agent['baseStats'],
   knownAgentIds?: ReadonlySet<string>,
@@ -1079,7 +1080,7 @@ function normalizeWeek(value: number | undefined, fallback?: number) {
 }
 
 function getLatestTimelineWeek(
-  history: Agent['history'],
+  history: AgentNormalizationInput['history'],
   eventTypes: readonly AgentHistory['timeline'][number]['eventType'][]
 ) {
   const weeks = (history?.timeline ?? [])
@@ -1090,7 +1091,7 @@ function getLatestTimelineWeek(
   return weeks.length > 0 ? Math.max(...weeks) : undefined
 }
 
-function normalizePerformanceStats(history: Agent['history']) {
+function normalizePerformanceStats(history: AgentNormalizationInput['history']) {
   const fallback = createDefaultAgentHistory().performanceStats
   const stats = history?.performanceStats
 
@@ -1164,6 +1165,10 @@ function normalizePerformanceStats(history: Agent['history']) {
       fallback.totalProtocolEffectivenessDelta
     ),
   }
+}
+
+function withCanonicalHistoryEventSource<TEvent extends OperationEvent>(event: TEvent): TEvent {
+  return { ...event, sourceSystem: EVENT_TYPE_TO_SOURCE_SYSTEM[event.type] }
 }
 
 function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
@@ -1260,7 +1265,7 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     id: entry.id,
     type: eventType,
     timestamp: entry.timestamp,
-    schemaVersion: entry.schemaVersion,
+    schemaVersion: typeof entry.schemaVersion === 'number' ? entry.schemaVersion : undefined,
     sourceSystem: entry.sourceSystem,
     payload,
   })
@@ -1269,17 +1274,15 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     return null
   }
 
-  return {
+  return withCanonicalHistoryEventSource({
     ...migrated,
     id: entry.id,
-    type: eventType,
     timestamp: entry.timestamp,
-    sourceSystem: EVENT_TYPE_TO_SOURCE_SYSTEM[eventType],
-  }
+  })
 }
 
 function normalizeAgentHistory(
-  history: Agent['history'],
+  history: AgentNormalizationInput['history'],
   agentId: string,
   knownAgentIds?: ReadonlySet<string>
 ): AgentHistory {
@@ -1445,7 +1448,7 @@ function clampServiceRecordWeek(value: number | undefined, minWeek: number, camp
 }
 
 function normalizeAgentServiceRecord(
-  agent: Agent,
+  agent: AgentNormalizationInput,
   assignment: AgentAssignmentState,
   campaignWeek?: number
 ): AgentServiceRecord {
@@ -1520,7 +1523,7 @@ function normalizeTraitModifiers(modifiers: unknown): AgentTrait['modifiers'] {
   )
 }
 
-function normalizeTraits(traits: Agent['traits']): AgentTrait[] {
+function normalizeTraits(traits: AgentNormalizationInput['traits']): AgentTrait[] {
   return (traits ?? [])
     .filter(
       (trait) =>
@@ -1540,7 +1543,7 @@ function normalizeTraits(traits: Agent['traits']): AgentTrait[] {
     }))
 }
 
-function normalizeAbilities(abilities: Agent['abilities']): AgentAbility[] {
+function normalizeAbilities(abilities: AgentNormalizationInput['abilities']): AgentAbility[] {
   return (abilities ?? [])
     .filter(
       (ability) =>
@@ -1692,7 +1695,7 @@ function normalizeAgentAssignment(assignment: Agent['assignment']): AgentAssignm
   return createDefaultAgentAssignmentState()
 }
 
-function normalizeRelationships(agent: Agent) {
+function normalizeRelationships(agent: AgentNormalizationInput) {
   return Object.fromEntries(
     Object.entries(agent.relationships ?? {})
       .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
@@ -1794,7 +1797,11 @@ function normalizeStatusFlags(status: Agent['status'], flags: string[] | undefin
   return [...nextFlags]
 }
 
-function normalizeAgentVitals(agent: Agent, fatigue: number, status: Agent['status']): AgentVitals {
+function normalizeAgentVitals(
+  agent: AgentNormalizationInput,
+  fatigue: number,
+  status: Agent['status']
+): AgentVitals {
   const fallback = createDefaultAgentVitals(fatigue, status)
   const wounds =
     status === 'dead' ? 100 : clampPercent(agent.vitals?.wounds ?? fallback.wounds, fallback.wounds)
@@ -1917,6 +1924,13 @@ function normalizeAgentReadinessProfile(
   }
 }
 
+/** Untrusted history payloads and modifier maps are validated during normalization. */
+type AgentNormalizationInput = Omit<Agent, 'history' | 'traits' | 'abilities'> & {
+  history?: Omit<AgentHistory, 'logs'> & { logs: readonly unknown[] }
+  traits?: Array<Omit<AgentTrait, 'modifiers'> & { modifiers?: unknown }>
+  abilities?: Array<Omit<AgentAbility, 'effect'> & { effect?: unknown }>
+}
+
 export interface NormalizeAgentOptions {
   knownAgentIds?: ReadonlySet<string>
   fallbackBaseStats?: Agent['baseStats']
@@ -1924,7 +1938,10 @@ export interface NormalizeAgentOptions {
   campaignWeek?: number
 }
 
-export function normalizeAgent(agent: Agent, options: NormalizeAgentOptions = {}): Agent {
+export function normalizeAgent(
+  agent: AgentNormalizationInput,
+  options: NormalizeAgentOptions = {}
+): Agent {
   const role = normalizeAgentRole(agent.role)
   const status = normalizeAgentStatus(agent.status)
   const fatigue = clampPercent(agent.fatigue, 0)

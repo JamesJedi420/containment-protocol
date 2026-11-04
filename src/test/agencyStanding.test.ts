@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import { buildAgencySummary } from '../domain/agency'
@@ -131,17 +131,19 @@ describe('Agency Standing & Ranking', () => {
     const state = createStartingState()
     const currentCase = state.cases['case-001']
     const baseline = buildMissionRewardBreakdown(currentCase, 'success', state.config, state)
-    const economicallyChanged = buildMissionRewardBreakdown(currentCase, 'success', state.config, {
+    assert.exists(state.agency)
+    const changedState = {
       ...state,
       funding: state.funding + 100_000,
       agency: { ...state.agency, funding: state.agency.funding + 100_000 },
-      deploymentMomentum: {
-        enabled: true,
-        current: 99,
-        cap: 99,
-        lastUpdatedWeek: state.week,
-      },
-    } as typeof state)
+      deploymentMomentum: { enabled: true, current: 99, cap: 99, lastUpdatedWeek: state.week },
+    }
+    const economicallyChanged = buildMissionRewardBreakdown(
+      currentCase,
+      'success',
+      state.config,
+      changedState
+    )
 
     expect(economicallyChanged.agencyStanding).toEqual(baseline.agencyStanding)
     expect(baseline.agencyStanding!.factors.map((factor) => factor.id)).toEqual([
@@ -250,14 +252,7 @@ describe('Agency Standing & Ranking', () => {
     expect(ranking.score).toBe(
       Math.max(
         0,
-        Math.min(
-          100,
-          50 +
-            reward.agencyStanding!.points +
-            reward.reputationDelta -
-            6 -
-            8
-        )
+        Math.min(100, 50 + reward.agencyStanding!.points + reward.reputationDelta - 6 - 8)
       )
     )
   })
@@ -368,9 +363,11 @@ describe('Agency Standing & Ranking', () => {
     const hydratedEvent = hydrated.events.find((event) => event.id === 'evt-standing-hydrate')
     const hydratedSnapshot = hydrated.reports[0]?.caseSnapshots?.['case-001']
 
-    expect(hydratedEvent && 'rewardBreakdown' in hydratedEvent.payload
-      ? hydratedEvent.payload.rewardBreakdown?.agencyStanding
-      : undefined).toEqual(reward.agencyStanding)
+    expect(
+      hydratedEvent && 'rewardBreakdown' in hydratedEvent.payload
+        ? hydratedEvent.payload.rewardBreakdown?.agencyStanding
+        : undefined
+    ).toEqual(reward.agencyStanding)
     expect(hydratedSnapshot?.rewardBreakdown?.agencyStanding).toEqual(reward.agencyStanding)
     expect(hydratedSnapshot?.missionResult?.rewards.agencyStanding).toEqual(reward.agencyStanding)
 

@@ -1,3 +1,4 @@
+import { assert } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import {
@@ -12,7 +13,12 @@ import {
 import { resolveAssignedCaseForWeek } from '../../domain/caseResolutionOrchestration'
 import { createInitialFundingState, normalizeFundingState } from '../../domain/funding'
 import { triageMission, recomputeMissionRouting } from '../../domain/missionIntakeRouting'
-import type { GameState, ReportNote, WeeklyReport, WeeklyReportCaseSnapshot } from '../../domain/models'
+import type {
+  GameState,
+  ReportNote,
+  WeeklyReport,
+  WeeklyReportCaseSnapshot,
+} from '../../domain/models'
 import { getCaseWeeklyReportWeeks } from '../../features/shared/operationsRouteDrillDown'
 import {
   filterReportNotesByCategory,
@@ -77,6 +83,7 @@ export function createWeeklyMvpLoopProofFixture(): WeeklyMvpLoopProofFixture {
     throw new Error('Expected covert case team assignment before weekly resolve')
   }
 
+  assert.exists(state.globalFlags)
   state.globalFlags[`conceal.case.${MVP_LOOP_PROOF_CASE_ID}`] = true
 
   state = applySuccessfulInvestigation(state, {
@@ -165,10 +172,7 @@ export function readWeeklyMvpLoopTriageScores(state: GameState) {
     throw new Error('Expected covert MVP loop case for triage reads')
   }
 
-  const withoutIntake = triageMission(
-    { ...state, informationIntakeReports: {} },
-    covertCase
-  )
+  const withoutIntake = triageMission({ ...state, informationIntakeReports: {} }, covertCase)
   const withIntake = triageMission(state, covertCase)
 
   return { withoutIntake, withIntake }
@@ -190,19 +194,14 @@ export function collectWeeklyMvpLoopReportNotesByType(
   reports: readonly WeeklyReport[],
   noteType: string
 ) {
-  return reports.flatMap(
-    (report) => report.notes?.filter((note) => note.type === noteType) ?? []
-  )
+  return reports.flatMap((report) => report.notes?.filter((note) => note.type === noteType) ?? [])
 }
 
 /**
  * Calibrates the covert case to resolve this week in the partial band (Claim 3).
  * Preserves assignment and prep flags from the base fixture.
  */
-export function tuneWeeklyMvpLoopCovertForPartialBand(
-  state: GameState,
-  teamId: string
-): GameState {
+export function tuneWeeklyMvpLoopCovertForPartialBand(state: GameState, teamId: string): GameState {
   const team = state.teams[teamId]
   const covertCase = state.cases[MVP_LOOP_PROOF_CASE_ID]
   if (!team || !covertCase) {
@@ -390,8 +389,7 @@ export function readWeeklyMvpLoopReportSurfacingBundle(
 ): WeeklyMvpLoopReportSurfacingBundle {
   const report =
     week === undefined
-      ? findWeeklyMvpLoopReportWithPartialOutcome(reports) ??
-        reports[reports.length - 1]
+      ? (findWeeklyMvpLoopReportWithPartialOutcome(reports) ?? reports[reports.length - 1])
       : findWeeklyMvpLoopReportByWeek(reports, week)
   const notes = report?.notes ?? []
 

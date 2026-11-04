@@ -69,28 +69,28 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 
 ## Common Commands
 
-| Command                                   | Purpose                                                                                                      |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `npm run dev`                             | Start the Vite development server with HMR.                                                                  |
-| `npm run lint`                            | Run ESLint across the repository.                                                                            |
-| `npm run test:run`                        | Run the full Vitest suite once using the local `vmThreads` pool.                                             |
-| `npm run test`                            | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.                                  |
-| `npm run test:run:ci`                     | Run the CI test command using the `forks` pool (PR and main).                                                |
-| `npm run coverage`                        | Run tests with coverage output (local `vmThreads` pool).                                                     |
-| `npm run coverage:ci`                     | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.                          |
-| `npm run format`                          | Rewrite files with Prettier.                                                                                 |
-| `npm run format:check`                    | Check formatting without editing files.                                                                      |
-| `npm run verify:audits-index`             | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.                              |
-| `npm run verify:backlog-handoff`          | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`.                       |
-| `npm run verify:theme-contracts`          | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`.                        |
-| `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                               |
-| `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks). |
-| `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                         |
+| Command                                   | Purpose                                                                                                                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                             | Start the Vite development server with HMR.                                                                                                                      |
+| `npm run lint`                            | Run ESLint across the repository.                                                                                                                                |
+| `npm run test:run`                        | Run the full Vitest suite once using the local `vmThreads` pool.                                                                                                 |
+| `npm run test`                            | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.                                                                                      |
+| `npm run test:run:ci`                     | Run the CI test command using the `forks` pool (PR and main).                                                                                                    |
+| `npm run coverage`                        | Run tests with coverage output (local `vmThreads` pool).                                                                                                         |
+| `npm run coverage:ci`                     | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.                                                                              |
+| `npm run format`                          | Rewrite files with Prettier.                                                                                                                                     |
+| `npm run format:check`                    | Check formatting without editing files.                                                                                                                          |
+| `npm run verify:audits-index`             | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.                                                                                  |
+| `npm run verify:backlog-handoff`          | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`.                                                                           |
+| `npm run verify:theme-contracts`          | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`.                                                                            |
+| `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                                                                                   |
+| `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks).                                                     |
+| `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                                                                             |
 | `npm run session:preflight`               | Evaluate a versioned SPE-3337 evidence envelope from stdin and return `ready`/`blocked`/`unknown`; see [`docs/session-preflight.md`](docs/session-preflight.md). |
-| `npm run verify:session-preflight`        | Run the focused read-only preflight test suite.                                                              |
-| `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                             |
+| `npm run verify:session-preflight`        | Run the focused read-only preflight test suite.                                                                                                                  |
+| `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                                                                                 |
 
-`npm run build` is currently a diagnostic TypeScript/project-build check, **not yet a blocking pull-request or release gate**. Known repository-wide type-contract drift is being repaired under [SPE-3375](https://linear.app/spectranoir/issue/SPE-3375); successful Vite development and test runs do not establish that the production build is green.
+[SPE-3375](https://linear.app/spectranoir/issue/SPE-3375) recovers the strict TypeScript and Vite production build; [the recovery evidence](docs/typecheck/green-build-2026-11-04/README.md) records zero compiler diagnostics and a literal `npm run build` exit 0. Run that command for current acceptance. It is **not yet a blocking pull-request or release gate**; shared validation-enforcement activation remains separately owned below.
 
 **Build-gate activation policy — single owner: [SPE-3348](https://linear.app/spectranoir/issue/SPE-3348) (shared repository validation orchestration).** Make `npm run build` required and fail-closed for application, build/configuration, and release-related changes **only after** SPE-3375's approved recovery work is complete; `npm run build` exits 0 on a verified current-`main` commit with applicable lint and regression tests green; and SPE-3348's shared validation registry and CI actually enforce the build check. From activation onward, a failed or unavailable required build blocks the affected merge or release; later regressions do not silently make it advisory. SPE-3375 owns build recovery, not validation-enforcement policy. This README rule does not itself enable the CI gate.
 

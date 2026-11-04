@@ -245,7 +245,7 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
       },
     }
     const hydrated = hydrateGame(raw, fallback)
-    const marketBefore = structuredClone(hydrated.market)
+    const legitimacyBefore = structuredClone(hydrated.legitimacy)
     const coverBefore = hydrated.legitimacy?.operationalCoverLevel
     const graphBeforeNegotiation = structuredClone(hydrated.authorityGraphState)
     const negotiation = resolvePersistedAuthorityNegotiation(hydrated, {
@@ -264,6 +264,6 @@ describe('authority graph persisted week-close foundation (SPE-2720)', () => {
     expect(next.authorityGraphState?.mutationHistory).toHaveLength(1)
     expect(next.authorityGraphState?.lastMutationWeek).toBe(next.week)
     expect(next.legitimacy?.operationalCoverLevel).toBe(coverBefore)
-    expect(next.market.access).toEqual(marketBefore.access)
+    expect(next.legitimacy).toEqual(legitimacyBefore)
   })
 })

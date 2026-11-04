@@ -60,6 +60,7 @@ export interface MarketListingView extends ProcurementListing {
   budgetBlockedReason?: string
   availabilityBlockedReason?: string
   buyBlockedReason?: string
+  orderBlockedReason?: string
   sellBlockedReason?: string
 }
 

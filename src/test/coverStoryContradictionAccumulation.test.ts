@@ -101,7 +101,7 @@ describe('coverStoryContradictionAccumulation (SPE-1347 slice 4)', () => {
       label: 'Coastal campus witness intake',
       topicRef: 'site:coastal-research-campus',
       initialSourceClass: 'field_witness',
-      credibility: 'plausible',
+      credibility: 'medium',
       plausibility: 'plausible',
       rumorRisk: 'low',
     })
@@ -226,7 +226,8 @@ describe('coverStoryContradictionAccumulation (SPE-1347 slice 4)', () => {
   it('applies weekly accumulation across records in stable id order', () => {
     const records = {
       [COVER_STORY_STRESSED_FIXTURE.id]: COVER_STORY_STRESSED_FIXTURE,
-      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+        COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
     }
 
     const next = applyWeeklyCoverStoryContradictionAccumulationTick(records, {
@@ -246,7 +247,8 @@ describe('coverStoryContradictionAccumulation (SPE-1347 slice 4)', () => {
 
   it('keeps orchestration idempotent when contradiction accumulation re-ticks the same week', () => {
     const records = {
-      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+        COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
     }
     const contradictionInput = {
       truthLayerRecords: {
@@ -265,7 +267,8 @@ describe('coverStoryContradictionAccumulation (SPE-1347 slice 4)', () => {
 
   it('preserves records byte-stable when no contradiction triggers resolve', () => {
     const records = {
-      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+        COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
     }
 
     const next = applyWeeklyCoverStoryTick(records, 4, {}, { contradictionInput: {} })

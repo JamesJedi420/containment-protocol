@@ -57,6 +57,31 @@ type StepRow = readonly [
   string,
 ]
 
+function isStepRow(row: readonly string[]): row is StepRow {
+  return (
+    row.length === 11 &&
+    [
+      'plot_claim',
+      'civic_condition',
+      'facility_lifecycle',
+      'facility_staffing',
+      'compound_event_composition',
+      'cross_system_translation',
+      'store_orchestration',
+      'projection_ui',
+      'zone_spanning_site',
+      'facility_maintenance_atomic',
+    ].includes(row[3]) &&
+    ['present', 'absent', 'partial_narrow'].includes(row[4]) &&
+    [
+      'already_covered_no_update',
+      'bounded_repair_within_existing_owner',
+      'confirmed_missing_implementation_slice',
+      'no_justified_feature',
+    ].includes(row[9])
+  )
+}
+
 function rowToStep(row: StepRow): RegionalAuthorityStep {
   return Object.freeze({
     stepId: row[0],
@@ -79,7 +104,12 @@ function rowToStep(row: StepRow): RegionalAuthorityStep {
  * JSON fixture so docs do not restate the full matrix.
  */
 export const REGIONAL_CROSS_REGISTER_AUTHORITY_STEPS: readonly RegionalAuthorityStep[] =
-  Object.freeze((stepRowsJson as StepRow[]).map(rowToStep))
+  Object.freeze(
+    stepRowsJson.map((row) => {
+      if (!isStepRow(row)) throw new Error('Invalid regional authority step row')
+      return rowToStep(row)
+    })
+  )
 
 export interface RegionalCrossRegisterCheckDecision {
   readonly checkId: typeof REGIONAL_CROSS_REGISTER_CHECK_ID
@@ -104,9 +134,9 @@ export function decideRegionalCrossRegisterEventAuthority(): RegionalCrossRegist
 }
 
 export function listStepsByDisposition(
-  disposition: RegionalCrossRegisterDisposition,
+  disposition: RegionalCrossRegisterDisposition
 ): readonly RegionalAuthorityStep[] {
   return Object.freeze(
-    REGIONAL_CROSS_REGISTER_AUTHORITY_STEPS.filter((step) => step.disposition === disposition),
+    REGIONAL_CROSS_REGISTER_AUTHORITY_STEPS.filter((step) => step.disposition === disposition)
   )
 }

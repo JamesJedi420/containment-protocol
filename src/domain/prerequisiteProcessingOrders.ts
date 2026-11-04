@@ -405,8 +405,8 @@ export type CaseScopedPrerequisiteReservationResult =
       readonly state: 'reserved-and-enqueued'
       readonly inventory: Record<string, number>
       readonly reservations: CaseScopedPrerequisiteProcessingReservationRegistry
-      readonly workshopWorkOrders: unknown
-      readonly workshopSnapshots: unknown
+      readonly workshopWorkOrders: ReturnType<typeof readDepartmentWorkshopState>['workOrders']
+      readonly workshopSnapshots: ReturnType<typeof readDepartmentWorkshopState>['snapshots']
       readonly reasons: readonly string[]
     }
   | { readonly state: 'blocked'; readonly reasons: readonly string[] }
@@ -421,8 +421,8 @@ export interface CaseScopedPrerequisiteAutomaticActivationResult {
   readonly activatedWorkOrderIds: readonly string[]
   readonly inventory?: Record<string, number>
   readonly reservations?: CaseScopedPrerequisiteProcessingReservationRegistry
-  readonly workshopWorkOrders?: unknown
-  readonly workshopSnapshots?: unknown
+  readonly workshopWorkOrders?: ReturnType<typeof readDepartmentWorkshopState>['workOrders']
+  readonly workshopSnapshots?: ReturnType<typeof readDepartmentWorkshopState>['snapshots']
 }
 
 export interface CaseScopedPrerequisiteTerminalSignalRegistrationResult {
@@ -561,12 +561,13 @@ export function reconcileCaseScopedWorkshopFinalizationHandoffs(
     source.departmentWorkshopCompletionOutcomes
   )
   const workshopOrders = readDepartmentWorkshopState(source).workOrders
-  let cases = source.cases
+  const sourceCases = source.cases
+  let cases = sourceCases
   let changed = false
   const handedOffCaseIds: string[] = []
   const writeCase = (caseId: string, nextCase: Record<string, unknown>) => {
     if (!changed) {
-      cases = { ...source.cases }
+      cases = { ...sourceCases }
       changed = true
     }
     cases[caseId] = nextCase

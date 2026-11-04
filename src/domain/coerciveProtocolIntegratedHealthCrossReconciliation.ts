@@ -109,9 +109,7 @@ function isHydratedCoerciveProtocolRecord(record: CoerciveProtocolRecord): boole
   return validateCoerciveProtocolRecord(record).valid
 }
 
-function isHydratedIntegratedHealthBundle(
-  bundle: ContainedPersonIntegratedHealthBundle
-): boolean {
+function isHydratedIntegratedHealthBundle(bundle: ContainedPersonIntegratedHealthBundle): boolean {
   return validateContainedPersonIntegratedHealthBundle(bundle).valid
 }
 
@@ -121,9 +119,7 @@ function isHydratedSurveillanceInterventionTuningRecord(
   return validateSurveillanceInterventionTuningRecord(record).valid
 }
 
-function isHydratedPsychologicalResilienceRecord(
-  record: PsychologicalResilienceRecord
-): boolean {
+function isHydratedPsychologicalResilienceRecord(record: PsychologicalResilienceRecord): boolean {
   return validatePsychologicalResilienceRecord(record).valid
 }
 
@@ -297,18 +293,14 @@ function collectTherapeuticChannelStates(
 ): readonly TherapeuticCareScheduleLink['channelState'][] {
   const links = bundle?.therapeuticCareScheduleLinks ?? []
   return Object.freeze(
-    [...links]
-      .map((link) => link.channelState)
-      .sort((left, right) => left.localeCompare(right))
+    [...links].map((link) => link.channelState).sort((left, right) => left.localeCompare(right))
   )
 }
 
 function hasActiveTherapeuticContactChannel(
   bundle: ContainedPersonIntegratedHealthBundle | null
 ): boolean {
-  return (bundle?.therapeuticCareScheduleLinks ?? []).some(
-    (link) => link.channelState === 'active'
-  )
+  return (bundle?.therapeuticCareScheduleLinks ?? []).some((link) => link.channelState === 'active')
 }
 
 function collectBundleCrossSystemTensionFlags(input: {
@@ -327,7 +319,11 @@ function collectBundleCrossSystemTensionFlags(input: {
   }
 
   const humaneCareRiskScore = input.bundle?.humaneCareRiskScore
-  if (humaneCareRiskScore !== undefined && humaneCareRiskScore !== null && humaneCareRiskScore < 0.25) {
+  if (
+    humaneCareRiskScore !== undefined &&
+    humaneCareRiskScore !== null &&
+    humaneCareRiskScore < 0.25
+  ) {
     flags.push('surveillance_burden_low_humane_care_risk')
   }
 
@@ -365,21 +361,17 @@ function collectPsychologicalResilienceCrossSystemTensionFlags(input: {
   return Object.freeze([...new Set(flags)].sort((left, right) => left.localeCompare(right)))
 }
 
-const STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES = new Set<CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode>([
+const STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES = [
   'staff_exclusion_support_duty_obligation_elevated',
   'staff_exclusion_exposure_risk_not_separated',
   'staff_exclusion_medical_access_not_routed',
   'staff_exclusion_accommodation_access_not_routed',
-])
+] as const satisfies readonly CoerciveProtocolCrossSystemTensionFlag[]
 
 function mapStaffExclusionIssueToCrossSystemTensionFlag(
   code: CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode
 ): CoerciveProtocolCrossSystemTensionFlag | null {
-  if (!STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES.has(code)) {
-    return null
-  }
-
-  return code
+  return STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES.find((candidate) => candidate === code) ?? null
 }
 
 function collectStaffExclusionCrossSystemTensionFlags(input: {
@@ -423,7 +415,10 @@ function collectStaffExclusionCrossSystemTensionFlags(input: {
   const resilienceDutyDegraded =
     input.resilienceCrossSystemTensionFlags.includes(
       'psychological_resilience_duty_reliability_degraded'
-    ) || input.psychologicalResilienceProjections.some((projection) => projection.dutyReliabilityDegraded)
+    ) ||
+    input.psychologicalResilienceProjections.some(
+      (projection) => projection.dutyReliabilityDegraded
+    )
 
   if (resilienceDutyDegraded && input.psychologicalResilienceProjections.length > 0) {
     flags.push('staff_exclusion_resilience_duty_reliability_cross_tension')
@@ -670,7 +665,9 @@ export function composeCoerciveProtocolIntegratedHealthReconciliation(
     `linked_resilience_count:${linkedResilienceIds.size}`,
     `triggered_contradiction_check_count:${triggeredContradictionChecks.length}`,
     `cross_system_tension_count:${crossSystemTensionFlags.length}`,
-    links.some((link) => link.matchKind === 'subject_ref') ? 'match:subject_ref' : 'match:none_subject_ref',
+    links.some((link) => link.matchKind === 'subject_ref')
+      ? 'match:subject_ref'
+      : 'match:none_subject_ref',
     surveillanceTuningLinks.length > 0 ? 'tuning:linked' : 'tuning:none',
     psychologicalResilienceLinks.length > 0 ? 'resilience:linked' : 'resilience:none',
     crossSystemTensionFlags.length > 0 ? 'tension:present' : 'tension:none',
@@ -735,7 +732,11 @@ export function composeAllCoerciveProtocolIntegratedHealthReconciliations(
     }
 
     const subjectRef = normalizeToken(record.subjectRef)
-    if (subjectRef && bundles?.[subjectRef] && isHydratedIntegratedHealthBundle(bundles[subjectRef])) {
+    if (
+      subjectRef &&
+      bundles?.[subjectRef] &&
+      isHydratedIntegratedHealthBundle(bundles[subjectRef])
+    ) {
       subjectRefs.add(subjectRef)
     }
   }

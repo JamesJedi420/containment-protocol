@@ -52,7 +52,10 @@ describe('spe956ParticipatoryChannelWeeklyOrchestration (SPE-2643)', () => {
   })
 
   it('leaves channels without authored delta fields unchanged', () => {
-    const channel = Object.freeze({ ...EXAMPLE_HOTLINE_CHANNEL })
+    const channel = Object.freeze({
+      ...EXAMPLE_HOTLINE_CHANNEL,
+      weeklyElapsedWeeksDelta: undefined,
+    })
     expect(advanceSpe956ParticipatoryChannelForWeek(channel, 5)).toBe(channel)
   })
 

@@ -46,9 +46,9 @@ describe('stabilityLayer', () => {
         }),
       ])
     )
-    expect(report.recoveryActions.some((action) => action.id === 'prune-invalid-queue-events')).toBe(
-      true
-    )
+    expect(
+      report.recoveryActions.some((action) => action.id === 'prune-invalid-queue-events')
+    ).toBe(true)
   })
 
   it('detects encounter lifecycle inconsistency', () => {
@@ -73,7 +73,9 @@ describe('stabilityLayer', () => {
 
     const report = analyzeRuntimeStability(broken)
 
-    expect(report.issues.some((issue) => issue.id.includes('encounter.active-missing-start'))).toBe(true)
+    expect(report.issues.some((issue) => issue.id.includes('encounter.active-missing-start'))).toBe(
+      true
+    )
   })
 
   it('detects stale authored context and supports explicit context clearing', () => {
@@ -122,7 +124,9 @@ describe('stabilityLayer', () => {
     const report = analyzeRuntimeStability(broken)
 
     expect(report.issues.some((issue) => issue.id.includes('clock.range-invalid'))).toBe(true)
-    expect(report.issues.some((issue) => issue.id.includes('clock.completion-inconsistent'))).toBe(true)
+    expect(report.issues.some((issue) => issue.id.includes('clock.completion-inconsistent'))).toBe(
+      true
+    )
   })
 
   it('detects restored-state stale selections and queue duplicate/stability issues', () => {
@@ -218,15 +222,19 @@ describe('stabilityLayer', () => {
 
     const report = analyzeRuntimeStability(broken)
 
-    expect(report.issues.some((issue) => issue.id.includes('intel-confidence-invalid.case-001'))).toBe(
-      true
-    )
-    expect(report.issues.some((issue) => issue.id.includes('research-project-missing.missing-intel-project'))).toBe(
-      true
-    )
-    expect(report.issues.some((issue) => issue.id.includes('deployment.invalid-intel-penalty.t_nightwatch'))).toBe(
-      true
-    )
+    expect(
+      report.issues.some((issue) => issue.id.includes('intel-confidence-invalid.case-001'))
+    ).toBe(true)
+    expect(
+      report.issues.some((issue) =>
+        issue.id.includes('research-project-missing.missing-intel-project')
+      )
+    ).toBe(true)
+    expect(
+      report.issues.some((issue) =>
+        issue.id.includes('deployment.invalid-intel-penalty.t_nightwatch')
+      )
+    ).toBe(true)
   })
 
   it('detects loadout role-compatibility mismatches', () => {
@@ -471,7 +479,9 @@ describe('stabilityLayer', () => {
     const report = analyzeRuntimeStability(state)
 
     expect(fallback.safe).toBe(true)
-    expect(report.recoveryActions.every((action) => typeof action.mutating === 'boolean')).toBe(true)
+    expect(report.recoveryActions.every((action) => typeof action.mutating === 'boolean')).toBe(
+      true
+    )
   })
 
   it('prunes invalid queue events only when explicitly requested', () => {
@@ -494,7 +504,11 @@ describe('stabilityLayer', () => {
 
     expect(pruned.removedCount).toBeGreaterThan(0)
     expect(pruned.removedEventIds.length).toBe(pruned.removedCount)
-    expect(pruned.state.runtimeState?.eventQueue.entries.some((entry) => entry.targetId === 'frontdesk.notice.missing-target')).toBe(false)
+    expect(
+      pruned.state.runtimeState?.eventQueue.entries.some(
+        (entry) => entry.targetId === 'frontdesk.notice.missing-target'
+      )
+    ).toBe(false)
   })
 
   it('normalizes invalid progress clocks only when explicitly requested', () => {
@@ -524,7 +538,9 @@ describe('stabilityLayer', () => {
     const normalized = normalizeInvalidProgressClocks(broken)
 
     expect(normalized.normalizedCount).toBe(2)
-    expect(normalized.normalizedClockIds).toEqual(expect.arrayContaining(['clock-invalid', 'clock-negative']))
+    expect(normalized.normalizedClockIds).toEqual(
+      expect.arrayContaining(['clock-invalid', 'clock-negative'])
+    )
     expect(normalized.state.runtimeState?.progressClocks['clock-invalid']).toMatchObject({
       value: 2,
       max: 2,
@@ -598,7 +614,9 @@ describe('stabilityLayer', () => {
       recoveryActions: [] as const,
     }
 
-    const merged = appendStabilityIssues(base, [branchContinuityIssue])
+    const merged = appendStabilityIssues(base, [
+      { ...branchContinuityIssue, recoveryActions: [...branchContinuityIssue.recoveryActions] },
+    ])
 
     expect(merged.summary.issueCount).toBe(base.summary.issueCount + 1)
     expect(merged.summary.errorCount).toBe(base.summary.errorCount + 1)

@@ -2,7 +2,12 @@
  * SPE-70 / SPE-2281 slice 1: case-level hidden-state modalities composed into tiered reveal scans.
  */
 
-import type { ConcealmentLayer, DetectionScanInput, DetectionScanResult, SubjectTruthState } from './revealPayload'
+import type {
+  ConcealmentLayer,
+  DetectionScanInput,
+  DetectionScanResult,
+  SubjectTruthState,
+} from './revealPayload'
 import type { CaseInstance, Id } from './models'
 import {
   buildDisguiseRevealSubjectFromCase,
@@ -411,7 +416,7 @@ export function buildSubjectTruthFromCaseHiddenState(
     caseData.hiddenStateIllusionState.phase !== 'collapsed'
       ? illusionConcealmentLayer(illusionKind)
       : null
-  const layerGroups: ConcealmentLayer[][] = []
+  const layerGroups: (readonly ConcealmentLayer[])[] = []
   if (illusionLayer) {
     layerGroups.push([illusionLayer])
   }

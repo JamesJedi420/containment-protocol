@@ -29,14 +29,7 @@ type WeeklyIntakeSyntheticEvent =
 
 type WeeklyCorroborationCaseContext = Pick<
   CaseInstance,
-  | 'id'
-  | 'templateId'
-  | 'title'
-  | 'status'
-  | 'stage'
-  | 'tags'
-  | 'requiredTags'
-  | 'preferredTags'
+  'id' | 'templateId' | 'title' | 'status' | 'stage' | 'tags' | 'requiredTags' | 'preferredTags'
 >
 
 export function buildWeeklyIntakeSyntheticEventId(
@@ -169,7 +162,7 @@ function buildWeeklyContradictionSourceRef(
   week: number,
   hasLinkedCases: boolean,
   linkedCaseIds: readonly string[],
-  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  _linkingCases: readonly WeeklyCorroborationCaseContext[],
   outcomeCases: readonly WeeklyCorroborationCaseContext[]
 ): string {
   const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
@@ -197,7 +190,7 @@ function buildWeeklyCorroborationSourceRef(
   week: number,
   hasLinkedCases: boolean,
   linkedCaseIds: readonly string[],
-  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  _linkingCases: readonly WeeklyCorroborationCaseContext[],
   outcomeCases: readonly WeeklyCorroborationCaseContext[]
 ): string {
   const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
@@ -259,7 +252,8 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
   if (phase === 1 || phase === 3) {
     const sourceClass = resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases)
     const baseWeight =
-      report.initialSourceClass === 'formal_alert' || report.initialSourceClass === 'technical_trace'
+      report.initialSourceClass === 'formal_alert' ||
+      report.initialSourceClass === 'technical_trace'
         ? 0.22
         : hasLinkedCases
           ? phase === 3
@@ -289,7 +283,10 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
     }
   }
 
-  if (report.initialSourceClass === 'formal_alert' || report.initialSourceClass === 'technical_trace') {
+  if (
+    report.initialSourceClass === 'formal_alert' ||
+    report.initialSourceClass === 'technical_trace'
+  ) {
     return {
       kind: 'corroboration',
       event: {

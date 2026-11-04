@@ -70,10 +70,7 @@ describe('infiltrationCover', () => {
   })
 
   it('scores uniform_guard against media/public as role mismatch pressure', () => {
-    const mismatch = evaluateCoverRoleMismatchPressure(
-      createCoverCase(),
-      'uniform_guard'
-    )
+    const mismatch = evaluateCoverRoleMismatchPressure(createCoverCase(), 'uniform_guard')
 
     expect(mismatch.hasRoleMismatch).toBe(true)
     expect(mismatch.pressure).toBe(0.5)
@@ -155,7 +152,7 @@ describe('infiltrationCover', () => {
     const observer: Agent = {
       id: 'a_cover_reader',
       name: 'a_cover_reader',
-      role: 'liaison',
+      role: 'negotiator',
       baseStats: { combat: 10, investigation: 50, utility: 40, social: 58 },
       tags: ['medium', 'liaison'],
       relationships: {},

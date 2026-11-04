@@ -1,0 +1,101 @@
+
+> containment-protocol-breach@0.0.0 build
+> tsc -b && vite build --config app.vite.config.ts --configLoader native
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 2964 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                               1.03 kB │ gzip:   0.47 kB
+dist/assets/index-BsQD2SVJ.css                                               74.74 kB │ gzip:  13.48 kB
+dist/assets/icons-B0W-ukKb.js                                                 0.02 kB │ gzip:   0.04 kB
+dist/assets/teamView-B0W-ukKb.js                                              0.02 kB │ gzip:   0.04 kB
+dist/assets/templateFamilyView-lbY26yDC.js                                    0.09 kB │ gzip:   0.09 kB
+dist/assets/mirrorFormatting-D3DRbyvA.js                                      0.12 kB │ gzip:   0.13 kB
+dist/assets/InPageLink-Da02We3H.js                                            0.19 kB │ gzip:   0.17 kB
+dist/assets/LocalNotFound-oIdmBEWT.js                                         0.58 kB │ gzip:   0.34 kB
+dist/assets/rolldown-runtime-WkwZ5CU-.js                                      0.59 kB │ gzip:   0.36 kB
+dist/assets/FilterSelect-CeJAn1kc.js                                          0.98 kB │ gzip:   0.41 kB
+dist/assets/divisionMetrics-BECGy65E.js                                       1.03 kB │ gzip:   0.48 kB
+dist/assets/operationsRouteDrillDown-8KzesEQO.js                              1.03 kB │ gzip:   0.55 kB
+dist/assets/HelpPlaceholderPage-r7SqNqOe.js                                   1.08 kB │ gzip:   0.55 kB
+dist/assets/AgentDetailPage-BoDh0D2F.js                                       1.45 kB │ gzip:   0.84 kB
+dist/assets/StatCard-IUkipLDz.js                                              1.52 kB │ gzip:   0.50 kB
+dist/assets/containedPersonTherapeuticCareMirrorView-Dfo88rWc.js              1.64 kB │ gzip:   0.76 kB
+dist/assets/publicDisclosureMirrorView-BC6hIaAE.js                            1.83 kB │ gzip:   0.84 kB
+dist/assets/departmentWorkshopActivationCopy-DbUac8LE.js                      2.48 kB │ gzip:   0.89 kB
+dist/assets/CardsPage-C3yEVwbN.js                                             3.00 kB │ gzip:   0.97 kB
+dist/assets/publicDisclosureCampaignView-BTYL2Q4E.js                          3.39 kB │ gzip:   1.48 kB
+dist/assets/postIncidentReviewMirrorView-CDY5WZ_k.js                          3.47 kB │ gzip:   1.41 kB
+dist/assets/vendor-misc-YkKrwFWM.js                                           3.56 kB │ gzip:   1.57 kB
+dist/assets/ModifiableDataPackMirrorPage-CmUVKH-c.js                          4.38 kB │ gzip:   1.37 kB
+dist/assets/teamBuilderView-DB5PlPhB.js                                       4.46 kB │ gzip:   1.61 kB
+dist/assets/SystemBoundaryPage-D46WkV9Q.js                                    4.79 kB │ gzip:   1.71 kB
+dist/assets/PublicDisclosureMirrorPage-DSm_-RVj.js                            5.07 kB │ gzip:   1.41 kB
+dist/assets/ContainedPersonTherapeuticCareMirrorPage-BvOvBLIS.js              5.22 kB │ gzip:   1.40 kB
+dist/assets/eventFeedFilters-Do9OWIYH.js                                      5.60 kB │ gzip:   1.99 kB
+dist/assets/FabricationPage-WzGiD6KC.js                                       5.78 kB │ gzip:   1.68 kB
+dist/assets/DepartmentWorkshopActivationCommandPage-DGx92-dx.js               5.91 kB │ gzip:   1.97 kB
+dist/assets/PublicDisclosureCampaignPage-BxL9Hbs8.js                          6.06 kB │ gzip:   1.61 kB
+dist/assets/Spe956PropagationGraphMirrorPage-B8iiObr-.js                      6.34 kB │ gzip:   1.66 kB
+dist/assets/ReportPage-CTzZ_XbH.js                                            6.58 kB │ gzip:   2.15 kB
+dist/assets/IntelPage-DuG9w6Y8.js                                             6.66 kB │ gzip:   1.98 kB
+dist/assets/operationsReportView-DtzFIAkC.js                                  6.71 kB │ gzip:   2.73 kB
+dist/assets/SelfCensoringInformationMirrorPage-C5KmiLWF.js                    6.74 kB │ gzip:   1.91 kB
+dist/assets/reportTrendView-D5T6yDw5.js                                       6.81 kB │ gzip:   1.97 kB
+dist/assets/RuleDocumentComplianceMirrorPage-lk2jRR5y.js                      6.82 kB │ gzip:   1.97 kB
+dist/assets/intelView-riDEWgax.js                                             6.88 kB │ gzip:   2.54 kB
+dist/assets/MassAnomalousPopulationEmergenceMirrorPage-BQ6HSz8f.js            6.93 kB │ gzip:   1.92 kB
+dist/assets/operationalCertainty-DcIy7v4U.js                                  7.14 kB │ gzip:   2.41 kB
+dist/assets/WelfareDebtAccountingMirrorPage-DG5vI_Cy.js                       7.25 kB │ gzip:   1.99 kB
+dist/assets/PostIncidentReviewRecommendationMirrorPage-DnlMaAjP.js            7.27 kB │ gzip:   1.71 kB
+dist/assets/SurveillanceInterventionTuningMirrorPage-B95yKTYU.js              7.39 kB │ gzip:   2.02 kB
+dist/assets/NamingHazardDescriptorMirrorPage-B3pRyNHa.js                      7.48 kB │ gzip:   2.11 kB
+dist/assets/PsychologicalResilienceMirrorPage-CbRAts9R.js                     7.50 kB │ gzip:   2.02 kB
+dist/assets/PublishQueueMirrorPage-Bn7p1Jgd.js                                7.92 kB │ gzip:   1.95 kB
+dist/assets/PatternSourceSeriesMirrorPage-vdz0IQG0.js                         7.95 kB │ gzip:   1.98 kB
+dist/assets/PostIncidentReviewMirrorPage-CgDSnVSX.js                          7.95 kB │ gzip:   1.53 kB
+dist/assets/CognitiveHazardExposureMirrorPage-DJPlvKOm.js                     8.00 kB │ gzip:   2.06 kB
+dist/assets/VisualTriggerHazardMirrorPage-Dsbbv695.js                         8.19 kB │ gzip:   2.23 kB
+dist/assets/TruthLayerMirrorPage-C9pL4-lC.js                                  8.26 kB │ gzip:   2.09 kB
+dist/assets/CoverStoryMirrorPage-CCwU6xZR.js                                  8.34 kB │ gzip:   2.04 kB
+dist/assets/IntelDetailPage-Cq9ngslf.js                                       8.37 kB │ gzip:   2.16 kB
+dist/assets/PostIncidentReviewRecommendationActionMirrorPage-D95hfdP_.js      8.82 kB │ gzip:   1.88 kB
+dist/assets/Spe956ParticipatoryChannelMirrorPage-DQ5zzZYw.js                  9.09 kB │ gzip:   2.07 kB
+dist/assets/vendor-icons-B0Q77uBf.js                                          9.11 kB │ gzip:   3.76 kB
+dist/assets/RegistryPage-DRx8bLih.js                                          9.16 kB │ gzip:   3.17 kB
+dist/assets/AgentsPage-3DdEf3Gn.js                                            9.90 kB │ gzip:   3.28 kB
+dist/assets/ContainedPersonIntegratedHealthBundleMirrorPage-P37eYhtu.js      10.75 kB │ gzip:   2.51 kB
+dist/assets/Spe947EvaluatorMirrorPage-DJUTudBc.js                            10.85 kB │ gzip:   2.23 kB
+dist/assets/CoerciveContainedPersonProtocolMirrorPage-DGWZHqn0.js            12.98 kB │ gzip:   3.13 kB
+dist/assets/RecurrentCatastropheMirrorPage-DMPBYBwH.js                       13.01 kB │ gzip:   3.39 kB
+dist/assets/EntityWelfareReclassificationMirrorPage-CAM8In4B.js              13.17 kB │ gzip:   3.60 kB
+dist/assets/FactionsPage-97TG80q5.js                                         14.87 kB │ gzip:   3.88 kB
+dist/assets/TeamsPage-Dh_897vQ.js                                            15.13 kB │ gzip:   4.18 kB
+dist/assets/ReportDetailPage-Cc72Bum-.js                                     17.94 kB │ gzip:   5.08 kB
+dist/assets/TeamDetailPage-BpMNGZxT.js                                       19.20 kB │ gzip:   4.93 kB
+dist/assets/AffiliationPersonStatusMirrorPage-Bzk3wg4Q.js                    20.30 kB │ gzip:   4.15 kB
+dist/assets/DepartmentWorkshopMirrorPage-DQS0a76J.js                         21.37 kB │ gzip:   5.51 kB
+dist/assets/AgencyPage-CG01AJSs.js                                           22.55 kB │ gzip:   6.21 kB
+dist/assets/RecruitmentPage-BoOhcWSa.js                                      24.56 kB │ gzip:   6.83 kB
+dist/assets/MarketPage-BibGZt7F.js                                           25.92 kB │ gzip:   6.86 kB
+dist/assets/TrainingDivisionPage-DxXacpzh.js                                 30.22 kB │ gzip:   7.36 kB
+dist/assets/ContractBoardPage-qnSZTzg0.js                                    33.56 kB │ gzip:   7.82 kB
+dist/assets/eventFeedView-DcbdVQUV.js                                        37.08 kB │ gzip:   5.95 kB
+dist/assets/CasesPage-BLf69BQ7.js                                            41.61 kB │ gzip:   9.62 kB
+dist/assets/CaseDetailPage-dTRhTrkx.js                                       44.23 kB │ gzip:   8.93 kB
+dist/assets/agentView-CzVdQYrL.js                                            57.05 kB │ gzip:  13.14 kB
+dist/assets/EquipmentPage-CvinHGq1.js                                        57.35 kB │ gzip:  10.78 kB
+dist/assets/OperationsDeskPage-CyS0blqR.js                                   90.87 kB │ gzip:  21.22 kB
+dist/assets/index-B5OQ-fxO.js                                               108.28 kB │ gzip:  32.30 kB
+dist/assets/vendor-react-CHOBi6Ln.js                                        244.54 kB │ gzip:  77.58 kB
+dist/assets/content-catalog-DxCqsZZ_.js                                     896.50 kB │ gzip: 232.75 kB
+dist/assets/sim-core-VbcKQlIR.js                                          1,649.83 kB │ gzip: 400.60 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.81s

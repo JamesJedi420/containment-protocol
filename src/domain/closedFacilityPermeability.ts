@@ -30,8 +30,7 @@ export const CLOSED_FACILITY_PERMEABILITY_BANDS = [
   'leaky',
   'porous',
 ] as const
-export type ClosedFacilityPermeabilityBand =
-  (typeof CLOSED_FACILITY_PERMEABILITY_BANDS)[number]
+export type ClosedFacilityPermeabilityBand = (typeof CLOSED_FACILITY_PERMEABILITY_BANDS)[number]
 
 export const CLOSED_FACILITY_LEAK_CHANNELS = [
   'contraband_flow',
@@ -53,12 +52,7 @@ export const IMPOSSIBLE_ACCESS_EXPLANATIONS = [
 ] as const
 export type ImpossibleAccessExplanation = (typeof IMPOSSIBLE_ACCESS_EXPLANATIONS)[number]
 
-export const HOLDING_CELL_CATEGORIES = [
-  'detention',
-  'isolation',
-  'intake',
-  'transit',
-] as const
+export const HOLDING_CELL_CATEGORIES = ['detention', 'isolation', 'intake', 'transit'] as const
 export type HoldingCellCategory = (typeof HOLDING_CELL_CATEGORIES)[number]
 
 export const CUSTODY_PRESSURE_KINDS = [
@@ -77,8 +71,7 @@ export const EMERGENCY_DEVICE_SILENCE_INFERENCES = [
   'trusted_access',
   'system_malfunction',
 ] as const
-export type EmergencyDeviceSilenceInference =
-  (typeof EMERGENCY_DEVICE_SILENCE_INFERENCES)[number]
+export type EmergencyDeviceSilenceInference = (typeof EMERGENCY_DEVICE_SILENCE_INFERENCES)[number]
 
 export const CONTROLLED_TOOL_CHANNELS = [
   'work_detail',
@@ -140,8 +133,7 @@ export const SENSITIVE_CONTRACTOR_PAYMENT_MODES = [
   'cash_paid',
   'no_record',
 ] as const
-export type SensitiveContractorPaymentMode =
-  (typeof SENSITIVE_CONTRACTOR_PAYMENT_MODES)[number]
+export type SensitiveContractorPaymentMode = (typeof SENSITIVE_CONTRACTOR_PAYMENT_MODES)[number]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -171,9 +163,7 @@ function permeabilityRank(band: ClosedFacilityPermeabilityBand): number {
  * Invert permeability onto the same orientation as formal security
  * (sealed ≈ maximum, porous ≈ low) before comparing ranks.
  */
-function actualSecurityRankFromPermeability(
-  band: ClosedFacilityPermeabilityBand
-): number {
+function actualSecurityRankFromPermeability(band: ClosedFacilityPermeabilityBand): number {
   return CLOSED_FACILITY_PERMEABILITY_BANDS.length - 1 - permeabilityRank(band)
 }
 
@@ -192,8 +182,7 @@ export function isMeaningfulFormalActualPermeabilityGap(
   const leakyActual = actualPermeability === 'leaky' || actualPermeability === 'porous'
   if (highFormal && leakyActual) return true
   return (
-    formalSecurityRank(formalSecurity) - actualSecurityRankFromPermeability(actualPermeability) >=
-    2
+    formalSecurityRank(formalSecurity) - actualSecurityRankFromPermeability(actualPermeability) >= 2
   )
 }
 
@@ -283,10 +272,7 @@ export function reconstructImpossibleAccessScene(
   if (!Array.isArray(input.knownLockIds) || !input.knownLockIds.every(isNonEmptyString)) {
     return undefined
   }
-  if (
-    !Array.isArray(input.watchCoverageIds) ||
-    !input.watchCoverageIds.every(isNonEmptyString)
-  ) {
+  if (!Array.isArray(input.watchCoverageIds) || !input.watchCoverageIds.every(isNonEmptyString)) {
     return undefined
   }
   if (!Array.isArray(input.knownRouteIds) || !input.knownRouteIds.every(isNonEmptyString)) {
@@ -377,17 +363,17 @@ export function resolveBreachPathContradiction(
     return undefined
   }
 
-  const asDesignedExplainsAccess = input.asDesignedRouteIds.includes(
+  const asDesignedRouteIds = input.asDesignedRouteIds
+  const asFoundRouteIds = input.asFoundRouteIds
+  const asDesignedExplainsAccess = asDesignedRouteIds.includes(
     input.impossibleAccessObservedRouteId
   )
-  const asFoundExplainsAccess = input.asFoundRouteIds.includes(
-    input.impossibleAccessObservedRouteId
+  const asFoundExplainsAccess = asFoundRouteIds.includes(input.impossibleAccessObservedRouteId)
+  const undocumentedShortcutIds = asFoundRouteIds.filter(
+    (routeId) => !asDesignedRouteIds.includes(routeId)
   )
-  const undocumentedShortcutIds = input.asFoundRouteIds.filter(
-    (routeId) => !input.asDesignedRouteIds.includes(routeId)
-  )
-  const removedDesignedRouteIds = input.asDesignedRouteIds.filter(
-    (routeId) => !input.asFoundRouteIds.includes(routeId)
+  const removedDesignedRouteIds = asDesignedRouteIds.filter(
+    (routeId) => !asFoundRouteIds.includes(routeId)
   )
   const hasMapContradiction =
     undocumentedShortcutIds.length > 0 || removedDesignedRouteIds.length > 0
@@ -418,9 +404,7 @@ export interface CustodyIncidentResult {
 }
 
 /** Holding-cell custody pressure distinct from ordinary lock failure (except lock_failure itself). */
-export function projectCustodyIncidentPressure(
-  input: unknown
-): CustodyIncidentResult | undefined {
+export function projectCustodyIncidentPressure(input: unknown): CustodyIncidentResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.incidentId)) return undefined
   if (!isMember(input.cellCategory, HOLDING_CELL_CATEGORIES)) return undefined
@@ -590,8 +574,7 @@ export function classifyStaffEntryPolicy(input: unknown): StaffEntryPolicyResult
   }
 
   const studyMode: StaffEntryStudyMode =
-    input.studyMode ??
-    (input.policy === 'no_staff_entry' ? 'remote_study' : 'expendable_probe')
+    input.studyMode ?? (input.policy === 'no_staff_entry' ? 'remote_study' : 'expendable_probe')
 
   return Object.freeze({
     siteId: input.siteId,
@@ -663,9 +646,7 @@ export interface TemporarySecureZoneResult {
 }
 
 /** Temporary/deployable secure zones preserve reduced permeability outside permanent topology. */
-export function projectTemporarySecureZone(
-  input: unknown
-): TemporarySecureZoneResult | undefined {
+export function projectTemporarySecureZone(input: unknown): TemporarySecureZoneResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.zoneId)) return undefined
   if (!isMember(input.kind, TEMPORARY_SECURE_ZONE_KINDS)) return undefined
@@ -707,8 +688,7 @@ export function projectSensitiveContractorExposure(
   if (!isMember(input.paymentMode, SENSITIVE_CONTRACTOR_PAYMENT_MODES)) return undefined
   if (typeof input.functionProtectedBySecrecy !== 'boolean') return undefined
 
-  const undocumented =
-    input.paymentMode === 'cash_paid' || input.paymentMode === 'no_record'
+  const undocumented = input.paymentMode === 'cash_paid' || input.paymentMode === 'no_record'
 
   return Object.freeze({
     contractorId: input.contractorId,

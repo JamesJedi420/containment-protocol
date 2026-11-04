@@ -38,7 +38,10 @@ export const MINOR_ANOMALY_DISPOSITIONS: readonly MinorAnomalyDisposition[] = [
   'false_positive_returned',
 ] as const
 
-const INITIAL_INTAKE_DISPOSITIONS = new Set<MinorAnomalyDisposition>(['recovered', 'pending_review'])
+const INITIAL_INTAKE_DISPOSITIONS = new Set<MinorAnomalyDisposition>([
+  'recovered',
+  'pending_review',
+])
 
 const MULTI_STEP_DISPOSITIONS = new Set<MinorAnomalyDisposition>([
   'stored',
@@ -198,7 +201,9 @@ function sortValidationIssues(issues: MinorAnomalyValidationIssue[]) {
 }
 
 function isFiniteWeek(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  return (
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  )
 }
 
 function isValidUnitInterval(value: unknown): value is number {
@@ -209,7 +214,9 @@ function isValidLatentRiskScore(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
 }
 
-function freezeValidationResult(issues: MinorAnomalyValidationIssue[]): MinorAnomalyValidationResult {
+function freezeValidationResult(
+  issues: MinorAnomalyValidationIssue[]
+): MinorAnomalyValidationResult {
   const sortedIssues = sortValidationIssues(issues)
   const hasError = sortedIssues.some((issue) => issue.severity === 'error')
 
@@ -230,7 +237,7 @@ function resolveProjectedRef(
   rawValue: string | undefined,
   fieldName: string,
   record: MinorAnomalyRecord,
-  policy: MinorAnomalyOperatorProjectionPolicy,
+  _policy: MinorAnomalyOperatorProjectionPolicy,
   suppressWhenRedacted: boolean | undefined
 ): string | null {
   const redactedFields = new Set(asStringArray(record.redactedFields))
@@ -260,7 +267,11 @@ function resolveConfidence(
   }
 
   const confidence = record.confidence ?? null
-  if (confidence !== null && policy.minimumConfidence !== undefined && confidence < policy.minimumConfidence) {
+  if (
+    confidence !== null &&
+    policy.minimumConfidence !== undefined &&
+    confidence < policy.minimumConfidence
+  ) {
     return null
   }
 
@@ -512,7 +523,9 @@ export function projectMinorAnomalyForOperator(
     redactedFields.has('suspectedOriginRef') ||
     redactedFields.has('currentCustodyRef') ||
     redactedFields.has('confidence') ||
-    (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
+    (confidence === null &&
+      record.confidence !== undefined &&
+      policy.minimumConfidence !== undefined)
 
   return Object.freeze({
     itemId,
@@ -732,10 +745,22 @@ export const DISPOSITION_CHAIN_ITEM_FIXTURE: MinorAnomalyRecord = defineItem({
   latentRiskScore: 14,
   lowValue: true,
   confidence: 0.58,
-  staffNoteProvenance: [{ noteRef: 'note:basement-intake-14', authorRef: 'staff:field-clerk-3', week: 9 }],
+  staffNoteProvenance: [
+    { noteRef: 'note:basement-intake-14', authorRef: 'staff:field-clerk-3', week: 9 },
+  ],
   statusHistory: [
-    { fromDisposition: 'recovered', toDisposition: 'stored', week: 9, note: 'Logged in low-priority vault.' },
-    { fromDisposition: 'stored', toDisposition: 'staff_use', week: 22, note: 'Issued for calibration drills.' },
+    {
+      fromDisposition: 'recovered',
+      toDisposition: 'stored',
+      week: 9,
+      note: 'Logged in low-priority vault.',
+    },
+    {
+      fromDisposition: 'stored',
+      toDisposition: 'staff_use',
+      week: 22,
+      note: 'Issued for calibration drills.',
+    },
   ],
 })
 

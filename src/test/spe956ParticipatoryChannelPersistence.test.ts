@@ -124,7 +124,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2632 / SPE-956 slice 1)', (
 
   it('resolvePersistedSurvivorInformalRegistry ignores inherited keys and unsafe ids', () => {
     const registryId = EXAMPLE_SURVIVOR_REGISTRY.id
-    const ownRecords = Object.create(null) as Record<string, unknown>
+    const ownRecords: Record<string, typeof EXAMPLE_SURVIVOR_REGISTRY> = {}
+    Object.setPrototypeOf(ownRecords, null)
     ownRecords[registryId] = EXAMPLE_SURVIVOR_REGISTRY
 
     expect(
@@ -135,9 +136,10 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2632 / SPE-956 slice 1)', (
     ).toEqual(EXAMPLE_SURVIVOR_REGISTRY)
 
     const prototypeOnlyId = 'registry:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof EXAMPLE_SURVIVOR_REGISTRY> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: EXAMPLE_SURVIVOR_REGISTRY,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedSurvivorInformalRegistry(
@@ -147,7 +149,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2632 / SPE-956 slice 1)', (
     ).toBeNull()
 
     for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof EXAMPLE_SURVIVOR_REGISTRY> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = EXAMPLE_SURVIVOR_REGISTRY
       expect(
         resolvePersistedSurvivorInformalRegistry(
@@ -315,7 +318,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2633 / SPE-956 slice 2)', (
 
   it('resolvePersistedCollectiveMemoryChannel ignores inherited keys and unsafe ids', () => {
     const channelId = EXAMPLE_MEMORY_STABILIZATION_CHANNEL.id
-    const ownRecords = Object.create(null) as Record<string, unknown>
+    const ownRecords: Record<string, typeof EXAMPLE_MEMORY_STABILIZATION_CHANNEL> = {}
+    Object.setPrototypeOf(ownRecords, null)
     ownRecords[channelId] = EXAMPLE_MEMORY_STABILIZATION_CHANNEL
 
     expect(
@@ -326,9 +330,10 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2633 / SPE-956 slice 2)', (
     ).toEqual(EXAMPLE_MEMORY_STABILIZATION_CHANNEL)
 
     const prototypeOnlyId = 'channel:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof EXAMPLE_MEMORY_STABILIZATION_CHANNEL> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: EXAMPLE_MEMORY_STABILIZATION_CHANNEL,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedCollectiveMemoryChannel(
@@ -338,7 +343,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2633 / SPE-956 slice 2)', (
     ).toBeNull()
 
     for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof EXAMPLE_MEMORY_STABILIZATION_CHANNEL> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = EXAMPLE_MEMORY_STABILIZATION_CHANNEL
       expect(
         resolvePersistedCollectiveMemoryChannel(
@@ -534,7 +540,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2634 / SPE-956 slice 3)', (
 
   it('resolvePersistedHotlineChannel ignores inherited keys and unsafe ids', () => {
     const channelId = EXAMPLE_HOTLINE_CHANNEL.id
-    const ownRecords = Object.create(null) as Record<string, unknown>
+    const ownRecords: Record<string, typeof EXAMPLE_HOTLINE_CHANNEL> = {}
+    Object.setPrototypeOf(ownRecords, null)
     ownRecords[channelId] = EXAMPLE_HOTLINE_CHANNEL
 
     expect(
@@ -542,9 +549,10 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2634 / SPE-956 slice 3)', (
     ).toEqual(EXAMPLE_HOTLINE_CHANNEL)
 
     const prototypeOnlyId = 'hotline:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof EXAMPLE_HOTLINE_CHANNEL> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: EXAMPLE_HOTLINE_CHANNEL,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedHotlineChannel(
@@ -554,7 +562,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2634 / SPE-956 slice 3)', (
     ).toBeNull()
 
     for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof EXAMPLE_HOTLINE_CHANNEL> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = EXAMPLE_HOTLINE_CHANNEL
       expect(
         resolvePersistedHotlineChannel({ spe956HotlineChannelRecords: records }, unsafeId)
@@ -626,7 +635,9 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
 
     expect(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback)).toEqual({})
     expect(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback)).not.toBe(fallback)
-    expect(Object.getPrototypeOf(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback))).toBeNull()
+    expect(
+      Object.getPrototypeOf(sanitizeSpe956AsyncDiscussionSurfaceRecords({}, fallback))
+    ).toBeNull()
   })
 
   it('returns fallback only for non-record / missing input during sanitize', () => {
@@ -769,7 +780,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
 
   it('resolvePersistedAsyncDiscussionSurface ignores inherited keys and unsafe ids', () => {
     const surfaceId = EXAMPLE_DISCUSSION_SURFACE.id
-    const ownRecords = Object.create(null) as Record<string, unknown>
+    const ownRecords: Record<string, typeof EXAMPLE_DISCUSSION_SURFACE> = {}
+    Object.setPrototypeOf(ownRecords, null)
     ownRecords[surfaceId] = EXAMPLE_DISCUSSION_SURFACE
 
     expect(
@@ -780,9 +792,10 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
     ).toEqual(EXAMPLE_DISCUSSION_SURFACE)
 
     const prototypeOnlyId = 'discussion:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof EXAMPLE_DISCUSSION_SURFACE> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: EXAMPLE_DISCUSSION_SURFACE,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedAsyncDiscussionSurface(
@@ -792,7 +805,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2635 / SPE-956 slice 4)', (
     ).toBeNull()
 
     for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof EXAMPLE_DISCUSSION_SURFACE> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = EXAMPLE_DISCUSSION_SURFACE
       expect(
         resolvePersistedAsyncDiscussionSurface(
@@ -1057,7 +1071,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2636 / SPE-956 slice 5)', (
 
   it('resolvePersistedCommunityAdvisoryBody ignores inherited keys and unsafe ids', () => {
     const bodyId = EXAMPLE_COMMUNITY_ADVISORY_BODY.id
-    const ownRecords = Object.create(null) as Record<string, unknown>
+    const ownRecords: Record<string, typeof EXAMPLE_COMMUNITY_ADVISORY_BODY> = {}
+    Object.setPrototypeOf(ownRecords, null)
     ownRecords[bodyId] = EXAMPLE_COMMUNITY_ADVISORY_BODY
 
     expect(
@@ -1068,9 +1083,10 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2636 / SPE-956 slice 5)', (
     ).toEqual(EXAMPLE_COMMUNITY_ADVISORY_BODY)
 
     const prototypeOnlyId = 'advisory-body:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof EXAMPLE_COMMUNITY_ADVISORY_BODY> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: EXAMPLE_COMMUNITY_ADVISORY_BODY,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedCommunityAdvisoryBody(
@@ -1080,7 +1096,8 @@ describe('spe956ParticipatoryChannelPersistence (SPE-2636 / SPE-956 slice 5)', (
     ).toBeNull()
 
     for (const unsafeId of ['__proto__', 'constructor', 'prototype'] as const) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof EXAMPLE_COMMUNITY_ADVISORY_BODY> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = EXAMPLE_COMMUNITY_ADVISORY_BODY
       expect(
         resolvePersistedCommunityAdvisoryBody(

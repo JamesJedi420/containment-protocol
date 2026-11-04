@@ -69,7 +69,13 @@ import {
   reconcileAgentTrainingStartedFields,
 } from '../../domain/sim/training'
 import { createDefaultAgentAssignmentState } from '../../domain/agentDefaults'
-import { normalizeAgent, reconcileAgentAssignmentAgainstGame } from '../../domain/agent/normalize'
+import {
+  normalizeAgent,
+  normalizeAgentRole,
+  normalizeAgentStatus,
+  normalizeBaseStats,
+  reconcileAgentAssignmentAgainstGame,
+} from '../../domain/agent/normalize'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
 import { sanitizeReplacementPressureState } from '../../domain/agent/replacementPressureHydration'
 import {
@@ -93,6 +99,7 @@ import { operationEventPayloadSchemas } from '../../domain/events/eventValidatio
 import {
   getKnownProcurementItemIds,
   normalizeFundingState,
+  createInitialFundingState,
   sanitizeCourierShellFrontState,
   sanitizeEmergencyGrayMarketWaiverPrecedentCount,
   sanitizeEmergencyGrayMarketWaiverWeek,
@@ -471,7 +478,7 @@ const CASE_MODES = [
   'threshold',
   'probability',
   'standard',
-  'anomaly',
+  'deterministic',
 ] as const satisfies readonly CaseMode[]
 const SCOUT_CONFIDENCES = ['low', 'medium', 'high', 'confirmed'] as const
 const MARKET_TRANSACTION_ACTIONS = [
@@ -2268,7 +2275,7 @@ function reconcileHydratedCoordinationFriction(
   topLevelReason: unknown,
   agencyActive: unknown,
   agencyReason: unknown,
-  fallback: { active?: boolean; reason?: string }
+  fallback: { coordinationFrictionActive?: boolean; coordinationFrictionReason?: string }
 ): { coordinationFrictionActive?: boolean; coordinationFrictionReason?: string } {
   const active =
     typeof agencyActive === 'boolean'
@@ -2316,7 +2323,11 @@ export function stripGameTemplates(game: GameState): PersistedGame {
   return stripUndefinedFields({
     ...persistedGame,
     ...(game.containmentRequirementStates !== undefined
-      ? { containmentRequirementStates: requireContainmentRequirementRegistry(game.containmentRequirementStates) }
+      ? {
+          containmentRequirementStates: requireContainmentRequirementRegistry(
+            game.containmentRequirementStates
+          ),
+        }
       : {}),
     facilityState: game.facilityState
       ? {
@@ -3026,13 +3037,10 @@ function sanitizePassiveBonuses(value: unknown) {
   }
 
   const next = Object.fromEntries(
-    Object.entries(value).filter(
-      ([key, bonus]) =>
-        typeof key === 'string' &&
-        key.length > 0 &&
-        typeof bonus === 'number' &&
-        Number.isFinite(bonus)
-    )
+    Object.entries(value).filter((entry): entry is [string, number] => {
+      const [key, bonus] = entry
+      return key.length > 0 && typeof bonus === 'number' && Number.isFinite(bonus)
+    })
   )
 
   return Object.keys(next).length > 0 ? next : undefined
@@ -3537,7 +3545,8 @@ function reconcileAgentEquipmentEffectScales(agent: Agent, rawEntry: unknown): A
     ...agentWithoutLegacyEquipment,
     equipmentEffectScales: Object.fromEntries(
       Object.entries(isRecord(persistedEffectScales) ? persistedEffectScales : {}).filter(
-        ([itemId]) => slottedItemIds.has(itemId)
+        (entry): entry is [string, number] =>
+          slottedItemIds.has(entry[0]) && typeof entry[1] === 'number' && Number.isFinite(entry[1])
       )
     ),
   }
@@ -3770,16 +3779,24 @@ export function sanitizeAgentsMap(
     }
 
     const fallbackAgent = fallback[agentId]
-    const merged = fallbackAgent
-      ? { ...fallbackAgent, ...(entry as Agent), id: agentId }
-      : ({ ...(entry as Agent), id: agentId } as Agent)
-
-    if (!merged.baseStats && fallbackAgent?.baseStats) {
-      merged.baseStats = fallbackAgent.baseStats
-    }
-
-    if (!merged.baseStats) {
-      continue
+    const raw = { ...fallbackAgent, ...entry, id: agentId }
+    if (!raw.baseStats && fallbackAgent?.baseStats) raw.baseStats = fallbackAgent.baseStats
+    if (!raw.baseStats) continue
+    const merged: Agent = {
+      ...raw,
+      id: agentId,
+      name: typeof raw.name === 'string' ? raw.name : '',
+      role: normalizeAgentRole(raw.role),
+      baseStats: normalizeBaseStats(
+        raw.baseStats,
+        fallbackAgent?.baseStats ?? { combat: 1, investigation: 1, utility: 1, social: 1 }
+      ),
+      tags: Array.isArray(raw.tags)
+        ? raw.tags.filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
+        : [],
+      relationships: sanitizePassiveBonuses(raw.relationships) ?? {},
+      fatigue: typeof raw.fatigue === 'number' ? raw.fatigue : 0,
+      status: normalizeAgentStatus(raw.status),
     }
 
     let normalized = normalizeAgent(
@@ -3928,8 +3945,9 @@ export function sanitizeTeamsMap(
     const assignedCaseId = reconcileTeamAssignedCaseId(teamId, rawAssignedCaseId, cases)
     const recoveryPressure = sanitizeTeamRecoveryPressure(reconciledEntry.recoveryPressure)
 
+    const derivedStats = isRecord(reconciledEntry.derivedStats) ? reconciledEntry.derivedStats : {}
     const teamWithoutComposition: Team = {
-      ...(reconciledEntry as Team),
+      ...reconciledEntry,
       id: teamId,
       name:
         typeof reconciledEntry.name === 'string' && reconciledEntry.name.length > 0
@@ -3948,10 +3966,7 @@ export function sanitizeTeamsMap(
         assignedCaseId: assignedCaseId ?? null,
         caseStatus: assignedCaseId ? cases[assignedCaseId]?.status : undefined,
         weeksRemaining: assignedCaseId ? cases[assignedCaseId]?.weeksRemaining : undefined,
-        readiness:
-          typeof (reconciledEntry as Team).derivedStats?.readiness === 'number'
-            ? (reconciledEntry as Team).derivedStats!.readiness
-            : undefined,
+        readiness: typeof derivedStats.readiness === 'number' ? derivedStats.readiness : 0,
         memberCount: memberIds.length,
       }),
       compositionState: undefined,
@@ -3966,7 +3981,7 @@ export function sanitizeTeamsMap(
       delete teamWithoutComposition.recoveryPressure
     }
 
-    delete (teamWithoutComposition as Record<string, unknown>).assignedCaseId
+    Reflect.deleteProperty(teamWithoutComposition, 'assignedCaseId')
 
     const synced = syncTeamSimulationTeam(teamWithoutComposition, agents, cases)
     const teamsForComposition = {
@@ -4335,10 +4350,29 @@ function sanitizeMissionRewardBreakdownSnapshot(
     ),
     ...(agencyStanding ? { agencyStanding } : {}),
     inventoryRewards: Array.isArray(value.inventoryRewards)
-      ? value.inventoryRewards.filter((entry) => isRecord(entry))
+      ? value.inventoryRewards.filter(
+          (entry): entry is MissionRewardBreakdown['inventoryRewards'][number] =>
+            isRecord(entry) &&
+            (entry.kind === 'equipment' || entry.kind === 'material') &&
+            typeof entry.itemId === 'string' &&
+            typeof entry.label === 'string' &&
+            typeof entry.quantity === 'number' &&
+            Number.isFinite(entry.quantity) &&
+            Array.isArray(entry.tags) &&
+            entry.tags.every((tag) => typeof tag === 'string')
+        )
       : (fallback?.inventoryRewards ?? []),
     factionStanding: Array.isArray(value.factionStanding)
-      ? value.factionStanding.filter((entry) => isRecord(entry))
+      ? value.factionStanding.filter(
+          (entry): entry is MissionRewardBreakdown['factionStanding'][number] =>
+            isRecord(entry) &&
+            typeof entry.factionId === 'string' &&
+            typeof entry.label === 'string' &&
+            typeof entry.delta === 'number' &&
+            Number.isFinite(entry.delta) &&
+            Array.isArray(entry.overlapTags) &&
+            entry.overlapTags.every((tag) => typeof tag === 'string')
+        )
       : (fallback?.factionStanding ?? []),
     label: typeof value.label === 'string' ? value.label : (fallback?.label ?? 'Mission'),
     reasons: Array.isArray(value.reasons)
@@ -6305,7 +6339,10 @@ function sanitizeHydratedContractOffer(
           ...(Array.isArray(value.chain.unlockConditions)
             ? {
                 unlockConditions: value.chain.unlockConditions
-                  .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+                  .filter(
+                    (entry): entry is Record<string, unknown> & { type: string } =>
+                      isRecord(entry) && typeof entry.type === 'string'
+                  )
                   .map((entry) => ({ ...entry })),
               }
             : {}),
@@ -6590,6 +6627,42 @@ function sanitizeExternalSupportAssetsMap(
   return Object.keys(next).length > 0 ? next : undefined
 }
 
+function sanitizeHydratedContactHistory(value: unknown): Contact['history']['interactions'] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (!isRecord(entry)) return []
+    const eventId = typeof entry.eventId === 'string' ? entry.eventId : entry.id
+    const type = typeof entry.type === 'string' ? entry.type : entry.label
+    if (typeof eventId !== 'string' || !eventId || typeof type !== 'string' || !type) return []
+    return [
+      {
+        eventId,
+        type,
+        week:
+          typeof entry.week === 'number' && Number.isFinite(entry.week)
+            ? Math.max(1, Math.round(entry.week))
+            : 1,
+      },
+    ]
+  })
+}
+
+function sanitizeHydratedContactRewards(value: unknown): NonNullable<Contact['rewards']> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.label !== 'string' || !entry.label) return []
+    return [
+      {
+        label: entry.label,
+        ...(typeof entry.id === 'string' ? { id: entry.id } : {}),
+        ...(typeof entry.count === 'number' && Number.isFinite(entry.count)
+          ? { count: entry.count }
+          : {}),
+      },
+    ]
+  })
+}
+
 function sanitizeHydratedContact(value: unknown): Contact | null {
   if (!isRecord(value)) {
     return null
@@ -6633,28 +6706,16 @@ function sanitizeHydratedContact(value: unknown): Contact | null {
           .map((entry) => ({
             id: typeof entry.id === 'string' ? entry.id : 'modifier',
             label: typeof entry.label === 'string' ? entry.label : 'Modifier',
-            ...(typeof entry.description === 'string' ? { description: entry.description } : {}),
+            description: typeof entry.description === 'string' ? entry.description : '',
           }))
       : [],
-    rewards: Array.isArray(value.rewards)
-      ? value.rewards
-          .filter((entry): entry is Record<string, unknown> => isRecord(entry))
-          .map((entry) => ({ ...entry }))
-      : [],
+    rewards: sanitizeHydratedContactRewards(value.rewards),
     history: {
-      interactions: Array.isArray((value.history as { interactions?: unknown })?.interactions)
-        ? (value.history as { interactions: unknown[] }).interactions
-            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
-            .map((entry) => ({
-              ...(typeof entry.id === 'string' ? { id: entry.id } : {}),
-              ...(typeof entry.label === 'string' ? { label: entry.label } : {}),
-              ...(typeof entry.week === 'number' && Number.isFinite(entry.week)
-                ? { week: Math.max(1, Math.round(entry.week)) }
-                : {}),
-            }))
-        : [],
+      interactions: sanitizeHydratedContactHistory(
+        isRecord(value.history) ? value.history.interactions : undefined
+      ),
     },
-  }) as Contact
+  })
 }
 
 function sanitizeFactionsMap(
@@ -6681,7 +6742,7 @@ function sanitizeFactionsMap(
       100
     )
     const knownContactIds = new Set(
-      (fallback[factionId]?.contacts ?? []).map((contact) => contact.id)
+      (fallback?.[factionId]?.contacts ?? []).map((contact) => contact.id)
     )
     const contacts = Array.isArray(entry.contacts)
       ? entry.contacts
@@ -6689,7 +6750,7 @@ function sanitizeFactionsMap(
           .filter(
             (contact): contact is Contact => contact !== null && knownContactIds.has(contact.id)
           )
-      : [...(fallback[factionId]?.contacts ?? [])]
+      : [...(fallback?.[factionId]?.contacts ?? [])]
     const historyRaw = isRecord(entry.history) ? entry.history : {}
     const missionsCompleted = Math.max(
       0,
@@ -6731,17 +6792,7 @@ function sanitizeFactionsMap(
         missionsCompleted,
         missionsFailed,
         successRate,
-        interactionLog: Array.isArray(historyRaw.interactionLog)
-          ? historyRaw.interactionLog
-              .filter((item): item is Record<string, unknown> => isRecord(item))
-              .map((item) => ({
-                ...(typeof item.id === 'string' ? { id: item.id } : {}),
-                ...(typeof item.label === 'string' ? { label: item.label } : {}),
-                ...(typeof item.week === 'number' && Number.isFinite(item.week)
-                  ? { week: Math.max(1, Math.round(item.week)) }
-                  : {}),
-              }))
-          : [],
+        interactionLog: sanitizeHydratedContactHistory(historyRaw.interactionLog),
       },
       knownModifiers: Array.isArray(entry.knownModifiers)
         ? entry.knownModifiers
@@ -6749,18 +6800,14 @@ function sanitizeFactionsMap(
             .map((item) => ({
               id: typeof item.id === 'string' ? item.id : 'modifier',
               label: typeof item.label === 'string' ? item.label : 'Modifier',
-              ...(typeof item.description === 'string' ? { description: item.description } : {}),
+              description: typeof item.description === 'string' ? item.description : '',
             }))
         : [],
       hiddenModifierCount: Math.max(
         0,
         sanitizeInteger(entry.hiddenModifierCount as number | undefined, 0, 0)
       ),
-      availableFavors: Array.isArray(entry.availableFavors)
-        ? entry.availableFavors
-            .filter((item): item is Record<string, unknown> => isRecord(item))
-            .map((item) => ({ ...item }))
-        : [],
+      availableFavors: sanitizeHydratedContactRewards(entry.availableFavors),
       recruitUnlocks: Array.isArray(entry.recruitUnlocks)
         ? entry.recruitUnlocks
             .filter((item): item is Record<string, unknown> => isRecord(item))
@@ -6876,7 +6923,18 @@ function sanitizeAgencyState(
   const fundingState = normalizeFundingState(
     funding,
     config,
-    isRecord(raw.fundingState) ? (raw.fundingState as AgencyState['fundingState']) : undefined,
+    isRecord(raw.fundingState)
+      ? {
+          ...createInitialFundingState(
+            config.fundingBasePerWeek,
+            config.fundingPerResolution,
+            config.fundingPenaltyPerFail,
+            config.fundingPenaltyPerUnresolved,
+            funding
+          ),
+          ...raw.fundingState,
+        }
+      : undefined,
     campaignWeek
   )
 
@@ -8871,55 +8929,67 @@ function sanitizeOperationEvents(
             ? payload.projectedTier
             : 'C'
 
-          nextEvents.push(
-            migrateOperationEventToCurrentSchema({
-              ...createBase(eventType),
-              payload: {
-                week,
-                candidateId:
-                  typeof payload.candidateId === 'string'
-                    ? payload.candidateId
-                    : `cand-${index + 1}`,
-                candidateName:
-                  typeof payload.candidateName === 'string'
-                    ? payload.candidateName
-                    : `Candidate ${index + 1}`,
-                fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
-                stage,
-                projectedTier,
-                confidence: isOneOf(payload.confidence, SCOUT_CONFIDENCES)
-                  ? payload.confidence
-                  : 'low',
-                previousProjectedTier: isOneOf(payload.previousProjectedTier, EXACT_POTENTIAL_TIERS)
-                  ? payload.previousProjectedTier
+          const scoutingPayload: OperationEventPayloadMap['recruitment.scouting_initiated'] = {
+            week,
+            candidateId:
+              typeof payload.candidateId === 'string' ? payload.candidateId : `cand-${index + 1}`,
+            candidateName:
+              typeof payload.candidateName === 'string'
+                ? payload.candidateName
+                : `Candidate ${index + 1}`,
+            fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+            stage,
+            projectedTier,
+            confidence: isOneOf(payload.confidence, SCOUT_CONFIDENCES) ? payload.confidence : 'low',
+            previousProjectedTier: isOneOf(payload.previousProjectedTier, EXACT_POTENTIAL_TIERS)
+              ? payload.previousProjectedTier
+              : undefined,
+            previousConfidence: isOneOf(payload.previousConfidence, SCOUT_CONFIDENCES)
+              ? payload.previousConfidence
+              : undefined,
+            confirmedTier:
+              eventType === 'recruitment.intel_confirmed'
+                ? isOneOf(payload.confirmedTier, EXACT_POTENTIAL_TIERS)
+                  ? payload.confirmedTier
+                  : projectedTier
+                : isOneOf(payload.confirmedTier, EXACT_POTENTIAL_TIERS)
+                  ? payload.confirmedTier
                   : undefined,
-                previousConfidence: isOneOf(payload.previousConfidence, SCOUT_CONFIDENCES)
-                  ? payload.previousConfidence
-                  : undefined,
-                confirmedTier:
-                  eventType === 'recruitment.intel_confirmed'
-                    ? isOneOf(payload.confirmedTier, EXACT_POTENTIAL_TIERS)
-                      ? payload.confirmedTier
-                      : projectedTier
-                    : isOneOf(payload.confirmedTier, EXACT_POTENTIAL_TIERS)
-                      ? payload.confirmedTier
-                      : undefined,
-                revealLevel,
-                sourceFactionId:
-                  typeof payload.sourceFactionId === 'string' ? payload.sourceFactionId : undefined,
-                sourceFactionName:
-                  typeof payload.sourceFactionName === 'string'
-                    ? payload.sourceFactionName
-                    : undefined,
-                sourceContactId:
-                  typeof payload.sourceContactId === 'string' ? payload.sourceContactId : undefined,
-                sourceContactName:
-                  typeof payload.sourceContactName === 'string'
-                    ? payload.sourceContactName
-                    : undefined,
-              },
-            })
-          )
+            revealLevel,
+            sourceFactionId:
+              typeof payload.sourceFactionId === 'string' ? payload.sourceFactionId : undefined,
+            sourceFactionName:
+              typeof payload.sourceFactionName === 'string' ? payload.sourceFactionName : undefined,
+            sourceContactId:
+              typeof payload.sourceContactId === 'string' ? payload.sourceContactId : undefined,
+            sourceContactName:
+              typeof payload.sourceContactName === 'string' ? payload.sourceContactName : undefined,
+          }
+          if (eventType === 'recruitment.intel_confirmed') {
+            nextEvents.push(
+              migrateOperationEventToCurrentSchema({
+                ...createBase('recruitment.intel_confirmed'),
+                payload: {
+                  ...scoutingPayload,
+                  confirmedTier: scoutingPayload.confirmedTier ?? projectedTier,
+                },
+              })
+            )
+          } else if (eventType === 'recruitment.scouting_initiated') {
+            nextEvents.push(
+              migrateOperationEventToCurrentSchema({
+                ...createBase('recruitment.scouting_initiated'),
+                payload: scoutingPayload,
+              })
+            )
+          } else {
+            nextEvents.push(
+              migrateOperationEventToCurrentSchema({
+                ...createBase('recruitment.scouting_refined'),
+                payload: scoutingPayload,
+              })
+            )
+          }
         }
         break
 
@@ -9883,7 +9953,12 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase(eventType),
-            payload: sanitizeInfiltrationProbeEventPayload(payload, week, index, importEntityId),
+            payload: sanitizeInfiltrationProbeEventPayload(
+              payload,
+              week,
+              index,
+              (value, fallback) => importEntityId(value, fallback) ?? undefined
+            ),
           })
         )
         break
@@ -9892,7 +9967,12 @@ function sanitizeOperationEvents(
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
             ...createBase('concealment.activated'),
-            payload: sanitizeConcealmentActivatedEventPayload(payload, week, index, importEntityId),
+            payload: sanitizeConcealmentActivatedEventPayload(
+              payload,
+              week,
+              index,
+              (value, fallback) => importEntityId(value, fallback) ?? undefined
+            ),
           })
         )
         break

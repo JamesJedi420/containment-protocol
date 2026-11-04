@@ -82,29 +82,29 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
       },
     })
 
-    expect(mixed[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]).toEqual(
-      SPE_956_EXAMPLE_PROPAGATION_GRAPH
-    )
+    expect(mixed[SPE_956_EXAMPLE_PROPAGATION_GRAPH.id]).toEqual(SPE_956_EXAMPLE_PROPAGATION_GRAPH)
     expect(Object.prototype.hasOwnProperty.call(mixed, '__proto__')).toBe(false)
     expect(Object.keys(mixed)).toEqual([SPE_956_EXAMPLE_PROPAGATION_GRAPH.id])
   })
 
   it('resolvePersistedPropagationGraph ignores inherited keys (SPE-2622)', () => {
     const inheritedGraphId = 'graph:inherited'
-    const records = Object.create(null) as Record<string, unknown>
+    const records: Record<string, typeof SPE_956_EXAMPLE_PROPAGATION_GRAPH> = {}
+    Object.setPrototypeOf(records, null)
     records[inheritedGraphId] = SPE_956_EXAMPLE_PROPAGATION_GRAPH
     Object.setPrototypeOf(records, {
       [inheritedGraphId]: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
     })
 
-    expect(resolvePersistedPropagationGraph({ spe956PropagationGraphRecords: records }, inheritedGraphId)).toEqual(
-      SPE_956_EXAMPLE_PROPAGATION_GRAPH
-    )
+    expect(
+      resolvePersistedPropagationGraph({ spe956PropagationGraphRecords: records }, inheritedGraphId)
+    ).toEqual(SPE_956_EXAMPLE_PROPAGATION_GRAPH)
 
     const prototypeOnlyId = 'graph:prototype-only'
-    const prototypeBacked = Object.create({
+    const prototypeBacked: Record<string, typeof SPE_956_EXAMPLE_PROPAGATION_GRAPH> = {}
+    Object.setPrototypeOf(prototypeBacked, {
       [prototypeOnlyId]: SPE_956_EXAMPLE_PROPAGATION_GRAPH,
-    }) as Record<string, unknown>
+    })
 
     expect(
       resolvePersistedPropagationGraph(
@@ -118,7 +118,8 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
     const unsafeIds = ['__proto__', 'constructor', 'prototype'] as const
 
     for (const unsafeId of unsafeIds) {
-      const records = Object.create(null) as Record<string, unknown>
+      const records: Record<string, typeof SPE_956_EXAMPLE_PROPAGATION_GRAPH> = {}
+      Object.setPrototypeOf(records, null)
       records[unsafeId] = SPE_956_EXAMPLE_PROPAGATION_GRAPH
 
       expect(
@@ -222,9 +223,7 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
 
     const loaded = loadGameSave(serializeGameSave(state))
 
-    expect(loaded.spe956PropagationGraphRecords).toEqual(
-      SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS
-    )
+    expect(loaded.spe956PropagationGraphRecords).toEqual(SPE_956_EXAMPLE_PROPAGATION_GRAPH_RECORDS)
   })
 
   it('hydrates persisted graph records through import parsing', () => {
@@ -299,7 +298,10 @@ describe('spe956PropagationGraphPersistence (SPE-2621 / SPE-956 slice 2)', () =>
       )
     )
     const platformDecision = evaluatePlatformReachMultiplier(
-      resolvePlatformReachEvaluationInput(SPE_947_EXAMPLE_PERSISTENCE_FIXTURE, 'platform:rumor-forum')
+      resolvePlatformReachEvaluationInput(
+        SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
+        'platform:rumor-forum'
+      )
     )
 
     const result = composeSpe956PropagationGraphFromGameState(

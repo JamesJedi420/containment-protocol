@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { assert, afterEach, describe, expect, it } from 'vitest'
 
 import { useGameStore } from '../app/store/gameStore'
 import { createStartingState } from '../data/startingState'
@@ -10,7 +10,6 @@ import {
 } from '../domain/departmentCapabilities'
 import type {
   DepartmentWorkshopSnapshot,
-  DepartmentWorkshopStateSource,
   DepartmentWorkshopWorkOrder,
 } from '../domain/departmentWorkshopQueue'
 import { routeAndEnqueueDepartmentWorkshopWorkOrder } from '../domain/departmentWorkshopRouting'
@@ -53,7 +52,7 @@ function sourceFor(
     workOrders?: Record<string, DepartmentWorkshopWorkOrder>
     snapshots?: Record<string, DepartmentWorkshopSnapshot>
   } = {}
-): DepartmentWorkshopStateSource {
+) {
   const snapshots = Object.fromEntries(
     assignedDepartmentIds(casePacket).map((departmentId) => [departmentId, snapshot(departmentId)])
   )
@@ -314,6 +313,7 @@ describe('specialized department workshop routing (SPE-2787)', () => {
     const stored = useGameStore.getState().game
 
     expect(success.state).toBe('enqueued')
+    assert.exists(stored.departmentWorkshopWorkOrders)
     expect(stored.departmentWorkshopWorkOrders['work:routing']).toBeDefined()
 
     const beforeBlocked = stored

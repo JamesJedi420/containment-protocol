@@ -276,7 +276,7 @@ export function activateDepartmentWorkshopFromConstruction(
   })
   const snapshots = Object.freeze(
     Object.fromEntries(
-      [...Object.entries(workshopState.snapshots), [request.departmentId, snapshot]].sort(
+      [...Object.entries(workshopState.snapshots), [request.departmentId, snapshot] as const].sort(
         ([left], [right]) => compareCodeUnits(left, right)
       )
     )

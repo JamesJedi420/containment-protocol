@@ -29,7 +29,13 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   const week = 1
 
   it('creates initial funding state', () => {
-    const state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, initialFunding)
+    const state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      initialFunding
+    )
     expect(state.funding).toBe(initialFunding)
     expect(state.fundingBasePerWeek).toBe(basePerWeek)
     expect(state.fundingPerResolution).toBe(perResolution)
@@ -41,34 +47,73 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   })
 
   it('applies funding income and logs history', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, initialFunding)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      initialFunding
+    )
     state = applyFundingIncome(state, 500, 'mission_reward', week)
     expect(state.funding).toBe(initialFunding + 500)
-    expect(state.fundingHistory.at(-1)).toMatchObject({ delta: 500, reason: 'mission_reward', week })
+    expect(state.fundingHistory.at(-1)).toMatchObject({
+      delta: 500,
+      reason: 'mission_reward',
+      week,
+    })
   })
 
   it('applies funding expense and logs history', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, initialFunding)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      initialFunding
+    )
     state = applyFundingExpense(state, 200, 'training_cost', week)
     expect(state.funding).toBe(initialFunding - 200)
-    expect(state.fundingHistory.at(-1)).toMatchObject({ delta: -200, reason: 'training_cost', week })
+    expect(state.fundingHistory.at(-1)).toMatchObject({
+      delta: -200,
+      reason: 'training_cost',
+      week,
+    })
   })
 
   it('computes deterministic weekly operating cost and applies it once per closed week', () => {
-    const agents = { a: {}, b: {}, c: {} } as Record<string, object>
+    const seedAgent = Object.values(createStartingState().agents)[0]
+    const agents = {
+      a: { ...seedAgent, id: 'a' },
+      b: { ...seedAgent, id: 'b' },
+      c: { ...seedAgent, id: 'c' },
+    }
     const weekOneCost = computeWeeklyOperatingCost({ agents, supportStaff: undefined }, 1)
     expect(weekOneCost).toBe(20)
 
     const weekFourCost = computeWeeklyOperatingCost({ agents, supportStaff: undefined }, 4)
     expect(weekFourCost).toBe(32)
 
-    const state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 100)
-    const firstPass = applyWeeklyOperatingCostToFundingState(state, { agents, supportStaff: undefined }, 1)
+    const state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      100
+    )
+    const firstPass = applyWeeklyOperatingCostToFundingState(
+      state,
+      { agents, supportStaff: undefined },
+      1
+    )
     expect(firstPass.appliedAmount).toBe(20)
     expect(firstPass.state.funding).toBe(80)
     expect(hasWeeklyOperatingCostForWeek(firstPass.state, 1)).toBe(true)
 
-    const secondPass = applyWeeklyOperatingCostToFundingState(firstPass.state, { agents, supportStaff: undefined }, 1)
+    const secondPass = applyWeeklyOperatingCostToFundingState(
+      firstPass.state,
+      { agents, supportStaff: undefined },
+      1
+    )
     expect(secondPass.appliedAmount).toBe(0)
     expect(secondPass.state.funding).toBe(80)
   })
@@ -92,19 +137,35 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
     }
     expect(computeWeeklyInventoryHoldingCost(emptyGame, 1)).toBe(0)
 
-    const state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 200)
+    const state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      200
+    )
     const firstPass = applyWeeklyInventoryHoldingCostToFundingState(state, stockedGame, 1)
     expect(firstPass.appliedAmount).toBe(holdingCost)
     expect(firstPass.state.funding).toBe(200 - holdingCost)
     expect(hasWeeklyInventoryHoldingCostForWeek(firstPass.state, 1)).toBe(true)
 
-    const secondPass = applyWeeklyInventoryHoldingCostToFundingState(firstPass.state, stockedGame, 1)
+    const secondPass = applyWeeklyInventoryHoldingCostToFundingState(
+      firstPass.state,
+      stockedGame,
+      1
+    )
     expect(secondPass.appliedAmount).toBe(0)
     expect(secondPass.state.funding).toBe(200 - holdingCost)
   })
 
   it('places procurement order, deducts cost, and logs', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 1000)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      1000
+    )
     state = placeProcurementOrder(state, {
       requestId: 'req1',
       itemId: 'itemA',
@@ -115,11 +176,21 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
     expect(state.funding).toBe(700)
     expect(state.procurementBacklog).toHaveLength(1)
     expect(state.procurementBacklog[0].status).toBe('pending')
-    expect(state.fundingHistory.at(-1)).toMatchObject({ delta: -300, reason: 'market_transaction', sourceId: 'req1' })
+    expect(state.fundingHistory.at(-1)).toMatchObject({
+      delta: -300,
+      reason: 'market_transaction',
+      sourceId: 'req1',
+    })
   })
 
   it('fulfills procurement order', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 1000)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      1000
+    )
     state = placeProcurementOrder(state, {
       requestId: 'req2',
       itemId: 'itemB',
@@ -133,7 +204,13 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   })
 
   it('cancels procurement order', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 1000)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      1000
+    )
     state = placeProcurementOrder(state, {
       requestId: 'req3',
       itemId: 'itemC',
@@ -148,7 +225,13 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   })
 
   it('recomputes budget pressure for negative funding and backlog', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 0)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      0
+    )
     // Negative funding
     state = applyFundingExpense(state, 100, 'training_cost', week)
     state = recomputeBudgetPressure(state)
@@ -169,7 +252,13 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   })
 
   it('returns compact funding summary', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 100)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      100
+    )
     state = placeProcurementOrder(state, {
       requestId: 'req4',
       itemId: 'itemD',
@@ -534,7 +623,13 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
   })
 
   it('throws on invalid status transitions', () => {
-    let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 100)
+    let state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      100
+    )
     state = placeProcurementOrder(state, {
       requestId: 'req6',
       itemId: 'itemF',

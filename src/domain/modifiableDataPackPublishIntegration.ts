@@ -47,8 +47,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export type ModifiableDataPackPublishIntegrationCode =
-  | 'pack_import_rejected'
-  | 'pack_import_needs_revision'
+  'pack_import_rejected' | 'pack_import_needs_revision'
 
 export interface ModifiableDataPackPublishIntegrationIssue {
   readonly code: ModifiableDataPackPublishIntegrationCode
@@ -207,7 +206,7 @@ function applyPackImportStatusGate(
     publishDecision: Object.freeze({
       ...publishDecision,
       status: 'needs_revision',
-      reasonCodes,
+      reasonCodes: publishDecision.reasonCodes,
     }),
     validationIssues: Object.freeze([packIssue]),
     reasonCodes,
@@ -235,10 +234,7 @@ export function evaluateModifiableDataPackPublishIntegration(
     contributionPayload,
     input.contributionPolicy
   )
-  const releasePackage = evaluateModularReleasePackaging(
-    curationDecision,
-    input.releaseManifest
-  )
+  const releasePackage = evaluateModularReleasePackaging(curationDecision, input.releaseManifest)
   const governanceDecision = evaluateSubmissionGovernanceRights(input.governancePayload)
   const publishDecision = evaluatePublishAutomationCreditingHooks(
     releasePackage,

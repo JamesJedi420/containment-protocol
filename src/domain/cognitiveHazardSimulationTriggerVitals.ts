@@ -5,7 +5,10 @@
  * without mutating slice 1–6 compose/tick/trigger contracts or SPE-2108 / SPE-2116 hooks.
  */
 
-import type { CognitiveHazardExposureRecordsMap, CognitiveHazardExposureReviewBand } from './cognitiveHazardEngine'
+import type {
+  CognitiveHazardExposureRecordsMap,
+  CognitiveHazardExposureReviewBand,
+} from './cognitiveHazardEngine'
 import { resolveCognitiveHazardSiblingRefKeys } from './cognitiveHazardSiblingCompose'
 import {
   composeCognitiveHazardSimulationTriggerSubjectSummaries,
@@ -15,8 +18,7 @@ import {
 import type { Agent, AgentVitals, GameState } from './models'
 import { COGNITIVE_HAZARD_CALIBRATION } from './sim/calibration'
 
-export const COGNITIVE_HAZARD_DUTY_DEGRADED_STATUS_FLAG =
-  'cognitive_hazard:duty_degraded' as const
+export const COGNITIVE_HAZARD_DUTY_DEGRADED_STATUS_FLAG = 'cognitive_hazard:duty_degraded' as const
 export const COGNITIVE_HAZARD_KNOWLEDGE_DEGRADED_STATUS_FLAG =
   'cognitive_hazard:knowledge_degraded' as const
 export const COGNITIVE_HAZARD_PROCEDURE_RESTRICTED_STATUS_FLAG =
@@ -76,11 +78,15 @@ export function vitalsHasCognitiveHazardDutyDegraded(vitals: AgentVitals | undef
   return (vitals?.statusFlags ?? []).includes(COGNITIVE_HAZARD_DUTY_DEGRADED_STATUS_FLAG)
 }
 
-export function vitalsHasCognitiveHazardKnowledgeDegraded(vitals: AgentVitals | undefined): boolean {
+export function vitalsHasCognitiveHazardKnowledgeDegraded(
+  vitals: AgentVitals | undefined
+): boolean {
   return (vitals?.statusFlags ?? []).includes(COGNITIVE_HAZARD_KNOWLEDGE_DEGRADED_STATUS_FLAG)
 }
 
-export function vitalsHasCognitiveHazardProcedureRestricted(vitals: AgentVitals | undefined): boolean {
+export function vitalsHasCognitiveHazardProcedureRestricted(
+  vitals: AgentVitals | undefined
+): boolean {
   return (vitals?.statusFlags ?? []).includes(COGNITIVE_HAZARD_PROCEDURE_RESTRICTED_STATUS_FLAG)
 }
 
@@ -139,8 +145,10 @@ function buildAgentVitalsEffectsByAgentId(input: {
   for (const summary of input.summaries) {
     const agentIds = resolveAgentIdsForCognitiveHazardSubjectRef(input.agents, summary.subjectRef)
     const statusFlags = statusFlagsForTriggerKinds(summary.triggerKinds)
-    const stressDelta = COGNITIVE_HAZARD_CALIBRATION.stressDeltaByReviewBand[summary.exposureReviewBand]
-    const moraleDelta = COGNITIVE_HAZARD_CALIBRATION.moraleDeltaByReviewBand[summary.exposureReviewBand]
+    const stressDelta =
+      COGNITIVE_HAZARD_CALIBRATION.stressDeltaByReviewBand[summary.exposureReviewBand]
+    const moraleDelta =
+      COGNITIVE_HAZARD_CALIBRATION.moraleDeltaByReviewBand[summary.exposureReviewBand]
 
     for (const agentId of agentIds) {
       const existing = effects.get(agentId)
@@ -164,7 +172,10 @@ function buildAgentVitalsEffectsByAgentId(input: {
           left.localeCompare(right)
         )
       )
-      const mergedBand = maxExposureReviewBand(existing.exposureReviewBand, summary.exposureReviewBand)
+      const mergedBand = maxExposureReviewBand(
+        existing.exposureReviewBand,
+        summary.exposureReviewBand
+      )
 
       effects.set(
         agentId,
@@ -196,6 +207,7 @@ function withCognitiveHazardVitalsEffect(
     stress: agent.fatigue ?? 0,
     wounds: 0,
     morale: Math.max(0, 100 - (agent.fatigue ?? 0)),
+    statusFlags: [],
   }
   const strippedFlags = stripCognitiveHazardSimulationTriggerStatusFlags(baseVitals.statusFlags)
 
@@ -208,7 +220,7 @@ function withCognitiveHazardVitalsEffect(
       ...agent,
       vitals: {
         ...baseVitals,
-        statusFlags: strippedFlags.length > 0 ? strippedFlags : undefined,
+        statusFlags: strippedFlags,
       },
     }
   }
@@ -243,13 +255,17 @@ export function applyCognitiveHazardSimulationTriggerVitalsToAgents(input: {
     let changed = false
     const nextAgents: GameState['agents'] = { ...input.agents }
 
-    for (const agentId of Object.keys(input.agents).sort((left, right) => left.localeCompare(right))) {
+    for (const agentId of Object.keys(input.agents).sort((left, right) =>
+      left.localeCompare(right)
+    )) {
       const agent = input.agents[agentId]
       if (!agent) {
         continue
       }
 
-      const strippedFlags = stripCognitiveHazardSimulationTriggerStatusFlags(agent.vitals?.statusFlags)
+      const strippedFlags = stripCognitiveHazardSimulationTriggerStatusFlags(
+        agent.vitals?.statusFlags
+      )
       if (strippedFlags.length !== (agent.vitals?.statusFlags ?? []).length) {
         changed = true
         nextAgents[agentId] = withCognitiveHazardVitalsEffect(agent, undefined)
@@ -261,16 +277,15 @@ export function applyCognitiveHazardSimulationTriggerVitalsToAgents(input: {
 
   const nextAgents: GameState['agents'] = { ...input.agents }
 
-  for (const agentId of Object.keys(input.agents).sort((left, right) => left.localeCompare(right))) {
+  for (const agentId of Object.keys(input.agents).sort((left, right) =>
+    left.localeCompare(right)
+  )) {
     const agent = input.agents[agentId]
     if (!agent) {
       continue
     }
 
-    nextAgents[agentId] = withCognitiveHazardVitalsEffect(
-      agent,
-      effectsByAgentId.get(agentId)
-    )
+    nextAgents[agentId] = withCognitiveHazardVitalsEffect(agent, effectsByAgentId.get(agentId))
   }
 
   return nextAgents

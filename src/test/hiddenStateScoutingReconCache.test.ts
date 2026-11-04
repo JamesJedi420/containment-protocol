@@ -142,16 +142,28 @@ describe('hiddenStateScoutingReconCache (SPE-2284)', () => {
     state.agents[observer.id] = observer
     state.teams[team.id] = team
 
-    const updated = applyWeeklyHiddenStateScoutingReconPass(
-      state,
-      createConcealedCase(),
-      [team.id]
-    )
+    const updated = applyWeeklyHiddenStateScoutingReconPass(state, createConcealedCase(), [team.id])
 
     expect(updated.hiddenStateScoutingReconCache?.scoutingPassCount).toBe(1)
-    expect(updated.hiddenStateScoutingReconCache?.knownUnresolvedLayerIds.length).toBeGreaterThan(
-      0
-    )
+    expect(updated.hiddenStateScoutingReconCache?.knownUnresolvedLayerIds.length).toBeGreaterThan(0)
+  })
+
+  it('leaves disguise-owned scans to active behavior validation instead of caching a second scouting scan', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_disguise')
+    state.agents[observer.id] = observer
+    state.teams['team-recon-cache'] = {
+      id: 'team-recon-cache',
+      name: 'Disguise observers',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const caseData = createConcealedCase({ tags: ['disguise', 'public'] })
+
+    const updated = applyWeeklyHiddenStateScoutingReconPass(state, caseData, ['team-recon-cache'])
+
+    expect(updated.hiddenStateScoutingReconCache).toBeUndefined()
+    expect(caseData.hiddenStateScoutingReconCache).toBeUndefined()
   })
 
   it('orchestration carries recon-cache score reason when cache has two passes', () => {
@@ -176,9 +188,7 @@ describe('hiddenStateScoutingReconCache (SPE-2284)', () => {
 
     const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
 
-    expect(
-      resolution.outcome.reasons.some((reason) => reason.includes('Prior recon'))
-    ).toBe(true)
+    expect(resolution.outcome.reasons.some((reason) => reason.includes('Prior recon'))).toBe(true)
   })
 
   it('advanceWeek persists cache across assigned weeks before final resolution', () => {

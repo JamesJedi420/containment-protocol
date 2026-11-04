@@ -13,6 +13,97 @@ import {
 const project = (file) => (file.startsWith('src/') ? 'tsconfig.app.json' : undefined)
 const diagnostic = 'src/a.test.ts(2,3): error TS2322: Type mismatch.\n  Missing member.\n'
 
+test('green recovery accounts for every surviving occurrence and verifies forced and literal build evidence', () => {
+  const base = new URL('../docs/typecheck/green-build-2026-11-04/', import.meta.url)
+  const read = (name) => JSON.parse(fs.readFileSync(new URL(name, base), 'utf8'))
+  const delta = read('delta.json')
+  const before = read(delta.before)
+  const after = read(delta.after)
+  const prior = JSON.parse(
+    fs.readFileSync(
+      new URL('../docs/typecheck/mechanical-contracts-2026-11-03/census.json', import.meta.url),
+      'utf8'
+    )
+  )
+  assert.deepEqual(compareCensuses(prior.diagnostics, before.diagnostics), [])
+  assert.equal(before.summary.occurrences, 381)
+  const buildBefore = fs
+    .readFileSync(new URL('before/build.txt', base), 'utf8')
+    .replaceAll('\r\n', '\n')
+  assert.deepEqual(
+    parseDiagnostics(buildBefore.slice(buildBefore.search(/^src\//m)), project),
+    before.diagnostics
+  )
+  assert.equal(delta.roots.length, 170)
+  assert.equal(new Set(delta.roots.map((row) => row.issue)).size, 170)
+  const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
+  assert.equal(removed.length, 381)
+  assert.equal(
+    new Set(removed.map((row) => JSON.stringify([row.identity, row.line, row.column]))).size,
+    381
+  )
+  assert.deepEqual(compareCensuses(removed, before.diagnostics), [])
+  assert.deepEqual(compareCensuses(before.diagnostics, after.diagnostics), delta.identityDelta)
+  assert.equal(delta.addedOccurrences, 0)
+  const historicalBase = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const historicalCensus = JSON.parse(
+    fs.readFileSync(new URL('census.json', historicalBase), 'utf8')
+  )
+  const historicalPacket = JSON.parse(
+    fs.readFileSync(new URL('reconciliation.json', historicalBase), 'utf8')
+  )
+  for (const root of delta.roots) {
+    const group = historicalPacket.groups.find((row) => row.id === root.root)
+    assert.ok(group)
+    const expectedIdentities = new Set(
+      group.diagnosticIndices.map((index) => historicalCensus.diagnostics[index].identity)
+    )
+    for (const mapping of root.historicalIdentityMappings) {
+      assert.equal(root.root, 'recruitment-event-correlation')
+      assert.equal(mapping.replacedText, 'stage: 1 | 3 | 2')
+      assert.equal(mapping.replacementText, 'stage: 1 | 2 | 3')
+      const historical = historicalCensus.diagnostics.find(
+        (row) => row.identity === mapping.historicalIdentity
+      )
+      const current = before.diagnostics.find((row) => row.identity === mapping.currentIdentity)
+      assert.ok(historical)
+      assert.ok(current)
+      assert.equal(current.file, historical.file)
+      assert.equal(current.code, historical.code)
+      assert.equal(
+        current.message,
+        historical.message.replaceAll(mapping.replacedText, mapping.replacementText)
+      )
+      expectedIdentities.add(current.identity)
+    }
+    assert.ok(root.removedDiagnostics.every((row) => expectedIdentities.has(row.identity)))
+    assert.ok(root.removedDiagnostics.every((row) => group.files.includes(row.file)))
+    assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
+    assert.ok(root.targetedTests.length > 0)
+    for (const path of root.targetedTests)
+      assert.ok(fs.existsSync(new URL(`../${path}`, import.meta.url)), path)
+  }
+  assert.deepEqual(after.summary, summarize([]))
+  assert.deepEqual(after.diagnostics, [])
+  assert.equal(after.reproducible, true)
+  assert.equal(after.runs.length, 2)
+  after.runs.forEach((run, index) => {
+    const raw = fs.readFileSync(new URL(`compiler-${index + 1}.txt`, base), 'utf8')
+    assert.equal(run.exitCode, 0)
+    assert.equal(run.rawHash, sha256(raw))
+    assert.deepEqual(parseDiagnostics(raw, project), [])
+  })
+  const execution = read('execution.json')
+  const raw = fs.readFileSync(new URL('build.txt', base), 'utf8').replaceAll('\r\n', '\n')
+  assert.equal(execution.command, 'npm run build')
+  assert.equal(execution.exitCode, 0)
+  assert.equal(execution.viteExecuted, true)
+  assert.equal(execution.compilerInputHash, after.compilerInputHash)
+  assert.equal(execution.normalizedTranscriptSha256, sha256(raw))
+  assert.match(raw, /built in /)
+  assert.doesNotMatch(raw, /error TS\d+:/)
+})
+
 test('committed baseline reconciles raw compiler output, every occurrence, summary and both run hashes', () => {
   const base = new URL('../docs/typecheck/41873280/', import.meta.url)
   const report = JSON.parse(fs.readFileSync(new URL('census.json', base), 'utf8'))

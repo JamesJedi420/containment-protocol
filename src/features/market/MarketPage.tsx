@@ -195,8 +195,7 @@ export default function MarketPage() {
                 Last acknowledged campaign week {getLicensedHandlingAttestationWeekBaselined(game)}.
                 Controlled procurement that uses the licensed handling desk is blocked until
                 doctrine is re-attested (required after more than{' '}
-                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS} campaign week
-                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS === 1 ? '' : 's'} since that
+                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS} campaign weeks since that
                 acknowledgement).
               </p>
             </div>
@@ -523,7 +522,9 @@ export default function MarketPage() {
                 </button>
               </div>
 
-              {listing.buyBlockedReason || listing.orderBlockedReason || listing.sellBlockedReason ? (
+              {listing.buyBlockedReason ||
+              listing.orderBlockedReason ||
+              listing.sellBlockedReason ? (
                 <div className="space-y-1 text-xs text-amber-200">
                   {listing.buyBlockedReason ? <p>{listing.buyBlockedReason}</p> : null}
                   {listing.orderBlockedReason ? <p>{listing.orderBlockedReason}</p> : null}

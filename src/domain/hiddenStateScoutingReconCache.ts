@@ -9,11 +9,11 @@ import {
   applyHiddenStateIllusionLifecyclePass,
   buildIllusionLifecycleContext,
 } from './hiddenStateIllusionLifecycle'
+import { evaluateHiddenStateScoutingWithRevealPayload } from './revealPayloadScoutingIntegration'
 import {
-  evaluateHiddenStateScoutingWithRevealPayload,
-} from './revealPayloadScoutingIntegration'
-import { evaluateBehaviorWeightedDisguiseValidation } from './disguiseValidation'
-import { buildDisguiseRevealSubjectFromCase } from './revealPayloadDisguiseIntegration'
+  evaluateBehaviorWeightedDisguiseValidationWithRevealPayload,
+  buildDisguiseRevealSubjectFromCase,
+} from './revealPayloadDisguiseIntegration'
 
 export interface HiddenStateScoutingReconCache {
   /** Concealment layer ids still blocking tiers after a partial scan. */
@@ -130,7 +130,7 @@ export function applyWeeklyHiddenStateScoutingReconPass(
     caseData,
     buildIllusionLifecycleContext(caseData)
   )
-  const disguiseValidation = evaluateBehaviorWeightedDisguiseValidation({
+  const disguiseValidation = evaluateBehaviorWeightedDisguiseValidationWithRevealPayload({
     caseData: illusionAdjustedCase,
     agents,
     subject: buildDisguiseRevealSubjectFromCase(illusionAdjustedCase),

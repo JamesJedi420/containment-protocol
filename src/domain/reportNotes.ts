@@ -459,11 +459,14 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           infiltrationAwareness: draft.payload.infiltrationAwareness ?? null,
           infiltrationProbeProgress: draft.payload.infiltrationProbeProgress ?? null,
           infiltrationStage: draft.payload.infiltrationStage ?? null,
-          probeAction: draft.payload.probeAction ?? null,
-          probeActionSource: draft.payload.probeActionSource ?? null,
-          coverRole: draft.payload.coverRole ?? null,
-          leaveBehindId: draft.payload.leaveBehindId ?? null,
-          leaveBehindLabel: draft.payload.leaveBehindLabel ?? null,
+          probeAction: 'probeAction' in draft.payload ? (draft.payload.probeAction ?? null) : null,
+          probeActionSource:
+            'probeActionSource' in draft.payload ? (draft.payload.probeActionSource ?? null) : null,
+          coverRole: 'coverRole' in draft.payload ? (draft.payload.coverRole ?? null) : null,
+          leaveBehindId:
+            'leaveBehindId' in draft.payload ? (draft.payload.leaveBehindId ?? null) : null,
+          leaveBehindLabel:
+            'leaveBehindLabel' in draft.payload ? (draft.payload.leaveBehindLabel ?? null) : null,
         },
       }
 

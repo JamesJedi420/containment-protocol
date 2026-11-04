@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { assert, afterEach, describe, expect, it } from 'vitest'
 
 import { useGameStore } from '../app/store/gameStore'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
@@ -71,6 +71,8 @@ function createActivationState(): GameState {
         taskType: 'records_review',
         completedWeek: 1,
         outcome: 'completed',
+        quality: 'nominal' as const,
+        safety: 'safe' as const,
       },
     },
   }
@@ -131,6 +133,7 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
     })
     expect(withoutReceipt).toEqual(before)
 
+    assert.exists(state.departmentWorkshopCompletionOutcomes)
     const crossCaseReceipt = {
       ...state,
       departmentWorkshopCompletionOutcomes: {
@@ -145,6 +148,7 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
       reasons: ['prerequisites-not-complete'],
     })
 
+    assert.exists(state.departmentWorkshopCompletionOutcomes)
     const futureReceipt = {
       ...state,
       departmentWorkshopCompletionOutcomes: {
@@ -159,6 +163,7 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
       reasons: ['prerequisites-not-complete'],
     })
 
+    assert.exists(state.departmentWorkshopWorkOrders)
     const staleWorkload = {
       ...state,
       departmentWorkshopWorkOrders: {
@@ -173,6 +178,7 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
       reasons: ['prerequisites-not-complete'],
     })
 
+    assert.exists(state.departmentWorkshopSnapshots)
     const activePriorWork = {
       ...state,
       departmentWorkshopSnapshots: {
@@ -190,6 +196,8 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
 
   it('automatically activates one credited successor at week close without replay duplication', () => {
     const state = createActivationState()
+    assert.exists(state.caseScopedPrerequisiteProcessingOrders)
+    assert.exists(state.departmentWorkshopSnapshots)
     const source = {
       ...state,
       inventory: { ...state.inventory, raw: 0 },
@@ -326,6 +334,8 @@ describe('explicit dependent prerequisite activation (SPE-2759)', () => {
           taskType: 'records_review',
           completedWeek: game.week,
           outcome: 'completed',
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
       },
     }

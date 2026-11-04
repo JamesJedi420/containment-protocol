@@ -225,3 +225,75 @@ helper claim is promoted to evidence. Local provider/model were preserved; token
 usage was not reported and no savings are claimed. The PR description is drafted
 directly from verified results. Independent PR review and hosted checks remain
 required before merge.
+
+## Mechanical production cohort — SPE-3543 through SPE-3547
+
+The human explicitly approved implementation of the five-root plan in this chat.
+Branch: `codex/spe-3375-mechanical-type-contracts`; clean synchronized main:
+`ceb706637c96697eeae8c5d67d58acde2483ebfb`. The original dirty checkout, adapter
+PR #4634/worktree and independently active UI PR #4653 are preserved. The explicit
+continuation instruction supersedes the generic open-PR startup restriction for
+this bounded cohort; it authorizes no work on either unrelated PR.
+
+Ordered Phase 1–4 reconciliation retained SPE-3375 as the canonical shared-system
+parent and admitted exactly five children In Progress before source edits:
+SPE-3543 candidate-source-disposition, SPE-3544 eligible-case-membership,
+SPE-3545 institutional-flags-index, SPE-3546 town-tags-readonly and SPE-3547
+store-inspection-drafts. Current parent inventory and prior targeted owner searches
+identified no exact active repair owner. Completed children and historical waves
+remain Done. Existing canonical declarations support all five changes without a
+public contract, semantic, persistence or runtime decision.
+
+The [immutable cohort evidence](../docs/typecheck/mechanical-contracts-2026-11-03/README.md)
+records paired Node 22.23.4 / TypeScript 6.0.3 captures: **388 → 381 occurrences**,
+**273 → 266 identities**, **137 → 134 files**, seven removals and zero additions.
+Each compiler exits 2. Attribution is 3 / 1 / 1 / 1 / 1 across the five children.
+All 250 fixture diagnostics and 99 semantic-review occurrences remain unchanged.
+The earlier Node 24 in-memory planning probe is superseded by these Node 22
+captures for implementation evidence.
+
+Only four production files change, using annotations of existing contracts.
+Their emitted JavaScript is byte-identical. Six targeted suites / 556 tests pass
+under Node 22.23.4. Final registered validation, independent review, hosted full
+regression and Hermes dispositions are recorded below or on the cohort PR and
+children before completion. No other repair roots are admitted, and no in-boundary
+work is deferred. SPE-3348 retains validator selection, SPE-3375 stays In Progress
+and SPE-2995/#4634 retains its full-build hold.
+
+The six pre-ship passes cover exact scope/attribution, unchanged malformed/optional
+handling, deterministic state and event ordering, existing integration assertions,
+historical evidence/docs and diff cleanup. The small source-to-contract mapping
+uses the direct Hermes path; substantial documentation/communication and mandatory
+post-merge Linear Hygiene checkpoints retain their normal requirements. External
+research, package decisions and frontend guidance are not applicable to this
+annotation-only diff. Follow the new-chat rule after merging this cohort; select
+no next implementation scope during closeout.
+
+### Mechanical-cohort final local verification
+
+All 15 census-integrity tests pass, including exact historical root attribution,
+one-time coverage of the seven removals, unchanged fixture/semantic multisets and
+the separate literal build's 381-diagnostic agreement. Full local lint, changed
+Node-test lint, Vite bundling, audits-index (41 files), backlog-handoff and theme
+contracts (108 IDs) pass. Changed evidence/test/docs and gameStore formatting plus
+whitespace checks pass. Whole-file Prettier checks fail both before and after in
+runTransfer, publicSignalCoverage and townContractGeneration; unrelated baseline
+formatting is preserved. The existing Vite chunk-size warning remains.
+
+SPE-3348 selection against pinned base reports 14 paths and requires backlog
+handoff, lint, Playwright, census tests, full unit tests and Vite bundling. This is
+selection, not execution: exact-head hosted CI must supply full regression and
+browser evidence. Local targeted evidence is six suites / 556 tests. Literal
+`npm run build` exits 2 with 381 diagnostics, so no green full-build claim follows
+from the independently passing bundle or evidence checks.
+
+Hermes documentation/communication checkpoint emitted session reference
+`local-5b7a3f5d2f8f226885b9dc1018d553d3277546591168cb3d80f5bc727ffc682b`
+and process exit 0. Its numeric summary matches the raw-bound evidence, verified
+directly by Codex. Its clean verdict lacks the requested source/delta anchors,
+and its draft overstates formatting; it also repeats an older session ID and
+unsupported token estimates. Those claims are rejected. Direct fallback reviewed
+the complete four-source diff, new evidence/test and actual slice/README against
+raw captures, emitted hashes and recorded validation. The PR draft uses verified
+results and preserves the three known formatting limitations. Local provider/model
+were preserved; actual token usage is unknown and no savings are claimed.

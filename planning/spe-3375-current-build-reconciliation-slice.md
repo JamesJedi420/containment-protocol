@@ -297,3 +297,18 @@ the complete four-source diff, new evidence/test and actual slice/README against
 raw captures, emitted hashes and recorded validation. The PR draft uses verified
 results and preserves the three known formatting limitations. Local provider/model
 were preserved; actual token usage is unknown and no savings are claimed.
+
+### Mechanical-cohort review fix
+
+Initial hosted SonarCloud analysis rejected duplicated new evidence-test code
+(42.3% duplication). Extracted a shared raw-capture reader and annotation-cohort
+assertions, retaining both named cohort tests and the earlier import test. All
+historical raw/hash, count, attribution, allocation-union mapping, runtime-output,
+semantic and literal-build assertions remain; fixture identity comparisons and
+capture metadata checks are stronger. Historical diagnostics may clear in a
+consumer file different from the repaired implementation; attribution remains
+bound to each reconciliation group's exact diagnostic multiset. All 15 tests,
+Node-test lint and formatting pass after extraction. Direct review checked the
+bounded test diff and existing assertions; no repeated Hermes dispatch is needed
+for this small follow-up. Production files and immutable captures are unchanged.
+Final-head hosted CI and review must supersede the initial-head results.

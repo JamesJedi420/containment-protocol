@@ -85,10 +85,7 @@ it('sanitizes invalid query params and preserves canonical case links', async ()
     .getAllByRole('link', { name: /vampire nest in the stockyards/i })
     .find((link) => link.getAttribute('href')?.includes('/cases/case-001?'))
   expect(caseLink).toBeDefined()
-  expect(caseLink).toHaveAttribute(
-    'href',
-    '/cases/case-001?q=stockyards&sort=title&case=case-001'
-  )
+  expect(caseLink).toHaveAttribute('href', '/cases/case-001?q=stockyards&sort=title&case=case-001')
 })
 
 it('sorts cases by title from query state', () => {
@@ -105,7 +102,9 @@ it('sorts cases by title from query state', () => {
   const triageList = screen.getByLabelText('Triage list')
   const alphaLink = within(triageList).getByTestId('case-title-link-alpha')
   const zuluLink = within(triageList).getByTestId('case-title-link-zulu')
-  expect(alphaLink.compareDocumentPosition(zuluLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(
+    alphaLink.compareDocumentPosition(zuluLink) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy()
 })
 
 it('renders urgency markers for triage cases', async () => {
@@ -178,7 +177,9 @@ it('renders covert prep markers on triage list rows', async () => {
       infiltrationAwareness: 0.5,
       infiltrationStage: 'probing',
       tags: ['infiltration', 'media', 'public'],
-      infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+      infiltrationProbePlan: copyInfiltrationProbePlan(
+        caseTemplateMap['ops-004'].infiltrationProbePlan
+      ),
       infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
       stealthLeaveBehindId: 'leave-behind:risk-discovery',
       requiredTags: [],
@@ -247,7 +248,9 @@ it('renders concealment prep chip on triage list rows', async () => {
   expect(within(listChips).getByText('Covert next week')).toBeInTheDocument()
 
   await selectTriageCase(user, 'Covert Preview Case')
-  expect(within(getCardByName('Covert Preview Case')).getByText('Covert next week')).toBeInTheDocument()
+  expect(
+    within(getCardByName('Covert Preview Case')).getByText('Covert next week')
+  ).toBeInTheDocument()
 })
 
 it('renders recommended action guidance for assignable cases', async () => {
@@ -277,7 +280,9 @@ it('renders open intel dossier quick action and next-step copy for each case car
   const detail = getCardByName('The Whispering Archive')
   expect(within(detail).getByRole('link', { name: /open intel dossier/i })).toBeInTheDocument()
   expect(
-    within(detail).getByText(/next step: assign response units, then advance week from front desk\./i)
+    within(detail).getByText(
+      /next step: assign response units, then advance week from front desk\./i
+    )
   ).toBeInTheDocument()
 })
 
@@ -474,21 +479,21 @@ it('sets defer disposition from triage detail panel', async () => {
 
   await selectTriageCase(user, 'Defer Me Case')
 
-  await user.click(
-    screen.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer, exact: true })
-  )
+  await user.click(screen.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer }))
 
   expect(
     useGameStore.getState().game.missionRouting?.missions['case-triage-defer']?.routingState
   ).toBe('deferred')
 
   const listChips = screen.getByTestId('case-triage-chips-case-triage-defer')
-  expect(within(listChips).getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)).toBeInTheDocument()
+  expect(
+    within(listChips).getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
+  ).toBeInTheDocument()
 
   const detail = getCardByName('Defer Me Case')
   expect(within(detail).getByLabelText('Triage disposition')).toBeInTheDocument()
   expect(
-    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer, exact: true })
+    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer })
   ).toHaveAttribute('aria-pressed', 'true')
   expect(
     within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.clear })
@@ -624,7 +629,9 @@ function getCardByName(name: string) {
 }
 
 async function selectTriageCase(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.click(screen.getByRole('button', { name: new RegExp(`Select ${name} for triage detail`, 'i') }))
+  await user.click(
+    screen.getByRole('button', { name: new RegExp(`Select ${name} for triage detail`, 'i') })
+  )
   await screen.findByRole('region', {
     name: new RegExp(`Case triage detail:.*${name}`, 'i'),
   })

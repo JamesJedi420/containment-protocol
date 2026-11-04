@@ -306,18 +306,18 @@ export function evaluateSurvivorInformalRegistrySignal(
   const rawSignal = input.signal
   if (rawSignal === null || rawSignal === undefined) {
     return deferredResult(['missing_registry_signal'], baseline, {
-      registryId: normalizeToken((rawRegistry as SurvivorInformalRegistry).id) || null,
+      registryId: normalizeToken(rawRegistry.id) || null,
     })
   }
 
   if (!isRecord(rawSignal)) {
     return deferredResult(['invalid_registry_signal'], baseline, {
-      registryId: normalizeToken((rawRegistry as SurvivorInformalRegistry).id) || null,
+      registryId: normalizeToken(rawRegistry.id) || null,
     })
   }
 
-  const registry = rawRegistry as SurvivorInformalRegistry
-  const signal = rawSignal as SurvivorRegistrySignal
+  const registry = rawRegistry
+  const signal = rawSignal
   const registryId = normalizeToken(registry.id) || null
   const signalId = normalizeToken(signal.signalId) || null
   const signalRegistryId = normalizeToken(signal.registryId)

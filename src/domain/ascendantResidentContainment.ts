@@ -14,12 +14,7 @@
 
 export const ASCENDANT_FACILITY_ID = 'facility:ascendant-residence' as const
 
-export const RESIDENT_MANIFESTATION_PATHS = [
-  'latent',
-  'partial',
-  'emergent',
-  'stabilized',
-] as const
+export const RESIDENT_MANIFESTATION_PATHS = ['latent', 'partial', 'emergent', 'stabilized'] as const
 export type ResidentManifestationPath = (typeof RESIDENT_MANIFESTATION_PATHS)[number]
 
 export const RESIDENT_ESCALATION_PATHS = [
@@ -33,20 +28,10 @@ export type ResidentEscalationPath = (typeof RESIDENT_ESCALATION_PATHS)[number]
 export const RESIDENT_POSTURES = ['ally', 'threat', 'manipulated_asset', 'neutral'] as const
 export type ResidentPosture = (typeof RESIDENT_POSTURES)[number]
 
-export const CONTAINMENT_STATUSES = [
-  'secured',
-  'conditional',
-  'breached',
-  'escaped',
-] as const
+export const CONTAINMENT_STATUSES = ['secured', 'conditional', 'breached', 'escaped'] as const
 export type ContainmentStatus = (typeof CONTAINMENT_STATUSES)[number]
 
-export const CARE_STATUSES = [
-  'routine',
-  'elevated_welfare',
-  'restricted_care',
-  'crisis',
-] as const
+export const CARE_STATUSES = ['routine', 'elevated_welfare', 'restricted_care', 'crisis'] as const
 export type CareStatus = (typeof CARE_STATUSES)[number]
 
 export const COOPERATION_BANDS = ['resistant', 'guarded', 'cooperative'] as const
@@ -108,9 +93,7 @@ export interface AscendantResidentProfileResult {
   readonly strategicPressure: StrategicPressureKind
 }
 
-function derivePosture(
-  input: AscendantResidentProfileInput
-): ResidentPosture {
+function derivePosture(input: AscendantResidentProfileInput): ResidentPosture {
   if (input.containmentStatus === 'breached' || input.containmentStatus === 'escaped') {
     return input.externalPressureActive ? 'manipulated_asset' : 'threat'
   }
@@ -127,9 +110,7 @@ function derivePosture(
   return 'neutral'
 }
 
-function deriveStrategicPressure(
-  input: AscendantResidentProfileInput
-): StrategicPressureKind {
+function deriveStrategicPressure(input: AscendantResidentProfileInput): StrategicPressureKind {
   if (!input.beneficialAnomaly || !input.physicalRiskLow) return 'none'
   if (input.cooperation === 'guarded') return 'secrecy_burden'
   if (input.escalationPath === 'strategic_pressure') return 'theft_demand'
@@ -153,7 +134,19 @@ export function projectAscendantResidentProfile(
   if (typeof input.beneficialAnomaly !== 'boolean') return undefined
   if (typeof input.externalPressureActive !== 'boolean') return undefined
 
-  const typed = input as AscendantResidentProfileInput
+  const typed: AscendantResidentProfileInput = {
+    facilityId: input.facilityId,
+    residentId: input.residentId,
+    manifestationPath: input.manifestationPath,
+    escalationPath: input.escalationPath,
+    containmentStatus: input.containmentStatus,
+    careStatus: input.careStatus,
+    cooperation: input.cooperation,
+    movementPermission: input.movementPermission,
+    physicalRiskLow: input.physicalRiskLow,
+    beneficialAnomaly: input.beneficialAnomaly,
+    externalPressureActive: input.externalPressureActive,
+  }
   return Object.freeze({
     facilityId: typed.facilityId,
     residentId: typed.residentId,
@@ -204,9 +197,7 @@ export function evaluateSupervisedResidentAccess(
   }
   if (typeof input.escortPresent !== 'boolean') return undefined
 
-  const deny = (
-    denialReason: SupervisedAccessResult['denialReason']
-  ): SupervisedAccessResult =>
+  const deny = (denialReason: SupervisedAccessResult['denialReason']): SupervisedAccessResult =>
     Object.freeze({
       facilityId: input.facilityId as string,
       residentId: input.residentId as string,
@@ -214,10 +205,7 @@ export function evaluateSupervisedResidentAccess(
       denialReason,
     })
 
-  if (
-    input.containmentStatus === 'breached' ||
-    input.containmentStatus === 'escaped'
-  ) {
+  if (input.containmentStatus === 'breached' || input.containmentStatus === 'escaped') {
     return deny('containment_blocks_movement')
   }
   if (input.movementPermission === 'denied') {
@@ -277,9 +265,7 @@ export interface ResidentBreachResult {
 }
 
 /** Breach/escape links an external case rather than remaining local-only. */
-export function projectResidentBreachEscalation(
-  input: unknown
-): ResidentBreachResult | undefined {
+export function projectResidentBreachEscalation(input: unknown): ResidentBreachResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!isNonEmptyString(input.residentId)) return undefined
@@ -287,10 +273,7 @@ export function projectResidentBreachEscalation(
   if (!isNonEmptyString(input.externalCaseId)) return undefined
   if (typeof input.manipulated !== 'boolean') return undefined
 
-  if (
-    input.containmentStatus !== 'breached' &&
-    input.containmentStatus !== 'escaped'
-  ) {
+  if (input.containmentStatus !== 'breached' && input.containmentStatus !== 'escaped') {
     return undefined
   }
 
@@ -330,10 +313,7 @@ export function projectFacilityResidentRoster(
   const seenResidentIds = new Set<string>()
   for (const resident of input.residents) {
     if (!isRecord(resident)) return undefined
-    if (
-      isNonEmptyString(resident.facilityId) &&
-      resident.facilityId !== input.facilityId
-    ) {
+    if (isNonEmptyString(resident.facilityId) && resident.facilityId !== input.facilityId) {
       return undefined
     }
     if (!isNonEmptyString(resident.residentId)) return undefined
@@ -356,7 +336,6 @@ export function projectFacilityResidentRoster(
     distinctManifestationPaths: manifestations.size,
     distinctEscalationPaths: escalations.size,
     hostsMultipleDivergentResidents:
-      projected.length >= 2 &&
-      (manifestations.size >= 2 || escalations.size >= 2),
+      projected.length >= 2 && (manifestations.size >= 2 || escalations.size >= 2),
   })
 }

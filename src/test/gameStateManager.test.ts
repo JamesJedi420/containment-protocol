@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import {
@@ -227,10 +227,12 @@ describe('gameStateManager', () => {
 
       expect(normalized.player).not.toHaveProperty('pronouns')
       expect(normalized.player).not.toHaveProperty('notes')
+      assert.exists(normalized.ui.debug.eventLog)
       expect(normalized.ui.debug.eventLog.map((entry) => entry.id)).toEqual([
         'devlog-0010',
         'devlog-0010-dup-2',
       ])
+      assert.exists(normalized.ui.debug.eventLog)
       expect(normalized.ui.debug.eventLog[0]?.week).toBe(4)
       expect(normalized.ui.debug.nextEventSequence).toBe(11)
     })
@@ -404,7 +406,9 @@ describe('gameStateManager', () => {
       )
 
       expect(normalized.eventQueue.entries[0]?.payload?.ratio).toBe(0.125)
+      assert.exists(normalized.ui.debug.eventLog)
       expect(normalized.ui.debug.eventLog[0]?.week).toBe(4)
+      assert.exists(normalized.ui.debug.eventLog)
       expect(normalized.ui.debug.eventLog[0]?.details?.ratio).toBe(0.3333333333333333)
     })
 
@@ -459,7 +463,7 @@ describe('gameStateManager', () => {
 
       const managed = ensureManagedGameState({
         ...base,
-        runtimeState: malformedRuntime as typeof base.runtimeState,
+        runtimeState: malformedRuntime,
       })
 
       expect(Array.isArray(managed.runtimeState?.eventQueue.entries)).toBe(true)
@@ -572,6 +576,7 @@ describe('gameStateManager', () => {
       expect(normalized.ui.authoring?.updatedWeek).toBe(3)
       expect(normalized.ui.debug.flags['ops.panel']).toBe(true)
       expect(normalized.eventQueue.entries[0]?.payload?.['weight.value']).toBe(0.25)
+      assert.exists(normalized.ui.debug.eventLog)
       expect(normalized.ui.debug.eventLog[0]?.details?.['delta.value']).toBe(1)
     })
   })

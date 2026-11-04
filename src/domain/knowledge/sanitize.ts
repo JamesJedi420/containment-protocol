@@ -60,11 +60,7 @@ function finiteWeek(value: unknown, campaignWeek?: number) {
   return week
 }
 
-function normalizeKnowledgeKey(
-  rawKey: string,
-  entityId: string,
-  subjectId: string
-) {
+function normalizeKnowledgeKey(rawKey: string, entityId: string, subjectId: string) {
   const canonical = getKnowledgeKey(entityId, subjectId)
   return rawKey === canonical ? rawKey : canonical
 }
@@ -102,11 +98,7 @@ function sanitizeKnowledgeEntry(
       ? (value.entityType as KnowledgeOwnerType)
       : 'team'
 
-  if (
-    context.knownTeamIds &&
-    entityType === 'team' &&
-    !context.knownTeamIds.has(entityId)
-  ) {
+  if (context.knownTeamIds && entityType === 'team' && !context.knownTeamIds.has(entityId)) {
     return null
   }
 
@@ -136,10 +128,12 @@ function sanitizeKnowledgeEntry(
       ? (value.fragmentation as KnowledgeFragmentation)
       : undefined
 
-  const confirmationState =
+  const confirmationState: KnowledgeState['confirmationState'] =
     typeof value.confirmationState === 'string' &&
-    CONFIRMATION_STATES.has(value.confirmationState as NonNullable<KnowledgeState['confirmationState']>)
-      ? value.confirmationState
+    CONFIRMATION_STATES.has(
+      value.confirmationState as NonNullable<KnowledgeState['confirmationState']>
+    )
+      ? (value.confirmationState as NonNullable<KnowledgeState['confirmationState']>)
       : undefined
 
   const fusedFrom = [
@@ -157,7 +151,9 @@ function sanitizeKnowledgeEntry(
       : undefined
 
   const notes =
-    typeof value.notes === 'string' && value.notes.trim().length > 0 ? value.notes.trim() : undefined
+    typeof value.notes === 'string' && value.notes.trim().length > 0
+      ? value.notes.trim()
+      : undefined
   const source =
     typeof value.source === 'string' && value.source.trim().length > 0
       ? value.source.trim()
@@ -214,9 +210,7 @@ function sanitizeKnowledgeEntry(
       ...(relayAvailableWeek !== undefined ? { relayAvailableWeek } : {}),
       ...(value.masked === true ? { masked: true } : {}),
       ...(lastMaskedWeek !== undefined ? { lastMaskedWeek } : {}),
-      ...(lastDefeatConditionUpdateWeek !== undefined
-        ? { lastDefeatConditionUpdateWeek }
-        : {}),
+      ...(lastDefeatConditionUpdateWeek !== undefined ? { lastDefeatConditionUpdateWeek } : {}),
     },
   ]
 }

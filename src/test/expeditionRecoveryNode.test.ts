@@ -31,7 +31,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       title: '',
       description: '',
       mode: 'probability',
-      kind: 'investigation',
+      kind: 'case',
       status: 'in_progress',
       difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
       weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -43,7 +43,9 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       deadlineWeeks: 4,
       deadlineRemaining: 4,
       assignedTeamIds: [],
-      contract: { fieldBase: { quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 } } },
+      contract: {
+        fieldBase: { quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 } },
+      },
       onFail: { type: 'none' },
       onUnresolved: { type: 'none' },
     }
@@ -72,7 +74,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       title: '',
       description: '',
       mode: 'probability',
-      kind: 'investigation',
+      kind: 'case',
       status: 'in_progress',
       difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
       weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -100,7 +102,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       title: '',
       description: '',
       mode: 'probability',
-      kind: 'investigation',
+      kind: 'case',
       status: 'open',
       difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
       weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -171,7 +173,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       title: '',
       description: '',
       mode: 'probability',
-      kind: 'investigation',
+      kind: 'case',
       status: 'open',
       difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
       weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -218,7 +220,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       title: '',
       description: '',
       mode: 'probability',
-      kind: 'investigation',
+      kind: 'case',
       status: 'in_progress',
       difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
       weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -328,7 +330,9 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       },
       contracts: undefined,
     })
-    const offer = getContractOffers(unlocked).find((o) => o.templateId === 'institutions-liturgy-expedition')!
+    const offer = getContractOffers(unlocked).find(
+      (o) => o.templateId === 'institutions-liturgy-expedition'
+    )!
     let state = launchContract(unlocked, offer.id, 't_nightwatch')
     state = {
       ...state,

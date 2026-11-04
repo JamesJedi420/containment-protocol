@@ -40,7 +40,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 ### Non-obvious caveats
 
-- **`npm run build` currently has baseline TS errors outside dev-environment setup.** Treat those as known type-contract drift, not as production-ignored failures; fix them in scoped follow-up changes before using `build` as a deployment gate. They do not block tests or the dev server because Vite transpiles TypeScript without strict type checking.
+- **Full build recovery:** SPE-3375 clears the previous TypeScript drift; paired compiler and literal production-build evidence is recorded in `docs/typecheck/green-build-2026-11-04/`. Re-run `npm run build` for current acceptance. CI gate activation remains owned by SPE-3348; this recovery does not change validation enforcement.
 - **This repo is pinned to Vite 8 (`vite` `^8.0.1`) with the native config loader.** Type-only exports are stripped at the ESM boundary. If you import an `interface` or `type` alias as a value import, the dev server will throw `SyntaxError: does not provide an export named '...'`. Always use `import type { ... }` for type-only imports in source files that the Vite dev server loads.
 - **Tests use `--pool vmThreads`** locally and the `jsdom` environment. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
 - **No environment variables or secrets** are required. The only optional env var is `STRICT_TEST_CONSOLE=1` (used in CI to fail on console warnings in tests).
@@ -94,7 +94,7 @@ AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `
 ### Severity
 
 - **P0 / P1 (flag):** correctness bugs, determinism breaks, persistence/hydration gaps, layer-boundary violations, week-close ordering errors, hidden-state leaks through UI, event schema/migration regressions, missing tests when acceptance requires coverage, security issues.
-- **Do not flag:** style-only nits, drive-by refactors, scope expansion suggestions, or pre-existing `npm run build` baseline TS drift unless this PR makes it worse (see caveats above).
+- **Do not flag:** style-only nits, drive-by refactors, scope expansion suggestions.
 
 ### Architecture
 

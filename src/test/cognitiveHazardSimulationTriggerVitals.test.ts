@@ -79,7 +79,7 @@ describe('cognitiveHazardSimulationTriggerVitals (SPE-1309 slice 7)', () => {
     expect(vitalsHasCognitiveHazardDutyDegraded(vitals)).toBe(true)
     expect(vitalsHasCognitiveHazardKnowledgeDegraded(vitals)).toBe(true)
     expect(vitals?.statusFlags).toContain(COGNITIVE_HAZARD_PROCEDURE_RESTRICTED_STATUS_FLAG)
-    expect((vitals?.morale ?? 0)).toBeLessThan(state.agents.a_sato?.vitals?.morale ?? 50)
+    expect(vitals?.morale ?? 0).toBeLessThan(state.agents.a_sato?.vitals?.morale ?? 50)
   })
 
   it('strips cognitive hazard flags when triggers stop emitting', () => {
@@ -98,9 +98,8 @@ describe('cognitiveHazardSimulationTriggerVitals (SPE-1309 slice 7)', () => {
       },
     })
 
-    expect(
-      vitalsHasCognitiveHazardKnowledgeDegraded(clearedAgents.a_mina?.vitals)
-    ).toBe(false)
+    expect(vitalsHasCognitiveHazardKnowledgeDegraded(clearedAgents.a_mina?.vitals)).toBe(false)
+    expect(clearedAgents.a_mina?.vitals?.statusFlags).toEqual([])
   })
 
   it('does not re-apply vitals for terminal erased records on subsequent weeks', () => {

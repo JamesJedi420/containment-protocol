@@ -181,7 +181,7 @@ export function parseContainmentBarrierIntegrity(value: unknown): ContainmentBar
       zoneId: value.zoneId,
       status: value.status,
       sourceInstanceId: value.sourceInstanceId,
-      sourceDeficiencyKind: value.sourceDeficiencyKind,
+      sourceDeficiencyKind: value.status === 'zone_breach' ? 'hard_stop' : 'compensating_continue',
     }),
   }
 }

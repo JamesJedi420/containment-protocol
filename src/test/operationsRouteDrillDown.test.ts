@@ -37,7 +37,7 @@ describe('getCaseWeeklyReportWeeks', () => {
             caseId: 'case-a',
             title: 'Snapshot only',
             kind: 'case',
-            mode: 'containment',
+            mode: 'threshold',
             status: 'in_progress',
             stage: 1,
             deadlineRemaining: 2,

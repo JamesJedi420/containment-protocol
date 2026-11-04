@@ -1,3 +1,4 @@
+import { createSimulationAgentVitalsBaseline } from '../domain/agentDefaults'
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { validateBranchContinuity, type BranchPathFacts } from '../domain/branchContinuity'
@@ -128,6 +129,7 @@ describe('branchContinuityProjection', () => {
         [agentId]: {
           ...game.agents[agentId],
           vitals: {
+            ...createSimulationAgentVitalsBaseline(game.agents[agentId].fatigue),
             ...game.agents[agentId].vitals,
             wounds: 30,
             statusFlags: [],
@@ -147,6 +149,7 @@ describe('branchContinuityProjection', () => {
           ...wounded.agents[agentId],
           status: 'recovering',
           vitals: {
+            ...createSimulationAgentVitalsBaseline(wounded.agents[agentId].fatigue),
             ...wounded.agents[agentId].vitals,
             wounds: 12,
             statusFlags: ['recovering'],
@@ -166,6 +169,7 @@ describe('branchContinuityProjection', () => {
           ...wounded.agents[agentId],
           status: 'recovering',
           vitals: {
+            ...createSimulationAgentVitalsBaseline(wounded.agents[agentId].fatigue),
             ...wounded.agents[agentId].vitals,
             wounds: 0,
             statusFlags: ['recovering'],

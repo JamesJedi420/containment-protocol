@@ -433,9 +433,9 @@ describe('ordinary equipment instance authority', () => {
       kind: 'equipment_instance',
       instanceId: materialized.instance.instanceId,
     })
-    expect(preview?.resolution.participation).toMatchObject({
-      state: 'graded',
-      gradeId: 'grade_2',
+    expect(preview?.resolution).toMatchObject({
+      available: true,
+      participation: { state: 'graded', gradeId: 'grade_2' },
     })
 
     const destroyed = destroyStoredOrdinaryEquipmentInstance(
@@ -2287,10 +2287,9 @@ describe('ordinary equipment instance authority', () => {
         { ...changed.instance, debug: true } as never
       )
     ).toMatchObject({ ok: false, code: 'invalid_instance_shape' })
-    expect(
-      (changed.state.equipmentInstances?.[changed.instance.instanceId] as Record<string, unknown>)
-        .debug
-    ).toBeUndefined()
+    const persistedInstance = changed.state.equipmentInstances?.[changed.instance.instanceId]
+    expect(persistedInstance).toBeDefined()
+    expect(persistedInstance).not.toHaveProperty('debug')
     const clearedPayload = applyEquipmentInstanceTransition(
       changed.state,
       changed.instance.instanceId,

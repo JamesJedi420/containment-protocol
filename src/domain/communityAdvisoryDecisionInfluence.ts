@@ -374,18 +374,18 @@ export function evaluateCommunityAdvisoryDecisionInfluence(
   const rawSignal = input.signal
   if (rawSignal === null || rawSignal === undefined) {
     return emptyDeferredResult(['missing_advisory_signal'], baseline, {
-      bodyId: normalizeToken((rawBody as CommunityAdvisoryBody).id) || null,
+      bodyId: normalizeToken(rawBody.id) || null,
     })
   }
 
   if (!isRecord(rawSignal)) {
     return emptyDeferredResult(['invalid_advisory_signal'], baseline, {
-      bodyId: normalizeToken((rawBody as CommunityAdvisoryBody).id) || null,
+      bodyId: normalizeToken(rawBody.id) || null,
     })
   }
 
-  const body = rawBody as CommunityAdvisoryBody
-  const signal = rawSignal as CommunityAdvisorySignal
+  const body = rawBody
+  const signal = rawSignal
   const bodyId = normalizeToken(body.id) || null
   const signalBodyId = normalizeToken(signal.bodyId)
   const influenceThreshold = isPositiveUnitInterval(body.influenceThreshold)

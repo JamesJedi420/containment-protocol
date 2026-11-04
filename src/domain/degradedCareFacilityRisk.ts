@@ -13,11 +13,7 @@
 
 export const DEGRADED_CARE_FACILITY_ID = 'facility:degraded-care-ward' as const
 
-export const CARE_QUALITY_CLAIMS = [
-  'excellent',
-  'adequate',
-  'under_review',
-] as const
+export const CARE_QUALITY_CLAIMS = ['excellent', 'adequate', 'under_review'] as const
 export type CareQualityClaim = (typeof CARE_QUALITY_CLAIMS)[number]
 
 export const OBSERVED_FLOOR_CONDITIONS = [
@@ -28,11 +24,7 @@ export const OBSERVED_FLOOR_CONDITIONS = [
 ] as const
 export type ObservedFloorCondition = (typeof OBSERVED_FLOOR_CONDITIONS)[number]
 
-export const HIDDEN_ZONE_KINDS = [
-  'inactive_wing',
-  'basement',
-  'partially_closed',
-] as const
+export const HIDDEN_ZONE_KINDS = ['inactive_wing', 'basement', 'partially_closed'] as const
 export type HiddenZoneKind = (typeof HIDDEN_ZONE_KINDS)[number]
 
 export const HIDDEN_ZONE_USES = [
@@ -44,20 +36,10 @@ export const HIDDEN_ZONE_USES = [
 ] as const
 export type HiddenZoneUse = (typeof HIDDEN_ZONE_USES)[number]
 
-export const RESIDENT_AGENCY_ROLES = [
-  'passive',
-  'witness',
-  'channel',
-  'contraband_holder',
-] as const
+export const RESIDENT_AGENCY_ROLES = ['passive', 'witness', 'channel', 'contraband_holder'] as const
 export type ResidentAgencyRole = (typeof RESIDENT_AGENCY_ROLES)[number]
 
-export const STAFF_KNOWLEDGE_ROLES = [
-  'administrator',
-  'doctor',
-  'aide',
-  'resident',
-] as const
+export const STAFF_KNOWLEDGE_ROLES = ['administrator', 'doctor', 'aide', 'resident'] as const
 export type StaffKnowledgeRole = (typeof STAFF_KNOWLEDGE_ROLES)[number]
 
 export const CARE_SCHEDULE_FAILURES = [
@@ -119,9 +101,7 @@ function deriveEffectiveRisk(input: DegradedCareRiskInput): RiskBand {
 }
 
 /** Project amplified anomaly risk and quality-claim contradiction. */
-export function projectDegradedCareRisk(
-  input: unknown
-): DegradedCareRiskResult | undefined {
+export function projectDegradedCareRisk(input: unknown): DegradedCareRiskResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (typeof input.understaffed !== 'boolean') return undefined
@@ -133,24 +113,27 @@ export function projectDegradedCareRisk(
   }
   if (!isMember(input.baselineAnomalyRisk, RISK_BANDS)) return undefined
 
-  const typed = input as DegradedCareRiskInput
+  const typed: DegradedCareRiskInput = {
+    facilityId: input.facilityId,
+    understaffed: input.understaffed,
+    deferredMaintenance: input.deferredMaintenance,
+    intermittentMedicalCoverage: input.intermittentMedicalCoverage,
+    officialQualityClaim: input.officialQualityClaim,
+    observedFloorCondition: input.observedFloorCondition,
+    baselineAnomalyRisk: input.baselineAnomalyRisk,
+  }
   const effectiveAnomalyRisk = deriveEffectiveRisk(typed)
   const claimsGood =
-    typed.officialQualityClaim === 'excellent' ||
-    typed.officialQualityClaim === 'adequate'
+    typed.officialQualityClaim === 'excellent' || typed.officialQualityClaim === 'adequate'
   const operationalDegradation =
-    typed.understaffed ||
-    typed.deferredMaintenance ||
-    typed.intermittentMedicalCoverage
+    typed.understaffed || typed.deferredMaintenance || typed.intermittentMedicalCoverage
   const qualityClaimContradiction =
-    claimsGood &&
-    (typed.observedFloorCondition !== 'stable' || operationalDegradation)
+    claimsGood && (typed.observedFloorCondition !== 'stable' || operationalDegradation)
 
   return Object.freeze({
     facilityId: typed.facilityId,
     effectiveAnomalyRisk,
-    amplifiesVsBaseline:
-      riskRank(effectiveAnomalyRisk) > riskRank(typed.baselineAnomalyRisk),
+    amplifiesVsBaseline: riskRank(effectiveAnomalyRisk) > riskRank(typed.baselineAnomalyRisk),
     qualityClaimContradiction,
     officialQualityClaim: typed.officialQualityClaim,
     observedFloorCondition: typed.observedFloorCondition,
@@ -217,9 +200,7 @@ export interface ResidentAgencyResult {
 }
 
 /** Residents act as witnesses, channels, or contraband holders — not scenery. */
-export function projectResidentAgency(
-  input: unknown
-): ResidentAgencyResult | undefined {
+export function projectResidentAgency(input: unknown): ResidentAgencyResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!isNonEmptyString(input.residentId)) return undefined
@@ -228,9 +209,7 @@ export function projectResidentAgency(
   if (typeof input.warnsInvestigators !== 'boolean') return undefined
 
   const meaningfulCaseActor =
-    input.agencyRole !== 'passive' ||
-    input.hidesSupplies ||
-    input.warnsInvestigators
+    input.agencyRole !== 'passive' || input.hidesSupplies || input.warnsInvestigators
 
   return Object.freeze({
     facilityId: input.facilityId,
@@ -255,9 +234,7 @@ export interface CareScheduleAuditResult {
 }
 
 /** Skipped care cadence surfaces as auditable systemic neglect. */
-export function projectCareScheduleAudit(
-  input: unknown
-): CareScheduleAuditResult | undefined {
+export function projectCareScheduleAudit(input: unknown): CareScheduleAuditResult | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!Array.isArray(input.failures)) return undefined
@@ -312,8 +289,7 @@ export function projectRecoveryTransferThreat(
   if (typeof input.hauntingLinkedPressureActive !== 'boolean') return undefined
   if (!isMember(input.preTransferThreat, RISK_BANDS)) return undefined
 
-  const pressureRemains =
-    input.symbolicPressureActive || input.hauntingLinkedPressureActive
+  const pressureRemains = input.symbolicPressureActive || input.hauntingLinkedPressureActive
   const postTransferThreat = pressureRemains
     ? input.preTransferThreat
     : RISK_BANDS[Math.max(0, riskRank(input.preTransferThreat) - 1)]!
@@ -365,7 +341,6 @@ export function projectUnevenStaffKnowledge(
     role: input.role,
     knowledgeFragmentCount,
     // Partial knowledge is uneven; all-or-nothing is not.
-    unevenInstitutionalKnowledge:
-      knowledgeFragmentCount > 0 && knowledgeFragmentCount < 3,
+    unevenInstitutionalKnowledge: knowledgeFragmentCount > 0 && knowledgeFragmentCount < 3,
   })
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import { buildAgencySummary } from '../domain/agency'
@@ -61,10 +61,7 @@ import {
   buildWeeklyHiddenCellResearchRollbackReportNotes,
 } from '../domain/hiddenCellInterferenceWeeklyReportNotes'
 import { createInitialResearchState } from '../domain/research'
-import {
-  buildRivalPressureFromRankingScore,
-  type RivalPressureBand,
-} from '../domain/rivalPressure'
+import { buildRivalPressureFromRankingScore, type RivalPressureBand } from '../domain/rivalPressure'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { getReportPageView } from '../features/report/reportView'
 import type { ResearchState, WeeklyReport } from '../domain/models'
@@ -282,7 +279,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(summary.hiddenCellInterference.fundingStolen).toBeGreaterThan(0)
 
     const reportView = getReportPageView(state)
+    assert.exists(reportView.summary)
     expect(reportView.summary.agencySummaryLine).toMatch(/hidden-cell interference/)
+    assert.exists(reportView.summary)
     expect(reportView.summary.agencySummaryLine).not.toMatch(/hidden-cell interference inactive/)
   })
 
@@ -321,8 +320,10 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
       : computeWeeklyInventoryHoldingCost(state, closedWeek)
     // advanceWeek resolves theft against post-ops/holding funding (fundingDelta ~0 for quiet week).
     const fundingBasis = Math.max(0, state.funding - operatingCost - holdingCost)
-    const expectedTheft = resolveHiddenCellFundingTheftFromPressure(pressureBefore, fundingBasis)
-      .fundingStolen
+    const expectedTheft = resolveHiddenCellFundingTheftFromPressure(
+      pressureBefore,
+      fundingBasis
+    ).fundingStolen
     expect(expectedTheft).toBeGreaterThan(0)
 
     const nextState = advanceWeek(state)
@@ -354,12 +355,10 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
 
     const nextState = advanceWeek(state)
-    expect(findHiddenCellFundingTheftAmountForWeek(nextState.agency?.fundingState, state.week)).toBe(
-      0
-    )
     expect(
-      findHiddenCellResearchRollbackAmountForWeek(nextState.researchState, state.week)
+      findHiddenCellFundingTheftAmountForWeek(nextState.agency?.fundingState, state.week)
     ).toBe(0)
+    expect(findHiddenCellResearchRollbackAmountForWeek(nextState.researchState, state.week)).toBe(0)
 
     const lastReport = nextState.reports[nextState.reports.length - 1]
     const interferenceNotes =
@@ -426,7 +425,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(first.appliedAmount).toBe(effect.progressTimeRolledBack)
     expect(first.state.projects['proj-a']?.progressTime).toBe(4 - effect.progressTimeRolledBack)
     expect(hasHiddenCellResearchRollbackForWeek(first.state, 3)).toBe(true)
-    expect(findHiddenCellResearchRollbackAmountForWeek(first.state, 3)).toBe(effect.progressTimeRolledBack)
+    expect(findHiddenCellResearchRollbackAmountForWeek(first.state, 3)).toBe(
+      effect.progressTimeRolledBack
+    )
     expect(findHiddenCellResearchRollbackProjectIdForWeek(first.state, 3)).toBe('proj-a')
 
     const second = applyHiddenCellResearchRollbackToResearchState(first.state, effect, 3)
@@ -508,7 +509,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     }
     state.researchState = researchStateWithActiveProgress({ progressTime: 4 })
 
-    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    const pressureBefore = buildRivalPressureFromRankingScore(
+      buildAgencySummary(state).ranking.score
+    )
     expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
     const expectedRollback = resolveHiddenCellResearchRollbackFromPressure(
       pressureBefore,
@@ -561,11 +564,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     const effect = resolveHiddenCellPanicAmplificationFromRankingScore(15)
     expect(effect.pressureAmplified).toBeGreaterThan(0)
 
-    const first = applyHiddenCellPanicAmplificationToGameState(
-      { globalPressure: 10 },
-      effect,
-      3
-    )
+    const first = applyHiddenCellPanicAmplificationToGameState({ globalPressure: 10 }, effect, 3)
     expect(first.appliedAmount).toBe(effect.pressureAmplified)
     expect(first.state.globalPressure).toBe(10 + effect.pressureAmplified)
     expect(hasHiddenCellPanicAmplificationForWeek(first.state, 3)).toBe(true)
@@ -600,11 +599,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
   it('builds weekly panic-amplification notes only when amplification was applied', () => {
     const pressure = buildRivalPressureFromRankingScore(20)
     const effect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
-    const applied = applyHiddenCellPanicAmplificationToGameState(
-      { globalPressure: 5 },
-      effect,
-      2
-    )
+    const applied = applyHiddenCellPanicAmplificationToGameState({ globalPressure: 5 }, effect, 2)
 
     const notes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
       gameState: applied.state,
@@ -625,7 +620,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     })
 
     const inactiveNotes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
-      gameState: { globalPressure: 5 },
+      gameState: {},
       rivalPressure: buildRivalPressureFromRankingScore(50),
       week: 2,
       sequenceStart: 1,
@@ -636,11 +631,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
   it('retains panic-amplification note metadata and markers through hydrateGame', () => {
     const pressure = buildRivalPressureFromRankingScore(20)
     const effect = resolveHiddenCellPanicAmplificationFromPressure(pressure)
-    const applied = applyHiddenCellPanicAmplificationToGameState(
-      { globalPressure: 12 },
-      effect,
-      4
-    )
+    const applied = applyHiddenCellPanicAmplificationToGameState({ globalPressure: 12 }, effect, 4)
     const notes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
       gameState: applied.state,
       rivalPressure: pressure,
@@ -698,7 +689,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
       )
     }
 
-    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    const pressureBefore = buildRivalPressureFromRankingScore(
+      buildAgencySummary(state).ranking.score
+    )
     expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
     const expectedAmplification =
       resolveHiddenCellPanicAmplificationFromPressure(pressureBefore).pressureAmplified
@@ -757,7 +750,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(left.active).toBe(true)
     expect(left.kind).toBe('infrastructure_compromise')
     expect(left.maintenanceCompromised).toBeGreaterThan(0)
-    expect(left.maintenanceCompromised).toBeLessThanOrEqual(HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX)
+    expect(left.maintenanceCompromised).toBeLessThanOrEqual(
+      HIDDEN_CELL_INFRASTRUCTURE_COMPROMISE_MAX
+    )
     expect(left.summary).toMatch(/compromised .* maintenance specialist/)
   })
 
@@ -883,8 +878,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     const state = createStartingState()
     state.week = 5
     if (state.agency) {
-      state.agency.maintenanceSpecialistsAvailable =
-        applied.state.maintenanceSpecialistsAvailable
+      state.agency.maintenanceSpecialistsAvailable = applied.state.maintenanceSpecialistsAvailable
       state.agency.lastHiddenCellInfrastructureCompromiseWeek =
         applied.state.lastHiddenCellInfrastructureCompromiseWeek
       state.agency.lastHiddenCellInfrastructureCompromiseAmount =
@@ -938,7 +932,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
       state.agency.maintenanceSpecialistsAvailable = 4
     }
 
-    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    const pressureBefore = buildRivalPressureFromRankingScore(
+      buildAgencySummary(state).ranking.score
+    )
     expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
     const expectedCompromise = resolveHiddenCellInfrastructureCompromiseFromPressure(
       pressureBefore,
@@ -948,9 +944,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
 
     const closedWeek = state.week
     const nextState = advanceWeek(state)
-    expect(
-      findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, closedWeek)
-    ).toBe(expectedCompromise)
+    expect(findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, closedWeek)).toBe(
+      expectedCompromise
+    )
     expect(nextState.agency?.maintenanceSpecialistsAvailable).toBe(4 - expectedCompromise)
 
     const lastReport = nextState.reports[nextState.reports.length - 1]
@@ -978,9 +974,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(isHiddenCellPressureActive(pressure.band)).toBe(false)
 
     const nextState = advanceWeek(state)
-    expect(
-      findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, state.week)
-    ).toBe(0)
+    expect(findHiddenCellInfrastructureCompromiseAmountForWeek(nextState.agency, state.week)).toBe(
+      0
+    )
     expect(nextState.agency?.maintenanceSpecialistsAvailable).toBe(4)
 
     const lastReport = nextState.reports[nextState.reports.length - 1]
@@ -1028,9 +1024,11 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     freezeCasesForQuietWeek(afterFirst)
     afterFirst.reports = []
     const afterSecond = advanceWeek(afterFirst)
-    expect(isHiddenCellPressureActive(
-      buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
-    )).toBe(false)
+    expect(
+      isHiddenCellPressureActive(
+        buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
+      )
+    ).toBe(false)
     expect(afterSecond.agency?.lastHiddenCellInfrastructureCompromiseWeek).toBe(closedWeek)
     expect(afterSecond.agency?.lastHiddenCellInfrastructureCompromiseAmount).toBe(applied)
     expect(afterSecond.agency?.maintenanceSpecialistsAvailable).toBe(
@@ -1071,9 +1069,7 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     expect(detectionNarrowingBandFromProgress(30)).toBe('regional')
     expect(detectionNarrowingBandFromProgress(60)).toBe('sector')
     expect(detectionNarrowingBandFromProgress(90)).toBe('imminent')
-    expect(detectionNarrowingBandFromProgress(HIDDEN_CELL_DETECTION_NARROWING_MAX)).toBe(
-      'imminent'
-    )
+    expect(detectionNarrowingBandFromProgress(HIDDEN_CELL_DETECTION_NARROWING_MAX)).toBe('imminent')
   })
 
   it('applies covert growth idempotently once per closed week', () => {
@@ -1253,7 +1249,9 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
       state.agency.hiddenCellDetectionNarrowing = 0
     }
 
-    const pressureBefore = buildRivalPressureFromRankingScore(buildAgencySummary(state).ranking.score)
+    const pressureBefore = buildRivalPressureFromRankingScore(
+      buildAgencySummary(state).ranking.score
+    )
     expect(isHiddenCellPressureActive(pressureBefore.band)).toBe(true)
     const expected = resolveHiddenCellCovertGrowthFromPressure(pressureBefore, 0, 0)
     expect(expected.growthApplied).toBeGreaterThan(0)
@@ -1343,9 +1341,11 @@ describe('hidden-cell strategic interference (SPE-2704 / SPE-2706 / SPE-2707 / S
     freezeCasesForQuietWeek(afterFirst)
     afterFirst.reports = []
     const afterSecond = advanceWeek(afterFirst)
-    expect(isHiddenCellPressureActive(
-      buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
-    )).toBe(false)
+    expect(
+      isHiddenCellPressureActive(
+        buildRivalPressureFromRankingScore(buildAgencySummary(afterFirst).ranking.score).band
+      )
+    ).toBe(false)
     expect(afterSecond.agency?.lastHiddenCellCovertGrowthWeek).toBe(closedWeek)
     expect(afterSecond.agency?.lastHiddenCellCovertGrowthAmount).toBe(appliedGrowth)
     expect(afterSecond.agency?.hiddenCellCovertGrowthLevel).toBe(

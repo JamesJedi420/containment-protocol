@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   AGENCY_ESTABLISHMENT_BEAT_IDS,
@@ -27,6 +27,7 @@ describe('agency establishment projection', () => {
 
   it('projects campaign identity and location from the canonical campaign ledger', () => {
     const game = createStartingState()
+    assert.exists(game.campaignLedger)
     game.campaignLedger = {
       ...game.campaignLedger,
       profile: {

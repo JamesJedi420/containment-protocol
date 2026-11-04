@@ -27,27 +27,18 @@ import { FUNDING_CALIBRATION } from './sim/calibration'
 import { assessProcurementGearAccess } from './procurementGearAccess'
 
 export type ProcurementTransactionAction =
-  | 'buy'
-  | 'sell'
-  | 'favor_exchange'
-  | 'callable_obligation'
-  | 'order'
-  | 'fulfill'
+  'buy' | 'sell' | 'favor_exchange' | 'callable_obligation' | 'order' | 'fulfill'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
 export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
 export type ProcurementAccessChannel =
-  | 'open_exchange'
-  | 'directorate_special_channel'
-  | 'faction_favor_exchange'
+  'open_exchange' | 'directorate_special_channel' | 'faction_favor_exchange'
 export type ProcurementMarketPacketId = 'agency_supplier_roster' | 'gray_market_broker'
 export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-gray-market'
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
 export type ProcurementParticipantChannelType = 'quartermaster' | 'broker'
 export type ProcurementLiquidityProfile = 'stable' | 'thin'
 export type ProcurementResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
 
@@ -280,9 +271,7 @@ export interface CallableObligationProcurementAssessment {
   listingId: string
   eligible: boolean
   reasonCode:
-    | 'callable-obligation-ready'
-    | 'callable-obligation-missing'
-    | 'not-callable-obligation-listing'
+    'callable-obligation-ready' | 'callable-obligation-missing' | 'not-callable-obligation-listing'
   detail: string
 }
 
@@ -785,6 +774,10 @@ function getListingTransactionTotalsForWeek(
         break
       case 'sell':
         soldByListingId[listingId] = (soldByListingId[listingId] ?? 0) + quantity
+        break
+      case 'order':
+      case 'fulfill':
+        // Backlog transactions do not consume the instant buy/sell allowance.
         break
       default: {
         const _exhaustive: never = event.payload.action

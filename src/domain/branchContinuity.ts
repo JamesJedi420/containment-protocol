@@ -75,6 +75,8 @@ export interface BranchCorrectedRecord {
   supersededClaimId: string
   revisionId: string
   summary?: string
+  /** This correction applies only after the recorded choice, when present. */
+  effectiveFromChoiceId?: string
 }
 
 export type BranchContinuityWarningClass =
@@ -168,7 +170,9 @@ function buildWarningId(
   return `${pathId}:${nodeId}:${warningClass}:${detailKey}`
 }
 
-function severityForClass(warningClass: BranchContinuityWarningClass): BranchContinuityWarningSeverity {
+function severityForClass(
+  warningClass: BranchContinuityWarningClass
+): BranchContinuityWarningSeverity {
   return ERROR_WARNING_CLASSES.has(warningClass) ? 'error' : 'warning'
 }
 
@@ -194,7 +198,9 @@ function pushWarning(
     audience: input.audience,
     summary: input.summary,
     ...(input.details ? { details: input.details } : {}),
-    ...(input.relatedIds && input.relatedIds.length > 0 ? { relatedIds: [...input.relatedIds] } : {}),
+    ...(input.relatedIds && input.relatedIds.length > 0
+      ? { relatedIds: [...input.relatedIds] }
+      : {}),
   })
 }
 
@@ -277,7 +283,10 @@ function isHiddenSimulationClue(pathFacts: BranchPathFacts, clueId: string) {
   return pathFacts.simulationTruth?.hiddenLearnedClueIds?.includes(clueId) ?? false
 }
 
-function getCompanionStatus(pathFacts: BranchPathFacts, companionId: string): BranchCompanionStatus {
+function getCompanionStatus(
+  pathFacts: BranchPathFacts,
+  companionId: string
+): BranchCompanionStatus {
   return pathFacts.companionStatusById[companionId] ?? 'absent'
 }
 
@@ -425,10 +434,7 @@ function validateRequires(
   }
 
   const requiredOrigin = normalizeString(requires.roomOfOriginId)
-  if (
-    requiredOrigin.length > 0 &&
-    normalizeString(pathFacts.roomOfOriginId) !== requiredOrigin
-  ) {
+  if (requiredOrigin.length > 0 && normalizeString(pathFacts.roomOfOriginId) !== requiredOrigin) {
     pushWarning(warnings, {
       pathId,
       nodeId,
@@ -674,7 +680,10 @@ export function validateBranchContinuity(
 ): BranchContinuityValidationReport {
   const pathFacts = input.pathFacts
   const correctedRecords = input.correctedRecords ?? []
-  const { supersededClaimIds, revisionIds } = buildCorrectedRecordIndexes(pathFacts, correctedRecords)
+  const { supersededClaimIds, revisionIds } = buildCorrectedRecordIndexes(
+    pathFacts,
+    correctedRecords
+  )
 
   const warnings: BranchContinuityWarning[] = []
 

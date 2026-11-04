@@ -15,13 +15,7 @@ import { FRANCHISE_TOKEN_PATTERN } from './truthLayerRecordRegistry'
 export type CoverStoryRecordId = string
 
 export type CoverStoryLifecyclePhase =
-  | 'drafted'
-  | 'maintained'
-  | 'stressed'
-  | 'collapsed'
-  | 'repairing'
-  | 'abandoned'
-  | 'replaced'
+  'drafted' | 'maintained' | 'stressed' | 'collapsed' | 'repairing' | 'abandoned' | 'replaced'
 
 export const COVER_STORY_LIFECYCLE_PHASES: readonly CoverStoryLifecyclePhase[] = [
   'drafted',
@@ -46,12 +40,7 @@ export type CoverStoryLifecycleEvent =
   | 'cover_abandoned'
   | 'cover_replaced'
 
-export type CoverStorySubjectKind =
-  | 'actor'
-  | 'site'
-  | 'event'
-  | 'institution'
-  | 'relationship'
+export type CoverStorySubjectKind = 'actor' | 'site' | 'event' | 'institution' | 'relationship'
 
 export const COVER_STORY_SUBJECT_KINDS: readonly CoverStorySubjectKind[] = [
   'actor',
@@ -77,11 +66,7 @@ export const COVER_STORY_MOTIVATIONS: readonly CoverStoryMotivation[] = [
 ] as const
 
 export type CoverStoryExposureKind =
-  | 'paranormal'
-  | 'social'
-  | 'political'
-  | 'personal'
-  | 'institutional'
+  'paranormal' | 'social' | 'political' | 'personal' | 'institutional'
 
 export const COVER_STORY_EXPOSURE_KINDS: readonly CoverStoryExposureKind[] = [
   'paranormal',
@@ -108,11 +93,7 @@ export const COVER_STORY_CONTRADICTION_CHANNEL_KINDS: readonly CoverStoryContrad
   ] as const
 
 export type CoverStoryStagedResponse =
-  | 'reinforcement'
-  | 'revision'
-  | 'suppression'
-  | 'replacement'
-  | 'abandonment'
+  'reinforcement' | 'revision' | 'suppression' | 'replacement' | 'abandonment'
 
 export const COVER_STORY_STAGED_RESPONSES: readonly CoverStoryStagedResponse[] = [
   'reinforcement',
@@ -354,9 +335,7 @@ function asStringArray(value: unknown): readonly string[] {
 }
 
 function sortedStringArray(value: unknown): readonly string[] {
-  return Object.freeze(
-    [...asStringArray(value)].sort((left, right) => left.localeCompare(right))
-  )
+  return Object.freeze([...asStringArray(value)].sort((left, right) => left.localeCompare(right)))
 }
 
 function pushIssue(issues: CoverStoryValidationIssue[], issue: CoverStoryValidationIssue) {
@@ -397,7 +376,9 @@ function freezeValidationResult(issues: CoverStoryValidationIssue[]): CoverStory
 }
 
 function isFiniteWeek(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  return (
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  )
 }
 
 function isValidUnitScore(value: unknown): value is number {
@@ -658,7 +639,10 @@ export function validateCoverStoryRecord(record: CoverStoryRecord): CoverStoryVa
     })
   }
 
-  if (record.contradictionPressure !== undefined && !isValidUnitScore(record.contradictionPressure)) {
+  if (
+    record.contradictionPressure !== undefined &&
+    !isValidUnitScore(record.contradictionPressure)
+  ) {
     pushIssue(issues, {
       code: 'invalid_contradiction_pressure',
       severity: 'error',
@@ -872,8 +856,7 @@ export function validateCoverStoryRecord(record: CoverStoryRecord): CoverStoryVa
 
   if (record.lifecyclePhase === 'collapsed' || record.lifecyclePhase === 'repairing') {
     const stressedInHistory = history.some((entry) => entry.toPhase === 'stressed')
-    const currentlyStressed = record.lifecyclePhase === 'stressed'
-    if (!stressedInHistory && !currentlyStressed && record.lifecyclePhase === 'collapsed') {
+    if (!stressedInHistory && record.lifecyclePhase === 'collapsed') {
       pushIssue(issues, {
         code: 'collapsed_without_prior_stressed_phase',
         severity: 'warning',
@@ -935,12 +918,11 @@ export function projectCoverStoryLifecycleView(
     contradictionRedacted || derivedPressure === null ? null : derivedPressure
 
   const coverCapacityScore =
-    capacityRedacted || record.coverCapacityScore === undefined
-      ? null
-      : record.coverCapacityScore
+    capacityRedacted || record.coverCapacityScore === undefined ? null : record.coverCapacityScore
 
   const channels = (record.contradictionChannels ?? []).filter(
-    (channel) => channel && typeof channel === 'object' && isContradictionChannelKind(channel.channel)
+    (channel) =>
+      channel && typeof channel === 'object' && isContradictionChannelKind(channel.channel)
   )
 
   const channelHints = Object.freeze(
@@ -951,7 +933,7 @@ export function projectCoverStoryLifecycleView(
 
   const repairHistory = record.repairActionHistory ?? []
   const latestRepairAction =
-    repairHistory.length > 0 ? repairHistory[repairHistory.length - 1]?.action ?? null : null
+    repairHistory.length > 0 ? (repairHistory[repairHistory.length - 1]?.action ?? null) : null
 
   let confidence: number | null = record.confidence ?? null
   if (redactedFields.has('confidence')) {
@@ -993,9 +975,7 @@ export function projectCoverStoryLifecycleView(
     subjectRef: normalizeToken(record.subjectRef) || '(unknown)',
     subjectKind: isSubjectKind(record.subjectKind) ? record.subjectKind : 'event',
     coverMotivation:
-      motivationRedacted || record.coverMotivation === undefined
-        ? null
-        : record.coverMotivation,
+      motivationRedacted || record.coverMotivation === undefined ? null : record.coverMotivation,
     exposureKind:
       exposureRedacted || record.exposureKind === undefined ? null : record.exposureKind,
     contradictionPressure,

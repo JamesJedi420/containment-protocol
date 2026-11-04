@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { assert, afterEach, describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
 import { BIOHAZARD_RESPONSE_FACILITY_ID } from '../domain/departmentWorkshopFacilityMapping'
@@ -690,6 +690,8 @@ describe('department workshop persistence', () => {
           taskType: 'containment_response' as const,
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
         'work:forged': {
           workOrderId: 'work:forged',
@@ -698,6 +700,8 @@ describe('department workshop persistence', () => {
           taskType: 'containment_response' as const,
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
       },
     }
@@ -1719,6 +1723,8 @@ describe('department workshop persistence', () => {
           taskType: 'containment_response',
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
         'work:zulu': {
           workOrderId: 'work:zulu',
@@ -1727,6 +1733,8 @@ describe('department workshop persistence', () => {
           taskType: 'records_review',
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
       },
     }
@@ -1765,6 +1773,8 @@ describe('department workshop persistence', () => {
           taskType: 'containment_response',
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
       },
     }
@@ -1975,9 +1985,11 @@ describe('department workshop persistence', () => {
         departmentWorkshopCompletionOutcomes: graded.outcomes,
       })
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect(loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toEqual(
       graded.outcomes['work:zulu']
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect('dependencyCondition' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(
       false
     )
@@ -2053,9 +2065,11 @@ describe('department workshop persistence', () => {
         departmentWorkshopCompletionOutcomes: forward.outcomes,
       })
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect(loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toEqual(
       forward.outcomes['work:zulu']
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect('equipmentCondition' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(
       false
     )
@@ -2131,9 +2145,11 @@ describe('department workshop persistence', () => {
         departmentWorkshopCompletionOutcomes: forward.outcomes,
       })
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect(loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toEqual(
       forward.outcomes['work:zulu']
     )
+    assert.exists(loaded.departmentWorkshopCompletionOutcomes)
     expect('reagentGrade' in loaded.departmentWorkshopCompletionOutcomes['work:zulu']).toBe(false)
   })
 
@@ -2149,6 +2165,8 @@ describe('department workshop persistence', () => {
           taskType: 'containment_response',
           completedWeek: 1,
           outcome: 'completed' as const,
+          quality: 'nominal' as const,
+          safety: 'safe' as const,
         },
       },
     }

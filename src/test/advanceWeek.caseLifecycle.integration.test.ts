@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { createInformationIntakeReport } from '../domain/informationIntakeReport'
-import type { ExtranormalEventRecord } from '../domain/extranormalEventRegistry'
+import {
+  BRIEF_COVER_UP_EVENT_FIXTURE,
+  type ExtranormalEventRecord,
+} from '../domain/extranormalEventRegistry'
 import { applyWeeklyCaseLifecycleTick } from '../domain/caseLifecycleWeeklyOrchestration'
 import type { RuleDocumentComplianceRecord } from '../domain/ruleDocumentComplianceContainmentRegistry'
 import type { RecurrentCatastropheRecord } from '../domain/recurrentCatastropheAmeliorationRegistry'
@@ -117,6 +120,7 @@ describe('advanceWeek case lifecycle integration (SPE-1310 slice 3)', () => {
     targetCase.lifecycleStage = 'confirmation'
 
     const event: ExtranormalEventRecord = {
+      ...BRIEF_COVER_UP_EVENT_FIXTURE,
       id: 'extranormal:advance-week-confirm',
       label: 'Advance week anomaly confirmation',
       closureState: 'escalated_to_case',

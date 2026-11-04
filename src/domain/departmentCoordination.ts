@@ -232,7 +232,8 @@ function assignedDepartmentIds(assignment: DepartmentResolutionResult): readonly
         assignment.requirements.primaryCapability ||
       assignment.supportingDepartments.some((entry) =>
         entry.matchedCapabilities.some(
-          (capability) => !assignment.requirements.supportingCapabilities.includes(capability)
+          (capability: DepartmentCapability) =>
+            !assignment.requirements.supportingCapabilities.includes(capability)
         )
       )
     ) {

@@ -35,10 +35,7 @@ export const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
   'Mixed exploration, inspection, combat, and recovery accounting stays on the shared readiness/time-cost clock; archive-instability does not add a parallel operational timer.'
 
 export type VisibilityExplanationCategory =
-  | 'routing'
-  | 'deployment-readiness'
-  | 'weakest-link'
-  | 'weekly-pressure'
+  'routing' | 'deployment-readiness' | 'weakest-link' | 'weekly-pressure'
 
 export type VisibilityExplanationSeverity = 'info' | 'warning' | 'error'
 
@@ -84,6 +81,7 @@ const ROUTING_BLOCKER_LABELS: Record<MissionRoutingBlockerCode, string> = {
   'training-blocked': 'training blocked',
   'invalid-loadout-gate': 'loadout gate failed',
   'site-clearance-required': 'site clearance required',
+  'authority-mission-access-restricted': 'mission access restricted',
   'dual-loyalty-restricted': 'dual loyalty restricted',
   'protected-status-restricted': 'protected status restricted',
   'revocation-restricted': 'revocation restricted',

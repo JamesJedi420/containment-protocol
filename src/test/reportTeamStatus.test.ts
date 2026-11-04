@@ -15,7 +15,7 @@ function makeInProgressCase(overrides: Partial<CaseInstance> = {}): CaseInstance
     title: 'Expedition',
     description: '',
     mode: 'probability',
-    kind: 'investigation',
+    kind: 'case',
     status: 'in_progress',
     difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
     weights: { combat: 1, investigation: 1, utility: 1, social: 1 },

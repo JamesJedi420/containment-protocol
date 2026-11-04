@@ -1,8 +1,5 @@
 import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
-import type {
-  CustomDifficultyOverrides,
-  DifficultyProfileId,
-} from './difficultyProfileResolver'
+import type { CustomDifficultyOverrides, DifficultyProfileId } from './difficultyProfileResolver'
 import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
 import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
 import type { SharedUniverseCanonReleaseBinding } from './sharedUniverseCanonReleaseBinding'
@@ -298,6 +295,7 @@ export interface LegitimacyState {
 
 // src/domain/models.ts
 import type { OperationEvent } from './events/types'
+import type { HubState } from './hub/hubState'
 import type { PartyCardState } from './partyCards/models'
 import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
 import type {
@@ -1210,6 +1208,7 @@ export interface ActiveContractRuntime {
 }
 
 export interface ContractSystemState {
+  debriefRecords?: ContractDebriefRecord[]
   generatedWeek: number
   offers: ContractOffer[]
   history: Record<string, ContractHistoryRecord>
@@ -3575,8 +3574,8 @@ export interface GameState {
 
   // Added for sim/advanceWeek compatibility
   factions?: Record<string, FactionRuntimeState>
-  hubState?: unknown
-  prevHubState?: unknown
+  hubState?: HubState
+  prevHubState?: HubState
   /** Squad configuration data (SPE-1304). All optional; missing = no config persisted. */
   squadMetadata?: Record<string, SquadMetadata>
   squadKitTemplates?: Record<string, SquadKitTemplate>

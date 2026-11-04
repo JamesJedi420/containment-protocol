@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
 import { buildCourierNetworkCapacityGapReport } from '../domain/capabilityGap'
 import { COURIER_NETWORK_CAPACITY_GAP_CALIBRATION } from '../domain/sim/calibration'
-import {
-  OFF_BOOKS_COURIER_LOCKOUT_TAG,
-} from '../domain/sim/downtimeSideWork'
+import { OFF_BOOKS_COURIER_LOCKOUT_TAG } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
-import type { CourierShellFrontState, FundingState, GameState } from '../domain/models'
+import type { CourierShellFrontState, GameState } from '../domain/models'
 import { withPaidCourierAndFunding } from './fixtures/withPaidCourierAndFunding'
 
 describe('SPE-823a courier network capacity gap report', () => {
@@ -98,11 +97,11 @@ describe('SPE-823a courier network capacity gap report', () => {
     const base = withPaidCourierAndFunding(createStartingState(), 9000)
     const fs = { ...base.agency!.fundingState! } as Record<string, unknown>
     delete fs.procurementBacklog
-    const game: GameState = normalizeGameState({
+    const game: GameState = hydrateGame({
       ...base,
       agency: {
         ...base.agency!,
-        fundingState: fs as FundingState,
+        fundingState: fs,
       },
     })
     expect(() => buildCourierNetworkCapacityGapReport(game)).not.toThrow()

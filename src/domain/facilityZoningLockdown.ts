@@ -19,10 +19,7 @@
  * or own facility UI.
  */
 
-import {
-  FACILITY_ACCESS_BANDS,
-  type FacilityAccessBand,
-} from './layeredFacilityControl'
+import { FACILITY_ACCESS_BANDS, type FacilityAccessBand } from './layeredFacilityControl'
 
 /** Representative specialized facility used by acceptance fixtures. */
 export const ZONING_FACILITY_ID = 'facility:specialized-ops-wing' as const
@@ -44,31 +41,18 @@ export const ZONE_ALARM_STATES = ['quiet', 'containment_alarm', 'lockdown'] as c
 export type ZoneAlarmState = (typeof ZONE_ALARM_STATES)[number]
 
 /** Facility-wide posture that rewrites zone circulation policy. */
-export const FACILITY_SECURITY_POSTURES = [
-  'normal',
-  'containment_alarm',
-  'lockdown',
-] as const
+export const FACILITY_SECURITY_POSTURES = ['normal', 'containment_alarm', 'lockdown'] as const
 export type FacilitySecurityPosture = (typeof FACILITY_SECURITY_POSTURES)[number]
 
 /**
  * Circulation policy at the zone layer (not pathfinding). Distinct from
  * activity/work policy so a restricted work zone need not be impassable.
  */
-export const ZONE_CIRCULATION_MODES = [
-  'open',
-  'staff_only',
-  'emergency_only',
-  'sealed',
-] as const
+export const ZONE_CIRCULATION_MODES = ['open', 'staff_only', 'emergency_only', 'sealed'] as const
 export type ZoneCirculationMode = (typeof ZONE_CIRCULATION_MODES)[number]
 
 /** Where work/activity policy applies without asserting physical impassability. */
-export const ZONE_ACTIVITY_POLICIES = [
-  'unrestricted',
-  'function_restricted',
-  'suspended',
-] as const
+export const ZONE_ACTIVITY_POLICIES = ['unrestricted', 'function_restricted', 'suspended'] as const
 export type ZoneActivityPolicy = (typeof ZONE_ACTIVITY_POLICIES)[number]
 
 export const ZONE_ACCESS_DENIAL_REASONS = [
@@ -123,9 +107,7 @@ function stricterActivity(
   return activityRank(baseline) >= activityRank(target) ? baseline : target
 }
 
-function lockdownCirculationTarget(
-  zoneFunction: OperationalZoneFunction
-): ZoneCirculationMode {
+function lockdownCirculationTarget(zoneFunction: OperationalZoneFunction): ZoneCirculationMode {
   if (zoneFunction === 'public_cover') return 'staff_only'
   if (zoneFunction === 'administration' || zoneFunction === 'operations') {
     return 'emergency_only'
@@ -300,9 +282,7 @@ function defaultHazardIsolated(zoneFunction: OperationalZoneFunction): boolean {
 }
 
 /** Normalize one reusable operational zone packet. Malformed input → undefined. */
-export function projectOperationalZonePacket(
-  input: unknown
-): OperationalZonePacket | undefined {
+export function projectOperationalZonePacket(input: unknown): OperationalZonePacket | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.zoneId)) return undefined
   if (!isMember(input.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return undefined
@@ -392,9 +372,7 @@ export interface FacilityZoningModel {
  * Project a facility zoning model: distinct operational zones under one
  * reusable posture that can rewrite circulation and activity policy.
  */
-export function projectFacilityZoningModel(
-  input: unknown
-): FacilityZoningModel | undefined {
+export function projectFacilityZoningModel(input: unknown): FacilityZoningModel | undefined {
   if (!isRecord(input)) return undefined
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!isMember(input.posture, FACILITY_SECURITY_POSTURES)) return undefined
@@ -410,16 +388,17 @@ export function projectFacilityZoningModel(
     packets.push(packet)
   }
 
-  const alarmState = resolveAlarmForPosture(input.posture)
+  const posture = input.posture
+  const alarmState = resolveAlarmForPosture(posture)
   const zones = packets.map((packet) => {
     const circulationMode = resolveCirculationUnderPosture(
       packet.baselineCirculation,
-      input.posture,
+      posture,
       packet.zoneFunction
     )
     const activityPolicy = resolveActivityUnderPosture(
       packet.baselineActivityPolicy,
-      input.posture,
+      posture,
       packet.zoneFunction
     )
     return Object.freeze({
@@ -501,17 +480,17 @@ export interface ZoneAccessEvaluation {
   readonly hazardIsolated: boolean
 }
 
-function parseEffectiveZoneInput(zone: unknown): EffectiveZoneState | undefined {
-  if (!isRecord(zone)) return undefined
-  if (!isNonEmptyString(zone.zoneId)) return undefined
-  if (!isMember(zone.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return undefined
-  if (!isMember(zone.minimumAccessBand, FACILITY_ACCESS_BANDS)) return undefined
-  if (!isMember(zone.riskBand, ZONE_RISK_BANDS)) return undefined
-  if (typeof zone.hazardIsolated !== 'boolean') return undefined
-  if (!isMember(zone.alarmState, ZONE_ALARM_STATES)) return undefined
-  if (!isMember(zone.circulationMode, ZONE_CIRCULATION_MODES)) return undefined
-  if (!isMember(zone.activityPolicy, ZONE_ACTIVITY_POLICIES)) return undefined
-  return zone as EffectiveZoneState
+function isEffectiveZoneInput(zone: unknown): zone is EffectiveZoneState {
+  if (!isRecord(zone)) return false
+  if (!isNonEmptyString(zone.zoneId)) return false
+  if (!isMember(zone.zoneFunction, OPERATIONAL_ZONE_FUNCTIONS)) return false
+  if (!isMember(zone.minimumAccessBand, FACILITY_ACCESS_BANDS)) return false
+  if (!isMember(zone.riskBand, ZONE_RISK_BANDS)) return false
+  if (typeof zone.hazardIsolated !== 'boolean') return false
+  if (!isMember(zone.alarmState, ZONE_ALARM_STATES)) return false
+  if (!isMember(zone.circulationMode, ZONE_CIRCULATION_MODES)) return false
+  if (!isMember(zone.activityPolicy, ZONE_ACTIVITY_POLICIES)) return false
+  return true
 }
 
 function accessDenialForActor(
@@ -540,18 +519,15 @@ export function evaluateZoneAccess(input: unknown): ZoneAccessEvaluation | undef
   if (!isNonEmptyString(input.facilityId)) return undefined
   if (!isNonEmptyString(input.actorId)) return undefined
   if (!isMember(input.actorAccessBand, FACILITY_ACCESS_BANDS)) return undefined
-  if (
-    input.evaluateCirculation !== undefined &&
-    typeof input.evaluateCirculation !== 'boolean'
-  ) {
+  if (input.evaluateCirculation !== undefined && typeof input.evaluateCirculation !== 'boolean') {
     return undefined
   }
   if (input.evaluateActivity !== undefined && typeof input.evaluateActivity !== 'boolean') {
     return undefined
   }
 
-  const zone = parseEffectiveZoneInput(input.zone)
-  if (!zone) return undefined
+  const zone = input.zone
+  if (!isEffectiveZoneInput(zone)) return undefined
 
   const evaluateCirculation = input.evaluateCirculation !== false
   const evaluateActivity = input.evaluateActivity === true
@@ -607,19 +583,14 @@ export interface ZoningDebugSummary {
 }
 
 /** Compact debug / player-legible projection of zoning + lockdown state. */
-export function projectZoningDebugSummary(
-  model: FacilityZoningModel
-): ZoningDebugSummary {
+export function projectZoningDebugSummary(model: FacilityZoningModel): ZoningDebugSummary {
   const lines = model.zones.map((zone) => {
     const isolation = zone.hazardIsolated ? 'hazard-isolated' : 'open-floor'
     return `${zone.zoneId} [${zone.zoneFunction}] risk=${zone.riskBand} access≥${zone.minimumAccessBand} circ=${zone.circulationMode} activity=${zone.activityPolicy} (${isolation})`
   })
   const circulationChanges = model.zones
     .filter((zone) => zone.circulationChangedFromBaseline)
-    .map(
-      (zone) =>
-        `${zone.zoneId}: circulation→${zone.circulationMode} under ${model.posture}`
-    )
+    .map((zone) => `${zone.zoneId}: circulation→${zone.circulationMode} under ${model.posture}`)
 
   return Object.freeze({
     facilityId: model.facilityId,

@@ -1845,27 +1845,9 @@ function buildAggregateBattleEventDraft(
   }
 }
 
-interface WeeklyCaseResolutionStrategy {
-  effectiveCase: CaseInstance
-  assignedAgents: NonNullable<GameState['agents'][string]>[]
-  assignedAgentLeaderBonuses: Record<string, LeaderBonus>
-  activeTeamStressModifiers: Record<string, number>
+type WeeklyCaseResolutionStrategy = ReturnType<typeof resolveCanonicalAssignedCaseForWeek> & {
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
-  behaviorValidation?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['behaviorValidation']
-  hiddenStateModalityTell?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['hiddenStateModalityTell']
-  hiddenStateScouting?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['hiddenStateScouting']
-  infiltrationStageMission?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['infiltrationStageMission']
-  stealthLeaveBehindMission?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['stealthLeaveBehindMission']
-  weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
 type SeededRng = ReturnType<typeof createSeededRng>
@@ -2731,9 +2713,7 @@ function resolveAssignments(
     const majorIncidentFinalOutcome =
       outcome.result === 'success' && missionSuccessDegrade.shouldDegrade
         ? ('partial' as const)
-        : outcome.result === 'success' ||
-            outcome.result === 'partial' ||
-            outcome.result === 'fail'
+        : outcome.result === 'success' || outcome.result === 'partial' || outcome.result === 'fail'
           ? outcome.result
           : null
     if (
@@ -2767,7 +2747,7 @@ function resolveAssignments(
             ...effectiveCase,
             majorIncident: attachMajorIncidentSettlementReceipt(
               effectiveCase.majorIncident,
-              settlement.receipt,
+              settlement.receipt
             ),
           }
         }
@@ -5281,7 +5261,7 @@ export function advanceWeek(
     ...outputWeeklyState,
     cases: inputWeeklyState.cases,
   })
-  if (prerequisiteSuccessors.activatedWorkOrderIds.length > 0) {
+  if (prerequisiteSuccessors.activatedWorkOrderIds.length > 0 && prerequisiteSuccessors.inventory) {
     outputWeeklyState.inventory = prerequisiteSuccessors.inventory
     outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
       prerequisiteSuccessors.reservations

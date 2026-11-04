@@ -460,12 +460,14 @@ export function summarizeLayoutForDebug(input: unknown): LayoutDebugSummary | un
   if (!isRecord(input)) return undefined
   if (!isLayoutArchetype(input.archetype)) return undefined
   const metrics = ARCHETYPE_METRICS[input.archetype]
-  const zones = Array.isArray(input.zones)
-    ? FACILITY_ZONE_IDS.filter((zoneId) => input.zones.includes(zoneId))
+  const rawZones = input.zones
+  const rawRouteKinds = input.routeKinds
+  const zones = Array.isArray(rawZones)
+    ? FACILITY_ZONE_IDS.filter((zoneId) => rawZones.includes(zoneId))
     : []
   const keyAdjacencies = normalizeZoneAdjacencies(input.adjacencies)
-  const routeKinds = Array.isArray(input.routeKinds)
-    ? ROUTE_KINDS.filter((routeKind) => input.routeKinds.includes(routeKind))
+  const routeKinds = Array.isArray(rawRouteKinds)
+    ? ROUTE_KINDS.filter((routeKind) => rawRouteKinds.includes(routeKind))
     : []
   const routeBurdens = Object.freeze(
     routeKinds.map((routeKind) => resolveRouteTraversal(routeKind)!).filter(Boolean)

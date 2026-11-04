@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { appendOperationEventDrafts } from '../domain/events/eventBus'
 
@@ -23,6 +23,7 @@ describe('appendOperationEventDrafts agent log reconciliation', () => {
     const logs = next.agents[agentId]?.history?.logs ?? []
     expect(logs).toHaveLength(1)
     expect(logs[0]?.type).toBe('staff.coping.applied')
+    assert(logs[0]?.type === 'staff.coping.applied')
     expect(logs[0]?.payload.agentId).toBe(agentId)
   })
 
@@ -45,6 +46,7 @@ describe('appendOperationEventDrafts agent log reconciliation', () => {
     const logs = next.agents[agentId]?.history?.logs ?? []
     expect(logs).toHaveLength(1)
     expect(logs[0]?.type).toBe('staff.coping.misconduct')
+    assert(logs[0]?.type === 'staff.coping.misconduct')
     expect(logs[0]?.payload.policy).toBe('restricted')
   })
 
@@ -70,6 +72,7 @@ describe('appendOperationEventDrafts agent log reconciliation', () => {
     const logs = agent?.history?.logs ?? []
     expect(logs).toHaveLength(1)
     expect(logs[0]?.type).toBe('agent.killed')
+    assert(logs[0]?.type === 'agent.killed')
     expect(logs[0]?.payload.agentId).toBe(agentId)
     expect(agent?.history?.timeline).toContainEqual(
       expect.objectContaining({

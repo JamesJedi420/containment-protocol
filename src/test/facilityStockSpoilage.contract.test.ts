@@ -187,7 +187,7 @@ describe('facility stock incorrect-storage spoilage', () => {
 
   it('does not inherit facilityStockCondition from hydration fallback when omitted', () => {
     const starting = createStartingState()
-    const fallback = {
+    const fallback: typeof starting = {
       ...starting,
       facilityStockCondition: {
         [COLD_STORAGE_REAGENT_STOCK_ID]: 'degraded',

@@ -83,7 +83,9 @@ it('preserves case query state through case-detail navigation and back', async (
 
   await user.click(await screen.findByRole('link', { name: /back to cases/i }, { timeout: 5000 }))
 
-  expect(screen.getByRole('heading', { name: /^cases$/i })).toBeInTheDocument()
+  expect(
+    await screen.findByRole('heading', { name: /^cases$/i }, { timeout: 5000 })
+  ).toBeInTheDocument()
   expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('stockyards')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 })
@@ -121,7 +123,9 @@ it('preserves team query state through team-detail navigation and back', async (
 
   await user.click(await screen.findByRole('link', { name: /back to teams/i }, { timeout: 5000 }))
 
-  expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
+  expect(
+    await screen.findByRole('heading', { name: /^teams$/i }, { timeout: 5000 })
+  ).toBeInTheDocument()
   expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('night')
   expect(screen.getByLabelText('Assignment')).toHaveValue('assigned')
   expect(screen.getByLabelText('Fatigue')).toHaveValue('critical')
@@ -138,7 +142,9 @@ it('routes dashboard command links into case, team, and report drill-down pages'
     await screen.findByRole('region', { name: /front desk operations hub/i }, { timeout: 5000 })
   ).toBeInTheDocument()
 
-  await user.click(screen.getByRole('link', { name: /vampire nest in the stockyards/i }))
+  await user.click(
+    await screen.findByRole('link', { name: /vampire nest in the stockyards/i }, { timeout: 5000 })
+  )
   expect(
     await screen.findByRole(
       'heading',
@@ -147,10 +153,12 @@ it('routes dashboard command links into case, team, and report drill-down pages'
     )
   ).toBeInTheDocument()
 
-  await user.click(screen.getByRole('link', { name: /^operations desk$/i }))
-  const teamStatusSection = screen
-    .getByRole('heading', { name: /^teams \/ field status$/i })
-    .closest('section')
+  await user.click(
+    await screen.findByRole('link', { name: /^operations desk$/i }, { timeout: 5000 })
+  )
+  const teamStatusSection = (
+    await screen.findByRole('heading', { name: /^teams \/ field status$/i }, { timeout: 5000 })
+  ).closest('section')
 
   expect(teamStatusSection).not.toBeNull()
 
@@ -163,13 +171,17 @@ it('routes dashboard command links into case, team, and report drill-down pages'
     )
   ).toBeInTheDocument()
 
-  await user.click(screen.getByRole('link', { name: /^operations desk$/i }))
-  const latestReportSection = screen
-    .getByRole('heading', { name: /^latest report$/i })
-    .closest('section')
+  await user.click(
+    await screen.findByRole('link', { name: /^operations desk$/i }, { timeout: 5000 })
+  )
+  const latestReportSection = (
+    await screen.findByRole('heading', { name: /^latest report$/i }, { timeout: 5000 })
+  ).closest('section')
 
   expect(latestReportSection).not.toBeNull()
 
   await user.click(within(latestReportSection!).getByRole('link', { name: /week 3/i }))
-  expect(screen.getByRole('heading', { level: 1, name: /^week 3$/i })).toBeInTheDocument()
+  expect(
+    await screen.findByRole('heading', { level: 1, name: /^week 3$/i }, { timeout: 5000 })
+  ).toBeInTheDocument()
 })

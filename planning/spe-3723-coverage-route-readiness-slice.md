@@ -15,3 +15,7 @@ Six audit passes: scope limited to test synchronization; bounded asynchronous wa
 ## Validation before PR
 
 Node22.23.4. Patched targeted instrumented tests3/3 pass; single-file command exits1 only on unchanged global coverage percentage thresholds. Full STRICT_TEST_CONSOLE=1 npm run coverage:ci -- --maxWorkers=4 exits0:1000files/10851tests pass (783.38s); statements88.71%, branches78.15%, functions94.34%, lines90.24%, all thresholds satisfied. Existing dependencies reused; hosted clean-install validation remains necessary. Full build/lint exit0. Audit index41/backlog/theme108 pass. Required selector: backlog-handoff, lint, unit-tests, vite-build; advisory formatting/typecheck/browser checks unchanged. Precommit small docs/communication checks direct; diff reviewed for scope, bounded absence failures, deterministic state, assertions retained, evidence and cleanup. Hosted independent review/CI and merged-main proof pending.
+
+## PR review follow-up
+
+Amazon Q identified synchronous queries after dashboard return navigation. Convert remaining screen-level role queries to the same bounded asynchronous readiness waits; within-section queries follow awaited parent headings. All original assertions and role/name filters remain. Final targeted instrumented tests3/3 pass (9.15s); single-file global-percentage failure remains expected and unchanged. The full instrumented1000/10851 pass above precedes this additional wait-only change; latest hosted regression and merged-main coverage will verify the final revision. Touched-file lint passes.

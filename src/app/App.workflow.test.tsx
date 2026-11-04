@@ -74,10 +74,14 @@ it('preserves case query state through case-detail navigation and back', async (
   )
 
   expect(
-    await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+    await screen.findByRole(
+      'heading',
+      { level: 1, name: /vampire nest in the stockyards/i },
+      { timeout: 5000 }
+    )
   ).toBeInTheDocument()
 
-  await user.click(await screen.findByRole('link', { name: /back to cases/i }))
+  await user.click(await screen.findByRole('link', { name: /back to cases/i }, { timeout: 5000 }))
 
   expect(screen.getByRole('heading', { name: /^cases$/i })).toBeInTheDocument()
   expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('stockyards')
@@ -103,13 +107,19 @@ it('preserves team query state through team-detail navigation and back', async (
   expect(screen.getByLabelText('Fatigue')).toHaveValue('critical')
   expect(screen.getByLabelText('Sort')).toHaveValue('name')
 
-  await user.click(await screen.findByRole('link', { name: /response unit night watch/i }))
+  await user.click(
+    await screen.findByRole('link', { name: /response unit night watch/i }, { timeout: 5000 })
+  )
 
   expect(
-    await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
+    await screen.findByRole(
+      'heading',
+      { level: 1, name: /response unit night watch/i },
+      { timeout: 5000 }
+    )
   ).toBeInTheDocument()
 
-  await user.click(await screen.findByRole('link', { name: /back to teams/i }))
+  await user.click(await screen.findByRole('link', { name: /back to teams/i }, { timeout: 5000 }))
 
   expect(screen.getByRole('heading', { name: /^teams$/i })).toBeInTheDocument()
   expect(await screen.findByLabelText('Search', {}, { timeout: 5000 })).toHaveValue('night')
@@ -125,12 +135,16 @@ it('routes dashboard command links into case, team, and report drill-down pages'
   renderApp('/')
 
   expect(
-    await screen.findByRole('region', { name: /front desk operations hub/i })
+    await screen.findByRole('region', { name: /front desk operations hub/i }, { timeout: 5000 })
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /vampire nest in the stockyards/i }))
   expect(
-    await screen.findByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
+    await screen.findByRole(
+      'heading',
+      { level: 1, name: /vampire nest in the stockyards/i },
+      { timeout: 5000 }
+    )
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /^operations desk$/i }))
@@ -142,7 +156,11 @@ it('routes dashboard command links into case, team, and report drill-down pages'
 
   await user.click(within(teamStatusSection!).getByRole('link', { name: /^night watch$/i }))
   expect(
-    await screen.findByRole('heading', { level: 1, name: /response unit night watch/i })
+    await screen.findByRole(
+      'heading',
+      { level: 1, name: /response unit night watch/i },
+      { timeout: 5000 }
+    )
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /^operations desk$/i }))

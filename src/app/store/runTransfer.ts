@@ -2783,7 +2783,7 @@ function reconcileAcademyUpgradeFields(payload: Record<string, unknown>) {
 }
 
 /** SPE-455: only open or in-progress cases may remain in the priority queue. */
-const CASE_QUEUE_ELIGIBLE_STATUSES = [
+const CASE_QUEUE_ELIGIBLE_STATUSES: readonly CaseStatus[] = [
   'open',
   'in_progress',
 ] as const satisfies readonly CaseStatus[]
@@ -3151,7 +3151,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
     typeof entry.origin === 'string' && entry.origin.trim().length > 0
       ? entry.origin.trim()
       : undefined
-  const sourceDisposition =
+  const sourceDisposition: Candidate['sourceDisposition'] =
     entry.sourceDisposition === 'supportive' || entry.sourceDisposition === 'adversarial'
       ? entry.sourceDisposition
       : undefined

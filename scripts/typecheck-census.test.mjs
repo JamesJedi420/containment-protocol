@@ -461,6 +461,11 @@ function assertAnnotationCohort({
       return current
     })
     assert.deepEqual(compareCensuses(expected, root.removedDiagnostics), [])
+    const rootIdentities = new Set(root.removedDiagnostics.map((row) => row.identity))
+    assert.deepEqual(
+      root.removedDiagnostics,
+      before.diagnostics.filter((row) => rootIdentities.has(row.identity))
+    )
     assert.ok(root.removedDiagnostics.every((row) => group.files.includes(row.file)))
     assert.equal(root.expectedRemovals, root.measuredRemovals)
     assert.equal(root.measuredRemovals, root.removedDiagnostics.length)

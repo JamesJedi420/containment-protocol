@@ -312,3 +312,10 @@ Node-test lint and formatting pass after extraction. Direct review checked the
 bounded test diff and existing assertions; no repeated Hermes dispatch is needed
 for this small follow-up. Production files and immutable captures are unchanged.
 Final-head hosted CI and review must supersede the initial-head results.
+
+CodeRabbit's sole initial-head nit identified a useful evidence-integrity gap:
+identity comparison does not verify removed-record coordinates or other fields.
+The shared assertion now deep-compares every removed record with the fresh before
+census, preserving historical line movement while checking all recorded fields.
+All 15 tests, changed-test lint and formatting pass; source/capture evidence is
+unchanged. Final-head review and CI remain required.

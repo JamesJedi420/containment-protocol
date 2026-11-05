@@ -5,6 +5,7 @@ import {
   clearCampaignStorage,
   expectNoPageErrors,
   openFrontDesk,
+  openFutureExpansionNav,
   openPrimaryNav,
 } from './support/cpApp'
 
@@ -39,6 +40,10 @@ async function runCampaign(browser: Browser) {
   try {
     await clearCampaignStorage(page)
     await openFrontDesk(page)
+    await openFutureExpansionNav(page, 'Agency')
+    await expect(page.getByText(/Comparative pressure balanced \(rank 50\)/)).toContainText(
+      'no rival payout or staffing skew'
+    )
     await openPrimaryNav(page, 'Cases')
 
     const triage = page.getByRole('region', { name: 'Case triage queue' })
@@ -106,6 +111,21 @@ async function runCampaign(browser: Browser) {
       .locator(':scope > ul > li')
       .filter({ hasText: deployedContract })
     await expect(reloaded).toHaveText(outcome, { useInnerText: true })
+
+    // Campaign outcomes feed the agency's comparative standing and the next
+    // contract decision; both surfaces must retain that history after reload.
+    await openFutureExpansionNav(page, 'Agency')
+    const rivalSummary = page.getByText(/Comparative pressure severe \(rank 0\)/)
+    await expect(rivalSummary).toContainText('contract payouts and recruit quality compress')
+    await openPrimaryNav(page, 'Cases')
+    const nextOffer = page
+      .getByRole('region', { name: 'Contract board' })
+      .getByRole('button', { name: /^Blacksite Recon Sweep/ })
+    await expect(nextOffer).toContainText('Funding: $24-$42')
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(nextOffer).toContainText('Funding: $24-$42')
+    await openFutureExpansionNav(page, 'Agency')
+    await expect(rivalSummary).toContainText('contract payouts and recruit quality compress')
     await openPrimaryNav(page, 'Operations Desk')
     await expect(page.getByText(/Week 3\s*\/\s*Active cap/i).first()).toBeVisible()
     expectNoPageErrors(probe)

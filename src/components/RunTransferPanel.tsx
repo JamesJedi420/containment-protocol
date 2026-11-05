@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useGameStore } from '../../app/store/gameStore'
-import { DASHBOARD_SECTIONS, FEEDBACK_MESSAGES, RUN_TRANSFER_TEXT } from '../../data/copy'
+import { useGameStore } from '../app/store/gameStore'
+import { DASHBOARD_SECTIONS, FEEDBACK_MESSAGES, RUN_TRANSFER_TEXT } from '../data/copy'
 
 type TransferStatus = {
   kind: 'idle' | 'success' | 'error'

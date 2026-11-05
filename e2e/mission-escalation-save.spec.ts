@@ -78,6 +78,21 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
     await page.getByRole('button', { name: 'Import Run' }).click()
     await expect(page.getByRole('status').filter({ hasText: /imported/i })).toBeVisible()
     await advanceOperationalWeek(page)
+    await page
+      .getByRole('region', { name: 'Latest report' })
+      .getByRole('link', { name: 'Week 2', exact: true })
+      .click()
+    const unresolved = page
+      .getByRole('region', { name: 'Case outcomes' })
+      .locator('section')
+      .filter({ has: page.getByText('Unresolved cases', { exact: true }) })
+    const outbreakResult = unresolved
+      .locator(':scope > ul > li')
+      .filter({ hasText: 'Campus Outbreak' })
+    await expect(outbreakResult).toContainText(
+      'difficulty, escalation pressure, duration, and deadline pressure'
+    )
+    await expect(outbreakResult).toContainText('Funding -35, containment -11, reputation -13.')
     await openPrimaryNav(page, 'Cases')
     await page
       .getByRole('region', { name: 'Case triage queue' })
@@ -131,8 +146,6 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
         expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
           broken
         )
-        expectNoPageErrors(recoveryProbe)
-        recoveryProbe.dispose()
         await recovery.reload()
         await expect(
           recovery.getByRole('heading', { name: 'Saved campaign unavailable' })
@@ -140,6 +153,106 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
         expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
           broken
         )
+        const restoreInput = recovery.getByLabel('Compatible run export')
+        await restoreInput.fill(toExport(incomplete))
+        await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+        await expect(recovery.getByRole('status')).toContainText('incomplete escalation rule')
+        expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
+          broken
+        )
+        await restoreInput.fill(
+          JSON.stringify({
+            kind: 'containment-protocol-run',
+            version: envelope.version,
+            exportedAt: '2026-11-05T00:00:00.000Z',
+            game: null,
+          })
+        )
+        await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+        await expect(recovery.getByRole('status')).toContainText(
+          'does not contain saved campaign cases'
+        )
+        expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
+          broken
+        )
+        await restoreInput.fill(toExport(envelope))
+        if (version === envelope.version) {
+          await recovery.evaluate(() => {
+            const originalSetItem = Storage.prototype.setItem
+            Storage.prototype.setItem = function (storageKey, value) {
+              if (storageKey.includes('.recovery-')) throw new Error('Browser storage is full')
+              return originalSetItem.call(this, storageKey, value)
+            }
+            window.addEventListener(
+              'restore-native-storage',
+              () => {
+                Storage.prototype.setItem = originalSetItem
+              },
+              { once: true }
+            )
+          })
+          await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+          await expect(recovery.getByRole('status')).toContainText('Browser storage is full')
+          expect(
+            await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)
+          ).toBe(broken)
+          await recovery.evaluate(() => window.dispatchEvent(new Event('restore-native-storage')))
+          await recovery.evaluate((storageKey) => {
+            const originalSetItem = Storage.prototype.setItem
+            Storage.prototype.setItem = function (candidate, value) {
+              if (candidate === storageKey) throw new Error('Could not replace the active save')
+              return originalSetItem.call(this, candidate, value)
+            }
+            window.addEventListener(
+              'restore-native-storage',
+              () => {
+                Storage.prototype.setItem = originalSetItem
+              },
+              { once: true }
+            )
+          }, key)
+          await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+          await expect(recovery.getByRole('status')).toContainText(
+            'Could not replace the active save'
+          )
+          expect(
+            await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)
+          ).toBe(broken)
+          await recovery.evaluate(() => window.dispatchEvent(new Event('restore-native-storage')))
+        }
+        await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+        await expect(recovery.getByRole('heading', { name: 'Operations Overview' })).toBeVisible()
+        const copies = await recovery.evaluate((storageKey) => {
+          return Object.keys(localStorage)
+            .filter((candidate) => candidate.startsWith(`${storageKey}.recovery-`))
+            .map((candidate) => localStorage.getItem(candidate))
+        }, key)
+        expect(copies).toContain(broken)
+        await advanceOperationalWeek(recovery)
+        await openPrimaryNav(recovery, 'Cases')
+        await recovery
+          .getByRole('region', { name: 'Case triage queue' })
+          .getByRole('listitem')
+          .filter({ hasText: 'Campus Outbreak' })
+          .first()
+          .getByRole('button', { name: 'Select Campus Outbreak for triage detail' })
+          .click()
+        await expect(
+          recovery.getByRole('region', { name: 'Case triage detail: Campus Outbreak' })
+        ).toContainText('Stage 5')
+        await recovery.reload()
+        await recovery
+          .getByRole('region', { name: 'Case triage queue' })
+          .getByRole('listitem')
+          .filter({ hasText: 'Campus Outbreak' })
+          .first()
+          .getByRole('button', { name: 'Select Campus Outbreak for triage detail' })
+          .click()
+        await expect(
+          recovery.getByRole('region', { name: 'Case triage detail: Campus Outbreak' })
+        ).toContainText('Stage 5')
+        expectNoPageErrors(recoveryProbe)
+        recoveryProbe.dispose()
       } finally {
         await recoveryContext.close()
       }

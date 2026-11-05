@@ -785,9 +785,53 @@ export function resolveGameStorage(): StateStorage {
 }
 
 let automaticMissionLoadError: MissingMissionEscalationRuleError | undefined
+const GAME_STORAGE_KEY = 'containment-protocol-game-state'
 
 export function getAutomaticMissionLoadError(): MissingMissionEscalationRuleError | undefined {
   return automaticMissionLoadError
+}
+
+/** Restore a validated run only after a separate copy of the rejected save exists. */
+export async function restoreCompatibleRun(raw: string): Promise<void> {
+  if (!automaticMissionLoadError) throw new Error('No rejected campaign is awaiting recovery.')
+  const game = parseRunExport(raw)
+  const payload: unknown = JSON.parse(raw)
+  const savedGame =
+    typeof payload === 'object' && payload !== null && 'game' in payload ? payload.game : undefined
+  const savedCases =
+    typeof savedGame === 'object' && savedGame !== null && 'cases' in savedGame
+      ? savedGame.cases
+      : undefined
+  if (
+    typeof savedCases !== 'object' ||
+    savedCases === null ||
+    Array.isArray(savedCases) ||
+    Object.keys(savedCases).length === 0
+  ) {
+    throw new Error('This run export does not contain saved campaign cases.')
+  }
+  const storage = resolveGameStorage()
+  const original = await storage.getItem(GAME_STORAGE_KEY)
+  if (original === null) throw new Error('The original saved campaign is unavailable.')
+
+  const prefix = `${GAME_STORAGE_KEY}.recovery-${Date.now()}`
+  let backupKey: string | undefined
+  for (let index = 0; index < 100; index += 1) {
+    const candidate = `${prefix}-${index}`
+    if ((await storage.getItem(candidate)) === null) {
+      backupKey = candidate
+      break
+    }
+  }
+  if (!backupKey) throw new Error('Could not find a safe place for a copy of the original save.')
+  await storage.setItem(backupKey, original)
+  if ((await storage.getItem(backupKey)) !== original) {
+    throw new Error('Could not preserve the original save. No replacement was made.')
+  }
+  await storage.setItem(
+    GAME_STORAGE_KEY,
+    JSON.stringify({ state: { game: stripGameTemplates(game) }, version: GAME_STORE_VERSION })
+  )
 }
 
 function validateAutomaticMissionLoad(persistedState: unknown): void {
@@ -806,7 +850,8 @@ function validateAutomaticMissionLoad(persistedState: unknown): void {
   }
 }
 
-// A failed automatic load must never let a fallback campaign overwrite the original.
+// The lock lasts for this page lifetime. Recovery writes only after preserving
+// the original and reloads the page before normal persistence resumes.
 const guardedGameStorage: StateStorage = {
   getItem: (name) => resolveGameStorage().getItem(name),
   setItem: (name, value) => {
@@ -3233,7 +3278,7 @@ export const useGameStore = create<GameStore>()(
         })),
     }),
     {
-      name: 'containment-protocol-game-state',
+      name: GAME_STORAGE_KEY,
       storage: createJSONStorage(() => guardedGameStorage),
 
       // Persist all simulation-critical fields; `templates` is excluded and

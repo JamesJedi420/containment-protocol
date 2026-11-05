@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
-import { RunTransferPanel } from '../dashboard/RunTransferPanel'
+import { RunTransferPanel } from '../../components/RunTransferPanel'
 import {
   CONFIG_FIELDS,
   DASHBOARD_ACTIONS,

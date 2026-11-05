@@ -2,7 +2,8 @@ import { lazy, Suspense, type ComponentType } from 'react'
 import { Route, Routes } from 'react-router'
 import AppShell from './AppShell'
 import { APP_ROUTES } from './routes'
-import { getAutomaticMissionLoadError, resolveGameStorage } from './store/gameStore'
+import { getAutomaticMissionLoadError } from './store/gameStore'
+import { CampaignRecovery } from './CampaignRecovery'
 
 type RouteModule = { default: ComponentType }
 type RouteLoader = () => Promise<RouteModule>
@@ -178,30 +179,7 @@ const NotFoundRoute = createRouteComponent(() =>
 export default function App() {
   const loadError = getAutomaticMissionLoadError()
   if (loadError) {
-    const stored = resolveGameStorage().getItem('containment-protocol-game-state')
-    return (
-      <main className="mx-auto max-w-3xl space-y-4 p-6">
-        <h1 className="text-xl font-semibold">Saved campaign unavailable</h1>
-        <p role="alert">{loadError.message}</p>
-        <p>
-          Your saved campaign has not been replaced. Copy the original data below for safekeeping
-          before restoring a compatible backup in browser storage.
-        </p>
-        {typeof stored === 'string' && (
-          <details>
-            <summary>Show original saved data</summary>
-            <label htmlFor="preserved-campaign-data">Original saved campaign data</label>
-            <textarea
-              id="preserved-campaign-data"
-              className="w-full"
-              readOnly
-              rows={8}
-              value={stored}
-            />
-          </details>
-        )}
-      </main>
-    )
+    return <CampaignRecovery message={loadError.message} />
   }
   return (
     <Routes>

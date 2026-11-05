@@ -70,7 +70,7 @@ test.describe('SPE-1080 keyboard bypass, landmarks, and week-close announcement'
       await openFrontDesk(page)
       await expect(page.getByTestId('shell-week-status')).toHaveCount(0)
 
-      const initialStatus = page.getByRole('status').filter({ hasText: /^$/ }).first()
+      const initialStatus = page.getByTestId('shell-week-live')
       await initialStatus.evaluate((node) => {
         node.setAttribute('data-live-probe', 'mounted')
       })

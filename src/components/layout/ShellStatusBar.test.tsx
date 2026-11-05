@@ -230,6 +230,21 @@ describe('ShellStatusBar', () => {
     }
   )
 
+  it('preserves the announcement through config changes and save exports', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    const panel = screen.getByTestId('shell-week-status')
+    const message = panel.textContent
+    act(() => {
+      useGameStore.getState().updateConfig({})
+      useGameStore.getState().exportSave()
+      useGameStore.getState().exportRun()
+    })
+    expect(screen.getByTestId('shell-week-status')).toBe(panel)
+    expect(panel.textContent).toBe(message)
+  })
+
   it('announces the closed week outcome, links to its report, and moves focus', async () => {
     const user = userEvent.setup()
     renderShellStatusBar('/')

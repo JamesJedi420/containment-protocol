@@ -200,7 +200,7 @@ export function ShellStatusBar() {
         }
         data-testid={weekAnnouncement ? 'shell-week-status' : undefined}
       >
-        <p role="status" aria-live="polite" aria-atomic="true">
+        <p role="status" aria-live="polite" aria-atomic="true" data-testid="shell-week-live">
           {weekAnnouncement?.message ?? ''}
         </p>
         {weekAnnouncement ? (

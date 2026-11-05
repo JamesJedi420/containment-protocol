@@ -97,4 +97,13 @@ describe('sim escalation transitions', () => {
       expect(currentCase.stage).toBe(4)
     }
   )
+
+  it('applies an uncapped partial increment greater than one', () => {
+    const currentCase = {
+      ...createStartingState().cases['case-001'],
+      stage: 1,
+      onPartial: { stageDelta: 2 },
+    }
+    expect(createResolutionEscalationTransition(currentCase, 'partial').nextStage).toBe(3)
+  })
 })

@@ -7,6 +7,7 @@ import { advanceWeek } from '../domain/sim/advanceWeek'
 import { computeRequiredResolutionProfile } from '../domain/sim/scoring'
 import { instantiateFromTemplate } from '../domain/sim/spawn'
 import { buildCaseTemplateCatalog, caseTemplateMap } from '../domain/templates/caseTemplates'
+import { createSupportShortfallCampaignFixture } from './helpers/supportCampaignFixtures'
 
 function assignStarterMissions() {
   return assignTeam(
@@ -17,6 +18,19 @@ function assignStarterMissions() {
 }
 
 describe('mission-specific partial resolution', () => {
+  it('does not report escalation when a positive partial rule is already at stage five', () => {
+    const state = createSupportShortfallCampaignFixture()
+    state.cases['case-002'].stage = 5
+    state.cases['case-002'].onPartial = { stageDelta: 2 }
+    const resolved = advanceWeek(state)
+    const result = resolved.reports[0].caseSnapshots?.['case-002']?.missionResult
+    expect(result?.outcome).toBe('partial')
+    expect(resolved.cases['case-002'].stage).toBe(5)
+    expect(result?.spawnedConsequences).not.toContainEqual(
+      expect.objectContaining({ type: 'stage_escalation' })
+    )
+  })
+
   it('does not apply the partial rule when the same nest is fully resolved', () => {
     const assigned = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
     const resolved = advanceWeek(advanceWeek(assigned))

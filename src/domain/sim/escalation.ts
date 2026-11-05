@@ -1,4 +1,5 @@
 import { type CaseInstance } from '../models'
+import { normalizePartialResolutionRule } from '../partialResolutionRule'
 import {
   getOutcomeBand,
   resolveConsequenceRoute,
@@ -66,7 +67,10 @@ export function createResolutionEscalationTransition(
 ): ResolutionEscalationTransition {
   const nextStage =
     result === 'partial'
-      ? Math.min(currentCase.stage + 1, 5)
+      ? Math.min(
+          currentCase.stage + normalizePartialResolutionRule(currentCase.onPartial).stageDelta,
+          5
+        )
       : Math.min(currentCase.stage + (currentCase.onFail.stageDelta ?? 0), 5)
 
   return {

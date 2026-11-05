@@ -87,4 +87,14 @@ describe('sim escalation transitions', () => {
     expect(transition.nextStage).toBe(4)
     expect(transition.nextCase.stage).toBe(4)
   })
+
+  it.each([undefined, {}, { stageDelta: 0 }, { stageDelta: 2 }])(
+    'uses only the mission partial rule and caps its stage: %j',
+    (onPartial) => {
+      const currentCase = { ...createStartingState().cases['case-001'], stage: 4, onPartial }
+      const transition = createResolutionEscalationTransition(currentCase, 'partial')
+      expect(transition.nextStage).toBe(onPartial?.stageDelta ? 5 : 4)
+      expect(currentCase.stage).toBe(4)
+    }
+  )
 })

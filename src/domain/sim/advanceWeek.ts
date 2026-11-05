@@ -3165,13 +3165,17 @@ function resolveAssignments(
       powerImpact,
       injuries: missionAgentMutations.missionInjuries,
       spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: currentCase.title,
-          stage: escalatedCase.stage,
-          detail: `Case escalated to stage ${escalatedCase.stage}.`,
-        },
+        ...(escalatedCase.stage !== effectiveCase.stage
+          ? [
+              {
+                type: 'stage_escalation' as const,
+                caseId,
+                caseTitle: currentCase.title,
+                stage: escalatedCase.stage,
+                detail: `Case escalated to stage ${escalatedCase.stage}.`,
+              },
+            ]
+          : []),
         ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons,
@@ -3362,13 +3366,17 @@ function downgradeResolvedCaseToPartial(
       injuries: mission.injuries,
       fatalities: mission.fatalities,
       spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: sourceCase.title,
-          stage: downgradedCase.stage,
-          detail: `Case escalated to stage ${downgradedCase.stage}.`,
-        },
+        ...(downgradedCase.stage !== resolvedCase.stage
+          ? [
+              {
+                type: 'stage_escalation' as const,
+                caseId,
+                caseTitle: sourceCase.title,
+                stage: downgradedCase.stage,
+                detail: `Case escalated to stage ${downgradedCase.stage}.`,
+              },
+            ]
+          : []),
         ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons: mission.resolutionReasons,

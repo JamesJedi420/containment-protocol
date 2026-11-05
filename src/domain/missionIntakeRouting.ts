@@ -7,6 +7,7 @@ import {
 } from './deploymentReadiness'
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
+import { normalizePartialResolutionRule } from './partialResolutionRule'
 import { normalizeAuthorityNodeId, resolveAuthorityGraphConsequences } from './authorityGraph'
 import type { AuthorityGraph, AuthorityGraphEdge } from './authorityGraph'
 import { sanitizeAuthorityGraphState } from './authorityGraphPersistence'
@@ -1549,6 +1550,7 @@ export function generateWeeklyMissionIntake(state: GameState): MissionIntakeGene
           deadlineRemaining: selectedTemplate.deadlineWeeks,
           ...createMissionIntelState(state.week),
           assignedTeamIds: [],
+          onPartial: normalizePartialResolutionRule(selectedTemplate.onPartial),
           onFail: { ...selectedTemplate.onFail },
           onUnresolved: { ...selectedTemplate.onUnresolved },
           ...(selectedTemplate.pressureValue !== undefined

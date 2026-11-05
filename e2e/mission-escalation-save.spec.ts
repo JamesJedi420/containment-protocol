@@ -291,15 +291,16 @@ test('an optional no-escalation rule loads and does not invent mission follow-up
   page,
 }) => {
   await clearCampaignStorage(page)
-  await advanceOperationalWeek(page)
+  await page.getByText('Campaign import and export', { exact: true }).click()
+  await page.getByRole('button', { name: 'Export Run' }).click()
   const key = 'containment-protocol-game-state'
   const envelope = JSON.parse(
     await page.evaluate((k) => localStorage.getItem(k)!, key)
   ) as SavedEnvelope
   const mission = Object.values(envelope.state.game.cases).find(
-    (value) => value.title === 'False Memories Cluster'
+    (value) => value.title === 'The Whispering Archive'
   )
-  if (!mission) throw new Error('Expected the generated follow-up mission')
+  if (!mission) throw new Error('Expected the starter mission')
   mission.onUnresolved = {}
   const payload = JSON.stringify({
     kind: 'containment-protocol-run',
@@ -307,7 +308,7 @@ test('an optional no-escalation rule loads and does not invent mission follow-up
     exportedAt: '2026-11-05T00:00:00.000Z',
     game: envelope.state.game,
   })
-  await page.getByText('Campaign import and export', { exact: true }).click()
+
   await page.getByLabel('Run payload').fill(payload)
   await page.getByRole('button', { name: 'Import Run' }).click()
   await expect(page.getByRole('status').filter({ hasText: /imported/i })).toBeVisible()
@@ -319,14 +320,14 @@ test('an optional no-escalation rule loads and does not invent mission follow-up
   expect(loaded.state.game.cases[mission.id].stage).toBe(mission.stage)
   await page
     .getByRole('region', { name: 'Latest report' })
-    .getByRole('link', { name: 'Week 2', exact: true })
+    .getByRole('link', { name: 'Week 1', exact: true })
     .click()
   const result = page
     .getByRole('region', { name: 'Case outcomes' })
     .locator('section')
     .filter({ has: page.getByText('Unresolved cases', { exact: true }) })
     .locator(':scope > ul > li')
-    .filter({ hasText: 'False Memories Cluster' })
+    .filter({ hasText: 'The Whispering Archive' })
   await expect(result).not.toContainText('Spawned follow-up case')
   await expect(result).not.toContainText('Case escalated to stage')
   await page.reload()

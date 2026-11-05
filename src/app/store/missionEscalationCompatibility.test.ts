@@ -9,16 +9,16 @@ describe('saved mission escalation compatibility', () => {
   it('loads omitted increments and no-follow-up rules without inventing consequences', () => {
     const original = createStartingState()
     const run = structuredClone(createRunExportPayload(original))
-    run.game.cases['optional-mission'] = {
+    run.game.cases['case-002'] = {
       ...run.game.cases['case-002'],
-      id: 'optional-mission',
+      id: 'case-002',
       onFail: {},
       onUnresolved: {},
     }
     const imported = parseRunExport(JSON.stringify(run))
-    expect(imported.cases['optional-mission'].onUnresolved.stageDelta).toBe(0)
-    expect(imported.cases['optional-mission'].onUnresolved.spawnCount).toEqual({ min: 0, max: 0 })
-    expect(imported.cases['optional-mission'].onFail.spawnTemplateIds).toEqual([])
+    expect(imported.cases['case-002'].onUnresolved.stageDelta).toBe(0)
+    expect(imported.cases['case-002'].onUnresolved.spawnCount).toEqual({ min: 0, max: 0 })
+    expect(imported.cases['case-002'].onFail.spawnTemplateIds).toEqual([])
     expect(() => loadGameSave(JSON.stringify(createGameSavePayload(imported)))).not.toThrow()
   })
   it('rejects invalid explicit increments on active cases but preserves explicit zero', () => {

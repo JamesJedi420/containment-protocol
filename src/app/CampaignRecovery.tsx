@@ -34,7 +34,7 @@ export function CampaignRecovery({ message }: { message: string }) {
           <label htmlFor="preserved-campaign-data">Original saved campaign data</label>
           <textarea
             id="preserved-campaign-data"
-            className="w-full"
+            className="w-full rounded border border-white/30 bg-white/5 px-3 py-2 font-mono text-sm focus-ring"
             readOnly
             rows={8}
             value={stored}
@@ -47,7 +47,7 @@ export function CampaignRecovery({ message }: { message: string }) {
         </label>
         <textarea
           id="recovery-run"
-          className="w-full"
+          className="w-full rounded border border-white/30 bg-white/5 px-3 py-2 font-mono text-sm focus-ring"
           rows={8}
           value={run}
           onChange={(event) => setRun(event.target.value)}

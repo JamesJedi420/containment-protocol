@@ -22,7 +22,9 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await openFrontDesk(page)
       await openPrimaryNav(page, 'Cases')
       await expect(page).toHaveURL(/\/cases/)
-      await expect(page.getByRole('heading', { name: /Cases|Mission|Triage/i }).first()).toBeVisible()
+      await expect(
+        page.getByRole('heading', { name: /Cases|Mission|Triage/i }).first()
+      ).toBeVisible()
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()
@@ -51,17 +53,17 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await clearCampaignStorage(page)
       await openFrontDesk(page)
       await expect(
-        page.getByRole('region', { name: 'Latest report' }).getByText(/No reports yet/i),
+        page.getByRole('region', { name: 'Latest report' }).getByText(/No reports yet/i)
       ).toBeVisible()
 
       await advanceOperationalWeek(page)
 
       await expect(
-        page.getByRole('region', { name: 'Latest report' }).getByRole('link', { name: /Week 1/i }),
+        page.getByRole('region', { name: 'Latest report' }).getByRole('link', { name: /Week 1/i })
       ).toBeVisible()
-      await expect(page.getByTestId('topbar-metrics-row').getByText('Weeks').locator('..')).toContainText(
-        '1',
-      )
+      await expect(
+        page.getByTestId('topbar-metrics-row').getByText('Weeks').locator('..')
+      ).toContainText('1')
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()
@@ -75,13 +77,16 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await openFrontDesk(page)
       await advanceOperationalWeek(page)
 
-      const stored = await page.evaluate((key) => window.localStorage.getItem(key), CP_GAME_STORAGE_KEY)
+      const stored = await page.evaluate(
+        (key) => window.localStorage.getItem(key),
+        CP_GAME_STORAGE_KEY
+      )
       expect(stored, 'campaign persistence must write after advance').toBeTruthy()
 
       await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(page.getByText(/Week 2\s*\/\s*Active cap/i).first()).toBeVisible()
       await expect(
-        page.getByRole('region', { name: 'Latest report' }).getByRole('link', { name: /Week 1/i }),
+        page.getByRole('region', { name: 'Latest report' }).getByRole('link', { name: /Week 1/i })
       ).toBeVisible()
       expectNoPageErrors(probe)
     } finally {
@@ -135,6 +140,24 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await clearCampaignStorage(page)
       await openFrontDesk(page)
       await buyAgencyMaintenancePackage(page)
+      const maintenance = page.getByRole('article', { name: 'Facility maintenance' })
+      const budget = maintenance.getByText(/Recovery budget:\s*\d+\s*hours\s*\/\s*\d+\s*parts/i)
+      const packageDetails = maintenance.getByText(
+        /Price:\s*\d+\s*funding\s*·\s*Available funding:\s*\d+/i
+      )
+      const purchasedBudget = await budget.innerText()
+      const purchasedDetails = await packageDetails.innerText()
+      await expect(
+        maintenance.getByRole('button', { name: 'Buy maintenance package' })
+      ).toBeDisabled()
+
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expect(budget).toHaveText(purchasedBudget, { useInnerText: true })
+      await expect(packageDetails).toHaveText(purchasedDetails, { useInnerText: true })
+      await expect(
+        maintenance.getByRole('button', { name: 'Buy maintenance package' })
+      ).toBeDisabled()
+      await expect(maintenance).toContainText('Insufficient funding for a maintenance package.')
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

@@ -48,6 +48,9 @@ Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `gov
 
 `vite-build` is a bundle-integrity gate, not a typecheck gate: it runs Vite production bundling so missing imports, invalid config, or an unbuildable entry (`index.html` / `src/main.tsx`) fail before merge. An entry-only change selects this gate without widening lint or unit-test activation. `npm run build` remains `tsc -b && vite build`, and the advisory `typecheck` census is unchanged; the required gate neither replaces nor weakens either.
 
+Changes to `.github/workflows/test.yml` select the existing Playwright gate as
+required so installer and browser execution changes are exercised on Ubuntu.
+
 ## Local / CI parity
 
 - Local: `npm run verify:requirements -- --base origin/main` (default base).

@@ -105,6 +105,14 @@ test('governance-only change requires governance-contract without absorbing SPE-
   assert.ok(!registry.validators.some((v) => v.id === 'governance-conformance-projection'))
 })
 
+test('test workflow edits require the browser gate that exercises installation', () => {
+  const resolution = resolveValidationRequirements(['.github/workflows/test.yml'], registry)
+  assert.ok(resolution.requiredIds.includes('playwright-e2e'))
+  assert.ok(!resolution.advisoryIds.includes('playwright-e2e'))
+  const unrelated = resolveValidationRequirements(['.github/workflows/agp-workflow.yml'], registry)
+  assert.ok(!unrelated.selected.some((entry) => entry.id === 'playwright-e2e'))
+})
+
 test('application change requires lint + unit-tests; playwright advisory', () => {
   const resolution = resolveValidationRequirements(['src/features/teams/TeamsPage.tsx'], registry)
   assert.ok(resolution.requiredIds.includes('lint'))

@@ -32,7 +32,8 @@ development `TRIGGER_SECRET_KEY` from the human and store it only in the ignored
 
 SDK and build packages are pinned together to `4.8.3` because the CLI rejects
 caret ranges during its compatibility check. Check matching package and CLI
-versions with Sonatype before future upgrades. Generated `.trigger` files are
+versions under the [dependency review policy](dependency-review-policy.md)
+(Sonatype preferred, documented fallback when unavailable) before future upgrades. Generated `.trigger` files are
 ignored by Git and ESLint.
 
 ## Verified development run

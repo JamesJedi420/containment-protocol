@@ -27,7 +27,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # SPE-3348 — same requirement resolver as local pre-ship.
       # Playwright stays in its own job (browser install). Exclude it here.
@@ -74,7 +74,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Resolve Playwright requirement
         id: pw
@@ -91,7 +91,7 @@ jobs:
       - name: Install Playwright Chromium
         if: steps.pw.outputs.selected == 'true'
         continue-on-error: ${{ steps.pw.outputs.enforcement != 'required' }}
-        run: npx playwright install chromium --with-deps
+        run: node node_modules/@playwright/test/cli.js install chromium --with-deps
 
       - name: Run Playwright E2E
         id: e2e

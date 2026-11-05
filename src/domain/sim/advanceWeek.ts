@@ -3468,15 +3468,18 @@ function escalateCases(
       caseTitle: currentCase.title,
       ...getMissionResultHiddenStateFields(escalatedCase),
       rewards: rewardBreakdown,
-      spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: currentCase.title,
-          stage: escalatedCase.stage,
-          detail: `Case escalated to stage ${escalatedCase.stage} after deadline expiry.`,
-        },
-      ],
+      spawnedConsequences:
+        escalatedCase.stage !== currentCase.stage
+          ? [
+              {
+                type: 'stage_escalation',
+                caseId,
+                caseTitle: currentCase.title,
+                stage: escalatedCase.stage,
+                detail: `Case escalated to stage ${escalatedCase.stage} after deadline expiry.`,
+              },
+            ]
+          : [],
       explanationNotes: [
         'Case deadline expired before successful resolution.',
         ...(localPressureInfluence.auditTag ? [localPressureInfluence.auditTag] : []),

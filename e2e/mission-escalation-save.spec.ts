@@ -328,6 +328,7 @@ test('an optional no-escalation rule loads and does not invent mission follow-up
     .locator(':scope > ul > li')
     .filter({ hasText: 'False Memories Cluster' })
   await expect(result).not.toContainText('Spawned follow-up case')
+  await expect(result).not.toContainText('Case escalated to stage')
   await page.reload()
   await expect(result).not.toContainText('Spawned follow-up case')
 })

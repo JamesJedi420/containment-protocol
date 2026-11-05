@@ -1352,6 +1352,11 @@ export type AnalystData = SpecialistCandidateData
 
 export type Candidate = RecruitmentCandidate
 
+export interface PartialResolutionRule {
+  /** Mission-specific stage increase after partial resolution; omission means zero. */
+  stageDelta?: number
+}
+
 export interface SpawnRule {
   /** Legacy escalation type discriminator used by older fixtures. */
   type?: string
@@ -1413,6 +1418,7 @@ export interface CaseTemplate {
   /** Soft preferences: additive bonuses for matching tools/skills. */
   preferredTags?: string[]
 
+  onPartial?: PartialResolutionRule
   onFail: SpawnRule
   onUnresolved: SpawnRule
 
@@ -1553,6 +1559,7 @@ export interface CaseInstance {
   /** SPE-2163 slice 2: stealth tradeoff row copied from template at spawn. */
   stealthLeaveBehindId?: string
 
+  onPartial?: PartialResolutionRule
   onFail: SpawnRule
   onUnresolved: SpawnRule
 

@@ -1,5 +1,9 @@
 # Event Schema Registry
 
+## Partial-resolution mission rule (SPE-20)
+
+Optional `CaseTemplate.onPartial` and persisted `CaseInstance.onPartial` contain only a nonnegative integer `stageDelta`. Omission means zero; partial resolution leaves the case open without automatic escalation or follow-ups. Constructors copy the authored rule. Hydration preserves valid saved values and normalizes absent/malformed rules to zero without borrowing current template/starter consequences. Older saves without the field therefore use stable partial behavior on their next resolution, replacing the former unconditional `+1`; historical events and reports are retained. Direct resolution and post-success downgrade share this rule, with the existing stage-five cap. No save-envelope or event-schema version change; this is not a cross-ruleset replay-equivalence guarantee or closure of SPE-3403.
+
 ## Inventory and Auto-Scrap quantity limits (SPE-3732)
 
 Run/save import, migration, and automatic hydration share the aggregate-inventory quantity guard.

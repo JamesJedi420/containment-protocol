@@ -365,6 +365,8 @@ const baseCaseTemplates: CaseTemplate[] = [
     stealthLeaveBehindId: 'leave-behind:risk-discovery',
     preferredTags: ['silver', 'holy', 'stealth', 'covert'],
     raid: { minTeams: 2, maxTeams: 3 },
+    // Surviving nest members relocate when the team cannot fully secure the site.
+    onPartial: { stageDelta: 1 },
     onFail: {
       stageDelta: 1,
       deadlineResetWeeks: 1,
@@ -414,6 +416,8 @@ const baseCaseTemplates: CaseTemplate[] = [
     stealthLeaveBehindId: 'leave-behind:leave-trace',
     preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 3 },
+    // Incomplete cataloguing leaves work open without undoing the team's progress.
+    onPartial: { stageDelta: 0 },
     onFail: {
       stageDelta: 1,
       deadlineResetWeeks: 1,
@@ -784,6 +788,7 @@ function cloneTemplate(
     difficulty: { ...template.difficulty },
     weights: { ...template.weights },
     raid: template.raid ? { ...template.raid } : undefined,
+    onPartial: template.onPartial ? { ...template.onPartial } : undefined,
     onFail: {
       ...onFail,
       spawnCount: { ...onFail.spawnCount },
@@ -933,6 +938,13 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
         template.raid.maxTeams < template.raid.minTeams)
     ) {
       errors.push(`Raid-capable template ${template.templateId} has invalid raid bounds.`)
+    }
+
+    if (
+      template.onPartial?.stageDelta !== undefined &&
+      (!Number.isSafeInteger(template.onPartial.stageDelta) || template.onPartial.stageDelta < 0)
+    ) {
+      errors.push(`Template ${template.templateId} has invalid onPartial stageDelta.`)
     }
 
     for (const [ruleName, rule] of [

@@ -67,6 +67,7 @@ import type {
   ZoneDepthBand,
 } from '../siteGeneration/mapMetadata'
 import { normalizeSpawnRule } from '../spawnRules'
+import { normalizePartialResolutionRule } from '../partialResolutionRule'
 import { getTeamMemberIds } from '../teamSimulation'
 import { PRESSURE_CALIBRATION } from '../sim/calibration'
 import { isValidMajorIncidentSettlementReceipt } from '../majorIncidentTerminalSettlement'
@@ -1914,6 +1915,7 @@ export function normalizeCaseInstance(
             0,
             PRESSURE_CALIBRATION.maxCaseTimePressure
           ),
+    onPartial: normalizePartialResolutionRule(entry.onPartial),
     onFail,
     onUnresolved,
     ...(threatFamily !== undefined ? { threatFamily } : {}),

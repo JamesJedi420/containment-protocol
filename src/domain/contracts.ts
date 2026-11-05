@@ -4,6 +4,7 @@ import { getAgencyProgressionUnlockLabel, hasAgencyProgressionUnlock } from './a
 import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
 import { sanitizePersistedFieldBasePacket } from './fieldBaseStaging'
 import { createMissionIntelState } from './intel'
+import { normalizePartialResolutionRule } from './partialResolutionRule'
 import { clamp, createSeededRng, normalizeSeed } from './math'
 import { applyRivalPressureToContractScalar, buildRivalPressure } from './rivalPressure'
 import { getCompletedResearchUnlockIds } from './research'
@@ -1145,6 +1146,7 @@ function buildContractCaseSkeleton(
     deadlineRemaining: template.deadlineWeeks,
     ...createMissionIntelState(week),
     assignedTeamIds: [],
+    onPartial: normalizePartialResolutionRule(template.onPartial),
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
     pressureValue: template.pressureValue,

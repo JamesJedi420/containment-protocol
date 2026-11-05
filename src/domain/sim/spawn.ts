@@ -4,6 +4,7 @@ import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type CompromisedAuthorityState, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { normalizePartialResolutionRule } from '../partialResolutionRule'
 import { copyInfiltrationCoverProfile } from '../infiltrationCover'
 import { copyInfiltrationProbePlan } from '../infiltrationProbe'
 import { applySiteGenerationToCase } from '../siteGeneration'
@@ -158,6 +159,7 @@ export function instantiateFromTemplate(
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
     ...createMissionIntelState(week),
     assignedTeamIds: [],
+    onPartial: normalizePartialResolutionRule(template.onPartial),
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
     raid: template.raid,

@@ -127,7 +127,7 @@ describe('simulation validation pass', () => {
             1,
             1,
             3,
-            3,
+            4,
             3,
             4,
           ],
@@ -142,7 +142,7 @@ describe('simulation validation pass', () => {
             0,
             1,
           ],
-          "formatted": "baseline | firstFailure=3 | dominant=budget | weeks=6 | unresolved=[3, 3, 3, 3, 7, 9] | attrition=[0, 0, 0, 0, 0, 0] | budget=[1, 1, 3, 3, 3, 4] | escalation=[0, 0, 0, 0, 0, 1] | intel=[1, 0.96, 0.88, 0.76, 0.83, 0.71] | missions=success:0, partial:6, fail:0, unresolved:6",
+          "formatted": "baseline | firstFailure=3 | dominant=budget | weeks=6 | unresolved=[3, 3, 3, 3, 7, 9] | attrition=[0, 0, 0, 0, 0, 0] | budget=[1, 1, 3, 4, 3, 4] | escalation=[0, 0, 0, 0, 0, 1] | intel=[1, 0.96, 0.88, 0.76, 0.83, 0.71] | missions=success:0, partial:6, fail:0, unresolved:6",
           "intelConfidenceTrend": [
             1,
             0.96,

@@ -6,13 +6,28 @@ import { createRunExportPayload, parseRunExport } from './runTransfer'
 import { createGameSavePayload, loadGameSave } from './saveSystem'
 
 describe('saved mission escalation compatibility', () => {
-  it('rejects missing or invalid increments on active cases but preserves explicit zero', () => {
-    for (const increment of [undefined, null, -1, 1.5]) {
+  it('loads omitted increments and no-follow-up rules without inventing consequences', () => {
+    const original = createStartingState()
+    const run = structuredClone(createRunExportPayload(original))
+    run.game.cases['optional-mission'] = {
+      ...run.game.cases['case-002'],
+      id: 'optional-mission',
+      onFail: {},
+      onUnresolved: {},
+    }
+    const imported = parseRunExport(JSON.stringify(run))
+    expect(imported.cases['optional-mission'].onUnresolved.stageDelta).toBe(0)
+    expect(imported.cases['optional-mission'].onUnresolved.spawnCount).toEqual({ min: 0, max: 0 })
+    expect(imported.cases['optional-mission'].onFail.spawnTemplateIds).toEqual([])
+    expect(() => loadGameSave(JSON.stringify(createGameSavePayload(imported)))).not.toThrow()
+  })
+  it('rejects invalid explicit increments on active cases but preserves explicit zero', () => {
+    for (const increment of [null, -1, 1.5]) {
       expect(() =>
         assertMissionEscalationCompatibility({
           cases: { a: { status: 'open', onUnresolved: { stageDelta: increment } } },
         })
-      ).toThrow(/incomplete escalation rule/)
+      ).toThrow(/invalid escalation increment/)
     }
     expect(() =>
       assertMissionEscalationCompatibility({
@@ -29,13 +44,13 @@ describe('saved mission escalation compatibility', () => {
     useGameStore.setState({ game: original })
     const run = structuredClone(createRunExportPayload(original))
     const save = structuredClone(createGameSavePayload(original))
-    delete run.game.cases['case-002'].onUnresolved.stageDelta
-    delete save.state.cases['case-002'].onUnresolved.stageDelta
+    run.game.cases['case-002'].onUnresolved.stageDelta = -1
+    save.state.cases['case-002'].onUnresolved.stageDelta = -1
 
-    expect(() => parseRunExport(JSON.stringify(run))).toThrow(/incomplete escalation rule/)
-    expect(() => loadGameSave(JSON.stringify(save))).toThrow(/incomplete escalation rule/)
+    expect(() => parseRunExport(JSON.stringify(run))).toThrow(/invalid escalation increment/)
+    expect(() => loadGameSave(JSON.stringify(save))).toThrow(/invalid escalation increment/)
     expect(() => useGameStore.getState().importRun(JSON.stringify(run))).toThrow(
-      /incomplete escalation rule/
+      /invalid escalation increment/
     )
     expect(useGameStore.getState().game).toEqual(original)
   })

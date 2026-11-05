@@ -17,7 +17,7 @@ import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAl
 import { create } from 'zustand'
 import {
   assertMissionEscalationCompatibility,
-  MissingMissionEscalationRuleError,
+  InvalidMissionEscalationRuleError,
 } from './missionEscalationCompatibility'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
@@ -784,10 +784,10 @@ export function resolveGameStorage(): StateStorage {
   return gameStorageFallback
 }
 
-let automaticMissionLoadError: MissingMissionEscalationRuleError | undefined
+let automaticMissionLoadError: InvalidMissionEscalationRuleError | undefined
 const GAME_STORAGE_KEY = 'containment-protocol-game-state'
 
-export function getAutomaticMissionLoadError(): MissingMissionEscalationRuleError | undefined {
+export function getAutomaticMissionLoadError(): InvalidMissionEscalationRuleError | undefined {
   return automaticMissionLoadError
 }
 
@@ -852,7 +852,7 @@ function validateAutomaticMissionLoad(persistedState: unknown): void {
   try {
     assertMissionEscalationCompatibility(persistedState.game)
   } catch (error) {
-    if (error instanceof MissingMissionEscalationRuleError) automaticMissionLoadError = error
+    if (error instanceof InvalidMissionEscalationRuleError) automaticMissionLoadError = error
     throw error
   }
 }

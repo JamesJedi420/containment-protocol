@@ -21,7 +21,7 @@ import {
   getWeeklyDirectiveDefinitions,
 } from '../../domain/directives'
 import { formatLatestReportRollup } from '../../domain/reportNotes'
-import { RunTransferPanel } from './RunTransferPanel'
+import { RunTransferPanel } from '../../components/RunTransferPanel'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { EventFeedPanel } from './EventFeedPanel'
 import { OperationsDeskPanels } from './OperationsDeskPanels'

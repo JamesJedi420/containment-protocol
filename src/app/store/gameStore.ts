@@ -15,6 +15,10 @@ import { reserveWorkshopStaffTime, releaseWorkshopStaffTime } from '../../domain
 import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAllocation'
 // cspell:words partialize unequip
 import { create } from 'zustand'
+import {
+  assertMissionEscalationCompatibility,
+  MissingMissionEscalationRuleError,
+} from './missionEscalationCompatibility'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
 import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
@@ -778,6 +782,91 @@ export function resolveGameStorage(): StateStorage {
   }
 
   return gameStorageFallback
+}
+
+let automaticMissionLoadError: MissingMissionEscalationRuleError | undefined
+const GAME_STORAGE_KEY = 'containment-protocol-game-state'
+
+export function getAutomaticMissionLoadError(): MissingMissionEscalationRuleError | undefined {
+  return automaticMissionLoadError
+}
+
+/** Restore a validated run only after a separate copy of the rejected save exists. */
+export async function restoreCompatibleRun(raw: string): Promise<void> {
+  if (!automaticMissionLoadError) throw new Error('No rejected campaign is awaiting recovery.')
+  const game = parseRunExport(raw)
+  const payload: unknown = JSON.parse(raw)
+  const savedGame =
+    typeof payload === 'object' && payload !== null && 'game' in payload ? payload.game : undefined
+  const savedCases =
+    typeof savedGame === 'object' && savedGame !== null && 'cases' in savedGame
+      ? savedGame.cases
+      : undefined
+  if (
+    typeof savedCases !== 'object' ||
+    savedCases === null ||
+    Array.isArray(savedCases) ||
+    Object.keys(savedCases).length === 0 ||
+    Object.entries(savedCases).some(
+      ([id, value]) =>
+        typeof value !== 'object' ||
+        value === null ||
+        Array.isArray(value) ||
+        !Object.prototype.hasOwnProperty.call(game.cases, id)
+    )
+  ) {
+    throw new Error('This run export does not contain saved campaign cases.')
+  }
+  const storage = resolveGameStorage()
+  const original = await storage.getItem(GAME_STORAGE_KEY)
+  if (original === null) throw new Error('The original saved campaign is unavailable.')
+
+  const prefix = `${GAME_STORAGE_KEY}.recovery-${Date.now()}`
+  let backupKey: string | undefined
+  for (let index = 0; index < 100; index += 1) {
+    const candidate = `${prefix}-${index}`
+    if ((await storage.getItem(candidate)) === null) {
+      backupKey = candidate
+      break
+    }
+  }
+  if (!backupKey) throw new Error('Could not find a safe place for a copy of the original save.')
+  await storage.setItem(backupKey, original)
+  if ((await storage.getItem(backupKey)) !== original) {
+    throw new Error('Could not preserve the original save. No replacement was made.')
+  }
+  await storage.setItem(
+    GAME_STORAGE_KEY,
+    JSON.stringify({ state: { game: stripGameTemplates(game) }, version: GAME_STORE_VERSION })
+  )
+}
+
+function validateAutomaticMissionLoad(persistedState: unknown): void {
+  if (
+    typeof persistedState !== 'object' ||
+    persistedState === null ||
+    !('game' in persistedState)
+  ) {
+    return
+  }
+  try {
+    assertMissionEscalationCompatibility(persistedState.game)
+  } catch (error) {
+    if (error instanceof MissingMissionEscalationRuleError) automaticMissionLoadError = error
+    throw error
+  }
+}
+
+// The lock lasts for this page lifetime. Recovery writes only after preserving
+// the original and reloads the page before normal persistence resumes.
+const guardedGameStorage: StateStorage = {
+  getItem: (name) => resolveGameStorage().getItem(name),
+  setItem: (name, value) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().setItem(name, value)
+  },
+  removeItem: (name) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().removeItem(name)
+  },
 }
 
 // ----- Store -----
@@ -3196,8 +3285,8 @@ export const useGameStore = create<GameStore>()(
         })),
     }),
     {
-      name: 'containment-protocol-game-state',
-      storage: createJSONStorage(resolveGameStorage),
+      name: GAME_STORAGE_KEY,
+      storage: createJSONStorage(() => guardedGameStorage),
 
       // Persist all simulation-critical fields; `templates` is excluded and
       // reloaded fresh from source code on every app boot.
@@ -3209,7 +3298,9 @@ export const useGameStore = create<GameStore>()(
       // carry stale template data from an older version of the app code.
       merge: (persistedState, currentState) => {
         const ps = persistedState as Partial<PersistedStore>
-        if (!ps.game) return currentState
+        if (!ps?.game) return currentState
+
+        validateAutomaticMissionLoad(ps)
 
         const mergedGame = hydrateGame(ps.game as Partial<GameState>, currentState.game)
 
@@ -3223,6 +3314,7 @@ export const useGameStore = create<GameStore>()(
       version: GAME_STORE_VERSION,
 
       migrate: (persistedState: unknown, version: number): PersistedStore => {
+        validateAutomaticMissionLoad(persistedState)
         return migratePersistedStore(persistedState, version, createStartingState())
       },
     }

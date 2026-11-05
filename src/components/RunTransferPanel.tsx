@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { useGameStore } from '../../app/store/gameStore'
-import { DASHBOARD_SECTIONS, FEEDBACK_MESSAGES, RUN_TRANSFER_TEXT } from '../../data/copy'
+import { useGameStore } from '../app/store/gameStore'
+import { DASHBOARD_SECTIONS, FEEDBACK_MESSAGES, RUN_TRANSFER_TEXT } from '../data/copy'
 
 type TransferStatus = {
   kind: 'idle' | 'success' | 'error'
   message: string
 }
 
-export function RunTransferPanel() {
+export function RunTransferPanel({ allowNewRun = true }: { allowNewRun?: boolean }) {
   const { exportRun, importRun, newRunFromCurrentConfig } = useGameStore()
   const [payloadText, setPayloadText] = useState('')
   const [status, setStatus] = useState<TransferStatus>({
@@ -59,7 +59,7 @@ export function RunTransferPanel() {
 
       <div className="space-y-2">
         <p className="text-sm opacity-70">
-          Paste a run payload, then import it. Export and new-run actions are available below.
+          Importing a run replaces the current campaign. Export it first if you want to keep it.
         </p>
         <label htmlFor="run-transfer-payload" className="text-sm">
           <span className="block text-xs uppercase tracking-wide opacity-60">
@@ -88,9 +88,11 @@ export function RunTransferPanel() {
           <button type="button" onClick={handleExport} className="btn btn-sm btn-ghost">
             {RUN_TRANSFER_TEXT.exportRun}
           </button>
-          <button type="button" onClick={handleNewRun} className="btn btn-sm btn-ghost">
-            {RUN_TRANSFER_TEXT.newRunFromCurrentConfig}
-          </button>
+          {allowNewRun && (
+            <button type="button" onClick={handleNewRun} className="btn btn-sm btn-ghost">
+              {RUN_TRANSFER_TEXT.newRunFromCurrentConfig}
+            </button>
+          )}
         </div>
       </div>
 

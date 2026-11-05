@@ -2,6 +2,8 @@ import { lazy, Suspense, type ComponentType } from 'react'
 import { Route, Routes } from 'react-router'
 import AppShell from './AppShell'
 import { APP_ROUTES } from './routes'
+import { getAutomaticMissionLoadError } from './store/gameStore'
+import { CampaignRecovery } from './CampaignRecovery'
 
 type RouteModule = { default: ComponentType }
 type RouteLoader = () => Promise<RouteModule>
@@ -175,6 +177,10 @@ const NotFoundRoute = createRouteComponent(() =>
 )
 
 export default function App() {
+  const loadError = getAutomaticMissionLoadError()
+  if (loadError) {
+    return <CampaignRecovery message={loadError.message} />
+  }
   return (
     <Routes>
       <Route element={<AppShell />}>

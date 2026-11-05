@@ -245,6 +245,25 @@ describe('ShellStatusBar', () => {
     expect(panel.textContent).toBe(message)
   })
 
+  it.each(['save', 'run'] as const)('does not announce an imported first close (%s)', (kind) => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const payload =
+      kind === 'save' ? useGameStore.getState().exportSave() : useGameStore.getState().exportRun()
+    useGameStore.setState({ game: createStartingState() })
+    renderShellStatusBar('/')
+    act(() => {
+      if (kind === 'save') useGameStore.getState().importSave(payload)
+      else useGameStore.getState().importRun(payload)
+    })
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+    expect(screen.getByTestId('shell-week-live')).toBeEmptyDOMElement()
+    act(() => {
+      useGameStore.getState().advanceWeek()
+    })
+    expect(screen.getByTestId('shell-week-status')).toBeInTheDocument()
+  })
+
   it('announces the closed week outcome, links to its report, and moves focus', async () => {
     const user = userEvent.setup()
     renderShellStatusBar('/')

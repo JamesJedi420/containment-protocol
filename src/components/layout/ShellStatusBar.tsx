@@ -24,7 +24,7 @@ interface WeekCloseAnnouncement {
 }
 
 export function ShellStatusBar() {
-  const { game, advanceWeek } = useGameStore()
+  const { game, advanceWeek, gameReplacementRevision } = useGameStore()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const [muted, setMuted] = useState(false)
@@ -57,12 +57,19 @@ export function ShellStatusBar() {
   )
   const [weekAnnouncement, setWeekAnnouncement] = useState<WeekCloseAnnouncement | null>(null)
   const previousGameRef = useRef(game)
+  const replacementRevisionRef = useRef(gameReplacementRevision)
   const weekStatusRef = useRef<HTMLDivElement>(null)
 
   // A close appends one report. Save replacement clears any old announcement.
   useEffect(() => {
     const previous = previousGameRef.current
     previousGameRef.current = game
+    const replaced = replacementRevisionRef.current !== gameReplacementRevision
+    replacementRevisionRef.current = gameReplacementRevision
+    if (replaced) {
+      setWeekAnnouncement(null)
+      return
+    }
     if (game.reports === previous.reports && game.week === previous.week) return
     const completedClose =
       game.week === previous.week + 1 &&
@@ -87,7 +94,7 @@ export function ShellStatusBar() {
       reportHref: view.weeklyReportHref,
       reportLinkLabel: latestReport ? `Open week ${closedWeek} report` : 'Open weekly reports',
     })
-  }, [game, view.currentWeek, view.weeklyReportHref])
+  }, [game, gameReplacementRevision, view.currentWeek, view.weeklyReportHref])
 
   useEffect(() => {
     if (weekAnnouncement) weekStatusRef.current?.focus()

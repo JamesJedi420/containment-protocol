@@ -179,7 +179,7 @@ The first focusable shell element is now "Skip to main content" in src/app/AppSh
 
 **Status:** Resolved in the SPE-1080 shell slice.
 
-ShellStatusBar now keeps an initially empty polite, atomic status region mounted and updates its text after a completed week close from either the shell or Front Desk. The visible panel includes resolved/partial/failed counts, the new week, and a report link; focus moves to the panel. A replacement save clears old text instead of announcing a false close. Unit and browser regression tests cover this behavior; actual NVDA/VoiceOver speech remains unverified. The historical blocker rating below is superseded for this finding.
+ShellStatusBar now keeps an initially empty polite, atomic status region mounted and updates its text after a completed week close from either the shell or Front Desk. The visible panel includes resolved/partial/failed counts, the new week, and a report link; focus moves to the panel. A session-only store replacement revision excludes save/run imports, resets, new campaigns and hydration from close announcements, including the empty-history first-close shape. It is excluded from persistence; no save schema changes. A replacement save clears old text instead of announcing a false close. Unit and browser regression tests cover this behavior; actual NVDA/VoiceOver speech remains unverified. The historical blocker rating below is superseded for this finding.
 
 ---
 

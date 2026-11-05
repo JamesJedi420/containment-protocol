@@ -1,5 +1,30 @@
 # Event Schema Registry
 
+## Inventory and Auto-Scrap quantity limits (SPE-3732)
+
+Run/save import, migration, and automatic hydration share the aggregate-inventory quantity guard.
+Numeric non-finite values (including JSON exponent overflow) and finite magnitudes outside
+`[-Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]` reject the load
+before campaign replacement; fallback quantities receive the same guard. Existing supported
+fractional/negative values still truncate/clamp to nonnegative integers. Explicit empty inventory,
+trimmed IDs, and positive unknown item IDs retain their existing behavior. No new persisted field
+or envelope version is introduced.
+
+Pending fabrication output quantities receive the same magnitude guard. Automatic quantity
+rejection uses the existing recovery screen and page-lifetime storage lock, including later
+actions and clear requests. Fabrication and recovery jobs wait intact when their outputs do not
+fit the safe-integer stock capacity; procurement refuses immediate credits or retains pending
+deliveries rather than overflow stock. No materials, paid jobs, or deferred stock are discarded.
+Blocked jobs retain one remaining week to stay within the existing pending-job hydration
+contract. Anonymous equipment return/replacement refuses atomically when stock cannot fit.
+
+Weekly Auto-Scrap independently permits at most 32 queue attempts in total, in stable item-ID
+order. Unprocessed stock remains available for later weeks; a non-progressing attempt stops that
+item without adopting a partial result. Existing routing events report actual newly queued jobs
+and keep same-week replay a no-op. Preview inclusion totals still describe all eligible stock,
+not a promise that it will all be processed that week. The Equipment page explains the weekly
+limit. Eligibility/protection rules and fabrication → Auto-Scrap → recovery ordering are unchanged.
+
 ## Active mission escalation compatibility (SPE-3730)
 
 Owner correction: escalation increments are optional mission rules. An omitted `onUnresolved.stageDelta` or an explicit zero is valid and does not justify rejecting a save; existing normalization represents absence as zero. Explicit nonnumeric, fractional, or negative increments are rejected. Follow-up missions remain governed by the mission's contextual outcome rules, including no follow-up. The recovery safeguards for explicitly invalid data remain in place. This supersedes PR #4865's blanket increment requirement; general compatibility policy remains with SPE-3403. No save-version change.
@@ -601,25 +626,24 @@ Definition-aware reads retain unchanged-layout progress, reject same-version lay
 
 `DeveloperLogEventType` accepts additive `tutorial.lifecycle` entries through its existing hydration allowlist. Existing `RuntimeState.ui.debug.eventLog` storage/normalization and 120-entry emission retention remain authoritative. Details contain a deterministic `tutorialEventId`, tutorial ID/version, run/revision, command and typed outcome, plus optional step, failure reason or source definition version. No explanation payload, hidden predicate, production snapshot or callback is persisted. Old saves need no new field/default; existing save versions and OperationEvent schemas remain unchanged. Positive lifecycle CAS transitions prevent stale completion emission independently of diagnostic retention. Failure/recovery diagnostic IDs deduplicate within retained history; log eviction/clear opens a new diagnostic window.
 
-
 ## SPE-2995 — Canonical procedure-to-action execution adapter
 
 Pure domain module `src/domain/procedureToActionAdapter.ts` is the bounded interoperability seam between SPE-1274 `ProcedureDefinition` authoring and the restored SPE-1434 cross-role action resolver.
 
 ### Canonical-to-execution mapping
 
-| Canonical procedure field / input | Adapter handling |
-| --- | --- |
-| `schemaVersion`, `procedureId`, `canonicalName` | Validated through SPE-1274; identity/name project into the SPE-1434 action contract |
-| `requirements.toolTags` | Operator loadout tags are deterministically deduplicated and mapped to SPE-1434 `item_tag` prerequisites |
-| `requirements.deviceTags` | Scene equipment availability stays with caller-declared `compatibility_equipment` / `facility_environment` owner decisions; never converted to participant inventory prerequisites |
-| `restrictions.forbiddenRoles` | Filters caller-supplied eligible role lanes before SPE-1434 validation |
-| Reagents/quantities, certifications/access, environment, knowledge, authorization, competency, compatibility, doctrine, exhaustion, subject-fit | Remain authoritative at their existing owners; the caller declares applicable `ProcedureExecutionPrerequisiteRequirement` owner/class pairs and supplies typed decisions. Missing required owner decisions fail closed. |
-| SPE-3308 exhaustion / blacklist state | Consumed by reference as `procedure_exhaustion`; not copied or persisted |
-| Subject-fit | Consumed only when the owning caller supplies it; the adapter never infers universal validity |
-| Cross-role execution | Delegated to `resolveCrossRoleAction`; no second resolver |
-| Repeat evaluation | Stable fingerprint over canonical validation/action inputs (identity/name, tier, taxonomy intent/method, speech, reagent quantities, tool/scene-device tags, forbidden roles, target range, source count, entity-payload presence), selected role lanes, participants, execution key, and owned prerequisite requirements/decisions |
-| Duplicate durable consequence | Caller-owned prior receipt with `consequenceApplied=true` returns `already_applied` for the same trimmed execution key even if current readiness blocks or its fingerprint changes; current readiness remains inspectable. The adapter never persists a retry ledger or applies the consequence itself |
+| Canonical procedure field / input                                                                                                               | Adapter handling                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`, `procedureId`, `canonicalName`                                                                                                 | Validated through SPE-1274; identity/name project into the SPE-1434 action contract                                                                                                                                                                                                                                                 |
+| `requirements.toolTags`                                                                                                                         | Operator loadout tags are deterministically deduplicated and mapped to SPE-1434 `item_tag` prerequisites                                                                                                                                                                                                                            |
+| `requirements.deviceTags`                                                                                                                       | Scene equipment availability stays with caller-declared `compatibility_equipment` / `facility_environment` owner decisions; never converted to participant inventory prerequisites                                                                                                                                                  |
+| `restrictions.forbiddenRoles`                                                                                                                   | Filters caller-supplied eligible role lanes before SPE-1434 validation                                                                                                                                                                                                                                                              |
+| Reagents/quantities, certifications/access, environment, knowledge, authorization, competency, compatibility, doctrine, exhaustion, subject-fit | Remain authoritative at their existing owners; the caller declares applicable `ProcedureExecutionPrerequisiteRequirement` owner/class pairs and supplies typed decisions. Missing required owner decisions fail closed.                                                                                                             |
+| SPE-3308 exhaustion / blacklist state                                                                                                           | Consumed by reference as `procedure_exhaustion`; not copied or persisted                                                                                                                                                                                                                                                            |
+| Subject-fit                                                                                                                                     | Consumed only when the owning caller supplies it; the adapter never infers universal validity                                                                                                                                                                                                                                       |
+| Cross-role execution                                                                                                                            | Delegated to `resolveCrossRoleAction`; no second resolver                                                                                                                                                                                                                                                                           |
+| Repeat evaluation                                                                                                                               | Stable fingerprint over canonical validation/action inputs (identity/name, tier, taxonomy intent/method, speech, reagent quantities, tool/scene-device tags, forbidden roles, target range, source count, entity-payload presence), selected role lanes, participants, execution key, and owned prerequisite requirements/decisions |
+| Duplicate durable consequence                                                                                                                   | Caller-owned prior receipt with `consequenceApplied=true` returns `already_applied` for the same trimmed execution key even if current readiness blocks or its fingerprint changes; current readiness remains inspectable. The adapter never persists a retry ledger or applies the consequence itself                              |
 
 Readiness is typed as `permitted`, `degraded`, or an explicit blocked result. Required owner/class pairs are part of the fingerprint alongside their decisions. Changed authoritative inputs produce a different fingerprint and may be reevaluated deterministically. A prior blocked attempt does not lock future reevaluation; a prior committed consequence suppresses duplicate application for the same caller-owned execution key.
 

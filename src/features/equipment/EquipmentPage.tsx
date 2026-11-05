@@ -154,8 +154,9 @@ function EquipmentPage() {
             Weekly Auto-Scrap
           </h3>
           <p className="text-sm opacity-60">
-            Automatically route all safely eligible unequipped stock at or below a canonical grade
-            through the normal recovery queue at week close.
+            Automatically route up to {autoScrapView.weeklyUnitLimit} safely eligible unequipped
+            units through the normal recovery queue per week, at or below a canonical grade.
+            Remaining stock stays available for later weeks.
           </p>
           <p className="mt-1 text-xs opacity-60">
             {autoScrapView.enabled && autoScrapView.configuredThresholdLabel

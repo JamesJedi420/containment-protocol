@@ -12,7 +12,9 @@
 This bounded child adds a disabled-by-default canonical-grade Auto-Scrap policy. The player
 selects an at-or-below Grade I–V threshold, reviews the current aggregate-stock preview, and
 explicitly confirms activation. Each week close recomputes that preview from current authoritative
-state and routes every included copy through the existing SPE-2748 deconstruction command.
+state and routes eligible copies through the existing SPE-2748 deconstruction command.
+The SPE-3732 safety follow-up limits routing to 32 attempts across all item types per week;
+remaining stock stays available for subsequent weeks in the same deterministic item-ID order.
 
 Auto-Scrap does not create a destruction shortcut or private eligibility state. It consumes the
 catalog grade profile, hidden-safe grade projection, explicit recovery profile, aggregate
@@ -39,6 +41,13 @@ Auto-Scrap jobs use the same duration and completion rules as manual jobs. One r
 enabled campaign week records bounded counts and generic exclusion reasons; an existing same-week
 routing event makes replay a no-op. Disabling prevents later batches without cancelling queued
 recovery work.
+
+SPE-3732 also rejects imported finite inventory magnitudes outside the safe-integer range,
+before truncation, through the shared hydration boundary. Ordinary fractional/negative values
+retain their established integer/zero normalization; explicit empty inventory and positive unknown
+item IDs remain supported. Direct Auto-Scrap callers use the same quantity guard. A queue attempt
+must both consume one stock unit and append one recovery job before its result is adopted;
+non-progress stops that item and consumes an attempt. No save version or event field changes.
 
 ## Existing authorities consumed
 

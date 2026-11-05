@@ -1669,6 +1669,9 @@ describe('EquipmentPage', () => {
     renderEquipmentPage()
 
     expect(screen.getByRole('heading', { name: /weekly auto-scrap/i })).toBeInTheDocument()
+    expect(
+      screen.getByText(/automatically route up to 32.*remaining stock stays available/i)
+    ).toBeInTheDocument()
     expect(screen.getByText(/include 2 unit\(s\).*exclude 1 unit\(s\)/i)).toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText(/grade threshold/i), 'grade_2')
     expect(screen.getByText(/include 3 unit\(s\).*exclude 0 unit\(s\)/i)).toBeInTheDocument()

@@ -1,4 +1,5 @@
 import { appendOperationEventDrafts } from '../events'
+import { hasInventoryCapacity } from '../inventoryQuantity'
 import type { FundingState, GameState } from '../models'
 import {
   assessCallableObligationProcurement,
@@ -113,7 +114,8 @@ export function purchaseMarketInventory(
     !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
     (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
     normalizedBundles > listing.availableBundles ||
-    state.funding < totalPrice
+    state.funding < totalPrice ||
+    !hasInventoryCapacity(state.inventory[listing.itemId], quantity)
   ) {
     return ensureNormalizedGameState(state)
   }
@@ -185,7 +187,8 @@ export function redeemFactionFavorProcurement(
   if (
     !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
     (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
-    normalizedBundles > listing.availableBundles
+    normalizedBundles > listing.availableBundles ||
+    !hasInventoryCapacity(state.inventory[listing.itemId], quantity)
   ) {
     return ensureNormalizedGameState(state)
   }
@@ -284,7 +287,8 @@ export function callCallableObligationProcurement(
   if (
     !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
     (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
-    normalizedBundles > listing.availableBundles
+    normalizedBundles > listing.availableBundles ||
+    !hasInventoryCapacity(state.inventory[listing.itemId], quantity)
   ) {
     return ensureNormalizedGameState(state)
   }
@@ -457,6 +461,8 @@ export function fulfillPendingProcurementBacklogAtWeekClose(
       )
       continue
     }
+
+    if (!hasInventoryCapacity(nextState.inventory[entry.itemId], entry.quantity)) continue
 
     fundingState = fulfillProcurementOrder(fundingState, entry.requestId, week)
     const nextInventory = {

@@ -39,7 +39,7 @@ describe('saved mission escalation compatibility', () => {
     ).not.toThrow()
   })
 
-  it('rejects an incomplete run or save before replacing the current campaign', () => {
+  it('rejects invalid explicit increments without replacing or locking the current campaign', () => {
     const original = createStartingState()
     useGameStore.setState({ game: original })
     const run = structuredClone(createRunExportPayload(original))
@@ -53,6 +53,9 @@ describe('saved mission escalation compatibility', () => {
       /invalid escalation increment/
     )
     expect(useGameStore.getState().game).toEqual(original)
+    useGameStore.setState({ game: { ...original, week: 2 } })
+    const persisted = JSON.parse(localStorage.getItem('containment-protocol-game-state')!)
+    expect(persisted.state.game.week).toBe(2)
   })
 
   it('round-trips an explicit zero and tolerates a resolved case without the rule', () => {

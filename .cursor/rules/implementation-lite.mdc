@@ -15,6 +15,8 @@ Read the issue, comments, parent/children, linked evidence, and slice doc. Linea
 
 Apply manual §§2–3: report files, current/expected behavior, boundary, status, risks, checks and docs before edits. Repeat all six pre-ship passes after fixes; run required validation. Record deferrals durably with the correct existing owner or candidate route. Do not weaken tests or claim unrun checks passed.
 
+For gameplay changes, apply the five gameplay implementation evidence conditions in `AGENTS.md`: reachability, connection, observability, persistence where necessary, and end-to-end validation. Use Linear's completed scope and report evidence and applicable gaps without treating separate pending scope as a defect in the completed boundary.
+
 ## Ship loop and Linear
 
 Apply manual §4: commit → push → PR using `.github/pull_request_template.md` → independent full-diff review → external-review/CI fixes → merge → sync main. Link the actual slice and approved covered children; post PR and merge evidence on the existing owner. Keep active owned implementation In Progress until full acceptance ships; assess parent completion independently. Honor explicit no-commit/push/PR/merge or local/plan-only instructions.

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
+import { RunTransferPanel } from '../dashboard/RunTransferPanel'
 import {
   CONFIG_FIELDS,
   DASHBOARD_ACTIONS,
@@ -596,7 +597,9 @@ export default function FrontDeskPage() {
                 className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.strategicActionBudgetOpportunity.tone)}`}
               >
                 <p className="text-sm font-medium">{view.strategicActionBudgetOpportunity.title}</p>
-                <p className="text-sm opacity-80">{view.strategicActionBudgetOpportunity.summary}</p>
+                <p className="text-sm opacity-80">
+                  {view.strategicActionBudgetOpportunity.summary}
+                </p>
                 <p className="text-sm font-semibold text-amber-100/90">
                   {view.strategicActionBudgetOpportunity.budgetLine}
                 </p>
@@ -646,8 +649,12 @@ export default function FrontDeskPage() {
               <div
                 className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.tagConflictValueStreamOpportunity.tone)}`}
               >
-                <p className="text-sm font-medium">{view.tagConflictValueStreamOpportunity.title}</p>
-                <p className="text-sm opacity-80">{view.tagConflictValueStreamOpportunity.summary}</p>
+                <p className="text-sm font-medium">
+                  {view.tagConflictValueStreamOpportunity.title}
+                </p>
+                <p className="text-sm opacity-80">
+                  {view.tagConflictValueStreamOpportunity.summary}
+                </p>
                 <p className="text-xs uppercase tracking-[0.12em] opacity-70">
                   Value stream: {view.tagConflictValueStreamOpportunity.valueStreamLabel}
                 </p>
@@ -766,10 +773,7 @@ export default function FrontDeskPage() {
                   </ul>
                 ) : null}
                 <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
-                  <Link
-                    to={view.hubRumorLead.primaryHref}
-                    className="opacity-70 hover:opacity-100"
-                  >
+                  <Link to={view.hubRumorLead.primaryHref} className="opacity-70 hover:opacity-100">
                     {view.hubRumorLead.primaryLinkLabel}
                   </Link>
                   <Link
@@ -1350,6 +1354,10 @@ export default function FrontDeskPage() {
           </section>
         </aside>
       </div>
+      <details>
+        <summary>Campaign import and export</summary>
+        <RunTransferPanel allowNewRun={false} />
+      </details>
     </section>
   )
 }

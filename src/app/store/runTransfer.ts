@@ -1,4 +1,5 @@
 import { parseContainmentRequirementRegistry } from '../../domain/containmentRequirementFulfillment'
+import { assertMissionEscalationCompatibility } from './missionEscalationCompatibility'
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeFacilityDecommissioning } from '../../domain/facilityDecommissioning'
 import { normalizeFacilityLifecycleHistory } from '../../domain/facilityLifecycle'
@@ -11178,6 +11179,7 @@ export function parseRunExport(raw: string, fallback = createStartingState()): G
 
   validateImportTimestampMetadata(parsed.exportedAt, 'exportedAt')
 
+  assertMissionEscalationCompatibility(parsed.game)
   return hydrateGame(parsed.game, fallback, { allowLegacySyntheticRepair: true })
 }
 

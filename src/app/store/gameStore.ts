@@ -15,6 +15,10 @@ import { reserveWorkshopStaffTime, releaseWorkshopStaffTime } from '../../domain
 import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAllocation'
 // cspell:words partialize unequip
 import { create } from 'zustand'
+import {
+  assertMissionEscalationCompatibility,
+  MissingMissionEscalationRuleError,
+} from './missionEscalationCompatibility'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
 import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
@@ -778,6 +782,39 @@ export function resolveGameStorage(): StateStorage {
   }
 
   return gameStorageFallback
+}
+
+let automaticMissionLoadError: MissingMissionEscalationRuleError | undefined
+
+export function getAutomaticMissionLoadError(): MissingMissionEscalationRuleError | undefined {
+  return automaticMissionLoadError
+}
+
+function validateAutomaticMissionLoad(persistedState: unknown): void {
+  if (
+    typeof persistedState !== 'object' ||
+    persistedState === null ||
+    !('game' in persistedState)
+  ) {
+    return
+  }
+  try {
+    assertMissionEscalationCompatibility(persistedState.game)
+  } catch (error) {
+    if (error instanceof MissingMissionEscalationRuleError) automaticMissionLoadError = error
+    throw error
+  }
+}
+
+// A failed automatic load must never let a fallback campaign overwrite the original.
+const guardedGameStorage: StateStorage = {
+  getItem: (name) => resolveGameStorage().getItem(name),
+  setItem: (name, value) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().setItem(name, value)
+  },
+  removeItem: (name) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().removeItem(name)
+  },
 }
 
 // ----- Store -----
@@ -3197,7 +3234,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'containment-protocol-game-state',
-      storage: createJSONStorage(resolveGameStorage),
+      storage: createJSONStorage(() => guardedGameStorage),
 
       // Persist all simulation-critical fields; `templates` is excluded and
       // reloaded fresh from source code on every app boot.
@@ -3209,7 +3246,9 @@ export const useGameStore = create<GameStore>()(
       // carry stale template data from an older version of the app code.
       merge: (persistedState, currentState) => {
         const ps = persistedState as Partial<PersistedStore>
-        if (!ps.game) return currentState
+        if (!ps?.game) return currentState
+
+        validateAutomaticMissionLoad(ps)
 
         const mergedGame = hydrateGame(ps.game as Partial<GameState>, currentState.game)
 
@@ -3223,6 +3262,7 @@ export const useGameStore = create<GameStore>()(
       version: GAME_STORE_VERSION,
 
       migrate: (persistedState: unknown, version: number): PersistedStore => {
+        validateAutomaticMissionLoad(persistedState)
         return migratePersistedStore(persistedState, version, createStartingState())
       },
     }

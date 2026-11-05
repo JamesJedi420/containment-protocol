@@ -96,19 +96,30 @@ async function runCampaign(browser: Browser) {
     await escalatedIncident
       .getByRole('button', { name: `Select ${deferredIncident} for triage detail` })
       .click()
-    await expect(detail).toContainText('Stage 3')
-    await expect(detail).toContainText('Requires 3 teams before launch.')
+    const escalatedDetail = page.getByRole('region', {
+      name: `Case triage detail: ${deferredIncident}`,
+    })
+    await expect(escalatedDetail).toContainText('Stage 3')
+    await expect(escalatedDetail).toContainText('Requires 3 teams before launch.')
     // The deferred incident's consequence must remain available after loading,
     // not merely appear in the report produced during the transition.
     await page.reload({ waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('region', { name: 'Case triage queue' })).toContainText(
       'Campus Outbreak'
     )
-    await escalatedIncident
+    const reloadedIncident = page
+      .getByRole('region', { name: 'Case triage queue' })
+      .getByRole('listitem')
+      .filter({ hasText: deferredIncident })
+      .first()
+    await reloadedIncident
       .getByRole('button', { name: `Select ${deferredIncident} for triage detail` })
       .click()
-    await expect(detail).toContainText('Stage 3')
-    await expect(detail).toContainText('Requires 3 teams before launch.')
+    const reloadedDetail = page.getByRole('region', {
+      name: `Case triage detail: ${deferredIncident}`,
+    })
+    await expect(reloadedDetail).toContainText('Stage 3')
+    await expect(reloadedDetail).toContainText('Requires 3 teams before launch.')
     await openPrimaryNav(page, 'Operations Desk')
     await advanceOperationalWeek(page)
     await openReport(page, 2)

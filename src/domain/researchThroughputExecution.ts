@@ -139,7 +139,7 @@ function round4(value: number): number {
 }
 
 function sortedUnique(ids: readonly string[]): readonly string[] {
-  return Object.freeze([...new Set(ids.filter((id) => id.length > 0))].sort())
+  return Object.freeze([...new Set(ids.filter((id) => id.length > 0))].sort(compareCodeUnit))
 }
 
 function freezeRuntime(runtime: ResearchExecutionRuntime): ResearchExecutionRuntime {
@@ -794,4 +794,11 @@ export function assertMilestoneOutputKindExhaustive(kind: MilestoneOutputKind): 
   if (!MILESTONE_OUTPUT_KINDS.includes(kind)) {
     throw new Error(`Unknown milestone output kind: ${kind}`)
   }
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

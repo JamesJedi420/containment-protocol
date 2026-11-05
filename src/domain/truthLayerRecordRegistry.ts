@@ -646,7 +646,7 @@ export function resolveSimulationAuthorityForSubject(
     return {
       ok: false,
       code: 'duplicate_simulation_authority',
-      recordIds: Object.freeze(simulationRecords.map((r) => r.id).sort()),
+      recordIds: Object.freeze(simulationRecords.map((r) => r.id).sort(compareCodeUnit)),
     }
   }
   if (simulationRecords.length === 1) {
@@ -660,7 +660,7 @@ export function resolveSimulationAuthorityForSubject(
         .map((record) => normalizeToken(record.simulationAuthorityRef ?? ''))
         .filter((id) => id.length > 0),
     ),
-  ].sort()
+  ].sort(compareCodeUnit)
   if (refs.length === 0) {
     return { ok: true, record: null }
   }
@@ -1571,3 +1571,10 @@ export const ACTOR_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
   correctionPressure: 0.28,
   confidence: 0.61,
 })
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}

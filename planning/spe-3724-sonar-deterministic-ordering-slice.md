@@ -40,7 +40,7 @@ chat after this PR merges.
 Default string sort is the parity oracle. Inputs include mixed case,
 numeric-looking strings, Unicode (including surrogate/BMP ordering), duplicates
 and deterministic permutations where the contracts accept arbitrary IDs.
-Finite preset/category vocabularies use their actual supported values; duplicate
+A roads-only evacuation case checks ordering after default categories are merged; removing the merge sort makes that assertion fail (mutation control). Finite preset/category vocabularies use their actual supported values; duplicate
 categories remain invalid. Tests check runtime serialized bytes, registry
 insertion order, input immutability and frozen outputs. Environmental comparisons
 retain a differing-value control; deadline evaluation preserves its per-entry

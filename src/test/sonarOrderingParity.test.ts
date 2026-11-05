@@ -230,6 +230,15 @@ describe('default string ordering parity (SPE-3724)', () => {
       expect(result).toEqual(baseline)
       expect(JSON.stringify(raw)).toBe(before)
     }
+    const merged = validatePublicGuidanceAgainstServices({
+      packet: { ...packet, requiredServiceCategories: ['roads'] },
+      registry,
+    })
+    expect(merged.serviceChecks.map((check) => check.category)).toEqual([
+      'communications',
+      'roads',
+      'shelters',
+    ])
     expect(
       parsePublicGuidanceMessagePacket({ ...packet, requiredServiceCategories: ['roads', 'roads'] })
     ).toBeNull()

@@ -38,6 +38,9 @@ jobs:
 
       # SPE-3375 retains TypeScript recovery; this is the existing bundle command.
       - name: Build game for Pages
+        env:
+          VITE_BETTERSTACK_DSN: ${{ vars.BETTERSTACK_DSN }}
+          CP_BUILD_REVISION: ${{ github.event.workflow_run.head_sha }}
         run: npm run build:bundle -- --mode pages
 
       - name: Install Chromium

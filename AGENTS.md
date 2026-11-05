@@ -22,7 +22,7 @@ Every final response must recommend a concrete next step within the authorized b
 
 ## Cursor Cloud specific instructions
 
-This is a client-side-only React/TypeScript SPA (no backend, no database, no external services).
+This is a client-side-only React/TypeScript SPA (no backend or database). Optional browser error reporting is documented in `docs/better-stack-errors.md`; it is outside simulation state and requires no management secret.
 All simulation logic is pure TypeScript; state is managed via Zustand with `localStorage` persistence.
 
 ### Running services
@@ -43,7 +43,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 - **Full build recovery:** SPE-3375 clears the previous TypeScript drift; paired compiler and literal production-build evidence is recorded in `docs/typecheck/green-build-2026-11-04/`. Re-run `npm run build` for current acceptance. CI gate activation remains owned by SPE-3348; this recovery does not change validation enforcement.
 - **This repo is pinned to Vite 8 (`vite` `^8.0.1`) with the native config loader.** Type-only exports are stripped at the ESM boundary. If you import an `interface` or `type` alias as a value import, the dev server will throw `SyntaxError: does not provide an export named '...'`. Always use `import type { ... }` for type-only imports in source files that the Vite dev server loads.
 - **Tests use `--pool vmThreads`** locally and the `jsdom` environment. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
-- **No environment variables or secrets** are required. The only optional env var is `STRICT_TEST_CONSOLE=1` (used in CI to fail on console warnings in tests).
+- **No environment variables or secrets** are required. `STRICT_TEST_CONSOLE=1` is used in CI to fail on console warnings in tests. Optional public error-reporting configuration (`VITE_ERROR_TRACKING_ENABLED`, `VITE_BETTERSTACK_DSN`) and its default-off local/test behavior are documented in `docs/better-stack-errors.md`; never expose management tokens through `VITE_` variables.
 - **Node.js 22** is required (matches CI configuration in `.github/workflows/test.yml`).
 
 ### Standard scripts reference

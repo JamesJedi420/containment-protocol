@@ -4,12 +4,13 @@ Shared Chromium browser verification for Containment Protocol. Academy may later
 
 ## Commands
 
-| Task                    | Command                           |
-| ----------------------- | --------------------------------- |
-| Local E2E               | `npm run test:e2e`                |
-| CI-shaped E2E           | `npm run test:e2e:ci`             |
-| Install Chromium        | `npx playwright install chromium` |
-| HTML report (after run) | `npx playwright show-report`      |
+| Task                         | Command                           |
+| ---------------------------- | --------------------------------- |
+| Local E2E                    | `npm run test:e2e`                |
+| CI-shaped E2E                | `npm run test:e2e:ci`             |
+| Intercepted error SDK checks | `npm run test:errors`             |
+| Install Chromium             | `npx playwright install chromium` |
+| HTML report (after run)      | `npx playwright show-report`      |
 
 Vite starts via Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`). Locally, an already-running dev server is reused when `CI` is unset.
 
@@ -29,6 +30,17 @@ Bounded Chromium player smokes (`e2e/cp-smoke.spec.ts`) — player-loop proof, n
 10. Shell accessibility contract — skip link, single `main`, week-close announcement (`e2e/a11y-keyboard-landmarks.spec.ts`, SPE-1080)
 
 Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
+
+### Error-reporting verification (SPE-3729)
+
+`npm run test:errors` reuses this Chromium harness with a dedicated Vite server on
+port 5198. It verifies disabled ordinary automation, blocked storage, unavailable
+ingest and explicitly opted-in React/global errors. All ingest requests are
+intercepted; no live report is sent by this suite. The React error case uses a
+constructed fixture, while the normal-startup and unavailable-ingest checks load
+the real game. `test:e2e:ci` runs the player suite followed by these checks, with
+separate error artifacts/report output. See [Better Stack errors](better-stack-errors.md)
+for the distinct live synthetic verification procedure.
 
 ### Accessibility spec boundary
 

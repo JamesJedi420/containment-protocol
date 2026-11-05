@@ -1770,12 +1770,13 @@ export function normalizeCaseInstance(
   const departmentWorkshopFinalizationFabricationQueueId = sanitizeWorkshopFinalizationId(
     entry.departmentWorkshopFinalizationFabricationQueueId
   )
+  // Saved outcome rules must not acquire consequences from today's starter cases.
   const onFail = filterSpawnTemplateIdsToCatalog(
-    sanitizeSpawnRuleField(entry.onFail, fallback.onFail),
+    sanitizeSpawnRuleField(entry.onFail, {}),
     context.knownTemplateIds
   )
   const onUnresolved = filterSpawnTemplateIdsToCatalog(
-    sanitizeSpawnRuleField(entry.onUnresolved, fallback.onUnresolved),
+    sanitizeSpawnRuleField(entry.onUnresolved, {}),
     context.knownTemplateIds
   )
 

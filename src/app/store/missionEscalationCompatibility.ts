@@ -1,10 +1,10 @@
-/** Reject an active saved case when its future deadline behavior is unknown. */
-export class MissingMissionEscalationRuleError extends Error {
+/** Validate an explicitly authored escalation increment; omission is permitted. */
+export class InvalidMissionEscalationRuleError extends Error {
   constructor() {
     super(
-      'This campaign cannot be loaded because an active mission has an incomplete escalation rule. Keep the original save and restore a compatible backup.'
+      'This campaign cannot be loaded because an active mission has an invalid escalation increment. Keep the original save and restore a compatible backup.'
     )
-    this.name = 'MissingMissionEscalationRuleError'
+    this.name = 'InvalidMissionEscalationRuleError'
   }
 }
 
@@ -18,9 +18,10 @@ export function assertMissionEscalationCompatibility(game: unknown): void {
   for (const value of Object.values(game.cases)) {
     if (!isRecord(value) || value.status === 'resolved') continue
     const rule = value.onUnresolved
-    const increment = isRecord(rule) ? rule.stageDelta : undefined
+    if (!isRecord(rule) || rule.stageDelta === undefined) continue
+    const increment = rule.stageDelta
     if (typeof increment !== 'number' || !Number.isInteger(increment) || increment < 0) {
-      throw new MissingMissionEscalationRuleError()
+      throw new InvalidMissionEscalationRuleError()
     }
   }
 }

@@ -26,7 +26,7 @@ type SavedEnvelope = {
   }
 }
 
-test('incomplete escalation saves fail safely while a valid campaign continues', async ({
+test('invalid explicit escalation increments fail safely while a valid campaign continues', async ({
   browser,
 }) => {
   test.setTimeout(120_000)
@@ -46,7 +46,7 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
     expect(spawned.stage).toBe(4)
     expect(spawned.onUnresolved.stageDelta).toBe(2)
     const incomplete = structuredClone(envelope)
-    delete incomplete.state.game.cases[spawned.id].onUnresolved.stageDelta
+    incomplete.state.game.cases[spawned.id].onUnresolved.stageDelta = -1
     const toExport = (saved: typeof envelope) =>
       JSON.stringify({
         kind: 'containment-protocol-run',
@@ -64,7 +64,7 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
     )
     await page.getByRole('button', { name: 'Import Run' }).click()
     await expect(
-      page.getByRole('status').filter({ hasText: 'incomplete escalation rule' })
+      page.getByRole('status').filter({ hasText: 'invalid escalation increment' })
     ).toBeVisible()
     const savedAfterImport = await page.evaluate(
       (storageKey) => localStorage.getItem(storageKey)!,
@@ -138,7 +138,7 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
         await expect(
           recovery.getByRole('heading', { name: 'Saved campaign unavailable' })
         ).toBeVisible()
-        await expect(recovery.getByRole('alert')).toContainText('incomplete escalation rule')
+        await expect(recovery.getByRole('alert')).toContainText('invalid escalation increment')
         await recovery.getByText('Show original saved data').focus()
         await recovery.keyboard.press('Enter')
         await expect(recovery.getByLabel('Original saved campaign data')).toHaveValue(broken)
@@ -160,7 +160,7 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
         const restoreInput = recovery.getByLabel('Compatible run export')
         await restoreInput.fill(toExport(incomplete))
         await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
-        await expect(recovery.getByRole('status')).toContainText('incomplete escalation rule')
+        await expect(recovery.getByRole('status')).toContainText('invalid escalation increment')
         expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
           broken
         )
@@ -285,4 +285,51 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
     probe.dispose()
     await context.close()
   }
+})
+
+test('an optional no-escalation rule loads and does not invent mission follow-ups', async ({
+  page,
+}) => {
+  await clearCampaignStorage(page)
+  await page.getByText('Campaign import and export', { exact: true }).click()
+  await page.getByRole('button', { name: 'Export Run' }).click()
+  const key = 'containment-protocol-game-state'
+  const envelope = JSON.parse(
+    await page.evaluate((k) => localStorage.getItem(k)!, key)
+  ) as SavedEnvelope
+  const mission = Object.values(envelope.state.game.cases).find(
+    (value) => value.title === 'The Whispering Archive'
+  )
+  if (!mission) throw new Error('Expected the starter mission')
+  mission.onUnresolved = {}
+  const payload = JSON.stringify({
+    kind: 'containment-protocol-run',
+    version: envelope.version,
+    exportedAt: '2026-11-05T00:00:00.000Z',
+    game: envelope.state.game,
+  })
+
+  await page.getByLabel('Run payload').fill(payload)
+  await page.getByRole('button', { name: 'Import Run' }).click()
+  await expect(page.getByRole('status').filter({ hasText: /imported/i })).toBeVisible()
+  await page.reload()
+  await advanceOperationalWeek(page)
+  const loaded = JSON.parse(
+    await page.evaluate((k) => localStorage.getItem(k)!, key)
+  ) as SavedEnvelope
+  expect(loaded.state.game.cases[mission.id].stage).toBe(mission.stage)
+  await page
+    .getByRole('region', { name: 'Latest report' })
+    .getByRole('link', { name: 'Week 1', exact: true })
+    .click()
+  const result = page
+    .getByRole('region', { name: 'Case outcomes' })
+    .locator('section')
+    .filter({ has: page.getByText('Unresolved cases', { exact: true }) })
+    .locator(':scope > ul > li')
+    .filter({ hasText: 'The Whispering Archive' })
+  await expect(result).not.toContainText('Spawned follow-up case')
+  await expect(result).not.toContainText('Case escalated to stage')
+  await page.reload()
+  await expect(result).not.toContainText('Spawned follow-up case')
 })

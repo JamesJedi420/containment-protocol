@@ -4,12 +4,12 @@ Shared Chromium browser verification for Containment Protocol. Academy may later
 
 ## Commands
 
-| Task | Command |
-| --- | --- |
-| Local E2E | `npm run test:e2e` |
-| CI-shaped E2E | `npm run test:e2e:ci` |
-| Install Chromium | `npx playwright install chromium` |
-| HTML report (after run) | `npx playwright show-report` |
+| Task                    | Command                           |
+| ----------------------- | --------------------------------- |
+| Local E2E               | `npm run test:e2e`                |
+| CI-shaped E2E           | `npm run test:e2e:ci`             |
+| Install Chromium        | `npx playwright install chromium` |
+| HTML report (after run) | `npx playwright show-report`      |
 
 Vite starts via Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`). Locally, an already-running dev server is reused when `CI` is unset.
 
@@ -26,8 +26,15 @@ Bounded Chromium player smokes (`e2e/cp-smoke.spec.ts`) — player-loop proof, n
 7. Hire after week advance (roster total increases)
 8. Agency maintenance package purchase (funding + recovery budget deltas)
 9. Containment Site `SystemBoundaryPage` load + Cases handoff
+10. Shell accessibility contract — skip link, single `main`, week-close announcement (`e2e/a11y-keyboard-landmarks.spec.ts`, SPE-1080)
 
 Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
+
+### Accessibility spec boundary
+
+`e2e/a11y-keyboard-landmarks.spec.ts` asserts only what the browser accessibility tree and focus model can prove: the skip link is the first tab stop and moves focus to `#main-content`, the shell exposes exactly one `main` with routed regions nested inside it, the week-close status is a polite atomic live region with a report link, a second advance updates that same live region in place, and the agent detail routes render the dossier as a named region instead of a second `main`.
+
+It is **not** a screen-reader pass, and it does not use axe. Audit rows S5–S6 and the axe proposal in [accessibility-audit.md](./accessibility-audit.md) §5.2 stay open until a human runs NVDA/VoiceOver and the axe dependency is approved.
 
 ## Artifacts
 
@@ -47,8 +54,8 @@ Existing Vitest/lint/governance gates run through the shared `verify:requirement
 
 ## Dependency review (SPE-3458)
 
-| Package | Version | License | Notes |
-| --- | --- | --- | --- |
+| Package            | Version  | License    | Notes                                                     |
+| ------------------ | -------- | ---------- | --------------------------------------------------------- |
 | `@playwright/test` | `1.64.1` | Apache-2.0 | DevDependency only; Chromium via `npx playwright install` |
 
 Sonatype MCP was unavailable during install (`mcp_auth` timeout). npm registry metadata: maintained Apache-2.0 Playwright Test. Optional Snyk package health was not authenticated. Re-run Sonatype `/check-dependency` when MCP is ready; do not weaken lockfile discipline.
@@ -70,13 +77,13 @@ Local browser inspection only — not an implementation or approval agent.
 
 ## Preflight evidence (base `5eac65c7`)
 
-| Check | Result |
-| --- | --- |
-| Node | CI uses Node 22; local preflight observed Node 24 — harness targets CI Node 22 |
-| `npm run dev` | Vite ready on `:5173` |
+| Check                | Result                                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node                 | CI uses Node 22; local preflight observed Node 24 — harness targets CI Node 22                                                                                              |
+| `npm run dev`        | Vite ready on `:5173`                                                                                                                                                       |
 | Prior Chromium error | **Reproduced** before fix: `SyntaxError: Identifier 'buildReportCaseSnapshots' has already been declared` from `runTransfer.ts` importing and re-declaring the same binding |
-| Attribution | Duplicate local export removed as SPE-3458 preflight unblock; broader TypeScript census remains SPE-3375 / SPE-3376 |
-| After unblock | Front Desk renders; no page errors on cold load |
+| Attribution          | Duplicate local export removed as SPE-3458 preflight unblock; broader TypeScript census remains SPE-3375 / SPE-3376                                                         |
+| After unblock        | Front Desk renders; no page errors on cold load                                                                                                                             |
 
 ## Hermes / Cursor handoff
 

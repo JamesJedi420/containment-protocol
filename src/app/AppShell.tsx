@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react'
+import { lazy, Suspense, type ComponentType, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import Logo from '../components/Logo'
 import {
@@ -62,123 +62,136 @@ const SYSTEM_ICONS: Record<AppSystemId, typeof IconDashboard> = {
   intel: IconIntel,
 }
 
+function handleSkipToMain(event: MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault()
+  event.currentTarget.ownerDocument.getElementById('main-content')?.focus()
+}
+
 export default function AppShell() {
   const { pathname, search } = useLocation()
   const { game } = useGameStore()
   const meta = getShellMeta(pathname, search, game)
 
   return (
-    <main className="p-6 space-y-6">
-      <ShellStatusBar />
+    <>
+      <a href="#main-content" className="skip-link" onClick={handleSkipToMain}>
+        Skip to main content
+      </a>
 
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
-          {meta.backTo && meta.backLabel ? (
-            <Link to={meta.backTo} className="btn btn-ghost btn-sm" aria-label={meta.backLabel}>
-              <IconBack className="h-4 w-4" aria-hidden="true" />
-              {meta.backLabel}
-            </Link>
-          ) : null}
+      <div className="p-6 space-y-6">
+        <ShellStatusBar />
 
-          <div className="flex items-center gap-3">
-            <Logo size={30} className="shrink-0" />
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
-              {meta.subtitle ? <p className="text-sm opacity-60">{meta.subtitle}</p> : null}
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3">
+            {meta.backTo && meta.backLabel ? (
+              <Link to={meta.backTo} className="btn btn-ghost btn-sm" aria-label={meta.backLabel}>
+                <IconBack className="h-4 w-4" aria-hidden="true" />
+                {meta.backLabel}
+              </Link>
+            ) : null}
+
+            <div className="flex items-center gap-3">
+              <Logo size={30} className="shrink-0" />
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
+                {meta.subtitle ? <p className="text-sm opacity-60">{meta.subtitle}</p> : null}
+              </div>
             </div>
           </div>
-        </div>
 
-        {game.gameOver ? (
-          <p className="text-sm font-medium text-red-300">
-            {`${DASHBOARD_HEADLINE.haltedPrefix} ${game.gameOverReason ?? GAME_OVER_REASONS.breachState}`}
-          </p>
-        ) : null}
-      </header>
-
-      <nav aria-label="Primary operations" className="nav-primary flex flex-wrap gap-3">
-        {PRIMARY_APP_SYSTEMS.map((route) => {
-          const Icon = SYSTEM_ICONS[route.id]
-
-          return (
-            <NavLink
-              key={route.to}
-              to={route.to}
-              end={route.to === APP_ROUTES.operationsDesk}
-              className={({ isActive }) => (isActive ? 'btn btn-primary' : 'btn btn-ghost')}
-            >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              {route.label}
-            </NavLink>
-          )
-        })}
-      </nav>
-
-      <div className="nav-section-secondary">
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50">
-              {SHELL_UI_TEXT.mvpSystems}
+          {game.gameOver ? (
+            <p className="text-sm font-medium text-red-300">
+              {`${DASHBOARD_HEADLINE.haltedPrefix} ${game.gameOverReason ?? GAME_OVER_REASONS.breachState}`}
             </p>
-            <nav aria-label="MVP systems" className="nav-secondary flex flex-wrap gap-2">
-              {SECONDARY_MVP_APP_SYSTEMS.map((route) => {
-                const Icon = SYSTEM_ICONS[route.id]
+          ) : null}
+        </header>
 
-                return (
-                  <NavLink
-                    key={route.to}
-                    to={route.to}
-                    end={route.to === APP_ROUTES.operationsDesk}
-                    className={({ isActive }) =>
-                      isActive ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'
-                    }
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {route.label}
-                  </NavLink>
-                )
-              })}
-            </nav>
-          </div>
+        <nav aria-label="Primary operations" className="nav-primary flex flex-wrap gap-3">
+          {PRIMARY_APP_SYSTEMS.map((route) => {
+            const Icon = SYSTEM_ICONS[route.id]
 
-          <div className="space-y-2">
-            <div className="space-y-1">
+            return (
+              <NavLink
+                key={route.to}
+                to={route.to}
+                end={route.to === APP_ROUTES.operationsDesk}
+                className={({ isActive }) => (isActive ? 'btn btn-primary' : 'btn btn-ghost')}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {route.label}
+              </NavLink>
+            )
+          })}
+        </nav>
+
+        <div className="nav-section-secondary">
+          <div className="space-y-3">
+            <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50">
-                {SHELL_UI_TEXT.futureExpansion}
+                {SHELL_UI_TEXT.mvpSystems}
               </p>
-              <p className="text-sm opacity-60">{SHELL_UI_TEXT.futureExpansionHint}</p>
+              <nav aria-label="MVP systems" className="nav-secondary flex flex-wrap gap-2">
+                {SECONDARY_MVP_APP_SYSTEMS.map((route) => {
+                  const Icon = SYSTEM_ICONS[route.id]
+
+                  return (
+                    <NavLink
+                      key={route.to}
+                      to={route.to}
+                      end={route.to === APP_ROUTES.operationsDesk}
+                      className={({ isActive }) =>
+                        isActive ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'
+                      }
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {route.label}
+                    </NavLink>
+                  )
+                })}
+              </nav>
             </div>
 
-            <nav
-              aria-label="Future expansion systems"
-              className="nav-secondary flex flex-wrap gap-2"
-            >
-              {FUTURE_EXPANSION_APP_SYSTEMS.map((route) => {
-                const Icon = SYSTEM_ICONS[route.id]
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50">
+                  {SHELL_UI_TEXT.futureExpansion}
+                </p>
+                <p className="text-sm opacity-60">{SHELL_UI_TEXT.futureExpansionHint}</p>
+              </div>
 
-                return (
-                  <NavLink
-                    key={route.to}
-                    to={route.to}
-                    end={route.to === APP_ROUTES.operationsDesk}
-                    className={({ isActive }) =>
-                      isActive ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'
-                    }
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {route.label}
-                  </NavLink>
-                )
-              })}
-            </nav>
+              <nav
+                aria-label="Future expansion systems"
+                className="nav-secondary flex flex-wrap gap-2"
+              >
+                {FUTURE_EXPANSION_APP_SYSTEMS.map((route) => {
+                  const Icon = SYSTEM_ICONS[route.id]
+
+                  return (
+                    <NavLink
+                      key={route.to}
+                      to={route.to}
+                      end={route.to === APP_ROUTES.operationsDesk}
+                      className={({ isActive }) =>
+                        isActive ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'
+                      }
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {route.label}
+                    </NavLink>
+                  )
+                })}
+              </nav>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Outlet />
-      <Suspense fallback={null}>
-        <DeveloperOverlay />
-      </Suspense>
-    </main>
+        <main id="main-content" tabIndex={-1} className="space-y-6">
+          <Outlet />
+        </main>
+        <Suspense fallback={null}>
+          <DeveloperOverlay />
+        </Suspense>
+      </div>
+    </>
   )
 }

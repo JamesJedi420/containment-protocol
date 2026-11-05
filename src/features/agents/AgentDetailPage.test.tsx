@@ -48,6 +48,15 @@ beforeEach(() => {
   useGameStore.setState({ game: createStartingState() })
 })
 
+it('exposes the dossier as a region instead of a second main landmark', () => {
+  const agentId = Object.keys(useGameStore.getState().game.agents)[0]!
+
+  renderAgentDetailPage(`/agents/${agentId}`)
+
+  expect(screen.queryByRole('main')).not.toBeInTheDocument()
+  expect(screen.getByRole('region', { name: /agent detail panel/i })).toBeInTheDocument()
+})
+
 it('renders agent assignment, progression, history, and passive traits', async () => {
   const game = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
   const agent = game.agents[Object.keys(game.agents)[0]]!

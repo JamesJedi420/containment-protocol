@@ -322,6 +322,8 @@ import {
 } from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
+  /** Session-only signal for replacing a campaign; excluded by partialize. */
+  gameReplacementRevision: number
   game: GameState
   dispatchTutorialCommand: (
     definition: TutorialDefinition,
@@ -783,6 +785,7 @@ export function resolveGameStorage(): StateStorage {
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
+      gameReplacementRevision: 0,
       game: createStartingState(),
 
       appendDeveloperLogEvent: (event) =>
@@ -3060,7 +3063,11 @@ export const useGameStore = create<GameStore>()(
           }
         }),
 
-      reset: () => set({ game: createStartingState() }),
+      reset: () =>
+        set((s) => ({
+          game: createStartingState(),
+          gameReplacementRevision: s.gameReplacementRevision + 1,
+        })),
 
       setSeed: (seed) =>
         set((s) => {
@@ -3124,6 +3131,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         set({
+          gameReplacementRevision: get().gameReplacementRevision + 1,
           game: appendDeveloperLogEventState(importedGame, {
             type: 'save.imported',
             summary: 'Save imported',
@@ -3169,6 +3177,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         set({
+          gameReplacementRevision: get().gameReplacementRevision + 1,
           game: appendDeveloperLogEventState(importedGame, {
             type: 'save.imported',
             summary: 'Run imported',
@@ -3183,6 +3192,7 @@ export const useGameStore = create<GameStore>()(
       newRunFromCurrentConfig: () =>
         set((s) => ({
           game: createRunFromCurrentConfig(s.game.config, s.game.rngSeed),
+          gameReplacementRevision: s.gameReplacementRevision + 1,
         })),
     }),
     {
@@ -3203,7 +3213,11 @@ export const useGameStore = create<GameStore>()(
 
         const mergedGame = hydrateGame(ps.game as Partial<GameState>, currentState.game)
 
-        return { ...currentState, game: mergedGame }
+        return {
+          ...currentState,
+          game: mergedGame,
+          gameReplacementRevision: currentState.gameReplacementRevision + 1,
+        }
       },
 
       version: GAME_STORE_VERSION,

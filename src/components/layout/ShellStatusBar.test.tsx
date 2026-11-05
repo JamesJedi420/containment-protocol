@@ -25,8 +25,14 @@ function renderShellStatusBar(route = '/') {
       <Routes>
         <Route element={<ShellStatusBarLayout />}>
           <Route path="/" element={<div data-testid="home-route">Home</div>} />
-          <Route path="/report" element={<div data-testid="report-index-route">Report index</div>} />
-          <Route path="/report/:week" element={<div data-testid="report-route">Report route</div>} />
+          <Route
+            path="/report"
+            element={<div data-testid="report-index-route">Report index</div>}
+          />
+          <Route
+            path="/report/:week"
+            element={<div data-testid="report-route">Report route</div>}
+          />
           <Route path="/agency" element={<div data-testid="agency-route">Agency route</div>} />
           <Route path="/help" element={<div data-testid="help-route">Help route</div>} />
           <Route
@@ -191,17 +197,124 @@ describe('ShellStatusBar', () => {
       (node) => node.getAttribute('data-topbar-action')
     )
 
-    expect(orderedActions).toEqual([
-      'help',
-      'mute',
-      'weekly-report',
-      'settings',
-      'advance-week',
-    ])
+    expect(orderedActions).toEqual(['help', 'mute', 'weekly-report', 'settings', 'advance-week'])
 
     const advanceButton = screen.getByTestId('topbar-advance-button')
     expect(advanceButton).toHaveClass('btn-primary')
     expect(orderedActions.at(-1)).toBe('advance-week')
+  })
+
+  it('keeps the empty live region mounted and updates it after a close', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+    const liveRegion = screen.getByRole('status')
+    expect(liveRegion).toBeEmptyDOMElement()
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    expect(screen.getByRole('status')).toBe(liveRegion)
+    expect(liveRegion).toHaveTextContent(/week 9 closed/i)
+  })
+
+  it.each([0, 1, 3])(
+    'clears stale announcements after replacing a save at offset %s',
+    async (offset) => {
+      const user = userEvent.setup()
+      renderShellStatusBar('/')
+      await user.click(screen.getByTestId('topbar-advance-button'))
+      const replacement = structuredClone(useGameStore.getState().game)
+      replacement.week += offset
+      act(() => {
+        useGameStore.setState({ game: replacement })
+      })
+      expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    }
+  )
+
+  it('preserves the announcement through config changes and save exports', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    const panel = screen.getByTestId('shell-week-status')
+    const message = panel.textContent
+    act(() => {
+      useGameStore.getState().updateConfig({})
+      useGameStore.getState().exportSave()
+      useGameStore.getState().exportRun()
+    })
+    expect(screen.getByTestId('shell-week-status')).toBe(panel)
+    expect(panel.textContent).toBe(message)
+  })
+
+  it.each(['save', 'run'] as const)('does not announce an imported first close (%s)', (kind) => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const payload =
+      kind === 'save' ? useGameStore.getState().exportSave() : useGameStore.getState().exportRun()
+    useGameStore.setState({ game: createStartingState() })
+    renderShellStatusBar('/')
+    act(() => {
+      if (kind === 'save') useGameStore.getState().importSave(payload)
+      else useGameStore.getState().importRun(payload)
+    })
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+    expect(screen.getByTestId('shell-week-live')).toBeEmptyDOMElement()
+    act(() => {
+      useGameStore.getState().advanceWeek()
+    })
+    expect(screen.getByTestId('shell-week-status')).toBeInTheDocument()
+  })
+
+  it('announces the closed week outcome, links to its report, and moves focus', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('topbar-advance-button'))
+
+    const weekStatus = screen.getByTestId('shell-week-status')
+    const liveMessage = within(weekStatus).getByRole('status')
+
+    expect(weekStatus).toHaveFocus()
+    expect(liveMessage).toHaveTextContent(/week 9 closed/i)
+    expect(liveMessage).toHaveTextContent(/\d+ resolved, \d+ partial, \d+ failed/i)
+    expect(within(weekStatus).getByRole('link', { name: /open week 9 report/i })).toHaveAttribute(
+      'href',
+      '/report/9'
+    )
+  })
+
+  it('announces a store-driven advance so the Front Desk control is covered too', () => {
+    renderShellStatusBar('/')
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+
+    // Front Desk advances through the store directly; the shell button is not involved.
+    act(() => {
+      useGameStore.getState().advanceWeek()
+    })
+
+    const weekStatus = screen.getByTestId('shell-week-status')
+    expect(weekStatus).toHaveFocus()
+    expect(within(weekStatus).getByRole('status')).toHaveTextContent(/week 9 closed/i)
+    expect(within(weekStatus).getByRole('link', { name: /open week 9 report/i })).toHaveAttribute(
+      'href',
+      '/report/9'
+    )
+  })
+
+  it('clears the status when the simulation returns to an earlier week', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    expect(screen.getByTestId('shell-week-status')).toBeInTheDocument()
+
+    act(() => {
+      useGameStore.setState({ game: createBaseGame() })
+    })
+
+    expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
   })
 
   it('drills weekly report to the latest available report when the current week report is missing', async () => {
@@ -327,7 +440,9 @@ describe('ShellStatusBar', () => {
 
     renderShellStatusBar('/agency')
     const agencySignals = screen.getByTestId('shell-status-signals-row')
-    expect(within(agencySignals).queryByTestId('shell-status-triage-routable')).not.toBeInTheDocument()
+    expect(
+      within(agencySignals).queryByTestId('shell-status-triage-routable')
+    ).not.toBeInTheDocument()
     cleanup()
 
     renderShellStatusBar('/cases')

@@ -1,0 +1,841 @@
+src/app/services/divisionMetrics.test.ts(17,81): error TS2345: Argument of type 'string[] | undefined' is not assignable to parameter of type 'WithAsymmetricMatcher<string>[]'.
+  Type 'undefined' is not assignable to type 'WithAsymmetricMatcher<string>[]'.
+src/app/services/divisionMetrics.test.ts(31,40): error TS2353: Object literal may only specify known properties, and 'caseId' does not exist in type '{ state: "recovery"; teamId?: string | undefined; startedWeek: number; }'.
+src/app/services/divisionMetrics.test.ts(37,9): error TS2353: Object literal may only specify known properties, and 'availabilityState' does not exist in type 'AgentReadinessProfile'.
+src/app/services/divisionMetrics.test.ts(61,7): error TS2740: Type '{ agentId: string; trainingId: string; trainingName: string; remainingWeeks: number; startedWeek: number; }' is missing the following properties from type 'TrainingQueueEntry': id, scope, agentName, targetStat, and 4 more.
+src/app/services/divisionMetrics.ts(41,16): error TS2339: Property 'availabilityState' does not exist on type 'AgentReadinessProfile'.
+src/app/services/divisionMetrics.ts(46,61): error TS2339: Property 'deployable' does not exist on type 'AgentReadinessProfile'.
+src/app/store/gameStore.test.ts(101,3): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; expiryWeek: number; origin: string; roleInclination: string; ... 4 more ...; lastUpdatedWeek: number; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; expiryWeek: number; origin: string; roleInclination: string; ... 4 more ...; lastUpdatedWeek: number; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; expiryWeek: number; origin: string; roleInclination: string; ... 4 more ...; lastUpdatedWeek: number; }' is missing the following properties from type '{ category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }': evaluation, agentData
+src/app/store/gameStore.test.ts(3940,9): error TS2322: Type '{ [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: { permissionSurface: string; id: affiliationPersonStatusRecords.AffiliationPersonStatusRecordId; subjectId: string; ... 35 more ...; weeklyProgression?: readonly affiliationPersonStatusRecords.AffiliationPersonStatusWeeklyProgressionEntry[]; }; }' is not assignable to type 'Record<string, AffiliationPersonStatusRecord>'.
+  'string' index signatures are incompatible.
+    Type '{ permissionSurface: "allowed"; id: affiliationPersonStatusRecords.AffiliationPersonStatusRecordId; subjectId: string; ... 35 more ...; weeklyProgression?: readonly affiliationPersonStatusRecords.AffiliationPersonStatusWeeklyProgressionEntry[]; }' is not assignable to type 'AffiliationPersonStatusRecord'.
+      Types of property 'permissionSurface' are incompatible.
+        Type '"allowed"' is not assignable to type 'EntityWelfarePermissionSurface | undefined'.
+src/app/store/gameStore.test.ts(4252,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' but required in type 'CandidateBase'.
+src/app/store/gameStore.test.ts(4421,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' but required in type 'CandidateBase'.
+src/app/store/gameStore.ts(2252,15): error TS2345: Argument of type 'OperationEventDraft<"equipment.containment_class_deficiency_recorded">' is not assignable to parameter of type 'OperationEventDraft<"equipment.containment_class_inspected">'.
+  Type '"equipment.containment_class_deficiency_recorded"' is not assignable to type '"equipment.containment_class_inspected"'.
+src/app/store/runTransfer.test.ts(4739,32): error TS2339: Property 'funding' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6546,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6592,33): error TS2339: Property 'factionPresence' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6593,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6594,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6636,33): error TS2339: Property 'districtKey' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6637,33): error TS2339: Property 'factionPresence' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6638,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6642,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6643,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6644,33): error TS2339: Property 'rumors' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6717,37): error TS2339: Property 'factionPresence' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6718,37): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6719,37): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(6927,14): error TS2571: Object is of type 'unknown'.
+src/app/store/runTransfer.test.ts(7085,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(7197,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(9077,58): error TS2353: Object literal may only specify known properties, and 'bogus' does not exist in type 'Partial<Record<AgentTraitModifierKey, number>>'.
+src/app/store/runTransfer.test.ts(9085,23): error TS2353: Object literal may only specify known properties, and 'utility' does not exist in type 'Partial<Record<AgentTraitModifierKey, number>>'.
+src/app/store/runTransfer.test.ts(9103,14): error TS18048: 'normalized.equipmentSlots' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(9104,14): error TS18048: 'normalized.traits' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(10215,33): error TS2339: Property 'factionPresence' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(10216,33): error TS2339: Property 'opportunities' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(10217,33): error TS2339: Property 'rumors' does not exist on type '{}'.
+src/app/store/runTransfer.test.ts(10420,37): error TS2339: Property 'inputMaterials' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'inputMaterials' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+src/app/store/runTransfer.test.ts(10421,12): error TS7006: Parameter 'material' implicitly has an 'any' type.
+src/app/store/runTransfer.test.ts(11917,42): error TS2339: Property 'teamIds' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'teamIds' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; fromStage: number; toStage: number; trigger: CaseEscalationTrigger; deadlineRemaining: number; convertedToRaid: boolean; neighborhoodPressureAuditTag?: string | undefined; rewardBreakdown?: MissionRewardBreakdown | undefined; }>'.
+src/app/store/runTransfer.test.ts(11945,42): error TS2339: Property 'teamIds' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'teamIds' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; fromStage: number; toStage: number; trigger: CaseEscalationTrigger; deadlineRemaining: number; convertedToRaid: boolean; neighborhoodPressureAuditTag?: string | undefined; rewardBreakdown?: MissionRewardBreakdown | undefined; }>'.
+src/app/store/runTransfer.test.ts(12847,36): error TS2538: Type 'null' cannot be used as an index type.
+src/app/store/runTransfer.test.ts(12847,36): error TS2538: Type 'undefined' cannot be used as an index type.
+src/app/store/runTransfer.test.ts(14091,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; funding: number; staff: Record<Id, StaffData>; agency?: AgencyState | undefined; facilityMaintenanceState?: FacilityMaintenanceState | undefined; ... 171 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; funding: number; staff: Record<Id, StaffData>; agency?: AgencyState | undefined; facilityMaintenanceState?: FacilityMaintenanceState | undefined; ... 171 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(14309,15): error TS2322: Type '"active"' is not assignable to type 'CaseStatus | undefined'.
+src/app/store/runTransfer.test.ts(14382,15): error TS2322: Type '"active"' is not assignable to type 'CaseStatus | undefined'.
+src/app/store/runTransfer.test.ts(14513,15): error TS2322: Type '"active"' is not assignable to type 'CaseStatus | undefined'.
+src/app/store/runTransfer.test.ts(14542,15): error TS2322: Type '"active"' is not assignable to type 'CaseStatus | undefined'.
+src/app/store/runTransfer.test.ts(15013,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; staff: { 'staff-support': { specialty: "analysis"; efficiency: number; junkField: string; }; 'staff-instructor': { role: "instructor"; name: string; efficiency: number; instructorSpecialty: "investigation"; assignedAgentId: string; }; }; ... 174 more ...; globalFlags?: ...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; staff: { 'staff-support': { specialty: "analysis"; efficiency: number; junkField: string; }; 'staff-instructor': { role: "instructor"; name: string; efficiency: number; instructorSpecialty: "investigation"; assignedAgentId: string; }; }; ... 174 more ...; globalFlags?: ...' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15076,14): error TS18048: 'hydrated.agency.fundingState' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(15231,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; legitimacy: { sanctionLevel: "bogus"; falloutRisk: "explosive"; accessReason: string; }; week: number; funding: number; staff: Record<Id, StaffData>; ... 172 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; legitimacy: { sanctionLevel: "bogus"; falloutRisk: "explosive"; accessReason: string; }; week: number; funding: number; staff: Record<Id, StaffData>; ... 172 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15247,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; legitimacy: { sanctionLevel: "sanctioned"; falloutRisk: "risk"; accessReason: string; junkField: string; }; week: number; funding: number; staff: Record<Id, StaffData>; ... 172 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; legitimacy: { sanctionLevel: "sanctioned"; falloutRisk: "risk"; accessReason: string; junkField: string; }; week: number; funding: number; staff: Record<Id, StaffData>; ... 172 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15274,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; districtScheduleState: { settlementId: string; districts: { hub: DistrictProfile; orphan: { id: string; label: string; encounterFamilyTags: string[]; escalationModifiers: { ...; }; authorityResponseProfile: string; }; }; timeBands: { ...; }; events: { ...; }[]; }; ... 1...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; districtScheduleState: { settlementId: string; districts: { hub: DistrictProfile; orphan: { id: string; label: string; encounterFamilyTags: string[]; escalationModifiers: { ...; }; authorityResponseProfile: string; }; }; timeBands: { ...; }; events: { ...; }[]; }; ... 1...' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15327,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; cases: { "case-resolved-queue-625": { id: string; status: "resolved"; supportShortfall?: boolean; templateId: string; title: string; description: string; mode: CaseMode; ... 67 more ...; lifecycleBreachReadinessDueWeek?: number; }; }; ... 175 more ...; globalFlags?: Record<string, Ga...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; cases: { "case-resolved-queue-625": { id: string; status: "resolved"; supportShortfall?: boolean; templateId: string; title: string; description: string; mode: CaseMode; ... 67 more ...; lifecycleBreachReadinessDueWeek?: number; }; }; ... 175 more ...; globalFlags?: Record<string, Ga...' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15362,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; globalPressure: number; globalEscalationLevel: number; globalThreatDrift: number; globalTimePressure: number; week: number; funding: number; staff: Record<Id, StaffData>; ... 169 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; globalPressure: number; globalEscalationLevel: number; globalThreatDrift: number; globalTimePressure: number; week: number; funding: number; staff: Record<Id, StaffData>; ... 169 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15384,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; supportStaff: { admin: number; logistics: number; medical: number; intel: number; total: number; pressure: number; junkField: string; }; week: number; funding: number; ... 173 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; supportStaff: { admin: number; logistics: number; medical: number; intel: number; total: number; pressure: number; junkField: string; }; week: number; funding: number; ... 173 more ...; globalFlags?: Record<string, GameFlagValue> | undefined; }' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15419,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; missionRouting: { orderedMissionIds: string[]; nextGeneratedSequence: number; missions: { [x: string]: { missionId: string; templateId: string; category: "strategic_opportunity"; ... 20 more ...; lastRejectedTeamIds: { ...; }[]; }; }; }; ... 174 more ...; globalFlags?: ...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; missionRouting: { orderedMissionIds: string[]; nextGeneratedSequence: number; missions: { [x: string]: { missionId: string; templateId: string; category: "strategic_opportunity"; ... 20 more ...; lastRejectedTeamIds: { ...; }[]; }; }; }; ... 174 more ...; globalFlags?: ...' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15498,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; replacementPressureState: { replacementPressure: number; staffingGap: number; activeLossCount: number; criticalRoleLossCount: number; replacementBacklog: { ...; }[]; reasonCodes: string[]; recruitmentPriorityBand: "bogus"; }; ... 174 more ...; globalFlags?: Record<strin...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; replacementPressureState: { replacementPressure: number; staffingGap: number; activeLossCount: number; criticalRoleLossCount: number; replacementBacklog: { ...; }[]; reasonCodes: string[]; recruitmentPriorityBand: "bogus"; }; ... 174 more ...; globalFlags?: Record<strin...' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15530,9): error TS2352: Conversion of type '{ unknownHydrationProbe: string; week: number; knowledge: { [x: string]: { tier: "confirmed"; entityId: string; subjectId: string; subjectType: "anomaly"; lastConfirmedWeek: number; } | { tier: "explosive"; entityId: string; subjectId: string; } | { ...; }; 'wrong-key': { ...; }; bogus: { ...; }; }; ... 174 more ......' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'templates' is missing in type '{ unknownHydrationProbe: string; week: number; knowledge: { [x: string]: { tier: "confirmed"; entityId: string; subjectId: string; subjectType: "anomaly"; lastConfirmedWeek: number; } | { tier: "explosive"; entityId: string; subjectId: string; } | { ...; }; 'wrong-key': { ...; }; bogus: { ...; }; }; ... 174 more ......' but required in type 'GameState'.
+src/app/store/runTransfer.test.ts(15742,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16019,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16053,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16054,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16216,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16217,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.test.ts(16336,14): error TS18048: 'hydrated.runtimeState.ui.debug.eventLog' is possibly 'undefined'.
+src/app/store/runTransfer.ts(199,8): error TS2459: Module '"../../domain/models"' declares 'SquadKitAssignment' locally, but it is not exported.
+src/app/store/runTransfer.ts(200,8): error TS2459: Module '"../../domain/models"' declares 'SquadKitTemplate' locally, but it is not exported.
+src/app/store/runTransfer.ts(201,8): error TS2459: Module '"../../domain/models"' declares 'SquadMetadata' locally, but it is not exported.
+src/app/store/runTransfer.ts(473,3): error TS2322: Type '"anomaly"' is not assignable to type '"standard" | "threshold" | "probability" | "deterministic"'.
+src/app/store/runTransfer.ts(2275,20): error TS2339: Property 'coordinationFrictionActive' does not exist on type '{ active?: boolean | undefined; reason?: string | undefined; }'.
+src/app/store/runTransfer.ts(2282,20): error TS2339: Property 'coordinationFrictionReason' does not exist on type '{ active?: boolean | undefined; reason?: string | undefined; }'.
+src/app/store/runTransfer.ts(2684,39): error TS2322: Type '"standard" | "anomaly" | "threshold" | "probability"' is not assignable to type '"standard" | "threshold" | "probability" | "deterministic"'.
+  Type '"anomaly"' is not assignable to type '"standard" | "threshold" | "probability" | "deterministic"'.
+src/app/store/runTransfer.ts(3299,5): error TS2322: Type '{ category: "agent"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.
+  Type '{ category: "agent"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Type '{ category: "agent"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.
+      Types of property 'sourceDisposition' are incompatible.
+        Type 'string | undefined' is not assignable to type '"supportive" | "adversarial" | undefined'.
+          Type 'string' is not assignable to type '"supportive" | "adversarial" | undefined'.
+src/app/store/runTransfer.ts(3360,7): error TS2322: Type '{ passiveBonuses: { [k: string]: unknown; }; assignmentType?: string | undefined; visibleEfficiency?: number | undefined; efficiency?: number | undefined; specialty: "intel" | "logistics" | "fabrication" | "analysis"; } | { ...; }' is not assignable to type 'StaffCandidateData'.
+  Type '{ passiveBonuses: { [k: string]: unknown; }; assignmentType?: string | undefined; visibleEfficiency?: number | undefined; efficiency?: number | undefined; specialty: "intel" | "logistics" | "fabrication" | "analysis"; }' is not assignable to type 'StaffCandidateData'.
+    Types of property 'passiveBonuses' are incompatible.
+      Type '{ [k: string]: unknown; }' is not assignable to type 'Record<string, number>'.
+        'string' index signatures are incompatible.
+          Type 'unknown' is not assignable to type 'number'.
+src/app/store/runTransfer.ts(3395,5): error TS2322: Type '{ category: "instructor"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: "combat" | "investigation" | "utility" | "social"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.
+  Type '{ category: "instructor"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: "combat" | "investigation" | "utility" | "social"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: "instructor"; evaluation: CandidateEvaluation; agentData?: undefined; staffData?: undefined; specialistData?: undefined; instructorData: InstructorCandidateData; }'.
+    Type '{ category: "instructor"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: "combat" | "investigation" | "utility" | "social"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.
+      Types of property 'sourceDisposition' are incompatible.
+        Type 'string | undefined' is not assignable to type '"supportive" | "adversarial" | undefined'.
+          Type 'string' is not assignable to type '"supportive" | "adversarial" | undefined'.
+src/app/store/runTransfer.ts(3431,5): error TS2322: Type '{ category: "analyst" | "specialist" | "fieldTech"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.
+  Type '{ category: "analyst" | "specialist" | "fieldTech"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: "analyst" | "specialist" | "fieldTech"; evaluation: CandidateEvaluation; agentData?: undefined; staffData?: undefined; specialistData?: SpecialistCandidateData | undefined; instructorData?: undefined; }'.
+    Type '{ category: "analyst" | "specialist" | "fieldTech"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.
+      Types of property 'sourceDisposition' are incompatible.
+        Type 'string | undefined' is not assignable to type '"supportive" | "adversarial" | undefined'.
+          Type 'string' is not assignable to type '"supportive" | "adversarial" | undefined'.
+src/app/store/runTransfer.ts(3530,5): error TS2322: Type '{ [k: string]: unknown; }' is not assignable to type 'Record<string, number>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'number'.
+src/app/store/runTransfer.ts(3718,5): error TS2322: Type '{ operationalPostId?: string | undefined; passiveBonuses?: { [k: string]: unknown; } | undefined; assignmentType?: string | undefined; visibleEfficiency?: number | undefined; efficiency?: number | undefined; specialty: "intel" | ... 2 more ... | "analysis"; }' is not assignable to type 'StaffData'.
+  Type '{ operationalPostId?: string | undefined; passiveBonuses?: { [k: string]: unknown; } | undefined; assignmentType?: string | undefined; visibleEfficiency?: number | undefined; efficiency?: number | undefined; specialty: "intel" | ... 2 more ... | "analysis"; }' is not assignable to type 'StaffCandidateData & { role?: "staff" | undefined; operationalPostId?: string | undefined; }'.
+    Type '{ operationalPostId?: string | undefined; passiveBonuses?: { [k: string]: unknown; } | undefined; assignmentType?: string | undefined; visibleEfficiency?: number | undefined; efficiency?: number | undefined; specialty: "intel" | ... 2 more ... | "analysis"; }' is not assignable to type 'StaffCandidateData'.
+      Types of property 'passiveBonuses' are incompatible.
+        Type '{ [k: string]: unknown; } | undefined' is not assignable to type 'Record<string, number> | undefined'.
+          Type '{ [k: string]: unknown; }' is not assignable to type 'Record<string, number>'.
+            'string' index signatures are incompatible.
+              Type 'unknown' is not assignable to type 'number'.
+src/app/store/runTransfer.ts(3766,33): error TS2352: Conversion of type 'Record<string, unknown>' to type 'Agent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/app/store/runTransfer.ts(3767,16): error TS2352: Conversion of type 'Record<string, unknown>' to type 'Agent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/app/store/runTransfer.ts(3924,11): error TS2352: Conversion of type 'Record<string, unknown>' to type 'Team' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Team': id, name, agentIds, tags
+src/app/store/runTransfer.ts(3943,9): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/app/store/runTransfer.ts(3944,19): error TS2352: Conversion of type 'Record<string, unknown>' to type 'Team' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Team': id, name, agentIds, tags
+src/app/store/runTransfer.ts(3945,16): error TS2352: Conversion of type 'Record<string, unknown>' to type 'Team' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Team': id, name, agentIds, tags
+src/app/store/runTransfer.ts(3961,13): error TS2352: Conversion of type 'Team' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'Team'.
+src/app/store/runTransfer.ts(4329,5): error TS2322: Type 'readonly MissionRewardInventoryGrant[] | Record<string, unknown>[]' is not assignable to type 'readonly MissionRewardInventoryGrant[]'.
+  Type 'Record<string, unknown>[]' is not assignable to type 'readonly MissionRewardInventoryGrant[]'.
+    Type 'Record<string, unknown>' is missing the following properties from type 'MissionRewardInventoryGrant': kind, itemId, label, quantity, tags
+src/app/store/runTransfer.ts(4332,5): error TS2322: Type 'readonly MissionRewardFactionStanding[] | Record<string, unknown>[]' is not assignable to type 'readonly MissionRewardFactionStanding[]'.
+  Type 'Record<string, unknown>[]' is not assignable to type 'readonly MissionRewardFactionStanding[]'.
+    Type 'Record<string, unknown>' is missing the following properties from type 'MissionRewardFactionStanding': factionId, label, delta, overlapTags
+src/app/store/runTransfer.ts(5010,64): error TS2345: Argument of type 'CaseStatus' is not assignable to parameter of type '"open" | "in_progress"'.
+  Type '"resolved"' is not assignable to type '"open" | "in_progress"'.
+src/app/store/runTransfer.ts(5651,7): error TS2322: Type 'string' is not assignable to type 'EquipmentGradeVisibility'.
+src/app/store/runTransfer.ts(6013,54): error TS2552: Cannot find name 'EquipmentRecoveryOutcome'. Did you mean 'EquipmentRecoveryOutcomeRegistry'?
+src/app/store/runTransfer.ts(6079,12): error TS2552: Cannot find name 'EquipmentRecoveryOutcome'. Did you mean 'EquipmentRecoveryOutcomeRegistry'?
+src/app/store/runTransfer.ts(6095,36): error TS7006: Parameter 'material' implicitly has an 'any' type.
+src/app/store/runTransfer.ts(6095,46): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/app/store/runTransfer.ts(6292,5): error TS2322: Type '{ unlockConditions?: { [x: string]: unknown; }[] | undefined; nextContracts?: string[] | undefined; } | { unlockConditions?: { type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; ... 6 more ...; unlockId?: string | undefined; }[] | undefined; nextContracts?: string[] | undefined; }' is not assignable to type 'ContractChainDefinition'.
+  Type '{ unlockConditions?: { [x: string]: unknown; }[] | undefined; nextContracts?: string[] | undefined; }' is not assignable to type 'ContractChainDefinition'.
+    Types of property 'unlockConditions' are incompatible.
+      Type '{ [x: string]: unknown; }[] | undefined' is not assignable to type '{ type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; outcome?: MissionResolutionKind | undefined; minimumOutcome?: MissionResolutionKind | undefined; ... 4 more ...; unlockId?: string | undefined; }[] | undefined'.
+        Type '{ [x: string]: unknown; }[]' is not assignable to type '{ type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; outcome?: MissionResolutionKind | undefined; minimumOutcome?: MissionResolutionKind | undefined; ... 4 more ...; unlockId?: string | undefined; }[]'.
+          Property 'type' is missing in type '{ [x: string]: unknown; }' but required in type '{ type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; outcome?: MissionResolutionKind | undefined; minimumOutcome?: MissionResolutionKind | undefined; ... 4 more ...; unlockId?: string | undefined; }'.
+src/app/store/runTransfer.ts(6607,10): error TS2352: Conversion of type '{ focusTags: string[]; modifiers: { description?: string | undefined; id: string; label: string; }[]; rewards: { [x: string]: unknown; }[]; history: { interactions: { week?: number | undefined; label?: string | undefined; id?: string | undefined; }[]; }; ... 10 more ...; relationship: number; }' to type 'Contact' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'rewards' are incompatible.
+    Type '{ [x: string]: unknown; }[]' is not comparable to type 'ContactReward[]'.
+      Property 'label' is missing in type '{ [x: string]: unknown; }' but required in type 'ContactReward'.
+src/app/store/runTransfer.ts(6676,8): error TS18048: 'fallback' is possibly 'undefined'.
+src/app/store/runTransfer.ts(6684,14): error TS18048: 'fallback' is possibly 'undefined'.
+src/app/store/runTransfer.ts(6715,23): error TS2352: Conversion of type '{ id: string; name: string; label: string; reputation: number; reputationTier: FactionReputationTier; contacts: Contact[]; history: { missionsCompleted: number; missionsFailed: number; successRate: number; interactionLog: { ...; }[]; }; ... 4 more ...; lore: { ...; }; }' to type 'FactionRuntimeState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'history.interactionLog' are incompatible between these types.
+    Type '{ week?: number | undefined; label?: string | undefined; id?: string | undefined; }[]' is not comparable to type 'ContactEventRef[]'.
+      Type '{ week?: number | undefined; label?: string | undefined; id?: string | undefined; }' is missing the following properties from type 'ContactEventRef': eventId, type
+src/app/store/runTransfer.ts(6871,35): error TS2352: Conversion of type 'Record<string, unknown>' to type 'FundingState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'FundingState': funding, fundingBasePerWeek, fundingPerResolution, fundingPenaltyPerFail, and 4 more.
+src/app/store/runTransfer.ts(8867,50): error TS2345: Argument of type '{ payload: { week: number; candidateId: string; candidateName: string; fundingCost: number; stage: 1 | 2 | 3; projectedTier: "F" | "D" | "C" | "B" | "A" | "S"; confidence: "low" | "medium" | "high" | "confirmed"; ... 7 more ...; sourceContactName: string | undefined; }; ... 4 more ...; timestamp: string; }' is not assignable to parameter of type '{ readonly id: string; readonly schemaVersion: 1 | 2; readonly type: "recruitment.scouting_initiated"; readonly sourceSystem: "intel"; readonly payload: Readonly<{ week: number; candidateId: string; ... 12 more ...; sourceContactName?: string | undefined; }>; readonly timestamp: string; } | { ...; } | { ...; }'.
+  Type '{ payload: { week: number; candidateId: string; candidateName: string; fundingCost: number; stage: 1 | 2 | 3; projectedTier: "F" | "D" | "C" | "B" | "A" | "S"; confidence: "low" | "medium" | "high" | "confirmed"; ... 7 more ...; sourceContactName: string | undefined; }; ... 4 more ...; timestamp: string; }' is not assignable to type '{ readonly id: string; readonly schemaVersion: 1 | 2; readonly type: "recruitment.intel_confirmed"; readonly sourceSystem: "intel"; readonly payload: Readonly<{ week: number; candidateId: string; candidateName: string; ... 11 more ...; sourceContactName?: string | undefined; }>; readonly timestamp: string; }'.
+    Types of property 'type' are incompatible.
+      Type '"recruitment.scouting_initiated" | "recruitment.scouting_refined" | "recruitment.intel_confirmed"' is not assignable to type '"recruitment.intel_confirmed"'.
+        Type '"recruitment.scouting_initiated"' is not assignable to type '"recruitment.intel_confirmed"'.
+src/app/store/runTransfer.ts(8944,17): error TS2322: Type 'string | undefined' is not assignable to type 'EquipmentGradeVisibility | undefined'.
+  Type 'string' is not assignable to type 'EquipmentGradeVisibility | undefined'.
+src/app/store/runTransfer.ts(9400,13): error TS2322: Type '{ callableObligationLabel?: string | undefined; callableObligationFavorId?: string | undefined; callableObligationFactionId?: string | undefined; favorExchangeLabel?: string | undefined; ... 17 more ...; remainingAvailability: number; }' is not assignable to type 'Readonly<{ week: number; marketWeek: number; transactionId: string; action: "order" | "buy" | "sell" | "favor_exchange" | "callable_obligation" | "fulfill"; listingId: string; itemId: string; ... 15 more ...; allocations?: { ...; }[] | undefined; }>'.
+  Types of property 'allocation' are incompatible.
+    Type '{ substitutionSummary?: string | undefined; substitutionStatus: string; displacedAlternativeUse?: string | undefined; allocationId: string; resourceClass: "supplier_attention_slot" | "reagent_stock" | "licensed_handling_capacity"; ... 7 more ...; delayWeeks: number; } | undefined' is not assignable to type '{ allocationId: string; resourceClass: "supplier_attention_slot" | "reagent_stock" | "licensed_handling_capacity"; source: string; sourceLabel: string; destinationUse: string; ... 7 more ...; substitutionSummary?: string | undefined; } | undefined'.
+      Type '{ substitutionSummary?: string | undefined; substitutionStatus: string; displacedAlternativeUse?: string | undefined; allocationId: string; resourceClass: "supplier_attention_slot" | "reagent_stock" | "licensed_handling_capacity"; ... 7 more ...; delayWeeks: number; }' is not assignable to type '{ allocationId: string; resourceClass: "supplier_attention_slot" | "reagent_stock" | "licensed_handling_capacity"; source: string; sourceLabel: string; destinationUse: string; destinationLabel: string; ... 6 more ...; substitutionSummary?: string | undefined; }'.
+        Types of property 'urgency' are incompatible.
+          Type 'string' is not assignable to type '"standard" | "contingency"'.
+src/app/store/runTransfer.ts(9524,15): error TS2322: Type 'string' is not assignable to type '"escalated_pending_oversight" | "resolved_closed"'.
+src/app/store/runTransfer.ts(9525,15): error TS2322: Type 'string' is not assignable to type '"risk" | "costly"'.
+src/app/store/runTransfer.ts(9526,15): error TS2322: Type 'string' is not assignable to type '"none" | "costly"'.
+src/app/store/runTransfer.ts(9878,82): error TS2345: Argument of type '(value: unknown, legacyFallback: string) => string | null' is not assignable to parameter of type '(value: unknown, legacyFallback: string) => string | undefined'.
+  Type 'string | null' is not assignable to type 'string | undefined'.
+    Type 'null' is not assignable to type 'string | undefined'.
+src/app/store/runTransfer.ts(9887,85): error TS2345: Argument of type '(value: unknown, legacyFallback: string) => string | null' is not assignable to parameter of type '(value: unknown, legacyFallback: string) => string | undefined'.
+  Type 'string | null' is not assignable to type 'string | undefined'.
+    Type 'null' is not assignable to type 'string | undefined'.
+src/app/store/runTransfer.ts(10545,7): error TS2353: Object literal may only specify known properties, and 'coordinationFrictionActive' does not exist in type '{ active?: boolean | undefined; reason?: string | undefined; }'.
+src/domain/affiliationFileWorkQueueEvidenceRepairWorkflows.test.ts(360,12): error TS2339: Property 'record' does not exist on type 'AffiliationFileWorkQueueEvidenceRepairWorkflow'.
+src/domain/affiliationFileWorkQueueRepairActionRecords.ts(104,3): error TS2322: Type 'Readonly<{ id: string; name: string; age: 30; category: "agent"; hireStatus: "available"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: "affiliation-file-work-queue-repair"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type 'Candidate'.
+  Type 'Readonly<{ id: string; name: string; age: 30; category: "agent"; hireStatus: "available"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: "affiliation-file-work-queue-repair"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Type 'Readonly<{ id: string; name: string; age: 30; category: "agent"; hireStatus: "available"; weeklyCost: 0; weeklyWage: 0; revealLevel: 2; expiryWeek: number; origin: "affiliation-file-work-queue-repair"; ... 7 more ...; agentData: { ...; }; }>' is not assignable to type '{ category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+      The types of 'evaluation.potentialTier' are incompatible between these types.
+        Type 'string' is not assignable to type 'CandidatePotentialTier | undefined'.
+src/domain/affiliationOnboardingReadiness.ts(271,39): error TS18048: 'candidate.revealLevel' is possibly 'undefined'.
+src/domain/affiliationSiteClearance.ts(172,3): error TS6133: 'surface' is declared but its value is never read.
+src/domain/agent/normalize.ts(1263,5): error TS2322: Type 'unknown' is not assignable to type 'number | undefined'.
+src/domain/agent/normalize.ts(1275,5): error TS2322: Type 'keyof OperationEventPayloadMap' is not assignable to type '"staff.side_work.resolved"'.
+  Type '"case.resolved"' is not assignable to type '"staff.side_work.resolved"'.
+src/domain/agent/normalize.ts(1277,5): error TS2322: Type '"assignment" | "incident" | "intel" | "agent" | "production" | "faction" | "system"' is not assignable to type '"agent"'.
+  Type '"assignment"' is not assignable to type '"agent"'.
+src/domain/ascendantResidentContainment.ts(156,17): error TS2352: Conversion of type 'Record<string, unknown>' to type 'AscendantResidentProfileInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'AscendantResidentProfileInput': facilityId, residentId, manifestationPath, escalationPath, and 7 more.
+src/domain/asyncDiscussionSurface.ts(307,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'DiscussionSurface' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'DiscussionSurface': id, participationWindow, transcriptRetentionMode, wideningRule, memoryStabilization
+src/domain/asyncDiscussionSurface.ts(313,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'DiscussionSurface' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'DiscussionSurface': id, participationWindow, transcriptRetentionMode, wideningRule, memoryStabilization
+src/domain/asyncDiscussionSurface.ts(317,19): error TS2352: Conversion of type 'Record<string, unknown>' to type 'DiscussionSurface' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'DiscussionSurface': id, participationWindow, transcriptRetentionMode, wideningRule, memoryStabilization
+src/domain/asyncDiscussionSurface.ts(318,19): error TS2352: Conversion of type 'Record<string, unknown>' to type 'DiscussionSession' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'DiscussionSession': sessionId, surfaceId, week, intent, and 2 more.
+src/domain/branchContinuity.ts(285,56): error TS2339: Property 'effectiveFromChoiceId' does not exist on type 'BranchCorrectedRecord'.
+src/domain/case/normalizeCase.ts(547,28): error TS18048: 'rule.spawnTemplateIds' is possibly 'undefined'.
+src/domain/case/normalizeCase.ts(641,9): error TS2367: This comparison appears to be unintentional because the types '"hidden" | "revealed" | undefined' and '"displaced"' have no overlap.
+src/domain/case/normalizeCase.ts(1271,7): error TS2322: Type '{ [x: string]: unknown; }[]' is not assignable to type '{ type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; outcome?: MissionResolutionKind | undefined; minimumOutcome?: MissionResolutionKind | undefined; ... 4 more ...; unlockId?: string | undefined; }[]'.
+  Property 'type' is missing in type '{ [x: string]: unknown; }' but required in type '{ type: string; templateId?: string | undefined; contractTemplateId?: string | undefined; outcome?: MissionResolutionKind | undefined; minimumOutcome?: MissionResolutionKind | undefined; ... 4 more ...; unlockId?: string | undefined; }'.
+src/domain/case/normalizeCase.ts(1299,41): error TS2322: Type 'ActiveContractRuntime' is not assignable to type '{ [key: string]: unknown; templateId?: string | undefined; }'.
+  Index signature for type 'string' is missing in type 'ActiveContractRuntime'.
+src/domain/closedFacilityPermeability.ts(387,19): error TS18046: 'input.asDesignedRouteIds' is of type 'unknown'.
+src/domain/closedFacilityPermeability.ts(390,19): error TS18046: 'input.asFoundRouteIds' is of type 'unknown'.
+src/domain/coerciveContainedPersonProtocolRegistry.ts(1777,5): error TS2322: Type 'string' is not assignable to type 'CoerciveProtocolAuthorizationSource'.
+src/domain/coerciveContainedPersonProtocolRegistry.ts(1778,5): error TS2322: Type 'string' is not assignable to type 'CoerciveProtocolForcePolicy'.
+src/domain/coerciveContainedPersonProtocolRegistry.ts(1780,5): error TS2322: Type 'string' is not assignable to type 'CoerciveProtocolRefusalHandling'.
+src/domain/coerciveProtocolIntegratedHealthCrossReconciliation.ts(382,3): error TS2322: Type 'CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode' is not assignable to type 'CoerciveProtocolCrossSystemTensionFlag | null'.
+  Type '"staff_exclusion_elevated_burden"' is not assignable to type 'CoerciveProtocolCrossSystemTensionFlag | null'.
+src/domain/cognitiveHazardSimulationTriggerVitals.ts(200,85): error TS2339: Property 'statusFlags' does not exist on type 'AgentVitals | { health: number; stress: number; wounds: number; morale: number; }'.
+  Property 'statusFlags' does not exist on type '{ health: number; stress: number; wounds: number; morale: number; }'.
+src/domain/cognitiveHazardSimulationTriggerVitals.ts(203,46): error TS2339: Property 'statusFlags' does not exist on type 'AgentVitals | { health: number; stress: number; wounds: number; morale: number; }'.
+  Property 'statusFlags' does not exist on type '{ health: number; stress: number; wounds: number; morale: number; }'.
+src/domain/cognitiveHazardSimulationTriggerVitals.ts(211,9): error TS2322: Type 'string[] | undefined' is not assignable to type 'string[]'.
+  Type 'undefined' is not assignable to type 'string[]'.
+src/domain/cognitiveHazardWeeklyOrchestration.ts(91,3): error TS6133: 'record' is declared but its value is never read.
+src/domain/collectiveMemoryStabilization.ts(319,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CollectiveMemoryChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CollectiveMemoryChannel': id, narrativeStance, recallWindow, credibilityCeiling, stabilizationRule
+src/domain/collectiveMemoryStabilization.ts(325,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CollectiveMemoryChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CollectiveMemoryChannel': id, narrativeStance, recallWindow, credibilityCeiling, stabilizationRule
+src/domain/collectiveMemoryStabilization.ts(329,25): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CollectiveMemoryChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CollectiveMemoryChannel': id, narrativeStance, recallWindow, credibilityCeiling, stabilizationRule
+src/domain/collectiveMemoryStabilization.ts(330,18): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CollectiveMemorySignal' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CollectiveMemorySignal': signalId, channelId, intent, proposedScope, proposedValue
+src/domain/communityAdvisoryDecisionInfluence.ts(377,31): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CommunityAdvisoryBody' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CommunityAdvisoryBody': id, mission, membershipRule, representedStakeholderClasses, and 3 more.
+src/domain/communityAdvisoryDecisionInfluence.ts(383,31): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CommunityAdvisoryBody' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CommunityAdvisoryBody': id, mission, membershipRule, representedStakeholderClasses, and 3 more.
+src/domain/communityAdvisoryDecisionInfluence.ts(387,16): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CommunityAdvisoryBody' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CommunityAdvisoryBody': id, mission, membershipRule, representedStakeholderClasses, and 3 more.
+src/domain/communityAdvisoryDecisionInfluence.ts(388,18): error TS2352: Conversion of type 'Record<string, unknown>' to type 'CommunityAdvisorySignal' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'CommunityAdvisorySignal': bodyId, recommendation, supportBand, confidence, urgency
+src/domain/concealmentPrepActivationPreviewNotes.ts(39,58): error TS2304: Cannot find name 'HiddenStateModalityKind'.
+src/domain/containedPersonIntegratedHealthBundleRegistry.ts(814,9): error TS2322: Type '{ redactedFields?: readonly string[] | undefined; unknownFields?: readonly string[] | undefined; confidence?: number | undefined; humaneCareRiskScore?: {} | null | undefined; mentalStateBand?: MentalStateBand | undefined; ... 6 more ...; subjectRef: string; }' is not assignable to type 'ContainedPersonIntegratedHealthBundle'.
+  Types of property 'humaneCareRiskScore' are incompatible.
+    Type '{} | null | undefined' is not assignable to type 'number | null | undefined'.
+      Type '{}' is not assignable to type 'number'.
+src/domain/containmentBarrierIntegrity.ts(184,7): error TS2322: Type 'unknown' is not assignable to type '"hard_stop" | "compensating_continue"'.
+src/domain/coverStoryLifecycleRegistry.ts(875,31): error TS2367: This comparison appears to be unintentional because the types '"collapsed" | "repairing"' and '"stressed"' have no overlap.
+src/domain/degradedCareFacilityRisk.ts(136,17): error TS2352: Conversion of type 'Record<string, unknown>' to type 'DegradedCareRiskInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'DegradedCareRiskInput': facilityId, understaffed, deferredMaintenance, intermittentMedicalCoverage, and 3 more.
+src/domain/departmentCoordination.ts(235,12): error TS7006: Parameter 'capability' implicitly has an 'any' type.
+src/domain/departmentWorkshopActivation.ts(280,47): error TS2345: Argument of type 'string | DepartmentWorkshopSnapshot' is not assignable to parameter of type 'string'.
+  Type 'DepartmentWorkshopSnapshot' is not assignable to type 'string'.
+src/domain/departmentWorkshopQueue.ts(2391,16): error TS6133: 'item' is declared but its value is never read.
+src/domain/duplicateFacilityStacking.ts(208,39): error TS2322: Type 'string' is not assignable to type '"operational" | "damaged" | "disabled" | "understaffed" | "overburdened" | "seized"'.
+src/domain/facilityCoreResidue.ts(198,12): error TS2352: Conversion of type 'Record<string, unknown>' to type 'FacilityCoreResidue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'FacilityCoreResidue': coreNodeId, fromCondition, toCondition, causeCategory, and 2 more.
+src/domain/facilityLayoutStrategy.ts(464,44): error TS18046: 'input.zones' is of type 'unknown'.
+src/domain/facilityLayoutStrategy.ts(468,41): error TS18046: 'input.routeKinds' is of type 'unknown'.
+src/domain/facilityZoningLockdown.ts(417,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '"normal" | "lockdown" | "containment_alarm"'.
+src/domain/facilityZoningLockdown.ts(422,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '"normal" | "lockdown" | "containment_alarm"'.
+src/domain/facilityZoningLockdown.ts(514,10): error TS2352: Conversion of type 'Record<string, unknown>' to type 'EffectiveZoneState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'EffectiveZoneState': zoneId, zoneFunction, minimumAccessBand, riskBand, and 7 more.
+src/domain/funding.test.ts(59,54): error TS2322: Type 'Record<string, object>' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{}' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/domain/funding.test.ts(62,55): error TS2322: Type 'Record<string, object>' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{}' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/domain/funding.test.ts(66,71): error TS2322: Type 'Record<string, object>' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{}' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/domain/funding.test.ts(71,82): error TS2322: Type 'Record<string, object>' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{}' is missing the following properties from type 'Agent': id, name, role, baseStats, and 4 more.
+src/domain/gameStateManager.ts(332,9): error TS18048: 'left.week' is possibly 'undefined'.
+src/domain/gameStateManager.ts(332,21): error TS18048: 'right.week' is possibly 'undefined'.
+src/domain/gameStateManager.ts(1083,53): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/domain/hiddenStateModality.ts(421,20): error TS2345: Argument of type 'readonly ConcealmentLayer[]' is not assignable to parameter of type 'ConcealmentLayer[]'.
+  The type 'readonly ConcealmentLayer[]' is 'readonly' and cannot be assigned to the mutable type 'ConcealmentLayer[]'.
+src/domain/hiddenStateScoutingReconCache.ts(133,30): error TS2554: Expected 2-3 arguments, but got 1.
+src/domain/hotlineChannel.ts(288,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'HotlineChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'HotlineChannel': id, scriptQuality, staffingCapacity, languageSupport, and 4 more.
+src/domain/hotlineChannel.ts(294,34): error TS2352: Conversion of type 'Record<string, unknown>' to type 'HotlineChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'HotlineChannel': id, scriptQuality, staffingCapacity, languageSupport, and 4 more.
+src/domain/hotlineChannel.ts(298,19): error TS2352: Conversion of type 'Record<string, unknown>' to type 'HotlineChannel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'HotlineChannel': id, scriptQuality, staffingCapacity, languageSupport, and 4 more.
+src/domain/hotlineChannel.ts(299,16): error TS2352: Conversion of type 'Record<string, unknown>' to type 'HotlineCall' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'HotlineCall': callId, channelId, callerMode, requiresLanguageSupport, and 2 more.
+src/domain/informationIntakeNamingHazardCrossLinkSurfacing.ts(29,75): error TS2339: Property 'label' does not exist on type 'SafeLabelProjection'.
+src/domain/informationIntakeWeeklyCorroboration.ts(172,3): error TS6133: 'linkingCases' is declared but its value is never read.
+src/domain/informationIntakeWeeklyCorroboration.ts(200,3): error TS6133: 'linkingCases' is declared but its value is never read.
+src/domain/knowledge/sanitize.ts(187,5): error TS2322: Type '{ lastDefeatConditionUpdateWeek?: number | undefined; lastMaskedWeek?: number | undefined; masked?: true | undefined; relayAvailableWeek?: number | undefined; lastRelayFailedWeek?: number | undefined; ... 24 more ...; subjectType: KnowledgeSubjectType; }' is not assignable to type 'KnowledgeState'.
+  Types of property 'confirmationState' are incompatible.
+    Type 'string | undefined' is not assignable to type '"provisional" | "confirmed" | undefined'.
+      Type 'string' is not assignable to type '"provisional" | "confirmed" | undefined'.
+src/domain/market.ts(790,15): error TS2322: Type '"order" | "fulfill"' is not assignable to type 'never'.
+  Type '"order"' is not assignable to type 'never'.
+src/domain/minorAnomalyItemRegistry.ts(233,3): error TS6133: 'policy' is declared but its value is never read.
+src/domain/missionIntakeRouting.ts(1331,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/domain/missionIntakeRouting.ts(1332,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/domain/missionIntakeRouting.ts(1688,3): error TS2322: Type '({ teamId: string; reasonCode: MissionRoutingBlockerCode; } | null)[]' is not assignable to type 'MissionRejectedTeamRecord[]'.
+  Type '{ teamId: string; reasonCode: MissionRoutingBlockerCode; } | null' is not assignable to type 'MissionRejectedTeamRecord'.
+    Type 'null' is not assignable to type 'MissionRejectedTeamRecord'.
+src/domain/missionIntakeRouting.ts(1701,31): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type 'MissionRejectedTeamRecord' is not assignable to type '{ teamId: string; reasonCode: MissionRoutingBlockerCode; }'.
+    Types of property 'reasonCode' are incompatible.
+      Type 'string' is not assignable to type 'MissionRoutingBlockerCode'.
+src/domain/missionIntakeRouting.ts(1896,5): error TS2322: Type '{ [k: string]: { readonly triageScore: number; readonly priority: MissionPriorityBand; readonly priorityReasonCodes: readonly string[]; readonly intakeSource: MissionIntakeSource; ... 28 more ...; readonly blockers?: MissionRoutingBlockerCode[] | undefined; }; }' is not assignable to type 'Record<string, MissionRoutingRecord>'.
+  'string' index signatures are incompatible.
+    Type '{ readonly triageScore: number; readonly priority: MissionPriorityBand; readonly priorityReasonCodes: readonly string[]; readonly intakeSource: MissionIntakeSource; ... 28 more ...; readonly blockers?: MissionRoutingBlockerCode[]; }' is not assignable to type 'MissionRoutingRecord'.
+      Types of property 'priorityReasonCodes' are incompatible.
+        The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/domain/modifiableDataPackPublishIntegration.ts(207,5): error TS2322: Type 'Readonly<{ status: "needs_revision"; reasonCodes: readonly string[]; creditingHooks: readonly CreditingHookDescriptor[]; publishHooks: readonly PublishHookDescriptor[]; validationIssues: readonly PublishAutomationValidationIssue[]; remediationNotes: readonly PublishAutomationRemediationNote[]; publishMetadata?: Publ...' is not assignable to type 'PublishAutomationDecision'.
+  Types of property 'reasonCodes' are incompatible.
+    Type 'readonly string[]' is not assignable to type 'readonly PublishAutomationReasonCode[]'.
+      Type 'string' is not assignable to type 'PublishAutomationReasonCode'.
+src/domain/operationalCertainty.ts(2,15): error TS2724: '"./simulationMapInterface"' has no exported member named 'SocialMapFactVisibility'. Did you mean 'SocialFactVisibility'?
+src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts(14,8): error TS2459: Module '"./funding"' declares 'FundingState' locally, but it is not exported.
+src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts(95,44): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/domain/prerequisiteProcessing.ts(350,19): error TS18046: 'finalRecipe' is of type 'unknown'.
+src/domain/prerequisiteProcessingOrders.ts(569,17): error TS2698: Spread types may only be created from object types.
+src/domain/pressure.ts(160,58): error TS2322: Type 'AgencyState | {}' is not assignable to type 'AgencyState | undefined'.
+  Type '{}' is missing the following properties from type 'AgencyState': containmentRating, clearanceLevel, funding
+src/domain/pressure.ts(210,5): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/domain/procurementEmergency.ts(98,9): error TS2322: Type '{ falloutRisk: "risk"; sanctionLevel?: "sanctioned" | "covert" | "tolerated" | "unsanctioned" | undefined; operationalCoverLevel?: "open" | "deniable" | "compromised"; accessReason?: string; }' is not assignable to type 'LegitimacyState'.
+  Types of property 'sanctionLevel' are incompatible.
+    Type '"sanctioned" | "covert" | "tolerated" | "unsanctioned" | undefined' is not assignable to type '"sanctioned" | "covert" | "tolerated" | "unsanctioned"'.
+      Type 'undefined' is not assignable to type '"sanctioned" | "covert" | "tolerated" | "unsanctioned"'.
+src/domain/publicSignalCoverage.ts(233,25): error TS2345: Argument of type 'InstitutionalChannelFlags | undefined' is not assignable to parameter of type 'Record<string, boolean | undefined> | undefined'.
+  Type 'InstitutionalChannelFlags' is not assignable to type 'Record<string, boolean | undefined>'.
+    Index signature for type 'string' is missing in type 'InstitutionalChannelFlags'.
+src/domain/publishAutomationCreditingHooks.ts(826,3): error TS2322: Type 'string[]' is not assignable to type 'readonly PublishAutomationReasonCode[]'.
+  Type 'string' is not assignable to type 'PublishAutomationReasonCode'.
+src/domain/publishQueueWeeklyReportNotes.ts(49,11): error TS2322: Type 'PublishQueueExecutorSkipCode | undefined' is not assignable to type 'ReportNoteMetadataValue'.
+  Type 'undefined' is not assignable to type 'ReportNoteMetadataValue'.
+src/domain/publishQueueWeeklyReportNotes.ts(50,11): error TS2322: Type 'string | undefined' is not assignable to type 'ReportNoteMetadataValue'.
+  Type 'undefined' is not assignable to type 'ReportNoteMetadataValue'.
+src/domain/publishQueueWeeklyReportNotes.ts(51,11): error TS2322: Type 'string | undefined' is not assignable to type 'ReportNoteMetadataValue'.
+  Type 'undefined' is not assignable to type 'ReportNoteMetadataValue'.
+src/domain/regionalCrossRegisterEventAuthority.ts(82,18): error TS2352: Conversion of type 'string[][]' to type 'StepRow[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'string[]' is not comparable to type 'StepRow'.
+    Target requires 11 element(s) but source may have fewer.
+src/domain/reportNotes.ts(462,38): error TS2339: Property 'probeAction' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; } | ... 4 more ... | { ...; }'.
+  Property 'probeAction' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; }'.
+src/domain/reportNotes.ts(463,44): error TS2339: Property 'probeActionSource' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; } | ... 4 more ... | { ...; }'.
+  Property 'probeActionSource' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; }'.
+src/domain/reportNotes.ts(464,36): error TS2339: Property 'coverRole' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; } | ... 4 more ... | { ...; }'.
+  Property 'coverRole' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; }'.
+src/domain/reportNotes.ts(465,40): error TS2339: Property 'leaveBehindId' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; } | ... 4 more ... | { ...; }'.
+  Property 'leaveBehindId' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; }'.
+src/domain/reportNotes.ts(466,43): error TS2339: Property 'leaveBehindLabel' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; } | ... 4 more ... | { ...; }'.
+  Property 'leaveBehindLabel' does not exist on type '{ week: number; caseId: string; caseTitle: string; summary: string; infiltrationAwareness?: number | undefined; infiltrationProbeProgress?: number | undefined; infiltrationStage?: "probing" | "exposed" | "violent" | undefined; }'.
+src/domain/sim/advanceWeek.ts(2026,5): error TS2353: Object literal may only specify known properties, and 'terminalDisposition' does not exist in type 'WeeklyCaseResolutionStrategy & { campaignToIncident?: CampaignToIncidentPacket | undefined; incidentToCampaign?: IncidentToCampaignPacket | undefined; }'.
+src/domain/sim/advanceWeek.ts(2718,7): error TS2339: Property 'terminalDisposition' does not exist on type 'WeeklyCaseResolutionStrategy & { campaignToIncident?: CampaignToIncidentPacket | undefined; incidentToCampaign?: IncidentToCampaignPacket | undefined; }'.
+src/domain/sim/advanceWeek.ts(5285,5): error TS2322: Type 'Record<string, number> | undefined' is not assignable to type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+src/domain/sim/advanceWeek.ts(5288,5): error TS2322: Type 'unknown' is not assignable to type 'DepartmentWorkshopWorkOrderRegistry | undefined'.
+src/domain/sim/advanceWeek.ts(5289,5): error TS2322: Type 'unknown' is not assignable to type 'DepartmentWorkshopSnapshotRegistry | undefined'.
+src/domain/sim/equipment.ts(467,28): error TS2552: Cannot find name 'EquipmentInstance'. Did you mean 'EquipmentInstanceId'?
+src/domain/sim/weeklyReportInvariants.ts(33,26): error TS2339: Property 'weeklyReportIntegrityIssues' does not exist on type 'GameState'.
+src/domain/sim/weeklyReportInvariants.ts(37,5): error TS2353: Object literal may only specify known properties, and 'weeklyReportIntegrityIssues' does not exist in type 'GameState'.
+src/domain/sim/weeklyReportInvariants.ts(42,14): error TS2339: Property 'weeklyReportIntegrityIssues' does not exist on type 'GameState'.
+src/domain/sim/weeklyReportInvariants.ts(46,11): error TS2339: Property 'weeklyReportIntegrityIssues' does not exist on type 'GameState'.
+src/domain/survivorInformalRegistry.ts(309,35): error TS2352: Conversion of type 'Record<string, unknown>' to type 'SurvivorInformalRegistry' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'SurvivorInformalRegistry': id, recognitionStance, catalogRule, supportKnowledgeBand, credibilityCeiling
+src/domain/survivorInformalRegistry.ts(315,35): error TS2352: Conversion of type 'Record<string, unknown>' to type 'SurvivorInformalRegistry' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'SurvivorInformalRegistry': id, recognitionStance, catalogRule, supportKnowledgeBand, credibilityCeiling
+src/domain/survivorInformalRegistry.ts(319,20): error TS2352: Conversion of type 'Record<string, unknown>' to type 'SurvivorInformalRegistry' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'SurvivorInformalRegistry': id, recognitionStance, catalogRule, supportKnowledgeBand, credibilityCeiling
+src/domain/survivorInformalRegistry.ts(320,18): error TS2352: Conversion of type 'Record<string, unknown>' to type 'SurvivorRegistrySignal' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'SurvivorRegistrySignal': signalId, registryId, intent, proposedScope, proposedValue
+src/domain/townContractGeneration.ts(179,35): error TS2345: Argument of type 'readonly string[]' is not assignable to parameter of type 'string[]'.
+  The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/domain/visibility.ts(82,7): error TS2741: Property '"authority-mission-access-restricted"' is missing in type '{ 'missing-coverage': string; 'training-blocked': string; 'invalid-loadout-gate': string; 'site-clearance-required': string; 'dual-loyalty-restricted': string; 'protected-status-restricted': string; ... 8 more ...; 'recovery-required': string; }' but required in type 'Record<MissionRoutingBlockerCode, string>'.
+src/features/cases/CasesPage.test.tsx(478,81): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+  Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+src/features/cases/CasesPage.test.tsx(491,89): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+  Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+src/features/equipment/EquipmentPage.test.tsx(395,46): error TS2538: Type 'undefined' cannot be used as an index type.
+src/features/equipment/EquipmentPage.test.tsx(425,42): error TS2538: Type 'undefined' cannot be used as an index type.
+src/features/equipment/EquipmentPage.test.tsx(1050,62): error TS2538: Type 'undefined' cannot be used as an index type.
+src/features/market/MarketPage.tsx(199,18): error TS2367: This comparison appears to be unintentional because the types '2' and '1' have no overlap.
+src/features/market/MarketPage.tsx(526,52): error TS2551: Property 'orderBlockedReason' does not exist on type 'MarketListingView'. Did you mean 'budgetBlockedReason'?
+src/features/market/MarketPage.tsx(529,28): error TS2551: Property 'orderBlockedReason' does not exist on type 'MarketListingView'. Did you mean 'budgetBlockedReason'?
+src/features/market/MarketPage.tsx(529,61): error TS2551: Property 'orderBlockedReason' does not exist on type 'MarketListingView'. Did you mean 'budgetBlockedReason'?
+src/features/market/marketView.ts(647,17): error TS2551: Property 'orderBlockedReason' does not exist on type 'MarketListingView'. Did you mean 'budgetBlockedReason'?
+src/features/market/marketView.ts(647,68): error TS2551: Property 'orderBlockedReason' does not exist on type 'MarketListingView'. Did you mean 'budgetBlockedReason'?
+src/features/operations/AffiliationPersonStatusMirrorPage.test.tsx(605,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' but required in type 'CandidateBase'.
+src/features/report/reportNoteView.test.ts(73,3): error TS1360: Type '{ 'case.resolved': "incident_response"; 'case.partially_resolved': "incident_response"; 'case.failed': "incident_response"; 'case.escalated': "incident_response"; 'case.spawned': "incident_response"; ... 46 more ...; 'public_disclosure.segment_trust_divergence': "system"; }' does not satisfy the expected type 'Record<ReportNoteType, ReportNoteCategory>'.
+  Type '{ 'case.resolved': "incident_response"; 'case.partially_resolved': "incident_response"; 'case.failed': "incident_response"; 'case.escalated': "incident_response"; 'case.spawned': "incident_response"; ... 46 more ...; 'public_disclosure.segment_trust_divergence': "system"; }' is missing the following properties from type 'Record<ReportNoteType, ReportNoteCategory>': "recruitment.candidate_departed", "cognitive_hazard.simulation_trigger", "contribution_release.publish_queue_execution", "contribution_release.modifiable_data_pack_governance", and 7 more.
+src/test/advanceWeek.caseLifecycle.integration.test.ts(119,11): error TS2739: Type '{ id: string; label: string; closureState: "escalated_to_case"; escalatedCaseRef: string; }' is missing the following properties from type 'ExtranormalEventRecord': occurrenceWindow, effectDomainTags, affectedAreaGeometry, populationSelectors
+src/test/advanceWeek.containedPersonTherapeuticCare.integration.test.ts(68,12): error TS2540: Cannot assign to 'missedSessionStreak' because it is a read-only property.
+src/test/advanceWeek.postIncidentReview.integration.test.ts(309,7): error TS2345: Argument of type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to parameter of type 'readonly AnyOperationEventDraft[]'.
+  Type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to type 'AnyOperationEventDraft'.
+    Type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to type 'OperationEventDraft<"staff.side_work.resolved">'.
+      Types of property 'type' are incompatible.
+        Type '"case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"' is not assignable to type '"staff.side_work.resolved"'.
+          Type '"case.resolved"' is not assignable to type '"staff.side_work.resolved"'.
+src/test/advanceWeek.postIncidentReview.integration.test.ts(896,7): error TS2345: Argument of type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to parameter of type 'readonly AnyOperationEventDraft[]'.
+  Type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to type 'AnyOperationEventDraft'.
+    Type '{ type: "case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"; sourceSystem: "assignment" | ... 5 more ... | "system"; payload: Readonly<...> | ... 71 mor...' is not assignable to type 'OperationEventDraft<"staff.side_work.resolved">'.
+      Types of property 'type' are incompatible.
+        Type '"case.resolved" | "case.partially_resolved" | "case.failed" | "case.escalated" | "system.equipment_recovered" | "assignment.team_assigned" | "assignment.team_unassigned" | ... 65 more ... | "staff.side_work.resolved"' is not assignable to type '"staff.side_work.resolved"'.
+          Type '"case.resolved"' is not assignable to type '"staff.side_work.resolved"'.
+src/test/affiliationFileWorkQueueRepairActionRecords.test.ts(151,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' but required in type 'CandidateBase'.
+src/test/affiliationFileWorkQueueRepairActionRecords.test.ts(217,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' but required in type 'CandidateBase'.
+src/test/affiliationFileWorkQueueRepairActionRecords.test.ts(228,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' but required in type 'CandidateBase'.
+src/test/affiliationFileWorkQueueRepairActionRecords.test.ts(282,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 2; }' but required in type 'CandidateBase'.
+src/test/affiliationFileWorkQueueRepairActionRecords.test.ts(294,7): error TS2322: Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'Candidate'.
+  Type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' is not assignable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Property 'expiryWeek' is missing in type '{ id: string; name: string; age: number; category: "agent"; hireStatus: "available"; weeklyCost: number; weeklyWage: number; revealLevel: 1; funnelStage: "screening"; }' but required in type 'CandidateBase'.
+src/test/agencyEstablishmentProjection.test.ts(30,5): error TS2322: Type '{ profile: { organizationName: string; homeBaseId: string; homeBaseLabel: string; operationalRegionId: string; operationalRegionLabel: string; majorHookSummary: string; doctrineLabel: string; toneScopeLabel: string; }; ... 9 more ...; sharedUniverseCanonRelease?: SharedUniverseCanonReleaseBinding; }' is not assignable to type 'CampaignLedgerState'.
+  Types of property 'runStateModifiers' are incompatible.
+    Type 'CampaignRunStateModifier[] | undefined' is not assignable to type 'CampaignRunStateModifier[]'.
+      Type 'undefined' is not assignable to type 'CampaignRunStateModifier[]'.
+src/test/agencyEstablishmentProjection.test.ts(33,12): error TS18048: 'game.campaignLedger' is possibly 'undefined'.
+src/test/agencyStanding.test.ts(134,99): error TS2352: Conversion of type '{ funding: number; agency: { funding: number; containmentRating?: number | undefined; clearanceLevel?: number | undefined; supportAvailable?: number; maintenanceSpecialistsAvailable?: number; ... 17 more ...; courierShellFront?: CourierShellFrontState; }; ... 175 more ...; globalFlags?: Record<string, GameFlagValue>...' to type 'GameState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'deploymentMomentum' are incompatible.
+    Property 'stacks' is missing in type '{ enabled: boolean; current: number; cap: number; lastUpdatedWeek: number; }' but required in type 'DeploymentMomentumState'.
+src/test/agencyStanding.test.ts(137,43): error TS18048: 'state.agency' is possibly 'undefined'.
+src/test/agentHistory.betrayed.reconciliation.test.ts(38,51): error TS2322: Type '"not-a-consequence"' is not assignable to type '"benching" | "performance_penalty" | "disciplinary" | "resignation"'.
+src/test/agentHistory.betrayed.reconciliation.test.ts(135,15): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.betrayed.reconciliation.test.ts(136,15): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.instructorAssignment.reconciliation.test.ts(38,17): error TS2322: Type '"not-a-stat"' is not assignable to type 'StatKey'.
+src/test/agentHistory.instructorAssignment.reconciliation.test.ts(90,17): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.promoted.reconciliation.test.ts(34,15): error TS2820: Type '" medic "' is not assignable to type 'AgentRole'. Did you mean '"medic"'?
+src/test/agentHistory.promoted.reconciliation.test.ts(82,13): error TS2322: Type '{ week: number; agentId: string; agentName: string; previousLevel: number; newLevel: number; levelsGained: number; skillPointsGranted: number; }' is not assignable to type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'newRole' is missing in type '{ week: number; agentId: string; agentName: string; previousLevel: number; newLevel: number; levelsGained: number; skillPointsGranted: number; }' but required in type 'Readonly<{ week: number; agentId: string; agentName: string; newRole: AgentRole; previousLevel: number; newLevel: number; levelsGained: number; skillPointsGranted: number; }>'.
+src/test/agentHistory.relationshipChanged.reconciliation.test.ts(133,13): error TS2322: Type '{ week: number; agentId: string; agentName: string; counterpartId: string; counterpartName: string; previousValue: string; nextValue: string; delta: string; reason: "external_event"; }' is not assignable to type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Types of property 'previousValue' are incompatible.
+    Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.relationshipChanged.reconciliation.test.ts(189,15): error TS2353: Object literal may only specify known properties, and 'counterpartId' does not exist in type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+src/test/agentHistory.training.reconciliation.test.ts(183,15): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.training.reconciliation.test.ts(184,15): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/agentHistory.training.reconciliation.test.ts(199,15): error TS2322: Type 'string' is not assignable to type 'number'.
+src/test/authorityGraphPersistence.test.ts(267,24): error TS2339: Property 'access' does not exist on type 'MarketState'.
+src/test/authorityGraphPersistence.test.ts(267,53): error TS2339: Property 'access' does not exist on type 'MarketState'.
+src/test/branchContinuity.test.ts(40,7): error TS2353: Object literal may only specify known properties, and 'effectiveFromChoiceId' does not exist in type 'BranchCorrectedRecord'.
+src/test/branchContinuityAudit.test.ts(19,7): error TS2353: Object literal may only specify known properties, and 'effectiveFromChoiceId' does not exist in type 'BranchCorrectedRecord'.
+src/test/branchContinuityAuthoring.test.ts(23,7): error TS2353: Object literal may only specify known properties, and 'effectiveFromChoiceId' does not exist in type 'BranchCorrectedRecord'.
+src/test/branchContinuityHarvestReconciliation.test.ts(49,7): error TS2353: Object literal may only specify known properties, and 'effectiveFromChoiceId' does not exist in type 'BranchCorrectedRecord'.
+src/test/branchContinuityProjection.test.ts(126,7): error TS2322: Type '{ [x: string]: Agent | { vitals: { wounds: number; statusFlags: never[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; name: string; ... 35 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type 'Agent | { vitals: { wounds: number; statusFlags: never[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: string; name: string; role: AgentRole; ... 34 more ...; copingStreak?: number | undefined; }' is not assignable to type 'Agent'.
+      Type '{ vitals: { wounds: number; statusFlags: never[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; name: string; role: AgentRole; ... 34 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+        The types of 'vitals.health' are incompatible between these types.
+          Type 'number | undefined' is not assignable to type 'number'.
+            Type 'undefined' is not assignable to type 'number'.
+src/test/branchContinuityProjection.test.ts(144,7): error TS2322: Type '{ [x: string]: Agent | { status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; ... 35 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type 'Agent | { status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: string; ... 35 more ...; copingStreak?: number | undefined; }' is not assignable to type 'Agent'.
+      Type '{ status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; name: string; ... 34 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+        The types of 'vitals.health' are incompatible between these types.
+          Type 'number | undefined' is not assignable to type 'number'.
+            Type 'undefined' is not assignable to type 'number'.
+src/test/branchContinuityProjection.test.ts(163,7): error TS2322: Type '{ [x: string]: Agent | { status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; ... 35 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type 'Agent | { status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: string; ... 35 more ...; copingStreak?: number | undefined; }' is not assignable to type 'Agent'.
+      Type '{ status: "recovering"; vitals: { wounds: number; statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; }; id: Id; name: string; ... 34 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+        The types of 'vitals.health' are incompatible between these types.
+          Type 'number | undefined' is not assignable to type 'number'.
+            Type 'undefined' is not assignable to type 'number'.
+src/test/capabilityGap.test.ts(105,23): error TS2352: Conversion of type 'Record<string, unknown>' to type 'FundingState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'FundingState': funding, fundingBasePerWeek, fundingPerResolution, fundingPenaltyPerFail, and 4 more.
+src/test/caseLifecycleWeeklyOrchestration.test.ts(37,5): error TS2322: Type '{}' is not assignable to type 'StatBlock'.
+  Type '{}' is missing the following properties from type 'Record<StatKey, number>': combat, investigation, utility, social
+src/test/caseLifecycleWeeklyOrchestration.test.ts(38,5): error TS2322: Type '{}' is not assignable to type 'WeightBlock'.
+  Type '{}' is missing the following properties from type 'Record<StatKey, number>': combat, investigation, utility, social
+src/test/caseLifecycleWeeklyOrchestration.test.ts(370,11): error TS2739: Type '{ id: string; label: string; closureState: "escalated_to_case"; escalatedCaseRef: string; }' is missing the following properties from type 'ExtranormalEventRecord': occurrenceWindow, effectDomainTags, affectedAreaGeometry, populationSelectors
+src/test/caseLifecycleWeeklyOrchestration.test.ts(397,11): error TS2739: Type '{ id: string; label: string; closureState: "escalated_to_case"; escalatedCaseRef: string; }' is missing the following properties from type 'ExtranormalEventRecord': occurrenceWindow, effectDomainTags, affectedAreaGeometry, populationSelectors
+src/test/combatStim.contract.test.ts(725,53): error TS2345: Argument of type '{ agents: { a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }; ... 176 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'agents' are incompatible.
+    Type '{ a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+      Property 'a_ava' is incompatible with index signature.
+        Type '{ assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+          Types of property 'assignment' are incompatible.
+            Type '{ state: "assigned"; caseId: string; startedWeek: number; }' is not assignable to type 'AgentAssignmentState | undefined'.
+              Property 'teamId' is missing in type '{ state: "assigned"; caseId: string; startedWeek: number; }' but required in type '{ state: "assigned"; caseId: string; teamId: string; startedWeek: number; }'.
+src/test/combatStim.contract.test.ts(994,57): error TS2345: Argument of type '{ agents: { a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }; ... 176 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'agents' are incompatible.
+    Type '{ a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+      Property 'a_ava' is incompatible with index signature.
+        Type '{ assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+          Types of property 'assignment' are incompatible.
+            Type '{ state: "assigned"; caseId: string; startedWeek: number; }' is not assignable to type 'AgentAssignmentState | undefined'.
+              Property 'teamId' is missing in type '{ state: "assigned"; caseId: string; startedWeek: number; }' but required in type '{ state: "assigned"; caseId: string; teamId: string; startedWeek: number; }'.
+src/test/combatStim.contract.test.ts(1083,43): error TS2345: Argument of type '{ equipmentDeconstructionQueue: { itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceRemaining: number; }[]; isolatedScenarioRun?: IsolatedScenarioRunState; ... 175 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'equipmentDeconstructionQueue' are incompatible.
+    Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceRemaining: number; }[]' is not assignable to type 'EquipmentDeconstructionQueueEntry[]'.
+      Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceRemaining: number; }' is missing the following properties from type 'EquipmentDeconstructionQueueEntry': id, itemName, pathId, sourceGradeId, and 8 more.
+src/test/combatStim.contract.test.ts(1448,61): error TS2345: Argument of type '{ agents: { a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }; ... 176 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'agents' are incompatible.
+    Type '{ a_ava: { assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }; }' is not assignable to type 'Record<string, Agent>'.
+      Property 'a_ava' is incompatible with index signature.
+        Type '{ assignment: { state: "assigned"; caseId: string; startedWeek: number; }; id: Id; name: string; role: AgentRole; specialization?: string; operationalRole?: AgentOperationalRole; ... 32 more ...; copingStreak?: number; }' is not assignable to type 'Agent'.
+          Types of property 'assignment' are incompatible.
+            Type '{ state: "assigned"; caseId: string; startedWeek: number; }' is not assignable to type 'AgentAssignmentState | undefined'.
+              Property 'teamId' is missing in type '{ state: "assigned"; caseId: string; startedWeek: number; }' but required in type '{ state: "assigned"; caseId: string; teamId: string; startedWeek: number; }'.
+src/test/combatStim.contract.test.ts(1516,52): error TS2345: Argument of type '{ equipmentDeconstructionQueue: { itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }[]; ... 176 more ...; globalFlags?: Record<string, GameFlagValu...' is not assignable to parameter of type 'GameState'.
+  Types of property 'equipmentDeconstructionQueue' are incompatible.
+    Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }[]' is not assignable to type 'EquipmentDeconstructionQueueEntry[]'.
+      Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }' is missing the following properties from type 'EquipmentDeconstructionQueueEntry': id, itemName, pathId, sourceGradeId, and 8 more.
+src/test/combatStim.contract.test.ts(1795,46): error TS2345: Argument of type '{ equipmentDeconstructionQueue: { itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }[]; ... 176 more ...; globalFlags?: Record<string, GameFlagValu...' is not assignable to parameter of type 'GameState'.
+  Types of property 'equipmentDeconstructionQueue' are incompatible.
+    Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }[]' is not assignable to type 'EquipmentDeconstructionQueueEntry[]'.
+      Type '{ itemId: string; quantity: number; weeksRemaining: number; sourceEquipmentInstanceId: string; sourceEquipmentInstanceResourceId: string; sourceEquipmentInstanceCapacity: number; sourceEquipmentInstanceRemaining: number; }' is missing the following properties from type 'EquipmentDeconstructionQueueEntry': id, itemName, pathId, sourceGradeId, and 8 more.
+src/test/containmentDispositionRegistry.test.ts(323,12): error TS2790: The operand of a 'delete' operator must be optional.
+src/test/containmentDispositionRegistry.test.ts(336,12): error TS2790: The operand of a 'delete' operator must be optional.
+src/test/containmentDispositionRegistry.test.ts(337,12): error TS2790: The operand of a 'delete' operator must be optional.
+src/test/coverStoryContradictionAccumulation.test.ts(104,7): error TS2322: Type '"plausible"' is not assignable to type 'CredibilityBand'.
+src/test/departmentWorkshopActivation.test.ts(329,12): error TS18048: 'activatedGame.departmentWorkshopSnapshots' is possibly 'undefined'.
+src/test/departmentWorkshopActivation.test.ts(332,12): error TS18048: 'loaded.departmentWorkshopSnapshots' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(705,34): error TS2345: Argument of type '{ gameOver: boolean; cases: { [x: string]: CaseInstance | { departmentWorkshopCompletionWorkOrderIds: string[]; departmentWorkshopFinalizationRequest: { finalRecipeId: string; requiredWorkOrderIds: string[]; }; ... 72 more ...; lifecycleBreachReadinessDueWeek?: number; }; }; ... 175 more ...; globalFlags?: Record<st...' is not assignable to parameter of type 'GameState'.
+  Types of property 'departmentWorkshopCompletionOutcomes' are incompatible.
+    Type '{ 'work:trusted': { workOrderId: string; departmentId: string; caseId: string; taskType: "containment_response"; completedWeek: number; outcome: "completed"; }; 'work:forged': { workOrderId: string; ... 4 more ...; outcome: "completed"; }; }' is not assignable to type 'DepartmentWorkshopCompletionOutcomeRegistry'.
+      Property ''work:trusted'' is incompatible with index signature.
+        Type '{ workOrderId: string; departmentId: string; caseId: string; taskType: "containment_response"; completedWeek: number; outcome: "completed"; }' is missing the following properties from type 'DepartmentWorkshopCompletionOutcome': quality, safety
+src/test/departmentWorkshopPersistence.test.ts(1978,12): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(1981,37): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(2056,12): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(2059,36): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(2134,12): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopPersistence.test.ts(2137,30): error TS18048: 'loaded.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/departmentWorkshopRouting.test.ts(309,29): error TS2322: Type '{ week: unknown; departmentWorkshopWorkOrders?: unknown; departmentWorkshopSnapshots?: unknown; departmentWorkshopCompletionOutcomes?: unknown; workOrders?: unknown; snapshots?: unknown; isolatedScenarioRun?: IsolatedScenarioRunState; ... 172 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to type 'GameState'.
+  Types of property 'week' are incompatible.
+    Type 'unknown' is not assignable to type 'number'.
+src/test/departmentWorkshopRouting.test.ts(317,12): error TS18048: 'stored.departmentWorkshopWorkOrders' is possibly 'undefined'.
+src/test/departmentWorkshopWrites.test.ts(196,20): error TS18046: 'source.departmentWorkshopSnapshots' is of type 'unknown'.
+src/test/departmentWorkshopWrites.test.ts(214,29): error TS2322: Type '{ week: unknown; departmentWorkshopWorkOrders?: unknown; departmentWorkshopSnapshots?: unknown; departmentWorkshopCompletionOutcomes?: unknown; workOrders?: unknown; snapshots?: unknown; isolatedScenarioRun?: IsolatedScenarioRunState; ... 172 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to type 'GameState'.
+  Types of property 'week' are incompatible.
+    Type 'unknown' is not assignable to type 'number'.
+src/test/dependentPrerequisiteActivation.test.ts(67,7): error TS2418: Type of computed property's value is '{ workOrderId: string; caseId: string; departmentId: string; taskType: "records_review"; completedWeek: number; outcome: "completed"; }', which is not assignable to type 'DepartmentWorkshopCompletionOutcome'.
+  Type '{ workOrderId: string; caseId: string; departmentId: string; taskType: "records_review"; completedWeek: number; outcome: "completed"; }' is missing the following properties from type 'DepartmentWorkshopCompletionOutcome': quality, safety
+src/test/dependentPrerequisiteActivation.test.ts(97,12): error TS18046: 'result.workshopSnapshots' is of type 'unknown'.
+src/test/dependentPrerequisiteActivation.test.ts(97,65): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/test/dependentPrerequisiteActivation.test.ts(138,14): error TS18048: 'state.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(152,14): error TS18048: 'state.departmentWorkshopCompletionOutcomes' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(166,14): error TS18048: 'state.departmentWorkshopWorkOrders' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(180,14): error TS18048: 'state.departmentWorkshopSnapshots' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(199,14): error TS18048: 'state.caseScopedPrerequisiteProcessingOrders' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(206,19): error TS18048: 'state.caseScopedPrerequisiteProcessingOrders' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(213,14): error TS18048: 'state.departmentWorkshopSnapshots' is possibly 'undefined'.
+src/test/dependentPrerequisiteActivation.test.ts(322,9): error TS2418: Type of computed property's value is '{ workOrderId: string; caseId: string; departmentId: string; taskType: "records_review"; completedWeek: number; outcome: "completed"; }', which is not assignable to type 'DepartmentWorkshopCompletionOutcome'.
+  Type '{ workOrderId: string; caseId: string; departmentId: string; taskType: "records_review"; completedWeek: number; outcome: "completed"; }' is missing the following properties from type 'DepartmentWorkshopCompletionOutcome': quality, safety
+src/test/detectionScanReportNotes.test.ts(321,7): error TS2345: Argument of type '{ active: true; outcome: "fail"; revealed: false; withheld: true; detectionScan: DetectionScanResult; }' is not assignable to parameter of type 'HiddenStateScoutingRevealIntegrationResult'.
+  Type '{ active: true; outcome: "fail"; revealed: false; withheld: true; detectionScan: DetectionScanResult; }' is missing the following properties from type 'HiddenStateScoutingRevealIntegrationResult': value, explanation
+src/test/downtimeCarryIn.test.ts(30,9): error TS2739: Type '{ statusFlags: "exposure:residue"[]; }' is missing the following properties from type 'AgentVitals': health, stress, morale, wounds
+src/test/downtimeCarryIn.test.ts(106,9): error TS2739: Type '{ statusFlags: "exposure:residue"[]; }' is missing the following properties from type 'AgentVitals': health, stress, morale, wounds
+src/test/downtimeCarryIn.test.ts(155,9): error TS2739: Type '{ statusFlags: "exposure:residue"[]; }' is missing the following properties from type 'AgentVitals': health, stress, morale, wounds
+src/test/downtimeCarryIn.test.ts(181,9): error TS2322: Type '{ statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; wounds?: number | undefined; }' is not assignable to type 'AgentVitals'.
+  Types of property 'health' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/test/downtimeCarryIn.test.ts(213,11): error TS2322: Type '{ statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; wounds?: number | undefined; }' is not assignable to type 'AgentVitals'.
+  Types of property 'health' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/test/downtimeCarryIn.test.ts(241,11): error TS2322: Type '{ statusFlags: string[]; health?: number | undefined; stress?: number | undefined; morale?: number | undefined; wounds?: number | undefined; }' is not assignable to type 'AgentVitals'.
+  Types of property 'health' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/test/equipmentGradeRecovery.contract.test.ts(1269,57): error TS2345: Argument of type 'PersistedGame' is not assignable to parameter of type 'GameState'.
+  Property 'templates' is missing in type 'PersistedGame' but required in type 'GameState'.
+src/test/equipmentGradeRecovery.contract.test.ts(1295,65): error TS2345: Argument of type 'PersistedGame' is not assignable to parameter of type 'GameState'.
+  Property 'templates' is missing in type 'PersistedGame' but required in type 'GameState'.
+src/test/equipmentInstance.contract.test.ts(436,32): error TS2339: Property 'participation' does not exist on type 'EquipmentGradeRecoveryResolution'.
+  Property 'participation' does not exist on type 'Readonly<{ available: false; projection: EquipmentGradeProjection; issues: readonly EquipmentGradeRecoveryIssue[]; }>'.
+src/test/equipmentInstance.contract.test.ts(2028,9): error TS2345: Argument of type '"weapon"' is not assignable to parameter of type 'EquipmentSlotKind'.
+src/test/equipmentInstance.contract.test.ts(2291,8): error TS2352: Conversion of type 'EquipmentInstance | undefined' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'EquipmentInstance' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'EquipmentInstance'.
+src/test/eventBus.test.ts(26,29): error TS2339: Property 'agentId' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'agentId' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+src/test/eventBus.test.ts(48,29): error TS2339: Property 'policy' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'policy' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+src/test/eventBus.test.ts(73,29): error TS2339: Property 'agentId' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+  Property 'agentId' does not exist on type 'Readonly<{ week: number; caseId: string; caseTitle: string; mode: "standard" | "threshold" | "probability" | "deterministic"; kind: "case" | "raid" | "standard" | "anomaly"; stage: number; teamIds: string[]; performanceSummary?: PerformanceMetricSummary | undefined; rewardBreakdown?: MissionRewardBreakdown | undefin...'.
+src/test/eventFeedView.exhaustiveness.test.ts(46,7): error TS2353: Object literal may only specify known properties, and 'payload' does not exist in type 'Partial<Omit<{ readonly id: string; readonly schemaVersion: 1 | 2; readonly type: "production.queue_started"; readonly sourceSystem: "production"; readonly payload: Readonly<{ week: number; queueId: string; queueName: string; ... 9 more ...; outputGradeExplanationCodes?: ("fabrication_grade.fixed" | ... 2 more ... |...'.
+src/test/executionInstability.test.ts(79,44): error TS2345: Argument of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence: number; intelUncertainty: number; teamReadiness: { teamId: string; readinessCategory: "mission_ready"; ... 9 more ...; computedWeek: number; }; ... 4 more ...; missingRoles: string[]; }' is not assignable to parameter of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence?: number | undefined; intelUncertainty?: number | undefined; teamReadiness: TeamDeploymentReadinessState; ... 4 more ...; missingRoles: string[]; }'.
+  The types of 'teamReadiness.hardBlockers' are incompatible between these types.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(100,44): error TS2345: Argument of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence: number; intelUncertainty: number; teamReadiness: { teamId: string; readinessCategory: "mission_ready"; ... 9 more ...; computedWeek: number; }; ... 4 more ...; missingRoles: string[]; }' is not assignable to parameter of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence?: number | undefined; intelUncertainty?: number | undefined; teamReadiness: TeamDeploymentReadinessState; ... 4 more ...; missingRoles: string[]; }'.
+  The types of 'teamReadiness.hardBlockers' are incompatible between these types.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(131,7): error TS2322: Type '{ coverageCompleteness: { required: string[]; covered: never[]; missing: string[]; }; minimumMemberReadiness: number; teamId: string; readinessCategory: "mission_ready"; readinessScore: number; ... 6 more ...; computedWeek: number; }' is not assignable to type 'TeamDeploymentReadinessState'.
+  Types of property 'hardBlockers' are incompatible.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(155,7): error TS2322: Type '{ coverageCompleteness: { required: string[]; covered: never[]; missing: string[]; }; minimumMemberReadiness: number; teamId: string; readinessCategory: "mission_ready"; readinessScore: number; ... 6 more ...; computedWeek: number; }' is not assignable to type 'TeamDeploymentReadinessState'.
+  Types of property 'hardBlockers' are incompatible.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(175,7): error TS2322: Type '{ coverageCompleteness: { required: string[]; covered: never[]; missing: string[]; }; minimumMemberReadiness: number; teamId: string; readinessCategory: "mission_ready"; readinessScore: number; ... 6 more ...; computedWeek: number; }' is not assignable to type 'TeamDeploymentReadinessState'.
+  Types of property 'hardBlockers' are incompatible.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(194,33): error TS2345: Argument of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence: number; intelUncertainty: number; teamReadiness: { teamId: string; readinessCategory: "mission_ready"; ... 9 more ...; computedWeek: number; }; ... 4 more ...; missingRoles: string[]; }' is not assignable to parameter of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence?: number | undefined; intelUncertainty?: number | undefined; teamReadiness: TeamDeploymentReadinessState; ... 4 more ...; missingRoles: string[]; }'.
+  The types of 'teamReadiness.hardBlockers' are incompatible between these types.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/executionInstability.test.ts(208,33): error TS2345: Argument of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence: number; intelUncertainty: number; teamReadiness: { teamId: string; readinessCategory: "mission_ready"; ... 9 more ...; computedWeek: number; }; ... 4 more ...; missingRoles: string[]; }' is not assignable to parameter of type '{ missionId: string; week: number; baseScore: number; requiredScore: number; intelConfidence?: number | undefined; intelUncertainty?: number | undefined; teamReadiness: TeamDeploymentReadinessState; ... 4 more ...; missingRoles: string[]; }'.
+  The types of 'teamReadiness.hardBlockers' are incompatible between these types.
+    Type 'string[]' is not assignable to type 'DeploymentHardBlockerCode[]'.
+      Type 'string' is not assignable to type 'DeploymentHardBlockerCode'.
+src/test/expeditionRecoveryNode.test.ts(34,7): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/expeditionRecoveryNode.test.ts(75,7): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/expeditionRecoveryNode.test.ts(103,7): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/expeditionRecoveryNode.test.ts(174,7): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/expeditionRecoveryNode.test.ts(221,7): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/externalSupport.test.ts(236,25): error TS2352: Conversion of type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: string[]; unresolvedTriggers: string[]; }[]' to type 'WeeklyReport[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: string[]; unresolvedTriggers: string[]; }' is missing the following properties from type 'WeeklyReport': rngStateBefore, rngStateAfter, newCases, progressedCases, and 5 more.
+src/test/externalSupport.test.ts(245,27): error TS2352: Conversion of type '{ week: number; resolvedCases: string[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; }[]' to type 'WeeklyReport[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ week: number; resolvedCases: string[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; }' is missing the following properties from type 'WeeklyReport': rngStateBefore, rngStateAfter, newCases, progressedCases, and 5 more.
+src/test/facilityMaintenanceRecoveryApplication.test.ts(153,49): error TS2540: Cannot assign to 'maintenanceHours' because it is a read-only property.
+src/test/facilityStockSpoilage.contract.test.ts(197,86): error TS2345: Argument of type '{ facilityStockCondition: { cold_storage_reagent: string; mundane_supplies: string; }; isolatedScenarioRun?: IsolatedScenarioRunState; ... 175 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  The types of 'facilityStockCondition.mundane_supplies' are incompatible between these types.
+    Type 'string' is not assignable to type '"degraded" | "intact" | "contaminated" | undefined'.
+src/test/fieldBaseStaging.test.ts(174,45): error TS2339: Property 'caseId' does not exist on type 'AgentAssignmentState'.
+  Property 'caseId' does not exist on type '{ state: "recovery"; teamId?: string | undefined; startedWeek: number; }'.
+src/test/fixtures/minimalOperationEventPayloads.ts(714,10): error TS2352: Conversion of type '{ id: string; schemaVersion: 1; type: keyof OperationEventPayloadMap; sourceSystem: OperationEventSourceSystemFor<TType>; timestamp: string; payload: { ...; } | ... 66 more ... | { ...; }; } & Partial<...>' to type 'OperationEvent<TType>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/test/gameStateManager.test.ts(230,14): error TS18048: 'normalized.ui.debug.eventLog' is possibly 'undefined'.
+src/test/gameStateManager.test.ts(234,14): error TS18048: 'normalized.ui.debug.eventLog' is possibly 'undefined'.
+src/test/gameStateManager.test.ts(407,14): error TS18048: 'normalized.ui.debug.eventLog' is possibly 'undefined'.
+src/test/gameStateManager.test.ts(408,14): error TS18048: 'normalized.ui.debug.eventLog' is possibly 'undefined'.
+src/test/gameStateManager.test.ts(462,23): error TS2352: Conversion of type '{ eventQueue: { entries: { poisoned: boolean; }; nextSequence: number; }; ui: { debug: { enabled: boolean; flags: { ' debug.trace ': boolean; }; eventLog: never[]; nextEventSequence: number; }; selectedLocationId?: string; ... 5 more ...; authoring?: { activeContextId?: string; lastChoiceId?: string; lastNextTargetI...' to type 'RuntimeState' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'eventQueue.entries' are incompatible between these types.
+    Type '{ poisoned: boolean; }' is missing the following properties from type 'RuntimeQueuedEvent[]': length, pop, push, concat, and 29 more.
+src/test/gameStateManager.test.ts(575,14): error TS18048: 'normalized.ui.debug.eventLog' is possibly 'undefined'.
+src/test/helpers/weeklyMvpLoopProof.ts(80,3): error TS18048: 'state.globalFlags' is possibly 'undefined'.
+src/test/hiddenCellStrategicInterference.test.ts(285,12): error TS18048: 'reportView.summary' is possibly 'undefined'.
+src/test/hiddenCellStrategicInterference.test.ts(286,12): error TS18048: 'reportView.summary' is possibly 'undefined'.
+src/test/hiddenCellStrategicInterference.test.ts(628,20): error TS2353: Object literal may only specify known properties, and 'globalPressure' does not exist in type 'Pick<GameState, "lastHiddenCellPanicAmplificationWeek" | "lastHiddenCellPanicAmplificationAmount">'.
+src/test/hiddenStateIllusionLifecycle.test.ts(155,59): error TS2345: Argument of type '{ subject: { exactIdentity: string; category: string; hostility: "latent"; activeEffects: never[]; dormantEffects: never[]; activeProtections: never[]; }; caseData: CaseInstance; teamCapability: 3; anomalyConcealment: 2; teamTags: readonly [...]; anomalyTags: readonly [...]; }' is not assignable to parameter of type 'CaseScoutingRevealIntegrationInput'.
+  Types of property 'teamTags' are incompatible.
+    The type 'readonly ["recon-specialist"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/test/hiddenStateIllusionLifecycle.test.ts(177,59): error TS2345: Argument of type '{ subject: { present: true; exactIdentity: string; category: string; hostility: "latent"; activeEffects: never[]; dormantEffects: never[]; activeProtections: never[]; }; caseData: CaseInstance; teamCapability: 3; anomalyConcealment: 2; teamTags: readonly [...]; anomalyTags: readonly [...]; }' is not assignable to parameter of type 'CaseScoutingRevealIntegrationInput'.
+  Types of property 'teamTags' are incompatible.
+    The type 'readonly ["recon-specialist"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/test/infiltrationCover.test.ts(158,7): error TS2322: Type '"liaison"' is not assignable to type 'AgentRole'.
+src/test/infiltrationEncounterStateCover.test.ts(42,23): error TS2353: Object literal may only specify known properties, and 'week' does not exist in type 'WeeklyDirectiveState'.
+src/test/infiltrationProbeAuthoring.test.ts(36,9): error TS2559: Type 'AuthoredInfiltrationProbePlan' has no properties in common with type 'AuthoredInfiltrationProbeProgressActionRule'.
+src/test/infiltrationStageMission.test.ts(68,59): error TS2322: Type '"visible"' is not assignable to type '"hidden" | "displaced" | "revealed" | undefined'.
+src/test/infiltrationStageMission.test.ts(101,7): error TS2741: Property 'detectionScan' is missing in type '{ active: true; level: "strong"; scoreAdjustment: number; evidenceSignals: string[]; counterDetection: true; shouldDegradeSuccessToPartial: true; degradeSuccessReason: string; }' but required in type 'DisguiseRevealIntegrationResult'.
+src/test/informationIntakeNamingHazardCrossLinkSurfacing.test.ts(36,8): error TS2339: Property 'label' does not exist on type 'SafeLabelProjection'.
+src/test/mission.intake.triage.routing.test.ts(26,10): error TS2352: Conversion of type '{ id: string; name: string; hireStatus: "available"; funnelStage: "hired"; revealLevel: 2; roleInclination: string; agentData: { role: "field"; specialization: string; stats: { combat: number; investigation: number; utility: number; social: number; }; traits: never[]; }; }' to type 'Candidate' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; name: string; hireStatus: "available"; funnelStage: "hired"; revealLevel: 2; roleInclination: string; agentData: { role: "field"; specialization: string; stats: { combat: number; investigation: number; utility: number; social: number; }; traits: never[]; }; }' is not comparable to type 'CandidateBase & { category: "agent"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.
+    Type '{ id: string; name: string; hireStatus: "available"; funnelStage: "hired"; revealLevel: 2; roleInclination: string; agentData: { role: "field"; specialization: string; stats: { combat: number; investigation: number; utility: number; social: number; }; traits: never[]; }; }' is missing the following properties from type 'CandidateBase': age, category, expiryWeek
+src/test/missionIntakeInformationRouting.integration.test.ts(118,7): error TS2353: Object literal may only specify known properties, and 'confidenceScore' does not exist in type 'CreateInformationIntakeReportInput'.
+src/test/missionIntakeRouting.hydration.test.ts(43,7): error TS2322: Type '{ [x: string]: { missionId: string; templateId: string; category: "strategic_opportunity"; kind: "case" | "raid" | "standard" | "anomaly"; status: CaseStatus; generatedWeek: number; ... 16 more ...; lastRejectedTeamIds: never[]; }; }' is not assignable to type 'Record<string, MissionRoutingRecord>'.
+  'string' index signatures are incompatible.
+    Type '{ missionId: string; templateId: string; category: "strategic_opportunity"; kind: "case" | "raid" | "standard" | "anomaly"; status: CaseStatus; generatedWeek: number; deadlineRemaining: number; ... 15 more ...; lastRejectedTeamIds: never[]; }' is not assignable to type 'MissionRoutingRecord'.
+      Types of property 'routingState' are incompatible.
+        Type '"pending_triage"' is not assignable to type 'MissionRoutingStateKind'.
+src/test/missionTriageCloseoutRewardPayoutSignalView.test.ts(129,13): error TS2353: Object literal may only specify known properties, and 'week' does not exist in type 'ReportNote'.
+src/test/missionTriageLayoutView.test.ts(162,11): error TS2353: Object literal may only specify known properties, and 'plannedAction' does not exist in type 'InfiltrationProbePlan'.
+src/test/missionTriageLayoutView.test.ts(250,11): error TS2353: Object literal may only specify known properties, and 'plannedAction' does not exist in type 'InfiltrationProbePlan'.
+src/test/operationalCover.test.ts(67,31): error TS2345: Argument of type '{ legitimacy: { sanctionLevel: "sanctioned"; operationalCoverLevel: "deniable"; }; reports: { week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }[]; ... 175 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'reports' are incompatible.
+    Type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }[]' is not assignable to type 'WeeklyReport[]'.
+      Type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }' is missing the following properties from type 'WeeklyReport': rngStateBefore, rngStateAfter, newCases, progressedCases, and 4 more.
+src/test/operationalCover.test.ts(71,30): error TS2345: Argument of type '{ legitimacy: { sanctionLevel: "sanctioned"; operationalCoverLevel: "deniable"; }; reports: { week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }[]; ... 175 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  Types of property 'reports' are incompatible.
+    Type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }[]' is not assignable to type 'WeeklyReport[]'.
+      Type '{ week: number; resolvedCases: never[]; partialCases: never[]; failedCases: never[]; unresolvedTriggers: never[]; notes: never[]; }' is missing the following properties from type 'WeeklyReport': rngStateBefore, rngStateAfter, newCases, progressedCases, and 4 more.
+src/test/operationalExplanation.integration.test.ts(208,56): error TS2540: Cannot assign to 'active' because it is a read-only property.
+src/test/operationsRouteDrillDown.test.ts(40,13): error TS2322: Type '"containment"' is not assignable to type '"standard" | "threshold" | "probability" | "deterministic"'.
+src/test/patternSourceSeriesRegistry.test.ts(141,52): error TS2304: Cannot find name 'PatternSourceBlurbStub'.
+src/test/patternSourceSeriesWeeklyIntake.test.ts(112,62): error TS2345: Argument of type '{ processingHistory: string[]; readinessScore: number; id: PatternSourceSeriesId; slug: string; title: string; descriptionStub?: string; ... 12 more ...; redactedFields?: readonly string[]; }' is not assignable to parameter of type 'PatternSourceSeriesRecord'.
+  Types of property 'processingHistory' are incompatible.
+    Type 'string[]' is not assignable to type 'readonly ProcessingStatus[]'.
+      Type 'string' is not assignable to type 'ProcessingStatus'.
+src/test/procurementEmergency.test.ts(574,47): error TS2345: Argument of type '{ week: number; emergencyGrayMarketWaiverWeek: undefined; legitimacy: { sanctionLevel: string; falloutRisk: string; }; isolatedScenarioRun?: IsolatedScenarioRunState; ... 173 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  The types of 'legitimacy.sanctionLevel' are incompatible between these types.
+    Type 'string' is not assignable to type '"sanctioned" | "covert" | "tolerated" | "unsanctioned"'.
+src/test/procurementEmergency.test.ts(576,52): error TS2345: Argument of type '{ week: number; emergencyGrayMarketWaiverWeek: undefined; legitimacy: { sanctionLevel: string; falloutRisk: string; }; isolatedScenarioRun?: IsolatedScenarioRunState; ... 173 more ...; globalFlags?: Record<string, GameFlagValue>; }' is not assignable to parameter of type 'GameState'.
+  The types of 'legitimacy.sanctionLevel' are incompatible between these types.
+    Type 'string' is not assignable to type '"sanctioned" | "covert" | "tolerated" | "unsanctioned"'.
+src/test/reportTeamStatus.test.ts(18,5): error TS2322: Type '"investigation"' is not assignable to type '"case" | "raid" | "standard" | "anomaly"'.
+src/test/sim.advanceWeek.test.ts(1340,11): error TS2322: Type '"tentative"' is not assignable to type '"low" | "medium" | "high" | "confirmed"'.
+src/test/sim.advanceWeek.test.ts(1369,11): error TS2322: Type '"tentative"' is not assignable to type '"low" | "medium" | "high" | "confirmed"'.
+src/test/siteOperationalExploration.test.ts(143,5): error TS2322: Type 'GameState' is not assignable to type '{ cases: { noisy: CaseInstance; }; isolatedScenarioRun?: IsolatedScenarioRunState; containmentRequirementStates?: ContainmentRequirementRegistry; ... 174 more ...; globalFlags?: Record<string, GameFlagValue>; }'.
+  Types of property 'cases' are incompatible.
+    Property 'noisy' is missing in type 'Record<string, CaseInstance>' but required in type '{ noisy: CaseInstance; }'.
+src/test/spe947EvaluatorPersistence.test.ts(294,43): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947PlatformRecords">'.
+  Types of property 'spe947PlatformRecords' are incompatible.
+    Type 'Spe947PlatformRecordsMap | undefined' is not assignable to type 'Spe947PlatformRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947PlatformRecordsMap'.
+src/test/spe947EvaluatorPersistence.test.ts(300,9): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947PlatformRecords" | "spe947OperationRecords">'.
+  Types of property 'spe947PlatformRecords' are incompatible.
+    Type 'Spe947PlatformRecordsMap | undefined' is not assignable to type 'Spe947PlatformRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947PlatformRecordsMap'.
+src/test/spe947EvaluatorPersistence.test.ts(308,50): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947CounterMemeticPlans">'.
+  Types of property 'spe947CounterMemeticPlans' are incompatible.
+    Type 'Spe947CounterMemeticPlanRecordsMap | undefined' is not assignable to type 'Spe947CounterMemeticPlanRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947CounterMemeticPlanRecordsMap'.
+src/test/spe947EvaluatorPersistence.test.ts(313,45): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947ContentArtifacts" | "spe947FootageExposureBindings">'.
+  Types of property 'spe947ContentArtifacts' are incompatible.
+    Type 'Spe947ContentArtifactRecordsMap | undefined' is not assignable to type 'Spe947ContentArtifactRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947ContentArtifactRecordsMap'.
+src/test/spe947EvaluatorPersistence.test.ts(318,48): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947ContentOwners" | "spe947TakedownResistanceBindings">'.
+  Types of property 'spe947ContentOwners' are incompatible.
+    Type 'Spe947ContentOwnerRecordsMap | undefined' is not assignable to type 'Spe947ContentOwnerRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947ContentOwnerRecordsMap'.
+src/test/spe947EvaluatorPersistence.test.ts(323,9): error TS2345: Argument of type 'GameState' is not assignable to parameter of type 'Pick<Spe947EvaluatorPersistenceMaps, "spe947PostCaseMediaCases">'.
+  Types of property 'spe947PostCaseMediaCases' are incompatible.
+    Type 'Spe947PostCaseMediaCaseRecordsMap | undefined' is not assignable to type 'Spe947PostCaseMediaCaseRecordsMap'.
+      Type 'undefined' is not assignable to type 'Spe947PostCaseMediaCaseRecordsMap'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(132,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956SurvivorInformalRegistryRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedSurvivorInformalRegistry'.
+      Type 'unknown' is not assignable to type 'SurvivorInformalRegistry'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(144,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956SurvivorInformalRegistryRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedSurvivorInformalRegistry'.
+      Type 'unknown' is not assignable to type 'SurvivorInformalRegistry'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(154,13): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956SurvivorInformalRegistryRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedSurvivorInformalRegistry'.
+      Type 'unknown' is not assignable to type 'SurvivorInformalRegistry'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(323,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CollectiveMemoryChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCollectiveMemoryChannel'.
+      Type 'unknown' is not assignable to type 'CollectiveMemoryChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(335,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CollectiveMemoryChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCollectiveMemoryChannel'.
+      Type 'unknown' is not assignable to type 'CollectiveMemoryChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(345,13): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CollectiveMemoryChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCollectiveMemoryChannel'.
+      Type 'unknown' is not assignable to type 'CollectiveMemoryChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(541,40): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956HotlineChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedHotlineChannel'.
+      Type 'unknown' is not assignable to type 'HotlineChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(551,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956HotlineChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedHotlineChannel'.
+      Type 'unknown' is not assignable to type 'HotlineChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(560,42): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956HotlineChannelRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedHotlineChannel'.
+      Type 'unknown' is not assignable to type 'HotlineChannel'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(777,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956AsyncDiscussionSurfaceRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedAsyncDiscussionSurface'.
+      Type 'unknown' is not assignable to type 'DiscussionSurface'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(789,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956AsyncDiscussionSurfaceRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedAsyncDiscussionSurface'.
+      Type 'unknown' is not assignable to type 'DiscussionSurface'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(799,13): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956AsyncDiscussionSurfaceRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedAsyncDiscussionSurface'.
+      Type 'unknown' is not assignable to type 'DiscussionSurface'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(1065,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CommunityAdvisoryBodyRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCommunityAdvisoryBody'.
+      Type 'unknown' is not assignable to type 'CommunityAdvisoryBody'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(1077,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CommunityAdvisoryBodyRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCommunityAdvisoryBody'.
+      Type 'unknown' is not assignable to type 'CommunityAdvisoryBody'.
+src/test/spe956ParticipatoryChannelPersistence.test.ts(1087,13): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956CommunityAdvisoryBodyRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedCommunityAdvisoryBody'.
+      Type 'unknown' is not assignable to type 'CommunityAdvisoryBody'.
+src/test/spe956ParticipatoryChannelWeeklyOrchestration.test.ts(56,53): error TS2559: Type 'Readonly<{ id: string; scriptQuality: number; staffingCapacity: number; languageSupport: boolean; escalationRules: string; unansweredMode: "queue_callback" | "mark_unanswered"; angerMode: "anger_only" | "deescalate"; handleThreshold: number; }>' has no properties in common with type 'Spe956ParticipatoryChannelWeeklyFields'.
+src/test/spe956PropagationGraphPersistence.test.ts(100,47): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956PropagationGraphRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedPropagationGraph'.
+src/test/spe956PropagationGraphPersistence.test.ts(111,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956PropagationGraphRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedPropagationGraph'.
+src/test/spe956PropagationGraphPersistence.test.ts(125,44): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Spe956PropagationGraphRecordsMap'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'Spe956PersistedPropagationGraph'.
+src/test/spe956PropagationGraphWeeklyOrchestration.test.ts(149,44): error TS2304: Cannot find name 'Spe956PropagationGraphRecordsMap'.
+src/test/specialistLaborAgentRoleMap.contract.test.ts(75,3): error TS2322: Type '{ [k: string]: { id: string; name: string; role: AgentRole; }; }' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{ id: string; name: string; role: AgentRole; }' is missing the following properties from type 'Agent': baseStats, tags, relationships, fatigue, status
+src/test/specialistLaborAgentRoleMap.contract.test.ts(82,9): error TS1360: Type '{ id: string; name: string; role: AgentRole; }' does not satisfy the expected type 'Agent'.
+  Type '{ id: string; name: string; role: AgentRole; }' is missing the following properties from type 'Agent': baseStats, tags, relationships, fatigue, status
+src/test/specialistLaborStaffRoleMap.contract.test.ts(98,3): error TS2322: Type '{ [k: string]: { id: string; name: string; role: AgentRole; }; }' is not assignable to type 'Record<string, Agent>'.
+  'string' index signatures are incompatible.
+    Type '{ id: string; name: string; role: AgentRole; }' is missing the following properties from type 'Agent': baseStats, tags, relationships, fatigue, status
+src/test/specialistLaborStaffRoleMap.contract.test.ts(105,9): error TS1360: Type '{ id: string; name: string; role: AgentRole; }' does not satisfy the expected type 'Agent'.
+  Type '{ id: string; name: string; role: AgentRole; }' is missing the following properties from type 'Agent': baseStats, tags, relationships, fatigue, status
+src/test/stabilityLayer.test.ts(601,49): error TS2322: Type '{ id: string; category: "branch-continuity"; severity: "error"; summary: string; recoveryActions: readonly []; }' is not assignable to type 'StabilityIssue'.
+  Types of property 'recoveryActions' are incompatible.
+    The type 'readonly []' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/test/stealthLeaveBehindMission.test.ts(129,7): error TS2741: Property 'detectionScan' is missing in type '{ active: true; level: "strong"; scoreAdjustment: number; evidenceSignals: string[]; counterDetection: true; shouldDegradeSuccessToPartial: true; degradeSuccessReason: string; }' but required in type 'DisguiseRevealIntegrationResult'.
+src/test/treatmentFailureBlameRouting.test.ts(770,11): error TS2322: Type '"staff:lead"' is not assignable to type '"system" | "protocol" | "clinician" | "governance" | "site_lead"'.
+src/test/weeklyMvpLoopProof.integration.test.ts(38,12): error TS18048: 'week0.globalFlags' is possibly 'undefined'.
+src/test/weeklyReport.test.ts(111,62): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+src/test/weeklyReport.test.ts(234,54): error TS2345: Argument of type '{ "t_nightwatch::case-001": { entityId: string; entityType: string; subjectId: string; subjectType: string; tier: string; notes: string; }; }' is not assignable to parameter of type 'KnowledgeStateMap'.
+  Property '"t_nightwatch::case-001"' is incompatible with index signature.
+    Type '{ entityId: string; entityType: string; subjectId: string; subjectType: string; tier: string; notes: string; }' is not assignable to type 'KnowledgeState'.
+      Types of property 'tier' are incompatible.
+        Type 'string' is not assignable to type 'KnowledgeTier'.

@@ -80,8 +80,7 @@ function freezeStackResult(
 ): DuplicateFacilityStackResult {
   const stackBenefitUnits = computeBoundedStackBenefitUnits(contributingCount)
   const hardCapApplied = totalCount > DUPLICATE_STACK_HARD_CAP
-  const diminishingReturnsApplied =
-    contributingCount >= 2 && stackBenefitUnits < totalCount * 100
+  const diminishingReturnsApplied = contributingCount >= 2 && stackBenefitUnits < totalCount * 100
   return Object.freeze({
     facilityType,
     totalCount,
@@ -118,11 +117,7 @@ export function projectDuplicateFacilityStack(
   const { facilityType, totalCount, compatible } = basics
   if (totalCount === 0) return freezeStackResult(facilityType, 0, 0)
   if (!compatible) return freezeStackResult(facilityType, totalCount, 1)
-  return freezeStackResult(
-    facilityType,
-    totalCount,
-    Math.min(totalCount, DUPLICATE_STACK_HARD_CAP)
-  )
+  return freezeStackResult(facilityType, totalCount, Math.min(totalCount, DUPLICATE_STACK_HARD_CAP))
 }
 
 export interface DuplicateFacilityBurdenInput {
@@ -188,9 +183,7 @@ export interface DisabledDuplicateStackEffectResult {
   readonly outputChangedByDisablement: boolean
 }
 
-function parseUnits(
-  unitsRaw: unknown
-): readonly DuplicateFacilityUnitInput[] | undefined {
+function parseUnits(unitsRaw: unknown): readonly DuplicateFacilityUnitInput[] | undefined {
   if (!Array.isArray(unitsRaw) || unitsRaw.length === 0) return undefined
   const units: DuplicateFacilityUnitInput[] = []
   const seenIds = new Set<string>()
@@ -199,13 +192,11 @@ function parseUnits(
     if (typeof unit.unitId !== 'string' || unit.unitId.trim().length === 0) return undefined
     if (seenIds.has(unit.unitId)) return undefined
     seenIds.add(unit.unitId)
-    if (
-      typeof unit.state !== 'string' ||
-      !DUPLICATE_FACILITY_OPERATIONAL_STATES.some((s) => s === unit.state)
-    ) {
-      return undefined
-    }
-    units.push({ unitId: unit.unitId, state: unit.state })
+    const state = DUPLICATE_FACILITY_OPERATIONAL_STATES.find(
+      (candidate) => candidate === unit.state
+    )
+    if (state === undefined) return undefined
+    units.push({ unitId: unit.unitId, state })
   }
   return units
 }

@@ -5,7 +5,10 @@
  * only; no changes to SPE-2358 compose contracts.
  */
 
-import type { InformationIntakeReportRecord, InformationIntakeReportsMap } from './informationIntakeReport'
+import type {
+  InformationIntakeReportRecord,
+  InformationIntakeReportsMap,
+} from './informationIntakeReport'
 import {
   composeAllIntakeNamingHazardCrossLinks,
   composeIntakeNamingHazardCrossLinks,
@@ -26,7 +29,7 @@ export function formatIntakeReportCrossLinkLabel(report: InformationIntakeReport
 export function formatNamingHazardDescriptorCrossLinkLabel(
   descriptor: NamingHazardDescriptorRecord
 ): string {
-  const safeLabel = projectSafeLabel(descriptor, { surface: 'briefing' }).label
+  const safeLabel = projectSafeLabel(descriptor, { surface: 'briefing' }).safeLabel
   return `${descriptor.id} (${safeLabel})`
 }
 
@@ -49,8 +52,8 @@ export function formatIntakeNamingHazardCrossLinkSummaryLabels(input: {
   reports: InformationIntakeReportsMap | undefined
   descriptors: NamingHazardDescriptorRecordsMap | undefined
 }): { readonly reportLabels: readonly string[]; readonly descriptorLabels: readonly string[] } {
-  const reportIds = [...new Set(input.summary.links.map((link) => link.intakeReportId))].sort((left, right) =>
-    left.localeCompare(right)
+  const reportIds = [...new Set(input.summary.links.map((link) => link.intakeReportId))].sort(
+    (left, right) => left.localeCompare(right)
   )
   const descriptorIds = [
     ...new Set(input.summary.links.map((link) => link.namingHazardDescriptorId)),
@@ -81,7 +84,9 @@ export function formatIntakeNamingHazardCrossLinkNoteContent(input: {
   const reportSegment =
     reportLabels.length > 0 ? reportLabels.join('; ') : 'no linked intake reports'
   const descriptorSegment =
-    descriptorLabels.length > 0 ? descriptorLabels.join('; ') : 'no linked naming-hazard descriptors'
+    descriptorLabels.length > 0
+      ? descriptorLabels.join('; ')
+      : 'no linked naming-hazard descriptors'
 
   return `Intake cross-link — ${input.summary.topicRef}: ${input.summary.linkedReportCount} report(s), ${input.summary.linkedDescriptorCount} descriptor(s). Reports: ${reportSegment}. Descriptors: ${descriptorSegment}.`
 }
@@ -112,11 +117,7 @@ export function listMissionIntakeNamingHazardCrossLinkSummaries(input: {
   const seenTopicRefs = new Set<string>()
 
   for (const topicKey of resolveMissionIntakeTopicKeys(input.currentCase)) {
-    const summary = composeIntakeNamingHazardCrossLinks(
-      input.reports,
-      input.descriptors,
-      topicKey
-    )
+    const summary = composeIntakeNamingHazardCrossLinks(input.reports, input.descriptors, topicKey)
 
     if (summary.links.length === 0 || seenTopicRefs.has(summary.topicRef)) {
       continue
@@ -126,9 +127,7 @@ export function listMissionIntakeNamingHazardCrossLinkSummaries(input: {
     summaries.push(summary)
   }
 
-  return Object.freeze(
-    summaries.sort((left, right) => left.topicRef.localeCompare(right.topicRef))
-  )
+  return Object.freeze(summaries.sort((left, right) => left.topicRef.localeCompare(right.topicRef)))
 }
 
 export function composeAllIntakeNamingHazardCrossLinkSummaries(input: {

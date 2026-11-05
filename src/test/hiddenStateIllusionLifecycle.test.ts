@@ -98,10 +98,7 @@ describe('hiddenStateIllusionLifecycle (SPE-2285)', () => {
 
   it('transitions active → disproved → collapsed via counter-detection and mission success', () => {
     const base = createIllusionCase({ tags: ['concealment', 'false-entity'] })
-    const active = applyHiddenStateIllusionLifecyclePass(
-      base,
-      buildIllusionLifecycleContext(base)
-    )
+    const active = applyHiddenStateIllusionLifecyclePass(base, buildIllusionLifecycleContext(base))
 
     expect(active.hiddenStateIllusionState?.phase).toBe('active')
 
@@ -154,6 +151,8 @@ describe('hiddenStateIllusionLifecycle (SPE-2285)', () => {
 
     const integrated = resolveScoutingWithCaseHiddenState({
       ...SCOUTING_INPUT,
+      teamTags: [...SCOUTING_INPUT.teamTags],
+      anomalyTags: [...SCOUTING_INPUT.anomalyTags],
       subject: SUBJECT,
       caseData: disproved,
     })
@@ -176,6 +175,8 @@ describe('hiddenStateIllusionLifecycle (SPE-2285)', () => {
 
     const integrated = resolveScoutingWithCaseHiddenState({
       ...SCOUTING_INPUT,
+      teamTags: [...SCOUTING_INPUT.teamTags],
+      anomalyTags: [...SCOUTING_INPUT.anomalyTags],
       subject: { ...SUBJECT, present: true },
       caseData,
     })
@@ -228,7 +229,11 @@ describe('hiddenStateIllusionLifecycle integration', () => {
       weeksRemaining: 1,
     })
 
-    for (let investigationDifficulty = 8; investigationDifficulty <= 140; investigationDifficulty += 1) {
+    for (
+      let investigationDifficulty = 8;
+      investigationDifficulty <= 140;
+      investigationDifficulty += 1
+    ) {
       const candidate: CaseInstance = {
         ...baseCase,
         difficulty: {
@@ -322,7 +327,11 @@ describe('hiddenStateIllusionLifecycle integration', () => {
     })
 
     let tunedCase: CaseInstance | undefined
-    for (let investigationDifficulty = 8; investigationDifficulty <= 140; investigationDifficulty += 1) {
+    for (
+      let investigationDifficulty = 8;
+      investigationDifficulty <= 140;
+      investigationDifficulty += 1
+    ) {
       const candidate: CaseInstance = {
         ...baseCase,
         difficulty: {

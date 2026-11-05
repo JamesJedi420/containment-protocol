@@ -20,7 +20,7 @@ export interface TownContractPacketContext {
   pressureTags: readonly string[]
 }
 
-function mergeUniquePreserveOrder(...lists: readonly string[][]) {
+function mergeUniquePreserveOrder(...lists: readonly (readonly string[])[]) {
   const seen = new Set<string>()
   const merged: string[] = []
 

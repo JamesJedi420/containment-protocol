@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { assert, afterEach, describe, expect, it } from 'vitest'
 
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { useGameStore } from '../app/store/gameStore'
@@ -326,9 +326,11 @@ describe('department workshop activation from construction (SPE-2788)', () => {
     const loaded = loadGameSave(serializeGameSave(activatedGame))
 
     expect(activated.state).toBe('activated')
+    assert.exists(activatedGame.departmentWorkshopSnapshots)
     expect(activatedGame.departmentWorkshopSnapshots[DEPARTMENT_ID]).toEqual(
       activated.workshopState.snapshots[DEPARTMENT_ID]
     )
+    assert.exists(loaded.departmentWorkshopSnapshots)
     expect(loaded.departmentWorkshopSnapshots[DEPARTMENT_ID]).toEqual(
       activated.workshopState.snapshots[DEPARTMENT_ID]
     )

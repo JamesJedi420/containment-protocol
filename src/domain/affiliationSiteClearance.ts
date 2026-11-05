@@ -16,11 +16,7 @@ import {
 } from './entityWelfareStatusPermissions'
 
 export type AffiliationSiteClearanceBoundary =
-  | 'site'
-  | 'facility'
-  | 'safehouse'
-  | 'archive'
-  | 'vault'
+  'site' | 'facility' | 'safehouse' | 'archive' | 'vault'
 
 export type AffiliationSiteLayer = 'exterior' | 'transition' | 'interior'
 
@@ -169,7 +165,7 @@ function normalizeScopedLabel(value: unknown, fallback: string) {
 
 function getValidationReasonCodes(
   input: SiteClearanceInputLike | null,
-  surface: EntityWelfarePermissionSurface,
+  _surface: EntityWelfarePermissionSurface,
   boundary: AffiliationSiteClearanceBoundary,
   siteLayer: AffiliationSiteLayer
 ) {

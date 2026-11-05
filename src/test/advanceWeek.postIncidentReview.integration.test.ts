@@ -7,9 +7,7 @@ import {
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
   type PostIncidentMilestoneTimings,
 } from '../domain/postIncidentReviewRegistry'
-import {
-  RECURRENCE_DAMAGE_LEDGER_FIXTURE,
-} from '../domain/recurrentCatastropheAmeliorationRegistry'
+import { RECURRENCE_DAMAGE_LEDGER_FIXTURE } from '../domain/recurrentCatastropheAmeliorationRegistry'
 import { assignTeam } from '../domain/sim/assign'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
@@ -148,7 +146,9 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
-function stateWithFollowOnTrainingEnqueueReady<T extends ReturnType<typeof createStartingState>>(state: T): T {
+function stateWithFollowOnTrainingEnqueueReady<T extends ReturnType<typeof createStartingState>>(
+  state: T
+): T {
   return {
     ...state,
     academyTier: 1,
@@ -156,7 +156,9 @@ function stateWithFollowOnTrainingEnqueueReady<T extends ReturnType<typeof creat
   }
 }
 
-function stateWithRecommendationActionReady<T extends ReturnType<typeof createStartingState>>(state: T): T {
+function stateWithRecommendationActionReady<T extends ReturnType<typeof createStartingState>>(
+  state: T
+): T {
   return {
     ...state,
     academyTier: 1,
@@ -185,9 +187,9 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     const nextState = advanceWeek(state)
 
     expect(nextState.week).toBe(52)
-    expect(nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]).toEqual(
-      RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE
-    )
+    expect(
+      nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]
+    ).toEqual(RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE)
     expect(nextState.postIncidentReviewRecords?.['review:cycle-4-closeout']).toBeUndefined()
   })
 
@@ -204,8 +206,7 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
 
     const nextState = advanceWeek(state)
     const created = nextState.postIncidentReviewRecords?.['review:cycle-4-closeout']
-    const catastrophe =
-      nextState.recurrentCatastropheRecords?.[RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]
+    const catastrophe = nextState.recurrentCatastropheRecords?.[RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]
 
     expect(nextState.week).toBe(53)
     expect(catastrophe?.recurrenceCount).toBe(4)
@@ -225,13 +226,14 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(nextState.postIncidentReviewRecommendationRecords).toEqual({})
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
-      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ??
+      []
     expect(followOnNotes).toHaveLength(1)
     expect(followOnNotes[0]?.type).toBe('post_incident_review.follow_on')
     expect(followOnNotes[0]?.content).toContain('training reference (threat assessment)')
-    expect(nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]).toEqual(
-      RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE
-    )
+    expect(
+      nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]
+    ).toEqual(RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE)
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
     const cycleMirrorRecord = mirrorView.records.find(
@@ -306,18 +308,12 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       nextState.week
     )
     const qualifyingDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
-      nextState.events
-        .filter(
-          (event) =>
-            'week' in event.payload &&
-            typeof event.payload.week === 'number' &&
-            event.payload.week === state.week
-        )
-        .map((event) => ({
-          type: event.type,
-          sourceSystem: event.sourceSystem,
-          payload: event.payload,
-        })),
+      nextState.events.filter(
+        (event) =>
+          'week' in event.payload &&
+          typeof event.payload.week === 'number' &&
+          event.payload.week === state.week
+      ),
       state.cases,
       nextState.week
     )
@@ -394,7 +390,8 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
 
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
-      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ??
+      []
     expect(followOnNotes).toHaveLength(1)
     expect(followOnNotes[0]?.type).toBe('post_incident_review.follow_on')
     expect(followOnNotes[0]?.content).toContain(created?.label ?? '')
@@ -415,8 +412,9 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     ])
 
     const payoutNotes =
-      weeklyReport?.notes.filter((note) => note.type === 'post_incident_review.closeout_reward_payout') ??
-      []
+      weeklyReport?.notes.filter(
+        (note) => note.type === 'post_incident_review.closeout_reward_payout'
+      ) ?? []
     expect(payoutNotes).toHaveLength(1)
     expect(payoutNotes[0]?.content).toContain('funding credit (containment priority)')
     expect(payoutNotes[0]?.content).toContain('training credit (containment priority)')
@@ -546,7 +544,8 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     const onceFollowOnNotes =
       onceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
     const twiceFollowOnNotes =
-      twiceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+      twiceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ??
+      []
     expect(onceFollowOnNotes).toHaveLength(1)
     expect(twiceFollowOnNotes).toHaveLength(0)
     expect(once.trainingQueue).toHaveLength(1)
@@ -719,12 +718,17 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
 
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
-      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ??
+      []
     expect(followOnNotes).toHaveLength(1)
     expect(followOnNotes[0]?.type).toBe('post_incident_review.follow_on')
     expect(followOnNotes[0]?.content).toContain('recommendation stub (near catastrophe case 001)')
     expect(nextState.trainingQueue).toHaveLength(0)
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toMatchObject({
       reviewRef: 'review:near-catastrophe-case-001',
       stubSuffix: 'near-catastrophe-case-001',
       followOnToken: 'follow_on:recommendation-stub:near-catastrophe-case-001',
@@ -851,7 +855,9 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     const nextState = advanceWeek(state)
 
     expect(nextState.cases['case-001'].stage).toBe(2)
-    expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toBeUndefined()
+    expect(
+      nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+    ).toBeUndefined()
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -884,7 +890,9 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       'review:near-catastrophe-case-001',
       'review:near-catastrophe-case-002',
     ])
-    expect(qualifyingIds).toEqual([...qualifyingIds].sort((left, right) => left.localeCompare(right)))
+    expect(qualifyingIds).toEqual(
+      [...qualifyingIds].sort((left, right) => left.localeCompare(right))
+    )
     expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(2)
   })
 
@@ -893,18 +901,12 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
 
     const nextState = advanceWeek(state)
     const qualifyingDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
-      nextState.events
-        .filter(
-          (event) =>
-            'week' in event.payload &&
-            typeof event.payload.week === 'number' &&
-            event.payload.week === state.week
-        )
-        .map((event) => ({
-          type: event.type,
-          sourceSystem: event.sourceSystem,
-          payload: event.payload,
-        })),
+      nextState.events.filter(
+        (event) =>
+          'week' in event.payload &&
+          typeof event.payload.week === 'number' &&
+          event.payload.week === state.week
+      ),
       state.cases,
       nextState.week
     )
@@ -930,7 +932,8 @@ describe('advanceWeek post-incident review follow-on artifact integration (SPE-8
     const nextState = advanceWeek(state)
 
     expect(
-      nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]?.unknownFields
+      nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]
+        ?.unknownFields
     ).toBeUndefined()
   })
 
@@ -961,7 +964,8 @@ describe('advanceWeek post-incident review follow-on artifact integration (SPE-8
 
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
-      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ??
+      []
     expect(followOnNotes).toHaveLength(0)
   })
 })
@@ -1013,7 +1017,11 @@ describe('advanceWeek post-incident recommendation registry integration (SPE-868
     const nextState = advanceWeek(state)
 
     expect(nextState.trainingQueue).toHaveLength(0)
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toMatchObject({
       reviewRef: 'review:near-catastrophe-case-001',
       followOnToken: 'follow_on:recommendation-stub:near-catastrophe-case-001',
     })
@@ -1054,7 +1062,11 @@ describe('advanceWeek post-incident recommendation mirror integration (SPE-868 s
     const mirrorView = getPostIncidentReviewRecommendationMirrorView(nextState)
     const record = mirrorView.records[0]
 
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toMatchObject({
       reviewRef: 'review:near-catastrophe-case-001',
       stubSuffix: 'near-catastrophe-case-001',
       orchestrationWeek: nextState.week,
@@ -1155,11 +1167,17 @@ describe('advanceWeek post-incident recommendation action integration (SPE-868 s
 
     const nextState = advanceWeek(state)
 
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toMatchObject({
       reviewRef: 'review:near-catastrophe-case-001',
       stubSuffix: 'near-catastrophe-case-001',
     })
-    expect(nextState.postIncidentReviewRecommendationActionRecords?.['action:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationActionRecords?.['action:near-catastrophe-case-001']
+    ).toMatchObject({
       recommendationRef: 'recommendation:near-catastrophe-case-001',
       reviewRef: 'review:near-catastrophe-case-001',
       actionToken: 'follow_on:action-stub:near-catastrophe-case-001',
@@ -1174,7 +1192,11 @@ describe('advanceWeek post-incident recommendation action integration (SPE-868 s
 
     const nextState = advanceWeek(state)
 
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toBeDefined()
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toBeDefined()
     expect(nextState.postIncidentReviewRecommendationActionRecords ?? {}).toEqual({})
   })
 
@@ -1247,7 +1269,9 @@ describe('advanceWeek post-incident recommendation action mirror integration (SP
     const mirrorView = getPostIncidentReviewRecommendationActionMirrorView(nextState)
     const record = mirrorView.records[0]
 
-    expect(nextState.postIncidentReviewRecommendationActionRecords?.['action:near-catastrophe-case-001']).toMatchObject({
+    expect(
+      nextState.postIncidentReviewRecommendationActionRecords?.['action:near-catastrophe-case-001']
+    ).toMatchObject({
       recommendationRef: 'recommendation:near-catastrophe-case-001',
       reviewRef: 'review:near-catastrophe-case-001',
       stubSuffix: 'near-catastrophe-case-001',
@@ -1286,7 +1310,11 @@ describe('advanceWeek post-incident recommendation action mirror integration (SP
     const nextState = advanceWeek(state)
     const mirrorView = getPostIncidentReviewRecommendationActionMirrorView(nextState)
 
-    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toBeDefined()
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.[
+        'recommendation:near-catastrophe-case-001'
+      ]
+    ).toBeDefined()
     expect(nextState.postIncidentReviewRecommendationActionRecords ?? {}).toEqual({})
     expect(mirrorView.isEmpty).toBe(true)
     expect(mirrorView.hasLinkedRecommendations).toBe(false)
@@ -1338,7 +1366,9 @@ describe('advanceWeek post-incident recommendation action mirror integration (SP
     expect(twiceMirror.records).toEqual(onceMirror.records)
     expect(twiceMirror.linkedQualifyingRecords).toEqual(onceMirror.linkedQualifyingRecords)
     expect(twiceMirror.summary.totalRecords).toBe(onceMirror.summary.totalRecords)
-    expect(twiceMirror.summary.linkedRecommendationCount).toBe(onceMirror.summary.linkedRecommendationCount)
+    expect(twiceMirror.summary.linkedRecommendationCount).toBe(
+      onceMirror.summary.linkedRecommendationCount
+    )
     expect(twiceMirror.summary.linkedQualifyingReviewCount).toBe(
       onceMirror.summary.linkedQualifyingReviewCount
     )
@@ -1450,10 +1480,8 @@ describe('advanceWeek post-incident review redacted score mirror integration (SP
       projectPostIncidentReviewSummary(nearCatastrophe!).milestoneSpanWeeks
     )
 
-    const redactedCloseoutRecord =
-      once.postIncidentReviewRecords?.['review:case-case-001-closeout']
-    const redactedNearRecord =
-      once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
+    const redactedCloseoutRecord = once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+    const redactedNearRecord = once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
 
     const twice = advanceWeek(once)
 
@@ -1506,7 +1534,9 @@ describe('advanceWeek post-incident review recurrence compliance mirror integrat
     }
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
-    const mirrorRecord = mirrorView.records.find((record) => record.id === 'review:cycle-4-closeout')
+    const mirrorRecord = mirrorView.records.find(
+      (record) => record.id === 'review:cycle-4-closeout'
+    )
 
     expectRedactedRecurrenceObservedMirrorLabel(mirrorRecord)
     expect(mirrorRecord?.redacted).toBe(true)
@@ -1724,10 +1754,8 @@ describe('advanceWeek post-incident review reviewRoute closureOutcome redaction 
     expect(redactedNear?.recurrenceObservedLabel).toBe('No')
     expect(redactedMirror.summary.externalAuditRouteCount).toBe(1)
 
-    const redactedCloseoutRecord =
-      once.postIncidentReviewRecords?.['review:case-case-001-closeout']
-    const redactedNearRecord =
-      once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
+    const redactedCloseoutRecord = once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+    const redactedNearRecord = once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
 
     const twice = advanceWeek(once)
 
@@ -1756,7 +1784,8 @@ describe('advanceWeek post-incident closeout reward-branch payout integration (S
 
     const rewardEntry = history.find(
       (entry) =>
-        entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON && entry.sourceId === `post-incident-closeout-reward:${reviewRef}`
+        entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON &&
+        entry.sourceId === `post-incident-closeout-reward:${reviewRef}`
     )
     const trainingEntry = history.find(
       (entry) =>
@@ -1770,7 +1799,9 @@ describe('advanceWeek post-incident closeout reward-branch payout integration (S
     expect(rewardEntry?.delta).toBe(containmentDeltas.fundingDelta)
     expect(trainingEntry?.delta).toBe(containmentDeltas.trainingCreditDelta)
     expect(containmentDeltas.fundingDelta).toBeGreaterThan(contestedDeltas.fundingDelta)
-    expect(containmentDeltas.trainingCreditDelta).toBeGreaterThan(contestedDeltas.trainingCreditDelta)
+    expect(containmentDeltas.trainingCreditDelta).toBeGreaterThan(
+      contestedDeltas.trainingCreditDelta
+    )
 
     const prior = state.postIncidentReviewRecords ?? {}
     const contestedRecord = {

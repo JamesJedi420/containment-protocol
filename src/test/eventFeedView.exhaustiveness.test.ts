@@ -25,29 +25,26 @@ describe('EVENT_TYPE_LABELS coverage', () => {
 })
 
 describe('buildEventFeedView exhaustiveness', () => {
-  it.each(canonicalOperationEventTypes)(
-    'does not throw for minimal payload on %s',
-    (type) => {
-      const event = createMinimalOperationEvent(type)
-      expect(() => buildEventFeedView(event)).not.toThrow()
-      const view = buildEventFeedView(event)
-      expect(view.title.length).toBeGreaterThan(0)
-      expect(view.detail.length).toBeGreaterThan(0)
-      expect(view.searchText.length).toBeGreaterThan(0)
-      expect(view.week).toBe(minimalOperationEventPayloads[type].week)
-    }
-  )
+  it.each(canonicalOperationEventTypes)('does not throw for minimal payload on %s', (type) => {
+    const event = createMinimalOperationEvent(type)
+    expect(() => buildEventFeedView(event)).not.toThrow()
+    const view = buildEventFeedView(event)
+    expect(view.title.length).toBeGreaterThan(0)
+    expect(view.detail.length).toBeGreaterThan(0)
+    expect(view.searchText.length).toBeGreaterThan(0)
+    expect(view.week).toBe(minimalOperationEventPayloads[type].week)
+  })
 })
 
 describe('event feed search surfaces', () => {
   it('queryEvents matches raw payload strings; dashboard query matches formatted searchText', () => {
-    const production = createMinimalOperationEvent('production.queue_started', {
-      id: 'evt-production-search',
+    const production = {
+      ...createMinimalOperationEvent('production.queue_started', { id: 'evt-production-search' }),
       payload: {
         ...minimalOperationEventPayloads['production.queue_started'],
         inputMaterials: [],
       },
-    })
+    }
     const game = { ...createStartingState(), events: [production] }
     const index = buildEventQueryIndex(game.events)
 

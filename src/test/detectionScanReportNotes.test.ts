@@ -56,9 +56,9 @@ describe('detectionScanReportNotes', () => {
   it('formats modality-specific readout prefixes', () => {
     const scan = resolveDetectionScan(buildSubject(), { family: 'category_pass' })
 
-    expect(
-      formatDetectionScanSummary(scan, { prefix: CONCEALMENT_SCAN_READOUT_PREFIX })
-    ).toBe(`${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`)
+    expect(formatDetectionScanSummary(scan, { prefix: CONCEALMENT_SCAN_READOUT_PREFIX })).toBe(
+      `${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`
+    )
 
     expect(
       formatDetectionScanSummary(scan, { prefix: DISPLACEMENT_SCAN_READOUT_PREFIX })
@@ -70,8 +70,12 @@ describe('detectionScanReportNotes', () => {
     expect(detectionScanReadoutPrefixForModality('false_position')).toBe(
       DISPLACEMENT_SCAN_READOUT_PREFIX
     )
-    expect(detectionScanReadoutPrefixForModality('disguised_identity')).toBe(COVER_SCAN_READOUT_PREFIX)
-    expect(detectionScanReadoutPrefixForModality('glamour_overlay')).toBe(GLAMOUR_SCAN_READOUT_PREFIX)
+    expect(detectionScanReadoutPrefixForModality('disguised_identity')).toBe(
+      COVER_SCAN_READOUT_PREFIX
+    )
+    expect(detectionScanReadoutPrefixForModality('glamour_overlay')).toBe(
+      GLAMOUR_SCAN_READOUT_PREFIX
+    )
     expect(detectionScanReadoutPrefixForModality('out_of_phase_presence')).toBe(
       OUT_OF_PHASE_SCAN_READOUT_PREFIX
     )
@@ -86,12 +90,16 @@ describe('detectionScanReportNotes', () => {
       layersToStrip: 1,
     })
 
-    expect(formatDetectionScanSummary(scan)).toContain('Counter-detection stripped 1 concealment layer.')
+    expect(formatDetectionScanSummary(scan)).toContain(
+      'Counter-detection stripped 1 concealment layer.'
+    )
     expect(formatDetectionScanSummary(scan)).toContain('entity:case-scan-copy')
   })
 
   it('returns false when validation is inactive', () => {
-    const scan = resolveDetectionScan(buildSubject({ present: false }), { family: 'presence_sweep' })
+    const scan = resolveDetectionScan(buildSubject({ present: false }), {
+      family: 'presence_sweep',
+    })
 
     expect(
       shouldAppendDetectionScanReportNote({
@@ -113,7 +121,9 @@ describe('detectionScanReportNotes', () => {
   })
 
   it('returns false for active validation with presence-only absent contact', () => {
-    const scan = resolveDetectionScan(buildSubject({ present: false }), { family: 'presence_sweep' })
+    const scan = resolveDetectionScan(buildSubject({ present: false }), {
+      family: 'presence_sweep',
+    })
 
     expect(
       shouldAppendDetectionScanReportNote({
@@ -124,7 +134,9 @@ describe('detectionScanReportNotes', () => {
   })
 
   it('does not append when validation is inactive', () => {
-    const scan = resolveDetectionScan(buildSubject({ present: false }), { family: 'presence_sweep' })
+    const scan = resolveDetectionScan(buildSubject({ present: false }), {
+      family: 'presence_sweep',
+    })
     const reasons: string[] = []
 
     appendDetectionScanResolutionReason(reasons, {
@@ -141,9 +153,13 @@ describe('detectionScanReportNotes', () => {
   })
 
   it('does not append a readout prefix-only line when tier values are empty', () => {
-    expect(formatDetectionScanSummary({ fields: [], remainingConcealmentLayers: [], strippedLayerIds: [] })).toBe(
-      ''
-    )
+    expect(
+      formatDetectionScanSummary({
+        fields: [],
+        remainingConcealmentLayers: [],
+        strippedLayerIds: [],
+      })
+    ).toBe('')
   })
 
   it('does not append duplicate detection readout lines', () => {
@@ -174,9 +190,7 @@ describe('detectionScanReportNotes', () => {
 
   it('does not append a second readout when a modality prefix line already exists', () => {
     const scan = resolveDetectionScan(buildSubject(), { family: 'category_pass' })
-    const reasons = [
-      `${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`,
-    ]
+    const reasons = [`${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`]
 
     appendDetectionScanResolutionReason(reasons, {
       active: true,
@@ -323,6 +337,8 @@ describe('detectionScanReportNotes', () => {
         outcome: 'fail',
         revealed: false,
         withheld: true,
+        value: 0,
+        explanation: 'Presence-only scan withheld the hidden identity.',
         detectionScan: presenceOnlyScan,
       },
       caseData,

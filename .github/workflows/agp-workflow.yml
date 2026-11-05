@@ -65,9 +65,7 @@ on:
         type: string
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write  # Required for Sonatype Guide OIDC authentication
+  contents: read
 
 concurrency:
   group: agp-workflow
@@ -77,6 +75,9 @@ jobs:
   # Cheap, Docker-free gate. Determines whether AGP should run for this repo and, when
   # it should, writes the governed effective agp.yml to the workspace (fail-closed).
   gate:
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -86,11 +87,15 @@ jobs:
         uses: actions/checkout@v5
       - name: Sonatype Guide gate
         id: gate
-        uses: sonatype/agp-action/gate@v1
+        uses: sonatype/agp-action/gate@204590723e731baef51c5467e7f6a1afeb1e12c6 # v1
         with:
           guide-url: ${{ vars.AGP_API_URL }}
 
   agp:
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     needs: gate
     if: needs.gate.outputs.directive == 'run'
     runs-on: ubuntu-latest
@@ -104,12 +109,12 @@ jobs:
         # again here for the AGP run below to use. The gate also marks the file it writes
         # git-excluded for this checkout only, so it is never reported as an uncommitted change —
         # no extra git command is needed here.
-        uses: sonatype/agp-action/gate@v1
+        uses: sonatype/agp-action/gate@204590723e731baef51c5467e7f6a1afeb1e12c6 # v1
         with:
           guide-url: ${{ vars.AGP_API_URL }}
 
       - name: Run AGP
-        uses: sonatype/agp-action@v1
+        uses: sonatype/agp-action@204590723e731baef51c5467e7f6a1afeb1e12c6 # v1
         with:
           # Forward the dispatch inputs so a backend-triggered run targets the right mode.
           # A full/scheduled run sends mode=full; security-fix sends mode=security

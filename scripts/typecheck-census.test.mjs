@@ -13,6 +13,97 @@ import {
 const project = (file) => (file.startsWith('src/') ? 'tsconfig.app.json' : undefined)
 const diagnostic = 'src/a.test.ts(2,3): error TS2322: Type mismatch.\n  Missing member.\n'
 
+test('green recovery accounts for every surviving occurrence and verifies forced and literal build evidence', () => {
+  const base = new URL('../docs/typecheck/green-build-2026-11-04/', import.meta.url)
+  const read = (name) => JSON.parse(fs.readFileSync(new URL(name, base), 'utf8'))
+  const delta = read('delta.json')
+  const before = read(delta.before)
+  const after = read(delta.after)
+  const prior = JSON.parse(
+    fs.readFileSync(
+      new URL('../docs/typecheck/mechanical-contracts-2026-11-03/census.json', import.meta.url),
+      'utf8'
+    )
+  )
+  assert.deepEqual(compareCensuses(prior.diagnostics, before.diagnostics), [])
+  assert.equal(before.summary.occurrences, 381)
+  const buildBefore = fs
+    .readFileSync(new URL('before/build.txt', base), 'utf8')
+    .replaceAll('\r\n', '\n')
+  assert.deepEqual(
+    parseDiagnostics(buildBefore.slice(buildBefore.search(/^src\//m)), project),
+    before.diagnostics
+  )
+  assert.equal(delta.roots.length, 170)
+  assert.equal(new Set(delta.roots.map((row) => row.issue)).size, 170)
+  const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
+  assert.equal(removed.length, 381)
+  assert.equal(
+    new Set(removed.map((row) => JSON.stringify([row.identity, row.line, row.column]))).size,
+    381
+  )
+  assert.deepEqual(compareCensuses(removed, before.diagnostics), [])
+  assert.deepEqual(compareCensuses(before.diagnostics, after.diagnostics), delta.identityDelta)
+  assert.equal(delta.addedOccurrences, 0)
+  const historicalBase = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const historicalCensus = JSON.parse(
+    fs.readFileSync(new URL('census.json', historicalBase), 'utf8')
+  )
+  const historicalPacket = JSON.parse(
+    fs.readFileSync(new URL('reconciliation.json', historicalBase), 'utf8')
+  )
+  for (const root of delta.roots) {
+    const group = historicalPacket.groups.find((row) => row.id === root.root)
+    assert.ok(group)
+    const expectedIdentities = new Set(
+      group.diagnosticIndices.map((index) => historicalCensus.diagnostics[index].identity)
+    )
+    for (const mapping of root.historicalIdentityMappings) {
+      assert.equal(root.root, 'recruitment-event-correlation')
+      assert.equal(mapping.replacedText, 'stage: 1 | 3 | 2')
+      assert.equal(mapping.replacementText, 'stage: 1 | 2 | 3')
+      const historical = historicalCensus.diagnostics.find(
+        (row) => row.identity === mapping.historicalIdentity
+      )
+      const current = before.diagnostics.find((row) => row.identity === mapping.currentIdentity)
+      assert.ok(historical)
+      assert.ok(current)
+      assert.equal(current.file, historical.file)
+      assert.equal(current.code, historical.code)
+      assert.equal(
+        current.message,
+        historical.message.replaceAll(mapping.replacedText, mapping.replacementText)
+      )
+      expectedIdentities.add(current.identity)
+    }
+    assert.ok(root.removedDiagnostics.every((row) => expectedIdentities.has(row.identity)))
+    assert.ok(root.removedDiagnostics.every((row) => group.files.includes(row.file)))
+    assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
+    assert.ok(root.targetedTests.length > 0)
+    for (const path of root.targetedTests)
+      assert.ok(fs.existsSync(new URL(`../${path}`, import.meta.url)), path)
+  }
+  assert.deepEqual(after.summary, summarize([]))
+  assert.deepEqual(after.diagnostics, [])
+  assert.equal(after.reproducible, true)
+  assert.equal(after.runs.length, 2)
+  after.runs.forEach((run, index) => {
+    const raw = fs.readFileSync(new URL(`compiler-${index + 1}.txt`, base), 'utf8')
+    assert.equal(run.exitCode, 0)
+    assert.equal(run.rawHash, sha256(raw))
+    assert.deepEqual(parseDiagnostics(raw, project), [])
+  })
+  const execution = read('execution.json')
+  const raw = fs.readFileSync(new URL('build.txt', base), 'utf8').replaceAll('\r\n', '\n')
+  assert.equal(execution.command, 'npm run build')
+  assert.equal(execution.exitCode, 0)
+  assert.equal(execution.viteExecuted, true)
+  assert.equal(execution.compilerInputHash, after.compilerInputHash)
+  assert.equal(execution.normalizedTranscriptSha256, sha256(raw))
+  assert.match(raw, /built in /)
+  assert.doesNotMatch(raw, /error TS\d+:/)
+})
+
 test('committed baseline reconciles raw compiler output, every occurrence, summary and both run hashes', () => {
   const base = new URL('../docs/typecheck/41873280/', import.meta.url)
   const report = JSON.parse(fs.readFileSync(new URL('census.json', base), 'utf8'))
@@ -178,4 +269,388 @@ test('partition assigns every baseline occurrence once and binds analysis to ver
       `${group.id}: evidence must match occurrence coordinates`
     )
   }
+})
+
+test('November reconciliation binds its clean current-main census to both raw compiler captures', () => {
+  const base = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const censusText = fs.readFileSync(new URL('census.json', base), 'utf8')
+  const census = JSON.parse(censusText)
+  const packet = JSON.parse(fs.readFileSync(new URL('reconciliation.json', base), 'utf8'))
+  const raw = fs.readFileSync(new URL('compiler.txt', base), 'utf8')
+  const diagnostics = parseDiagnostics(raw, (file) =>
+    file.startsWith('src/') ? 'tsconfig.app.json' : undefined
+  )
+  assert.equal(packet.censusSha256, sha256(JSON.stringify(census)))
+  assert.equal(packet.revision, census.revision)
+  assert.equal(census.revision, 'ad21424a4804e22a40a6bbef10454cdc84835016')
+  assert.equal(census.workingTreeStatus, '')
+  assert.equal(census.nodeVersion, 'v22.23.4')
+  assert.equal(census.reproducible, true)
+  assert.deepEqual(census.identityDelta, [])
+  assert.equal(census.runs.length, 2)
+  for (const run of census.runs) {
+    assert.equal(run.exitCode, 2)
+    assert.equal(run.rawHash, sha256(raw))
+  }
+  assert.deepEqual(diagnostics, census.diagnostics)
+  assert.deepEqual(summarize(diagnostics), census.summary)
+  assert.deepEqual(packet.summary.current, census.summary)
+  const execution = JSON.parse(fs.readFileSync(new URL('execution.json', base), 'utf8'))
+  const buildLog = fs.readFileSync(new URL(execution.log, base), 'utf8').replaceAll('\r\n', '\n')
+  assert.equal(execution.command, 'npm run build')
+  assert.equal(execution.exitCode, 2)
+  assert.equal(execution.revision, census.revision)
+  assert.equal(execution.nodeVersion, census.nodeVersion)
+  assert.equal(execution.compilerInputHash, census.compilerInputHash)
+  assert.equal(execution.normalizedLogSha256, sha256(buildLog))
+  assert.match(buildLog, /tsc -b && vite build/)
+  assert.equal(execution.diagnosticLines, census.diagnostics.length)
+  const firstDiagnosticOffset = buildLog.indexOf('src/')
+  assert.ok(firstDiagnosticOffset >= 0, 'build log must contain the captured src/ diagnostics')
+  assert.deepEqual(
+    parseDiagnostics(buildLog.slice(firstDiagnosticOffset), (file) =>
+      file.startsWith('src/') ? 'tsconfig.app.json' : undefined
+    ),
+    census.diagnostics
+  )
+})
+
+test('November reconciliation assigns all current occurrences once without reviving completed owners', () => {
+  const base = new URL('../docs/typecheck/', import.meta.url)
+  const packet = JSON.parse(
+    fs.readFileSync(new URL('reconciliation-2026-11-03/reconciliation.json', base), 'utf8')
+  )
+  const census = JSON.parse(
+    fs.readFileSync(new URL('reconciliation-2026-11-03/census.json', base), 'utf8')
+  )
+  const historicalText = fs.readFileSync(new URL('41873280/census.json', base), 'utf8')
+  const partitionText = fs.readFileSync(new URL('partition.json', base), 'utf8')
+  const historical = JSON.parse(historicalText)
+  const partition = JSON.parse(partitionText)
+  assert.equal(packet.baselineSha256, sha256(JSON.stringify(historical)))
+  assert.equal(packet.historicalPartitionSha256, sha256(JSON.stringify(partition)))
+  assert.deepEqual(
+    packet.comparisons.originalBaseline.identityDelta,
+    compareCensuses(historical.diagnostics, census.diagnostics)
+  )
+  assert.ok(packet.comparisons.originalBaseline.identityDelta.every((row) => row.change < 0))
+  const allIndices = packet.groups.flatMap((group) => group.diagnosticIndices)
+  assert.deepEqual(
+    allIndices.toSorted((a, b) => a - b),
+    census.diagnostics.map((_, index) => index)
+  )
+  assert.equal(new Set(packet.groups.map((group) => group.id)).size, packet.groups.length)
+  assert.equal(packet.groups.length, 187)
+  assert.equal(new Set(packet.groups.map((group) => group.historicalGroupId)).size, 186)
+  for (const group of packet.groups) {
+    const source = partition.groups.find((row) => row.id === group.historicalGroupId)
+    assert.ok(source, group.id)
+    assert.equal(group.occurrenceCount, group.diagnosticIndices.length)
+    assert.equal(group.disposition, source.disposition)
+    assert.equal(group.historicalCanonicalContract, source.canonicalContract)
+    assert.ok(group.canonicalContract, group.id)
+    assert.equal(group.repairOwner, null)
+    assert.equal(group.approvalState, 'proposed-not-admitted')
+    assert.ok(group.proposedRepair.length > 30, group.id)
+    assert.ok(group.additionalTestRequirement, group.id)
+    assert.deepEqual(
+      group.sourceAnchors,
+      group.diagnosticIndices.map((index) => {
+        const row = census.diagnostics[index]
+        assert.ok(
+          group.historicalOccurrenceIndices.some(
+            (oldIndex) => historical.diagnostics[oldIndex].identity === row.identity
+          ),
+          `${group.id}: current identity must be in its historical cohort`
+        )
+        return `${row.file}:${row.line}:${row.column}`
+      })
+    )
+    assert.ok(
+      group.historicalOccurrenceIndices.every((index) => source.occurrences.includes(index))
+    )
+    for (const file of group.testCandidates) {
+      assert.match(file, /\.test\.tsx?$/)
+      assert.ok(fs.existsSync(new URL(`../${file}`, import.meta.url)), file)
+    }
+  }
+  const count = (predicate) =>
+    packet.groups.filter(predicate).reduce((total, group) => total + group.occurrenceCount, 0)
+  assert.equal(
+    count((group) => group.disposition === 'semantic-review'),
+    99
+  )
+  assert.equal(
+    count((group) => group.disposition === 'repair-candidate'),
+    310
+  )
+  const residuals = packet.groups.filter((group) => group.priorRepairOwner)
+  assert.deepEqual(
+    residuals.map((group) => [group.id, group.priorRepairOwner, group.occurrenceCount]),
+    [
+      ['workshop-persistence-map-presence', 'SPE-3444', 6],
+      ['workshop-persistence-outcome-shape', 'SPE-3444', 1],
+    ]
+  )
+  const completedHelper = JSON.parse(
+    fs.readFileSync(new URL('spe-3444-evidence.json', base), 'utf8')
+  )
+  assert.deepEqual(
+    compareCensuses(
+      completedHelper.remainingPersistenceDiagnostics,
+      residuals.flatMap((group) =>
+        group.diagnosticIndices.map((index) => census.diagnostics[index])
+      )
+    ),
+    []
+  )
+})
+
+test('approved canonical import cohort removes only its fourteen diagnostics and preserves runtime output', () => {
+  const base = new URL('../docs/typecheck/import-repair-2026-11-03/', import.meta.url)
+  const delta = JSON.parse(fs.readFileSync(new URL('delta.json', base), 'utf8'))
+  const before = readRepairCapture(base, delta.before)
+  const after = readRepairCapture(base, delta.after)
+  assert.equal(before.workingTreeStatus, '')
+  assert.equal(before.summary.occurrences, 409)
+  assert.equal(after.summary.occurrences, 395)
+  assert.deepEqual(compareCensuses(before.diagnostics, after.diagnostics), delta.identityDelta)
+  assert.ok(delta.identityDelta.every((row) => row.change < 0))
+  assert.equal(delta.removedOccurrences, 14)
+  assert.equal(delta.addedOccurrences, 0)
+  assert.deepEqual(
+    delta.roots.map((row) => [row.issue, row.measuredRemovals]),
+    [
+      ['SPE-3526', 4],
+      ['SPE-3527', 3],
+      ['SPE-3528', 1],
+      ['SPE-3529', 1],
+      ['SPE-3530', 1],
+      ['SPE-3531', 1],
+      ['SPE-3532', 2],
+      ['SPE-3533', 1],
+    ]
+  )
+  const archiveBase = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const archive = JSON.parse(fs.readFileSync(new URL('census.json', archiveBase), 'utf8'))
+  const packet = JSON.parse(fs.readFileSync(new URL('reconciliation.json', archiveBase), 'utf8'))
+  const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
+  assert.deepEqual(compareCensuses(removed, []), delta.identityDelta)
+  for (const root of delta.roots) {
+    const approvedGroup = packet.groups.find((group) => group.id === root.root)
+    assert.ok(approvedGroup, root.root)
+    const expectedIdentities = new Set(
+      approvedGroup.diagnosticIndices.map((index) => archive.diagnostics[index].identity)
+    )
+    for (const diagnostic of root.removedDiagnostics) {
+      assert.equal(diagnostic.file, root.file)
+      assert.ok(
+        expectedIdentities.has(diagnostic.identity),
+        root.issue + ': diagnostic must belong to its own baseline root'
+      )
+    }
+    assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
+    assert.equal(root.expectedRemovals, root.measuredRemovals)
+    assert.ok(root.canonicalContract)
+    assert.ok(root.targetedTests.length > 0)
+  }
+  assert.equal(delta.runtimeIdentity.files.length, 7)
+  for (const entry of delta.runtimeIdentity.files) {
+    assert.equal(entry.identical, true)
+    assert.match(entry.beforeEmittedJavaScriptSha256, /^[0-9a-f]{64}$/)
+    assert.equal(entry.beforeEmittedJavaScriptSha256, entry.afterEmittedJavaScriptSha256)
+  }
+  assert.equal(delta.remaining.fullGreenBuild, false)
+})
+
+function readRepairCapture(base, metadata) {
+  const captureUrl = new URL(metadata.census, base)
+  const census = JSON.parse(fs.readFileSync(captureUrl, 'utf8'))
+  const raw = fs.readFileSync(new URL('compiler.txt', captureUrl), 'utf8')
+  const records = parseDiagnostics(raw, project)
+  assert.deepEqual(records, census.diagnostics)
+  assert.deepEqual(summarize(records), census.summary)
+  assert.equal(metadata.revision, census.revision)
+  assert.equal(metadata.compilerInputHash, census.compilerInputHash)
+  assert.equal(metadata.normalizedDiagnosticRecordsSha256, sha256(JSON.stringify(records)))
+  assert.equal(census.nodeVersion, 'v22.23.4')
+  assert.equal(census.typescriptVersion, '6.0.3')
+  assert.equal(census.reproducible, true)
+  assert.equal(census.runs.length, 2)
+  assert.deepEqual(census.identityDelta, [])
+  for (const run of census.runs) {
+    assert.equal(run.exitCode, 2)
+    assert.equal(run.rawHash, sha256(raw))
+  }
+  return census
+}
+
+function assertAnnotationCohort({
+  directory,
+  beforeOccurrences,
+  afterOccurrences,
+  expectedRoots,
+  previousComparisonKey,
+  runtimeFileCount,
+  allowAllocationUnionMapping = false,
+}) {
+  const base = new URL(`../docs/typecheck/${directory}/`, import.meta.url)
+  const delta = JSON.parse(fs.readFileSync(new URL('delta.json', base), 'utf8'))
+  const before = readRepairCapture(base, delta.before)
+  const after = readRepairCapture(base, delta.after)
+  assert.equal(before.workingTreeStatus, '')
+  assert.equal(before.summary.occurrences, beforeOccurrences)
+  assert.equal(after.summary.occurrences, afterOccurrences)
+  const fixtures = (census) => census.diagnostics.filter((row) => row.surface === 'test-fixture')
+  assert.equal(fixtures(before).length, 250)
+  assert.deepEqual(compareCensuses(fixtures(before), fixtures(after)), [])
+  assert.deepEqual(compareCensuses(before.diagnostics, after.diagnostics), delta.identityDelta)
+  assert.ok(delta.identityDelta.every((row) => row.change < 0))
+  const expectedRemovalCount = beforeOccurrences - afterOccurrences
+  assert.equal(delta.removedOccurrences, expectedRemovalCount)
+  assert.equal(delta.addedOccurrences, 0)
+  const previousComparison = delta[previousComparisonKey]
+  const previous = JSON.parse(fs.readFileSync(new URL(previousComparison.census, base), 'utf8'))
+  assert.deepEqual(compareCensuses(previous.diagnostics, before.diagnostics), [])
+  assert.deepEqual(previousComparison.identityDelta, [])
+  assert.deepEqual(
+    delta.roots.map((row) => [row.issue, row.root, row.measuredRemovals]),
+    expectedRoots
+  )
+  const archiveBase = new URL('../docs/typecheck/reconciliation-2026-11-03/', import.meta.url)
+  const archive = JSON.parse(fs.readFileSync(new URL('census.json', archiveBase), 'utf8'))
+  const packet = JSON.parse(fs.readFileSync(new URL('reconciliation.json', archiveBase), 'utf8'))
+  const removed = delta.roots.flatMap((row) => row.removedDiagnostics)
+  assert.deepEqual(compareCensuses(removed, []), delta.identityDelta)
+  const coordinates = removed.map((row) => JSON.stringify([row.identity, row.line, row.column]))
+  assert.equal(new Set(coordinates).size, expectedRemovalCount, 'each removal is attributed once')
+  for (const root of delta.roots) {
+    const group = packet.groups.find((row) => row.id === root.root)
+    assert.ok(group, root.root)
+    assert.equal(group.disposition, 'repair-candidate')
+    if (!allowAllocationUnionMapping) assert.deepEqual(root.historicalIdentityMappings, [])
+    const expected = group.diagnosticIndices.map((index) => {
+      const historical = archive.diagnostics[index]
+      const mapping = root.historicalIdentityMappings.find(
+        (row) => row.historicalIdentity === historical.identity
+      )
+      if (!mapping) return historical
+      assert.equal(allowAllocationUnionMapping, true)
+      assert.equal(root.root, 'allocation-literal-inference')
+      assert.equal(root.historicalIdentityMappings.length, 1)
+      const unionMembers = (text) =>
+        text.replace('action: ', '').replace(';', '').split(' | ').sort(compareText)
+      assert.deepEqual(unionMembers(mapping.replacedText), unionMembers(mapping.replacementText))
+      const current = before.diagnostics.find((row) => row.identity === mapping.currentIdentity)
+      assert.ok(current)
+      assert.equal(current.file, historical.file)
+      assert.equal(current.code, historical.code)
+      assert.equal(
+        current.message,
+        historical.message.replace(mapping.replacedText, mapping.replacementText)
+      )
+      return current
+    })
+    assert.deepEqual(compareCensuses(expected, root.removedDiagnostics), [])
+    const rootIdentities = new Set(root.removedDiagnostics.map((row) => row.identity))
+    assert.deepEqual(
+      root.removedDiagnostics,
+      before.diagnostics.filter((row) => rootIdentities.has(row.identity))
+    )
+    assert.ok(root.removedDiagnostics.every((row) => group.files.includes(row.file)))
+    assert.equal(root.expectedRemovals, root.measuredRemovals)
+    assert.equal(root.measuredRemovals, root.removedDiagnostics.length)
+    assert.ok(root.canonicalContract)
+    assert.ok(root.targetedTests.length > 0)
+    for (const file of root.targetedTests) {
+      assert.ok(fs.existsSync(new URL(`../${file}`, import.meta.url)), file)
+    }
+  }
+  const runtimeFiles = delta.runtimeIdentity.files.map((row) => row.file).sort(compareText)
+  assert.deepEqual(
+    runtimeFiles,
+    [...new Set(delta.roots.map((row) => row.implementationFile))].sort(compareText)
+  )
+  assert.equal(runtimeFiles.length, runtimeFileCount)
+  assert.equal(delta.runtimeIdentity.baseRevision, before.revision)
+  assert.equal(delta.runtimeIdentity.typescriptVersion, '6.0.3')
+  assert.deepEqual(delta.runtimeIdentity.compilerOptions, {
+    target: 'ES2022',
+    module: 'ESNext',
+    verbatimModuleSyntax: true,
+  })
+  for (const entry of delta.runtimeIdentity.files) {
+    assert.equal(entry.identical, true)
+    for (const field of [
+      'beforeSourceSha256',
+      'afterSourceSha256',
+      'beforeEmittedJavaScriptSha256',
+    ]) {
+      assert.match(entry[field], /^[0-9a-f]{64}$/)
+    }
+    assert.equal(entry.beforeEmittedJavaScriptSha256, entry.afterEmittedJavaScriptSha256)
+  }
+  const semanticIdentities = new Set(
+    packet.groups
+      .filter((row) => row.disposition === 'semantic-review')
+      .flatMap((row) => row.diagnosticIndices.map((index) => archive.diagnostics[index].identity))
+  )
+  const semantic = (census) =>
+    census.diagnostics.filter((row) => semanticIdentities.has(row.identity))
+  assert.equal(semantic(before).length, 99)
+  assert.deepEqual(compareCensuses(semantic(before), semantic(after)), [])
+  assert.equal(delta.remaining.semanticReviewOccurrences, 99)
+  assert.equal(delta.remaining.occurrences, after.summary.occurrences)
+  assert.equal(delta.remaining.fullGreenBuild, false)
+  const execution = JSON.parse(fs.readFileSync(new URL('execution.json', base), 'utf8'))
+  const build = fs
+    .readFileSync(new URL(execution.transcript, base), 'utf8')
+    .replaceAll('\r\n', '\n')
+  const start = build.search(/^.+\(\d+,\d+\): error TS\d+:/m)
+  assert.ok(start >= 0, 'literal build must contain compiler diagnostics')
+  assert.equal(execution.command, 'npm run build')
+  assert.equal(execution.nodeVersion, before.nodeVersion)
+  assert.equal(execution.exitCode, 2)
+  assert.equal(execution.viteExecuted, false)
+  assert.equal(execution.normalizedTranscriptSha256, sha256(build))
+  assert.equal(execution.diagnosticOccurrences, after.summary.occurrences)
+  assert.equal(execution.diagnosticsMatchAfterCensus, true)
+  assert.deepEqual(
+    compareCensuses(parseDiagnostics(build.slice(start), project), after.diagnostics),
+    []
+  )
+}
+
+test('approved literal-context cohort attributes seven removals without changing runtime output', () => {
+  assertAnnotationCohort({
+    directory: 'literal-context-2026-11-03',
+    beforeOccurrences: 395,
+    afterOccurrences: 388,
+    expectedRoots: [
+      ['SPE-3538', 'allocation-literal-inference', 1],
+      ['SPE-3539', 'grade-visibility-inference', 2],
+      ['SPE-3540', 'fallout-literal-inference', 3],
+      ['SPE-3541', 'candidate-potential-inference', 1],
+    ],
+    previousComparisonKey: 'previousImportCohortComparison',
+    runtimeFileCount: 3,
+    allowAllocationUnionMapping: true,
+  })
+})
+
+test('approved mechanical production cohort removes exactly seven attributed diagnostics with identical runtime output', () => {
+  assertAnnotationCohort({
+    directory: 'mechanical-contracts-2026-11-03',
+    beforeOccurrences: 388,
+    afterOccurrences: 381,
+    expectedRoots: [
+      ['SPE-3543', 'candidate-source-disposition', 3],
+      ['SPE-3544', 'eligible-case-membership', 1],
+      ['SPE-3545', 'institutional-flags-index', 1],
+      ['SPE-3546', 'town-tags-readonly', 1],
+      ['SPE-3547', 'store-inspection-drafts', 1],
+    ],
+    previousComparisonKey: 'previousLiteralContextCohortComparison',
+    runtimeFileCount: 4,
+  })
 })

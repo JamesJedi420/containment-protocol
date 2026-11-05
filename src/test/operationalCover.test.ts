@@ -51,6 +51,14 @@ describe('institutional legitimacy and operational cover', () => {
       },
       reports: [
         {
+          rngStateBefore: 1,
+          rngStateAfter: 1,
+          newCases: [],
+          progressedCases: [],
+          spawnedCases: [],
+          maxStage: 0,
+          avgFatigue: 0,
+          teamStatus: [],
           week: state.week,
           resolvedCases: [],
           partialCases: [],

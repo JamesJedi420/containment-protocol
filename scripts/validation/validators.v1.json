@@ -217,6 +217,7 @@
       "enforcement": "advisory",
       "requiredWhen": {
         "pathGlobs": [
+          ".github/workflows/test.yml",
           "e2e/**",
           "playwright.config.ts",
           "src/features/operations/FrontDeskPage.tsx",
@@ -239,6 +240,7 @@
       "activation": {
         "changeClasses": ["e2e", "application"],
         "pathGlobs": [
+          ".github/workflows/test.yml",
           "e2e/**",
           "playwright.config.ts",
           "src/app/**",
@@ -248,7 +250,24 @@
         ]
       },
       "whenUnavailable": "report-unavailable",
-      "browserInstallHint": "npx playwright install chromium --with-deps"
+      "browserInstallHint": "node node_modules/@playwright/test/cli.js install chromium --with-deps"
+    },
+    {
+      "id": "session-preflight",
+      "ownerIssue": "SPE-3337",
+      "ownerNote": "Read-only named-task session conflict and handoff readiness validation; no sequencing, locking or mutation authority.",
+      "npmScript": "verify:session-preflight",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": [
+          "scripts/session-preflight*.mjs",
+          "scripts/validation/session-preflight-selection.check.mjs",
+          "scripts/validation/validators.v1.json",
+          "docs/session-preflight.md",
+          "docs/agent-session-handoff.md"
+        ]
+      },
+      "whenUnavailable": "fail"
     },
     {
       "id": "academy-authored-content",

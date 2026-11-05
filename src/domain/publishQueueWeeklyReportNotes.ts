@@ -46,9 +46,13 @@ export function buildWeeklyPublishQueueExecutionReportNotes(input: {
           recordId: receipt.recordId,
           outcome: receipt.outcome,
           executionWeek: receipt.executionWeek,
-          skipCode: receipt.skipCode,
-          publishChannelStub: receipt.publishChannelStub,
-          publishChannelRef: receipt.publishChannelRef,
+          ...(receipt.skipCode !== undefined ? { skipCode: receipt.skipCode } : {}),
+          ...(receipt.publishChannelStub !== undefined
+            ? { publishChannelStub: receipt.publishChannelStub }
+            : {}),
+          ...(receipt.publishChannelRef !== undefined
+            ? { publishChannelRef: receipt.publishChannelRef }
+            : {}),
           executionMode: resolvePublishQueueReceiptExecutionMode(receipt),
           recordStatus: record?.status,
           week: input.week,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
 import { copyInfiltrationCoverProfile } from '../domain/infiltrationCover'
 import {
   applyInfiltrationEncounterCoverStance,
@@ -35,11 +36,12 @@ function createEligibleCase(overrides: Partial<CaseInstance> = {}): CaseInstance
 
 function createGame(caseData: CaseInstance): GameState {
   return {
+    ...createStartingState(),
     week: 3,
     rngSeed: 1,
     rngState: 1,
     gameOver: false,
-    directiveState: { week: 3, directives: [] },
+    directiveState: { selectedId: null, history: [] },
     agents: {},
     staff: {},
     candidates: [],

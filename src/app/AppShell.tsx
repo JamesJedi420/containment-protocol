@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentType } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import Logo from '../components/Logo'
 import {
@@ -18,14 +19,9 @@ import {
   IconReports,
   IconTeams,
   IconTraining,
-} from '../components/icons'
+} from '../components/shellIcons'
 import { ShellStatusBar } from '../components/layout/ShellStatusBar'
-import { DeveloperOverlay } from '../features/developer/DeveloperOverlay'
-import {
-  DASHBOARD_HEADLINE,
-  GAME_OVER_REASONS,
-  SHELL_UI_TEXT,
-} from '../data/copy'
+import { DASHBOARD_HEADLINE, GAME_OVER_REASONS, SHELL_UI_TEXT } from '../data/copy'
 import { useGameStore } from './store/gameStore'
 import { APP_ROUTES } from './routes'
 import { getShellMeta } from './shellView'
@@ -35,6 +31,16 @@ import {
   SECONDARY_MVP_APP_SYSTEMS,
   type AppSystemId,
 } from './systemRegistry'
+
+// The overlay is a development-only surface. Gating the dynamic import on PROD keeps its
+// projection graph out of the production entry while MODE === 'test' still loads it.
+const DeveloperOverlay: ComponentType = import.meta.env.PROD
+  ? () => null
+  : lazy(() =>
+      import('../features/developer/DeveloperOverlay').then((module) => ({
+        default: module.DeveloperOverlay,
+      }))
+    )
 
 const SYSTEM_ICONS: Record<AppSystemId, typeof IconDashboard> = {
   operationsDesk: IconDashboard,
@@ -170,7 +176,9 @@ export default function AppShell() {
       </div>
 
       <Outlet />
-      <DeveloperOverlay />
+      <Suspense fallback={null}>
+        <DeveloperOverlay />
+      </Suspense>
     </main>
   )
 }

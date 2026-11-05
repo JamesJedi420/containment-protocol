@@ -11,9 +11,8 @@ import {
   createInitialFundingState,
   POST_INCIDENT_CLOSEOUT_REWARD_REASON,
   POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
-  type FundingState,
 } from './funding'
-import type { GameState } from './models'
+import type { FundingState, GameState } from './models'
 import {
   FOLLOW_ON_TRAINING_REF_PREFIX,
   isOrchestrationCreatedPostIncidentReviewRecord,

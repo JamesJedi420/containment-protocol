@@ -198,7 +198,12 @@ export function reconcileProductionGradeSnapshot(
   visibilityValue: unknown,
   explanationCodesValue: unknown,
   allowGradeOnlySnapshot = false
-) {
+):
+  | Pick<
+      ProductionQueueEntry,
+      'outputGradeId' | 'outputGradeVisibility' | 'outputGradeExplanationCodes'
+    >
+  | undefined {
   const recipe = typeof recipeIdValue === 'string' ? getProductionRecipe(recipeIdValue) : undefined
   if (!recipe) return undefined
 

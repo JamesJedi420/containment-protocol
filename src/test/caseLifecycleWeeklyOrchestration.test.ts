@@ -23,7 +23,10 @@ import type { RecurrentCatastropheRecord } from '../domain/recurrentCatastropheA
 import type { RuleDocumentComplianceRecord } from '../domain/ruleDocumentComplianceContainmentRegistry'
 import { createInformationIntakeReport } from '../domain/informationIntakeReport'
 import type { CaseInstance } from '../domain/models'
-import type { ExtranormalEventRecord } from '../domain/extranormalEventRegistry'
+import {
+  BRIEF_COVER_UP_EVENT_FIXTURE,
+  type ExtranormalEventRecord,
+} from '../domain/extranormalEventRegistry'
 
 function makeCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
   return {
@@ -34,8 +37,8 @@ function makeCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
     mode: 'standard',
     kind: 'anomaly',
     status: 'open',
-    difficulty: {},
-    weights: {},
+    difficulty: { combat: 0, investigation: 0, utility: 0, social: 0 },
+    weights: { combat: 0, investigation: 0, utility: 0, social: 0 },
     tags: ['lifecycle-target'],
     requiredTags: [],
     preferredTags: [],
@@ -44,6 +47,8 @@ function makeCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
     deadlineWeeks: 8,
     deadlineRemaining: 8,
     assignedTeamIds: [],
+    onFail: { type: 'none' },
+    onUnresolved: { type: 'none' },
     ...overrides,
   }
 }
@@ -368,6 +373,7 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 3)', () => {
   it('resolveAnomalyConfirmedCaseIds links escalated extranormal events to cases', () => {
     const currentCase = makeCase({ lifecycleStage: 'confirmation' })
     const event: ExtranormalEventRecord = {
+      ...BRIEF_COVER_UP_EVENT_FIXTURE,
       id: 'extranormal:lifecycle-confirm',
       label: 'Escalated anomaly confirmation',
       closureState: 'escalated_to_case',
@@ -395,6 +401,7 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 3)', () => {
       rumorRisk: 'none',
     })
     const event: ExtranormalEventRecord = {
+      ...BRIEF_COVER_UP_EVENT_FIXTURE,
       id: 'extranormal:weekly-lifecycle',
       label: 'Weekly lifecycle confirmation',
       closureState: 'escalated_to_case',
@@ -653,10 +660,7 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 4)', () => {
 describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 5)', () => {
   it('applyCaseLifecycleEventToCase advances containment to presumed_neutralized', () => {
     const currentCase = makeCase({ lifecycleStage: 'containment' })
-    const nextCase = applyCaseLifecycleEventToCase(
-      currentCase,
-      'presumed_neutralized_entered'
-    )
+    const nextCase = applyCaseLifecycleEventToCase(currentCase, 'presumed_neutralized_entered')
 
     expect(nextCase.lifecycleStage).toBe('presumed_neutralized')
   })

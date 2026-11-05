@@ -7,8 +7,10 @@ Read [the Agent Operating Manual](docs/agent-operating-manual.md) before substan
 - **Actor authority:** Cursor follows [its canonical autonomous authority](docs/cursor-autonomous-authority.md); ChatGPT uses its Phase 1–4 gates for backlog-shape mutations. Codex acts within its assigned authorized boundary. Verified existing-boundary lifecycle/evidence updates remain distinct.
 - **Loading:** retain tracked `.cursor/rules/*.mdc` entry points and their frontmatter. They direct agents to read the manual; links alone do not imply automatic editor loading. [User Rules snippets](docs/cursor-user-rules-snippet.md) remain pasteable entry points.
 - **Owned work:** Linear is mandatory for truthful scope, status, PR and merge evidence. Set an active implementation slice In Progress before substantive work; Done requires full acceptance, and parent completion is separate. Unowned read-only analysis needs no invented issue.
+- **Existing issue approval:** an issue recorded in Linear is approved for its current recorded scope. Do not require historical approval records, an originating chat, an approval label, or a separate approval census. Follow [manual §1](docs/agent-operating-manual.md#1-select-the-actor-owner-and-legal-work) for the distinction between approval, scope and readiness.
 - **Ship loop:** pre-ship audit → commit → push → PR → independent review, review fixes and green CI → merge → sync main. Honor explicit user limits. Resolve open PRs before the next slice under the tracked clean-main rule.
 - **Closeout:** use [phase A/B formats](docs/agent-session-closeout.md). After merge, sync main in-session and remind the user to start a new agent chat for the next task. Do not select or implement new scope in merge closeout.
+- **Response closeout:** every response ends with the next concrete step, or — when none exists — an explicit recommendation to archive the chat. Where closeout forbids new scope (phase A), recommend archiving instead.
 - **Handoffs:** [session routing](docs/agent-session-handoff.md), [read-only format](docs/read-only-session-handoff.md), and [implementation-only cloud-to-local Linear payload](docs/cloud-agent-linear-handoff.md) retain their distinct triggers. A GitHub linkback is not a Linear update.
 - **Tools:** [plugin keep-list](docs/agent-cursor-plugins.md) and [capability summary](docs/agent-capabilities.md); the latter is non-authoritative.
 
@@ -38,7 +40,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 ### Non-obvious caveats
 
-- **`npm run build` currently has baseline TS errors outside dev-environment setup.** Treat those as known type-contract drift, not as production-ignored failures; fix them in scoped follow-up changes before using `build` as a deployment gate. They do not block tests or the dev server because Vite transpiles TypeScript without strict type checking.
+- **Full build recovery:** SPE-3375 clears the previous TypeScript drift; paired compiler and literal production-build evidence is recorded in `docs/typecheck/green-build-2026-11-04/`. Re-run `npm run build` for current acceptance. CI gate activation remains owned by SPE-3348; this recovery does not change validation enforcement.
 - **This repo is pinned to Vite 8 (`vite` `^8.0.1`) with the native config loader.** Type-only exports are stripped at the ESM boundary. If you import an `interface` or `type` alias as a value import, the dev server will throw `SyntaxError: does not provide an export named '...'`. Always use `import type { ... }` for type-only imports in source files that the Vite dev server loads.
 - **Tests use `--pool vmThreads`** locally and the `jsdom` environment. CI PRs run `npm run test:run:ci` (`forks` pool) once; `npm run coverage:ci` runs only on pushes to `main`/`master` (not on `pull_request`), so PR babysit does not pay for a second instrumented suite.
 - **No environment variables or secrets** are required. The only optional env var is `STRICT_TEST_CONSOLE=1` (used in CI to fail on console warnings in tests).
@@ -77,13 +79,25 @@ Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cu
 - **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Figma** (visual bridge — `docs/figma-integration.md`; CSS remains token source of truth; if subscription/auth blocks a needed Figma capability, **prompt the human** — do not silently skip), **Google Drive** (drafts bridge — `docs/google-drive-integration.md`; repo remains SoT for shipped code; if auth blocks a needed Drive capability, **prompt the human**), **Scenario** (visual production — `docs/scenario-integration.md`; full MCP `?toolsets=full`; if auth blocks a needed Scenario capability, **prompt the human**), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox), **Playwright**. Cloud Agents: Linear handoff for a local agent after an approved implementation PR merges when MCP is `needsAuth` (`docs/cloud-agent-linear-handoff.md`).
 - **Recraft:** Not a keep-list MCP. If the active task needs Recraft-quality stills/vectors/icons/marketing/concept art, **prompt the human** to generate it in Recraft — do not wire a Recraft API into `src/` or CI; do not silently substitute. See `docs/agent-cursor-plugins.md` § Recraft.
 - **Request connectors:** If a missing Cursor plugin/MCP would clearly enhance the active task (e.g. Docs/Sheets/Slides beyond Drive), **ask the human** to install it — do not silently use a weaker path. Human installs; see `docs/agent-cursor-plugins.md` § Requesting additional connectors.
-- Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype).
+- Before adding or upgrading npm deps: security review is required; prefer Sonatype when available, otherwise use the documented evidence-based fallback in `docs/dependency-review-policy.md`. Snyk is optional supplementary evidence.
 - PR review configs already in repo: `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `CLAUDE.md`.
 - Do **not** wire vendor search/scan/SaaS SDKs into the game runtime or CI unless an approved Linear slice requires it. Marketplace install/uninstall is human-only.
 
 ---
 
 ## Review guidelines
+
+### Gameplay implementation evidence
+
+For gameplay implementations, assess the approved feature against all five conditions before claiming it is used during gameplay:
+
+1. **Reachable:** Normal gameplay can activate the feature, or an existing gameplay system invokes it.
+2. **Connected:** It affects the actual simulation, decision logic, events, resources, characters, or other relevant game state.
+3. **Observable:** A player-facing behavior or another appropriate runtime consumer makes the consequences verifiable.
+4. **Persistent where necessary:** State changes survive transitions, saving, and loading when the mechanic requires persistence.
+5. **Validated end to end:** Codex/Cursor verifies the complete gameplay interaction, not just the existence of functions or passing isolated tests.
+
+Use Linear to establish the completed issue's scope and the intended gameplay interaction. Assess each condition against that scope; identify non-applicable conditions and explain why. Pending, separate implementation scope is not itself a defect in a completed boundary, but a domain-only seam or a synthetic fixture does not prove normal gameplay use. Distinguish observed gameplay, constructed fixtures, and isolated tests; report missing evidence or unavailable validation explicitly instead of claiming gameplay use.
 
 Codex (`@codex review`), **Greptile** (`@greptileai`), **CodeRabbit**, **Amazon Q Developer** (`/q review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the approved Linear slice issue when one exists, `planning/*-slice.md`, and stated boundary before commenting. Unowned review-only sessions may remain read-only and must not manufacture scope.
 
@@ -92,7 +106,7 @@ AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `
 ### Severity
 
 - **P0 / P1 (flag):** correctness bugs, determinism breaks, persistence/hydration gaps, layer-boundary violations, week-close ordering errors, hidden-state leaks through UI, event schema/migration regressions, missing tests when acceptance requires coverage, security issues.
-- **Do not flag:** style-only nits, drive-by refactors, scope expansion suggestions, or pre-existing `npm run build` baseline TS drift unless this PR makes it worse (see caveats above).
+- **Do not flag:** style-only nits, drive-by refactors, scope expansion suggestions.
 
 ### Architecture
 

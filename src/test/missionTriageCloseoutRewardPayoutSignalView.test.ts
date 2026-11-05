@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { applyFundingIncome, createInitialFundingState, POST_INCIDENT_CLOSEOUT_REWARD_REASON, POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON } from '../domain/funding'
+import { buildReportNoteTimestamp } from '../domain/reportNotes'
+import {
+  applyFundingIncome,
+  createInitialFundingState,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+} from '../domain/funding'
 import {
   CLOSEOUT_REWARD_BRANCH_PAYOUT_SOURCE_PREFIX,
   CLOSEOUT_REWARD_BRANCH_TRAINING_CREDIT_SOURCE_PREFIX,
@@ -122,11 +128,23 @@ describe('missionTriageCloseoutRewardPayoutSignalView (SPE-868 slice 31)', () =>
     state.cases[mission.id] = mission
     state.reports = [
       {
+        rngStateBefore: state.rngState,
+        rngStateAfter: state.rngState,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        partialCases: [],
+        failedCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 0,
+        avgFatigue: 0,
+        teamStatus: [],
         week: 12,
         notes: [
           {
             id: 'note-closeout-payout',
-            week: 12,
+            timestamp: buildReportNoteTimestamp(12, 0),
             content:
               'Post-incident closeout reward — Qualifying incident closeout review — District breach: funding credit (containment priority); training credit (containment priority).',
             type: 'post_incident_review.closeout_reward_payout',

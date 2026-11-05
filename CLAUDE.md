@@ -37,6 +37,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 3. Ship loop: commit → push → PR (`.github/pull_request_template.md`) → babysit (independent review + Greptile/CodeRabbit/Amazon Q/bot triage + CI) → merge → `git checkout main` && `git pull origin main`.
 4. Linear: In Progress before owned work; PR URL on slice issue; Done + merge comment only after the full slice boundary ships. Evaluate the parent separately. Cloud Agents that cannot auth Linear emit a local-agent handoff after an implementation merge (`docs/cloud-agent-linear-handoff.md`).
 5. Deferred work: in-boundary deferral → slice doc `## Deferred` + owner comment. New durable boundary → Cursor creates/folds Linear under autonomous-authority safeguards.
+6. Every response ends with the next concrete step — or, when none exists, a recommendation to archive the chat (`AGENTS.md` § Session handoff — **Response closeout**).
 
 Lifecycle/evidence updates never require ChatGPT phases. Cursor backlog-shape writes use autonomous-authority safeguards (`docs/governance/authority-contract.v1.json` CP-GOV-009).
 
@@ -52,7 +53,7 @@ Prefer repo sources first. Use **Tavily** (MCP / CLI) only when live web researc
 
 ## Cursor plugins
 
-Keep-list and workflows: **`docs/agent-cursor-plugins.md`**. Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype). Do not wire vendor scan/search SDKs into `src/` or CI without an approved Linear slice.
+Keep-list and workflows: **`docs/agent-cursor-plugins.md`**. Before adding or upgrading npm deps: security review is required; prefer Sonatype when available, otherwise use the documented evidence-based fallback in `docs/dependency-review-policy.md`. Snyk is optional supplementary evidence. Do not wire vendor scan/search SDKs into `src/` or CI without an approved Linear slice.
 
 ## Do not
 

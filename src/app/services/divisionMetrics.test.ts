@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { getTeamMemberIds } from '../../domain/teamSimulation'
 import { assignTeam } from '../../domain/sim/assign'
-import {
-  getDeployableReserveStaff,
-  isDeployableReserveAgent,
-} from './divisionMetrics'
+import { getDeployableReserveStaff, isDeployableReserveAgent } from './divisionMetrics'
 
 describe('divisionMetrics deployable reserve', () => {
   it('excludes agents assigned to active field teams', () => {
@@ -12,7 +10,7 @@ describe('divisionMetrics deployable reserve', () => {
     game = assignTeam(game, 'case-001', 't_nightwatch')
 
     const reserve = getDeployableReserveStaff(game)
-    const nightwatchMembers = game.teams.t_nightwatch.memberIds
+    const nightwatchMembers = getTeamMemberIds(game.teams.t_nightwatch)
 
     expect(reserve.map((agent) => agent.id)).not.toEqual(expect.arrayContaining(nightwatchMembers))
   })
@@ -28,15 +26,17 @@ describe('divisionMetrics deployable reserve', () => {
     agents[thirdId] = {
       ...agents[thirdId],
       status: 'recovering',
-      assignment: { state: 'recovery', caseId: null },
+      assignment: { state: 'recovery', startedWeek: 1 },
     }
     agents[fourthId] = {
       ...agents[fourthId],
       status: 'active',
       readinessProfile: {
-        availabilityState: 'training',
-        readinessBand: 'strained',
-        deployable: false,
+        state: 'training',
+        band: 'strained',
+        deploymentEligible: false,
+        recoveryRequired: false,
+        riskFlags: [],
       },
     }
 
@@ -60,6 +60,14 @@ describe('divisionMetrics deployable reserve', () => {
     game.trainingQueue = [
       {
         agentId,
+        id: 'queue:reserve-training',
+        scope: 'agent',
+        agentName: game.agents[agentId].name,
+        targetStat: 'combat',
+        statDelta: 1,
+        durationWeeks: 2,
+        fundingCost: 0,
+        fatigueDelta: 0,
         trainingId: 'combat-drills',
         trainingName: 'Combat Drills',
         remainingWeeks: 2,

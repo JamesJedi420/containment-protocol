@@ -221,7 +221,7 @@ function roundScore(value: number) {
   return Math.round(clamp01(value) * 1000) / 1000
 }
 
-function countTrueFlags(flags: Record<string, boolean | undefined> | undefined) {
+function countTrueFlags(flags: InstitutionalChannelFlags | undefined) {
   if (!flags) {
     return 0
   }

@@ -716,6 +716,7 @@ describe('SPE-2844 Combat Stim stored-instance disposal', () => {
           ...equipped.agents.a_ava,
           assignment: {
             state: 'assigned' as const,
+            teamId: 't_nightwatch',
             caseId: Object.keys(equipped.cases).sort()[0],
             startedWeek: 1,
           },
@@ -985,6 +986,7 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
           ...equipped.agents.a_ava,
           assignment: {
             state: 'assigned' as const,
+            teamId: 't_nightwatch',
             caseId: Object.keys(equipped.cases).sort()[0],
             startedWeek: 1,
           },
@@ -1071,9 +1073,20 @@ describe('SPE-2845 Combat Stim stored-instance re-aggregation', () => {
       ...stored,
       equipmentDeconstructionQueue: [
         {
+          id: 'deconstruction:claimed-stim',
+          itemName: 'Combat Stims',
+          pathId: 'component_reclamation' as const,
+          sourceGradeId: 'grade_1' as const,
+          sourceGradeVisibility: 'known' as const,
+          sourceCondition: 'operational' as const,
+          outputMaterials: [],
+          wasteQuantity: 0,
+          startedWeek: 1,
+          durationWeeks: 1,
+          explanationCodes: [],
+
           itemId: 'combat_stims',
-          quantity: 1,
-          weeksRemaining: 1,
+          remainingWeeks: 1,
           sourceEquipmentInstanceId: 'equipment-instance-stored-stim',
           sourceEquipmentInstanceRemaining: 2,
         },
@@ -1439,6 +1452,7 @@ describe('SPE-2850 fabricated-lot Combat Stim return-to-lot', () => {
           ...equipped.agents.a_ava,
           assignment: {
             state: 'assigned' as const,
+            teamId: 't_nightwatch',
             caseId: Object.keys(equipped.cases).sort()[0],
             startedWeek: 1,
           },
@@ -1503,9 +1517,20 @@ describe('SPE-2850 fabricated-lot Combat Stim return-to-lot', () => {
       ...materialized.state,
       equipmentDeconstructionQueue: [
         {
+          id: 'deconstruction:claimed-stim',
+          itemName: 'Combat Stims',
+          pathId: 'component_reclamation' as const,
+          sourceGradeId: 'grade_1' as const,
+          sourceGradeVisibility: 'known' as const,
+          sourceCondition: 'operational' as const,
+          outputMaterials: [],
+          wasteQuantity: 0,
+          startedWeek: 1,
+          durationWeeks: 1,
+          explanationCodes: [],
+
           itemId: 'combat_stims',
-          quantity: 1,
-          weeksRemaining: 1,
+          remainingWeeks: 1,
           sourceEquipmentInstanceId: instanceId,
           sourceEquipmentInstanceResourceId: 'combat_stim_dose',
           sourceEquipmentInstanceCapacity: 2,
@@ -1781,9 +1806,20 @@ describe('SPE-2851 Combat Stim stored-instance condition repair', () => {
       ...damaged,
       equipmentDeconstructionQueue: [
         {
+          id: 'deconstruction:claimed-stim',
+          itemName: 'Combat Stims',
+          pathId: 'component_reclamation' as const,
+          sourceGradeId: 'grade_1' as const,
+          sourceGradeVisibility: 'known' as const,
+          sourceCondition: 'operational' as const,
+          outputMaterials: [],
+          wasteQuantity: 0,
+          startedWeek: 1,
+          durationWeeks: 1,
+          explanationCodes: [],
+
           itemId: 'combat_stims',
-          quantity: 1,
-          weeksRemaining: 1,
+          remainingWeeks: 1,
           sourceEquipmentInstanceId: 'equipment-instance-stored-stim',
           sourceEquipmentInstanceResourceId: 'combat_stim_dose',
           sourceEquipmentInstanceCapacity: 2,

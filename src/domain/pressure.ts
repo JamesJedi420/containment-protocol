@@ -1,6 +1,9 @@
 // cspell:words psionic
 import type { CaseInstance, CaseTemplate, GameState } from './models'
-import { getAgencyProgressionUnlockDefinition, getAgencyProgressionUnlockIds } from './agencyProgression'
+import {
+  getAgencyProgressionUnlockDefinition,
+  getAgencyProgressionUnlockIds,
+} from './agencyProgression'
 import { HIDDEN_CELL_PANIC_AMPLIFICATION_MAX } from './hiddenCellStrategicInterference'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
 import { getBeliefDrivenCasePressure } from './beliefTracks'
@@ -157,9 +160,9 @@ export function buildResponseGridTemplateCatalog(
     ...DEFAULT_RESPONSE_GRID.majorIncidentTemplateIds,
   ])
 
-  for (const unlockId of getAgencyProgressionUnlockIds({ agency: agency ?? {} })) {
-    for (const templateId of getAgencyProgressionUnlockDefinition(unlockId)?.majorIncidentTemplateIds ??
-      []) {
+  for (const unlockId of getAgencyProgressionUnlockIds({ agency })) {
+    for (const templateId of getAgencyProgressionUnlockDefinition(unlockId)
+      ?.majorIncidentTemplateIds ?? []) {
       catalog.add(templateId)
     }
   }
@@ -188,7 +191,7 @@ export function sanitizePersistedResponseGrid(
   const majorIncidentThreshold =
     typeof raw.majorIncidentThreshold === 'number' && Number.isFinite(raw.majorIncidentThreshold)
       ? Math.max(1, Math.trunc(raw.majorIncidentThreshold))
-      : fallback.majorIncidentThreshold
+      : (fallback.majorIncidentThreshold ?? DEFAULT_RESPONSE_GRID.majorIncidentThreshold)
 
   const templateIds = Array.isArray(raw.majorIncidentTemplateIds)
     ? [
@@ -269,7 +272,10 @@ export function sanitizePersistedGlobalPressureScalars(raw: {
   | 'lastHiddenCellPanicAmplificationWeek'
   | 'lastHiddenCellPanicAmplificationAmount'
 > {
-  const globalPressure = sanitizeNonNegativeInteger(raw.globalPressure, MAX_PERSISTED_GLOBAL_PRESSURE)
+  const globalPressure = sanitizeNonNegativeInteger(
+    raw.globalPressure,
+    MAX_PERSISTED_GLOBAL_PRESSURE
+  )
   const globalEscalationLevel = sanitizeNonNegativeInteger(
     raw.globalEscalationLevel,
     PRESSURE_CALIBRATION.maxCaseEscalationLevel

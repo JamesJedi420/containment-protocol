@@ -285,18 +285,18 @@ export function evaluateHotlineCall(
   const rawCall = input.call
   if (rawCall === null || rawCall === undefined) {
     return unansweredResult(['missing_hotline_call'], baseline, {
-      channelId: normalizeToken((rawChannel as HotlineChannel).id) || null,
+      channelId: normalizeToken(rawChannel.id) || null,
     })
   }
 
   if (!isRecord(rawCall)) {
     return unansweredResult(['invalid_hotline_call'], baseline, {
-      channelId: normalizeToken((rawChannel as HotlineChannel).id) || null,
+      channelId: normalizeToken(rawChannel.id) || null,
     })
   }
 
-  const channel = rawChannel as HotlineChannel
-  const call = rawCall as HotlineCall
+  const channel = rawChannel
+  const call = rawCall
   const channelId = normalizeToken(channel.id) || null
   const callId = normalizeToken(call.callId) || null
   const callChannelId = normalizeToken(call.channelId)

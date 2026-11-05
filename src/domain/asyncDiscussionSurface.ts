@@ -304,18 +304,18 @@ export function evaluateAsyncDiscussionSession(
   const rawSession = input.session
   if (rawSession === null || rawSession === undefined) {
     return deferredResult(['missing_discussion_session'], baseline, {
-      surfaceId: normalizeToken((rawSurface as DiscussionSurface).id) || null,
+      surfaceId: normalizeToken(rawSurface.id) || null,
     })
   }
 
   if (!isRecord(rawSession)) {
     return deferredResult(['invalid_discussion_session'], baseline, {
-      surfaceId: normalizeToken((rawSurface as DiscussionSurface).id) || null,
+      surfaceId: normalizeToken(rawSurface.id) || null,
     })
   }
 
-  const surface = rawSurface as DiscussionSurface
-  const session = rawSession as DiscussionSession
+  const surface = rawSurface
+  const session = rawSession
   const surfaceId = normalizeToken(surface.id) || null
   const sessionId = normalizeToken(session.sessionId) || null
   const sessionSurfaceId = normalizeToken(session.surfaceId)

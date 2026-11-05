@@ -20,12 +20,16 @@ import { evaluateDeploymentEligibility } from '../domain/deploymentReadiness'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
 import type { AffiliationPersonStatusRecord } from '../domain/affiliationPersonStatusRecords'
-import type { Candidate } from '../domain/recruitment'
+import { buildCandidateEvaluation, type Candidate } from '../domain/recruitment'
 
 function makeClearedCandidate(id: string, name: string): Candidate {
   return {
     id,
     name,
+    age: 29,
+    category: 'agent',
+    expiryWeek: 8,
+    evaluation: buildCandidateEvaluation(2, {}),
     hireStatus: 'available',
     funnelStage: 'hired',
     revealLevel: 2,
@@ -41,7 +45,7 @@ function makeClearedCandidate(id: string, name: string): Candidate {
       },
       traits: [],
     },
-  } as Candidate
+  }
 }
 
 function clearedPersonStatusRecord(

@@ -1,5 +1,5 @@
 // cspell:words cand medkits sato
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
 import { buildOperationEventTimestamp } from '../../domain/events'
@@ -52,7 +52,6 @@ import { buildAgentCandidate, buildStaffCandidate } from '../../test/recruitment
 import { getKnowledgeKey } from '../../domain/knowledge'
 import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import { normalizeAgent } from '../../domain/agent/normalize'
-import { createAgent } from '../../domain/agent/factory'
 import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { buildHavenSchedule } from '../../domain/settlements/haven'
 import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
@@ -4736,7 +4735,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         utility: 3,
         social: 1,
       })
-      expect(runtime?.rewards?.funding).toBe(1200)
+      expect(runtime?.rewards).toMatchObject({ funding: 1200 })
       expect(runtime?.fieldBase).toEqual({
         label: 'forward-base',
         quality: { safety: 2, medical: 1, supply: 3, extractionAccess: 0 },
@@ -6909,11 +6908,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         },
       })
 
-      const records = (
-        hydrated.contracts as typeof hydrated.contracts & {
-          debriefRecords?: Array<Record<string, unknown>>
-        }
-      )?.debriefRecords
+      const records = hydrated.contracts?.debriefRecords
 
       expect(records).toHaveLength(1)
       expect(records?.[0]).toMatchObject({
@@ -7082,6 +7077,8 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.runtimeState?.encounterState['enc-week-cap']?.lastUpdatedWeek).toBe(5)
       expect(hydrated.runtimeState?.progressClocks['story.clock-cap']?.completedAtWeek).toBe(5)
       expect(hydrated.runtimeState?.ui.authoring?.updatedWeek).toBe(5)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.week).toBe(5)
     })
 
@@ -7194,6 +7191,8 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.runtimeState?.ui.debug.eventLog).toHaveLength(1)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.week).toBe(9)
       expect(hydrated.runtimeState?.ui.debug.nextEventSequence).toBe(13)
     })
@@ -9067,7 +9066,7 @@ describe('runTransfer import sanitization (326-332)', () => {
     })
 
     it('484 validates equipment catalog, traits, abilities, and abilityState on normalizeAgent', () => {
-      const agent = createAgent({
+      const agent = normalizeAgent({
         id: 'a_equip',
         name: 'E. Quip',
         role: 'tech',
@@ -9100,7 +9099,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(normalized.equipmentEffectScales).toEqual({ medkits: 1 })
       expect(normalized.equipmentSlots).toEqual({ utility1: 'medkits' })
       expect(normalized.equipmentEffectScales?.['unknown-item']).toBeUndefined()
+      assert.exists(normalized.equipmentSlots)
       expect(normalized.equipmentSlots.primary).toBeUndefined()
+      assert.exists(normalized.traits)
       expect(normalized.traits[0]?.modifiers).toEqual({ combat: 2 })
       expect(normalized.abilityState).toEqual({
         'active-1': { cooldownRemaining: 1 },
@@ -10416,6 +10417,7 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.events[1]?.payload).toMatchObject({
         inputMaterials: expectedMaterials,
       })
+      assert(hydrated.events[0]?.type === 'production.queue_started')
       expect(
         hydrated.events[0]?.payload.inputMaterials?.some(
           (material) => material.materialId === 'bogus_material'
@@ -11914,6 +11916,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         ],
       })
 
+      assert(hydrated.events[0]?.type === 'case.resolved')
       expect(hydrated.events[0]?.payload.teamIds).toEqual(['team-a', 'team-b'])
     })
 
@@ -11942,6 +11945,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         ],
       })
 
+      assert(hydrated.events[0]?.type === 'case.failed')
       expect(hydrated.events[0]?.payload.teamIds).toEqual(['team-stale-1', 'team-known-a'])
     })
 
@@ -12842,6 +12846,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         ],
       })
 
+      assert.exists(agentId)
       expect(hydrated.trainingQueue[0]).toMatchObject({
         trainingName: program.name,
         agentName: fallback.agents[agentId]!.name,
@@ -13242,7 +13247,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         kind: 'standard',
         mode: 'standard',
       })
-      expect(snapshots?.['case-anomaly']?.kind).toBe('anomaly')
+      expect(snapshots?.['case-anomaly']).toMatchObject({ kind: 'anomaly', mode: 'deterministic' })
       expect(snapshots?.['case-bogus-enums']).toMatchObject({
         kind: 'case',
         mode: 'threshold',
@@ -14092,7 +14097,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           ...stripGameTemplates(fallback),
           unknownHydrationProbe: 'persist-me',
           week: 2,
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -14306,7 +14311,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           cases: {
             [caseId]: makeHydrationCase(caseId, {
               assignedTeamIds: [teamId],
-              status: 'active',
+              status: 'in_progress',
             }),
           },
           trainingQueue: [
@@ -14379,7 +14384,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           cases: {
             [caseId]: makeHydrationCase(caseId, {
               assignedTeamIds: [],
-              status: 'active',
+              status: 'in_progress',
             }),
           },
         },
@@ -14510,7 +14515,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           cases: {
             [caseId]: makeHydrationCase(caseId, {
               assignedTeamIds: [teamId],
-              status: 'active',
+              status: 'in_progress',
             }),
           },
           teams: {
@@ -14539,7 +14544,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           cases: {
             [orphanCaseId]: makeHydrationCase(orphanCaseId, {
               assignedTeamIds: [],
-              status: 'active',
+              status: 'in_progress',
             }),
           },
           teams: {
@@ -15028,7 +15033,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               assignedAgentId: agentId,
             },
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15073,6 +15078,8 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.agency?.containmentRating).toBe(42)
       expect(hydrated.agency?.clearanceLevel).toBe(3)
       expect(hydrated.agency?.funding).toBe(18_000)
+      assert.exists(hydrated.agency)
+      assert.exists(hydrated.agency.fundingState)
       expect(hydrated.agency?.fundingState.funding).toBe(18_000)
       expect(hydrated.agency).not.toHaveProperty('bogusAgencyField')
     })
@@ -15236,7 +15243,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             falloutRisk: 'explosive',
             accessReason: 'stale',
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15253,7 +15260,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             accessReason: '  audit posture  ',
             junkField: 'strip-me',
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15306,7 +15313,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               },
             ],
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15345,7 +15352,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             },
             junkField: 'strip-me',
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15366,7 +15373,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           globalEscalationLevel: 99,
           globalThreatDrift: -4,
           globalTimePressure: 6,
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15393,7 +15400,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             pressure: 150,
             junkField: 'strip-me',
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15455,7 +15462,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               },
             },
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15508,7 +15515,7 @@ describe('runTransfer import sanitization (326-332)', () => {
             reasonCodes: ['  ', 'staffing-gap:1', 'staffing-gap:1'],
             recruitmentPriorityBand: 'bogus',
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15552,7 +15559,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               lastDecayedWeek: 12,
             },
           },
-        } as typeof fallback,
+        },
         fallback
       )
 
@@ -15739,6 +15746,8 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.runtimeState?.ui.authoring?.updatedWeek).toBe(12)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.week).toBe(12)
       expect(hydrated.runtimeState?.ui.debug.nextEventSequence).toBe(21)
     })
@@ -16016,6 +16025,9 @@ describe('runTransfer import sanitization (326-332)', () => {
         },
       })
 
+      assert.exists(hydrated.runtimeState)
+
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog.map((entry) => entry.id)).toEqual([
         'devlog-0018',
         'devlog-0018-dup-2',
@@ -16050,7 +16062,11 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.runtimeState?.ui.debug.eventLog).toHaveLength(200)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.summary).toBe('Entry 6')
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog.at(-1)?.summary).toBe('Entry 205')
       expect(hydrated.runtimeState?.ui.debug.nextEventSequence).toBe(206)
     })
@@ -16213,7 +16229,11 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.runtimeState?.eventQueue.entries[0]?.payload?.weight).toBe(0.375)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.week).toBe(6)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.details?.delta).toBe(0.6666666666666666)
     })
   })
@@ -16333,6 +16353,8 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.runtimeState?.ui.authoring?.updatedWeek).toBe(7)
       expect(hydrated.runtimeState?.ui.debug.flags['ops.trace']).toBe(true)
       expect(hydrated.runtimeState?.eventQueue.entries[0]?.payload?.['score.delta']).toBe(2)
+      assert.exists(hydrated.runtimeState)
+      assert.exists(hydrated.runtimeState.ui.debug.eventLog)
       expect(hydrated.runtimeState?.ui.debug.eventLog[0]?.details?.['note.value']).toBe('kept')
     })
   })

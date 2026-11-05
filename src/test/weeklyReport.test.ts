@@ -108,7 +108,7 @@ describe('weekly report build (264–269)', () => {
       relationships: {},
       baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
     })
-    training.assignment = { state: 'training', caseId: null, teamId: null }
+    training.assignment = { state: 'training', startedWeek: 1 }
 
     const unavailable = createStarterAgent({
       id: 'a_unavailable',
@@ -218,7 +218,7 @@ describe('weekly report build (264–269)', () => {
     expect(snapshot?.knowledge?.[teamId]?.tier).toBe('observed')
     expect(snapshot?.revealExplanation).toMatch(/observed/i)
 
-    const liveKnowledge = {
+    const liveKnowledge: typeof nextState.knowledge = {
       ...nextState.knowledge,
       [`${teamId}::${caseId}`]: {
         entityId: teamId,

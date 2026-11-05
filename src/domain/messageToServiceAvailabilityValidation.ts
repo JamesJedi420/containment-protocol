@@ -234,7 +234,7 @@ export function parsePublicGuidanceMessagePacket(
     messageId: raw.messageId.trim(),
     districtId: raw.districtId.trim(),
     recommendedAction: raw.recommendedAction,
-    requiredServiceCategories: Object.freeze([...requiredServiceCategories].sort()),
+    requiredServiceCategories: Object.freeze([...requiredServiceCategories].sort(compareCodeUnit)),
     audienceProfiles: Object.freeze(audienceProfiles),
   })
 }
@@ -246,7 +246,7 @@ function mergeRequiredCategories(
   for (const category of ACTION_DEFAULT_SERVICE_CATEGORIES[packet.recommendedAction]) {
     merged.add(category)
   }
-  return Object.freeze([...merged].sort())
+  return Object.freeze([...merged].sort(compareCodeUnit))
 }
 
 function isServiceCheckAvailable(state: ServiceReliabilityState | 'missing'): boolean {
@@ -455,4 +455,11 @@ export function assertGuidanceValidationDispositionExhaustive(
   if (!(GUIDANCE_VALIDATION_DISPOSITIONS as readonly string[]).includes(disposition)) {
     throw new Error(`Unknown guidance validation disposition: ${disposition}`)
   }
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

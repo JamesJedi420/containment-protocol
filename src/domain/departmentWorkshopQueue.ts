@@ -996,7 +996,7 @@ export function resolveDepartmentWorkshopCompletionQuality(
  */
 export function projectDepartmentWorkshopSafetyConditions(
   workOrders: DepartmentWorkshopWorkOrderRegistry,
-  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment,
+  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment
 ): Readonly<Record<string, DepartmentWorkshopSafetyConditions | undefined>> {
   if (!isRecord(safetyConditionsByDepartment)) {
     return Object.freeze({})
@@ -1010,7 +1010,8 @@ export function projectDepartmentWorkshopSafetyConditions(
             Array.isArray(departmentConditions) &&
             departmentConditions.some(
               (condition) =>
-                condition.departmentId === workOrder.departmentId && condition.workOrderId === workOrderId
+                condition.departmentId === workOrder.departmentId &&
+                condition.workOrderId === workOrderId
             )
         )
 
@@ -1020,7 +1021,8 @@ export function projectDepartmentWorkshopSafetyConditions(
 
         const matchingProjection = projection.find(
           (condition) =>
-            condition.departmentId === workOrder.departmentId && condition.workOrderId === workOrderId
+            condition.departmentId === workOrder.departmentId &&
+            condition.workOrderId === workOrderId
         )
         if (!matchingProjection) {
           return []
@@ -1037,7 +1039,7 @@ export function projectDepartmentWorkshopSafetyConditions(
             }),
           ],
         ]
-      }),
+      })
     )
   )
 }
@@ -1528,8 +1530,7 @@ function normalizeCompletionOutcome(
   if (
     (operationalConsequence !== undefined &&
       (operationalConsequence !== 'wrong_kit_assembly' || quality !== 'degraded')) ||
-    (qualityReason === 'poor_workshop_disorder' &&
-      operationalConsequence !== 'wrong_kit_assembly')
+    (qualityReason === 'poor_workshop_disorder' && operationalConsequence !== 'wrong_kit_assembly')
   ) {
     return null
   }
@@ -1603,7 +1604,7 @@ export function registerDepartmentWorkshopCompletionOutcomes(
   safetyConditionsByWorkOrderId?: Readonly<
     Record<string, DepartmentWorkshopSafetyConditions | undefined>
   >,
-  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment,
+  safetyConditionsByDepartment?: DepartmentWorkshopSafetyConditionsByDepartment
 ): DepartmentWorkshopCompletionOutcomeResult {
   const persistedOutcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
     source?.departmentWorkshopCompletionOutcomes
@@ -1611,7 +1612,7 @@ export function registerDepartmentWorkshopCompletionOutcomes(
   const workOrders = readDepartmentWorkshopState(source).workOrders
   const projectedSafetyConditions = projectDepartmentWorkshopSafetyConditions(
     workOrders,
-    safetyConditionsByDepartment,
+    safetyConditionsByDepartment
   )
   const existing = Object.freeze(
     Object.fromEntries(
@@ -2388,7 +2389,7 @@ export function projectDepartmentWorkshopWorkload(
   )
   if (new Set(queuedCaseIds).size !== queuedCaseIds.length) {
     const duplicateWorkOrderIds = workloadItems
-      .filter((item, index) => queuedCaseIds.indexOf(queuedCaseIds[index]) !== index)
+      .filter((_item, index) => queuedCaseIds.indexOf(queuedCaseIds[index]) !== index)
       .map((item) => item.workOrderId)
     return blockedProjection(
       frozenReason(

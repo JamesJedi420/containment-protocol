@@ -565,7 +565,7 @@ describe('SPE-1184 emergency waiver precedent counter', () => {
     const first = invokeEmergencyGrayMarketWaiver(game)
     expect(first.emergencyGrayMarketWaiverPrecedentCount).toBe(1)
 
-    const readyForSecond = {
+    const readyForSecond: typeof first = {
       ...first,
       week: first.week + 1,
       emergencyGrayMarketWaiverWeek: undefined,

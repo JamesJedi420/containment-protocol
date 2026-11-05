@@ -1,0 +1,606 @@
+{
+  "schemaVersion": 1,
+  "parent": "SPE-3375",
+  "pullRequest": "https://github.com/JamesJedi420/containment-protocol/pull/4640",
+  "authority": {
+    "source": "Human instruction in this recovery chat, 2026-11-03: You can approve phases yourself. And update linear autonomously.",
+    "phase1": "Approved assessment/decomposition, preserving unresolved semantic flags.",
+    "phase2": "Approved existing SPE-3375 parent; no duplicate recovery parent.",
+    "phase3": "Approved only the eight listed canonical import roots after declaration/consumer and owner/contradiction review; no gameplay/schema changes.",
+    "phase4": "Applied root-specific children SPE-3526 through SPE-3533, set In Progress before implementation.",
+    "linearApprovalCommentId": "781956d0-99af-446d-952a-707e5da5691b",
+    "otherObligations": "Not admitted by this cohort. Autonomous assessment/approval may continue under the human delegation."
+  },
+  "historicalComparison": {
+    "census": "../reconciliation-2026-11-03/census.json",
+    "identityDelta": [
+      {
+        "identity": "76d18c38d42ae114945c3706a4fe9f26279b8572b27cc03f042c615e8584d16d",
+        "change": 1
+      },
+      {
+        "identity": "8747d49bf3e1e8df5d4098593e154807cf3e3460fd587cece0427e052c069e3e",
+        "change": 1
+      },
+      {
+        "identity": "ae76a57a76af083dcc8fb3ecda17ef30e245031e01da7ede4cc1123ee0a8f912",
+        "change": -1
+      },
+      {
+        "identity": "f8e23693c6adc7ac95ffb65fde018ba3c060dbfdb1adc799acf67f13f8946171",
+        "change": -1
+      }
+    ],
+    "interpretation": "Fresh integration retains 409 diagnostics; two unrelated verbose messages changed their displayed union ordering or property elision after the upstream main change. These identity changes are baseline context, not repair deltas. Attribution uses the fresh before/after pair."
+  },
+  "before": {
+    "schemaVersion": 1,
+    "revision": "65786fe501b53588672f2fb32e88e29244e6a43d",
+    "compilerInputHash": "45fc0f943d8698efee66c47fdb2019778ce754c183d9b81fb4b68ac39f727600",
+    "workingTreeStatus": "",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "3537761bbc08e9ff26257a717e5cee376b106352d845fa367d6f6c6142b47e6e"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "3537761bbc08e9ff26257a717e5cee376b106352d845fa367d6f6c6142b47e6e"
+      }
+    ],
+    "reproducible": true,
+    "identityDelta": [],
+    "summary": {
+      "occurrences": 409,
+      "uniqueIdentities": 293,
+      "repeatedIdentityOccurrences": 116,
+      "exactDuplicateOccurrences": 0,
+      "files": 144,
+      "byProject": {
+        "tsconfig.app.json": 409
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2304": 3,
+        "TS2322": 126,
+        "TS2339": 46,
+        "TS2345": 45,
+        "TS2352": 53,
+        "TS2353": 19,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2459": 4,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2552": 3,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2724": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS6133": 6,
+        "TS7006": 6
+      },
+      "bySurface": {
+        "production-source": 157,
+        "test-fixture": 252
+      }
+    },
+    "census": "before/census.json",
+    "normalizedDiagnosticRecordsSha256": "d2e097933c7855fb11e20d89a5484e3147ad86e7a0f3a26daa70acdd4f3e44b7"
+  },
+  "after": {
+    "schemaVersion": 1,
+    "revision": "65786fe501b53588672f2fb32e88e29244e6a43d",
+    "compilerInputHash": "43d88edb6ccb8a5c0535a2d39cc62761b783946571860a9f5a742e6cbe82d4ed",
+    "workingTreeStatus": "M src/app/store/runTransfer.ts\n M src/domain/concealmentPrepActivationPreviewNotes.ts\n M src/domain/operationalCertainty.ts\n M src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts\n M src/domain/sim/equipment.ts\n M src/test/patternSourceSeriesRegistry.test.ts\n M src/test/spe956PropagationGraphWeeklyOrchestration.test.ts",
+    "nodeVersion": "v22.23.4",
+    "typescriptVersion": "6.0.3",
+    "platform": "win32",
+    "packageLockHash": "ab5b2f4313f916482e08b9a1fa7cd2335dea8b68a246b75c14ee5514176d5325",
+    "command": ["node", "node_modules/typescript/bin/tsc", "-b", "--pretty", "false", "--force"],
+    "runs": [
+      {
+        "exitCode": 2,
+        "rawHash": "2dc81bb6b6f7765f8d5708f5017e5922996a98a6999a1b39399bab84b6cd5f71"
+      },
+      {
+        "exitCode": 2,
+        "rawHash": "2dc81bb6b6f7765f8d5708f5017e5922996a98a6999a1b39399bab84b6cd5f71"
+      }
+    ],
+    "reproducible": true,
+    "identityDelta": [],
+    "summary": {
+      "occurrences": 395,
+      "uniqueIdentities": 280,
+      "repeatedIdentityOccurrences": 115,
+      "exactDuplicateOccurrences": 0,
+      "files": 138,
+      "byProject": {
+        "tsconfig.app.json": 395
+      },
+      "byCode": {
+        "TS1117": 2,
+        "TS1360": 3,
+        "TS18046": 7,
+        "TS18048": 45,
+        "TS2322": 126,
+        "TS2339": 46,
+        "TS2345": 45,
+        "TS2352": 53,
+        "TS2353": 19,
+        "TS2367": 3,
+        "TS2418": 2,
+        "TS2538": 5,
+        "TS2540": 3,
+        "TS2551": 5,
+        "TS2554": 1,
+        "TS2559": 2,
+        "TS2571": 1,
+        "TS2677": 1,
+        "TS2698": 1,
+        "TS2739": 6,
+        "TS2740": 1,
+        "TS2741": 3,
+        "TS2769": 2,
+        "TS2790": 3,
+        "TS2820": 1,
+        "TS6133": 6,
+        "TS7006": 3
+      },
+      "bySurface": {
+        "production-source": 145,
+        "test-fixture": 250
+      }
+    },
+    "captureState": "Same integration revision plus the seven uncommitted type-import file edits; published repair commit is recorded in PR/Linear evidence.",
+    "census": "census.json",
+    "normalizedDiagnosticRecordsSha256": "3d37d992fa8b901048b4a4722d8a95cf762dc2c254cdb7e66ebe87e2147f7592"
+  },
+  "identityDelta": [
+    {
+      "identity": "3395aecc803a0b6c55674edac2746d524790b93c80661ad528e268bc0d7aa919",
+      "change": -1
+    },
+    {
+      "identity": "424a841fa52aac2f746f4d80b381ab829e59238055cc2d09627edce46e5c7ec3",
+      "change": -1
+    },
+    {
+      "identity": "4f332fc0f267f91e9021add785ede146cded4e0b88ea34202915528c14665cb6",
+      "change": -1
+    },
+    {
+      "identity": "5355bf1485a692c51ace33091ae4129963821b14c1ef0450cf2826a904b90270",
+      "change": -1
+    },
+    {
+      "identity": "69ed4ed9335f2c883d05470834789c8e038ba1e8df4d00830ec3e02de4777309",
+      "change": -1
+    },
+    {
+      "identity": "7cad9ec4038208527125af010d50404c67df32eb86ded9012a54b29ad679adfc",
+      "change": -1
+    },
+    {
+      "identity": "a4e3f01129efc60d593124f6f58d002aa96375afcf620ec009122297939c2792",
+      "change": -1
+    },
+    {
+      "identity": "a7c0125848346ee52d451fa45c9793c7a922087565333531173479be18c1186c",
+      "change": -2
+    },
+    {
+      "identity": "b6de59957a3c8423a2d76af34e1ab6e9a6d4df78b28ed2c91fe3cfe4faad94db",
+      "change": -1
+    },
+    {
+      "identity": "bb487d2ae035dd5fbef63806643bb69745a14c8e948ae294b47be986265c36ca",
+      "change": -1
+    },
+    {
+      "identity": "d1db30f10ee6efe4cd2f9a4f32de574808e25ba1904dc7319c1661dd52a02045",
+      "change": -1
+    },
+    {
+      "identity": "ea6baf9ad396592664265fa732d0cf45e833cca2c9cb36350201524dd9308545",
+      "change": -1
+    },
+    {
+      "identity": "f9fbb08e38a597603a23c41e2045c2a52ef6ffa539a8b04e4553d79a49c62fa3",
+      "change": -1
+    }
+  ],
+  "removedOccurrences": 14,
+  "addedOccurrences": 0,
+  "roots": [
+    {
+      "root": "recovery-outcome-import",
+      "issue": "SPE-3526",
+      "url": "https://linear.app/spectranoir/issue/SPE-3526/restore-equipment-recovery-outcome-typing-in-save-hydration",
+      "title": "Restore equipment recovery outcome typing in save hydration",
+      "file": "src/app/store/runTransfer.ts",
+      "canonicalContract": "EquipmentRecoveryOutcome from src/domain/models.ts",
+      "expectedRemovals": 4,
+      "measuredRemovals": 4,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 6095,
+          "column": 46,
+          "code": "TS7006",
+          "message": "Parameter 'index' implicitly has an 'any' type.",
+          "identity": "4f332fc0f267f91e9021add785ede146cded4e0b88ea34202915528c14665cb6",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 6013,
+          "column": 54,
+          "code": "TS2552",
+          "message": "Cannot find name 'EquipmentRecoveryOutcome'. Did you mean 'EquipmentRecoveryOutcomeRegistry'?",
+          "identity": "a7c0125848346ee52d451fa45c9793c7a922087565333531173479be18c1186c",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 6079,
+          "column": 12,
+          "code": "TS2552",
+          "message": "Cannot find name 'EquipmentRecoveryOutcome'. Did you mean 'EquipmentRecoveryOutcomeRegistry'?",
+          "identity": "a7c0125848346ee52d451fa45c9793c7a922087565333531173479be18c1186c",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 6095,
+          "column": 36,
+          "code": "TS7006",
+          "message": "Parameter 'material' implicitly has an 'any' type.",
+          "identity": "f9fbb08e38a597603a23c41e2045c2a52ef6ffa539a8b04e4553d79a49c62fa3",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": [
+        "src/app/store/runTransfer.test.ts",
+        "src/test/equipmentGradeRecovery.contract.test.ts",
+        "src/test/equipmentInstance.contract.test.ts"
+      ]
+    },
+    {
+      "root": "squad-imports",
+      "issue": "SPE-3527",
+      "url": "https://linear.app/spectranoir/issue/SPE-3527/restore-canonical-squad-type-imports-in-save-hydration",
+      "title": "Restore canonical squad type imports in save hydration",
+      "file": "src/app/store/runTransfer.ts",
+      "canonicalContract": "SquadKitAssignment, SquadKitTemplate and SquadMetadata from their existing declaration modules",
+      "expectedRemovals": 3,
+      "measuredRemovals": 3,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 201,
+          "column": 8,
+          "code": "TS2459",
+          "message": "Module '\"../../domain/models\"' declares 'SquadMetadata' locally, but it is not exported.",
+          "identity": "3395aecc803a0b6c55674edac2746d524790b93c80661ad528e268bc0d7aa919",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 199,
+          "column": 8,
+          "code": "TS2459",
+          "message": "Module '\"../../domain/models\"' declares 'SquadKitAssignment' locally, but it is not exported.",
+          "identity": "7cad9ec4038208527125af010d50404c67df32eb86ded9012a54b29ad679adfc",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 200,
+          "column": 8,
+          "code": "TS2459",
+          "message": "Module '\"../../domain/models\"' declares 'SquadKitTemplate' locally, but it is not exported.",
+          "identity": "a4e3f01129efc60d593124f6f58d002aa96375afcf620ec009122297939c2792",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": [
+        "src/test/squadConfigurationStore.test.ts",
+        "src/test/squadKitAssignment.test.ts",
+        "src/test/squadMetadata.test.ts"
+      ]
+    },
+    {
+      "root": "modality-import",
+      "issue": "SPE-3528",
+      "url": "https://linear.app/spectranoir/issue/SPE-3528/restore-concealment-preview-modality-type-import",
+      "title": "Restore concealment preview modality type import",
+      "file": "src/domain/concealmentPrepActivationPreviewNotes.ts",
+      "canonicalContract": "HiddenStateModalityKind from src/domain/hiddenStateModality.ts",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/concealmentPrepActivationPreviewNotes.ts",
+          "line": 39,
+          "column": 58,
+          "code": "TS2304",
+          "message": "Cannot find name 'HiddenStateModalityKind'.",
+          "identity": "bb487d2ae035dd5fbef63806643bb69745a14c8e948ae294b47be986265c36ca",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": ["src/test/concealmentPrepActivationPreviewNotes.test.ts"]
+    },
+    {
+      "root": "equipment-instance-import",
+      "issue": "SPE-3529",
+      "url": "https://linear.app/spectranoir/issue/SPE-3529/restore-equipment-simulation-instance-type-import",
+      "title": "Restore equipment simulation instance type import",
+      "file": "src/domain/sim/equipment.ts",
+      "canonicalContract": "EquipmentInstance from src/domain/equipmentInstance.ts",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/sim/equipment.ts",
+          "line": 467,
+          "column": 28,
+          "code": "TS2552",
+          "message": "Cannot find name 'EquipmentInstance'. Did you mean 'EquipmentInstanceId'?",
+          "identity": "b6de59957a3c8423a2d76af34e1ab6e9a6d4df78b28ed2c91fe3cfe4faad94db",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": ["src/test/equipmentInstance.contract.test.ts"]
+    },
+    {
+      "root": "pattern-blurb-import",
+      "issue": "SPE-3530",
+      "url": "https://linear.app/spectranoir/issue/SPE-3530/restore-pattern-series-fixture-blurb-type-import",
+      "title": "Restore pattern-series fixture blurb type import",
+      "file": "src/test/patternSourceSeriesRegistry.test.ts",
+      "canonicalContract": "PatternSourceBlurbStub from src/domain/patternSourceSeriesRegistry.ts",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/test/patternSourceSeriesRegistry.test.ts",
+          "line": 141,
+          "column": 52,
+          "code": "TS2304",
+          "message": "Cannot find name 'PatternSourceBlurbStub'.",
+          "identity": "ea6baf9ad396592664265fa732d0cf45e833cca2c9cb36350201524dd9308545",
+          "surface": "test-fixture"
+        }
+      ],
+      "targetedTests": ["src/test/patternSourceSeriesRegistry.test.ts"]
+    },
+    {
+      "root": "propagation-map-import",
+      "issue": "SPE-3531",
+      "url": "https://linear.app/spectranoir/issue/SPE-3531/restore-propagation-graph-weekly-fixture-map-type-import",
+      "title": "Restore propagation graph weekly fixture map type import",
+      "file": "src/test/spe956PropagationGraphWeeklyOrchestration.test.ts",
+      "canonicalContract": "Spe956PropagationGraphRecordsMap from src/domain/spe956PropagationGraphPersistence.ts",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/test/spe956PropagationGraphWeeklyOrchestration.test.ts",
+          "line": 149,
+          "column": 44,
+          "code": "TS2304",
+          "message": "Cannot find name 'Spe956PropagationGraphRecordsMap'.",
+          "identity": "69ed4ed9335f2c883d05470834789c8e038ba1e8df4d00830ec3e02de4777309",
+          "surface": "test-fixture"
+        }
+      ],
+      "targetedTests": ["src/test/spe956PropagationGraphWeeklyOrchestration.test.ts"]
+    },
+    {
+      "root": "funding-import-cascade",
+      "issue": "SPE-3532",
+      "url": "https://linear.app/spectranoir/issue/SPE-3532/restore-payout-funding-type-import-from-canonical-model",
+      "title": "Restore payout funding type import from canonical model",
+      "file": "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts",
+      "canonicalContract": "FundingState from src/domain/models.ts instead of the non-exporting funding module",
+      "expectedRemovals": 2,
+      "measuredRemovals": 2,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts",
+          "line": 14,
+          "column": 8,
+          "code": "TS2459",
+          "message": "Module '\"./funding\"' declares 'FundingState' locally, but it is not exported.",
+          "identity": "424a841fa52aac2f746f4d80b381ab829e59238055cc2d09627edce46e5c7ec3",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts",
+          "line": 95,
+          "column": 44,
+          "code": "TS7006",
+          "message": "Parameter 'entry' implicitly has an 'any' type.",
+          "identity": "5355bf1485a692c51ace33091ae4129963821b14c1ef0450cf2826a904b90270",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": ["src/test/postIncidentReviewCloseoutRewardBranchPayout.test.ts"]
+    },
+    {
+      "root": "social-visibility-import",
+      "issue": "SPE-3533",
+      "url": "https://linear.app/spectranoir/issue/SPE-3533/restore-operational-certainty-social-visibility-type-import",
+      "title": "Restore operational-certainty social visibility type import",
+      "file": "src/domain/operationalCertainty.ts",
+      "canonicalContract": "SocialFactVisibility from src/domain/simulationMapInterface.ts; its six literals exactly match the existing consumer",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/operationalCertainty.ts",
+          "line": 2,
+          "column": 15,
+          "code": "TS2724",
+          "message": "'\"./simulationMapInterface\"' has no exported member named 'SocialMapFactVisibility'. Did you mean 'SocialFactVisibility'?",
+          "identity": "d1db30f10ee6efe4cd2f9a4f32de574808e25ba1904dc7319c1661dd52a02045",
+          "surface": "production-source"
+        }
+      ],
+      "targetedTests": [
+        "src/test/operationalCertainty.test.ts",
+        "src/test/simulationMapInterface.test.ts"
+      ]
+    }
+  ],
+  "runtimeIdentity": {
+    "typescriptVersion": "6.0.3",
+    "target": "ES2022",
+    "module": "ESNext",
+    "verbatimModuleSyntax": true,
+    "files": [
+      {
+        "file": "src/app/store/runTransfer.ts",
+        "beforeEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "afterEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "identical": true
+      },
+      {
+        "file": "src/domain/concealmentPrepActivationPreviewNotes.ts",
+        "beforeEmittedJavaScriptSha256": "d248bec8f2e4c1006ab867921df12e3381fbac5999d8c3e1f86b70623c5a9358",
+        "afterEmittedJavaScriptSha256": "d248bec8f2e4c1006ab867921df12e3381fbac5999d8c3e1f86b70623c5a9358",
+        "identical": true
+      },
+      {
+        "file": "src/domain/sim/equipment.ts",
+        "beforeEmittedJavaScriptSha256": "5d6f470cc48a5028270fb06e0153c956dba6bb72116df066c5f60c1d0dce2d8b",
+        "afterEmittedJavaScriptSha256": "5d6f470cc48a5028270fb06e0153c956dba6bb72116df066c5f60c1d0dce2d8b",
+        "identical": true
+      },
+      {
+        "file": "src/test/patternSourceSeriesRegistry.test.ts",
+        "beforeEmittedJavaScriptSha256": "4a7d15d582b978e46b531ae02bb3f2944b84d3238bf53175baee966c26d19d7b",
+        "afterEmittedJavaScriptSha256": "4a7d15d582b978e46b531ae02bb3f2944b84d3238bf53175baee966c26d19d7b",
+        "identical": true
+      },
+      {
+        "file": "src/test/spe956PropagationGraphWeeklyOrchestration.test.ts",
+        "beforeEmittedJavaScriptSha256": "51a2185e5b0e32d95711a5bf391dc96ea849912b9c0d7c46dcbe81154e7a0e5f",
+        "afterEmittedJavaScriptSha256": "51a2185e5b0e32d95711a5bf391dc96ea849912b9c0d7c46dcbe81154e7a0e5f",
+        "identical": true
+      },
+      {
+        "file": "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts",
+        "beforeEmittedJavaScriptSha256": "6afc3dd2505a5c22b108d8068268f0b5217216e455c3958d596b1726468f929a",
+        "afterEmittedJavaScriptSha256": "6afc3dd2505a5c22b108d8068268f0b5217216e455c3958d596b1726468f929a",
+        "identical": true
+      },
+      {
+        "file": "src/domain/operationalCertainty.ts",
+        "beforeEmittedJavaScriptSha256": "0aa0d8574f1435416e57d65589bf33227a6fc12650d9655f6591bb47e71672a8",
+        "afterEmittedJavaScriptSha256": "0aa0d8574f1435416e57d65589bf33227a6fc12650d9655f6591bb47e71672a8",
+        "identical": true
+      }
+    ]
+  },
+  "validation": {
+    "targetedSuites": 12,
+    "targetedTests": 645,
+    "result": "passed",
+    "command": "Node 22 Vitest, forks, maxWorkers 2; exact suite paths on each root.",
+    "limitation": "Full build remains red. Final required hosted checks/review and merged lineage are recorded on the PR and Linear.",
+    "formatting": {
+      "noNewDrift": true,
+      "checks": [
+        {
+          "file": "src/app/store/runTransfer.ts",
+          "beforePass": false,
+          "afterPass": false
+        },
+        {
+          "file": "src/domain/concealmentPrepActivationPreviewNotes.ts",
+          "beforePass": true,
+          "afterPass": true
+        },
+        {
+          "file": "src/domain/sim/equipment.ts",
+          "beforePass": true,
+          "afterPass": true
+        },
+        {
+          "file": "src/test/patternSourceSeriesRegistry.test.ts",
+          "beforePass": false,
+          "afterPass": false
+        },
+        {
+          "file": "src/test/spe956PropagationGraphWeeklyOrchestration.test.ts",
+          "beforePass": true,
+          "afterPass": true
+        },
+        {
+          "file": "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts",
+          "beforePass": true,
+          "afterPass": true
+        },
+        {
+          "file": "src/domain/operationalCertainty.ts",
+          "beforePass": false,
+          "afterPass": false
+        }
+      ]
+    },
+    "literalFullBuild": {
+      "command": "npm run build",
+      "exitCode": 2,
+      "diagnosticOccurrences": 395
+    },
+    "localRegistered": {
+      "passed": ["backlog-handoff", "lint", "typecheck-census-tests", "vite-build"],
+      "deferredToHosted": ["unit-tests"],
+      "advisoryNotExecutedLocally": ["format-check", "typecheck", "playwright-e2e"]
+    },
+    "hermes": {
+      "session": "local-2e6f19f539355b5094f6d2c12bf63a3eba9696f8ae8b1582345e61f7ff231a60",
+      "scope": "Bounded documentation/communication review; coding agent verified material claims. No semantic approval or full-regression claim inferred."
+    }
+  },
+  "remaining": {
+    "occurrences": 395,
+    "semanticReviewOccurrences": 99,
+    "fullGreenBuild": false
+  }
+}

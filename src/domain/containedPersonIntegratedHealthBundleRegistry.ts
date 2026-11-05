@@ -45,11 +45,7 @@ export interface TherapeuticCareScheduleLink {
 }
 
 export type MedicationConsentStatus =
-  | 'voluntary'
-  | 'negotiated'
-  | 'compelled'
-  | 'emergency'
-  | 'covert'
+  'voluntary' | 'negotiated' | 'compelled' | 'emergency' | 'covert'
 
 export const MEDICATION_CONSENT_STATUSES: readonly MedicationConsentStatus[] = [
   'voluntary',
@@ -102,12 +98,7 @@ export const WELFARE_DEBT_SEVERITY_BANDS: readonly WelfareDebtSeverityBand[] = [
 ] as const
 
 export type WelfareDebtMitigationState =
-  | 'unresolved'
-  | 'acknowledged'
-  | 'mitigated'
-  | 'escalated'
-  | 'waived'
-  | 'denied'
+  'unresolved' | 'acknowledged' | 'mitigated' | 'escalated' | 'waived' | 'denied'
 
 export const WELFARE_DEBT_MITIGATION_STATES: readonly WelfareDebtMitigationState[] = [
   'unresolved',
@@ -203,7 +194,9 @@ function isValidUnitScore(value: unknown): value is number {
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  return (
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  )
 }
 
 function containsFranchiseToken(value: string): boolean {
@@ -301,7 +294,10 @@ function scanForbiddenTokens(
   }
 
   const subjectRef = normalizeToken(bundle.subjectRef)
-  if (subjectRef && (containsFranchiseToken(subjectRef) || containsBrandedObjectNumber(subjectRef))) {
+  if (
+    subjectRef &&
+    (containsFranchiseToken(subjectRef) || containsBrandedObjectNumber(subjectRef))
+  ) {
     pushIssue(issues, {
       code: containsFranchiseToken(subjectRef)
         ? 'franchise_token_in_field'
@@ -781,16 +777,14 @@ function sanitizeIntegratedHealthBundleEntry(
     return null
   }
 
-  const links = (Array.isArray(value.therapeuticCareScheduleLinks)
-    ? value.therapeuticCareScheduleLinks
-    : []
+  const links = (
+    Array.isArray(value.therapeuticCareScheduleLinks) ? value.therapeuticCareScheduleLinks : []
   )
     .map((entry) => sanitizeTherapeuticCareScheduleLinkEntry(entry))
     .filter((entry): entry is TherapeuticCareScheduleLink => entry !== null)
 
-  const medicationLinks = (Array.isArray(value.medicationRegimenLinks)
-    ? value.medicationRegimenLinks
-    : []
+  const medicationLinks = (
+    Array.isArray(value.medicationRegimenLinks) ? value.medicationRegimenLinks : []
   )
     .map((entry) => sanitizeMedicationRegimenLinkEntry(entry))
     .filter((entry): entry is MedicationRegimenLink => entry !== null)
@@ -799,14 +793,20 @@ function sanitizeIntegratedHealthBundleEntry(
     .map((entry) => sanitizeCustodyStatusLinkEntry(entry))
     .filter((entry): entry is CustodyStatusLink => entry !== null)
 
-  const welfareDebtLinks = (Array.isArray(value.welfareDebtAccountingLinks)
-    ? value.welfareDebtAccountingLinks
-    : []
+  const welfareDebtLinks = (
+    Array.isArray(value.welfareDebtAccountingLinks) ? value.welfareDebtAccountingLinks : []
   )
     .map((entry) => sanitizeWelfareDebtAccountingLinkEntry(entry))
     .filter((entry): entry is WelfareDebtAccountingLink => entry !== null)
 
   const humaneCareRiskScore = value.humaneCareRiskScore
+  if (
+    humaneCareRiskScore !== undefined &&
+    humaneCareRiskScore !== null &&
+    typeof humaneCareRiskScore !== 'number'
+  ) {
+    return null
+  }
   const confidence = value.confidence
   const unknownFields = parseStringList(value.unknownFields)
   const redactedFields = parseStringList(value.redactedFields)
@@ -816,7 +816,9 @@ function sanitizeIntegratedHealthBundleEntry(
     label,
     subjectRef,
     ...(links.length > 0 ? { therapeuticCareScheduleLinks: Object.freeze(links) } : {}),
-    ...(medicationLinks.length > 0 ? { medicationRegimenLinks: Object.freeze(medicationLinks) } : {}),
+    ...(medicationLinks.length > 0
+      ? { medicationRegimenLinks: Object.freeze(medicationLinks) }
+      : {}),
     ...(custodyLinks.length > 0 ? { custodyStatusLinks: Object.freeze(custodyLinks) } : {}),
     ...(welfareDebtLinks.length > 0
       ? { welfareDebtAccountingLinks: Object.freeze(welfareDebtLinks) }

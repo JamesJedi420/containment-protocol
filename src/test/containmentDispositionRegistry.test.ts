@@ -320,7 +320,7 @@ describe('SPE-2102 containment disposition registry', () => {
   it('rejects a missing required list and a NUL token', () => {
     const source = record()
     const withoutRationale = { ...source }
-    delete withoutRationale.rationaleCodes
+    Reflect.deleteProperty(withoutRationale, 'rationaleCodes')
     const missing = validateContainmentDispositionGraph([withoutRationale])
     expect(missing.records).toEqual([])
     expect(missing.findings[0]?.code).toBe('malformed')
@@ -332,9 +332,9 @@ describe('SPE-2102 containment disposition registry', () => {
     expect(nul.findings[0]?.code).toBe('malformed')
 
     const spaced = record({ id: 'a b' })
+    Reflect.deleteProperty(spaced, 'rationaleCodes')
     const lined = record({ id: 'a\nb' })
-    delete spaced.rationaleCodes
-    delete lined.rationaleCodes
+    Reflect.deleteProperty(lined, 'rationaleCodes')
     const ordered = validateContainmentDispositionGraph([spaced, lined])
     expect(ordered.findings.map((item) => item.recordId)).toEqual(['a\nb', 'a b'])
   })

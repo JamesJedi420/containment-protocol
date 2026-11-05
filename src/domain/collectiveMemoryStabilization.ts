@@ -316,18 +316,18 @@ export function evaluateCollectiveMemoryStabilization(
   const rawSignal = input.signal
   if (rawSignal === null || rawSignal === undefined) {
     return deferredResult(['missing_memory_signal'], baseline, {
-      channelId: normalizeToken((rawChannel as CollectiveMemoryChannel).id) || null,
+      channelId: normalizeToken(rawChannel.id) || null,
     })
   }
 
   if (!isRecord(rawSignal)) {
     return deferredResult(['invalid_memory_signal'], baseline, {
-      channelId: normalizeToken((rawChannel as CollectiveMemoryChannel).id) || null,
+      channelId: normalizeToken(rawChannel.id) || null,
     })
   }
 
-  const memoryChannel = rawChannel as CollectiveMemoryChannel
-  const signal = rawSignal as CollectiveMemorySignal
+  const memoryChannel = rawChannel
+  const signal = rawSignal
   const channelId = normalizeToken(memoryChannel.id) || null
   const signalId = normalizeToken(signal.signalId) || null
   const signalChannelId = normalizeToken(signal.channelId)

@@ -1,3 +1,4 @@
+import { createAgent } from '../domain/agent/factory'
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'
@@ -69,17 +70,16 @@ function makeWorkshopState(options?: {
   return state
 }
 
-function agentsWithRoles(
-  roles: ReadonlyArray<Agent['role']>
-): GameState['agents'] {
+function agentsWithRoles(roles: ReadonlyArray<Agent['role']>): GameState['agents'] {
   return Object.fromEntries(
     roles.map((role, index) => [
       `agent:map-${index}`,
-      {
+      createAgent({
         id: `agent:map-${index}`,
         name: `Mapped ${role}`,
         role,
-      } satisfies Agent,
+        baseStats: { combat: 0, investigation: 0, utility: 0, social: 0 },
+      }),
     ])
   )
 }

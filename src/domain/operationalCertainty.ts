@@ -1,5 +1,5 @@
 import type { GameState } from './models'
-import type { SocialMapFactVisibility } from './simulationMapInterface'
+import type { SocialFactVisibility } from './simulationMapInterface'
 import { buildSimulationMapInterface } from './simulationMapInterface'
 import { buildRegistryFromSources, type DetectionContext } from './liveRegistryProjection'
 import { buildRegistryDigest } from './liveRegistryQuery'
@@ -83,7 +83,7 @@ function buildMapBuckets(game: GameState): OperationalCertaintyBucket[] {
   const simulationMap = buildSimulationMapInterface(game)
   const socialFacts = simulationMap.socialFacts
 
-  const include = (visibility: SocialMapFactVisibility) =>
+  const include = (visibility: SocialFactVisibility) =>
     socialFacts.filter((fact) => fact.visibility === visibility)
 
   const confirmedFacts = [...include('known'), ...include('reported')]

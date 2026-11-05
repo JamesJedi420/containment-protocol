@@ -36,14 +36,11 @@ export function isDeployableReserveAgent(
   }
 
   const readiness = agent.readinessProfile
-  if (
-    readiness?.state === 'training' ||
-    readiness?.availabilityState === 'training'
-  ) {
+  if (readiness?.state === 'training') {
     return false
   }
 
-  if (readiness?.deploymentEligible === false || readiness?.deployable === false) {
+  if (readiness?.deploymentEligible === false) {
     return false
   }
 

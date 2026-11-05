@@ -14,6 +14,8 @@ rejection uses the existing recovery screen and page-lifetime storage lock, incl
 actions and clear requests. Fabrication and recovery jobs wait intact when their outputs do not
 fit the safe-integer stock capacity; procurement refuses immediate credits or retains pending
 deliveries rather than overflow stock. No materials, paid jobs, or deferred stock are discarded.
+Blocked jobs retain one remaining week to stay within the existing pending-job hydration
+contract. Anonymous equipment return/replacement refuses atomically when stock cannot fit.
 
 Weekly Auto-Scrap independently permits at most 32 queue attempts in total, in stable item-ID
 order. Unprocessed stock remains available for later weeks; a non-progressing attempt stops that

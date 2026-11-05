@@ -698,7 +698,7 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
       )
     }
     if (!capacityAvailable) {
-      nextQueue.push({ ...entry, remainingWeeks: 0 })
+      nextQueue.push({ ...entry, remainingWeeks: 1 })
       continue
     }
     for (const [materialId, quantity] of creditedMaterials) nextInventory[materialId] = quantity

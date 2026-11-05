@@ -14,6 +14,7 @@ import {
 } from '../domain/sim/market'
 import { getProcurementListings } from '../domain/market'
 import { getCanonicalFundingState } from '../domain/funding'
+import { equipAgentItem, unequipAgentItem } from '../domain/sim/equipment'
 import { parseRunExport, serializeRunExport } from '../app/store/runTransfer'
 
 function enabledStock() {
@@ -24,6 +25,36 @@ function enabledStock() {
 }
 
 describe('Auto-Scrap processing limits', () => {
+  it('preserves equipped stock when returning or replacing it would exceed capacity', () => {
+    const state = createStartingState()
+    state.inventory.medkits = 1
+    const equipped = equipAgentItem(state, 'a_casey', 'utility2', 'medkits')
+    expect(equipped.agents.a_casey.equipmentSlots?.utility2).toBe('medkits')
+    equipped.inventory = { ...equipped.inventory, medkits: Number.MAX_SAFE_INTEGER }
+    const loaded = parseRunExport(serializeRunExport(equipped))
+    const refused = unequipAgentItem(loaded, 'a_casey', 'utility2')
+    expect(refused.inventory.medkits).toBe(Number.MAX_SAFE_INTEGER)
+    expect(refused.agents.a_casey.equipmentSlots?.utility2).toBe('medkits')
+    expect(() => parseRunExport(serializeRunExport(refused))).not.toThrow()
+    const withRoom = {
+      ...refused,
+      inventory: { ...refused.inventory, medkits: Number.MAX_SAFE_INTEGER - 1 },
+    }
+    const returned = unequipAgentItem(withRoom, 'a_casey', 'utility2')
+    expect(returned.inventory.medkits).toBe(Number.MAX_SAFE_INTEGER)
+    expect(returned.agents.a_casey.equipmentSlots?.utility2).toBeUndefined()
+
+    const swapState = createStartingState()
+    swapState.inventory.ward_seals = 1
+    swapState.inventory.signal_jammers = 1
+    const sealed = equipAgentItem(swapState, 'a_mina', 'utility1', 'ward_seals')
+    sealed.inventory = { ...sealed.inventory, ward_seals: Number.MAX_SAFE_INTEGER }
+    const swapped = equipAgentItem(sealed, 'a_mina', 'utility1', 'signal_jammers')
+    expect(swapped.inventory.ward_seals).toBe(Number.MAX_SAFE_INTEGER)
+    expect(swapped.inventory.signal_jammers).toBe(1)
+    expect(swapped.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+  })
+
   it('refuses purchases at capacity without spending and preserves pending deliveries', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state).find(
@@ -64,11 +95,13 @@ describe('Auto-Scrap processing limits', () => {
     expect(delayed.completed).toEqual([])
     expect(delayed.state.equipmentDeconstructionQueue).toHaveLength(1)
     expect(delayed.state.inventory[material.materialId]).toBe(Number.MAX_SAFE_INTEGER)
-    delayed.state.inventory = {
-      ...delayed.state.inventory,
+    const restored = parseRunExport(serializeRunExport(delayed.state))
+    expect(restored.equipmentDeconstructionQueue).toHaveLength(1)
+    restored.inventory = {
+      ...restored.inventory,
       [material.materialId]: Number.MAX_SAFE_INTEGER - material.quantity,
     }
-    const completed = recovery.advanceEquipmentDeconstructionQueues(delayed.state)
+    const completed = recovery.advanceEquipmentDeconstructionQueues(restored)
     expect(completed.completed).toHaveLength(1)
     expect(completed.state.inventory[material.materialId]).toBe(Number.MAX_SAFE_INTEGER)
   })

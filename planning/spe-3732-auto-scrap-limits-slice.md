@@ -23,6 +23,9 @@ Pending fabrication output quantities receive the same magnitude check. Fabricat
 recovery wait intact when their outputs cannot fit; immediate procurement refuses to spend
 resources for an overflowing credit, and delayed deliveries remain pending until room exists.
 This closes normal producer paths adjacent to the accepted-count/weekly-processing boundary.
+Anonymous equipment returns/replacements also refuse atomically when returning stock cannot
+fit. Capacity-blocked fabrication/recovery jobs retain one remaining week to satisfy the
+existing pending-job hydration contract, so they survive save/load without a schema change.
 
 Auto-Scrap uses the same guard for direct runtime input, plus a global 32-attempt weekly budget.
 This fixed count keeps the synchronous deterministic week-close contract; it does not introduce
@@ -94,4 +97,9 @@ All six pre-ship passes covered scope/integration, malformed/empty/max/non-progr
 deterministic order and same-week replay, nearby consumers, schema/slice documentation, and
 cleanup. No new policy gap was found in this slice; small documentation and policy checkpoints
 were checked directly without another delegation cycle. Final CI/merge evidence remains pending.
+Hosted PR review then identified the pending-recovery countdown/hydration mismatch and missing
+anonymous equipment-return capacity checks. Both reproduced as failing bounded regressions;
+the fixes preserve existing queue hydration and refuse return/replacement without changing stock
+or equipment. All 42 directly affected/neighboring tests passed after those corrections, including
+a blocked recovery → export/import → make room → complete flow.
 The larger SPE-2749 protected-stock boundary remains open and is not implemented by this fix.

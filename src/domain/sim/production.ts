@@ -497,7 +497,7 @@ export function advanceProductionQueues(state: GameState) {
       const stock = sanitizeInventoryQuantity(nextInventory[entry.outputItemId])
       const outputQuantity = sanitizeInventoryQuantity(entry.outputQuantity)
       if (!hasInventoryCapacity(stock, outputQuantity)) {
-        nextQueue.push({ ...entry, remainingWeeks: 0 })
+        nextQueue.push({ ...entry, remainingWeeks: 1 })
         notes.push(`${entry.recipeName}: fabrication awaiting inventory capacity.`)
         continue
       }

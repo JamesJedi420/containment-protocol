@@ -1,4 +1,5 @@
 // cspell:words unequip
+import { hasInventoryCapacity } from '../inventoryQuantity'
 import type { Agent, GameState, Id } from '../models'
 import {
   listEquippedItemAssignments,
@@ -454,6 +455,14 @@ export function equipAgentItem(
     return ensureNormalizedGameState(state)
   }
 
+  if (
+    currentItemId &&
+    !currentInstance &&
+    !hasInventoryCapacity(state.inventory[currentItemId], 1)
+  ) {
+    return ensureNormalizedGameState(state)
+  }
+
   if (itemId === COMBAT_STIM_DEFINITION_ID && getCatalogEquipmentStock(state, itemId) > 0) {
     const interim = currentItemId ? unequipAgentItem(state, agentId, slot) : state
     const materialized = instantiateEquipmentInstance(interim, itemId, {
@@ -622,6 +631,10 @@ export function unequipAgentItem(
   const currentItemId =
     currentInstance?.definitionId ?? getEquipmentSlotItemId(agent.equipmentSlots, slot)
   if (!currentItemId) {
+    return ensureNormalizedGameState(state)
+  }
+
+  if (!currentInstance && !hasInventoryCapacity(state.inventory[currentItemId], 1)) {
     return ensureNormalizedGameState(state)
   }
 

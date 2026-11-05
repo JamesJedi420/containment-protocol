@@ -28,13 +28,15 @@
     "verify:requirements:test": "node --test scripts/validation/requirement-model.check.mjs scripts/validation/session-preflight-selection.check.mjs scripts/validation/academy-authored-content.check.mjs",
     "verify:academy-authored-content": "node scripts/validation/academy-authored-content.mjs && node --test scripts/validation/academy-authored-content.check.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --reporter=list,html",
+    "test:e2e:ci": "playwright test --reporter=list,html && npm run test:errors",
+    "test:errors": "playwright test --config playwright.errors.config.ts",
     "verify:trigger-compatibility": "node --test scripts/trigger-dev-compatibility.check.mjs",
     "project:approved-work": "node scripts/project-approved-work.mjs",
     "test:approved-work": "node --test scripts/project-approved-work.test.mjs scripts/export-linear-approved-work.test.mjs",
     "export:approved-work": "node scripts/export-linear-approved-work.mjs"
   },
   "dependencies": {
+    "@sentry/react": "11.10.0",
     "@trigger.dev/sdk": "4.8.3",
     "lucide-react": "^1.66.0",
     "react": "^19.3.1",

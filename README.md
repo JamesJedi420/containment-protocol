@@ -97,6 +97,11 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 Run `npm run verify:trigger-compatibility` to check the Trigger.dev dependency overrides;
 see [Trigger.dev development setup](docs/trigger-dev-development.md).
 
+The public game includes minimal browser error reporting to Better Stack; local
+development and ordinary automated tests do not send reports by default. See
+[error-reporting configuration, privacy limits and verification](docs/better-stack-errors.md).
+Run `npm run test:errors` for the isolated, intercepted SDK browser checks.
+
 ## Validation
 
 Before opening a pull request, prefer the shared requirement resolver (SPE-3348), which selects the same validators CI will run:

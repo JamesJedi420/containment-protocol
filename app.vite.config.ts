@@ -1,6 +1,10 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vitest/config'
+import { execFileSync } from 'node:child_process'
+
+const buildRevision =
+  process.env.GITHUB_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 
 function getManualChunk(id: string) {
   const normalizedId = id.replace(/\\/g, '/')
@@ -45,6 +49,7 @@ function getManualChunk(id: string) {
 }
 
 export default defineConfig(({ mode }) => ({
+  define: { __CP_BUILD_REVISION__: JSON.stringify(buildRevision) },
   base: mode === 'pages' ? '/containment-protocol/' : '/',
   plugins: [react(), tailwindcss()],
   build: {

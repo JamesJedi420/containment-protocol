@@ -33,6 +33,7 @@ import {
   type EquipmentGradeId,
 } from '../../domain/equipmentGrade'
 import {
+  AUTO_SCRAP_MAX_ATTEMPTS_PER_WEEK,
   getEquipmentAutoScrapReasonLabel,
   resolveEquipmentAutoScrapPreview,
 } from '../../domain/equipmentAutoScrap'
@@ -290,6 +291,7 @@ export interface EquipmentAutoScrapEntryView {
 
 export interface EquipmentAutoScrapView {
   enabled: boolean
+  weeklyUnitLimit: number
   configuredThresholdGradeId?: EquipmentGradeId
   configuredThresholdLabel?: string
   previewThresholdGradeId: EquipmentGradeId
@@ -461,6 +463,7 @@ export function getEquipmentAutoScrapView(
   const preview = resolveEquipmentAutoScrapPreview(game, previewThresholdGradeId)
   return {
     enabled: policy?.state === 'enabled',
+    weeklyUnitLimit: AUTO_SCRAP_MAX_ATTEMPTS_PER_WEEK,
     ...(policy?.state === 'enabled'
       ? {
           configuredThresholdGradeId: policy.thresholdGradeId,

@@ -1,4 +1,5 @@
 import { convertFacilityMaintenanceResources } from '../../domain/facilityMaintenanceConversion'
+import { UnsupportedInventoryQuantityError } from '../../domain/inventoryQuantity'
 import { applyTutorialCommand as applyTutorialCommandState } from '../../domain/gameStateManager'
 import { applyTutorialDelivery, unavailableTutorialResult } from '../../domain/tutorialDelivery'
 import type { TutorialDeliveryCommand, TutorialDispatchResult } from '../../domain/tutorialDelivery'
@@ -784,10 +785,11 @@ export function resolveGameStorage(): StateStorage {
   return gameStorageFallback
 }
 
-let automaticMissionLoadError: InvalidMissionEscalationRuleError | undefined
+type AutomaticLoadError = InvalidMissionEscalationRuleError | UnsupportedInventoryQuantityError
+let automaticMissionLoadError: AutomaticLoadError | undefined
 const GAME_STORAGE_KEY = 'containment-protocol-game-state'
 
-export function getAutomaticMissionLoadError(): InvalidMissionEscalationRuleError | undefined {
+export function getAutomaticMissionLoadError(): AutomaticLoadError | undefined {
   return automaticMissionLoadError
 }
 
@@ -841,18 +843,16 @@ export async function restoreCompatibleRun(raw: string): Promise<void> {
   )
 }
 
-function validateAutomaticMissionLoad(persistedState: unknown): void {
-  if (
-    typeof persistedState !== 'object' ||
-    persistedState === null ||
-    !('game' in persistedState)
-  ) {
-    return
-  }
+function guardAutomaticLoad<T>(load: () => T): T {
   try {
-    assertMissionEscalationCompatibility(persistedState.game)
+    return load()
   } catch (error) {
-    if (error instanceof InvalidMissionEscalationRuleError) automaticMissionLoadError = error
+    if (
+      error instanceof InvalidMissionEscalationRuleError ||
+      error instanceof UnsupportedInventoryQuantityError
+    ) {
+      automaticMissionLoadError = error
+    }
     throw error
   }
 }
@@ -3300,9 +3300,10 @@ export const useGameStore = create<GameStore>()(
         const ps = persistedState as Partial<PersistedStore>
         if (!ps?.game) return currentState
 
-        validateAutomaticMissionLoad(ps)
-
-        const mergedGame = hydrateGame(ps.game as Partial<GameState>, currentState.game)
+        const mergedGame = guardAutomaticLoad(() => {
+          assertMissionEscalationCompatibility(ps.game)
+          return hydrateGame(ps.game as Partial<GameState>, currentState.game)
+        })
 
         return {
           ...currentState,
@@ -3314,8 +3315,16 @@ export const useGameStore = create<GameStore>()(
       version: GAME_STORE_VERSION,
 
       migrate: (persistedState: unknown, version: number): PersistedStore => {
-        validateAutomaticMissionLoad(persistedState)
-        return migratePersistedStore(persistedState, version, createStartingState())
+        return guardAutomaticLoad(() => {
+          if (
+            typeof persistedState === 'object' &&
+            persistedState !== null &&
+            'game' in persistedState
+          ) {
+            assertMissionEscalationCompatibility(persistedState.game)
+          }
+          return migratePersistedStore(persistedState, version, createStartingState())
+        })
       },
     }
   )

@@ -1,4 +1,5 @@
 import { getEquipmentCatalogEntries } from './equipment'
+import { sanitizeInventoryQuantity } from './inventoryQuantity'
 import {
   compareEquipmentGradeIds,
   isEquipmentGradeId,
@@ -33,6 +34,9 @@ export type EquipmentAutoScrapPolicy =
 export const DISABLED_EQUIPMENT_AUTO_SCRAP_POLICY: EquipmentAutoScrapPolicy = Object.freeze({
   state: 'disabled',
 })
+
+/** One deterministic global work budget; unprocessed stock stays available for later weeks. */
+export const AUTO_SCRAP_MAX_ATTEMPTS_PER_WEEK = 32
 
 export interface EquipmentAutoScrapPreviewEntry {
   readonly itemId: string
@@ -154,7 +158,7 @@ export function resolveEquipmentAutoScrapPreview(
   for (const definition of [...getEquipmentCatalogEntries()].sort((left, right) =>
     compareCodeUnits(left.id, right.id)
   )) {
-    const quantity = Math.max(0, Math.trunc(state.inventory[definition.id] ?? 0))
+    const quantity = sanitizeInventoryQuantity(state.inventory[definition.id])
     if (quantity < 1) continue
     const recoveryPreview = resolveEquipmentDeconstructionPreview(state, definition.id)
     if (!recoveryPreview) continue
@@ -299,10 +303,23 @@ export function applyEquipmentAutoScrapAtWeekClose(state: GameState): GameState 
   const preview = resolveEquipmentAutoScrapPreview(state, policy.thresholdGradeId)
   const priorQueueIds = new Set((state.equipmentDeconstructionQueue ?? []).map((entry) => entry.id))
   let nextState = state
+  let remainingAttempts = AUTO_SCRAP_MAX_ATTEMPTS_PER_WEEK
   for (const entry of preview.entries) {
+    if (remainingAttempts === 0) break
     if (entry.decision !== 'include') continue
-    for (let index = 0; index < entry.quantity; index += 1) {
-      nextState = queueEquipmentDeconstruction(nextState, entry.itemId)
+    const attempts = Math.min(entry.quantity, remainingAttempts)
+    for (let index = 0; index < attempts; index += 1) {
+      remainingAttempts -= 1
+      const stockBefore = nextState.inventory[entry.itemId] ?? 0
+      const queueLengthBefore = nextState.equipmentDeconstructionQueue?.length ?? 0
+      const queued = queueEquipmentDeconstruction(nextState, entry.itemId)
+      if (
+        queued.inventory[entry.itemId] !== stockBefore - 1 ||
+        (queued.equipmentDeconstructionQueue?.length ?? 0) !== queueLengthBefore + 1
+      ) {
+        break
+      }
+      nextState = queued
     }
   }
   const routedQueueIds = (nextState.equipmentDeconstructionQueue ?? [])

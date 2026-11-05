@@ -1,3 +1,4 @@
+import { hasInventoryCapacity } from '../inventoryQuantity'
 import {
   EQUIPMENT_DECONSTRUCTION_PROFILES,
   getEquipmentDeconstructionProfile,
@@ -683,10 +684,24 @@ export function advanceEquipmentDeconstructionQueues(state: GameState) {
       continue
     }
 
+    const creditedMaterials = new Map<string, number>()
+    let capacityAvailable = true
     for (const material of entry.outputMaterials) {
-      nextInventory[material.materialId] =
-        Math.max(0, Math.trunc(nextInventory[material.materialId] ?? 0)) + material.quantity
+      const stock = creditedMaterials.get(material.materialId) ?? nextInventory[material.materialId]
+      if (!hasInventoryCapacity(stock, material.quantity)) {
+        capacityAvailable = false
+        break
+      }
+      creditedMaterials.set(
+        material.materialId,
+        Math.max(0, Math.trunc(stock ?? 0)) + material.quantity
+      )
     }
+    if (!capacityAvailable) {
+      nextQueue.push({ ...entry, remainingWeeks: 0 })
+      continue
+    }
+    for (const [materialId, quantity] of creditedMaterials) nextInventory[materialId] = quantity
     const outcome: EquipmentRecoveryOutcome = Object.freeze({
       queueId: entry.id,
       itemId: entry.itemId,

@@ -1,4 +1,5 @@
 import { parseContainmentRequirementRegistry } from '../../domain/containmentRequirementFulfillment'
+import { sanitizeInventoryQuantity } from '../../domain/inventoryQuantity'
 import { assertMissionEscalationCompatibility } from './missionEscalationCompatibility'
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
 import { normalizeFacilityDecommissioning } from '../../domain/facilityDecommissioning'
@@ -5189,14 +5190,11 @@ function sanitizeTeamStatus(
  * trim keys, drop blanks, dedupe trimmed collisions (latest wins); preserve explicit `{}`.
  */
 function sanitizeInventory(value: unknown, fallback: Record<string, number>) {
-  if (!isRecord(value)) {
-    return { ...fallback }
-  }
-
+  const inventory = isRecord(value) ? value : fallback
   const knownItemIds = getKnownProcurementItemIds()
   const nextInventory: Record<string, number> = {}
 
-  for (const [rawKey, quantity] of Object.entries(value)) {
+  for (const [rawKey, quantity] of Object.entries(inventory)) {
     if (typeof rawKey !== 'string') {
       continue
     }
@@ -5206,11 +5204,7 @@ function sanitizeInventory(value: unknown, fallback: Record<string, number>) {
       continue
     }
 
-    const sanitizedQuantity = sanitizeInteger(
-      quantity as number | undefined,
-      fallback[itemId] ?? 0,
-      0
-    )
+    const sanitizedQuantity = sanitizeInventoryQuantity(quantity, fallback[itemId] ?? 0)
 
     if (knownItemIds.has(itemId) || sanitizedQuantity > 0 || fallback[itemId] !== undefined) {
       nextInventory[itemId] = sanitizedQuantity
@@ -5676,10 +5670,9 @@ function sanitizeProductionQueue(
       recipeName: resolvedRecipe.name,
       outputItemId,
       outputItemName: resolvedRecipe.outputItemName,
-      outputQuantity: sanitizeInteger(
-        entry.outputQuantity as number | undefined,
-        resolvedRecipe.outputQuantity,
-        1
+      outputQuantity: Math.max(
+        1,
+        sanitizeInventoryQuantity(entry.outputQuantity, resolvedRecipe.outputQuantity)
       ),
       startedWeek,
       durationWeeks,

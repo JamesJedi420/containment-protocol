@@ -14,6 +14,7 @@ import {
 } from '../crafting'
 import { type FabricatedEquipmentLot, type GameState, type ProductionQueueEntry } from '../models'
 import { isEquipmentGradeId } from '../equipmentGrade'
+import { hasInventoryCapacity, sanitizeInventoryQuantity } from '../inventoryQuantity'
 import {
   EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES,
   isEquipmentGradeFabricationExplanationCode,
@@ -493,9 +494,15 @@ export function advanceProductionQueues(state: GameState) {
         remainingWeeks,
       })
     } else {
+      const stock = sanitizeInventoryQuantity(nextInventory[entry.outputItemId])
+      const outputQuantity = sanitizeInventoryQuantity(entry.outputQuantity)
+      if (!hasInventoryCapacity(stock, outputQuantity)) {
+        nextQueue.push({ ...entry, remainingWeeks: 0 })
+        notes.push(`${entry.recipeName}: fabrication awaiting inventory capacity.`)
+        continue
+      }
       completed.push(entry)
-      nextInventory[entry.outputItemId] =
-        (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity
+      nextInventory[entry.outputItemId] = stock + outputQuantity
       notes.push(
         `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
       )

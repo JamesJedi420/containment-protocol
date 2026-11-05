@@ -77,6 +77,10 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
     await input.fill(toExport(envelope))
     await page.getByRole('button', { name: 'Import Run' }).click()
     await expect(page.getByRole('status').filter({ hasText: /imported/i })).toBeVisible()
+    const imported = JSON.parse(
+      await page.evaluate((storageKey) => localStorage.getItem(storageKey)!, key)
+    ) as SavedEnvelope
+    expect(imported.state.game.cases[spawned.id].onUnresolved.stageDelta).toBe(2)
     await advanceOperationalWeek(page)
     await page
       .getByRole('region', { name: 'Latest report' })
@@ -228,6 +232,10 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
             .map((candidate) => localStorage.getItem(candidate))
         }, key)
         expect(copies).toContain(broken)
+        const restored = JSON.parse(
+          await recovery.evaluate((storageKey) => localStorage.getItem(storageKey)!, key)
+        ) as SavedEnvelope
+        expect(restored.state.game.cases[spawned.id].onUnresolved.stageDelta).toBe(2)
         await advanceOperationalWeek(recovery)
         await openPrimaryNav(recovery, 'Cases')
         await recovery

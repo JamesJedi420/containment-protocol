@@ -87,6 +87,18 @@ Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cu
 
 ## Review guidelines
 
+### Gameplay implementation evidence
+
+For gameplay implementations, assess the approved feature against all five conditions before claiming it is used during gameplay:
+
+1. **Reachable:** Normal gameplay can activate the feature, or an existing gameplay system invokes it.
+2. **Connected:** It affects the actual simulation, decision logic, events, resources, characters, or other relevant game state.
+3. **Observable:** A player-facing behavior or another appropriate runtime consumer makes the consequences verifiable.
+4. **Persistent where necessary:** State changes survive transitions, saving, and loading when the mechanic requires persistence.
+5. **Validated end to end:** Codex/Cursor verifies the complete gameplay interaction, not just the existence of functions or passing isolated tests.
+
+Use Linear to establish the completed issue's scope and the intended gameplay interaction. Assess each condition against that scope; identify non-applicable conditions and explain why. Pending, separate implementation scope is not itself a defect in a completed boundary, but a domain-only seam or a synthetic fixture does not prove normal gameplay use. Distinguish observed gameplay, constructed fixtures, and isolated tests; report missing evidence or unavailable validation explicitly instead of claiming gameplay use.
+
 Codex (`@codex review`), **Greptile** (`@greptileai`), **CodeRabbit**, **Amazon Q Developer** (`/q review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the approved Linear slice issue when one exists, `planning/*-slice.md`, and stated boundary before commenting. Unowned review-only sessions may remain read-only and must not manufacture scope.
 
 AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `.amazonq/rules/*.md`, `.coderabbit.yaml`, `CLAUDE.md` (Claude Code). Dashboard or marketplace settings may also apply; in-repo files are version-controlled and reviewed in PRs.

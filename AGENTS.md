@@ -87,6 +87,12 @@ Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cu
 
 ## Review guidelines
 
+### Emergent storytelling direction
+
+Containment Protocol is an emergent-story game: campaign history arises from player decisions, independently evolving world state, and consequences resolved by existing simulation owners. Authored situations provide possibilities, not guaranteed plot events. Preserve meaningful alternatives and failure, causal continuity across time and save/load, and the distinction between world truth and what the player can legitimately know. Deterministic replay uses the applicable state, seed, and ruleset contract.
+
+For gameplay design, implementation, review, and release acceptance, check whether the changed behavior contributes to or preserves this direction within its approved scope. Trace relevant decisions or events through authoritative state, observable consequences, and later gameplay; do not count disconnected text, invented history, or isolated helper tests as a working story. When appropriate, compare eligible alternative player actions or world states and verify that their consequences differ for a causal reason. Apply the five evidence conditions below and route failures to the existing owner. Not every low-level slice must independently deliver a full story, but the end-to-end feature must work through its existing consumers before claiming the story interaction is playable. Reuse the weekly-loop and golden-campaign evidence owned by SPE-2251 and SPE-3352; do not introduce a parallel storyteller, duplicate state, or expose hidden information to force coverage.
+
 ### Gameplay implementation evidence
 
 For gameplay implementations, assess the approved feature against all five conditions before claiming it is used during gameplay:

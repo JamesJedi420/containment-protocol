@@ -548,7 +548,7 @@ export function advanceContainmentRequirementsAtWeekClose(state: GameState): Gam
     Object.create(null),
     registry
   )
-  for (const key of Object.keys(registry).sort()) {
+  for (const key of Object.keys(registry).sort(compareCodeUnit)) {
     const previous = registry[key]
     if (!previous) continue
     const evaluated = evaluateRequirementAgainstCampaignWeek(previous, state.week)
@@ -883,4 +883,11 @@ export function projectExplainableRequirementStatus(
       : {}),
     reasonCodes: state.reasonCodes,
   })
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

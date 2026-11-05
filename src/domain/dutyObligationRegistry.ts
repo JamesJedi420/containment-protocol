@@ -253,7 +253,7 @@ function buildRoleIndex(
     }
   }
   for (const roleId of Object.keys(bag)) {
-    bag[roleId] = Object.freeze([...bag[roleId]].sort())
+    bag[roleId] = Object.freeze([...bag[roleId]].sort(compareCodeUnit))
   }
   return Object.freeze(bag)
 }
@@ -673,3 +673,10 @@ export const DEMO_DUTY_OBLIGATION_REGISTRY: DutyObligationRegistry = registryFro
   FIELD_LEAD_CONTAINMENT_ESCALATION_OBLIGATION,
   ARCHIVIST_RECORD_UPKEEP_PERIOD_OBLIGATION,
 ])
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}

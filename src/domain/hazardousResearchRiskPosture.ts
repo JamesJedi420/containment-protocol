@@ -120,7 +120,7 @@ function round4(value: number): number {
 }
 
 function sortedUnique(values: readonly string[]): readonly string[] {
-  return Object.freeze([...new Set(values.filter((v) => v.length > 0))].sort())
+  return Object.freeze([...new Set(values.filter((v) => v.length > 0))].sort(compareCodeUnit))
 }
 
 function sortedChannels(
@@ -617,4 +617,11 @@ export function assertHazardousResearchConsequenceKindExhaustive(
   if (!(HAZARDOUS_RESEARCH_CONSEQUENCE_KINDS as readonly string[]).includes(kind)) {
     throw new Error(`Unknown hazardous research consequence kind: ${kind}`)
   }
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

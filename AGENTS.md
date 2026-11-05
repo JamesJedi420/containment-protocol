@@ -13,6 +13,7 @@ Read [the Agent Operating Manual](docs/agent-operating-manual.md) before substan
 - **Response closeout:** every response ends with the next concrete step, or — when none exists — an explicit recommendation to archive the chat. Where closeout forbids new scope (phase A), recommend archiving instead.
 - **Handoffs:** [session routing](docs/agent-session-handoff.md), [read-only format](docs/read-only-session-handoff.md), and [implementation-only cloud-to-local Linear payload](docs/cloud-agent-linear-handoff.md) retain their distinct triggers. A GitHub linkback is not a Linear update.
 - **Tools:** [plugin keep-list](docs/agent-cursor-plugins.md) and [capability summary](docs/agent-capabilities.md); the latter is non-authoritative.
+- **Agent readers:** Linear artifacts are inputs to implementation agents, not only reports to humans. Comments, documents and handoffs name the receiving actor and its boundary, anchor every claim to file, symbol and revision, list the edits that would exceed the boundary, give checkable acceptance, and state the revision their anchors describe. See manual §4, Ship, review, update Linear, and close out.
 
 Active task details belong in Linear, the relevant `planning/*-slice.md`, and the task message: issue, approved boundary, branch, and base/main SHA. Preserve the original checkout and other active worktrees when working in isolation.
 

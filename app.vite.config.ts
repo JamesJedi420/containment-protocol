@@ -1,10 +1,8 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vitest/config'
-import { execFileSync } from 'node:child_process'
 
-const buildRevision =
-  process.env.GITHUB_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+const buildRevision = process.env.CP_BUILD_REVISION || process.env.GITHUB_SHA || 'local'
 
 function getManualChunk(id: string) {
   const normalizedId = id.replace(/\\/g, '/')

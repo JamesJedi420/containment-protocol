@@ -7,8 +7,8 @@ environment variable is needed to play or develop the game.
 
 ## Collection boundary
 
-Reporting is enabled by default only in a production build on
-`https://jamesjedi420.github.io/containment-protocol/`. Local development, previews,
+Reporting is enabled only when a DSN is configured and the production build runs on
+`https://jamesjedi420.github.io/containment-protocol/` (or explicit local activation is used). Local development, previews,
 and automated browsers do not send live reports by default. React 19 root error
 hooks and global asynchronous error handlers capture exceptions. Console errors
 remain available to developers and Playwright.
@@ -30,17 +30,24 @@ and browser HTTP metadata; client filtering does not establish server retention
 or deletion policy. The application dashboard displayed 90-day error retention at
 setup; the account owner manages retention and billing there.
 
-The DSN is a public ingest address and ships in browser code. Never substitute a
-management API token or put one in a `VITE_` variable. Reports use the Git commit
-from `GITHUB_SHA` in Actions, otherwise the local checkout HEAD. Uncommitted local
-code is not a published release even if it reports its base HEAD.
+The DSN is a public ingest address and ships in browser code. Supplying it through
+deployment configuration helps rotation and avoids a source-code fallback; it does
+not hide the address from bundle readers or prevent forged events/quota abuse.
+Never substitute a management API token or put one in a `VITE_` variable. Reports
+use `CP_BUILD_REVISION`, otherwise `GITHUB_SHA` in Actions, otherwise the explicit
+`local` label. Pages passes the exact tested checkout SHA. No PATH-resolved command
+is executed to infer build identity.
 
 ## Configuration and disabling
 
 - `VITE_ERROR_TRACKING_ENABLED=false` disables reporting at build/start time.
 - `VITE_ERROR_TRACKING_ENABLED=true` explicitly enables a local verification build.
-- `VITE_BETTERSTACK_DSN` optionally overrides the ingest address. Only an HTTPS
-  Better Stack ingest host with a numeric application path is accepted.
+- `VITE_BETTERSTACK_DSN` supplies the ingest address; absent/invalid configuration
+  disables diagnostics without preventing gameplay. Only an HTTPS Better Stack
+  ingest host with a numeric application path is accepted. Pages supplies it from
+  the repository variable `BETTERSTACK_DSN`; no management token is stored there.
+- `CP_BUILD_REVISION` optionally labels an explicitly identified local build;
+  without it local development is labeled `local` rather than claiming a Git SHA.
 - To disable future initialization in the current tab, set
   `sessionStorage.setItem('cp.errorTracking.disabled', 'true')` and reload. Remove
   that key and reload to restore the normal activation rules. No game save changes.
@@ -58,7 +65,8 @@ validated locally; this test cannot verify delivery to Better Stack. The existin
 CI Playwright command also runs this suite. Fixtures are not production entries.
 
 For one live synthetic verification, start Vite with
-`VITE_ERROR_TRACKING_ENABLED=true`, opt a disposable automated tab in, and open
+`VITE_ERROR_TRACKING_ENABLED=true` and `VITE_BETTERSTACK_DSN` set to the application's
+public ingest address, opt a disposable automated tab in, and open
 `/e2e/fixtures/error-tracking.html`. Click **Verify React exception** while observing
 the ingest response. This sends only the fixed message
 `Containment Protocol Better Stack verification`, tagged `playwright`. An HTTP
@@ -69,7 +77,8 @@ Do not cause a real gameplay failure just to test telemetry.
 On November 5, 2026 at 08:20:43 UTC, the actual React SDK fixture received HTTP 200
 from the configured ingest endpoint for event `b18638281cf240af9f700c3eb9a370b8`
 (`environment=playwright`). This was a dirty implementation checkout based on
-`bd85c1c2`, not a published release. The connected browser profile was not signed
+`bd85c1c2`, before the DSN/release configuration review fixes, not a published release.
+The connected browser profile was not signed
 into the dashboard, so event visibility there was not verified. Raw acknowledgment
 is retained in the session's `betterstack-evidence/live-ingest.json` artifact.
 

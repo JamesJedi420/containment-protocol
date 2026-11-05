@@ -1,7 +1,8 @@
 # SPE-3729 — Focused browser error tracking
 
 Owner: [SPE-3729](https://linear.app/spectranoir/issue/SPE-3729/focused-better-stack-browser-error-tracking-for-playtesting).
-Status: In Progress. User explicitly authorized the integration and dependency fallback.
+Lifecycle status is maintained in Linear. This file records the implementation and
+pre-ship evidence. User explicitly authorized the integration and dependency fallback.
 Branch: `codex/spe-3729-betterstack-errors`. Base: `bd85c1c2b159d9406338523cd8ae1bbf36bc345d`.
 
 ## Boundary
@@ -13,7 +14,8 @@ activation. No gameplay/store/domain/persistence or RUM/tracing/analytics change
 
 Implementation files: `src/app/errorTracking.ts`, `errorTrackingPolicy.ts`, entry
 point and Vite build revision; policy tests and dedicated Playwright fixtures/
-configuration. Dependency changes stay in package/lockfile; operational and
+configuration. Pages injects the public DSN from repository configuration and the
+exact tested release SHA; missing configuration disables diagnostics. Dependency changes stay in package/lockfile; operational and
 fallback evidence is in `docs/better-stack-errors.md`.
 
 ## Validation and evidence
@@ -45,10 +47,21 @@ dashboard visibility is unavailable in the connected browser profile (not signed
 in). Live synthetic SDK ingest returned HTTP 200, event
 `b18638281cf240af9f700c3eb9a370b8`; this is transport acceptance, not dashboard proof.
 
-Local pre-ship evidence: Node 22.23.4/npm 10.9.9; 1,003 Vitest files / 10,922 tests
+Initial local pre-ship evidence: Node 22.23.4/npm 10.9.9; 1,003 Vitest files / 10,922 tests
 passed; 18 normal gameplay Chromium checks and four isolated SDK checks passed.
 All required validators passed (`verify:requirements -- --base origin/main`, exit
 0), advisory typecheck passed, literal TypeScript/Vite build passed. Repository
 format check reports baseline drift in 3,261 files; changed files are checked
 separately. Direct six-pass review used for this bounded browser seam; no Hermes
 approval is claimed after the earlier read-only worker violations in this chat.
+
+Review fixes: DSN moved to optional deployment configuration (still public in the
+browser); isolated tests use a dummy ingest address. Sonar's PATH-resolution
+finding is fixed by using explicit build metadata/local label instead of spawning
+Git. Initialization is idempotent, network waits have explicit bounded timeouts,
+and envelope assertions validate framing before parsing. After those fixes, all
+12 policy tests and five isolated Chromium checks passed, including actual week
+advance and save/reload with diagnostics enabled; targeted lint and the literal
+TypeScript/Vite build passed. Hosted validation of these fixes is required before
+merge. The normal automated suites keep live telemetry disabled; isolated SDK
+tests intercept their dummy endpoint and cannot pollute the account.

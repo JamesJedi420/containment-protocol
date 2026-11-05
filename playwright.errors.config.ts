@@ -15,6 +15,9 @@ export default defineConfig({
     url: 'http://127.0.0.1:5198',
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { VITE_ERROR_TRACKING_ENABLED: 'true' },
+    env: {
+      VITE_ERROR_TRACKING_ENABLED: 'true',
+      VITE_BETTERSTACK_DSN: 'https://test@example.betterstackdata.com/1',
+    },
   },
 })

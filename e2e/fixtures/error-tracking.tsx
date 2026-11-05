@@ -5,6 +5,9 @@ import { VERIFICATION_ERROR } from '../../src/app/errorTrackingPolicy'
 
 const options = initializeErrorTracking()
 document.documentElement.dataset.errorTrackingConfigured = String(Boolean(options.onUncaughtError))
+document.documentElement.dataset.errorTrackingSingleton = String(
+  options === initializeErrorTracking()
+)
 export function BrokenComponent(): React.ReactNode {
   throw new Error(VERIFICATION_ERROR)
 }

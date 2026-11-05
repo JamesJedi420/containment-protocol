@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { ErrorEvent } from '@sentry/react'
 import {
-  BETTER_STACK_DSN,
   VERIFICATION_ERROR,
   createErrorFilter,
   resolveErrorTrackingPolicy,
 } from './errorTrackingPolicy'
 
 const input = {
+  dsn: 'https://test@example.betterstackdata.com/1',
   production: true,
   origin: 'https://jamesjedi420.github.io',
   pathname: '/containment-protocol/',
@@ -54,7 +54,8 @@ function errorEvent(): ErrorEvent {
 
 describe('error reporting activation', () => {
   it('enables only the production public game by default', () => {
-    expect(policy).toMatchObject({ dsn: BETTER_STACK_DSN, environment: 'playtest' })
+    expect(policy).toMatchObject({ dsn: input.dsn, environment: 'playtest' })
+    expect(resolveErrorTrackingPolicy({ ...input, dsn: undefined })).toBeNull()
     expect(resolveErrorTrackingPolicy({ ...input, production: false })).toBeNull()
     expect(resolveErrorTrackingPolicy({ ...input, origin: 'http://localhost:5173' })).toBeNull()
     expect(resolveErrorTrackingPolicy({ ...input, pathname: '/another-project/' })).toBeNull()

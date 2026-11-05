@@ -1,8 +1,5 @@
 import type { ErrorEvent, StackFrame } from '@sentry/react'
 
-// Public ingest address, not a Better Stack management API credential.
-export const BETTER_STACK_DSN =
-  'https://m8Us2KVs4bRAu6sZs22aJkRP@s2823646.us-west-2a.betterstackdata.com/2823646'
 export const VERIFICATION_ERROR = 'Containment Protocol Better Stack verification'
 export const AUTOMATED_REPORTING_KEY = 'cp.errorTracking.allowAutomated'
 export const DISABLE_REPORTING_KEY = 'cp.errorTracking.disabled'
@@ -33,7 +30,8 @@ export function resolveErrorTrackingPolicy(input: {
   if (input.enabled !== 'true' && !publicGame) return null
   if (input.automated && !input.allowAutomated) return null
 
-  const dsn = input.dsn || BETTER_STACK_DSN
+  const dsn = input.dsn
+  if (!dsn) return null
   try {
     const address = new URL(dsn)
     if (

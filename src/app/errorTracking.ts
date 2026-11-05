@@ -7,6 +7,8 @@ import {
   resolveErrorTrackingPolicy,
 } from './errorTrackingPolicy'
 
+let rootOptions: RootOptions | undefined
+
 function readPreference(key: string, fallback = false): boolean {
   try {
     return window.sessionStorage.getItem(key) === 'true'
@@ -17,6 +19,8 @@ function readPreference(key: string, fallback = false): boolean {
 }
 
 export function initializeErrorTracking(): RootOptions {
+  if (rootOptions) return rootOptions
+  rootOptions = {}
   const policy = resolveErrorTrackingPolicy({
     production: import.meta.env.PROD,
     enabled: import.meta.env.VITE_ERROR_TRACKING_ENABLED,
@@ -28,7 +32,7 @@ export function initializeErrorTracking(): RootOptions {
     allowAutomated: readPreference(AUTOMATED_REPORTING_KEY),
     disabled: readPreference(DISABLE_REPORTING_KEY, true),
   })
-  if (!policy) return {}
+  if (!policy) return rootOptions
 
   try {
     Sentry.init({
@@ -66,9 +70,10 @@ export function initializeErrorTracking(): RootOptions {
       // Preserve console evidence for developers and Playwright after overriding React defaults.
       console.error(error)
     }
-    return { onUncaughtError: report, onCaughtError: report, onRecoverableError: report }
+    rootOptions = { onUncaughtError: report, onCaughtError: report, onRecoverableError: report }
+    return rootOptions
   } catch {
     // Optional diagnostics must not become a startup dependency.
-    return {}
+    return rootOptions
   }
 }

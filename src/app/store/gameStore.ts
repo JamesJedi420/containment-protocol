@@ -806,7 +806,14 @@ export async function restoreCompatibleRun(raw: string): Promise<void> {
     typeof savedCases !== 'object' ||
     savedCases === null ||
     Array.isArray(savedCases) ||
-    Object.keys(savedCases).length === 0
+    Object.keys(savedCases).length === 0 ||
+    Object.entries(savedCases).some(
+      ([id, value]) =>
+        typeof value !== 'object' ||
+        value === null ||
+        Array.isArray(value) ||
+        !Object.prototype.hasOwnProperty.call(game.cases, id)
+    )
   ) {
     throw new Error('This run export does not contain saved campaign cases.')
   }

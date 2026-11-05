@@ -179,6 +179,21 @@ test('incomplete escalation saves fail safely while a valid campaign continues',
         expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
           broken
         )
+        await restoreInput.fill(
+          JSON.stringify({
+            kind: 'containment-protocol-run',
+            version: envelope.version,
+            exportedAt: '2026-11-05T00:00:00.000Z',
+            game: { ...envelope.state.game, cases: { invalid: null } },
+          })
+        )
+        await recovery.getByRole('button', { name: 'Restore compatible run' }).click()
+        await expect(recovery.getByRole('status')).toContainText(
+          'does not contain saved campaign cases'
+        )
+        expect(await recovery.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBe(
+          broken
+        )
         await restoreInput.fill(toExport(envelope))
         if (version === envelope.version) {
           await recovery.evaluate(() => {

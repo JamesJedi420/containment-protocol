@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { APP_ROUTES } from '../app/routes'
-import { buildEventFeedView, refineEventFeedDrillDownHref } from '../features/dashboard/eventFeedView'
+import {
+  buildEventFeedView,
+  refineEventFeedDrillDownHref,
+} from '../features/dashboard/eventFeedView'
 import { getCaseWeeklyReportWeeks } from '../features/shared/operationsRouteDrillDown'
 import { buildReportWeekNavigation } from '../features/report/reportWeekNavigation'
 import { readPersistentFlag } from '../domain/flagSystem'
@@ -35,6 +38,7 @@ describe('MVP weekly loop proof', () => {
         buildInvestigationAskedFlagId(MVP_LOOP_PROOF_CASE_ID, MVP_LOOP_FORENSIC_QUESTION_ID)
       )
     ).toBe(true)
+    assert.exists(week0.globalFlags)
     expect(week0.globalFlags[`conceal.case.${MVP_LOOP_PROOF_CASE_ID}`]).toBe(true)
 
     const week1 = advanceWeek(week0)
@@ -90,7 +94,9 @@ describe('MVP weekly loop proof', () => {
     expect(buildReportWeekNavigation(week2.reports, latestReport.week)).toEqual({
       previousWeek: priorReport.week,
     })
-    expect(getCaseWeeklyReportWeeks(week2.reports, MVP_LOOP_PROOF_CASE_ID).length).toBeGreaterThan(0)
+    expect(getCaseWeeklyReportWeeks(week2.reports, MVP_LOOP_PROOF_CASE_ID).length).toBeGreaterThan(
+      0
+    )
   })
 
   it('keeps event feed drill-down hrefs coherent with generated reports', () => {

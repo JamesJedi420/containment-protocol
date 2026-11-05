@@ -53,7 +53,7 @@ Prefer repo sources first. Use **Tavily** (MCP / CLI) only when live web researc
 
 ## Cursor plugins
 
-Keep-list and workflows: **`docs/agent-cursor-plugins.md`**. Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype). Do not wire vendor scan/search SDKs into `src/` or CI without an approved Linear slice.
+Keep-list and workflows: **`docs/agent-cursor-plugins.md`**. Before adding or upgrading npm deps: security review is required; prefer Sonatype when available, otherwise use the documented evidence-based fallback in `docs/dependency-review-policy.md`. Snyk is optional supplementary evidence. Do not wire vendor scan/search SDKs into `src/` or CI without an approved Linear slice.
 
 ## Do not
 

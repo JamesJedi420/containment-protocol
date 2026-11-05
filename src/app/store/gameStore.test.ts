@@ -1,3 +1,5 @@
+import { buildAgentCandidate } from '../../test/recruitment/fixtures'
+import { buildCandidateEvaluation } from '../../domain/recruitment'
 // cspell:words cand greentape medkits unassigns unequip
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
@@ -98,7 +100,7 @@ import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalR
 const STORE_KEY = 'containment-protocol-game-state'
 
 function makeCooperativeContractorCandidate(): Candidate {
-  return {
+  return buildAgentCandidate({
     id: 'candidate:cooperative-contractor',
     name: 'Cooperative Contractor',
     age: 31,
@@ -115,7 +117,9 @@ function makeCooperativeContractorCandidate(): Candidate {
     funnelStage: 'hired',
     createdWeek: 1,
     lastUpdatedWeek: 1,
-  }
+    evaluation: buildCandidateEvaluation(2, {}),
+    agentData: { role: 'field', specialization: 'field', traits: [] },
+  })
 }
 
 function getPersistedState() {
@@ -2651,7 +2655,8 @@ describe('gameStore persistence', () => {
     game.week = 12
     const window = { windowId: 'window:10-12', startWeek: 10, endWeek: 12 }
     const information = {
-      requirementId: 'req:intake', subjectRef: 'subject:anomaly',
+      requirementId: 'req:intake',
+      subjectRef: 'subject:anomaly',
       requirementClass: 'information_input' as const,
       acceptableInputClasses: ['information' as const],
       deficiencySeverity: 'major' as const,
@@ -2659,7 +2664,8 @@ describe('gameStore persistence', () => {
       createsWork: false,
     }
     const material = {
-      requirementId: 'req:coolant', subjectRef: 'subject:entity',
+      requirementId: 'req:coolant',
+      subjectRef: 'subject:entity',
       requirementClass: 'material_service' as const,
       acceptableInputClasses: ['material' as const],
       constraints: { quantityMin: 2 },
@@ -2668,22 +2674,28 @@ describe('gameStore persistence', () => {
       createsWork: true,
     }
     const passiveKey = containmentRequirementRegistryKey(
-      information.subjectRef, information.requirementId
+      information.subjectRef,
+      information.requirementId
     )
     const materialKey = containmentRequirementRegistryKey(
-      material.subjectRef, material.requirementId
+      material.subjectRef,
+      material.requirementId
     )
     const acceptedMaterial = attemptContainmentRequirementFulfillment(
       openContainmentRequirementWindow({ definition: material, currentWindow: window })!,
       {
-        fulfillmentRef: 'fulfill:coolant', inputRef: 'inventory:coolant',
-        inputClass: 'material', campaignWeek: 11, quantity: 2,
+        fulfillmentRef: 'fulfill:coolant',
+        inputRef: 'inventory:coolant',
+        inputClass: 'material',
+        campaignWeek: 11,
+        quantity: 2,
       }
     )!
     expect(acceptedMaterial.outcome).toBe('accepted')
     game.containmentRequirementStates = {
       [passiveKey]: openContainmentRequirementWindow({
-        definition: information, currentWindow: window,
+        definition: information,
+        currentWindow: window,
       })!,
       [materialKey]: acceptedMaterial.state,
     }
@@ -2706,8 +2718,9 @@ describe('gameStore persistence', () => {
     await useGameStore.persist.rehydrate()
     const restored = useGameStore.getState().game
     expect(restored.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
-    expect(restored.containmentRequirementStates?.[materialKey]?.lastFulfillmentRef)
-      .toBe('fulfill:coolant')
+    expect(restored.containmentRequirementStates?.[materialKey]?.lastFulfillmentRef).toBe(
+      'fulfill:coolant'
+    )
     expect(Object.isFrozen(restored.containmentRequirementStates)).toBe(true)
 
     useGameStore.getState().advanceWeek()
@@ -2715,8 +2728,7 @@ describe('gameStore persistence', () => {
     expect(repeated.week).toBe(14)
     expect(repeated.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
     expect(repeated.containmentRequirementStates?.[materialKey]?.state).toBe('satisfied')
-    expect(repeated.containmentRequirementStates?.[passiveKey]?.fulfilledWindowIds)
-      .toEqual([])
+    expect(repeated.containmentRequirementStates?.[passiveKey]?.fulfilledWindowIds).toEqual([])
     expect(getPersistedState()?.state.game.containmentRequirementStates).toBeDefined()
   })
 
@@ -3940,7 +3952,7 @@ describe('affiliation file work queue evidence repair workflow store action', ()
         affiliationPersonStatusRecords: {
           [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
             ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
-            permissionSurface: 'allowed', // Not missing_review
+            permissionSurface: 'mission', // A valid surface with no missing review.
           },
         },
         entityWelfareReclassificationRecords: {
@@ -4249,7 +4261,7 @@ describe('affiliation file work queue repair action store action', () => {
     const game = createStartingState()
     game.week = 12
     game.candidates = [
-      {
+      buildAgentCandidate({
         id: 'candidate:present',
         name: 'Welfare Repair Subject',
         age: 30,
@@ -4258,7 +4270,9 @@ describe('affiliation file work queue repair action store action', () => {
         weeklyCost: 0,
         weeklyWage: 0,
         revealLevel: 2,
-      },
+        evaluation: buildCandidateEvaluation(2, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     game.recruitmentPool = [...game.candidates]
     game.affiliationPersonStatusRecords = {
@@ -4418,7 +4432,7 @@ describe('affiliation file work queue repair action store action', () => {
     const game = createStartingState()
     game.week = 12
     game.candidates = [
-      {
+      buildAgentCandidate({
         id: 'candidate:onboarding-canonical',
         name: 'Canonical Onboarding Subject',
         age: 30,
@@ -4428,7 +4442,9 @@ describe('affiliation file work queue repair action store action', () => {
         weeklyWage: 0,
         revealLevel: 1,
         funnelStage: 'screening',
-      },
+        evaluation: buildCandidateEvaluation(1, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     game.recruitmentPool = []
     game.affiliationPersonStatusRecords = {

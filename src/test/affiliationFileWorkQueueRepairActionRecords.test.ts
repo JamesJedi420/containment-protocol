@@ -1,3 +1,5 @@
+import { buildAgentCandidate } from './recruitment/fixtures'
+import { buildCandidateEvaluation } from '../domain/recruitment'
 import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
@@ -148,7 +150,7 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
     const state = createStartingState()
     state.week = 13
     state.candidates = [
-      {
+      buildAgentCandidate({
         id: 'candidate:onboarding-canonical',
         name: 'Canonical Onboarding Subject',
         age: 30,
@@ -158,7 +160,9 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
         weeklyWage: 0,
         revealLevel: 1,
         funnelStage: 'screening',
-      },
+        evaluation: buildCandidateEvaluation(1, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     state.recruitmentPool = []
     state.affiliationPersonStatusRecords = {
@@ -214,7 +218,7 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
     state.week = 13
     state.candidates = []
     state.recruitmentPool = [
-      {
+      buildAgentCandidate({
         id: 'candidate:legacy-repair',
         name: 'Legacy Repair Subject',
         age: 30,
@@ -224,8 +228,10 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
         weeklyWage: 0,
         revealLevel: 1,
         funnelStage: 'screening',
-      },
-      {
+        evaluation: buildCandidateEvaluation(1, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
+      buildAgentCandidate({
         id: 'candidate:legacy-other',
         name: 'Other Legacy Subject',
         age: 31,
@@ -234,7 +240,9 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
         weeklyCost: 0,
         weeklyWage: 0,
         revealLevel: 2,
-      },
+        evaluation: buildCandidateEvaluation(2, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     state.affiliationPersonStatusRecords = {
       'person-status:legacy-repair': {
@@ -279,7 +287,7 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
     const state = createStartingState()
     state.week = 13
     state.candidates = [
-      {
+      buildAgentCandidate({
         id: 'candidate:other-canonical',
         name: 'Other Canonical Subject',
         age: 30,
@@ -288,10 +296,12 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
         weeklyCost: 0,
         weeklyWage: 0,
         revealLevel: 2,
-      },
+        evaluation: buildCandidateEvaluation(2, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     state.recruitmentPool = [
-      {
+      buildAgentCandidate({
         id: 'candidate:stale-legacy',
         name: 'Stale Legacy Subject',
         age: 30,
@@ -301,7 +311,9 @@ describe('affiliationFileWorkQueueRepairActionRecords persistence', () => {
         weeklyWage: 0,
         revealLevel: 1,
         funnelStage: 'screening',
-      },
+        evaluation: buildCandidateEvaluation(1, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     state.affiliationPersonStatusRecords = {
       'person-status:stale-legacy': {

@@ -64,8 +64,7 @@ describe('advanceWeek contained-person therapeutic care integration (SPE-2115 sl
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
     state.week = 1
-    const record = weeklyActiveRecord()
-    record.missedSessionStreak = 1
+    const record = { ...weeklyActiveRecord(), missedSessionStreak: 1 }
     state.containedPersonTherapeuticCareRecords = {
       [record.id]: record,
     }
@@ -113,7 +112,9 @@ describe('advanceWeek contained-person therapeutic care integration (SPE-2115 sl
     expect(
       nextState.containedPersonTherapeuticCareRecords?.[MISSED_STREAK_ELEVATED_RISK_FIXTURE.id]
     ).toBe(MISSED_STREAK_ELEVATED_RISK_FIXTURE)
-    expect(nextState.containedPersonTherapeuticCareRecords?.[WEEKLY_PSYCH_SCREENING_FIXTURE.id]).toEqual(
+    expect(
+      nextState.containedPersonTherapeuticCareRecords?.[WEEKLY_PSYCH_SCREENING_FIXTURE.id]
+    ).toEqual(
       expect.objectContaining({
         missedSessionStreak: 1,
       })

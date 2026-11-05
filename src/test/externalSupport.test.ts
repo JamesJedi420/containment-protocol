@@ -233,26 +233,48 @@ describe('SPE-93: applyRallySupportStaffAction with contractor asset', () => {
 
   it('SPE-2700: high vs low standing diverges failed-contractor reliability drift', () => {
     const asset = createContractorAsset('c-fail', 'Failed Contractor', 25)
-    const weakReports = [
+    const weakReports: GameState['reports'] = [
       {
+        rngStateBefore: 1,
+        rngStateAfter: 1,
+        newCases: [],
+        progressedCases: [],
+        spawnedCases: [],
+        maxStage: 0,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
         week: 1,
         resolvedCases: [],
         partialCases: [],
         failedCases: ['f1', 'f2', 'f3', 'f4', 'f5'],
         unresolvedTriggers: ['u1', 'u2', 'u3', 'u4'],
       },
-    ] as GameState['reports']
-    const strongReports = [
+    ]
+    const strongReports: GameState['reports'] = [
       {
+        rngStateBefore: 1,
+        rngStateAfter: 1,
+        newCases: [],
+        progressedCases: [],
+        spawnedCases: [],
+        maxStage: 0,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
         week: 1,
         resolvedCases: Array.from({ length: 10 }, (_, i) => `r${i}`),
         partialCases: [],
         failedCases: [],
         unresolvedTriggers: [],
       },
-    ] as GameState['reports']
+    ]
 
-    const weakState = { ...makeState(asset), reports: weakReports, events: [] as GameState['events'] }
+    const weakState = {
+      ...makeState(asset),
+      reports: weakReports,
+      events: [] as GameState['events'],
+    }
     const strongState = {
       ...makeState(asset),
       reports: strongReports,

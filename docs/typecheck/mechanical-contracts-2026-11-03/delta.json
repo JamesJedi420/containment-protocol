@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3375",
+  "sourceHashConvention": "UTF-8 source normalized to LF; emitted JavaScript from TypeScript transpileModule",
+  "before": {
+    "revision": "ceb706637c96697eeae8c5d67d58acde2483ebfb",
+    "census": "before/census.json",
+    "compilerInputHash": "198c35b739d063f673f1814cb480ccd7cc812daffd36c76fa2f046a8c6ca3031",
+    "normalizedDiagnosticRecordsSha256": "d55fa5fcc711ce3fe2ce55ba3c2364c548dbc5e9ff2a5c048f02f856f6e83919"
+  },
+  "after": {
+    "revision": "ceb706637c96697eeae8c5d67d58acde2483ebfb",
+    "census": "census.json",
+    "compilerInputHash": "1d3a7fa06333557afeb61688925f11ef76b14198075679be8f1d079a3fd94d91",
+    "normalizedDiagnosticRecordsSha256": "45dac947385678c7c4482e8187a489ccbfa009748a549b30cfb2ac7daf8e3025"
+  },
+  "previousLiteralContextCohortComparison": {
+    "census": "../literal-context-2026-11-03/census.json",
+    "identityDelta": []
+  },
+  "identityDelta": [
+    {
+      "identity": "27c25c87bf063bd4ccdc5f7360a16548c504fc49459c7385710f7ce04535c617",
+      "change": -1
+    },
+    {
+      "identity": "3a605d80f804218470c29b4f5f7e55080ee04476028baa37dece53ee65172f89",
+      "change": -1
+    },
+    {
+      "identity": "45753968ee73780d30f67d78af76f30099f45b0b3df576323e55b3ec3b1d0e6b",
+      "change": -1
+    },
+    {
+      "identity": "4772ef9d94241f9b51678fdf9efa7807432ac1a4310a8d41928ae3ca08c0b450",
+      "change": -1
+    },
+    {
+      "identity": "9762a2a0ad3d9df6a45a149c38e7c779a51c150722672d79ec3fba4c44878e9e",
+      "change": -1
+    },
+    {
+      "identity": "a948978e5b6f2b087ed87138d36b934fd969a9752775fc500b418624fde9b49e",
+      "change": -1
+    },
+    {
+      "identity": "c499e95abd71bc14842cf2dac327ab3ab0a03c1ca0c13d4349c152f3dfa530d1",
+      "change": -1
+    }
+  ],
+  "removedOccurrences": 7,
+  "addedOccurrences": 0,
+  "roots": [
+    {
+      "issue": "SPE-3543",
+      "root": "candidate-source-disposition",
+      "implementationFile": "src/app/store/runTransfer.ts",
+      "canonicalContract": "Candidate['sourceDisposition']",
+      "expectedRemovals": 3,
+      "measuredRemovals": 3,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 3307,
+          "column": 5,
+          "code": "TS2322",
+          "message": "Type '{ category: \"agent\"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.\n  Type '{ category: \"agent\"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: \"agent\"; evaluation: CandidateEvaluation; agentData: AgentCandidateData; staffData?: undefined; specialistData?: undefined; instructorData?: undefined; }'.\n    Type '{ category: \"agent\"; agentData: { visibleDomainStats?: Record<string, unknown> | undefined; domainStats?: Record<string, unknown> | undefined; visibleStats?: Record<string, unknown> | undefined; ... 4 more ...; traits: string[]; }; ... 30 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.\n      Types of property 'sourceDisposition' are incompatible.\n        Type 'string | undefined' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.\n          Type 'string' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.",
+          "identity": "45753968ee73780d30f67d78af76f30099f45b0b3df576323e55b3ec3b1d0e6b",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 3403,
+          "column": 5,
+          "code": "TS2322",
+          "message": "Type '{ category: \"instructor\"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: \"combat\" | \"investigation\" | \"utility\" | \"social\"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.\n  Type '{ category: \"instructor\"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: \"combat\" | \"investigation\" | \"utility\" | \"social\"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: \"instructor\"; evaluation: CandidateEvaluation; agentData?: undefined; staffData?: undefined; specialistData?: undefined; instructorData: InstructorCandidateData; }'.\n    Type '{ category: \"instructor\"; instructorData: { visibleEfficiency?: number | undefined; instructorSpecialty: \"combat\" | \"investigation\" | \"utility\" | \"social\"; efficiency: number; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.\n      Types of property 'sourceDisposition' are incompatible.\n        Type 'string | undefined' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.\n          Type 'string' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.",
+          "identity": "27c25c87bf063bd4ccdc5f7360a16548c504fc49459c7385710f7ce04535c617",
+          "surface": "production-source"
+        },
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 3439,
+          "column": 5,
+          "code": "TS2322",
+          "message": "Type '{ category: \"analyst\" | \"specialist\" | \"fieldTech\"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'Candidate | null'.\n  Type '{ category: \"analyst\" | \"specialist\" | \"fieldTech\"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase & { category: \"analyst\" | \"specialist\" | \"fieldTech\"; evaluation: CandidateEvaluation; agentData?: undefined; staffData?: undefined; specialistData?: SpecialistCandidateData | undefined; instructorData?: undefined; }'.\n    Type '{ category: \"analyst\" | \"specialist\" | \"fieldTech\"; specialistData: { focus?: string | undefined; efficiency?: number | undefined; specialty: string; }; scoutReport?: CandidateScoutReport | undefined; ... 29 more ...; evaluation: CandidateEvaluation; }' is not assignable to type 'CandidateBase'.\n      Types of property 'sourceDisposition' are incompatible.\n        Type 'string | undefined' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.\n          Type 'string' is not assignable to type '\"supportive\" | \"adversarial\" | undefined'.",
+          "identity": "4772ef9d94241f9b51678fdf9efa7807432ac1a4310a8d41928ae3ca08c0b450",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": ["src/app/store/runTransfer.test.ts", "src/app/store/saveSystem.test.ts"]
+    },
+    {
+      "issue": "SPE-3544",
+      "root": "eligible-case-membership",
+      "implementationFile": "src/app/store/runTransfer.ts",
+      "canonicalContract": "readonly CaseStatus[]; unchanged open/in_progress subset",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/runTransfer.ts",
+          "line": 5018,
+          "column": 64,
+          "code": "TS2345",
+          "message": "Argument of type 'CaseStatus' is not assignable to parameter of type '\"open\" | \"in_progress\"'.\n  Type '\"resolved\"' is not assignable to type '\"open\" | \"in_progress\"'.",
+          "identity": "3a605d80f804218470c29b4f5f7e55080ee04476028baa37dece53ee65172f89",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": ["src/app/store/runTransfer.test.ts", "src/app/store/saveSystem.test.ts"]
+    },
+    {
+      "issue": "SPE-3545",
+      "root": "institutional-flags-index",
+      "implementationFile": "src/domain/publicSignalCoverage.ts",
+      "canonicalContract": "InstitutionalChannelFlags | undefined",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/publicSignalCoverage.ts",
+          "line": 233,
+          "column": 25,
+          "code": "TS2345",
+          "message": "Argument of type 'InstitutionalChannelFlags | undefined' is not assignable to parameter of type 'Record<string, boolean | undefined> | undefined'.\n  Type 'InstitutionalChannelFlags' is not assignable to type 'Record<string, boolean | undefined>'.\n    Index signature for type 'string' is missing in type 'InstitutionalChannelFlags'.",
+          "identity": "c499e95abd71bc14842cf2dac327ab3ab0a03c1ca0c13d4349c152f3dfa530d1",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": [
+        "src/test/publicSignalCoverage.test.ts",
+        "src/test/advanceWeek.informationIntake.integration.test.ts"
+      ]
+    },
+    {
+      "issue": "SPE-3546",
+      "root": "town-tags-readonly",
+      "implementationFile": "src/domain/townContractGeneration.ts",
+      "canonicalContract": "readonly (readonly string[])[]",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/domain/townContractGeneration.ts",
+          "line": 179,
+          "column": 35,
+          "code": "TS2345",
+          "message": "Argument of type 'readonly string[]' is not assignable to parameter of type 'string[]'.\n  The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.",
+          "identity": "a948978e5b6f2b087ed87138d36b934fd969a9752775fc500b418624fde9b49e",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": ["src/test/townContractGeneration.test.ts"]
+    },
+    {
+      "issue": "SPE-3547",
+      "root": "store-inspection-drafts",
+      "implementationFile": "src/app/store/gameStore.ts",
+      "canonicalContract": "Array<ReturnType<typeof createContainmentClassInspectedDraft> | ReturnType<typeof createContainmentClassDeficiencyRecordedDraft>>",
+      "expectedRemovals": 1,
+      "measuredRemovals": 1,
+      "removedDiagnostics": [
+        {
+          "project": "tsconfig.app.json",
+          "file": "src/app/store/gameStore.ts",
+          "line": 2252,
+          "column": 15,
+          "code": "TS2345",
+          "message": "Argument of type 'OperationEventDraft<\"equipment.containment_class_deficiency_recorded\">' is not assignable to parameter of type 'OperationEventDraft<\"equipment.containment_class_inspected\">'.\n  Type '\"equipment.containment_class_deficiency_recorded\"' is not assignable to type '\"equipment.containment_class_inspected\"'.",
+          "identity": "9762a2a0ad3d9df6a45a149c38e7c779a51c150722672d79ec3fba4c44878e9e",
+          "surface": "production-source"
+        }
+      ],
+      "historicalIdentityMappings": [],
+      "targetedTests": ["src/app/store/gameStore.test.ts"]
+    }
+  ],
+  "runtimeIdentity": {
+    "typescriptVersion": "6.0.3",
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "ESNext",
+      "verbatimModuleSyntax": true
+    },
+    "baseRevision": "ceb706637c96697eeae8c5d67d58acde2483ebfb",
+    "files": [
+      {
+        "file": "src/app/store/runTransfer.ts",
+        "beforeSourceSha256": "1521796069b08dbf2e5be3eb18a5da4130558272f7caeabb80510ff4f5f969df",
+        "afterSourceSha256": "0f9c39ce43bb89590ee62620e65d6d1a9404daf5ce8c8c5b70e8943af42136be",
+        "beforeEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "afterEmittedJavaScriptSha256": "d93b1d23231122e507072b944c8f5c294d49e97361a716792caef709e9419f27",
+        "identical": true
+      },
+      {
+        "file": "src/domain/publicSignalCoverage.ts",
+        "beforeSourceSha256": "dae3963b4628b0dbc18fa120a30313efedcb7b8d942df974dc48875b6b1cf17c",
+        "afterSourceSha256": "f1cea676ba95fcf4028b9a15c46db43a1c0b5d7833c9826b966815bcb9da233f",
+        "beforeEmittedJavaScriptSha256": "7888e5b7f57646d505e30c8ff45c4755875965fe2c9fcfd38cca3496687e066d",
+        "afterEmittedJavaScriptSha256": "7888e5b7f57646d505e30c8ff45c4755875965fe2c9fcfd38cca3496687e066d",
+        "identical": true
+      },
+      {
+        "file": "src/domain/townContractGeneration.ts",
+        "beforeSourceSha256": "c85a93e4ae3017b740fc21f8613e93838120edcb686ebacc9c90180275a8d8a6",
+        "afterSourceSha256": "aad42d1a34c98463820d10a4767fb8c1b5d365b4f7270344b773967623971b72",
+        "beforeEmittedJavaScriptSha256": "ce09132729347e5e52898c03dd6489cc1113a839696761eb9706024845674dba",
+        "afterEmittedJavaScriptSha256": "ce09132729347e5e52898c03dd6489cc1113a839696761eb9706024845674dba",
+        "identical": true
+      },
+      {
+        "file": "src/app/store/gameStore.ts",
+        "beforeSourceSha256": "aff15059a301ecebe5ee03236aba845cfef8f60e1b6bd9f6c27da3de74b3957f",
+        "afterSourceSha256": "944d53742ddee13b62c2f7975ed1dcb320da473e00880f8fc0210f048fabfc1b",
+        "beforeEmittedJavaScriptSha256": "fff944f4d4e438457e044cfdb2c732f1684842e043c27a3259d5993a16b22c14",
+        "afterEmittedJavaScriptSha256": "fff944f4d4e438457e044cfdb2c732f1684842e043c27a3259d5993a16b22c14",
+        "identical": true
+      }
+    ]
+  },
+  "remaining": {
+    "occurrences": 381,
+    "semanticReviewOccurrences": 99,
+    "fullGreenBuild": false
+  }
+}

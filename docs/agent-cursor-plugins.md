@@ -62,8 +62,8 @@ Still do **not**: wire vendor SDKs into `src/` or CI without an approved Linear 
 ### New or upgraded npm dependency
 
 1. Prefer existing stack; justify the add inside the slice boundary.
-2. **Required:** Sonatype `/check-dependency` (or MCP `getComponentVersion`) before adding or upgrading.
-3. **Optional:** Snyk `snyk_package_health_check` for extra package health — does not replace Sonatype.
+2. **Required:** security review under [dependency review policy](dependency-review-policy.md). Prefer Sonatype `/check-dependency` (or MCP `getComponentVersion`); use the documented fallback if access, credits, cost suitability or coverage prevents analysis.
+3. **Optional:** Snyk `snyk_package_health_check` supplements the required evidence. No Sonatype subscription is mandatory; missing necessary evidence still blocks the decision.
 4. Prefer maintained permissive licenses; avoid known critical/high CVEs.
 5. Do not weaken CI or lockfile discipline to land a bad package.
 
@@ -73,7 +73,7 @@ Still do **not**: wire vendor SDKs into `src/` or CI without an approved Linear 
 - Gate job fail-closed; AGP job runs only when Guide returns `run`.
 - Do **not** commit `agp.yml`; Guide writes governed config at run time.
 - Optional repo variable `AGP_API_URL` selects a non-default Guide environment.
-- Agent P may open dependency-update PRs — still run Sonatype MCP / `/check-dependency` for agent-driven adds/upgrades inside a slice; treat Guide PRs like any other dependency PR (slice justification, tests, lockfile discipline).
+- Agent P may open dependency-update PRs — still complete the dependency review policy for agent-driven adds/upgrades inside a slice; treat Guide PRs like any other dependency PR (slice justification, tests, lockfile discipline).
 - Auth for local MCP remains `SONATYPE_GUIDE_TOKEN` in the Cursor/user environment (gitignored `.cursor/mcp.json`); never commit that token.
 
 ### Live web research
@@ -130,6 +130,10 @@ Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOK
 ## Auth
 
 MCP servers must show `ready` (or equivalent) before agents rely on them. If `needsAuth`, ask the human to complete Cursor Connect / `mcp_auth`; do not invent tokens in the SPA.
+
+For Sonatype, record missing access and use the required dependency-review
+fallback instead of requiring authentication or a subscription. Other services'
+explicit auth/subscription handoff rules below remain unchanged.
 
 If Figma MCP is ready but a **paid plan / subscription** is required for the needed capability (file edit, design context, library tools), treat that the same as a blocker: prompt the human to subscribe or renew before continuing that path.
 

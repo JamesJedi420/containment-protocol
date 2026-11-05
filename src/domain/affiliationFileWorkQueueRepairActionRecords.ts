@@ -137,7 +137,7 @@ function buildRepairedCandidateEvidence(input: {
       },
       traits: ['affiliation-evidence-repaired'],
     },
-  })
+  } satisfies Candidate)
 }
 
 function buildRepairedWelfareEvidence(input: {

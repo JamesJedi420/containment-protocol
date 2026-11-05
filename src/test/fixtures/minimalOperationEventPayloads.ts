@@ -1,3 +1,4 @@
+import { createOperationEvent } from '../../domain/events/eventBus'
 import {
   EVENT_TYPE_TO_SOURCE_SYSTEM,
   inferOperationEventSourceSystem,
@@ -33,7 +34,9 @@ const marketAllocationPacket = {
  * Smallest payload that satisfies strict Zod validation for each canonical event type.
  * Used by feed exhaustiveness and producer validation tests.
  */
-export const minimalOperationEventPayloads = {
+export const minimalOperationEventPayloads: {
+  [K in OperationEventType]: OperationEventPayloadMap[K]
+} = {
   'system.equipment_recovered': {
     week: WEEK,
     content: 'Minimal equipment recovery.',
@@ -711,15 +714,20 @@ export function createMinimalOperationEvent<TType extends OperationEventType>(
   type: TType,
   overrides: Partial<Omit<OperationEvent<TType>, 'type' | 'payload'>> = {}
 ): OperationEvent<TType> {
-  return {
-    id: `evt-min-${type.replace(/\./g, '-')}`,
-    schemaVersion: 1,
-    type,
-    sourceSystem: inferOperationEventSourceSystem(type),
-    timestamp: '2042-01-01T00:00:00.001Z',
-    payload: minimalOperationEventPayloads[type],
-    ...overrides,
-  } as OperationEvent<TType>
+  return Object.assign(
+    {},
+    createOperationEvent(0, {
+      type,
+      sourceSystem: inferOperationEventSourceSystem(type),
+      payload: minimalOperationEventPayloads[type],
+    }),
+    {
+      id: `evt-min-${type.replace(/\./g, '-')}`,
+      schemaVersion: 1 as const,
+      timestamp: '2042-01-01T00:00:00.001Z',
+    },
+    overrides
+  )
 }
 
 /** Ensures fixture registry stays aligned with the canonical event map. */

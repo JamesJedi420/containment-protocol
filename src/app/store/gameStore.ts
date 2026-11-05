@@ -2229,7 +2229,10 @@ export const useGameStore = create<GameStore>()(
             result.inspection.deficiency.kind === 'compensating_continue'
               ? result.inspection.deficiency.compensatingControlId
               : undefined
-          const drafts = [
+          const drafts: Array<
+            | ReturnType<typeof createContainmentClassInspectedDraft>
+            | ReturnType<typeof createContainmentClassDeficiencyRecordedDraft>
+          > = [
             createContainmentClassInspectedDraft({
               week: s.game.week,
               instanceId: result.instance.instanceId,

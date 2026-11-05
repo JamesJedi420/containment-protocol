@@ -18,6 +18,17 @@ function note(type: ReportNoteType): ReportNote {
 }
 
 const EXPECTED_CATEGORY_BY_TYPE = {
+  'recruitment.candidate_departed': 'recruitment',
+  'cognitive_hazard.simulation_trigger': 'system',
+  'contribution_release.publish_queue_execution': 'system',
+  'contribution_release.modifiable_data_pack_governance': 'system',
+  'contribution_release.modifiable_data_pack_publish_enqueue': 'system',
+  'visual_trigger_hazard.weekly_transition': 'system',
+  'spe947_evaluator.weekly_transition': 'system',
+  'spe956_participatory_channel.weekly_transition': 'system',
+  'entity_welfare_reclassification.weekly_transition': 'system',
+  'affiliation_person_status.weekly_progression': 'system',
+  'pattern_source_series.weekly_transition': 'system',
   'case.resolved': 'incident_response',
   'case.partially_resolved': 'incident_response',
   'case.failed': 'incident_response',

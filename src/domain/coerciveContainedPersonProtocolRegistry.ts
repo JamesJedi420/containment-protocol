@@ -16,13 +16,7 @@
 export type CoerciveProtocolId = string
 
 export type CoerciveProtocolHandlingMode =
-  | 'voluntary'
-  | 'negotiated'
-  | 'compelled'
-  | 'emergency'
-  | 'punitive'
-  | 'deceptive'
-  | 'abusive'
+  'voluntary' | 'negotiated' | 'compelled' | 'emergency' | 'punitive' | 'deceptive' | 'abusive'
 
 export const COERCIVE_PROTOCOL_HANDLING_MODES: readonly CoerciveProtocolHandlingMode[] = [
   'voluntary',
@@ -44,11 +38,7 @@ export const COERCIVE_PROTOCOL_SUBJECT_FIT_STATES: readonly CoerciveProtocolSubj
 ] as const
 
 export type CoerciveProtocolAuthorizationSource =
-  | 'court_order'
-  | 'emergency_directive'
-  | 'facility_policy'
-  | 'field_authority'
-  | 'undocumented'
+  'court_order' | 'emergency_directive' | 'facility_policy' | 'field_authority' | 'undocumented'
 
 export const COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES: readonly CoerciveProtocolAuthorizationSource[] =
   [
@@ -59,7 +49,8 @@ export const COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES: readonly CoerciveProtocolA
     'undocumented',
   ] as const
 
-export type CoerciveProtocolForcePolicy = 'proportional' | 'routine_default' | 'escalated' | 'prohibited'
+export type CoerciveProtocolForcePolicy =
+  'proportional' | 'routine_default' | 'escalated' | 'prohibited'
 
 export const COERCIVE_PROTOCOL_FORCE_POLICIES: readonly CoerciveProtocolForcePolicy[] = [
   'proportional',
@@ -69,10 +60,7 @@ export const COERCIVE_PROTOCOL_FORCE_POLICIES: readonly CoerciveProtocolForcePol
 ] as const
 
 export type CoerciveProtocolRefusalHandling =
-  | 'documented_override'
-  | 'ignored'
-  | 'deferred_review'
-  | 'accommodated'
+  'documented_override' | 'ignored' | 'deferred_review' | 'accommodated'
 
 export const COERCIVE_PROTOCOL_REFUSAL_HANDLING: readonly CoerciveProtocolRefusalHandling[] = [
   'documented_override',
@@ -82,11 +70,7 @@ export const COERCIVE_PROTOCOL_REFUSAL_HANDLING: readonly CoerciveProtocolRefusa
 ] as const
 
 export type CoerciveProtocolHandlingPosture =
-  | 'legally_authorized'
-  | 'emergency'
-  | 'compelled'
-  | 'abusive'
-  | 'voluntary'
+  'legally_authorized' | 'emergency' | 'compelled' | 'abusive' | 'voluntary'
 
 export const COERCIVE_PROTOCOL_HANDLING_POSTURES: readonly CoerciveProtocolHandlingPosture[] = [
   'legally_authorized',
@@ -386,9 +370,11 @@ function asStringArray(value: unknown): readonly string[] {
 }
 
 function sortedStringArray(value: unknown): readonly string[] {
-  return [...asStringArray(value).map((entry) => entry.trim()).filter((entry) => entry.length > 0)].sort(
-    (left, right) => left.localeCompare(right)
-  )
+  return [
+    ...asStringArray(value)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0),
+  ].sort((left, right) => left.localeCompare(right))
 }
 
 function containsFranchiseToken(value: string): boolean {
@@ -401,7 +387,10 @@ function containsBrandedObjectNumber(value: string): boolean {
   return token.length > 0 && BRANDED_OBJECT_NUMBER_PATTERN.test(token)
 }
 
-function pushIssue(issues: CoerciveProtocolValidationIssue[], issue: CoerciveProtocolValidationIssue) {
+function pushIssue(
+  issues: CoerciveProtocolValidationIssue[],
+  issue: CoerciveProtocolValidationIssue
+) {
   issues.push(issue)
 }
 
@@ -483,7 +472,10 @@ function scanForbiddenTokens(
   }
 
   const subjectRef = normalizeToken(record.subjectRef)
-  if (subjectRef && (containsFranchiseToken(subjectRef) || containsBrandedObjectNumber(subjectRef))) {
+  if (
+    subjectRef &&
+    (containsFranchiseToken(subjectRef) || containsBrandedObjectNumber(subjectRef))
+  ) {
     pushIssue(issues, {
       code: containsFranchiseToken(subjectRef)
         ? 'franchise_token_in_field'
@@ -520,7 +512,9 @@ function roundUnitScore(value: number): number {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function isCoerciveProtocolHandlingMode(value: unknown): value is CoerciveProtocolHandlingMode {
+export function isCoerciveProtocolHandlingMode(
+  value: unknown
+): value is CoerciveProtocolHandlingMode {
   return typeof value === 'string' && HANDLING_MODE_SET.has(value)
 }
 
@@ -603,7 +597,10 @@ export function validateCoerciveProtocolRecord(
     })
   }
 
-  if (typeof record.refusalHandling !== 'string' || !REFUSAL_HANDLING_SET.has(record.refusalHandling)) {
+  if (
+    typeof record.refusalHandling !== 'string' ||
+    !REFUSAL_HANDLING_SET.has(record.refusalHandling)
+  ) {
     pushIssue(issues, {
       code: 'invalid_refusal_handling',
       severity: 'error',
@@ -738,10 +735,7 @@ export function validateCoerciveProtocolRecord(
     })
   }
 
-  if (
-    record.handlingMode === 'compelled' &&
-    record.authorizationSource === 'undocumented'
-  ) {
+  if (record.handlingMode === 'compelled' && record.authorizationSource === 'undocumented') {
     pushIssue(issues, {
       code: 'compelled_without_authorization_source',
       severity: 'warning',
@@ -750,10 +744,7 @@ export function validateCoerciveProtocolRecord(
     })
   }
 
-  if (
-    record.handlingMode === 'emergency' &&
-    record.authorizationSource === 'undocumented'
-  ) {
+  if (record.handlingMode === 'emergency' && record.authorizationSource === 'undocumented') {
     pushIssue(issues, {
       code: 'emergency_without_authorization_source',
       severity: 'warning',
@@ -841,8 +832,7 @@ export function projectContainmentCareTradeoff(
   const careHarmAggregate = roundUnitScore(
     (record.personhoodHarmRisk + record.trustDamageRisk + record.legitimacyRisk) / 3
   )
-  const stableContainmentDominatesCare =
-    record.containmentStabilityGain > careHarmAggregate
+  const stableContainmentDominatesCare = record.containmentStabilityGain > careHarmAggregate
 
   return Object.freeze({
     recordId: record.id,
@@ -1062,7 +1052,10 @@ function buildComplianceMetricMasksHarmContradictionIssues(
     })
   }
 
-  if (record.handlingMode === 'deceptive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+  if (
+    record.handlingMode === 'deceptive' &&
+    !normalizeToken(record.subjectFitValidationRef ?? '')
+  ) {
     issues.push({
       code: 'compliance_metric_deceptive_without_review_path',
       severity: 'warning',
@@ -1181,7 +1174,10 @@ function buildStaffExclusionSupportDutyContradictionIssues(
     })
   }
 
-  if (record.handlingMode === 'deceptive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+  if (
+    record.handlingMode === 'deceptive' &&
+    !normalizeToken(record.subjectFitValidationRef ?? '')
+  ) {
     issues.push({
       code: 'staff_exclusion_deceptive_without_review_path',
       severity: 'warning',
@@ -1259,7 +1255,10 @@ function buildSurveillanceIsolationBurdenContradictionIssues(
     })
   }
 
-  if (record.handlingMode === 'deceptive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+  if (
+    record.handlingMode === 'deceptive' &&
+    !normalizeToken(record.subjectFitValidationRef ?? '')
+  ) {
     issues.push({
       code: 'surveillance_isolation_deceptive_without_review_path',
       severity: 'warning',
@@ -1490,7 +1489,10 @@ function collectContradictionRiskFlags(
     flags.push('routine_force_authorization')
   }
 
-  if (record.subjectFitState === 'generalized' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+  if (
+    record.subjectFitState === 'generalized' &&
+    !normalizeToken(record.subjectFitValidationRef ?? '')
+  ) {
     flags.push('generalized_procedure_without_subject_fit')
   }
 
@@ -1654,30 +1656,32 @@ export const STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE: CoerciveProtocolReco
 })
 
 /** Abusive surveillance-isolation protocol with high burden scores. */
-export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
-  id: 'coercive-protocol:abusive-surveillance-isolation',
-  label: 'Abusive surveillance isolation protocol',
-  summary:
-    'Abusive handling with elevated isolation and surveillance burden; review flags risk without blocking.',
-  subjectRef: 'subject:cooperative-field-asset-22',
-  handlingMode: 'abusive',
-  subjectFitState: 'mismatch',
-  authorizationSource: 'undocumented',
-  forcePolicy: 'escalated',
-  consentConfidence: 0.08,
-  refusalHandling: 'ignored',
-  dependencyLeverageScore: 0.72,
-  isolationBurdenScore: 0.82,
-  surveillanceBurdenScore: 0.79,
-  custodyStatusRef: 'custody-status:former-hostile-hold',
-  procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
-  containmentStabilityGain: 0.85,
-  personhoodHarmRisk: 0.88,
-  trustDamageRisk: 0.84,
-  legitimacyRisk: 0.76,
-  welfareDebtImpactLabel: 'forced isolation welfare debt likely',
-  confidence: 0.73,
-})
+export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord(
+  {
+    id: 'coercive-protocol:abusive-surveillance-isolation',
+    label: 'Abusive surveillance isolation protocol',
+    summary:
+      'Abusive handling with elevated isolation and surveillance burden; review flags risk without blocking.',
+    subjectRef: 'subject:cooperative-field-asset-22',
+    handlingMode: 'abusive',
+    subjectFitState: 'mismatch',
+    authorizationSource: 'undocumented',
+    forcePolicy: 'escalated',
+    consentConfidence: 0.08,
+    refusalHandling: 'ignored',
+    dependencyLeverageScore: 0.72,
+    isolationBurdenScore: 0.82,
+    surveillanceBurdenScore: 0.79,
+    custodyStatusRef: 'custody-status:former-hostile-hold',
+    procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
+    containmentStabilityGain: 0.85,
+    personhoodHarmRisk: 0.88,
+    trustDamageRisk: 0.84,
+    legitimacyRisk: 0.76,
+    welfareDebtImpactLabel: 'forced isolation welfare debt likely',
+    confidence: 0.73,
+  }
+)
 
 // ---------------------------------------------------------------------------
 // Persistence / hydration
@@ -1710,10 +1714,16 @@ function sanitizeCoerciveProtocolRecordEntry(value: unknown): CoerciveProtocolRe
   const subjectRef = normalizeToken(value.subjectRef)
   const handlingMode = value.handlingMode
   const subjectFitState = value.subjectFitState
-  const authorizationSource = value.authorizationSource
-  const forcePolicy = value.forcePolicy
+  const authorizationSource = COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES.find(
+    (source) => source === value.authorizationSource
+  )
+  const forcePolicy = COERCIVE_PROTOCOL_FORCE_POLICIES.find(
+    (policy) => policy === value.forcePolicy
+  )
   const consentConfidence = value.consentConfidence
-  const refusalHandling = value.refusalHandling
+  const refusalHandling = COERCIVE_PROTOCOL_REFUSAL_HANDLING.find(
+    (handling) => handling === value.refusalHandling
+  )
   const isolationBurdenScore = value.isolationBurdenScore
   const surveillanceBurdenScore = value.surveillanceBurdenScore
   const containmentStabilityGain = value.containmentStabilityGain

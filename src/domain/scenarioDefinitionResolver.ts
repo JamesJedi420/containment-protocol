@@ -938,5 +938,12 @@ export function sanitizeScenarioDefinitionBinding(
 }
 
 export function listScenarioPresetIds(): readonly string[] {
-  return Object.freeze(Object.keys(SCENARIO_PRESET_REGISTRY).sort())
+  return Object.freeze(Object.keys(SCENARIO_PRESET_REGISTRY).sort(compareCodeUnit))
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

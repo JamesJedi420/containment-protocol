@@ -61,7 +61,7 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
           priority: 'low',
           priorityReasonCodes: ['urgency-low'],
           triageScore: 1,
-          routingState: 'pending_triage',
+          routingState: 'queued',
           routingBlockers: [],
           lastCandidateTeamIds: [],
           lastRejectedTeamIds: [],

@@ -1,3 +1,5 @@
+import { buildAgentCandidate } from '../../test/recruitment/fixtures'
+import { buildCandidateEvaluation } from '../../domain/recruitment'
 // @vitest-environment jsdom
 import '../../test/setup'
 import { render, screen } from '@testing-library/react'
@@ -602,7 +604,7 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     const game = createStartingState()
     game.week = 10
     game.candidates = [
-      {
+      buildAgentCandidate({
         id: 'candidate:present',
         name: 'Welfare Repair Subject',
         age: 30,
@@ -611,7 +613,9 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
         weeklyCost: 0,
         weeklyWage: 0,
         revealLevel: 2,
-      },
+        evaluation: buildCandidateEvaluation(2, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
     ]
     game.recruitmentPool = [...game.candidates]
     game.affiliationPersonStatusRecords = {

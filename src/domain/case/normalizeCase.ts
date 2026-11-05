@@ -544,7 +544,7 @@ function filterSpawnTemplateIdsToCatalog(
     return rule
   }
 
-  const spawnTemplateIds = rule.spawnTemplateIds.filter((id) => knownTemplateIds.has(id))
+  const spawnTemplateIds = rule.spawnTemplateIds?.filter((id) => knownTemplateIds.has(id))
   return { ...rule, spawnTemplateIds }
 }
 
@@ -638,7 +638,7 @@ function sanitizeHiddenDisplacementFields(
 
   if (hiddenState !== 'displaced') {
     displacementTarget = undefined
-    if (hiddenState !== 'displaced' && route !== null && route !== undefined) {
+    if (route !== null && route !== undefined) {
       route = hiddenState === 'hidden' || hiddenState === 'revealed' ? route : null
     }
     if (compartment !== null && compartment !== undefined) {
@@ -764,11 +764,7 @@ function sanitizeMajorIncidentRuntime(
         ? fallback.settlementReceiptId
         : undefined
   // Fail closed: keep id+receipt only when both present and ids match.
-  if (
-    rawReceipt &&
-    rawReceiptId &&
-    rawReceipt.receiptId === rawReceiptId
-  ) {
+  if (rawReceipt && rawReceiptId && rawReceipt.receiptId === rawReceiptId) {
     runtime.settlementReceiptId = rawReceiptId
     runtime.settlementReceipt = rawReceipt
   }
@@ -1269,7 +1265,10 @@ function sanitizeCaseContractPayload(
     }
     if (Array.isArray(value.chain.unlockConditions)) {
       chain.unlockConditions = value.chain.unlockConditions
-        .filter((condition): condition is Record<string, unknown> => isRecord(condition))
+        .filter(
+          (condition): condition is Record<string, unknown> & { type: string } =>
+            isRecord(condition) && typeof condition.type === 'string'
+        )
         .map((condition) => ({ ...condition }))
     }
     if (Object.keys(chain).length > 0) {
@@ -1296,7 +1295,7 @@ function sanitizeCaseContractPayload(
     }
   }
 
-  return Object.keys(next).length > 0 ? next : undefined
+  return Object.keys(next).length > 0 ? { ...next } : undefined
 }
 
 function sanitizeFiniteStatValue(value: unknown, fallback: number, min: number, max: number) {

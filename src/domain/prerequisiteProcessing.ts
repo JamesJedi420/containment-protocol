@@ -259,6 +259,7 @@ export function planPrerequisiteProcessing(
   const reasons: PrerequisitePlanningReason[] = []
   const stack: Array<{ readonly materialId: string; readonly recipeId: string }> = []
 
+  const finalRecipeId = finalRecipe.recipeId
   function fulfill(materialId: string, quantity: number): readonly string[] | null {
     const directProducerIds: string[] = []
     const fromInventory = Math.min(remainingInventory.get(materialId) ?? 0, quantity)
@@ -347,7 +348,7 @@ export function planPrerequisiteProcessing(
     }
     stack.pop()
 
-    const id = `${finalRecipe.recipeId}:prerequisite:${recipe.recipeId}:${drafts.length + 1}`
+    const id = `${finalRecipeId}:prerequisite:${recipe.recipeId}:${drafts.length + 1}`
     const outputQuantity = recipe.outputQuantity * batches
     drafts.push(
       Object.freeze({

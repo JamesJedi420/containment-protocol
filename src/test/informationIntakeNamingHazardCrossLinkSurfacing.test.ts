@@ -33,7 +33,7 @@ describe('informationIntakeNamingHazardCrossLinkSurfacing (SPE-2406 slice 1)', (
     )
     const safeBriefingLabel = projectSafeLabel(CANAL_BRIDGE_NAMING_HAZARD_FIXTURE, {
       surface: 'briefing',
-    }).label
+    }).safeLabel
 
     expect(descriptorLabel).toBe(`${CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id} (${safeBriefingLabel})`)
     expect(descriptorLabel).not.toContain(CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.label)

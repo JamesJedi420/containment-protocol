@@ -62,7 +62,10 @@ export function resolveTargetMemoryImpairmentBandFromProjection(
   }
 
   if (band === 'fragmented') {
-    if (aggregatePressure !== null && aggregatePressure >= FRAGMENTED_ESCALATION_PRESSURE_THRESHOLD) {
+    if (
+      aggregatePressure !== null &&
+      aggregatePressure >= FRAGMENTED_ESCALATION_PRESSURE_THRESHOLD
+    ) {
       return 'compromised'
     }
 
@@ -88,13 +91,15 @@ export function resolveTargetMemoryImpairmentBandFromProjection(
 }
 
 function applyMemoryBandEffectFlags(
-  record: CognitiveHazardExposureRecord,
+  _record: CognitiveHazardExposureRecord,
   targetBand: CognitiveHazardMemoryImpairmentBand
 ): Pick<CognitiveHazardExposureRecord, 'knowledgeIntegrityDegraded' | 'agentDutyDegraded'> {
   if (targetBand === 'fragmented' || targetBand === 'compromised' || targetBand === 'erased') {
     return {
       knowledgeIntegrityDegraded: true,
-      ...(targetBand === 'compromised' || targetBand === 'erased' ? { agentDutyDegraded: true } : {}),
+      ...(targetBand === 'compromised' || targetBand === 'erased'
+        ? { agentDutyDegraded: true }
+        : {}),
     }
   }
 
@@ -114,10 +119,7 @@ export function mergePropagationResistanceTriggerChannels(
     return undefined
   }
 
-  const merged = sortedUniqueTriggerChannels([
-    ...record.activeTriggerChannels,
-    ...inferred,
-  ])
+  const merged = sortedUniqueTriggerChannels([...record.activeTriggerChannels, ...inferred])
 
   if (
     merged.length === record.activeTriggerChannels.length &&

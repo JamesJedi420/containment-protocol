@@ -99,7 +99,7 @@ describe('publishQueueWeeklyReportNotes (SPE-2485 slice 1)', () => {
     expect(notes[0]?.metadata).toMatchObject({
       executionMode: 'live',
       publishChannelRef: 'live:publish_channel:pr-merge:pr:2890:sha:abc123',
-      publishChannelStub: undefined,
     })
+    expect(notes[0]?.metadata).not.toHaveProperty('publishChannelStub')
   })
 })

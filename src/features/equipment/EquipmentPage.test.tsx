@@ -3,7 +3,7 @@ import '../../test/setup'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { assert, beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../../domain/departmentWorkshopIntegrityQualityMapping'
 import { useGameStore } from '../../app/store/gameStore'
@@ -392,6 +392,7 @@ describe('EquipmentPage', () => {
       quantity: 1,
       trackedInstanceUnits: 1,
     })
+    assert.exists(instanceId)
     expect(materialized.equipmentInstances?.[instanceId]).toMatchObject({
       fabricationOrigin: {
         queueId: 'batch',
@@ -422,6 +423,7 @@ describe('EquipmentPage', () => {
 
     const returned = useGameStore.getState().game
     expect(returned.inventory.signal_jammers).toBe(1)
+    assert.exists(instanceId)
     expect(returned.equipmentInstances?.[instanceId]).toBeUndefined()
     expect(returned.fabricatedEquipmentLots?.batch).toMatchObject({
       quantity: 1,
@@ -1047,6 +1049,7 @@ describe('EquipmentPage', () => {
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /confirm dose/i }))
 
+    assert.exists(instanceId)
     expect(useGameStore.getState().game.equipmentInstances?.[instanceId].payload?.remaining).toBe(1)
     expect(screen.getByText('1/2 doses')).toBeInTheDocument()
     expect(screen.getByText(/combat stim overdrive active/i)).toBeInTheDocument()

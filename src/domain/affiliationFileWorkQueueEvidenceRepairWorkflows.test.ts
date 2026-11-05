@@ -357,7 +357,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
           subjectLabel: 'Subject 1',
           repairLabel: 'Repair 1',
           recordedWeek: 5,
-        }).record,
+        }),
       }
       const result = sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(null, fallback)
       expect(result).toEqual(fallback)

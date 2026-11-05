@@ -1323,8 +1323,6 @@ export function applyMissionTriageDisposition(
           triageIgnored: disposition === 'ignore' ? true : undefined,
           routingState,
           routingBlockers: routed.routingBlockers,
-          lastCandidateTeamIds: [...routed.candidateTeamIds],
-          lastRejectedTeamIds: routed.rejectedTeams.map((team) => team.teamId),
           ...(routed.timeCostSummary ? { timeCostSummary: { ...routed.timeCostSummary } } : {}),
           lastTriageWeek: state.week,
           lastRoutedWeek: state.week,
@@ -1687,7 +1685,7 @@ function sanitizeRejectedTeamRecords(
 
   return value
     .filter((entry): entry is Record<string, unknown> => isRecord(entry))
-    .map((entry) => {
+    .map((entry): MissionRejectedTeamRecord | null => {
       const teamId = typeof entry.teamId === 'string' ? entry.teamId.trim() : ''
       const reasonCode = sanitizeMissionRoutingBlockerCode(entry.reasonCode)
 
@@ -1866,7 +1864,7 @@ export function reconcileHydratedMissionRoutingTriage(
     return recomputed
   }
 
-  const missions = Object.fromEntries(
+  const missions: Record<string, MissionRoutingRecord> = Object.fromEntries(
     Object.entries(recomputed.missions).map(([missionId, mission]) => {
       const currentCase = context.cases[missionId]
       if (!currentCase || missionHasLinkedIntakeReports(context, currentCase)) {
@@ -1886,7 +1884,7 @@ export function reconcileHydratedMissionRoutingTriage(
           priority: prior.priority,
           priorityReasonCodes: [...prior.priorityReasonCodes],
           intakeSource: prior.intakeSource,
-        },
+        } satisfies MissionRoutingRecord,
       ] as const
     })
   )

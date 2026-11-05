@@ -58,22 +58,18 @@ describe('missionTriageLayoutView', () => {
 
     const views = Object.values(game.cases).map((entry) => getCaseListItemView(entry, game))
 
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'contract')!, 'contracts', game)).toBe(
-      true
-    )
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'lead')!, 'leads', game)).toBe(true)
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'assigned')!, 'assigned', game)).toBe(
-      true
-    )
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'escalating')!, 'escalating', game)).toBe(
-      true
-    )
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'plain')!, 'incidents', game)).toBe(
-      true
-    )
-    expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'contract')!, 'incidents', game)).toBe(
-      false
-    )
+    const tabExpectations = [
+      ['contract', 'contracts', true],
+      ['lead', 'leads', true],
+      ['assigned', 'assigned', true],
+      ['escalating', 'escalating', true],
+      ['plain', 'incidents', true],
+      ['contract', 'incidents', false],
+    ] as const
+    for (const [caseId, tab, expected] of tabExpectations) {
+      const view = views.find((entry) => entry.currentCase.id === caseId)!
+      expect(matchesCaseTriageTab(view, tab, game)).toBe(expected)
+    }
   })
 
   it('builds compact row priority from triage result', () => {
@@ -98,7 +94,10 @@ describe('missionTriageLayoutView', () => {
       {
         ...starter,
         cases: { 'open-defer': openCase },
-        missionRouting: normalizeMissionRoutingState({ ...starter, cases: { 'open-defer': openCase } }),
+        missionRouting: normalizeMissionRoutingState({
+          ...starter,
+          cases: { 'open-defer': openCase },
+        }),
       },
       'open-defer',
       'defer'
@@ -133,7 +132,10 @@ describe('missionTriageLayoutView', () => {
       {
         ...game,
         cases: { 'assigned-defer': assignedCase },
-        missionRouting: normalizeMissionRoutingState({ ...game, cases: { 'assigned-defer': assignedCase } }),
+        missionRouting: normalizeMissionRoutingState({
+          ...game,
+          cases: { 'assigned-defer': assignedCase },
+        }),
       },
       'assigned-defer',
       'defer'
@@ -159,9 +161,7 @@ describe('missionTriageLayoutView', () => {
         requiredTags: ['stealth'],
         tags: ['infiltration', 'concealment'],
         infiltrationProbePlan: {
-          plannedAction: 'probe_access',
-          coverRole: 'maintenance',
-          coverTier: 2,
+          defaultAction: 'probe_access',
         },
         stealthLeaveBehindId: 'leave-behind:risk-discovery',
       }),
@@ -199,7 +199,10 @@ describe('missionTriageLayoutView', () => {
       {
         ...starter,
         cases: { 'stale-disposition': openCase },
-        missionRouting: normalizeMissionRoutingState({ ...starter, cases: { 'stale-disposition': openCase } }),
+        missionRouting: normalizeMissionRoutingState({
+          ...starter,
+          cases: { 'stale-disposition': openCase },
+        }),
       },
       'stale-disposition',
       'defer'
@@ -247,9 +250,7 @@ describe('missionTriageLayoutView', () => {
         deadlineRemaining: 1,
         tags: ['infiltration', 'concealment'],
         infiltrationProbePlan: {
-          plannedAction: 'probe_access',
-          coverRole: 'maintenance',
-          coverTier: 2,
+          defaultAction: 'probe_access',
         },
       }),
     }

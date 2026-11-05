@@ -32,7 +32,13 @@ describe('field base staging (SPE-1654)', () => {
 
   it('scales material inventory grants deterministically', () => {
     const grants = [
-      { kind: 'material' as const, itemId: 'occult_reagents', label: 'Reagents', quantity: 10, tags: [] },
+      {
+        kind: 'material' as const,
+        itemId: 'occult_reagents',
+        label: 'Reagents',
+        quantity: 10,
+        tags: [],
+      },
     ]
     const scaled = applyFieldBaseSupplyToInventoryRewards(SAMPLE_PACKET, grants)
     expect(scaled[0]!.quantity).toBe(12)
@@ -85,7 +91,10 @@ describe('field base staging (SPE-1654)', () => {
       onUnresolved: { type: 'none' },
       contract: {
         templateId: 'institutions-liturgy-expedition',
-        fieldBase: { label: 'vault', quality: { safety: 1, medical: 2, supply: 1, extractionAccess: 0 } },
+        fieldBase: {
+          label: 'vault',
+          quality: { safety: 1, medical: 2, supply: 1, extractionAccess: 0 },
+        },
       },
     }
     expect(readFieldBaseFromCase(c)?.quality.medical).toBe(2)
@@ -171,7 +180,7 @@ describe('field base staging (SPE-1654)', () => {
     expect(next.agents.a_ava!.fatigue).toBeLessThan(85)
     expect(next.agents.a_ava!.assignment?.state).toBe('idle')
     expect(next.agents.a_casey!.assignment?.state).toBe('assigned')
-    expect(next.agents.a_casey!.assignment?.caseId).toBe('case_exp')
+    expect(next.agents.a_casey!.assignment).toMatchObject({ caseId: 'case_exp' })
     expect(next.agents.a_casey!.assignment?.teamId).toBe(deployedTeamId)
     expect(getTeamMoveEligibility(next, 'a_ava', null).allowed).toBe(true)
     expect(getTeamMoveEligibility(next, 'a_casey', null).allowed).toBe(false)
@@ -258,7 +267,8 @@ describe('field base staging (SPE-1654)', () => {
     const map = next.cases.case_exp?.deploymentCarryInByAgentId
     expect(map?.a_ava).toBeUndefined()
 
-    const membersAfter = next.teams[deployedTeamId]!.memberIds ?? next.teams[deployedTeamId]!.agentIds
+    const membersAfter =
+      next.teams[deployedTeamId]!.memberIds ?? next.teams[deployedTeamId]!.agentIds
     for (const agentId of membersAfter) {
       const agent = next.agents[agentId]
       expect(agent).toBeDefined()

@@ -17,7 +17,7 @@ import {
   resolveEquipmentDeconstructionSources,
 } from '../domain/sim/equipmentDeconstruction'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { GAME_STORE_VERSION, migratePersistedStore } from '../app/store/runTransfer'
+import { GAME_STORE_VERSION, migratePersistedStore, hydrateGame } from '../app/store/runTransfer'
 import { createMinimalOperationEvent } from './fixtures/minimalOperationEventPayloads'
 
 const yieldRule = {
@@ -1266,7 +1266,7 @@ describe('equipment-grade recovery contract', () => {
         valid: expect.objectContaining({ queueId: 'valid', sourceGradeId: 'grade_2' }),
       })
     )
-    const replay = advanceEquipmentDeconstructionQueues(hydrated)
+    const replay = advanceEquipmentDeconstructionQueues(hydrateGame(hydrated, fallback))
     expect(replay.state.inventory).toEqual(hydrated.inventory)
     expect(replay.state.equipmentDeconstructionQueue).toEqual([])
 
@@ -1292,7 +1292,9 @@ describe('equipment-grade recovery contract', () => {
       GAME_STORE_VERSION,
       fallback
     ).game
-    const conflictReplay = advanceEquipmentDeconstructionQueues(conflictHydrated)
+    const conflictReplay = advanceEquipmentDeconstructionQueues(
+      hydrateGame(conflictHydrated, fallback)
+    )
     expect(conflictReplay.state.inventory).toEqual(conflictHydrated.inventory)
     expect(conflictReplay.state.equipmentDeconstructionQueue?.[0]?.id).toBe(entry.id)
   })

@@ -542,8 +542,10 @@ export function equipStoredEquipmentInstance(
   state: GameState,
   instanceId: EquipmentInstanceId,
   agentId: Id,
-  slot: EquipmentSlotKind
+  rawSlot: unknown
 ): GameState {
+  const slot = EQUIPMENT_SLOT_KINDS.find((candidate) => candidate === rawSlot)
+  if (slot === undefined) return ensureNormalizedGameState(state)
   const instance = getEquipmentInstance(state, instanceId)
   if (!instance || instance.location.state !== 'stored') {
     return ensureNormalizedGameState(state)

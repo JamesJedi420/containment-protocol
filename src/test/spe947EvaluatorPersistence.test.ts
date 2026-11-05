@@ -30,6 +30,7 @@ import {
   EXAMPLE_PERSISTING_POST_CASE_MEDIA,
 } from '../domain/postCaseMediaPersistence'
 import {
+  extractSpe947EvaluatorPersistenceMaps,
   resolveCounterMemeticUptakeEvaluationInput,
   resolveFootageExposureEvaluationInput,
   resolvePlatformOperationEvaluationInput,
@@ -288,7 +289,7 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
   })
 
   it('empty default persisted maps do not falsely satisfy parent AC evaluator scenarios', () => {
-    const maps = createStartingState()
+    const maps = extractSpe947EvaluatorPersistenceMaps(createStartingState())
 
     const reachDecision = evaluatePlatformReachMultiplier(
       resolvePlatformReachEvaluationInput(maps, EXAMPLE_RUMOR_FORUM_PLATFORM.id)

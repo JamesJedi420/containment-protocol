@@ -1,0 +1,12 @@
+{
+  "command": "npm run build",
+  "nodeVersion": "v22.23.4",
+  "exitCode": 2,
+  "diagnosticOccurrences": 381,
+  "normalizedTranscriptSha256": "b0b665a64df12614702521c3ec79c104e16bc3fe3b345404afbb381234be6e46",
+  "transcript": "build.txt",
+  "transcriptConvention": "UTF-8 text with LF newlines; npm banners retained",
+  "diagnosticsMatchAfterCensus": true,
+  "viteExecuted": false,
+  "limitation": "Full build remains blocked by remaining TypeScript diagnostics; separate build:bundle validation is recorded independently."
+}

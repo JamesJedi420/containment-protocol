@@ -110,7 +110,7 @@ function stableStringify(value: unknown): string {
     return `[${value.map((entry) => stableStringify(entry)).join(',')}]`
   }
   const record = value as Record<string, unknown>
-  const keys = Object.keys(record).sort()
+  const keys = Object.keys(record).sort(compareCodeUnit)
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`
 }
 
@@ -333,4 +333,11 @@ export function selectEnvironmentalDimensions(
   return Object.freeze(
     context.components.filter((component) => wanted.has(component.dimensionId)),
   )
+}
+
+/** Match Array.sort string order without locale-dependent collation. */
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }

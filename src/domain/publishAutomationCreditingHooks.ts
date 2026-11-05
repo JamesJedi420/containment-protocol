@@ -18,10 +18,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 export type PublishAutomationStatus =
-  | 'ready_to_publish'
-  | 'needs_revision'
-  | 'rejected'
-  | 'published'
+  'ready_to_publish' | 'needs_revision' | 'rejected' | 'published'
 
 export const PUBLISH_AUTOMATION_STATUSES: readonly PublishAutomationStatus[] = [
   'ready_to_publish',
@@ -31,10 +28,7 @@ export const PUBLISH_AUTOMATION_STATUSES: readonly PublishAutomationStatus[] = [
 ] as const
 
 export type CreditingHookKind =
-  | 'contributor_credit'
-  | 'changelog_entry'
-  | 'attribution_target'
-  | 'version_bump'
+  'contributor_credit' | 'changelog_entry' | 'attribution_target' | 'version_bump'
 
 export const CREDITING_HOOK_KINDS: readonly CreditingHookKind[] = [
   'contributor_credit',
@@ -63,12 +57,10 @@ export type PublishAutomationValidationCode =
   | 'missing_publish_channel'
 
 export type PublishAutomationRemediationCode =
-  | 'announcement_segments_recommended'
-  | 'crediting_targets_borderline'
+  'announcement_segments_recommended' | 'crediting_targets_borderline'
 
 export type PublishAutomationReasonCode =
-  | PublishAutomationValidationCode
-  | PublishAutomationRemediationCode
+  PublishAutomationValidationCode | PublishAutomationRemediationCode
 
 // ---------------------------------------------------------------------------
 // Payload, policy, and envelopes
@@ -146,29 +138,29 @@ const DEFAULT_POLICY: Required<PublishAutomationPolicy> = {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-export const CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE: PublishCreditingManifest = Object.freeze({
-  versionBumpRef: 'package.json:version',
-  changelogEntry:
-    'Add publish automation and crediting hooks baseline for SPE-75 contribution pipeline.',
-  contributorCreditRefs: Object.freeze([
-    'contributor:agent-maintainer',
-    'contributor:release-bot',
-  ]),
-  creditingTargets: Object.freeze(['CONTRIBUTORS', 'CHANGELOG.md']),
-  publishChannel: 'pr-merge',
-  announcementSegments: Object.freeze([
-    'domain-release',
-    'agent-packaging-pipeline',
-  ]),
-})
+export const CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE: PublishCreditingManifest = Object.freeze(
+  {
+    versionBumpRef: 'package.json:version',
+    changelogEntry:
+      'Add publish automation and crediting hooks baseline for SPE-75 contribution pipeline.',
+    contributorCreditRefs: Object.freeze([
+      'contributor:agent-maintainer',
+      'contributor:release-bot',
+    ]),
+    creditingTargets: Object.freeze(['CONTRIBUTORS', 'CHANGELOG.md']),
+    publishChannel: 'pr-merge',
+    announcementSegments: Object.freeze(['domain-release', 'agent-packaging-pipeline']),
+  }
+)
 
-export const BORDERLINE_PUBLISH_CREDITING_MANIFEST_FIXTURE: PublishCreditingManifest = Object.freeze({
-  versionBumpRef: 'package.json:version',
-  changelogEntry: 'Borderline crediting manifest awaiting expanded attribution targets.',
-  contributorCreditRefs: Object.freeze(['contributor:community-contributor']),
-  creditingTargets: Object.freeze(['CHANGELOG.md']),
-  publishChannel: 'pr-merge',
-})
+export const BORDERLINE_PUBLISH_CREDITING_MANIFEST_FIXTURE: PublishCreditingManifest =
+  Object.freeze({
+    versionBumpRef: 'package.json:version',
+    changelogEntry: 'Borderline crediting manifest awaiting expanded attribution targets.',
+    contributorCreditRefs: Object.freeze(['contributor:community-contributor']),
+    creditingTargets: Object.freeze(['CHANGELOG.md']),
+    publishChannel: 'pr-merge',
+  })
 
 export const INVALID_PUBLISH_CREDITING_MANIFEST_FIXTURE: PublishCreditingManifest = Object.freeze({
   versionBumpRef: '',
@@ -280,9 +272,10 @@ function sortPublishHooks(hooks: PublishHookDescriptor[]): PublishHookDescriptor
   })
 }
 
-function freezeValidationResult(
-  issues: PublishAutomationValidationIssue[]
-): { readonly valid: boolean; readonly issues: readonly PublishAutomationValidationIssue[] } {
+function freezeValidationResult(issues: PublishAutomationValidationIssue[]): {
+  readonly valid: boolean
+  readonly issues: readonly PublishAutomationValidationIssue[]
+} {
   const sortedIssues = sortValidationIssues(issues)
 
   return Object.freeze({
@@ -335,7 +328,8 @@ function validateReleaseGate(
       {
         code: 'invalid_upstream_envelope',
         severity: 'error',
-        detail: 'Packaged release envelopes must include artifactType for publish hook composition.',
+        detail:
+          'Packaged release envelopes must include artifactType for publish hook composition.',
       },
     ]
   }
@@ -379,9 +373,7 @@ function validateGovernanceGate(
   return []
 }
 
-function validateCreditingManifestShape(
-  manifest: unknown
-): PublishAutomationValidationIssue[] {
+function validateCreditingManifestShape(manifest: unknown): PublishAutomationValidationIssue[] {
   if (!manifest || typeof manifest !== 'object') {
     return [
       {
@@ -560,9 +552,7 @@ function buildPublishMetadata(
   })
 }
 
-function rejectDecision(
-  issues: PublishAutomationValidationIssue[]
-): PublishAutomationDecision {
+function rejectDecision(issues: PublishAutomationValidationIssue[]): PublishAutomationDecision {
   const sortedIssues = sortValidationIssues(issues)
   const reasonCodes = [...new Set(sortedIssues.map((issue) => issue.code))].sort((left, right) =>
     left.localeCompare(right)
@@ -661,11 +651,7 @@ export function evaluatePublishAutomationCreditingHooks(
       validationIssues: Object.freeze([]),
       reasonCodes,
       remediationNotes: Object.freeze(remediationNotes.map((note) => Object.freeze({ ...note }))),
-      publishMetadata: buildPublishMetadata(
-        creditingManifest!,
-        governanceMetadata,
-        artifactType
-      ),
+      publishMetadata: buildPublishMetadata(creditingManifest!, governanceMetadata, artifactType),
     })
   }
 
@@ -772,12 +758,7 @@ function parseCreditingHookList(value: unknown): readonly CreditingHookDescripto
     const target = normalizeToken(entry.target)
     const payload = normalizeToken(entry.payload)
 
-    if (
-      typeof kind !== 'string' ||
-      !isCreditingHookKind(kind) ||
-      !target ||
-      !payload
-    ) {
+    if (typeof kind !== 'string' || !isCreditingHookKind(kind) || !target || !payload) {
       continue
     }
 
@@ -821,7 +802,8 @@ function parseReasonCodeList(value: unknown): readonly PublishAutomationReasonCo
   const codes = value
     .filter((entry): entry is string => typeof entry === 'string')
     .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0 && isPublishAutomationReasonCode(entry))
+    .filter((entry) => entry.length > 0)
+    .filter(isPublishAutomationReasonCode)
 
   return [...new Set(codes)].sort((left, right) => left.localeCompare(right))
 }
@@ -968,7 +950,10 @@ export function validatePublishQueueRecord(
     }
   }
 
-  if (record.publishMetadata !== undefined && parsePublishMetadata(record.publishMetadata) === undefined) {
+  if (
+    record.publishMetadata !== undefined &&
+    parsePublishMetadata(record.publishMetadata) === undefined
+  ) {
     issues.push({
       code: 'invalid_publish_metadata',
       severity: 'error',
@@ -985,7 +970,9 @@ function definePublishQueueRecord(record: PublishQueueRecord): PublishQueueRecor
     creditingHooks: Object.freeze(record.creditingHooks.map((hook) => Object.freeze({ ...hook }))),
     publishHooks: Object.freeze(record.publishHooks.map((hook) => Object.freeze({ ...hook }))),
     reasonCodes: Object.freeze([...record.reasonCodes]),
-    ...(record.publishMetadata ? { publishMetadata: Object.freeze({ ...record.publishMetadata }) } : {}),
+    ...(record.publishMetadata
+      ? { publishMetadata: Object.freeze({ ...record.publishMetadata }) }
+      : {}),
   })
 }
 

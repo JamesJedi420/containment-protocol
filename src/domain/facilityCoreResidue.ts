@@ -175,27 +175,36 @@ function parseSymptomNodeIds(
   return Object.freeze(ids)
 }
 
+function hasResidueShape(
+  value: unknown,
+  allowed: ReadonlySet<string> | undefined
+): value is FacilityCoreResidue {
+  if (!isRecord(value)) return false
+  const keys = Object.keys(value).sort(compareCodeUnit)
+  if (keys.length !== RESIDUE_KEYS.length) return false
+  for (let index = 0; index < RESIDUE_KEYS.length; index += 1) {
+    if (keys[index] !== RESIDUE_KEYS[index]) return false
+  }
+  if (value.coreNodeId !== FACILITY_CORE_NODE_ID) return false
+  if (value.fromCondition !== 'present') return false
+  if (value.toCondition !== 'corrupted') return false
+  if (value.causeCategory !== FACILITY_CORE_CAUSE_CATEGORY) return false
+  if (typeof value.provenanceRef !== 'string' || value.provenanceRef.trim().length === 0) {
+    return false
+  }
+  return parseSymptomNodeIds(value.symptomNodeIds, allowed) !== undefined
+}
+
 function parseResidue(
   value: unknown,
   allowed: ReadonlySet<string> | undefined
 ): FacilityCoreResidue | undefined {
-  if (!isRecord(value)) return undefined
-  const keys = Object.keys(value).sort(compareCodeUnit)
-  if (keys.length !== RESIDUE_KEYS.length) return undefined
-  for (let index = 0; index < RESIDUE_KEYS.length; index += 1) {
-    if (keys[index] !== RESIDUE_KEYS[index]) return undefined
-  }
-  if (value.coreNodeId !== FACILITY_CORE_NODE_ID) return undefined
-  if (value.fromCondition !== 'present') return undefined
-  if (value.toCondition !== 'corrupted') return undefined
-  if (value.causeCategory !== FACILITY_CORE_CAUSE_CATEGORY) return undefined
-  if (typeof value.provenanceRef !== 'string' || value.provenanceRef.trim().length === 0) {
-    return undefined
-  }
-  const symptomNodeIds = parseSymptomNodeIds(value.symptomNodeIds, allowed)
-  if (!symptomNodeIds) return undefined
+  if (!hasResidueShape(value, allowed)) return undefined
+  const symptomNodeIds = Object.isFrozen(value.symptomNodeIds)
+    ? value.symptomNodeIds
+    : Object.freeze([...value.symptomNodeIds])
   if (Object.isFrozen(value) && symptomNodeIds === value.symptomNodeIds) {
-    return value as FacilityCoreResidue
+    return value
   }
   return Object.freeze({
     coreNodeId: FACILITY_CORE_NODE_ID,

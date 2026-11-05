@@ -227,10 +227,7 @@ function isRuntimeQueuedEventTargetValid(
   }
 
   if (type === 'encounter.escalation') {
-    return (
-      targetId.length > 0 &&
-      (encounterState[targetId] !== undefined || targetId.includes('.'))
-    )
+    return targetId.length > 0 && (encounterState[targetId] !== undefined || targetId.includes('.'))
   }
 
   return targetId.length > 0
@@ -241,7 +238,9 @@ function sanitizeStringList(value: unknown) {
     return []
   }
 
-  return [...new Set(value.map((entry) => sanitizeString(entry)).filter((entry) => entry.length > 0))]
+  return [
+    ...new Set(value.map((entry) => sanitizeString(entry)).filter((entry) => entry.length > 0)),
+  ]
 }
 
 function isFlagValue(value: unknown): value is GameFlagValue {
@@ -282,7 +281,10 @@ function sanitizeFlagRecord(value: unknown) {
   return next
 }
 
-function sanitizePlayerProfile(value: unknown, fallback = DEFAULT_PLAYER_PROFILE): PlayerProfileState {
+function sanitizePlayerProfile(
+  value: unknown,
+  fallback = DEFAULT_PLAYER_PROFILE
+): PlayerProfileState {
   if (!isRecord(value)) {
     return { ...fallback }
   }
@@ -290,7 +292,9 @@ function sanitizePlayerProfile(value: unknown, fallback = DEFAULT_PLAYER_PROFILE
   return {
     id: sanitizeString(value.id, fallback.id) || fallback.id,
     displayName: sanitizeString(value.displayName, fallback.displayName) || fallback.displayName,
-    ...(sanitizeOptionalString(value.callsign) ? { callsign: sanitizeOptionalString(value.callsign) } : {}),
+    ...(sanitizeOptionalString(value.callsign)
+      ? { callsign: sanitizeOptionalString(value.callsign) }
+      : {}),
     ...(sanitizeOptionalString(value.organization)
       ? { organization: sanitizeOptionalString(value.organization) }
       : fallback.organization
@@ -329,7 +333,7 @@ function finalizeSceneHistoryEntries(entries: SceneHistoryEntry[]): SceneHistory
   return [...dedupedByKey.values()]
     .sort(
       (left, right) =>
-        left.week - right.week ||
+        (left.week ?? 1) - (right.week ?? 1) ||
         left.locationId.localeCompare(right.locationId) ||
         left.sceneId.localeCompare(right.sceneId)
     )
@@ -352,10 +356,7 @@ function sanitizeSceneHistoryEntry(
     return null
   }
 
-  if (
-    weekClampMode === 'hydrate' &&
-    !isRuntimeSceneHistoryEntryValid(locationId, sceneId)
-  ) {
+  if (weekClampMode === 'hydrate' && !isRuntimeSceneHistoryEntryValid(locationId, sceneId)) {
     return null
   }
 
@@ -368,7 +369,9 @@ function sanitizeSceneHistoryEntry(
     sceneId,
     locationId,
     week,
-    ...(sanitizeOptionalString(value.outcome) ? { outcome: sanitizeOptionalString(value.outcome) } : {}),
+    ...(sanitizeOptionalString(value.outcome)
+      ? { outcome: sanitizeOptionalString(value.outcome) }
+      : {}),
     ...(sanitizeStringList(value.tags).length > 0 ? { tags: sanitizeStringList(value.tags) } : {}),
   }
 }
@@ -408,7 +411,9 @@ function sanitizeOneShotEvents(value: unknown, week: number) {
       eventId: normalizedId,
       seen: true,
       firstSeenWeek: clampCampaignWeek(rawEntry.firstSeenWeek, week, week),
-      ...(sanitizeOptionalString(rawEntry.source) ? { source: sanitizeOptionalString(rawEntry.source) } : {}),
+      ...(sanitizeOptionalString(rawEntry.source)
+        ? { source: sanitizeOptionalString(rawEntry.source) }
+        : {}),
     }
   }
 
@@ -441,7 +446,9 @@ function reconcileEncounterModifierLists(
 ) {
   const revealed = sanitizeStringList(revealedModifierIds)
   const revealedSet = new Set(revealed)
-  const hidden = sanitizeStringList(hiddenModifierIds).filter((modifierId) => !revealedSet.has(modifierId))
+  const hidden = sanitizeStringList(hiddenModifierIds).filter(
+    (modifierId) => !revealedSet.has(modifierId)
+  )
 
   return {
     hiddenModifierIds: hidden,
@@ -568,7 +575,7 @@ function sanitizeEncounterRuntimeState(
     normalizedStatus === 'locked' ||
     normalizedStatus === 'archived'
       ? normalizedStatus
-      : fallback.status ?? 'available'
+      : (fallback.status ?? 'available')
 
   const encounter: EncounterRuntimeState = {
     encounterId,
@@ -580,7 +587,9 @@ function sanitizeEncounterRuntimeState(
     ...(typeof value.resolvedWeek === 'number'
       ? { resolvedWeek: clampWeek(value.resolvedWeek, week, 'resolved') }
       : {}),
-    ...(isEncounterResolutionOutcome(value.latestOutcome) ? { latestOutcome: value.latestOutcome } : {}),
+    ...(isEncounterResolutionOutcome(value.latestOutcome)
+      ? { latestOutcome: value.latestOutcome }
+      : {}),
     ...(sanitizeOptionalString(value.lastResolutionId)
       ? { lastResolutionId: sanitizeOptionalString(value.lastResolutionId) }
       : {}),
@@ -614,12 +623,7 @@ function sanitizeEncounterRuntimeMap(
       continue
     }
 
-    next[normalizedId] = sanitizeEncounterRuntimeState(
-      normalizedId,
-      rawEntry,
-      week,
-      weekClampMode
-    )
+    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week, weekClampMode)
   }
 
   return next
@@ -740,7 +744,10 @@ function sanitizeRuntimeQueuedEvent(
   const type = sanitizeString(value.type)
   const targetId = sanitizeString(value.targetId)
 
-  if (!RUNTIME_QUEUED_EVENT_TYPES.has(type) || !isRuntimeQueuedEventTargetValid(type, targetId, encounterState)) {
+  if (
+    !RUNTIME_QUEUED_EVENT_TYPES.has(type) ||
+    !isRuntimeQueuedEventTargetValid(type, targetId, encounterState)
+  ) {
     return null
   }
 
@@ -751,7 +758,9 @@ function sanitizeRuntimeQueuedEvent(
     ...(sanitizeOptionalString(value.contextId)
       ? { contextId: sanitizeOptionalString(value.contextId) }
       : {}),
-    ...(sanitizeOptionalString(value.source) ? { source: sanitizeOptionalString(value.source) } : {}),
+    ...(sanitizeOptionalString(value.source)
+      ? { source: sanitizeOptionalString(value.source) }
+      : {}),
     ...(typeof value.week === 'number' ? { week: clampCampaignWeek(value.week, week, week) } : {}),
     ...(sanitizeRuntimeEventQueuePayload(value.payload)
       ? { payload: sanitizeRuntimeEventQueuePayload(value.payload) }
@@ -857,7 +866,11 @@ function sanitizeDeveloperLogDetails(value: unknown) {
   return Object.keys(next).length > 0 ? next : undefined
 }
 
-function sanitizeDeveloperLogEvent(value: unknown, index: number, week: number): DeveloperLogEvent | null {
+function sanitizeDeveloperLogEvent(
+  value: unknown,
+  index: number,
+  week: number
+): DeveloperLogEvent | null {
   if (!isRecord(value)) {
     return null
   }
@@ -1080,7 +1093,7 @@ export function reconcileRuntimeUiSelections(
   const caseIds = new Set(Object.keys(context.cases))
   const teamIds = new Set(Object.keys(context.teams))
   const agentIds = new Set(Object.keys(context.agents))
-  const defaultLocation = getDefaultRuntimeLocation(runtimeState.currentLocation.updatedWeek)
+  const defaultLocation = getDefaultRuntimeLocation(runtimeState.currentLocation.updatedWeek ?? 1)
 
   const selectedCaseId = sanitizeOptionalString(runtimeState.ui.selectedCaseId)
   const selectedTeamId = sanitizeOptionalString(runtimeState.ui.selectedTeamId)
@@ -1332,28 +1345,43 @@ export function getGlobalFlag(state: GameState, flagId: string) {
 
 export function hasOneShotEventOccurred(state: GameState, eventId: string) {
   const normalizedId = sanitizeString(eventId)
-  return normalizedId.length > 0 ? Boolean(readGameStateManager(state).oneShotEvents[normalizedId]) : false
+  return normalizedId.length > 0
+    ? Boolean(readGameStateManager(state).oneShotEvents[normalizedId])
+    : false
 }
 
 export function getOneShotEventRecord(state: GameState, eventId: string) {
   const normalizedId = sanitizeString(eventId)
-  return normalizedId.length > 0 ? readGameStateManager(state).oneShotEvents[normalizedId] ?? null : null
+  return normalizedId.length > 0
+    ? (readGameStateManager(state).oneShotEvents[normalizedId] ?? null)
+    : null
 }
 
 export function getProgressClock(state: GameState, clockId: string) {
   const normalizedId = sanitizeString(clockId)
-  return normalizedId.length > 0 ? readGameStateManager(state).progressClocks[normalizedId] : undefined
+  return normalizedId.length > 0
+    ? readGameStateManager(state).progressClocks[normalizedId]
+    : undefined
 }
 
-export function ensureManagedGameState(state: GameState): GameState {
-  const runtimeState = hasRuntimeShape(state.runtimeState)
+type RuntimeStateInput = Omit<GameState, 'runtimeState'> & { runtimeState?: unknown }
+
+function hasCanonicalGameRuntime(
+  state: RuntimeStateInput
+): state is GameState & { runtimeState: RuntimeState } {
+  return hasRuntimeShape(state.runtimeState)
+}
+
+export function ensureManagedGameState(state: RuntimeStateInput): GameState {
+  const hasCanonicalRuntime = hasCanonicalGameRuntime(state)
+  const runtimeState = hasCanonicalRuntime
     ? state.runtimeState
     : normalizeRuntimeState(state.runtimeState, state.week, undefined, 'runtime')
   const inventory = isInventoryCanonical(state.inventory)
     ? state.inventory
     : sanitizeInventoryRecord(state.inventory)
 
-  if (runtimeState === state.runtimeState && inventory === state.inventory) {
+  if (hasCanonicalRuntime && runtimeState === state.runtimeState && inventory === state.inventory) {
     return state
   }
 
@@ -1366,7 +1394,10 @@ export function ensureManagedGameState(state: GameState): GameState {
 
 function withRuntimeState(
   state: GameState,
-  updater: (runtimeState: RuntimeState, nextInventory: Record<string, number>) => {
+  updater: (
+    runtimeState: RuntimeState,
+    nextInventory: Record<string, number>
+  ) => {
     runtimeState?: RuntimeState
     inventory?: Record<string, number>
   }
@@ -1742,7 +1773,7 @@ export function advanceProgressClock(
               value: nextValue,
               hidden: defaults?.hidden ?? existing?.hidden,
               completedAtWeek:
-                nextValue >= baseMax ? existing?.completedAtWeek ?? state.week : undefined,
+                nextValue >= baseMax ? (existing?.completedAtWeek ?? state.week) : undefined,
             },
             state.week
           ),
@@ -1758,28 +1789,28 @@ export function setUiDebugState(state: GameState, patch: Partial<GameUiDebugStat
       ...runtimeState,
       ui: sanitizeUiState(
         {
-        ...runtimeState.ui,
-        ...patch,
-        ...(isRecord(patch.authoring)
-          ? {
-              authoring: {
-                ...(isRecord(runtimeState.ui.authoring) ? runtimeState.ui.authoring : {}),
-                ...patch.authoring,
-                ...(Array.isArray(patch.authoring.lastFollowUpIds)
-                  ? { lastFollowUpIds: patch.authoring.lastFollowUpIds }
-                  : {}),
-              },
-            }
-          : {}),
-        debug: {
-          ...runtimeState.ui.debug,
-          ...(isRecord(patch.debug) ? patch.debug : {}),
-          flags: {
-            ...runtimeState.ui.debug.flags,
-            ...(isRecord(patch.debug?.flags) ? patch.debug.flags : {}),
+          ...runtimeState.ui,
+          ...patch,
+          ...(isRecord(patch.authoring)
+            ? {
+                authoring: {
+                  ...(isRecord(runtimeState.ui.authoring) ? runtimeState.ui.authoring : {}),
+                  ...patch.authoring,
+                  ...(Array.isArray(patch.authoring.lastFollowUpIds)
+                    ? { lastFollowUpIds: patch.authoring.lastFollowUpIds }
+                    : {}),
+                },
+              }
+            : {}),
+          debug: {
+            ...runtimeState.ui.debug,
+            ...(isRecord(patch.debug) ? patch.debug : {}),
+            flags: {
+              ...runtimeState.ui.debug.flags,
+              ...(isRecord(patch.debug?.flags) ? patch.debug.flags : {}),
+            },
           },
         },
-      },
         state.week
       ),
     },

@@ -5,14 +5,13 @@ import { createStartingState } from '../data/startingState'
 import {
   enqueueDepartmentWorkshopWorkOrder,
   prioritizeDepartmentWorkshopWorkOrder,
-  type DepartmentWorkshopStateSource,
 } from '../domain/departmentWorkshopQueue'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 
 const DEPARTMENT_ID = 'department:records-analysis'
 
-function emptyWorkshopState(): DepartmentWorkshopStateSource {
+function emptyWorkshopState() {
   return {
     departmentWorkshopWorkOrders: {},
     departmentWorkshopSnapshots: {

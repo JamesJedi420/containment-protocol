@@ -21,7 +21,7 @@ Client-side React/TypeScript SPA. Pure simulation in `src/domain/`; Zustand stor
 - Newly discovered durable feature scope is candidate evidence until Phase 1 → Phase 2 → Phase 3 (including mandatory contradiction review) → Phase 4 authorizes backlog mutation. Do not recommend creating a child/parent/relationship as a review shortcut.
 - Prefer the smallest in-boundary fix in suggestions.
 - Do not request unrelated refactors or parallel subsystems.
-- Do not wire vendor search/scan SaaS into `src/` or CI without an approved Linear slice (`docs/agent-cursor-plugins.md`). Prefer required Sonatype before npm add/upgrade; Snyk is optional.
+- Do not wire vendor search/scan SaaS into `src/` or CI without an approved Linear slice (`docs/agent-cursor-plugins.md`). Require dependency review before npm add/upgrade; prefer Sonatype or use the documented fallback in `docs/dependency-review-policy.md`; Snyk is optional.
 
 ## Re-review
 

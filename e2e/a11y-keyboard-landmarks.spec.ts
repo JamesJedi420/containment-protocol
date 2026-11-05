@@ -70,14 +70,19 @@ test.describe('SPE-1080 keyboard bypass, landmarks, and week-close announcement'
       await openFrontDesk(page)
       await expect(page.getByTestId('shell-week-status')).toHaveCount(0)
 
+      const initialStatus = page.getByRole('status').filter({ hasText: /^$/ }).first()
+      await initialStatus.evaluate((node) => {
+        node.setAttribute('data-live-probe', 'mounted')
+      })
       await advanceOperationalWeek(page)
 
       const panel = page.getByTestId('shell-week-status')
       await expect(panel).toBeVisible()
-      // Focus moving to the announcement is what makes it reach the reader at all.
+      // The existing live region updates while the report panel receives focus.
       await expect(panel).toBeFocused()
 
       const status = panel.getByRole('status')
+      await expect(status).toHaveAttribute('data-live-probe', 'mounted')
       await expect(status).toHaveAttribute('aria-live', 'polite')
       await expect(status).toHaveAttribute('aria-atomic', 'true')
       await expect(status).toContainText(/Week 1 closed/i)

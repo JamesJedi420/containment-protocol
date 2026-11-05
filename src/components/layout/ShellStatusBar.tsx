@@ -56,24 +56,23 @@ export function ShellStatusBar() {
     [view.signals, extensionSignals]
   )
   const [weekAnnouncement, setWeekAnnouncement] = useState<WeekCloseAnnouncement | null>(null)
-  const announcedWeekRef = useRef(view.currentWeek)
+  const previousGameRef = useRef(game)
   const weekStatusRef = useRef<HTMLDivElement>(null)
 
-  // Derive the announcement from observed week movement rather than from which control was
-  // pressed: the Front Desk advances through the store directly, so a click-scoped guard
-  // would leave the primary weekly path (`/`) silent.
+  // A close appends one report. Save replacement clears any old announcement.
   useEffect(() => {
-    if (view.currentWeek < announcedWeekRef.current) {
+    const previous = previousGameRef.current
+    previousGameRef.current = game
+    if (game.reports === previous.reports && game.week === previous.week) return
+    const completedClose =
+      game.week === previous.week + 1 &&
+      game.reports.length === previous.reports.length + 1 &&
+      previous.reports.every((report, index) => game.reports[index] === report) &&
+      game.reports.at(-1)?.week === previous.week
+    if (!completedClose) {
       setWeekAnnouncement(null)
-      announcedWeekRef.current = view.currentWeek
       return
     }
-
-    if (view.currentWeek === announcedWeekRef.current) {
-      return
-    }
-
-    announcedWeekRef.current = view.currentWeek
 
     const latestReport = game.reports.at(-1)
     const closedWeek = latestReport?.week ?? Math.max(1, view.currentWeek - 1)
@@ -88,10 +87,10 @@ export function ShellStatusBar() {
       reportHref: view.weeklyReportHref,
       reportLinkLabel: latestReport ? `Open week ${closedWeek} report` : 'Open weekly reports',
     })
-  }, [game.gameOver, game.reports, view.currentWeek, view.weeklyReportHref])
+  }, [game, view.currentWeek, view.weeklyReportHref])
 
   useEffect(() => {
-    weekStatusRef.current?.focus()
+    if (weekAnnouncement) weekStatusRef.current?.focus()
   }, [weekAnnouncement])
 
   return (
@@ -191,21 +190,25 @@ export function ShellStatusBar() {
         </div>
       </header>
 
-      {weekAnnouncement ? (
-        <div
-          ref={weekStatusRef}
-          tabIndex={-1}
-          className="panel focus-ring flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2 text-sm"
-          data-testid="shell-week-status"
-        >
-          <p role="status" aria-live="polite" aria-atomic="true">
-            {weekAnnouncement.message}
-          </p>
+      <div
+        ref={weekStatusRef}
+        tabIndex={-1}
+        className={
+          weekAnnouncement
+            ? 'panel focus-ring flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2 text-sm'
+            : 'sr-only'
+        }
+        data-testid={weekAnnouncement ? 'shell-week-status' : undefined}
+      >
+        <p role="status" aria-live="polite" aria-atomic="true">
+          {weekAnnouncement?.message ?? ''}
+        </p>
+        {weekAnnouncement ? (
           <Link to={weekAnnouncement.reportHref} className="underline">
             {weekAnnouncement.reportLinkLabel}
           </Link>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </>
   )
 }

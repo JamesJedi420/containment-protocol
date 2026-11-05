@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-03
 **Scope:** Static source audit of the player-facing React SPA plus a no-tooling manual test script and a regression-gate proposal.
-**Method:** Read-only source inspection of the route table, shell, weekly-close controls, report surfaces, case triage, agent dossier, equipment confirmations, and the shared stylesheet. No component was edited, no dependency was added, and no test file was created.
+**Method:** Initial read-only source inspection of the route table, shell, weekly-close controls, report surfaces, case triage, agent dossier, equipment confirmations, and the shared stylesheet. That initial audit changed no components or tests. The resolution notes below describe subsequent implementation and regression coverage; no dependency was added.
 
 ## How to read this document
 
@@ -167,44 +167,19 @@ Near-misses: `/equipment` (rank 11 — gear destruction and repair confirmations
 
 ## 3. Findings
 
-### A11Y-01 — No shell-level bypass block
+### A11Y-01 — Shell-level bypass block — resolved
 
-**Severity:** Blocker · **Priority:** P1 · **WCAG:** 2.4.1 Bypass Blocks (A)
-**Route:** every route; reproduce at `/`
+**Status:** Resolved in the SPE-1080 shell slice.
 
-**Evidence**
-
-- [`src/app/AppShell.tsx:65`](../src/app/AppShell.tsx#L65) opens a single `<main>` that contains the status bar, page header, and all three navigation groups.
-- Primary nav starts at [`src/app/AppShell.tsx:93`](../src/app/AppShell.tsx#L93), the MVP nav at [`src/app/AppShell.tsx:117`](../src/app/AppShell.tsx#L117), and the future-expansion nav at [`src/app/AppShell.tsx:147`](../src/app/AppShell.tsx#L147). `<Outlet />` (the page) is at [`src/app/AppShell.tsx:172`](../src/app/AppShell.tsx#L172).
-- The primary nav alone renders four links; the MVP nav renders six; the future nav renders seven. With the four topbar utility controls, a keyboard user crosses **at least 17 focusable elements** before the first page control on every route.
-- A `.skip-link` style exists at [`src/styles/components.css:309-335`](../src/styles/components.css#L309-L335), but no skip link is rendered in `AppShell`. Page-level skip links exist only inside `/cases` ([`src/features/cases/CasesPage.tsx:169`](../src/features/cases/CasesPage.tsx#L169)), `/teams` ([`src/features/teams/TeamsPage.tsx:101`](../src/features/teams/TeamsPage.tsx#L101)), and `/training-division` ([`src/features/training/TrainingDivisionPage.tsx:78`](../src/features/training/TrainingDivisionPage.tsx#L78)) — and because they are rendered after the shell nav, they cannot bypass it.
-
-**User impact**
-Keyboard and switch users must repeat the same 17–20 Tab presses on every page before they can interact with the game. Screen reader users navigating by Tab hear the same navigation block on every route with no way to jump to the page content, which makes the core loop exhausting and error-prone.
-
-**Remediation**
-Render a "Skip to main content" link as the first focusable element in `AppShell`, targeting a single `<main id="main-content" tabIndex={-1}>` that wraps only the routed page.
+The first focusable shell element is now "Skip to main content" in src/app/AppShell.tsx. It focuses the single main-content landmark, which wraps only Outlet; navigation remains outside it. Keyboard bypass and the single landmark are covered by e2e/a11y-keyboard-landmarks.spec.ts. The historical blocker rating below is superseded for this finding.
 
 ---
 
-### A11Y-02 — Weekly close produces no status message
+### A11Y-02 — Weekly-close status message — resolved
 
-**Severity:** Blocker · **Priority:** P1 · **WCAG:** 4.1.3 Status Messages (AA), 2.4.3 Focus Order (A)
-**Route:** `/` then `/report/:week`
+**Status:** Resolved in the SPE-1080 shell slice.
 
-**Evidence**
-
-- The shell Advance Week control is [`src/components/layout/ShellStatusBar.tsx:139-151`](../src/components/layout/ShellStatusBar.tsx#L139-L151): `aria-label="Advance week"`, `onClick={advanceWeek}`, and no live region anywhere in the file.
-- The Front Desk control is [`src/features/operations/FrontDeskPage.tsx:1160-1169`](../src/features/operations/FrontDeskPage.tsx#L1160-L1169).
-- The only `aria-live` regions on either hub announce **seed feedback**, not the week close: [`src/features/dashboard/DashboardPage.tsx:538`](../src/features/dashboard/DashboardPage.tsx#L538) and [`src/features/operations/FrontDeskPage.tsx:1204`](../src/features/operations/FrontDeskPage.tsx#L1204).
-- [`src/components/GlobalStateBar.tsx:12`](../src/components/GlobalStateBar.tsx#L12) defines a polite `role="status"` summary, but the component is imported only by its test (`src/components/GlobalStateBar.test.tsx`); it is mounted on no route.
-- `/report/:week` has no live region and no focus target: the dossier starts at [`src/features/report/ReportDetailPage.tsx:171`](../src/features/report/ReportDetailPage.tsx#L171) with no `tabIndex`, and the week score is a plain `<p>` at [`src/features/report/ReportDetailPage.tsx:241`](../src/features/report/ReportDetailPage.tsx#L241).
-
-**User impact**
-A screen reader user activates the single most important action in the game and receives no confirmation that the week advanced, no resolution outcome, and no pointer to the new report. They must remember the previous week number and hunt through the report archive to discover whether anything happened — the weekly loop is effectively unusable non-visually.
-
-**Remediation**
-After `advanceWeek`, render a polite `role="status"` summary in the shell (new week, resolved/partial/failed counts, and a link to `/report/:week`) and move focus to it.
+ShellStatusBar now keeps an initially empty polite, atomic status region mounted and updates its text after a completed week close from either the shell or Front Desk. The visible panel includes resolved/partial/failed counts, the new week, and a report link; focus moves to the panel. A replacement save clears old text instead of announcing a false close. Unit and browser regression tests cover this behavior; actual NVDA/VoiceOver speech remains unverified. The historical blocker rating below is superseded for this finding.
 
 ---
 

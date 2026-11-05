@@ -204,6 +204,32 @@ describe('ShellStatusBar', () => {
     expect(orderedActions.at(-1)).toBe('advance-week')
   })
 
+  it('keeps the empty live region mounted and updates it after a close', async () => {
+    const user = userEvent.setup()
+    renderShellStatusBar('/')
+    const liveRegion = screen.getByRole('status')
+    expect(liveRegion).toBeEmptyDOMElement()
+    await user.click(screen.getByTestId('topbar-advance-button'))
+    expect(screen.getByRole('status')).toBe(liveRegion)
+    expect(liveRegion).toHaveTextContent(/week 9 closed/i)
+  })
+
+  it.each([0, 1, 3])(
+    'clears stale announcements after replacing a save at offset %s',
+    async (offset) => {
+      const user = userEvent.setup()
+      renderShellStatusBar('/')
+      await user.click(screen.getByTestId('topbar-advance-button'))
+      const replacement = structuredClone(useGameStore.getState().game)
+      replacement.week += offset
+      act(() => {
+        useGameStore.setState({ game: replacement })
+      })
+      expect(screen.queryByTestId('shell-week-status')).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    }
+  )
+
   it('announces the closed week outcome, links to its report, and moves focus', async () => {
     const user = userEvent.setup()
     renderShellStatusBar('/')

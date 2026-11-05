@@ -81,6 +81,12 @@ async function runCampaign(browser: Browser) {
     await expect(page.getByRole('region', { name: 'Case triage queue' })).toContainText(
       'Campus Outbreak'
     )
+    // The deferred incident's consequence must remain available after loading,
+    // not merely appear in the report produced during the transition.
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('region', { name: 'Case triage queue' })).toContainText(
+      'Campus Outbreak'
+    )
     await openPrimaryNav(page, 'Operations Desk')
     await advanceOperationalWeek(page)
     await openReport(page, 2)

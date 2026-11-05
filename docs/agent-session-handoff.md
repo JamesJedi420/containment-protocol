@@ -24,7 +24,7 @@ Manual §§1–6 centralize the procedure. Tracked Cursor rules retain their loa
 
 ## After a PR merges
 
-Follow manual §4: sync main, post truthful existing-boundary evidence, and use a new agent chat for the next task. Full slice acceptance and parent completion are separate.
+Follow manual §4: sync main, post truthful existing-boundary evidence, and use a new agent chat for the next task except for the gameplay-evidence continuation in `AGENTS.md`. Full slice acceptance and parent completion are separate.
 
 ## During an open PR
 

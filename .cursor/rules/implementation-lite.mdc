@@ -23,7 +23,7 @@ Apply manual §4: commit → push → PR using `.github/pull_request_template.md
 
 ## Session closeout
 
-Use `docs/agent-session-closeout.md` phase A while blocked/open, phase B after merge. No next-issue coding, candidate reconciliation, or delegated selection in merge closeout. At most plan an already-approved next issue for a new session. Cursor retains autonomous selection on a later authorized continuation.
+Use `docs/agent-session-closeout.md` phase A while blocked/open, phase B after merge. Follow the gameplay-evidence continuation exception in `AGENTS.md` when necessary to complete the originally authorized feature; otherwise no next-issue coding, candidate reconciliation, or delegated selection in merge closeout. At most plan an already-approved next issue for a new session. Cursor retains autonomous selection on a later authorized continuation.
 
 Use `docs/cloud-agent-linear-handoff.md` only on its approved-implementation-completed-and-merged trigger when Linear was not updated. Docs-only pending traceability follows manual §4; read-only sessions use `docs/read-only-session-handoff.md`.
 

@@ -7,7 +7,7 @@ export class UnsupportedInventoryQuantityError extends Error {
 
 /** Aggregate stock must retain exact single-unit arithmetic across save/load and consumption. */
 export function sanitizeInventoryQuantity(value: unknown, fallback = 0): number {
-  const quantity = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  const quantity = typeof value === 'number' ? value : fallback
   if (!Number.isFinite(quantity) || Math.abs(quantity) > Number.MAX_SAFE_INTEGER) {
     throw new UnsupportedInventoryQuantityError()
   }

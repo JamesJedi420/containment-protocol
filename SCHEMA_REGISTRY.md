@@ -3,7 +3,8 @@
 ## Inventory and Auto-Scrap quantity limits (SPE-3732)
 
 Run/save import, migration, and automatic hydration share the aggregate-inventory quantity guard.
-Finite magnitudes outside `[-Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]` reject the load
+Numeric non-finite values (including JSON exponent overflow) and finite magnitudes outside
+`[-Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]` reject the load
 before campaign replacement; fallback quantities receive the same guard. Existing supported
 fractional/negative values still truncate/clamp to nonnegative integers. Explicit empty inventory,
 trimmed IDs, and positive unknown item IDs retain their existing behavior. No new persisted field

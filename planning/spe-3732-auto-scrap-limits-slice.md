@@ -102,4 +102,11 @@ anonymous equipment-return capacity checks. Both reproduced as failing bounded r
 the fixes preserve existing queue hydration and refuse return/replacement without changing stock
 or equipment. All 42 directly affected/neighboring tests passed after those corrections, including
 a blocked recovery → export/import → make room → complete flow.
+CodeRabbit's distinct numeric-overflow encoding finding also reproduced: JSON `1e400` became
+Infinity and previously fell back to starter stock/recipe output. Non-finite numeric values
+now reject explicitly; nonnumeric fallback behavior remains. Both exponent signs and pending
+fabrication output have regression coverage, in addition to the finite-magnitude cases.
+All 465 quantity/run/save/equipment contract tests passed after the overflow correction.
+The 10 focused store tests additionally verify fresh, independent version-1 and current-version
+automatic overflow restoration, recovery errors and protection against later persistence writes.
 The larger SPE-2749 protected-stock boundary remains open and is not implemented by this fix.

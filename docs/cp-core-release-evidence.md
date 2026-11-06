@@ -14,6 +14,17 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Owner evidence at `cb37c23a`
+
+The complementary [owner manifest](../planning/spe-3352-owner-evidence.cb37c23a.v1.json) and [source assessment](../planning/release-evidence/cb37c23a/owner-assessment.md) pin eight subsystem dimensions to `cb37c23afdf71a42a695f21e08497118d31d3efe`. Current checks passed 594 targeted tests and five browser checks. Calibration, simulation validation and explicit authored-path continuity receive bounded passes; persistence, accessibility, UX and replay retain warnings; telemetry applicability remains unavailable.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-owner-evidence.cb37c23a.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-owner-evidence.cb37c23a.v1.json --format markdown
+```
+
+This report is intentionally **incomplete**: the other release criteria and repository-validation result are not assessed by this owner-only collection. It does not replace either blocked historical campaign snapshot or establish current whole-release readiness. Historical PR ancestry, current executions, unresolved owner limits and Playwright-only UX methodology are distinguished in the assessment. See the [slice](../planning/spe-3352-owner-evidence-slice.md).
+
 ## Executed snapshot at `438c8df7`
 
 The [current campaign snapshot](../planning/spe-3352-release-evidence.438c8df7.v1.json) assesses `438c8df709cdb568d156c1581a44d1833983e576`, collected in a clean checkout before publication edits. Its [execution index](../planning/release-evidence/438c8df7/execution-index.json), [original validator report](../planning/release-evidence/438c8df7/requirements-execution.json), and [browser observations](../planning/release-evidence/438c8df7/browser-observations.json) retain provenance, commands, results and scope. Raw logs and HTML reports are host-local, with hashes in the index; those references are not public downloadable artifacts.

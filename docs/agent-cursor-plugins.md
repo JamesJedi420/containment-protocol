@@ -18,6 +18,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (
 | **Playwright** (Test + optional MCP) | Shared Chromium E2E harness; optional local browser inspection | `docs/playwright-e2e-harness.md`, `playwright.config.ts`, `npm run test:e2e` |
 | **Figma** | Visual design bridge: CSS-mirrored tokens + shell components; design→code / code→Figma | `docs/figma-integration.md`, `docs/figma/*`, `.cursor/skills/cp-figma-ui-bridge/SKILL.md` |
 | **Google Drive** | Collaborative drafts: story knowledge, social/marketing, design; agent-owned workspace | `docs/google-drive-integration.md`, `docs/google-drive/*`, `.cursor/skills/cp-google-drive-bridge/SKILL.md` |
+| **Multify** (optional) | Supplementary connected-source access and explicitly requested coordination; prefer authoritative direct connectors; Linear remains the sole planning backlog | [User-approved CP/Academy Multify boundaries](../AGENTS.md#multify-boundaries-for-containment-protocol-and-academy), including the required operating-guide read before use |
 | **Scenario** | Visual production: concept art, environments, characters, props, UI studies; full MCP tool catalog | `docs/scenario-integration.md`, `docs/scenario/*`, `.cursor/skills/cp-scenario-bridge/SKILL.md` |
 
 ## PR review configs (already in repo)

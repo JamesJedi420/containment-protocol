@@ -21,7 +21,7 @@ import {
 import { type CaseInstance, type GameState, type Team } from '../../domain/models'
 import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
-import { getCaseListItemView } from './caseView'
+import { DEFAULT_CASE_LIST_FILTERS, getCaseListItemView, writeCaseListFilters } from './caseView'
 import { CaseWeeklyReportsPanel } from './CaseWeeklyReportsPanel'
 import { WeeklyCasePrepPanel } from './WeeklyCasePrepPanel'
 import { resolveOperationsBackTarget } from '../shared/operationsRouteDrillDown'
@@ -49,6 +49,10 @@ export default function CaseDetailPage() {
   }
 
   const view = getCaseListItemView(currentCase, game)
+  const incidentPlannerHref = `${APP_ROUTES.cases}?${writeCaseListFilters({
+    ...DEFAULT_CASE_LIST_FILTERS,
+    selectedCaseId: currentCase.id,
+  })}`
   const templateIntel = getCaseTemplateIntelView(currentCase, game)
   const assignmentInsights = getCaseAssignmentInsights(currentCase, game)
   const generationProfile = buildCaseGenerationProfile(currentCase, game)
@@ -476,12 +480,14 @@ export default function CaseDetailPage() {
                           {team.tags.length > 0 ? team.tags.join(', ') : SHELL_UI_TEXT.none}
                         </p>
                       </div>
-                      <button
-                        onClick={() => unassign(currentCase.id, team.id)}
-                        className="btn btn-sm btn-ghost"
-                      >
-                        {CASE_UI_LABELS.removeTeam} {team.name}
-                      </button>
+                      {!view.isMajorIncident ? (
+                        <button
+                          onClick={() => unassign(currentCase.id, team.id)}
+                          className="btn btn-sm btn-ghost"
+                        >
+                          {CASE_UI_LABELS.removeTeam} {team.name}
+                        </button>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -555,7 +561,17 @@ export default function CaseDetailPage() {
             </div>
 
             {currentCase.status !== 'resolved' ? (
-              assignmentInsights.availableTeams.length > 0 ? (
+              view.isMajorIncident ? (
+                <div className="space-y-2">
+                  <p className="text-sm opacity-70">
+                    This major incident requires a coordinated response. Manage teams and launch
+                    requirements in the incident planner.
+                  </p>
+                  <Link to={incidentPlannerHref} className="btn btn-sm focus-ring">
+                    Open incident planner
+                  </Link>
+                </div>
+              ) : assignmentInsights.availableTeams.length > 0 ? (
                 <ul className="space-y-2">
                   {assignmentInsights.availableTeams.map(
                     ({ team, odds, injuryForecast, reconSummary }) => (

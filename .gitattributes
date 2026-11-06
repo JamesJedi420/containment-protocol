@@ -1,2 +1,5 @@
 # Preserve the exact captured compiler bytes used by the census integrity test.
 docs/typecheck/**/compiler.txt -text whitespace=cr-at-eol
+
+# Preserve this original console capture, including emitted trailing spaces.
+planning/release-evidence/63188aec/requirements-stderr.log -text whitespace=cr-at-eol,-blank-at-eol

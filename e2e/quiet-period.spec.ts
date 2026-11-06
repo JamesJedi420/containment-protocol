@@ -3,6 +3,7 @@ import { createRunExportPayload } from '../src/app/store/runTransfer'
 import { createStartingState } from '../src/data/startingState'
 import type { GameState } from '../src/domain/models'
 import { createStarterCase } from '../src/domain/templates/startingCases'
+import { CAMPAIGN_COMPARISON_TIMEOUT_MS, expectCampaignStateBudget } from './support/campaignBudget'
 import {
   advanceOperationalWeek,
   attachPageErrorProbe,
@@ -151,6 +152,7 @@ async function runQuietPath(browser: Browser, hire: boolean) {
     expect(final.reports).toEqual(secondWeek.reports)
     for (const id of hiredIds) expect(final.agents[id]).toEqual(secondWeek.agents[id])
     expectNoPageErrors(probe)
+    await expectCampaignStateBudget(hire ? 'quiet-hire' : 'quiet-no-hire', initial, final)
     return { initial, firstWeek, final, hiredIds, reportText }
   } finally {
     probe.dispose()
@@ -161,7 +163,7 @@ async function runQuietPath(browser: Browser, hire: boolean) {
 test('a quiet campaign supports recruitment and independent weekly refresh without forced incidents', async ({
   browser,
 }) => {
-  test.setTimeout(240_000)
+  test.setTimeout(CAMPAIGN_COMPARISON_TIMEOUT_MS)
   const hired = await runQuietPath(browser, true)
   const noHire = await runQuietPath(browser, false)
   expect(hired.initial).toEqual(noHire.initial)

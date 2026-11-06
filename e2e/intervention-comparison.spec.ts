@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import type { GameState } from '../src/domain/models'
+import { CAMPAIGN_COMPARISON_TIMEOUT_MS, expectCampaignStateBudget } from './support/campaignBudget'
 import {
   advanceOperationalWeek,
   attachPageErrorProbe,
@@ -125,11 +126,17 @@ async function runComparisonPath(browser: Browser, intervene: boolean, readIntel
       contentType: 'image/png',
     })
     expectNoPageErrors(probe)
+    const savedGame = await readSavedGame(page)
+    await expectCampaignStateBudget(
+      intervene ? (readIntel ? 'intervention-read-intel' : 'intervention') : 'inaction',
+      initial,
+      savedGame
+    )
     return {
       initial,
       outcome,
       visibleOutcome,
-      savedGame: await readSavedGame(page),
+      savedGame,
     }
   } finally {
     probe.dispose()
@@ -140,7 +147,7 @@ async function runComparisonPath(browser: Browser, intervene: boolean, readIntel
 test('one player intervention causally changes later mission choices and replays through reload', async ({
   browser,
 }) => {
-  test.setTimeout(240_000)
+  test.setTimeout(CAMPAIGN_COMPARISON_TIMEOUT_MS)
   const intervention = await runComparisonPath(browser, true)
   const inaction = await runComparisonPath(browser, false)
   expect(inaction.initial).toEqual(intervention.initial)
@@ -156,7 +163,7 @@ test('one player intervention causally changes later mission choices and replays
 test('reading available intel preserves campaign history and converges on the same later outcomes', async ({
   browser,
 }) => {
-  test.setTimeout(240_000)
+  test.setTimeout(CAMPAIGN_COMPARISON_TIMEOUT_MS)
   const unread = await runComparisonPath(browser, true)
   const read = await runComparisonPath(browser, true, true)
   expect(read).toEqual(unread)

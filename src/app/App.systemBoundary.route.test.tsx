@@ -24,7 +24,11 @@ describe('App future-expansion system boundary routes', () => {
         <App />
       </MemoryRouter>
     )
-    const purchase = await screen.findByRole('button', { name: 'Buy maintenance package' })
+    // The cold lazy route can outlast the default query wait under full-suite load.
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Agency Command' }, { timeout: 5000 })
+    ).toBeInTheDocument()
+    const purchase = screen.getByRole('button', { name: 'Buy maintenance package' })
     fireEvent.click(purchase)
     expect(screen.getByText('Recovery budget: 10 hours / 6 parts')).toBeInTheDocument()
     expect(screen.getByText(/Available funding: 0/)).toBeInTheDocument()

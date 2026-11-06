@@ -17,6 +17,13 @@ import { describeSpawnError, resolveNpmLaunch, spawnSafe } from './spawn-safe.mj
 
 const registry = readRequirementRegistry()
 
+test('missing trusted executables fail closed before child PATH fallback', () => {
+  const child = spawnSafe('__cp_missing_trusted_executable__', [])
+  assert.equal(child.error.code, 'ENOENT')
+  assert.match(child.error.message, /not found in trusted directories/)
+  assert.equal(child.status, null)
+})
+
 test('fixed-path validators retain the current Node runtime in child commands', () => {
   const child = spawnSafe('node', ['--version'], { encoding: 'utf8' })
   assert.equal(child.status, 0)

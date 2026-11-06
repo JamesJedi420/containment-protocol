@@ -121,6 +121,22 @@ export function spawnSafe(command, args, options = {}) {
     path.isAbsolute(command) || command.includes('/') || command.includes('\\')
       ? command
       : resolveBin(command)
+  if (
+    absolute === command &&
+    !path.isAbsolute(command) &&
+    !command.includes('/') &&
+    !command.includes('\\')
+  ) {
+    return {
+      error: Object.assign(new Error(`Executable not found in trusted directories: ${command}`), {
+        code: 'ENOENT',
+      }),
+      status: null,
+      signal: null,
+      stdout: null,
+      stderr: null,
+    }
+  }
   return spawnSync(absolute, args, {
     ...options,
     env: sanitizedEnv(options.env),

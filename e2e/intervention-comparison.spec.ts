@@ -97,6 +97,12 @@ async function exerciseConcurrentOutbreaks(page: Page, outbreakIds: string[]) {
   await expect(
     page.getByRole('region', { name: 'Case triage detail: Campus Outbreak', exact: true })
   ).toBeVisible()
+  await expect(
+    triage
+      .getByRole('listitem')
+      .filter({ has: page.getByTestId('case-title-link-' + outbreakIds.at(-1)) })
+      .getByRole('button', { name: 'Select Campus Outbreak for triage detail', exact: true })
+  ).toHaveAttribute('aria-pressed', 'true')
   const reloaded = await readSavedGame(page)
   expect(Object.keys(reloaded.cases).sort()).toEqual(Object.keys(before.cases).sort())
   for (const id of outbreakIds) expect(reloaded.cases[id]).toEqual(before.cases[id])

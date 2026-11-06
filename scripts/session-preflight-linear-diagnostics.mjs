@@ -56,7 +56,7 @@ export function validateLinearMcpDiagnostic(value) {
       !ACTORS.has(checkedBy) ||
       operationChecked !== 'read' ||
       typeof checkedAt !== 'string' ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(checkedAt) ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(checkedAt) ||
       !Number.isFinite(Date.parse(checkedAt)) ||
       new Date(checkedAt).toISOString().slice(0, 19) !== checkedAt.slice(0, 19)
     )

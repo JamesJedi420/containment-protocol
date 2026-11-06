@@ -77,6 +77,7 @@ test('malformed or secret-bearing metadata is rejected without echoing values', 
     { failureCode: 'timeout' },
     { checkedBy: secret },
     { checkedAt: '2026-02-30T03:29:30Z' },
+    { checkedAt: '2026-11-03T03:25:00.0009Z' },
     { retryGuidance: secret },
     { evidenceRef: `https://example.invalid/?token=${secret}` },
     { rawError: secret },
@@ -92,4 +93,19 @@ test('malformed or secret-bearing metadata is rejected without echoing values', 
     assert.ok(!JSON.stringify(result).includes(secret))
   }
   assert.throws(() => ready({ failureCode: 'invented' }), /Invalid Linear read observation/)
+})
+
+test('sub-millisecond evaluation times cannot hide stale diagnostic evidence', () => {
+  const input = baseInput({
+    observedAt: '2026-11-03T03:30:00.00099Z',
+    linearMcp: ready({ checkedAt: '2026-11-03T03:25:00.000Z' }),
+  })
+  const result = evaluate(input)
+  assert.equal(result.status, 'unknown')
+  assert.equal(result.evidence, null)
+  assert.ok(
+    result.validationErrors.includes(
+      'linearMcp freshness requires observedAt at millisecond precision or coarser'
+    )
+  )
 })

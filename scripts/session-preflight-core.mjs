@@ -270,7 +270,12 @@ export function validateSessionPreflightInput(input) {
   validateLinearEvidence(errors, input.linear)
   validateGitHubEvidence(errors, input.github)
   validateGitEvidence(errors, input.git)
-  if (input.linearMcp !== undefined) errors.push(...validateLinearMcpDiagnostic(input.linearMcp))
+  if (input.linearMcp !== undefined) {
+    errors.push(...validateLinearMcpDiagnostic(input.linearMcp))
+    if (typeof input.observedAt === 'string' && /\.\d{4,}/.test(input.observedAt)) {
+      errors.push('linearMcp freshness requires observedAt at millisecond precision or coarser')
+    }
+  }
   return errors
 }
 

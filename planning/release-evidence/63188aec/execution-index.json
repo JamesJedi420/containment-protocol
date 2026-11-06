@@ -326,7 +326,8 @@
       "name": "requirements-stderr.log",
       "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/requirements-stderr.log",
       "bytes": 204980,
-      "sha256": "715ffcce568872b1abe2fb28362fb65c56de9318762c977ca158b1cb8466c654"
+      "sha256": "715ffcce568872b1abe2fb28362fb65c56de9318762c977ca158b1cb8466c654",
+      "repositoryPath": "planning/release-evidence/63188aec/requirements-stderr.log"
     },
     {
       "name": "full-build.log",

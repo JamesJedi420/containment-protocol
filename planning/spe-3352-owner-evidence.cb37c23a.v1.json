@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+  "assessments": [
+    {
+      "id": "owner-persistence",
+      "result": "warning",
+      "rationale": "The merged retrospective hydration boundary is ancestral and current run-transfer, mission-result hydration and event-migration tests pass. This is bounded sanitization evidence, not a complete current save-version/migration release contract; SPE-3403 remains a separate unresolved compatibility-policy owner.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-2607: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-accessibility",
+      "result": "warning",
+      "rationale": "Current automated keyboard, landmark, status-region and store tests provide bounded accessibility/explainability evidence. Actual screen-reader speech and the broader audit are not established. Linear currently says Done while its latest closeout says partial delivery; this evidence report does not resolve that lifecycle discrepancy or reopen the owner.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-1080: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-ux",
+      "result": "warning",
+      "rationale": "Current connected Playwright campaign evidence covers functional browser playability, observable outcomes and reload/replay. The owner records Playwright-only acceptance methodology; absence of human testers alone is not a milestone blocker. Automated checks do not establish human comprehension or the full UX-profile/finding/retest contract.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-1245: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-telemetry",
+      "result": "unavailable",
+      "rationale": "All current owner comments were retrieved; they do not supply a completed release-applicable telemetry assessment. Existing developer-log snapshots are not proof of the reusable telemetry, operational metrics and audience-separation acceptance. No subsystem absence or runtime failure is inferred from Backlog status.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-1119: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-replay",
+      "result": "warning",
+      "rationale": "Current scoped identity and legacy-cutover tests verify same-identity samples, unrelated-domain isolation and bounded grandfathering/post-cutover behavior. This does not establish adoption by every authoritative consumer or complete selector-version/save-resume release applicability. Backlog status does not erase the implemented kernel.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-3162: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-continuity",
+      "result": "pass",
+      "rationale": "The completed explicit authored-path validator boundary has current executable coverage for path facts, projection, authored-node adapters, missing prerequisites, player-awareness leaks, corrected claims and optional runtime/stability hooks. Passing this owner-evidence row does not prove automatic content-wide linting or that every gameplay branch supplies authored assumptions.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-1464: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-calibration",
+      "result": "pass",
+      "rationale": "The completed narrow calibration milestone remains represented by the current four-week MVP infiltration fixture. Its test checks live awareness/escalation bands and the cleanup action. This is not a whole-game balance judgment, frozen historical constants or human enjoyment evidence.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-25: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    },
+    {
+      "id": "owner-simulation",
+      "result": "pass",
+      "rationale": "The completed bounded six-scenario validation harness passes current scenario registration, repeated run/suite equality, pressure attribution, baseline/nontrivial-duration and neglect-heavy outcome checks. This is scenario-specific simulation evidence, not universal emergent-story coverage.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+          "scope": "SPE-26: current source, live scope and bounded execution assessment; see the named owner section and explicit limits."
+        }
+      ]
+    }
+  ]
+}

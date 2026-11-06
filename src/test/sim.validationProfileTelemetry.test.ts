@@ -67,6 +67,25 @@ describe('profile-segmented validation telemetry (SPE-1119)', () => {
     ).toBe(1.2)
   })
 
+  it('keeps the suite configuration fixed when a callback invalidates the caller input', () => {
+    const difficulty = { profileId: 'custom', custom: { multipliers: { upkeep: 1.2 } } }
+    const events: SimulationValidationTelemetryEvent[] = []
+    const runs = runSimulationValidationSuite({
+      difficulty,
+      onSnapshot: (event) => {
+        events.push(event)
+        difficulty.custom.multipliers.upkeep = -1
+      },
+    })
+    expect(runs.length).toBeGreaterThan(1)
+    for (const run of runs) {
+      const scenarioEvents = events.filter((event) => event.scenarioId === run.scenarioId)
+      expect(scenarioEvents.length).toBeGreaterThan(0)
+      const analysis = analyzeSimulationValidationTelemetry(scenarioEvents, run.summary)
+      expect(analysis.difficulty?.multipliers.upkeep).toBe(1.2)
+    }
+  })
+
   it.each([
     { profileId: 'unknown' },
     { profileId: 'normal', profileVersion: '999' },

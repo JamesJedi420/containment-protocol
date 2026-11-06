@@ -831,5 +831,11 @@ export function runSimulationValidationScenario(
 }
 
 export function runSimulationValidationSuite(options: SimulationValidationOptions = {}) {
-  return INTERNAL_SCENARIOS.map((scenario) => runSimulationValidationScenario(scenario.id, options))
+  const suiteOptions = {
+    ...options,
+    difficulty: options.difficulty === undefined ? undefined : structuredClone(options.difficulty),
+  }
+  return INTERNAL_SCENARIOS.map((scenario) =>
+    runSimulationValidationScenario(scenario.id, suiteOptions)
+  )
 }

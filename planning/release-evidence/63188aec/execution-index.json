@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "63188aec19eba68c56b125da078908d92c100dc4",
+  "historicalBase": "8596b04efc82a807d0a334c195e73d8e533ba58e",
+  "collection": {
+    "beforeTrackedEdits": true,
+    "subjectRevision": "63188aec19eba68c56b125da078908d92c100dc4",
+    "startedAt": "2026-11-06T17:38:55.4228223Z",
+    "endedAt": "2026-11-06T17:54:54.3927593Z",
+    "statusBefore": [],
+    "statusAfter": [],
+    "nativeExit": 0,
+    "requirementsExit": 0,
+    "buildExit": 0,
+    "lockfileSha256": "9f88df3b3633204e5c8f7e3c091a6a4ad24a36c81fe27332789ad66bb92111ed"
+  },
+  "environment": {
+    "subjectRevision": "63188aec19eba68c56b125da078908d92c100dc4",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.23.4",
+    "nodeExecutable": "C:\\Users\\james\\.codex\\tmp\\node22-census\\node-v22.23.4-win-x64\\node.exe",
+    "zustand": "5.1.0",
+    "vitest": "5.0.5",
+    "playwright": "1.65.0",
+    "vite": "8.3.5",
+    "ci": true,
+    "validationJsonIsolate": true,
+    "strictTestConsole": "1",
+    "dependencyAdoption": "Existing installed dependencies reused; no installation or lockfile change."
+  },
+  "commands": [
+    {
+      "command": "node --test scripts/release-acceptance/report.test.mjs scripts/validation/requirement-model.check.mjs",
+      "exitCode": 0,
+      "artifact": "native-tests.log"
+    },
+    {
+      "command": "npm --silent run verify:requirements -- --base 8596b04efc82a807d0a334c195e73d8e533ba58e --ci --json",
+      "exitCode": 0,
+      "environment": {
+        "CI": "true",
+        "STRICT_TEST_CONSOLE": "1",
+        "VALIDATION_JSON_ISOLATE": "1"
+      },
+      "unitSummaryLines": [
+        " Test Files  1007 passed (1007)",
+        "      Tests  10972 passed (10972)",
+        "   Duration  500.09s (environment 62%, setup 12%, import 11%, tests 9%, transform 5%)"
+      ],
+      "files": [
+        "docs/cp-core-release-evidence.md",
+        "e2e/intervention-comparison.spec.ts",
+        "e2e/quiet-period.spec.ts",
+        "e2e/support/campaignBudget.ts",
+        "package-lock.json",
+        "package.json",
+        "planning/release-evidence/438c8df7/browser-observations.json",
+        "planning/release-evidence/438c8df7/execution-index.json",
+        "planning/release-evidence/438c8df7/requirements-execution.json",
+        "planning/release-evidence/b121d4f2/browser-observations.json",
+        "planning/release-evidence/b121d4f2/execution-index.json",
+        "planning/release-evidence/b121d4f2/requirements-execution.json",
+        "planning/release-evidence/cb37c23a/owner-assessment.md",
+        "planning/spe-3283-agency-route-readiness-slice.md",
+        "planning/spe-3352-concurrent-incidents-slice.md",
+        "planning/spe-3352-current-campaign-evidence-slice.md",
+        "planning/spe-3352-fixture-budgets-slice.md",
+        "planning/spe-3352-information-access-slice.md",
+        "planning/spe-3352-integrated-evidence-slice.md",
+        "planning/spe-3352-intervention-comparison-slice.md",
+        "planning/spe-3352-owner-evidence-slice.md",
+        "planning/spe-3352-owner-evidence.cb37c23a.v1.json",
+        "planning/spe-3352-quiet-period-slice.md",
+        "planning/spe-3352-release-evidence.438c8df7.v1.json",
+        "planning/spe-3352-release-evidence.b121d4f2.v1.json",
+        "planning/spe-3737-dependency-upgrades-slice.md",
+        "SCHEMA_REGISTRY.md",
+        "src/app/App.systemBoundary.route.test.tsx",
+        "src/app/store/missionResultHydration.test.ts",
+        "src/app/store/runTransfer.ts",
+        "src/components/TrendSummaryPanel.tsx",
+        "src/features/cases/CaseDetailPage.test.tsx",
+        "src/features/cases/CaseDetailPage.tsx",
+        "src/features/report/reportTrendView.ts",
+        "src/features/report/TrendSummaryPanel.test.tsx"
+      ],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci"
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "artifact": "requirements-execution.json",
+      "outputArtifact": "requirements-stderr.log"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "artifact": "full-build.log"
+    }
+  ],
+  "ownerApplicability": {
+    "source": "planning/release-evidence/cb37c23a/owner-assessment.md",
+    "priorSubject": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+    "changesSincePreviousIntegratedSubject": [
+      "docs/cp-core-release-evidence.md",
+      "package-lock.json",
+      "package.json",
+      "planning/release-evidence/b121d4f2/browser-observations.json",
+      "planning/release-evidence/b121d4f2/execution-index.json",
+      "planning/release-evidence/b121d4f2/requirements-execution.json",
+      "planning/spe-3283-agency-route-readiness-slice.md",
+      "planning/spe-3352-integrated-evidence-slice.md",
+      "planning/spe-3352-release-evidence.b121d4f2.v1.json",
+      "planning/spe-3737-dependency-upgrades-slice.md",
+      "src/app/App.systemBoundary.route.test.tsx"
+    ],
+    "comparison": "Since b121d4f2, only evidence/docs, the Agency route readiness test, and the reviewed Zustand/Playwright dependency upgrades changed. Authoritative owner application/test implementations are otherwise unchanged; dependency behavior is corroborated by this current full execution, not presumed from ancestry.",
+    "currentCorroboration": "Current full unit/browser execution includes the targeted owner suites and accessibility/connected campaign checks. Historical PR ancestry remains valid. Owner scope/limitations are retained; no historical run is relabeled.",
+    "linearRefresh": {
+      "checkedAt": "2026-11-06T17:39:43.679Z",
+      "source": "Direct Linear owner descriptions/status and latest updated comments compared with the previously fully paginated owner packet in this chat.",
+      "owners": [
+        {
+          "id": "SPE-2607",
+          "status": "Done",
+          "updatedAt": "2026-11-06T11:42:44.409Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "4ed42fe6-1b5e-4355-a9a5-e010edd66d2e",
+            "ab712c3f-d570-45c4-9da3-53c2ad0ff329"
+          ]
+        },
+        {
+          "id": "SPE-1080",
+          "status": "Done",
+          "updatedAt": "2026-11-05T06:30:43.573Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "cdaa7f1f-456f-498d-8d26-20dbd60339e3",
+            "7866fdd3-2307-4d1a-bc64-90a33811e0b9",
+            "044909b9-2ba4-4e02-9b3b-b0986c0939e4"
+          ]
+        },
+        {
+          "id": "SPE-1245",
+          "status": "In Progress",
+          "updatedAt": "2026-11-03T12:22:40.278Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "6e410ace-2196-4634-9172-b713b963d371",
+            "a9389c99-9672-48e8-a910-18fa0aaa585f",
+            "b3ea0a10-666d-43f1-bca5-047711cacd95"
+          ]
+        },
+        {
+          "id": "SPE-1119",
+          "status": "Backlog",
+          "updatedAt": "2026-11-03T18:52:22.780Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "286a49a8-3f62-4c0b-9465-8cab83b949e5",
+            "31dfab70-952b-47c8-9691-14ce2adcac8e",
+            "89925958-9ab8-4020-8be6-93e8019a6399"
+          ]
+        },
+        {
+          "id": "SPE-3162",
+          "status": "Backlog",
+          "updatedAt": "2026-11-06T10:07:47.910Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "3ff6670d-7ddd-4f75-988a-408f1e8a3cdd",
+            "370d5d5f-251d-41b0-b85a-8cb151592ceb",
+            "390c56a9-351b-45a2-a89e-2cbb1e182306"
+          ]
+        },
+        {
+          "id": "SPE-1464",
+          "status": "Done",
+          "updatedAt": "2026-11-05T16:04:03.895Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "c392a398-82a2-44f2-ae6c-a6540c3f328b",
+            "db3a7342-ce69-460c-875d-375a53b3d090",
+            "a84110d9-85ab-4f3a-8483-5c614a305508"
+          ]
+        },
+        {
+          "id": "SPE-25",
+          "status": "Done",
+          "updatedAt": "2026-10-08T10:30:43.309Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "be3fae1d-5e8b-40b8-a8ce-39d39bd5db85",
+            "9f3e63cf-1e86-4430-9d69-7bc8ad9f36d1"
+          ]
+        },
+        {
+          "id": "SPE-26",
+          "status": "Done",
+          "updatedAt": "2026-10-24T15:53:34.800Z",
+          "scopeUnchanged": true,
+          "recentCommentsUnchanged": true,
+          "checkedCommentIds": [
+            "a8a45bf8-0ae7-4862-8549-d35785d83d88",
+            "49ad5495-893e-4330-a835-8b72c6f7420a",
+            "e398bf04-2dda-49a7-90ed-983e534766b9"
+          ]
+        }
+      ],
+      "historicalAncestry": [
+        {
+          "revision": "df007a6836f554dfa52e5ad3ccfd3b8cad5218fb",
+          "subject": "63188aec19eba68c56b125da078908d92c100dc4",
+          "exitCode": 0
+        },
+        {
+          "revision": "934c49672eacc3ed69bed9d297ca556cffb68948",
+          "subject": "63188aec19eba68c56b125da078908d92c100dc4",
+          "exitCode": 0
+        },
+        {
+          "revision": "5d5bc297ad09b5ab899842e489ebc69f47a44f26",
+          "subject": "63188aec19eba68c56b125da078908d92c100dc4",
+          "exitCode": 0
+        },
+        {
+          "revision": "0faad6b602470ae11f814f9a1ca6979fd7f08191",
+          "subject": "63188aec19eba68c56b125da078908d92c100dc4",
+          "exitCode": 0
+        },
+        {
+          "revision": "6ff7f59ee242f5f93a0aa7d9fa337aac28d36102",
+          "subject": "63188aec19eba68c56b125da078908d92c100dc4",
+          "exitCode": 0
+        }
+      ],
+      "ownerSourceDiff": {
+        "from": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+        "to": "63188aec19eba68c56b125da078908d92c100dc4",
+        "paths": ["src/domain", "src/app/store", "src/components/layout", "e2e", "src/features"],
+        "changed": ""
+      }
+    }
+  },
+  "resolvedCurrentFailure": {
+    "priorSubject": "b121d4f2a977309a120804b154ee596784d44f59",
+    "owner": "SPE-3283",
+    "repairPr": "https://github.com/JamesJedi420/containment-protocol/pull/4894",
+    "merge": "6ff7f59ee242f5f93a0aa7d9fa337aac28d36102",
+    "file": "src/app/App.systemBoundary.route.test.tsx",
+    "description": "The real Agency heading is awaited before synchronous purchase-button assertions. All original state assertions remain. This current full execution passes; the controlled historical diagnosis did not establish the exact scheduling of the earlier failure."
+  },
+  "historicalFailures": "Earlier snapshots remain failed at their assessed revisions. This current passing execution does not rewrite or waive historical results; the separate historical App.test.tsx failure still has unverified repair ownership.",
+  "artifactAvailability": "Host-local retained logs/reports, not public downloadable artifacts. Hashes and commands preserve provenance; another host may need to rerun.",
+  "artifacts": [
+    {
+      "name": "native-tests.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/native-tests.log",
+      "bytes": 11768,
+      "sha256": "83261e651f7a4d6d26a2b16c38101e1e424a8b1126e182707960ba0e8e58cb63"
+    },
+    {
+      "name": "requirements-execution.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/requirements-execution.json",
+      "bytes": 3502,
+      "sha256": "6cc95a2b1fbd7fd76c33508a3c17624bc02e672a591fe19ec6f1d0c78a4eff40"
+    },
+    {
+      "name": "requirements-stderr.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/requirements-stderr.log",
+      "bytes": 204980,
+      "sha256": "715ffcce568872b1abe2fb28362fb65c56de9318762c977ca158b1cb8466c654"
+    },
+    {
+      "name": "full-build.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/full-build.log",
+      "bytes": 9969,
+      "sha256": "a79ef6bced9bba087108e873c160b14863b95641bdb0c4c6c8d14c84eeb92198"
+    },
+    {
+      "name": "execution-result.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/execution-result.json",
+      "bytes": 364,
+      "sha256": "907ba5146aa50567bee300b0ca3c4306e0efc7f521917c85b5e4deb1c20bf31f"
+    },
+    {
+      "name": "environment.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/environment.json",
+      "bytes": 520,
+      "sha256": "bfebcb612667cb1f9f7d408a3f44ee0ad2cbf6f560eb3eeb2744e6d120013c6e"
+    },
+    {
+      "name": "owner-refresh.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/owner-refresh.json",
+      "bytes": 4084,
+      "sha256": "0aec806d5392a2979f29b484d64b232bbd3e3559561ed369810c16e41e5e77e4"
+    },
+    {
+      "name": "campaign-browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/campaign-browser-report.json",
+      "bytes": 25736,
+      "sha256": "b0c45afd091a924bf9f7a50ccd2aa5f0aca4991310612575925e127c7381c4bd"
+    },
+    {
+      "name": "errors-browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/errors-browser-report.json",
+      "bytes": 4039,
+      "sha256": "a42ff79128b2244b2f920a56196ab4f79066718e1a850299a10153dc0f1fb5fd"
+    },
+    {
+      "name": "campaign-browser-observations.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/campaign-browser-observations.json",
+      "bytes": 17757,
+      "sha256": "9af5ec9d010a089449025fa53d748e71d2b956904d44797850aa7c49c80f3967"
+    },
+    {
+      "name": "errors-browser-observations.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/errors-browser-observations.json",
+      "bytes": 2017,
+      "sha256": "38a5153cc9b5d6047e4744222b50ae9b143b5f25a8d43fac58e45a936fb3ee1e"
+    },
+    {
+      "name": "playwright-report/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/playwright-report/index.html",
+      "bytes": 1269718,
+      "sha256": "02876bb374f1f5aaa69865578ef35d6cb8877d6388f2524a060e716bce054e13"
+    },
+    {
+      "name": "playwright-report/errors/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/playwright-report/errors/index.html",
+      "bytes": 524838,
+      "sha256": "a7865398e05c9d1e2c33ac193f4cc5b35ceb4a879f0609de64fe3de93c50129e"
+    },
+    {
+      "name": "controlled-intervention-comparison-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/controlled-intervention-comparison-retry0.json",
+      "bytes": 976844,
+      "sha256": "78aff2941d1d328f8430ccebb609d35225c3617ea687fc1711947924370bf79a"
+    },
+    {
+      "name": "information-access-convergence-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/information-access-convergence-retry0.json",
+      "bytes": 934649,
+      "sha256": "75cd53f938e6f8d846f5740a4088f4e4a3ba851dfb433970dfa2f317e43c3169"
+    },
+    {
+      "name": "quiet-period-hiring-comparison-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-63188aec/quiet-period-hiring-comparison-retry0.json",
+      "bytes": 668903,
+      "sha256": "38a509c8cfba1a4d89d91ed55403a16626246f23ba196cc3b3e5853870e79619"
+    }
+  ]
+}

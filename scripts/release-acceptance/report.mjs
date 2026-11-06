@@ -7,8 +7,8 @@ import {
 } from '../validation/requirement-model.mjs'
 import { resolveBin, spawnSafe } from '../validation/spawn-safe.mjs'
 
-// Stable v1 mapping to SPE-3352's twelve acceptance criteria, plus the owner
-// dimensions explicitly required by AC06. Missing assessments retain their rows.
+// Stable v1 mapping to SPE-3352's original acceptance criteria, its controlled
+// campaign comparisons, and AC06 owner dimensions. Missing assessments retain rows.
 export const CRITERIA = Object.freeze(
   [
     ['ac-01', 'Named golden fixtures and stable assertions', 'SPE-3352'],
@@ -23,6 +23,13 @@ export const CRITERIA = Object.freeze(
     ['ac-10', 'Explicit, reviewable exceptions', 'SPE-3352'],
     ['ac-11', 'CP-core scope and supported lifecycle only', 'SPE-3352'],
     ['ac-12', 'Reproducible acceptance summary', 'SPE-3352'],
+    ['comparison-intervention', 'Intervention and inaction', 'SPE-3352'],
+    ['comparison-incidents', 'Incident interaction', 'SPE-3352'],
+    ['comparison-information', 'History and information', 'SPE-3352'],
+    ['comparison-delayed', 'Delayed consequences', 'SPE-3352'],
+    ['comparison-quiet', 'Quiet-period viability', 'SPE-3352'],
+    ['comparison-divergence', 'Controlled divergence and convergence', 'SPE-3352'],
+    ['comparison-continuity', 'Reproducibility and continuity', 'SPE-3352'],
     ['owner-persistence', 'Persistence and migration evidence', 'SPE-2607'],
     ['owner-accessibility', 'Accessibility and explainability evidence', 'SPE-1080'],
     ['owner-ux', 'Observed-player and UX evidence', 'SPE-1245'],

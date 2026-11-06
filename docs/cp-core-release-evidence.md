@@ -35,7 +35,25 @@ The bootstrap manifest deliberately assesses `265cf70ba2c6d14c5a583ba512333fff1e
 
 ## Evidence contract v1
 
-Top-level fields are `schemaVersion: 1`, `owner: "SPE-3352"`, `subjectRevision` (full lowercase 40-character Git SHA), `assessments` (array), and optional `validation` (null or the wrapper below). The twelve issue acceptance criteria and eight required owner dimensions have stable IDs in `CRITERIA` in the reporter. The separate `full-build` row belongs to SPE-3375. Omitted assessments remain visible as unavailable; unknown or duplicate IDs are rejected.
+Top-level fields are `schemaVersion: 1`, `owner: "SPE-3352"`, `subjectRevision` (full lowercase 40-character Git SHA), `assessments` (array), and optional `validation` (null or the wrapper below). The twelve original issue acceptance criteria, seven controlled campaign comparisons and eight required owner dimensions have stable IDs in `CRITERIA` in the reporter. The separate `full-build` row belongs to SPE-3375. Omitted assessments remain visible as unavailable; unknown or duplicate IDs are rejected.
+
+### Controlled campaign comparisons
+
+These rows map to SPE-3352's approved **CP-wide emergent-story integrity — controlled campaign trajectories** requirements. Each remains owned by SPE-3352 for evidence aggregation; gameplay implementation and remediation stay with the authoritative subsystem owner named in the evidence.
+
+| Stable ID                 | Required comparison evidence                                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `comparison-intervention` | Legitimate intervention versus inaction or another supported choice, with causal differences only where the scenario supports them.                                                                          |
+| `comparison-incidents`    | Existing incident activation, coexistence, exclusion, collision, deferral or expiry affects subsequent operational state; no artificial crisis is required.                                                  |
+| `comparison-information`  | Changed discovery or information access preserves established history and distinguishes world truth, assessment, public belief and player knowledge.                                                         |
+| `comparison-delayed`      | A relevant action, inaction or independent event causes a later consequential difference through existing owners.                                                                                            |
+| `comparison-quiet`        | A supported low-crisis or no-new-major-incident interval retains ordinary decisions and independent world activity without forced drama.                                                                     |
+| `comparison-divergence`   | Canonical outputs and downstream decisions differ causally where appropriate; legitimate convergence and irrelevant changes do not force divergence.                                                         |
+| `comparison-continuity`   | Identical authoritative inputs reproduce outcomes, and each compared campaign preserves its own history, information, event identity and durable consequences across applicable reloads without duplication. |
+
+Paired evidence must identify shared seeded/authored pre-campaign history, rules/configuration and applicable initial state, plus the single causally meaningful varied input. Reuse existing fixtures and SPE-2251 baseline evidence. This mapping introduces no new narrative engine, mandatory escalation, terminal-success state or Academy acceptance requirement.
+
+The schema-v1 input shape is unchanged. Older manifests still parse, but current reporter output adds these seven rows as `unavailable-evidence` when omitted; a fully assessed original-only manifest is now `incomplete`. Historical manifests and their recorded execution counts remain unchanged. Running the current reporter evaluates the snapshot against this expanded criterion catalog; use the historical reporter revision to reproduce its original row set. Adding rows does not execute comparisons, refresh old evidence or establish that any comparison passed. Failure, exception, applicability and revision rules below apply equally to these rows.
 
 Each assessment contains:
 

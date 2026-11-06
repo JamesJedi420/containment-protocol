@@ -14,7 +14,9 @@ Both `blocked` and `unknown` prohibit implementation. The preflight is read-only
 
 A `ready` result does not itself move the issue In Progress. The authorized implementation agent performs the existing lifecycle action separately after the gate passes.
 
-When transferring Linear connection observations, include the [versioned diagnostic metadata](session-preflight.md#optional-linear-connection-diagnostics). Revalidate the connection through an authorized read and refresh the issue evidence before relying on it. Preserve `unchecked` when no probe ran; a successful read never establishes write authority. The optional metadata extends the existing preflight, while the parent's full portable envelope and designation provenance remain separate outstanding acceptance.
+When transferring Linear connection observations, include the [versioned diagnostic metadata](session-preflight.md#optional-linear-connection-diagnostics). Revalidate the connection through an authorized read and refresh the issue evidence before relying on it. Preserve `unchecked` when no probe ran; a successful read never establishes write authority.
+
+Carry sourced implementation-agent preferences using [designation provenance](session-preflight.md#optional-agent-designation-provenance). Preserve unknown historical timestamps, superseded records and conflicts; refresh the source before presenting a current preference. The preference remains nonexclusive and separate from human assignment, approval, executor acceptance and actual session activity. Optional unknown or stale designation evidence does not itself block authorized work. The parent's full portable presentation and follow-up classification remain outstanding acceptance.
 
 ## Codex local environment adapter
 

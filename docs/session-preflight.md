@@ -46,6 +46,18 @@ The version 1 diagnostic contains `schemaVersion`, `status`, `checkedAt`, `check
 
 Explicit provider evidence may classify `authentication-missing` or `authentication-expired` as `needsAuth`. `configuration-missing`, `permission-denied`, `timeout`, `service-failure` and `unknown` use `failed`. Do not guess a diagnosis from arbitrary text. If the probe never ran, retain `unchecked`. Recovery guidance is generated from the fixed category; raw provider errors, credentials, arbitrary URLs and extra fields are rejected. No new transport, credential lifecycle, write probe or mutation authorization is introduced. CP core and Academy use this same contract.
 
+### Optional agent designation provenance
+
+`agentDesignations` carries issue-scoped preference evidence through the same input and output. It is not the Linear human assignee, issue approval, agent acceptance or session activity. A Codex preference is nonexclusive and never excludes an otherwise authorized Cursor session. CP and Academy consume this same contract. Omit the packet when no evidence was collected; the existing v1 readiness behavior remains unchanged.
+
+The packet has exactly `schemaVersion: 1`, `issueId` matching the handoff, `sourceRef`, nullable `checkedAt`, and `entries`. Record `checkedAt` from the current source read, or null when unverified. Each entry has `id`, `agent`, `sourceRef`, nullable `designatedAt`, nullable `timestampSourceRef`, and nullable `supersedes` (the ID of the explicitly superseded entry). Retain superseded entries and their original provenance. Do not infer supersession from array order or timestamps. Duplicate IDs, missing references, cycles, reversed evidenced chronology and malformed fields are rejected.
+
+`designatedAt` records only an explicitly evidenced UTC designation time, with its separate `timestampSourceRef`. Both are null for unknown historical time; neither issue creation time nor a current observation time may substitute for it. UTC timestamps accept seconds through milliseconds, never finer precision or invalid calendar dates. Free-text source references must contain no credentials or private payloads; retain references to the existing authoritative artifact, not copied secret-bearing responses.
+
+The output sorts history by ID, marks superseded entries, and reports `current`, `absent`, `unknown`, `stale`, `from-future` or `conflicting`. Only fresh, consistent current evidence yields `preferredAgent`; `lastDesignationAt` remains null unless every current record has an explicit timestamp. Conflicting or stale preferences remain in history without inventing a winner. These optional evidence states do not change session readiness. Malformed or wrong-issue packets fail input validation. An evaluation time finer than milliseconds produces an unknown preference projection rather than rounding it into fresh evidence.
+
+Output explicitly labels `authority: 'preference-only'` and `nonexclusive: true`; human assignment is not derived, and executor acceptance/session activity remain unverified. Refresh provenance from the authoritative source in a receiving session. The packet cannot select work, assign an executor, reserve a task, approve scope or close an issue.
+
 The top-level envelope carries:
 
 - `schemaVersion`: `1`;

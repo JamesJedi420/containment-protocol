@@ -1,4 +1,8 @@
 import { validateLinearMcpDiagnostic } from './session-preflight-linear-diagnostics.mjs'
+import {
+  validateAgentDesignations,
+  projectAgentDesignations,
+} from './session-preflight-designations.mjs'
 
 const SCHEMA_VERSION = 1
 const SHA_RE = /^[0-9a-f]{40}$/i
@@ -270,6 +274,9 @@ export function validateSessionPreflightInput(input) {
   validateLinearEvidence(errors, input.linear)
   validateGitHubEvidence(errors, input.github)
   validateGitEvidence(errors, input.git)
+  if (input.agentDesignations !== undefined) {
+    errors.push(...validateAgentDesignations(input.agentDesignations, input.handoff?.issueId))
+  }
   if (input.linearMcp !== undefined) {
     errors.push(...validateLinearMcpDiagnostic(input.linearMcp))
     if (typeof input.observedAt === 'string' && /\.\d{4,}/.test(input.observedAt)) {
@@ -805,6 +812,13 @@ function projectGitEvidence(git) {
 function collectSourceRefs(input) {
   const sourceRefs = [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef]
   if (input.linearMcp?.evidenceRef) sourceRefs.push(input.linearMcp.evidenceRef)
+  if (input.agentDesignations !== undefined) {
+    sourceRefs.push(input.agentDesignations.sourceRef)
+    for (const entry of input.agentDesignations.entries) {
+      sourceRefs.push(entry.sourceRef)
+      if (entry.timestampSourceRef !== null) sourceRefs.push(entry.timestampSourceRef)
+    }
+  }
   if (isObject(input.github.implementationEvidence)) {
     sourceRefs.push(input.github.implementationEvidence.sourceRef)
   }
@@ -866,6 +880,15 @@ export function evaluateSessionPreflight(input) {
       linearLifecycle: projectLinearLifecycle(input.linear),
       githubImplementation: projectGitHubImplementation(input.github),
       git: projectGitEvidence(input.git),
+      ...(input.agentDesignations === undefined
+        ? {}
+        : {
+            agentDesignations: projectAgentDesignations(
+              input.agentDesignations,
+              input.observedAt,
+              input.freshnessWindowSeconds
+            ),
+          }),
       ...(input.linearMcp === undefined
         ? {}
         : { linearMcp: { ...input.linearMcp, readOnly: true, writeCapability: 'unverified' } }),

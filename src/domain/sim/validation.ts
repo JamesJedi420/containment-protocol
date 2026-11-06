@@ -10,6 +10,7 @@ import {
   type GameState,
   type MissionPriorityBand,
   type WeeklyDirectiveId,
+  type WeeklyReport,
 } from '../models'
 import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
 import { projectStrategicActionBudget } from '../strategicActionBudgetProjection'
@@ -113,7 +114,7 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 3
+  schemaVersion: 4
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
@@ -124,6 +125,32 @@ export interface SimulationValidationTelemetryEvent {
   advanceInput: ReturnType<typeof captureSimulationValidationAdvanceInput>
   /** Detached consumer-owned copy of the existing validation snapshot. */
   snapshot: SimulationValidationWeekSnapshot
+  /** Recorded mission-result components only; null means snapshots are unavailable. */
+  missionResults: ReturnType<typeof captureSimulationValidationMissionResults>
+}
+
+/** Copy recorded result components without recalculating rewards or consequences. */
+export function captureSimulationValidationMissionResults(report: WeeklyReport | undefined) {
+  if (!report?.caseSnapshots) return null
+  return structuredClone(
+    Object.values(report.caseSnapshots)
+      .flatMap((snapshot) => {
+        const result = snapshot.missionResult
+        if (!result) return []
+        return [
+          {
+            caseId: result.caseId,
+            outcome: result.outcome,
+            rewards: result.rewards,
+            penalties: result.penalties,
+            injuries: result.injuries,
+            fatalities: result.fatalities ?? null,
+            spawnedConsequences: result.spawnedConsequences,
+          },
+        ]
+      })
+      .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId))
+  )
 }
 
 /** Internal validation observation; never use this as filtered player knowledge. */
@@ -826,7 +853,7 @@ export function runSimulationValidationScenario(
     weekly.push(snapshot)
     if (onSnapshot && advanceInput) {
       onSnapshot({
-        schemaVersion: 3,
+        schemaVersion: 4,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',
@@ -834,6 +861,7 @@ export function runSimulationValidationScenario(
         sequence: weekly.length,
         advanceInput,
         snapshot: structuredClone(snapshot),
+        missionResults: captureSimulationValidationMissionResults(state.reports.at(-1)),
       })
     }
 

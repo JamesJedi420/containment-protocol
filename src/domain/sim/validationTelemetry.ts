@@ -29,6 +29,61 @@ function requireTrace(condition: boolean, reason: string): asserts condition {
   if (!condition) throw new Error(`Validation telemetry: ${reason}`)
 }
 
+function createResultComponents() {
+  return {
+    recordedResults: 0,
+    weeksWithoutCaseSnapshots: 0,
+    withFundingChange: 0,
+    withContainmentChange: 0,
+    withStrategicValueChange: 0,
+    withReputationChange: 0,
+    withAgencyStandingChange: 0,
+    withInventoryRecords: 0,
+    withFactionStandingChange: 0,
+    withInjuryRecords: 0,
+    withFatalityRecords: 0,
+    withSpawnedConsequenceRecords: 0,
+  }
+}
+
+function accumulateResultComponents(
+  counts: ReturnType<typeof createResultComponents>,
+  results: SimulationValidationTelemetryEvent['missionResults']
+) {
+  requireTrace(results === null || Array.isArray(results), 'missing recorded mission results')
+  if (results === null) counts.weeksWithoutCaseSnapshots += 1
+  const caseIds = new Set<string>()
+  for (const result of results ?? []) {
+    requireTrace(!caseIds.has(result.caseId), 'duplicate mission result within a week')
+    caseIds.add(result.caseId)
+    const { rewards } = result
+    requireTrace(
+      [
+        rewards.fundingDelta,
+        rewards.containmentDelta,
+        rewards.strategicValueDelta,
+        rewards.reputationDelta,
+        rewards.agencyStanding?.points ?? 0,
+        ...rewards.factionStanding.map((entry) => entry.delta),
+      ].every(Number.isFinite),
+      'non-finite recorded reward component'
+    )
+    counts.recordedResults += 1
+    counts.withFundingChange += Number(rewards.fundingDelta !== 0)
+    counts.withContainmentChange += Number(rewards.containmentDelta !== 0)
+    counts.withStrategicValueChange += Number(rewards.strategicValueDelta !== 0)
+    counts.withReputationChange += Number(rewards.reputationDelta !== 0)
+    counts.withAgencyStandingChange += Number((rewards.agencyStanding?.points ?? 0) !== 0)
+    counts.withInventoryRecords += Number(rewards.inventoryRewards.length > 0)
+    counts.withFactionStandingChange += Number(
+      rewards.factionStanding.some((entry) => entry.delta !== 0)
+    )
+    counts.withInjuryRecords += Number(result.injuries.length > 0)
+    counts.withFatalityRecords += Number((result.fatalities?.length ?? 0) > 0)
+    counts.withSpawnedConsequenceRecords += Number(result.spawnedConsequences.length > 0)
+  }
+}
+
 /**
  * Analyze one complete internal harness capture against its actual run summary.
  * Observed cases are not player selections; a continuing case is counted once
@@ -48,10 +103,11 @@ export function analyzeSimulationValidationTelemetry(
   const templates = new Map<string, { cases: Set<string>; committedCaseWeeks: number }>()
   const allCases = new Set<string>()
   const outcomes = { success: 0, partial: 0, fail: 0, unresolved: 0 }
+  const resultComponents = createResultComponents()
 
   const history = events.map((event, index) => {
     requireTrace(
-      event.schemaVersion === 3 &&
+      event.schemaVersion === 4 &&
         event.audience === 'internal-validation' &&
         event.source === 'simulation-validation-weekly-snapshot' &&
         event.phase === 'after-week-close' &&
@@ -111,18 +167,20 @@ export function analyzeSimulationValidationTelemetry(
     outcomes.partial += snapshot.missionPartials
     outcomes.fail += snapshot.missionFailures
     outcomes.unresolved += snapshot.missionUnresolved
+    accumulateResultComponents(resultComponents, event.missionResults)
     return {
       week: advanceInput.week,
       fundingBeforeAdvance: advanceInput.funding,
       actionBudgetBeforeAdvance: structuredClone(advanceInput.actionBudget),
       missionIntakeBeforeAdvance: structuredClone(advanceInput.missionIntake),
+      missionResultsAfterClose: structuredClone(event.missionResults),
       unresolvedCasesAfterClose: snapshot.unresolvedCaseCount,
       budgetPressureAfterClose: snapshot.budgetPressure,
     }
   })
 
   return {
-    schemaVersion: 2 as const,
+    schemaVersion: 3 as const,
     audience: 'internal-validation' as const,
     scenarioId: expected.scenarioId,
     weeksObserved: events.length,
@@ -140,6 +198,7 @@ export function analyzeSimulationValidationTelemetry(
         return 0
       }),
     outcomes,
+    resultComponents,
     history,
   }
 }

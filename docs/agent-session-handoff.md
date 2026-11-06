@@ -16,7 +16,9 @@ A `ready` result does not itself move the issue In Progress. The authorized impl
 
 When transferring Linear connection observations, include the [versioned diagnostic metadata](session-preflight.md#optional-linear-connection-diagnostics). Revalidate the connection through an authorized read and refresh the issue evidence before relying on it. Preserve `unchecked` when no probe ran; a successful read never establishes write authority.
 
-Carry sourced implementation-agent preferences using [designation provenance](session-preflight.md#optional-agent-designation-provenance). Preserve unknown historical timestamps, superseded records and conflicts; refresh the source before presenting a current preference. The preference remains nonexclusive and separate from human assignment, approval, executor acceptance and actual session activity. Optional unknown or stale designation evidence does not itself block authorized work. The parent's full portable presentation and follow-up classification remain outstanding acceptance.
+Carry sourced implementation-agent preferences using [designation provenance](session-preflight.md#optional-agent-designation-provenance). Preserve unknown historical timestamps, superseded records and conflicts; refresh the source before presenting a current preference. The preference remains nonexclusive and separate from human assignment, approval, executor acceptance and actual session activity. Optional unknown or stale designation evidence does not itself block authorized work.
+
+Preserve [follow-up evidence](session-preflight.md#optional-follow-up-evidence) separately for verified in-boundary deferrals, new candidate discoveries and authorized-and-actually-applied scope. Record remaining acceptance and closure impact; shared ownership alone does not establish an in-boundary deferral. Keep pending Phase 1 candidates outside applied scope. Refresh authority/application observations through their existing owners, and retain unknown evidence without promoting it. The CLI's `--markdown` presentation derives from the same evaluated machine envelope and grants no authority.
 
 ## Codex local environment adapter
 

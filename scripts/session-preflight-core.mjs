@@ -1,5 +1,10 @@
 import { validateLinearMcpDiagnostic } from './session-preflight-linear-diagnostics.mjs'
 import {
+  validateFollowUps,
+  projectFollowUps,
+  followUpSourceRefs,
+} from './session-preflight-followups.mjs'
+import {
   validateAgentDesignations,
   projectAgentDesignations,
 } from './session-preflight-designations.mjs'
@@ -274,6 +279,8 @@ export function validateSessionPreflightInput(input) {
   validateLinearEvidence(errors, input.linear)
   validateGitHubEvidence(errors, input.github)
   validateGitEvidence(errors, input.git)
+  if (input.followUps !== undefined)
+    errors.push(...validateFollowUps(input.followUps, input.handoff?.issueId))
   if (input.agentDesignations !== undefined) {
     errors.push(...validateAgentDesignations(input.agentDesignations, input.handoff?.issueId))
   }
@@ -812,6 +819,7 @@ function projectGitEvidence(git) {
 function collectSourceRefs(input) {
   const sourceRefs = [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef]
   if (input.linearMcp?.evidenceRef) sourceRefs.push(input.linearMcp.evidenceRef)
+  if (input.followUps !== undefined) sourceRefs.push(...followUpSourceRefs(input.followUps))
   if (input.agentDesignations !== undefined) {
     sourceRefs.push(input.agentDesignations.sourceRef)
     for (const entry of input.agentDesignations.entries) {
@@ -870,6 +878,9 @@ export function evaluateSessionPreflight(input) {
   return {
     schemaVersion: SCHEMA_VERSION,
     status: resolvePreflightStatus(orderedReasons),
+    repository: input.repository,
+    observedAt: input.observedAt,
+    freshnessWindowSeconds: input.freshnessWindowSeconds,
     readOnly: true,
     issueId: input.handoff.issueId,
     workstream: input.handoff.workstream,
@@ -880,6 +891,25 @@ export function evaluateSessionPreflight(input) {
       linearLifecycle: projectLinearLifecycle(input.linear),
       githubImplementation: projectGitHubImplementation(input.github),
       git: projectGitEvidence(input.git),
+      handoff: {
+        issueId: input.handoff.issueId,
+        parentId: input.handoff.parentId,
+        sliceRef: input.handoff.sliceRef,
+        workstream: input.handoff.workstream,
+        intendedBranch: input.handoff.intendedBranch,
+        expectedBaseMainSha: input.handoff.expectedBaseMainSha,
+        blockerIds: [...input.handoff.blockerIds],
+        dependencyIds: [...input.handoff.dependencyIds],
+      },
+      ...(input.followUps === undefined
+        ? {}
+        : {
+            followUps: projectFollowUps(
+              input.followUps,
+              input.observedAt,
+              input.freshnessWindowSeconds
+            ),
+          }),
       ...(input.agentDesignations === undefined
         ? {}
         : {

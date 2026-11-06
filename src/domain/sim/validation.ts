@@ -107,6 +107,24 @@ export interface SimulationValidationScenarioDefinition {
   maxWeeks: number
 }
 
+/** Internal inspection only; this is not filtered player knowledge. */
+export interface SimulationValidationTelemetryEvent {
+  schemaVersion: 1
+  audience: 'internal-validation'
+  source: 'simulation-validation-weekly-snapshot'
+  phase: 'after-week-close'
+  scenarioId: SimulationValidationScenarioId
+  /** One-based within this scenario run, including its final game-over week. */
+  sequence: number
+  /** Detached consumer-owned copy of the existing validation snapshot. */
+  snapshot: SimulationValidationWeekSnapshot
+}
+
+export interface SimulationValidationOptions {
+  /** Opt-in synchronous observer. Errors propagate to the validation caller. */
+  onSnapshot?: (event: SimulationValidationTelemetryEvent) => void
+}
+
 interface InternalSimulationValidationScenario extends SimulationValidationScenarioDefinition {
   setup?: (state: GameState) => GameState
   beforeWeek?: (state: GameState, weekIndex: number) => GameState
@@ -713,7 +731,8 @@ export function formatSimulationValidationSummary(summary: SimulationValidationS
 }
 
 export function runSimulationValidationScenario(
-  scenarioId: SimulationValidationScenarioId
+  scenarioId: SimulationValidationScenarioId,
+  options: SimulationValidationOptions = {}
 ): SimulationValidationRun {
   const scenario = getScenarioById(scenarioId)
   let state = createStartingState()
@@ -728,7 +747,17 @@ export function runSimulationValidationScenario(
     state = driveValidationAssignments(state)
     state = advanceWeek(state, VALIDATION_NOTE_BASE + weekIndex)
 
-    weekly.push(captureWeeklySnapshot(state))
+    const snapshot = captureWeeklySnapshot(state)
+    weekly.push(snapshot)
+    options.onSnapshot?.({
+      schemaVersion: 1,
+      audience: 'internal-validation',
+      source: 'simulation-validation-weekly-snapshot',
+      phase: 'after-week-close',
+      scenarioId,
+      sequence: weekly.length,
+      snapshot: structuredClone(snapshot),
+    })
 
     if (state.gameOver) {
       break
@@ -745,6 +774,6 @@ export function runSimulationValidationScenario(
   }
 }
 
-export function runSimulationValidationSuite() {
-  return INTERNAL_SCENARIOS.map((scenario) => runSimulationValidationScenario(scenario.id))
+export function runSimulationValidationSuite(options: SimulationValidationOptions = {}) {
+  return INTERNAL_SCENARIOS.map((scenario) => runSimulationValidationScenario(scenario.id, options))
 }

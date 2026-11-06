@@ -1,8 +1,8 @@
 # SPE-3337 — Linear read diagnostics
 
-| Field      | Value           |
-| ---------- | --------------- |
-| **Status** | **In Progress** |
+| Field      | Value    |
+| ---------- | -------- |
+| **Status** | **Done** |
 
 Owner: [SPE-3337](https://linear.app/spectranoir/issue/SPE-3337), shared-system-owned, Containment Protocol Tooling / Developer Experience. No child required. Branch: `codex/spe-3337-linear-diagnostics`; base main: `683330e163fe1f1958ecd7c113d1b897e0990717`.
 
@@ -27,3 +27,7 @@ An actual authorized Linear read began at `2026-11-06T10:14:04Z` and confirmed S
 Current main was clean and synchronized, no open PRs remained, and the named-task managed-worktree start preflight returned `ready`. SPE-3338 remains stopped on its missing authoritative feed/workstream metadata; continuing this active approved owner reuses the shipped preflight directly. The user explicitly authorized repeating selection through merge without a confirmation between slices.
 
 Earlier Hermes mapping for this owner returned unsupported claims; retain its documented bounded direct fallback and do not repeat equivalent failed mapping. Freebuff remains disabled. No new authority follows from this plan or its test results.
+
+## Merge evidence
+
+Merged in PR #4875 at `387f5b85824ec0390ff5c07462c20fce1952722f`. Review added cross-project coverage and rejected sub-millisecond precision at both freshness operands. Final focused run: 48 passed; CI run 42202770687 passed; final-head Codex review clean and CodeRabbit verified its fix. Parent SPE-3337 remains In Progress.

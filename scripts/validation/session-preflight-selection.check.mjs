@@ -23,6 +23,8 @@ test('preflight implementation and canonical handoff docs select the focused val
     'scripts/session-preflight-core.mjs',
     'scripts/session-preflight-linear-diagnostics.mjs',
     'scripts/session-preflight-linear-diagnostics.test.mjs',
+    'scripts/session-preflight-designations.mjs',
+    'scripts/session-preflight-designations.test.mjs',
     'scripts/session-preflight.mjs',
     'scripts/session-preflight.test.mjs',
     'scripts/validation/session-preflight-selection.check.mjs',

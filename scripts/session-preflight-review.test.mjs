@@ -1,4 +1,5 @@
 import './session-preflight-linear-diagnostics.test.mjs'
+import './session-preflight-designations.test.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { existsSync } from 'node:fs'

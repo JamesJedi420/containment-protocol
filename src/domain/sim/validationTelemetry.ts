@@ -1,7 +1,9 @@
 import type { ResolvedDifficultyRunConfiguration } from '../difficultyProfileResolver'
 import type { SimulationValidationSummary, SimulationValidationTelemetryEvent } from './validation'
 
-function sameFields(left: object, right: object) {
+// The current difficulty owner defines flat scalar records. Keep that assumption
+// checked at compile time if its schema evolves, without order-sensitive JSON.
+function sameFields<T extends Record<keyof T, string | number | boolean>>(left: T, right: T) {
   const leftEntries = Object.entries(left)
   const rightFields = new Map(Object.entries(right))
   return (

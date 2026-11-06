@@ -32,3 +32,41 @@ export function readCopilotProfile(source) {
   }
   return { target: scalar('target'), name: scalar('name'), body: lines.slice(end + 1).join('\n') }
 }
+// A contract for this repository's app-generated, single-line TOML subset,
+// not a general TOML parser. Unsupported edits require explicit contract review.
+export function readLocalEnvironment(source) {
+  const lines = source
+    .replaceAll('\r\n', '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+  const actions = [
+    ['Development', 'dev'],
+    ['Tests', 'test'],
+    ['Required validation', 'validate'],
+    ['Named-task preflight', 'preflight'],
+  ].map(([name, operation]) => ({
+    name,
+    command: `node scripts/codex-environment.mjs ${operation}`,
+    platform: 'win32',
+  }))
+  const setup = 'node scripts/codex-environment.mjs setup'
+  const expected = [
+    'version = 1',
+    'name = "containment-protocol"',
+    '[setup]',
+    `script = ${JSON.stringify(setup)}`,
+  ]
+  for (const action of actions)
+    expected.push(
+      '[[actions]]',
+      `name = ${JSON.stringify(action.name)}`,
+      'icon = "tool"',
+      `command = ${JSON.stringify(action.command)}`,
+      'platform = "win32"'
+    )
+  if (lines.join('\n') !== expected.join('\n')) {
+    throw new Error('Local environment must retain the reviewed setup and Windows action contract')
+  }
+  return { setup, actions }
+}

@@ -55,7 +55,7 @@ required so installer and browser execution changes are exercised on Ubuntu.
 
 ## Local / CI parity
 
-The required `codex-environment` validator (SPE-3337) runs the native adapter/profile contract tests. It checks the finite action mapping, current Node 22 launch/failure behavior and the Copilot profile's restricted frontmatter. It does not authorize work, replace the session preflight, or certify that unobserved app UI actions ran.
+The required `codex-environment` validator (SPE-3337) runs the native environment/adapter/profile contract tests. It checks the finite action mapping, current Node 22 launch/failure behavior the physical environment's reviewed setup/Windows actions and the Copilot profile's restricted frontmatter. The environment check intentionally supports only this repository's generated single-line TOML subset, not general TOML; unsupported configuration edits fail closed. It does not authorize work, replace the session preflight, or certify that unobserved app UI actions ran.
 
 - Local: `npm run verify:requirements -- --base origin/main` (default base).
 - CI `test` job: same resolver with `--ci --exclude=playwright-e2e`; `vite-build` needs no workflow-specific step because the resolver selects it.

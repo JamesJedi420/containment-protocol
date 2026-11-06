@@ -16,7 +16,7 @@ A `ready` result does not itself move the issue In Progress. The authorized impl
 
 ## Codex local environment adapter
 
-SPE-3337 Slice B uses an app-generated repository-local `.codex` environment file. Generate the starter through the app's Local environments settings, then keep it with the repository. [Official local-environment documentation](https://learn.chatgpt.com/docs/environments/local-environment) describes setup on fresh managed worktrees and terminal actions. This adapter is tooling, not another authority or work-selection surface.
+SPE-3337 Slice B uses an app-generated repository-local `.codex` environment file. The Windows app exposes the editor under Settings → Worktrees → Environments. The checked-in `.codex/environments/environment.toml` derives from the app-generated starter; setup invokes the adapter and four common actions are scoped to Windows (`win32`). Keep configuration changes synchronized with the focused contract tests. [Official local-environment documentation](https://learn.chatgpt.com/docs/environments/local-environment) describes setup on fresh managed worktrees and terminal actions. This adapter is tooling, not another authority or work-selection surface.
 
 Select Node.js 22 in the shell used by the app before setup or actions run. The adapter rejects other Node majors and requires npm in the selected Node installation. It installs the existing lockfile with dependency lifecycle scripts disabled; it neither installs a runtime/version manager nor copies ignored files or secrets.
 

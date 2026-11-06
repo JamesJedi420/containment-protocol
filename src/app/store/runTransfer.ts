@@ -4846,7 +4846,7 @@ function sanitizeMissionResult(
   }) as MissionResult
 }
 
-/** SPE-460: resolved snapshots require a valid mission result; active snapshots drop stale results. */
+/** Resolved snapshots require a valid result; an attempt outcome is not case closure. */
 function reconcileCaseSnapshotStatusMissionResult(
   snapshot: WeeklyReportCaseSnapshot
 ): WeeklyReportCaseSnapshot {
@@ -4867,12 +4867,7 @@ function reconcileCaseSnapshotStatusMissionResult(
     }
   }
 
-  const terminalOutcome =
-    missionResult.outcome === 'success' ||
-    missionResult.outcome === 'partial' ||
-    missionResult.outcome === 'fail'
-
-  if (terminalOutcome) {
+  if (missionResult.outcome === 'success') {
     return {
       ...snapshot,
       status: 'resolved',
@@ -4880,8 +4875,9 @@ function reconcileCaseSnapshotStatusMissionResult(
     }
   }
 
-  // Non-terminal outcomes (for example unresolved/escalated) may keep mission
-  // metadata while the snapshot status remains open/in_progress.
+  // SPE-3733: partial/failed attempts can leave a case open for another action.
+  // Preserve the recorded historical lifecycle, including an explicit closure,
+  // without inferring it from the outcome or a later live-case status.
   return {
     ...snapshot,
     missionResult,

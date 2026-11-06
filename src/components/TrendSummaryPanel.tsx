@@ -50,6 +50,7 @@ export function TrendSummaryPanel({
           title="Recurring template families"
           emptyLabel="No recurring families yet."
           items={summary.recurringFamilies.map((item) => ({
+            id: item.family,
             title: item.family,
             count: item.count,
             caseRefs: item.caseRefs,
@@ -97,6 +98,7 @@ function TrendBucket({
   title: string
   emptyLabel: string
   items: Array<{
+    id: string
     title: string
     count: number
     caseRefs: TrendCaseRef[]
@@ -109,7 +111,7 @@ function TrendBucket({
       {items.length > 0 ? (
         <ul className="mt-2 space-y-2">
           {items.map((item) => (
-            <li key={item.title} className="rounded border border-white/10 px-3 py-2">
+            <li key={item.id} className="rounded border border-white/10 px-3 py-2">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="font-medium">{item.title}</p>

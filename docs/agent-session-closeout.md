@@ -4,7 +4,7 @@ The shared procedure lives in [Agent Operating Manual §4](agent-operating-manua
 
 ## Session order (mandatory)
 
-Pre-ship audit → commit/push/PR → independent review and CI → merge → sync main → truthful Linear evidence → phase B. Phase A is an interim blocked/open-PR report. Follow the gameplay-evidence continuation exception in `AGENTS.md` for necessary work on the originally authorized feature; otherwise no next-issue implementation or candidate reconciliation in merge closeout. Later Cursor continuation retains its canonical autonomous authority.
+Pre-ship audit → commit/push/PR → independent review and CI → merge → sync main → truthful Linear evidence → phase B. Phase A is an interim blocked/open-PR report. Follow the gameplay-evidence continuation in `AGENTS.md` for necessary work on the originally authorized feature; otherwise no next-issue implementation or candidate reconciliation in merge closeout. After closeout and required post-merge checkpoints, related approved work may continue in the same chat under manual §2's fresh checks and chat-continuity criteria. Later Cursor continuation retains its canonical autonomous authority.
 
 ## Deferred work recording (mandatory)
 
@@ -80,7 +80,7 @@ Waiting for the next slice:
 - <Linear issue URL, slice doc, and branch, or “none — Cursor may select/create under docs/cursor-autonomous-authority.md when continuation is requested”>
 
 Handoff:
-- Agent already synced main in-session; prefer a new agent chat with Linear URL, slice doc, branch name, main SHA, except for the same-run gameplay-evidence continuation in `AGENTS.md`. Cursor may continue under autonomous authority when the user requests continuation.
+- Agent already synced main in-session. Record the next authorized boundary and whether to continue this chat or start a new one under manual §2's context criteria, with the reason. Carry the Linear URL, slice doc, branch name, main SHA, and manual §4 handoff minimum either way; repeat preflight before the next implementation. A new chat is not required solely because an issue merged. Preserve necessary gameplay-evidence follow-through under `AGENTS.md`. Cursor may continue under autonomous authority when the user requests continuation.
 ```
 
 Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** report actual merge evidence and only an already-approved next-issue plan, if one exists. ChatGPT Phase gates do not bind Cursor (`docs/cursor-autonomous-authority.md`). **Local-agent Linear handoff** is required only after an implementation plan is complete and that PR is merged, when Linear was not updated in-session (`docs/cloud-agent-linear-handoff.md`).

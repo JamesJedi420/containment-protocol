@@ -24,7 +24,7 @@ Manual §§1–6 centralize the procedure. Tracked Cursor rules retain their loa
 
 ## After a PR merges
 
-Follow manual §4: sync main, post truthful existing-boundary evidence, and use a new agent chat for the next task except for the gameplay-evidence continuation in `AGENTS.md`. Full slice acceptance and parent completion are separate.
+Follow manual §4: sync main, post truthful existing-boundary evidence, and complete merge closeout and required post-merge checkpoints. Related approved work may then continue in the same chat after the fresh checks in manual §2. Use that section's context criteria to decide when a new chat is needed; each implementation does not automatically require one. Full slice acceptance and parent completion are separate. Preserve the required gameplay-evidence follow-through in `AGENTS.md` across any handoff.
 
 ## During an open PR
 
@@ -36,7 +36,7 @@ Verify current refs before checkout (manual §2). Use [the cloud-agent payload](
 
 ## Each new implementation task
 
-Use manual §§1–3 to verify actor authority, current issue/parent/children, clean main, pre-coding summary, lifecycle state, and validation boundary. Preserve unrelated changes and worktrees. Run the session preflight before creating the implementation branch or changing lifecycle state.
+Use manual §§1–3 to verify actor authority, current issue/parent/children, clean main, pre-coding summary, lifecycle state, and validation boundary, whether continuing this chat or starting another. Preserve unrelated changes and worktrees. Run the session preflight before creating the implementation branch or changing lifecycle state. State the next authorized boundary explicitly; retained conversation context is not current-state evidence or permission to expand scope.
 
 ## Session closeout
 

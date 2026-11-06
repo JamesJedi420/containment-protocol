@@ -11,6 +11,8 @@ Read `docs/agent-operating-manual.md` before substantive work. This tracked entr
 
 Read the issue, comments, parent/children, linked evidence, and slice doc. Linear owns approved scope and lifecycle; GitHub supplies implementation evidence. Follow `docs/cursor-autonomous-authority.md` for Cursor; ChatGPT phase gates do not bind Cursor. Keep the active PR within its verified boundary. Prefer existing systems and owners; no speculative frameworks, unrelated cleanup, or child-only parent closure.
 
+**Prerequisite gates:** Verify `clean-main` (`.cursor/rules/clean-main-before-next-slice.mdc`) before implementation selection; finish any open PR or sync `main` before starting a new slice.
+
 ## Pre-coding summary and audit
 
 Apply manual §§2–3: report files, current/expected behavior, boundary, status, risks, checks and docs before edits. Repeat all six pre-ship passes after fixes; run required validation. Record deferrals durably with the correct existing owner or candidate route. Do not weaken tests or claim unrun checks passed.
@@ -25,8 +27,23 @@ Apply manual §4: commit → push → PR using `.github/pull_request_template.md
 
 ## Session closeout
 
-Use `docs/agent-session-closeout.md` phase A while blocked/open, phase B after merge. Follow the gameplay-evidence continuation exception in `AGENTS.md` when necessary to complete the originally authorized feature; otherwise no next-issue coding, candidate reconciliation, or delegated selection in merge closeout. At most plan an already-approved next issue for a new session. Cursor retains autonomous selection on a later authorized continuation.
+Use `docs/agent-session-closeout.md` phase A while blocked/open, phase B after merge. Follow the gameplay-evidence continuation in `AGENTS.md` when necessary to complete the originally authorized feature; otherwise no next-issue coding, candidate reconciliation, or delegated selection in merge closeout. At most plan an already-approved next issue. After closeout and required post-merge checkpoints, related approved work may continue in the same chat under manual §2's fresh authorization, state, and session-preflight checks. Use that section's context criteria to choose a new chat; a merge or issue change alone does not require one. Chat continuity grants no additional scope or selection authority. Cursor retains autonomous selection on a later authorized continuation.
 
 Use `docs/cloud-agent-linear-handoff.md` only on its approved-implementation-completed-and-merged trigger when Linear was not updated. Docs-only pending traceability follows manual §4; read-only sessions use `docs/read-only-session-handoff.md`.
 
 Read [Hermes shipping checkpoints](../../docs/hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.
+
+## Tracked rules and loading
+
+The following entry points have `alwaysApply: true`:
+
+| Rule                        | Path                                             | Purpose                                                    |
+| --------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| Cursor Autonomous Authority | `.cursor/rules/cursor-autonomous-authority.mdc`  | Cursor engineering authority; bypasses ChatGPT Phase gates |
+| Linear Always Update        | `.cursor/rules/linear-always-update.mdc`         | Mandatory Linear lifecycle updates                         |
+| Clean-Main Gate             | `.cursor/rules/clean-main-before-next-slice.mdc` | Open PR / dirty main check                                 |
+| Cloud Agent Handoff         | `.cursor/rules/cloud-agent-linear-handoff.mdc`   | Post-merge Linear handoff trigger                          |
+
+**Conditional rule:** `.cursor/rules/backlog-hygiene.mdc` has `alwaysApply: false`. Load it only for requested backlog hygiene, Linear grooming, or issue reconciliation; do not apply it to implementation slices.
+
+See `AGENTS.md` § Session handoff for full policy.

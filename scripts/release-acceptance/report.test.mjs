@@ -20,6 +20,15 @@ const seed = JSON.parse(
   readFileSync(new URL('../../planning/spe-3352-release-evidence.v1.json', import.meta.url), 'utf8')
 )
 const row = (report, id) => report.rows.find((entry) => entry.id === id)
+const comparisonIds = [
+  'comparison-continuity',
+  'comparison-delayed',
+  'comparison-divergence',
+  'comparison-incidents',
+  'comparison-information',
+  'comparison-intervention',
+  'comparison-quiet',
+]
 
 function fixture(files = ['src/domain/funding.ts']) {
   const selected = resolveValidationRequirements(files, registry).selected
@@ -74,6 +83,36 @@ test('dropping assessments or the execution report cannot erase acceptance requi
   const report = buildAcceptanceReport(input, registry)
   assert.equal(report.assessment, 'incomplete')
   assert.equal(report.unavailable.length, CRITERIA.length + 1)
+})
+
+test('original-only assessments cannot silently satisfy controlled campaign comparisons', () => {
+  const input = fixture()
+  input.assessments = input.assessments.filter(({ id }) => !id.startsWith('comparison-'))
+  const report = buildAcceptanceReport(input, registry)
+  assert.equal(report.assessment, 'incomplete')
+  assert.deepEqual(report.unavailable, comparisonIds)
+  for (const id of comparisonIds) {
+    assert.equal(row(report, id).owner, 'SPE-3352')
+    assert.deepEqual(row(report, id).evidence, [])
+    assert.match(renderMarkdown(report), new RegExp(id))
+  }
+})
+
+test('comparison failures block and historical comparison passes remain unavailable', () => {
+  const input = fixture()
+  const intervention = input.assessments.find(({ id }) => id === 'comparison-intervention')
+  intervention.result = 'fail'
+  assert.throws(() => buildAcceptanceReport(input, registry), /remediationOwner/)
+  intervention.remediationOwner = 'SPE-3352'
+  const failed = buildAcceptanceReport(input, registry)
+  assert.equal(failed.assessment, 'blocked')
+  assert.deepEqual(failed.blockers, ['comparison-intervention'])
+  intervention.result = 'pass'
+  intervention.evidence[0].revision = otherRevision
+  const historical = buildAcceptanceReport(input, registry)
+  assert.equal(historical.assessment, 'incomplete')
+  assert.equal(row(historical, 'comparison-intervention').observedResult, 'pass')
+  assert.deepEqual(historical.unavailable, ['comparison-intervention'])
 })
 
 test('all assessed rows satisfy only declared scope and retain the whole-release limitation', () => {
@@ -288,6 +327,10 @@ test('real CLI uses pinned Git registry, emits both formats, and rejects invalid
   const json = run('--manifest', manifestPath)
   assert.equal(json.status, 0, json.stderr)
   assert.equal(JSON.parse(json.stdout).assessment, 'incomplete')
+  assert.deepEqual(
+    JSON.parse(json.stdout).unavailable.filter((id) => id.startsWith('comparison-')),
+    comparisonIds
+  )
   const poisonedPath = spawnSync(process.execPath, [cli, '--manifest', manifestPath], {
     cwd: root,
     encoding: 'utf8',
@@ -298,6 +341,7 @@ test('real CLI uses pinned Git registry, emits both formats, and rejects invalid
   const markdown = run('--manifest', manifestPath, '--format', 'markdown')
   assert.equal(markdown.status, 0, markdown.stderr)
   assert.match(markdown.stdout, /\*\*incomplete\*\*/)
+  for (const id of comparisonIds) assert.match(markdown.stdout, new RegExp(id))
   assert.equal(run('--help').status, 0)
   for (const args of [
     [],

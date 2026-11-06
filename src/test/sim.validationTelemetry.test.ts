@@ -65,6 +65,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
     for (const run of runs) {
       const trace = events.filter((event) => event.scenarioId === run.scenarioId)
       expect(trace.map((event) => event.snapshot)).toEqual(run.weekly)
+      expect(trace.length).toBeGreaterThan(0)
       expect(trace[0].sequence).toBe(1)
       expect(trace.at(-1)?.snapshot.gameOver).toBe(run.finalState.gameOver)
       expect(trace.length).toBeLessThanOrEqual(

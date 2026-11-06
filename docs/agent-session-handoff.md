@@ -14,6 +14,30 @@ Both `blocked` and `unknown` prohibit implementation. The preflight is read-only
 
 A `ready` result does not itself move the issue In Progress. The authorized implementation agent performs the existing lifecycle action separately after the gate passes.
 
+## Codex local environment adapter
+
+SPE-3337 Slice B uses an app-generated repository-local `.codex` environment file. Generate the starter through the app's Local environments settings, then keep it with the repository. [Official local-environment documentation](https://learn.chatgpt.com/docs/environments/local-environment) describes setup on fresh managed worktrees and terminal actions. This adapter is tooling, not another authority or work-selection surface.
+
+Select Node.js 22 in the shell used by the app before setup or actions run. The adapter rejects other Node majors and requires npm in the selected Node installation. It installs the existing lockfile with dependency lifecycle scripts disabled; it neither installs a runtime/version manager nor copies ignored files or secrets.
+
+| Environment operation | Command                                        | Delegates to                                        |
+| --------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| Setup                 | `node scripts/codex-environment.mjs setup`     | `npm ci --ignore-scripts`                           |
+| Development           | `node scripts/codex-environment.mjs dev`       | `npm run dev`                                       |
+| Tests                 | `node scripts/codex-environment.mjs test`      | `npm run test:run:ci`                               |
+| Required validation   | `node scripts/codex-environment.mjs validate`  | `npm run verify:requirements -- --base origin/main` |
+| Named-task preflight  | `node scripts/codex-environment.mjs preflight` | `npm run session:preflight -- --collect-local`      |
+
+Preflight still requires fresh, source-attributed evidence for an explicitly named approved task on standard input. For example, in PowerShell, pipe a verified external evidence file into the action:
+
+```powershell
+Get-Content -Raw C:/private/session-preflight-input.json | node scripts/codex-environment.mjs preflight
+```
+
+The adapter forwards standard input and exit status to the existing CLI. It does not collect Linear through another transport, invent an issue or approval, close work, or select another task. An action invocation or successful dependency install is not a passing preflight or complete implementation acceptance. Use the original evaluator's `ready`, `blocked`, or `unknown` result and the existing session procedure.
+
+The existing `.github/agents/codex.agent.md` is the **GitHub Copilot** custom-agent profile named **CP Sim Engine**, with `target: github-copilot`. Its domain/store specialist edit restrictions apply to that Copilot profile. OpenAI Codex App follows repository `AGENTS.md`, the approved Linear boundary and current governance; the profile creates no exclusive lock or global Codex App file boundary. See [GitHub's custom-agent reference](https://docs.github.com/en/copilot/reference/custom-agents-configuration).
+
 ## Read-only session closeout
 
 Use [the read-only template](read-only-session-handoff.md) only when no Linear, repository, or external writes occurred. Distinguish preliminary findings, pending durable transport, and verified canonical application.

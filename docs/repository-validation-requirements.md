@@ -29,6 +29,8 @@ This orchestrator does **not** redefine what lint, Vitest, Playwright, governanc
 
 Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `governance`, `academy`, `tooling`, `shared-config`, `architecture`). Validators activate when a changed file matches their `activation.pathGlobs` and/or `activation.changeClasses`.
 
+Repository-local `.codex/**` environment configuration is tooling. Changes to it, the Copilot specialist profile, or the Codex adapter select the existing named-task preflight tests and the focused SPE-3337 adapter/profile contract checks.
+
 ## Registered validators (summary)
 
 | Id                         | Enforcement                                                                                                                                                                                                                                                      | Owner                                     | Notes                                                                                                      |
@@ -52,6 +54,8 @@ Changes to `.github/workflows/test.yml` select the existing Playwright gate as
 required so installer and browser execution changes are exercised on Ubuntu.
 
 ## Local / CI parity
+
+The required `codex-environment` validator (SPE-3337) runs the native adapter/profile contract tests. It checks the finite action mapping, current Node 22 launch/failure behavior and the Copilot profile's restricted frontmatter. It does not authorize work, replace the session preflight, or certify that unobserved app UI actions ran.
 
 - Local: `npm run verify:requirements -- --base origin/main` (default base).
 - CI `test` job: same resolver with `--ci --exclude=playwright-e2e`; `vite-build` needs no workflow-specific step because the resolver selects it.

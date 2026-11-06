@@ -17,6 +17,12 @@ import { describeSpawnError, resolveNpmLaunch, spawnSafe } from './spawn-safe.mj
 
 const registry = readRequirementRegistry()
 
+test('fixed-path validators retain the current Node runtime in child commands', () => {
+  const child = spawnSafe('node', ['--version'], { encoding: 'utf8' })
+  assert.equal(child.status, 0)
+  assert.equal(child.stdout.trim(), process.version)
+})
+
 test('canonical registry validates', () => {
   assert.equal(validateRequirementRegistry(registry), true)
   assert.equal(registry.policyOwner, 'SPE-3348')

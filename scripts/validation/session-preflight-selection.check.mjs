@@ -3,6 +3,8 @@ import test from 'node:test'
 import {
   readRequirementRegistry,
   resolveValidationRequirements,
+  probeValidatorAvailability,
+  readPackageScripts,
 } from './requirement-model.mjs'
 
 const registry = readRequirementRegistry()
@@ -37,4 +39,24 @@ test('preflight implementation and canonical handoff docs select the focused val
 test('unrelated application code does not select the session preflight validator', () => {
   const resolution = resolveValidationRequirements(['src/domain/math.ts'], registry)
   assert.ok(!resolution.selected.some((validator) => validator.id === 'session-preflight'))
+})
+
+test('Codex environment and Copilot profile changes select tooling and both focused contracts', () => {
+  for (const file of [
+    '.codex/environments/environment.toml',
+    '.github/agents/codex.agent.md',
+    'scripts/codex-environment.mjs',
+    'scripts/codex-environment-contract.mjs',
+    'scripts/codex-environment.test.mjs',
+  ]) {
+    const resolution = resolveValidationRequirements([file], registry)
+    assert.ok(resolution.classification.activeClasses.includes('tooling'))
+    assert.ok(resolution.requiredIds.includes('lint'))
+    assert.ok(resolution.requiredIds.includes('session-preflight'))
+    assert.ok(resolution.requiredIds.includes('codex-environment'))
+  }
+  const entry = registry.validators.find((validator) => validator.id === 'codex-environment')
+  assert.equal(entry.ownerIssue, 'SPE-3337')
+  assert.equal(entry.whenUnavailable, 'fail')
+  assert.equal(probeValidatorAvailability(entry, readPackageScripts()), 'available')
 })

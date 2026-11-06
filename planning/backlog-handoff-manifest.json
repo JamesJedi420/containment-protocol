@@ -153,6 +153,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3337-codex-environment-slice.md": "In Progress",
     "planning/spe-2910-workshop-disorder-consequences-slice.md": "Done",
     "planning/spe-2197-entity-encounter-statblock-packet-slice.md": "Recently shipped",
     "planning/spe-2166-operational-status-expansion-registry-slice.md": "Recently shipped",

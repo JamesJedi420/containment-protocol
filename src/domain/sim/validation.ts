@@ -14,6 +14,7 @@ import {
 } from '../models'
 import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
 import { projectStrategicActionBudget } from '../strategicActionBudgetProjection'
+import { queryStaffTimeAllocation } from '../staffTimeAllocation'
 import { advanceWeek } from './advanceWeek'
 import { assignTeam } from './assign'
 
@@ -114,7 +115,7 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 4
+  schemaVersion: 5
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
@@ -162,6 +163,7 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
     actionBudget: projectStrategicActionBudget(state),
     difficulty: structuredClone(getResolvedDifficultyRunConfiguration(state)),
     missionIntake: captureValidationMissionIntake(state),
+    staffTime: captureValidationStaffTime(state),
     committedOperations: Object.values(state.cases)
       .filter(
         (currentCase) =>
@@ -174,6 +176,19 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
       }))
       .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId)),
   }
+}
+
+/** Observe the allocation owner's query without deriving personnel eligibility here. */
+function captureValidationStaffTime(state: GameState) {
+  const query = queryStaffTimeAllocation(state)
+  const { headcount, available, assigned, effectiveCapacity, reason } = query.capacity
+  return structuredClone({
+    unavailable: query.unavailable,
+    capacity: { headcount, available, assigned, effectiveCapacity, reason },
+    availableIds: query.availableIds,
+    active: query.active,
+    usableCommitmentIds: query.usableCommitmentIds,
+  })
 }
 
 /** Observe recorded routing context; never recompute or silently refresh it. */
@@ -853,7 +868,7 @@ export function runSimulationValidationScenario(
     weekly.push(snapshot)
     if (onSnapshot && advanceInput) {
       onSnapshot({
-        schemaVersion: 4,
+        schemaVersion: 5,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',

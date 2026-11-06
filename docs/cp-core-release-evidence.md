@@ -14,6 +14,19 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Post-upgrade execution at `63188aec`
+
+The [post-upgrade manifest](../planning/spe-3352-release-evidence.63188aec.v1.json) assesses `63188aec19eba68c56b125da078908d92c100dc4`, after the SPE-3283 Agency route readiness repair and SPE-3737 dependency upgrades. Its [execution index](../planning/release-evidence/63188aec/execution-index.json), [original validator report](../planning/release-evidence/63188aec/requirements-execution.json) and [browser observations](../planning/release-evidence/63188aec/browser-observations.json) retain the clean-checkout provenance and host-local artifact hashes.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.63188aec.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.63188aec.v1.json --format markdown
+```
+
+The result is **incomplete**, with no current release-blocking failures: 23 rows pass, ten warn and two retain unavailable evidence. All 10,972 unit tests, 24 campaign browser checks and five synthetic error checks passed; browser retries were zero. All twelve measured paths satisfied the existing runtime/state-growth bounds, and literal production build passed. Required release-window validators passed; repository-wide formatting remains an advisory failure. Broader information-model coverage and telemetry-owner applicability remain unavailable, and existing owner limitations are preserved. This is not whole-release readiness or SPE-3352 completion.
+
+Collection used Node 22.23.4, CI=true and STRICT_TEST_CONSOLE=1 with Zustand 5.1.0 and Playwright 1.65.0. Current owner scope and latest comments were compared with the previously fully reviewed owner packet; current execution corroborates the unchanged bounded source/test paths. Historical snapshots remain immutable, including their failures. See the [slice and evidence limits](../planning/spe-3352-post-upgrade-evidence-slice.md).
+
 ## Integrated execution at `b121d4f2`
 
 The [integrated manifest](../planning/spe-3352-release-evidence.b121d4f2.v1.json) assesses `b121d4f2a977309a120804b154ee596784d44f59`, combining current campaign fixtures, explicit budgets and bounded owner evidence. Its [execution index](../planning/release-evidence/b121d4f2/execution-index.json), [original validator report](../planning/release-evidence/b121d4f2/requirements-execution.json) and [browser observations](../planning/release-evidence/b121d4f2/browser-observations.json) preserve provenance. Host-local raw artifacts are identified by hashes, not presented as public downloads.

@@ -115,7 +115,7 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 5
+  schemaVersion: 6
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
@@ -172,6 +172,12 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
       .map((currentCase) => ({
         caseId: currentCase.id,
         templateId: currentCase.templateId,
+        contract: currentCase.contract
+          ? {
+              templateId: currentCase.contract.templateId ?? null,
+              riskLevel: currentCase.contract.riskLevel ?? null,
+            }
+          : null,
         assignedTeamIds: [...currentCase.assignedTeamIds].sort(compareTelemetryIds),
       }))
       .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId)),
@@ -868,7 +874,7 @@ export function runSimulationValidationScenario(
     weekly.push(snapshot)
     if (onSnapshot && advanceInput) {
       onSnapshot({
-        schemaVersion: 5,
+        schemaVersion: 6,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',

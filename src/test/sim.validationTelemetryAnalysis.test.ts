@@ -75,9 +75,15 @@ describe('internal validation trace analysis (SPE-1119)', () => {
         {
           caseId: sequence === 3 ? 'new-case' : 'continuing-case',
           templateId: 'template-z',
+          contract: null,
           assignedTeamIds: ['team-a'],
         },
-        { caseId: 'other-case', templateId: 'template-a', assignedTeamIds: ['team-b'] },
+        {
+          caseId: 'other-case',
+          templateId: 'template-a',
+          contract: null,
+          assignedTeamIds: ['team-b'],
+        },
       ]
       event.advanceInput.actionBudget.committedDemand = 2
       return event
@@ -97,12 +103,13 @@ describe('internal validation trace analysis (SPE-1119)', () => {
     expect(
       analyzeSimulationValidationTelemetry([], { scenarioId: 'baseline', weeksSimulated: 0 })
     ).toEqual({
-      schemaVersion: 4,
+      schemaVersion: 5,
       audience: 'internal-validation',
       scenarioId: 'baseline',
       weeksObserved: 0,
       difficulty: null,
       distinctObservedCases: 0,
+      contractGroups: [],
       templates: [],
       outcomes: { success: 0, partial: 0, fail: 0, unresolved: 0 },
       resultComponents: {

@@ -3,7 +3,10 @@ import { createStartingState } from '../../data/startingState'
 import type { GameState } from '../../domain/models'
 import { hydrateGame, stripGameTemplates } from './runTransfer'
 
-function hydrateSnapshot(fields: Record<string, unknown>) {
+function hydrateSnapshot(
+  fields: Record<string, unknown>,
+  status: 'open' | 'in_progress' | 'resolved' = 'resolved'
+) {
   const fallback = createStartingState()
   const caseId = Object.keys(fallback.cases)[0]!
   const saved = {
@@ -40,7 +43,7 @@ function hydrateSnapshot(fields: Record<string, unknown>) {
             title: 'Historical case',
             kind: 'case',
             mode: 'threshold',
-            status: 'resolved',
+            status,
             stage: 1,
             deadlineRemaining: 0,
             durationWeeks: 1,
@@ -89,5 +92,29 @@ describe('weekly report mission-result concealment hydration', () => {
     expect(result).not.toHaveProperty('detectionConfidence')
     expect(result).not.toHaveProperty('counterDetection')
     expect(result).not.toHaveProperty('displacementTarget')
+  })
+})
+
+describe('weekly report attempt outcome versus case lifecycle', () => {
+  it.each([
+    ['partial', 'open'],
+    ['fail', 'open'],
+    ['partial', 'in_progress'],
+    ['fail', 'in_progress'],
+    ['partial', 'resolved'],
+    ['fail', 'resolved'],
+  ] as const)('preserves %s attempt with historical %s status', (outcome, status) => {
+    const { caseId, fallback, hydrated } = hydrateSnapshot({ outcome }, status)
+    expect(hydrated.reports[0]?.caseSnapshots?.[caseId]).toMatchObject({
+      status,
+      missionResult: { caseId, outcome },
+    })
+    // A later live-case status is not authority over the historical snapshot.
+    hydrated.cases[caseId] = { ...hydrated.cases[caseId]!, status: 'resolved' }
+    const rehydrated = hydrateGame(stripGameTemplates(hydrated), fallback)
+    expect(rehydrated.reports[0]?.caseSnapshots?.[caseId]).toMatchObject({
+      status,
+      missionResult: { caseId, outcome },
+    })
   })
 })

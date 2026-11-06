@@ -7,12 +7,12 @@ import path from 'node:path'
 
 const PATH_SEP = process.platform === 'win32' ? ';' : ':'
 
-function fixedPathDirs() {
+function fixedPathDirs(includeNode = false) {
   const nodeDirectory = path.dirname(process.execPath)
   if (process.platform === 'win32') {
     const root = process.env.SystemRoot || 'C:\\Windows'
     return [
-      nodeDirectory,
+      includeNode ? nodeDirectory : null,
       path.join(root, 'System32'),
       path.join(root, 'System32', 'Wbem'),
       path.join(root, 'System32', 'WindowsPowerShell', 'v1.0'),
@@ -25,20 +25,21 @@ function fixedPathDirs() {
       process.env.APPDATA ? path.join(process.env.APPDATA, 'npm') : null,
     ].filter(Boolean)
   }
-  return [nodeDirectory, '/usr/bin', '/bin', '/usr/local/bin']
+  return [...(includeNode ? [nodeDirectory] : []), '/usr/bin', '/bin', '/usr/local/bin']
 }
 
 function sanitizedEnv(extra = {}) {
   return {
     ...process.env,
     ...extra,
-    PATH: fixedPathDirs().join(PATH_SEP),
+    PATH: fixedPathDirs(true).join(PATH_SEP),
   }
 }
 
 const resolvedBins = new Map()
 
 export function resolveBin(name) {
+  if (name === 'node') return process.execPath
   if (resolvedBins.has(name)) return resolvedBins.get(name)
   const candidates =
     process.platform === 'win32'

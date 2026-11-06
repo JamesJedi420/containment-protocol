@@ -21,6 +21,16 @@ test('fixed-path validators retain the current Node runtime in child commands', 
   const child = spawnSafe('node', ['--version'], { encoding: 'utf8' })
   assert.equal(child.status, 0)
   assert.equal(child.stdout.trim(), process.version)
+  const nested = spawnSafe(
+    'node',
+    [
+      '-e',
+      "const r = require('node:child_process').spawnSync('node', ['--version'], {encoding:'utf8'}); process.stdout.write(r.stdout || ''); process.exit(r.status ?? 1)",
+    ],
+    { encoding: 'utf8' }
+  )
+  assert.equal(nested.status, 0)
+  assert.equal(nested.stdout.trim(), process.version)
 })
 
 test('canonical registry validates', () => {

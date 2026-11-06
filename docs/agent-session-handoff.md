@@ -31,7 +31,8 @@ Select Node.js 22 in the shell used by the app before setup or actions run. The 
 Preflight still requires fresh, source-attributed evidence for an explicitly named approved task on standard input. For example, in PowerShell, pipe a verified external evidence file into the action:
 
 ```powershell
-Get-Content -Raw C:/private/session-preflight-input.json | node scripts/codex-environment.mjs preflight
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+Get-Content -Raw -Encoding utf8 C:/private/session-preflight-input.json | node scripts/codex-environment.mjs preflight
 ```
 
 The adapter forwards standard input and exit status to the existing CLI. It does not collect Linear through another transport, invent an issue or approval, close work, or select another task. An action invocation or successful dependency install is not a passing preflight or complete implementation acceptance. Use the original evaluator's `ready`, `blocked`, or `unknown` result and the existing session procedure.

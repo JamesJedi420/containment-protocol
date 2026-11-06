@@ -14,6 +14,8 @@ Both `blocked` and `unknown` prohibit implementation. The preflight is read-only
 
 A `ready` result does not itself move the issue In Progress. The authorized implementation agent performs the existing lifecycle action separately after the gate passes.
 
+When transferring Linear connection observations, include the [versioned diagnostic metadata](session-preflight.md#optional-linear-connection-diagnostics). Revalidate the connection through an authorized read and refresh the issue evidence before relying on it. Preserve `unchecked` when no probe ran; a successful read never establishes write authority. The optional metadata extends the existing preflight, while the parent's full portable envelope and designation provenance remain separate outstanding acceptance.
+
 ## Codex local environment adapter
 
 SPE-3337 Slice B uses an app-generated repository-local `.codex` environment file. The Windows app exposes the editor under Settings → Worktrees → Environments. The checked-in `.codex/environments/environment.toml` derives from the app-generated starter; setup invokes the adapter and four common actions are scoped to Windows (`win32`). Keep configuration changes synchronized with the focused contract tests. [Official local-environment documentation](https://learn.chatgpt.com/docs/environments/local-environment) describes setup on fresh managed worktrees and terminal actions. This adapter is tooling, not another authority or work-selection surface.

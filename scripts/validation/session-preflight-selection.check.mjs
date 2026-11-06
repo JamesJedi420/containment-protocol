@@ -21,6 +21,8 @@ test('SPE-3337 session-preflight validator is registered as required', () => {
 test('preflight implementation and canonical handoff docs select the focused validator', () => {
   for (const file of [
     'scripts/session-preflight-core.mjs',
+    'scripts/session-preflight-linear-diagnostics.mjs',
+    'scripts/session-preflight-linear-diagnostics.test.mjs',
     'scripts/session-preflight.mjs',
     'scripts/session-preflight.test.mjs',
     'scripts/validation/session-preflight-selection.check.mjs',

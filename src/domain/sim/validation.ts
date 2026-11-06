@@ -1,6 +1,8 @@
 import { createStartingState } from '../../data/startingState'
 import { isAgentAttritionUnavailable } from '../agent/attrition'
-import { getResolvedDifficultyRunConfiguration } from '../campaignLedger'
+import { getCurrentCampaignRulesLedger, getResolvedDifficultyRunConfiguration } from '../campaignLedger'
+import { resolveDifficultyRunConfiguration } from '../difficultyProfileResolver'
+import type { DifficultyResolveInput } from '../difficultyProfileResolver'
 import { assessFundingPressure } from '../funding'
 import { recomputeMissionRouting, routeMission } from '../missionIntakeRouting'
 import {
@@ -154,6 +156,8 @@ function compareTelemetryIds(left: string, right: string) {
 }
 
 export interface SimulationValidationOptions {
+  /** Explicit harness configuration; omission preserves the existing starting-state binding. */
+  difficulty?: DifficultyResolveInput
   /** Opt-in synchronous observer. Errors propagate to the validation caller. */
   onSnapshot?: (event: SimulationValidationTelemetryEvent) => void
 }
@@ -771,6 +775,20 @@ export function runSimulationValidationScenario(
   const scenario = getScenarioById(scenarioId)
   let state = createStartingState()
 
+  if (options.difficulty !== undefined) {
+    const input = structuredClone(options.difficulty)
+    const resolved = resolveDifficultyRunConfiguration(input)
+    if (!resolved.ok) throw new Error(`Validation difficulty: ${resolved.reason}`)
+    state.campaignLedger = {
+      ...getCurrentCampaignRulesLedger(state),
+      difficultyProfile: {
+        profileId: resolved.configuration.profileId,
+        profileVersion: resolved.configuration.profileVersion,
+        ...(resolved.configuration.profileId === 'custom' ? { custom: input.custom } : {}),
+      },
+    }
+  }
+
   state = normalizeGameState(scenario.setup?.(state) ?? state)
   const initialState = structuredClone(state)
   const weekly: SimulationValidationWeekSnapshot[] = []
@@ -813,5 +831,11 @@ export function runSimulationValidationScenario(
 }
 
 export function runSimulationValidationSuite(options: SimulationValidationOptions = {}) {
-  return INTERNAL_SCENARIOS.map((scenario) => runSimulationValidationScenario(scenario.id, options))
+  const suiteOptions = {
+    ...options,
+    difficulty: options.difficulty === undefined ? undefined : structuredClone(options.difficulty),
+  }
+  return INTERNAL_SCENARIOS.map((scenario) =>
+    runSimulationValidationScenario(scenario.id, suiteOptions)
+  )
 }

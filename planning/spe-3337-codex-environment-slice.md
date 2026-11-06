@@ -3,7 +3,7 @@
 | Field      | Value                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Linear     | [SPE-3337 — Approved implementation session continuity](https://linear.app/spectranoir/issue/SPE-3337/approved-implementation-session-continuity) |
-| **Status** | **In Progress**                                                                                                                                   |
+| **Status** | **Done**                                                                                                                                          |
 | Ownership  | Shared-system-owned; Containment Protocol Tooling / Developer Experience                                                                          |
 | Branch     | `codex/spe-3337-environment-adapter`                                                                                                              |
 | Base main  | `c395192309b1ed2b129d9ebe39a785e68e2dc983`                                                                                                        |
@@ -56,3 +56,7 @@ Hermes mapping session `local-46ccf0cc88bd9f43e5192e1d610416ae2be7047c5a4ee6b9c8
 Ship only after the generated environment, final managed-worktree setup/actions smoke, focused tests, selected validators and independent full-diff review pass. SPE-3337 remains In Progress until its complete original handoff/provenance and MCP diagnostic acceptance also passes. Do not infer parent Done from this slice or its eventual merge.
 
 Related approved work may continue after merge closeout and fresh checks under manual section 2; this record grants no selection, approval or mutation authority.
+
+## Merge evidence
+
+Slice B merged in PR #4874 at commit `683330e163fe1f1958ecd7c113d1b897e0990717`. SPE-3337 remains In Progress because this completed slice is only partial parent delivery.

@@ -1,3 +1,5 @@
+import { validateLinearMcpDiagnostic } from './session-preflight-linear-diagnostics.mjs'
+
 const SCHEMA_VERSION = 1
 const SHA_RE = /^[0-9a-f]{40}$/i
 const ISSUE_RE = /^[A-Z][A-Z0-9]+-\d+$/
@@ -56,11 +58,7 @@ function isIssueArray(value) {
 }
 
 function isIsoTimestamp(value) {
-  return (
-    isNonEmptyString(value) &&
-    ZONED_ISO_RE.test(value) &&
-    Number.isFinite(Date.parse(value))
-  )
+  return isNonEmptyString(value) && ZONED_ISO_RE.test(value) && Number.isFinite(Date.parse(value))
 }
 
 function isSha(value) {
@@ -86,19 +84,31 @@ function pushError(errors, condition, message) {
 function validateEvidenceHeader(errors, value, path, allowedStatuses = COLLECTION_STATUSES) {
   pushError(errors, isObject(value), `${path} must be an object`)
   if (!isObject(value)) return
-  pushError(errors, allowedStatuses.has(value.collectionStatus), `${path}.collectionStatus is invalid`)
-  pushError(errors, isIsoTimestamp(value.checkedAt), `${path}.checkedAt must be timezone-qualified ISO-8601`)
+  pushError(
+    errors,
+    allowedStatuses.has(value.collectionStatus),
+    `${path}.collectionStatus is invalid`
+  )
+  pushError(
+    errors,
+    isIsoTimestamp(value.checkedAt),
+    `${path}.checkedAt must be timezone-qualified ISO-8601`
+  )
   pushError(errors, isNonEmptyString(value.sourceRef), `${path}.sourceRef is required`)
 }
 
 function validateRootFields(errors, input) {
-  pushError(errors, input.schemaVersion === SCHEMA_VERSION, `schemaVersion must be ${SCHEMA_VERSION}`)
   pushError(
     errors,
-    isSessionPreflightRepository(input.repository),
-    'repository must be owner/name'
+    input.schemaVersion === SCHEMA_VERSION,
+    `schemaVersion must be ${SCHEMA_VERSION}`
   )
-  pushError(errors, isIsoTimestamp(input.observedAt), 'observedAt must be timezone-qualified ISO-8601')
+  pushError(errors, isSessionPreflightRepository(input.repository), 'repository must be owner/name')
+  pushError(
+    errors,
+    isIsoTimestamp(input.observedAt),
+    'observedAt must be timezone-qualified ISO-8601'
+  )
   pushError(
     errors,
     Number.isSafeInteger(input.freshnessWindowSeconds) && input.freshnessWindowSeconds > 0,
@@ -125,7 +135,11 @@ function validateHandoff(errors, handoff) {
     'handoff.intendedBranch must be a valid literal Git branch name'
   )
   pushError(errors, isSha(handoff.expectedBaseMainSha), 'handoff.expectedBaseMainSha is invalid')
-  pushError(errors, isIssueArray(handoff.blockerIds), 'handoff.blockerIds must be issue identifiers')
+  pushError(
+    errors,
+    isIssueArray(handoff.blockerIds),
+    'handoff.blockerIds must be issue identifiers'
+  )
   pushError(
     errors,
     isIssueArray(handoff.dependencyIds),
@@ -212,7 +226,11 @@ function validateGitHubEvidence(errors, github) {
   validateImplementationEvidence(errors, github.implementationEvidence)
   if (github.collectionStatus !== 'ready') return
   pushError(errors, isSha(github.remoteMainSha), 'github.remoteMainSha is invalid')
-  pushError(errors, Array.isArray(github.openPullRequests), 'github.openPullRequests must be an array')
+  pushError(
+    errors,
+    Array.isArray(github.openPullRequests),
+    'github.openPullRequests must be an array'
+  )
   if (Array.isArray(github.openPullRequests)) {
     github.openPullRequests.forEach((pullRequest, index) =>
       validatePullRequest(errors, pullRequest, index)
@@ -224,11 +242,23 @@ function validateGitEvidence(errors, git) {
   validateEvidenceHeader(errors, git, 'git', READ_ONLY_COLLECTION_STATUSES)
   if (!isObject(git) || git.collectionStatus !== 'ready') return
   pushError(errors, isSha(git.headSha), 'git.headSha is invalid')
-  pushError(errors, isSessionPreflightRepository(git.originRepository), 'git.originRepository is invalid')
-  pushError(errors, isNullableString(git.currentBranch), 'git.currentBranch must be a string or null')
+  pushError(
+    errors,
+    isSessionPreflightRepository(git.originRepository),
+    'git.originRepository is invalid'
+  )
+  pushError(
+    errors,
+    isNullableString(git.currentBranch),
+    'git.currentBranch must be a string or null'
+  )
   pushError(errors, typeof git.detachedHead === 'boolean', 'git.detachedHead must be boolean')
   pushError(errors, typeof git.trackedDirty === 'boolean', 'git.trackedDirty must be boolean')
-  pushError(errors, git.localMainSha === null || isSha(git.localMainSha), 'git.localMainSha is invalid')
+  pushError(
+    errors,
+    git.localMainSha === null || isSha(git.localMainSha),
+    'git.localMainSha is invalid'
+  )
   pushError(errors, isSha(git.remoteMainSha), 'git.remoteMainSha is invalid')
 }
 
@@ -240,6 +270,7 @@ export function validateSessionPreflightInput(input) {
   validateLinearEvidence(errors, input.linear)
   validateGitHubEvidence(errors, input.github)
   validateGitEvidence(errors, input.git)
+  if (input.linearMcp !== undefined) errors.push(...validateLinearMcpDiagnostic(input.linearMcp))
   return errors
 }
 
@@ -247,7 +278,10 @@ function makeReason(code, source, detail) {
   return { code, source, detail }
 }
 
-function addTimestampFreshnessReason({ checkedAt, observedAt, freshnessWindowSeconds, source, codePrefix }, reasons) {
+function addTimestampFreshnessReason(
+  { checkedAt, observedAt, freshnessWindowSeconds, source, codePrefix },
+  reasons
+) {
   const ageSeconds = (Date.parse(observedAt) - Date.parse(checkedAt)) / 1000
   if (ageSeconds < -30) {
     reasons.push(
@@ -324,8 +358,13 @@ function evaluateLinear(input, reasons) {
     )
   }
   if (linear.workstream !== handoff.workstream) {
-    reasons.push(makeReason('linear_workstream_mismatch', 'linear',
-      `expected ${handoff.workstream}; observed ${linear.workstream}`))
+    reasons.push(
+      makeReason(
+        'linear_workstream_mismatch',
+        'linear',
+        `expected ${handoff.workstream}; observed ${linear.workstream}`
+      )
+    )
   }
   if (linear.parentId !== handoff.parentId) {
     reasons.push(
@@ -342,11 +381,17 @@ function evaluateLinear(input, reasons) {
     )
   } else if (linear.approvalState === 'not-approved') {
     reasons.push(
-      makeReason('scope_not_approved', 'linear', 'the named implementation boundary is not approved')
+      makeReason(
+        'scope_not_approved',
+        'linear',
+        'the named implementation boundary is not approved'
+      )
     )
   }
   if (linear.statusType === 'completed' || linear.statusType === 'canceled') {
-    reasons.push(makeReason('issue_not_active', 'linear', `issue lifecycle is ${linear.statusType}`))
+    reasons.push(
+      makeReason('issue_not_active', 'linear', `issue lifecycle is ${linear.statusType}`)
+    )
   }
   if (
     requestedOperation === 'start' &&
@@ -372,7 +417,11 @@ function evaluateLinear(input, reasons) {
   }
   if (!sameStrings(handoff.blockerIds, linear.blockerIds)) {
     reasons.push(
-      makeReason('blocker_snapshot_changed', 'linear', 'current blockers differ from the handoff snapshot')
+      makeReason(
+        'blocker_snapshot_changed',
+        'linear',
+        'current blockers differ from the handoff snapshot'
+      )
     )
   }
   if (!sameStrings(handoff.dependencyIds, linear.dependencyIds)) {
@@ -386,7 +435,11 @@ function evaluateLinear(input, reasons) {
   }
   if (linear.blockerIds.length > 0) {
     reasons.push(
-      makeReason('issue_blocked', 'linear', `unresolved blockers: ${formatIssueIds(linear.blockerIds)}`)
+      makeReason(
+        'issue_blocked',
+        'linear',
+        `unresolved blockers: ${formatIssueIds(linear.blockerIds)}`
+      )
     )
   }
   if (linear.dependencyIds.length > 0) {
@@ -510,8 +563,13 @@ function evaluateGitHub(input, reasons) {
 function evaluateRemoteGitState(input, reasons) {
   const { git, github, handoff } = input
   if (git.originRepository.toLowerCase() !== input.repository.toLowerCase()) {
-    reasons.push(makeReason('git_repository_mismatch', 'git',
-      `expected ${input.repository}; origin names ${git.originRepository}`))
+    reasons.push(
+      makeReason(
+        'git_repository_mismatch',
+        'git',
+        `expected ${input.repository}; origin names ${git.originRepository}`
+      )
+    )
   }
   if (github.collectionStatus === 'ready' && git.remoteMainSha !== github.remoteMainSha) {
     reasons.push(
@@ -619,6 +677,10 @@ function evaluateGit(input, reasons) {
 }
 
 const UNKNOWN_CODES = new Set([
+  'linear_mcp_unavailable',
+  'linear_mcp_stale',
+  'linear_mcp_from_future',
+  'linear_mcp_evidence_conflict',
   'invalid_input',
   'linear_evidence_unavailable',
   'github_evidence_unavailable',
@@ -737,6 +799,7 @@ function projectGitEvidence(git) {
 
 function collectSourceRefs(input) {
   const sourceRefs = [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef]
+  if (input.linearMcp?.evidenceRef) sourceRefs.push(input.linearMcp.evidenceRef)
   if (isObject(input.github.implementationEvidence)) {
     sourceRefs.push(input.github.implementationEvidence.sourceRef)
   }
@@ -752,6 +815,37 @@ export function evaluateSessionPreflight(input) {
   evaluateLinear(input, reasons)
   evaluateGitHub(input, reasons)
   evaluateGit(input, reasons)
+  if (input.linearMcp !== undefined) {
+    const diagnostic = input.linearMcp
+    if (diagnostic.status !== 'ready') {
+      reasons.push(makeReason('linear_mcp_unavailable', 'linearMcp', diagnostic.retryGuidance))
+    }
+    if (diagnostic.checkedAt !== null) {
+      addTimestampFreshnessReason(
+        {
+          checkedAt: diagnostic.checkedAt,
+          observedAt: input.observedAt,
+          freshnessWindowSeconds: input.freshnessWindowSeconds,
+          source: 'linearMcp',
+          codePrefix: 'linear_mcp',
+        },
+        reasons
+      )
+    }
+    if (
+      (diagnostic.status === 'ready' && input.linear.collectionStatus !== 'ready') ||
+      (diagnostic.evidenceRef !== null &&
+        diagnostic.evidenceRef !== `linear:${input.handoff.issueId}`)
+    ) {
+      reasons.push(
+        makeReason(
+          'linear_mcp_evidence_conflict',
+          'linearMcp',
+          'connection observation does not match current issue evidence'
+        )
+      )
+    }
+  }
   const orderedReasons = stableReasons(reasons)
 
   return {
@@ -767,6 +861,9 @@ export function evaluateSessionPreflight(input) {
       linearLifecycle: projectLinearLifecycle(input.linear),
       githubImplementation: projectGitHubImplementation(input.github),
       git: projectGitEvidence(input.git),
+      ...(input.linearMcp === undefined
+        ? {}
+        : { linearMcp: { ...input.linearMcp, readOnly: true, writeCapability: 'unverified' } }),
     },
     sources: collectSourceRefs(input),
     validationErrors: [],

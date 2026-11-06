@@ -1,3 +1,4 @@
+import './session-preflight-linear-diagnostics.test.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { existsSync } from 'node:fs'
@@ -94,11 +95,11 @@ function collectorResponses(prOutput = '[]') {
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
-    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
     [
-      'git ls-remote origin refs/heads/main',
-      { status: 0, stdout: `${SHA}\trefs/heads/main\n` },
+      'git remote get-url origin',
+      { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' },
     ],
+    ['git ls-remote origin refs/heads/main', { status: 0, stdout: `${SHA}\trefs/heads/main\n` }],
     [
       'gh api repos/JamesJedi420/containment-protocol/git/ref/heads/main --jq .object.sha',
       { status: 0, stdout: `${SHA}\n` },
@@ -111,17 +112,25 @@ function collectorResponses(prOutput = '[]') {
 }
 
 test('freshness boundaries retain millisecond precision for every evidence source', () => {
-  for (const [age, expected] of [[300000, 'ready'], [300001, 'unknown'], [-30000, 'ready'], [-30001, 'unknown']]) {
+  for (const [age, expected] of [
+    [300000, 'ready'],
+    [300001, 'unknown'],
+    [-30000, 'ready'],
+    [-30001, 'unknown'],
+  ]) {
     const checkedAt = new Date(Date.parse(OBSERVED_AT) - age).toISOString()
     for (const source of ['linear', 'github', 'git', 'implementation']) {
-      const override = source === 'implementation'
-        ? { github: { implementationEvidence: { checkedAt } } }
-        : { [source]: { checkedAt } }
+      const override =
+        source === 'implementation'
+          ? { github: { implementationEvidence: { checkedAt } } }
+          : { [source]: { checkedAt } }
       const result = evaluateSessionPreflight(baseInput(override))
       assert.equal(result.status, expected, `${source}: ${age}ms`)
       if (expected === 'unknown') {
         const prefix = source === 'implementation' ? 'github_implementation' : source
-        assert.ok(reasonCodes(result).includes(`${prefix}_evidence_${age > 0 ? 'stale' : 'from_future'}`))
+        assert.ok(
+          reasonCodes(result).includes(`${prefix}_evidence_${age > 0 ? 'stale' : 'from_future'}`)
+        )
       }
     }
   }
@@ -134,9 +143,12 @@ test('Linear workstream evidence must exist and match the named boundary', () =>
     assert.ok(reasonCodes(result).includes('invalid_input'))
   }
   for (const workstream of ['CP-core', 'Academy', 'shared-system', 'cross-project']) {
-    const result = evaluateSessionPreflight(baseInput({
-      handoff: { workstream }, linear: { workstream },
-    }))
+    const result = evaluateSessionPreflight(
+      baseInput({
+        handoff: { workstream },
+        linear: { workstream },
+      })
+    )
     assert.equal(result.status, 'ready')
     assert.equal(result.evidence.linearLifecycle.workstream, workstream)
   }
@@ -157,40 +169,68 @@ test('origin repository identity is independent of matching main SHAs', () => {
     'https://token@github.com/JamesJedi420/containment-protocol.git',
     'https://github.com/JamesJedi420/containment-protocol?other',
     'git@github-alias:JamesJedi420/containment-protocol.git',
-    '../local-repo', '',
+    '../local-repo',
+    '',
   ]) {
     const responses = collectorResponses()
     responses.set('git remote get-url origin', { status: 0, stdout: url })
-    const git = collectLocalGitEvidence({ checkedAt: CHECKED_AT,
-      run: (command, args) => responses.get(`${command} ${args.join(' ')}`) })
-    const result = evaluateSessionPreflight(baseInput({ executionMode: 'codex-managed-worktree', git }))
-    const sameRepo = /^(https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)jamesjedi420\/containment-protocol(?:\.git|\/)?$/i.test(url)
+    const git = collectLocalGitEvidence({
+      checkedAt: CHECKED_AT,
+      run: (command, args) => responses.get(`${command} ${args.join(' ')}`),
+    })
+    const result = evaluateSessionPreflight(
+      baseInput({ executionMode: 'codex-managed-worktree', git })
+    )
+    const sameRepo =
+      /^(https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)jamesjedi420\/containment-protocol(?:\.git|\/)?$/i.test(
+        url
+      )
     assert.equal(result.status, sameRepo ? 'ready' : 'unknown', url)
-    if (url.includes('some-fork')) assert.ok(reasonCodes(result).includes('git_repository_mismatch'))
-    if (git.collectionStatus === 'failed') assert.equal(git.failureCode, 'origin-repository-unavailable')
+    if (url.includes('some-fork'))
+      assert.ok(reasonCodes(result).includes('git_repository_mismatch'))
+    if (git.collectionStatus === 'failed')
+      assert.equal(git.failureCode, 'origin-repository-unavailable')
     assert.ok(!JSON.stringify(git).includes('token@'))
   }
-  assert.equal(evaluateSessionPreflight(baseInput({ git: { originRepository: undefined } })).status, 'unknown')
+  assert.equal(
+    evaluateSessionPreflight(baseInput({ git: { originRepository: undefined } })).status,
+    'unknown'
+  )
 })
 
 test('collector runner bounds commands and suppresses credential prompts', () => {
-  const timeout = { status: null, error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' }) }
-  const result = runReadOnly('git', ['ls-remote', 'origin', 'refs/heads/main'], '.',
-    { GIT_OPTIONAL_LOCKS: '0' }, (_command, _args, options) => {
+  const timeout = {
+    status: null,
+    error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' }),
+  }
+  const result = runReadOnly(
+    'git',
+    ['ls-remote', 'origin', 'refs/heads/main'],
+    '.',
+    { GIT_OPTIONAL_LOCKS: '0' },
+    (_command, _args, options) => {
       assert.equal(options.timeout, 30000)
       assert.equal(options.env.GIT_OPTIONAL_LOCKS, '0')
       assert.equal(options.env.GIT_TERMINAL_PROMPT, '0')
       assert.equal(options.env.GH_PROMPT_DISABLED, '1')
       assert.equal(options.env.GCM_INTERACTIVE, 'Never')
       return timeout
-    })
+    }
+  )
   assert.equal(result, timeout)
-  for (const command of ['git ls-remote origin refs/heads/main', 'gh api repos/JamesJedi420/containment-protocol/git/ref/heads/main --jq .object.sha']) {
+  for (const command of [
+    'git ls-remote origin refs/heads/main',
+    'gh api repos/JamesJedi420/containment-protocol/git/ref/heads/main --jq .object.sha',
+  ]) {
     const responses = collectorResponses()
     responses.set(command, timeout)
-    const collected = collectLocalSessionEvidence(baseInput({ executionMode: 'codex-managed-worktree' }), {
-      run: (bin, args) => responses.get(`${bin} ${args.join(' ')}`), now: () => OBSERVED_AT,
-    })
+    const collected = collectLocalSessionEvidence(
+      baseInput({ executionMode: 'codex-managed-worktree' }),
+      {
+        run: (bin, args) => responses.get(`${bin} ${args.join(' ')}`),
+        now: () => OBSERVED_AT,
+      }
+    )
     const source = command.startsWith('git ') ? 'git' : 'github'
     assert.equal(collected[source].collectionStatus, 'failed')
     assert.equal(evaluateSessionPreflight(collected).status, 'unknown')
@@ -202,9 +242,7 @@ test('timestamps require an explicit zone and accept numeric offsets', () => {
   assert.equal(ambiguous.status, 'unknown')
   assert.ok(reasonCodes(ambiguous).includes('invalid_input'))
 
-  const offset = evaluateSessionPreflight(
-    baseInput({ observedAt: '2026-11-03T04:30:00+01:00' })
-  )
+  const offset = evaluateSessionPreflight(baseInput({ observedAt: '2026-11-03T04:30:00+01:00' }))
   assert.equal(offset.status, 'ready')
 })
 
@@ -276,7 +314,10 @@ test('local collection evaluates after collection and preserves supplied impleme
   assert.equal(collected.github.checkedAt, CHECKED_AT)
   assert.equal(collected.git.checkedAt, CHECKED_AT)
   assert.equal(collected.observedAt, OBSERVED_AT)
-  assert.deepEqual(collected.github.implementationEvidence, baseInput().github.implementationEvidence)
+  assert.deepEqual(
+    collected.github.implementationEvidence,
+    baseInput().github.implementationEvidence
+  )
   const statusCall = calls.find(
     (call) => call.key === 'git status --porcelain=v1 --untracked-files=no'
   )

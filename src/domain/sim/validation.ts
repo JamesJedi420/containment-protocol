@@ -140,12 +140,17 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
       .map((currentCase) => ({
         caseId: currentCase.id,
         templateId: currentCase.templateId,
-        assignedTeamIds: [...currentCase.assignedTeamIds].sort(),
+        assignedTeamIds: [...currentCase.assignedTeamIds].sort(compareTelemetryIds),
       }))
-      .sort((left, right) =>
-        left.caseId < right.caseId ? -1 : left.caseId > right.caseId ? 1 : 0
-      ),
+      .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId)),
   }
+}
+
+// Code-unit ordering for canonical identifiers, independent of host locale.
+function compareTelemetryIds(left: string, right: string) {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
 }
 
 export interface SimulationValidationOptions {

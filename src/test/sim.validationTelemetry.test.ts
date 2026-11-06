@@ -50,7 +50,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
       )
       expect(event.advanceInput.phase).toBe('before-week-close')
       expect(event.advanceInput.week).toBe(event.snapshot.week)
-      expect(event.advanceInput.committedOperations.length).toBe(
+      expect(event.advanceInput.committedOperations).toHaveLength(
         event.advanceInput.actionBudget.committedDemand
       )
     }

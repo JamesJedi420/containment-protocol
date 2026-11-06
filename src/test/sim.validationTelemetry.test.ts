@@ -31,7 +31,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
     expect(first.map((event) => event.sequence)).toEqual(first.map((_, i) => i + 1))
     for (const event of first) {
       expect(event).toMatchObject({
-        schemaVersion: 5,
+        schemaVersion: 6,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',
@@ -178,6 +178,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
       expect(captured.committedOperations).toEqual([
         {
           caseId: operation.id,
+          contract: null,
           templateId: operation.templateId,
           assignedTeamIds: [...operation.assignedTeamIds].sort(),
         },

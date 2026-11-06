@@ -102,12 +102,19 @@ export function analyzeSimulationValidationTelemetry(
   const difficulty = events[0]?.advanceInput.difficulty ?? null
   const templates = new Map<string, { cases: Set<string>; committedCaseWeeks: number }>()
   const allCases = new Set<string>()
+  type Contract = NonNullable<
+    SimulationValidationTelemetryEvent['advanceInput']['committedOperations'][number]['contract']
+  >
+  const contractGroups = new Map<
+    string,
+    Contract & { cases: Set<string>; committedCaseWeeks: number }
+  >()
   const outcomes = { success: 0, partial: 0, fail: 0, unresolved: 0 }
   const resultComponents = createResultComponents()
 
   const history = events.map((event, index) => {
     requireTrace(
-      event.schemaVersion === 5 &&
+      event.schemaVersion === 6 &&
         event.audience === 'internal-validation' &&
         event.source === 'simulation-validation-weekly-snapshot' &&
         event.phase === 'after-week-close' &&
@@ -158,6 +165,17 @@ export function analyzeSimulationValidationTelemetry(
       group.cases.add(operation.caseId)
       group.committedCaseWeeks += 1
       templates.set(operation.templateId, group)
+      if (operation.contract) {
+        const key = JSON.stringify([operation.contract.templateId, operation.contract.riskLevel])
+        const contractGroup = contractGroups.get(key) ?? {
+          ...operation.contract,
+          cases: new Set<string>(),
+          committedCaseWeeks: 0,
+        }
+        contractGroup.cases.add(operation.caseId)
+        contractGroup.committedCaseWeeks += 1
+        contractGroups.set(key, contractGroup)
+      }
     }
     requireTrace(
       weekCases.size === advanceInput.actionBudget.committedDemand,
@@ -181,7 +199,7 @@ export function analyzeSimulationValidationTelemetry(
   })
 
   return {
-    schemaVersion: 4 as const,
+    schemaVersion: 5 as const,
     audience: 'internal-validation' as const,
     scenarioId: expected.scenarioId,
     weeksObserved: events.length,
@@ -199,6 +217,18 @@ export function analyzeSimulationValidationTelemetry(
         return 0
       }),
     outcomes,
+    contractGroups: [...contractGroups]
+      .sort(([left], [right]) => {
+        if (left < right) return -1
+        if (left > right) return 1
+        return 0
+      })
+      .map(([, group]) => ({
+        templateId: group.templateId,
+        riskLevel: group.riskLevel,
+        distinctObservedCases: group.cases.size,
+        committedCaseWeeks: group.committedCaseWeeks,
+      })),
     resultComponents,
     history,
   }

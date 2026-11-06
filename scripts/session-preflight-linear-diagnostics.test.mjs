@@ -14,7 +14,7 @@ const ready = (overrides = {}) =>
   })
 
 test('fresh shared read diagnostics preserve legacy readiness without write authority', () => {
-  for (const workstream of ['CP-core', 'Academy', 'shared-system']) {
+  for (const workstream of ['CP-core', 'Academy', 'shared-system', 'cross-project']) {
     const input = baseInput({ handoff: { workstream }, linear: { workstream }, linearMcp: ready() })
     const result = evaluate(input)
     assert.equal(result.status, 'ready')
@@ -86,6 +86,9 @@ test('malformed or secret-bearing metadata is rejected without echoing values', 
     const result = evaluate(baseInput({ linearMcp: { ...ready(), ...change } }))
     assert.equal(result.status, 'unknown')
     assert.equal(result.evidence, null)
+    assert.deepEqual(result.validationErrors, [
+      'linearMcp diagnostic is malformed or contradictory',
+    ])
     assert.ok(!JSON.stringify(result).includes(secret))
   }
   assert.throws(() => ready({ failureCode: 'invented' }), /Invalid Linear read observation/)

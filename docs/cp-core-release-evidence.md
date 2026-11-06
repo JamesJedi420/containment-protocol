@@ -14,6 +14,16 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Complementary telemetry assessment at `4bb2464b`
+
+The [telemetry manifest](../planning/spe-3352-telemetry-evidence.4bb2464b.v1.json) and [source assessment](../planning/release-evidence/4bb2464b/telemetry-assessment.md) assess the merged hook, context, analysis and profile-segmentation slices at `4bb2464bd5051262f78effffe81daac0474ed497`. Fresh execution passed 29 tests across three existing files. The telemetry row is now a bounded **warning**: diagnostic evidence is available, but broader operational/risk/reward/cadence acceptance and profile-sensitive producer integration are incomplete.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-telemetry-evidence.4bb2464b.v1.json --format json
+```
+
+This is complementary evidence for one owner dimension, not a replacement integrated census. Its 29 rows contain one warning and 28 unavailable results; earlier snapshots below retain their own revisions and results. Neither SPE-3352 nor SPE-1119 is complete.
+
 ## Post-upgrade execution at `63188aec`
 
 The [post-upgrade manifest](../planning/spe-3352-release-evidence.63188aec.v1.json) assesses `63188aec19eba68c56b125da078908d92c100dc4`, after the SPE-3283 Agency route readiness repair and SPE-3737 dependency upgrades. Its [execution index](../planning/release-evidence/63188aec/execution-index.json), [original validator report](../planning/release-evidence/63188aec/requirements-execution.json) and [browser observations](../planning/release-evidence/63188aec/browser-observations.json) retain the clean-checkout provenance and host-local artifact hashes.

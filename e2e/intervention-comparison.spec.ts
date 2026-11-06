@@ -23,7 +23,21 @@ async function selectCase(page: Page, title: string) {
   return page.getByRole('region', { name: `Case triage detail: ${title}`, exact: true })
 }
 
-async function runComparisonPath(browser: Browser, intervene: boolean) {
+async function inspectArchiveDossier(page: Page) {
+  await openPrimaryNav(page, 'Cases')
+  const detail = await selectCase(page, archiveTitle)
+  const before = await readSavedGame(page)
+  await detail.getByRole('link', { name: 'Open intel dossier', exact: true }).click()
+  const dossier = page.getByRole('region', { name: 'Intel dossier', exact: true })
+  await expect(dossier.getByRole('heading', { name: archiveTitle, exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Escalation pathways', exact: true })).toBeVisible()
+  expect(await readSavedGame(page)).toEqual(before)
+  await openPrimaryNav(page, 'Cases')
+  await selectCase(page, archiveTitle)
+  expect(await readSavedGame(page)).toEqual(before)
+}
+
+async function runComparisonPath(browser: Browser, intervene: boolean, readIntel = false) {
   const context = await browser.newContext({
     baseURL: 'http://127.0.0.1:5173',
     locale: 'en-US',
@@ -40,11 +54,16 @@ async function runComparisonPath(browser: Browser, intervene: boolean) {
     const archive = await selectCase(page, archiveTitle)
     await expect(archive).toContainText('Stage 1')
     await expect(archive).toContainText('Assign one team')
+    if (readIntel) await inspectArchiveDossier(page)
     if (intervene)
       await archive.getByRole('button', { name: 'Assign Green Tape', exact: true }).click()
 
     await openPrimaryNav(page, 'Operations Desk')
     await advanceOperationalWeek(page)
+    if (readIntel) {
+      await inspectArchiveDossier(page)
+      await openPrimaryNav(page, 'Operations Desk')
+    }
     await page.reload()
     await advanceOperationalWeek(page)
     await page
@@ -110,6 +129,7 @@ async function runComparisonPath(browser: Browser, intervene: boolean) {
       initial,
       outcome,
       visibleOutcome,
+      savedGame: await readSavedGame(page),
     }
   } finally {
     probe.dispose()
@@ -129,6 +149,21 @@ test('one player intervention causally changes later mission choices and replays
   expect(await runComparisonPath(browser, false)).toEqual(inaction)
   await test.info().attach('controlled-intervention-comparison', {
     body: JSON.stringify({ intervention, inaction }, null, 2),
+    contentType: 'application/json',
+  })
+})
+
+test('reading available intel preserves campaign history and converges on the same later outcomes', async ({
+  browser,
+}) => {
+  test.setTimeout(240_000)
+  const unread = await runComparisonPath(browser, true)
+  const read = await runComparisonPath(browser, true, true)
+  expect(read).toEqual(unread)
+  expect(await runComparisonPath(browser, true)).toEqual(unread)
+  expect(await runComparisonPath(browser, true, true)).toEqual(read)
+  await test.info().attach('information-access-convergence', {
+    body: JSON.stringify({ unread, read }, null, 2),
     contentType: 'application/json',
   })
 })

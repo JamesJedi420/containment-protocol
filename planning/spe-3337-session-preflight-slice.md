@@ -1,15 +1,17 @@
 # SPE-3337 Slice A — session-conflict and handoff-readiness preflight
 
-| Field | Value |
-| --- | --- |
-| Linear | [SPE-3337 — Approved implementation session continuity](https://linear.app/spectranoir/issue/SPE-3337/approved-implementation-session-continuity) |
-| Status | In Progress |
-| Ownership | Shared-system-owned; Containment Protocol Tooling / Developer Experience |
-| Branch | `codex/spe-3337-session-preflight` |
-| Base main | `265cf70ba2c6d14c5a583ba512333fff1e409736` |
-| Delivery | First of two sequential non-child slices under SPE-3337 |
+| Field     | Value                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linear    | [SPE-3337 — Approved implementation session continuity](https://linear.app/spectranoir/issue/SPE-3337/approved-implementation-session-continuity) |
+| Status    | Done                                                                                                                                              |
+| Ownership | Shared-system-owned; Containment Protocol Tooling / Developer Experience                                                                          |
+| Branch    | `codex/spe-3337-session-preflight`                                                                                                                |
+| Base main | `265cf70ba2c6d14c5a583ba512333fff1e409736`                                                                                                        |
+| Delivery  | First of two sequential non-child slices under SPE-3337                                                                                           |
 
 ## Goal
+
+Slice A merged in [PR #4630](https://github.com/JamesJedi420/containment-protocol/pull/4630) at `ad21424a4804e22a40a6bbef10454cdc84835016` on 2026-11-03. This status records the completed slice, not independent completion of the broader SPE-3337 parent.
 
 Implement a versioned, read-only preflight for one already-approved, explicitly named implementation boundary. The preflight must distinguish a safe start or resume from known conflicts and unverifiable evidence without selecting replacement work or creating a persistent session authority.
 

@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                              |
 | ---------- | ---------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                    |
+| **Status** | **Done**                                                                           |
 | Owner      | SPE-3337; shared-system-owned, Containment Protocol Tooling / Developer Experience |
 | Branch     | `codex/spe-3337-designation-provenance`                                            |
 | Base main  | `387f5b85824ec0390ff5c07462c20fce1952722f`                                         |
@@ -22,3 +22,7 @@ Focused tests cover all four workstreams, legacy absence, unknown historical tim
 The focused run passed 52 tests. The edge audit tightened chronological checks across undated intermediate supersession records. A live issue-description read at `2026-11-06T10:35:19Z` confirmed the explicit Codex preference; the CLI retained it with null historical designation time, nonexclusive preference-only authority, and unverified acceptance/activity. Overall start remained correctly blocked on the attached dirty implementation checkout. This actual read/CLI evidence is distinct from controlled fixtures; no history timestamp was inferred from the read.
 
 Prior unsupported Hermes mapping retains the documented direct fallback. Short validation/review checks run directly; Freebuff remains disabled. Post-merge evidence belongs on SPE-3337 and must keep incomplete parent acceptance visible.
+
+## Merge evidence
+
+Merged in PR #4876 at `e37dbbe6982dbd015ed4b22425d97ec306ede93b`. Final focused run: 52 passed; CI 42204359859 and Sonar passed; final-head Codex review clean. Amazon Q comments resolved with verified evidence; CodeRabbit rate-limited and not counted as approval. Parent remained In Progress pending portable follow-up reporting.

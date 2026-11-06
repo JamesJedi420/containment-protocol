@@ -36,6 +36,37 @@ On Windows, the trusted executable search includes the standard GitHub CLI insta
 
 ## Version 1 input
 
+The JSON input is the portable machine envelope. Keep it with its source references, then refresh required observations in the receiving session. Evaluation results carry the repository/evaluation time and a copy of the named handoff snapshot separately from lifecycle and implementation evidence. Results and Markdown are derived reports, not replacement input or approval records.
+
+### Human-readable projection
+
+Add `--markdown` to the existing `--stdin` command, optionally with `--collect-local`, to render the evaluated result as labeled sections for readiness, boundary, lifecycle, implementation, repository, diagnostics, designations and follow-ups. Exit codes and validation are identical to JSON mode. Embedded source text remains quoted data in fenced JSON sections. Never parse the Markdown back into authority or use it instead of a fresh source read.
+
+### Optional follow-up evidence
+
+`followUps` has exactly `schemaVersion: 1`, `issueId` matching the handoff, and `items`. Every item has a unique `id`, `summary`, `sourceRef` and `kind`. This is a bounded handoff snapshot, not a queue or candidate register. Source references must exclude credentials and private payloads.
+
+| Input kind                               | Additional required fields                                                                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `in-boundary-deferral`                   | `ownerIssueId`, `canonicalOwner`, `deferralReason`, `remainingAcceptance`, `closureImpact`, `boundary`                                                  |
+| `candidate-discovery` or `applied-scope` | `outsideBoundaryReason`, `provisionalWorkstream`, nullable `provisionalOwner`, `disposition`, `phase`, nullable `authorization`, nullable `application` |
+
+`closureImpact` is `blocks-completion` or `does-not-block-completion`. The named owner and remaining acceptance must be verified against the existing approved boundary; sharing an agent or subsystem owner is insufficient. `provisionalWorkstream` is `CP-core`, `Academy`, `shared-system`, `cross-project` or `unknown`. `phase` is `unassessed`, `phase-1` through `phase-4`, or `actor-authorized`; preserve the actual observed phase rather than advancing it to fit a desired classification.
+
+Observations are nullable. When present, each contains `status` (`verified`, `unverified` or `contradictory`), nullable UTC `checkedAt`, nullable `sourceRef`, and these exact additional fields:
+
+| Observation     | Additional fields                                                                                                                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `boundary`      | `issueId` for the existing owner, `boundaryIssueId` for the named handoff, `canonicalOwner`, `scopeRelation` (`within-approved-boundary`, `outside-approved-boundary` or `unknown`) |
+| `authorization` | `itemId`, `actor` (`ChatGPT`, `Cursor`, `Codex` or `human`), `authorityRef`, `decision` (`authorized`, `not-authorized` or `unknown`), nullable target `issueId`, `canonicalOwner`  |
+| `application`   | `itemId`, `outcome` (`applied`, `not-applied` or `unknown`), nullable created/updated `issueId`, nullable `canonicalOwner`                                                          |
+
+`verified` means the collecting actor actually inspected the referenced current authoritative evidence. It is not an approval checkbox. `authorityRef` points to the existing authority's decision/provenance, not an authority minted by this tool. SPE-3272 retains mutation authorization; Cursor retains its separate approved safeguards. A ChatGPT authorization observation must represent the existing ordered Phase 1–4 approvals and explicit Phase 4 authorization; this reporter does not perform that adjudication or any write. Codex and human observations likewise require their actual explicit authority. A null authorization target issue is permitted for creation before the resulting issue ID exists; the verified application must still supply its actual issue and matching canonical owner.
+
+Only fresh, verified, matching boundary evidence yields an `in-boundary-deferral`. Only fresh, verified authorization plus an actual applied outcome with matching item/owner/target evidence yields `applied-scope`; ChatGPT-originated scope also requires the reported phase to be `phase-4`. Missing, stale, contradictory or mismatched observations project `unverified-follow-up` with a reason and retained `reportedKind`. A `candidate-discovery` remains a candidate even when other observations exist; no automatic promotion occurs. Pending Phase 1 evidence cannot become applied scope for any actor. Other actors require the observed phase to be `actor-authorized` or `phase-4`; this does not impose ChatGPT phase gates on Cursor. These labels do not grant execution permission or close the parent. Unverified follow-up evidence does not change readiness for the independently approved named task.
+
+Observation timestamps accept UTC seconds through milliseconds. The existing freshness window and 30-second future tolerance apply. An evaluation time finer than milliseconds makes follow-up observations unverified. Malformed schemas fail input validation rather than projecting claims. Revalidate every cited authority and actual application before relying on transferred evidence. The caller remains responsible for truthfully collecting observations through existing connectors; this module creates no transport, verification service, approval engine or lifecycle writer.
+
 ### Optional Linear connection diagnostics
 
 An optional top-level `linearMcp` carries a versioned read observation. Existing v1 callers remain compatible when it is absent; absence is not evidence of a successful connection probe. The existing evaluator alone determines readiness. When supplied, unavailable, stale, future or mismatched diagnostics make readiness `unknown`.

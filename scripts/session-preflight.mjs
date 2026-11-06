@@ -7,6 +7,7 @@ import {
   isSessionPreflightRepository,
 } from './session-preflight-core.mjs'
 import { spawnSafe } from './validation/spawn-safe.mjs'
+import { renderSessionHandoff } from './session-preflight-presentation.mjs'
 
 function trimOutput(result) {
   return typeof result.stdout === 'string' ? result.stdout.trim() : ''
@@ -23,7 +24,10 @@ export function runReadOnly(command, args, cwd, env = {}, spawn = spawnSafe) {
 
 function originRepositoryFromUrl(value) {
   // Aliases and local paths cannot establish the requested GitHub repository identity.
-  const match = /^(?:https:\/\/github\.com\/|ssh:\/\/git@github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)\/?$/i.exec(value)
+  const match =
+    /^(?:https:\/\/github\.com\/|ssh:\/\/git@github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)\/?$/i.exec(
+      value
+    )
   if (!match) return null
   const repository = match[1].replace(/\.git$/, '')
   return isSessionPreflightRepository(repository) ? repository : null
@@ -38,7 +42,11 @@ function failedEvidence(checkedAt, sourceRef, failureCode) {
   }
 }
 
-export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = runReadOnly } = {}) {
+export function collectLocalGitEvidence({
+  cwd = process.cwd(),
+  checkedAt,
+  run = runReadOnly,
+} = {}) {
   const head = run('git', ['rev-parse', 'HEAD'], cwd)
   if (head.status !== 0) return failedEvidence(checkedAt, 'git:local', 'head-unavailable')
 
@@ -47,12 +55,9 @@ export function collectLocalGitEvidence({ cwd = process.cwd(), checkedAt, run = 
     return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'branch-unavailable')
   }
 
-  const status = run(
-    'git',
-    ['status', '--porcelain=v1', '--untracked-files=no'],
-    cwd,
-    { GIT_OPTIONAL_LOCKS: '0' }
-  )
+  const status = run('git', ['status', '--porcelain=v1', '--untracked-files=no'], cwd, {
+    GIT_OPTIONAL_LOCKS: '0',
+  })
   if (status.status !== 0) {
     return failedEvidence(checkedAt, `git:${trimOutput(head)}`, 'status-unavailable')
   }
@@ -199,24 +204,24 @@ export function collectGitHubEvidence({
 }
 
 export function parseSessionPreflightArguments(argv) {
-  const allowed = new Set(['--stdin', '--collect-local'])
+  const allowed = new Set(['--stdin', '--collect-local', '--markdown'])
   const unexpected = argv.filter((arg) => !allowed.has(arg))
   if (unexpected.length > 0 || !argv.includes('--stdin')) {
     return {
       ok: false,
-      message: 'usage: node scripts/session-preflight.mjs --stdin [--collect-local]',
+      message: 'usage: node scripts/session-preflight.mjs --stdin [--collect-local] [--markdown]',
     }
   }
-  return { ok: true, collectLocal: argv.includes('--collect-local') }
+  return {
+    ok: true,
+    collectLocal: argv.includes('--collect-local'),
+    ...(argv.includes('--markdown') ? { markdown: true } : {}),
+  }
 }
 
 export function collectLocalSessionEvidence(
   input,
-  {
-    cwd = process.cwd(),
-    run = runReadOnly,
-    now = () => new Date().toISOString(),
-  } = {}
+  { cwd = process.cwd(), run = runReadOnly, now = () => new Date().toISOString() } = {}
 ) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return input
   if (!isSessionPreflightRepository(input.repository)) return input
@@ -264,7 +269,9 @@ export function runSessionPreflightCli({ argv = process.argv.slice(2), cwd = pro
   }
 
   const result = evaluateSessionPreflight(input)
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+  process.stdout.write(
+    argumentsResult.markdown ? renderSessionHandoff(result) : `${JSON.stringify(result, null, 2)}\n`
+  )
   if (result.validationErrors.length > 0) return 2
   return result.status === 'ready' ? 0 : 1
 }

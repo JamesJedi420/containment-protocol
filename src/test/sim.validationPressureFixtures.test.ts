@@ -21,6 +21,7 @@ describe('pressure and unused-capacity validation examples (SPE-1119)', () => {
   let baseline: ReturnType<typeof capture>
   beforeAll(() => {
     baseline = capture('baseline')
+    expect(baseline.events.length).toBeGreaterThan(0)
   })
 
   it('retains distinguishable actual campaign pressure rather than treating every advance as cost-free', () => {

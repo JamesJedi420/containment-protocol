@@ -18,6 +18,32 @@ const utc = (value) =>
   Number.isFinite(Date.parse(value)) &&
   new Date(value).toISOString().slice(0, 19) === value.slice(0, 19)
 
+function compareText(left, right) {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}
+
+function validSupersession(entry, byId) {
+  const seen = new Set([entry.id])
+  let current = entry
+  let laterKnownTime = entry.designatedAt
+  while (current.supersedes !== null) {
+    const previous = byId.get(current.supersedes)
+    if (!previous || seen.has(previous.id)) return false
+    if (
+      previous.designatedAt !== null &&
+      laterKnownTime !== null &&
+      Date.parse(previous.designatedAt) > Date.parse(laterKnownTime)
+    )
+      return false
+    seen.add(previous.id)
+    if (previous.designatedAt !== null) laterKnownTime = previous.designatedAt
+    current = previous
+  }
+  return true
+}
+
 export function validateAgentDesignations(packet, issueId) {
   const fail = () => ['agentDesignations evidence is malformed or belongs to another issue']
   if (
@@ -47,22 +73,7 @@ export function validateAgentDesignations(packet, issueId) {
     byId.set(entry.id, entry)
   }
   for (const entry of packet.entries) {
-    const seen = new Set([entry.id])
-    let current = entry
-    let laterKnownTime = entry.designatedAt
-    while (current.supersedes !== null) {
-      const previous = byId.get(current.supersedes)
-      if (!previous || seen.has(previous.id)) return fail()
-      if (
-        previous.designatedAt !== null &&
-        laterKnownTime !== null &&
-        Date.parse(previous.designatedAt) > Date.parse(laterKnownTime)
-      )
-        return fail()
-      seen.add(previous.id)
-      if (previous.designatedAt !== null) laterKnownTime = previous.designatedAt
-      current = previous
-    }
+    if (!validSupersession(entry, byId)) return fail()
     if (
       packet.checkedAt !== null &&
       entry.designatedAt !== null &&
@@ -79,9 +90,9 @@ export function projectAgentDesignations(packet, observedAt, freshnessWindowSeco
   )
   const entries = packet.entries
     .map((entry) => ({ ...entry, superseded: superseded.has(entry.id) }))
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .sort((a, b) => compareText(a.id, b.id))
   const current = entries.filter((entry) => !entry.superseded)
-  const preferences = [...new Set(current.map((entry) => entry.agent))].sort()
+  const preferences = [...new Set(current.map((entry) => entry.agent))].sort(compareText)
   const age =
     packet.checkedAt === null ? null : Date.parse(observedAt) - Date.parse(packet.checkedAt)
   const precise = !/\.\d{4,}/.test(observedAt)

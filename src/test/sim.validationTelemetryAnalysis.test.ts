@@ -40,8 +40,13 @@ describe('internal validation trace analysis (SPE-1119)', () => {
       expect(analysis.history.map((entry) => entry.actionBudgetBeforeAdvance)).toEqual(
         events.map((event) => event.advanceInput.actionBudget)
       )
+      expect(analysis.history.map((entry) => entry.missionIntakeBeforeAdvance)).toEqual(
+        events.map((event) => event.advanceInput.missionIntake)
+      )
       expect(analysis.difficulty).toEqual(events[0].advanceInput.difficulty)
       analysis.history[0].actionBudgetBeforeAdvance.pressureLanes.splice(0)
+      analysis.history[0].missionIntakeBeforeAdvance?.orderedMissionIds.splice(0)
+      analysis.history[0].missionIntakeBeforeAdvance?.missions[0]?.priorityReasonCodes.splice(0)
       analysis.templates.splice(0)
       expect(events).toEqual(before)
     }
@@ -89,7 +94,7 @@ describe('internal validation trace analysis (SPE-1119)', () => {
     expect(
       analyzeSimulationValidationTelemetry([], { scenarioId: 'baseline', weeksSimulated: 0 })
     ).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       audience: 'internal-validation',
       scenarioId: 'baseline',
       weeksObserved: 0,

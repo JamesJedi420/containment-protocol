@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getResolvedDifficultyRunConfiguration } from '../domain/campaignLedger'
 import { projectStrategicActionBudget } from '../domain/strategicActionBudgetProjection'
+import { recomputeMissionRouting } from '../domain/missionIntakeRouting'
 import {
   captureSimulationValidationAdvanceInput,
   getSimulationValidationScenarios,
@@ -30,7 +31,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
     expect(first.map((event) => event.sequence)).toEqual(first.map((_, i) => i + 1))
     for (const event of first) {
       expect(event).toMatchObject({
-        schemaVersion: 2,
+        schemaVersion: 3,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',
@@ -53,8 +54,15 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
       expect(event.advanceInput.committedOperations).toHaveLength(
         event.advanceInput.actionBudget.committedDemand
       )
+      expect(event.advanceInput.missionIntake).not.toBeNull()
+      expect(
+        event.advanceInput.missionIntake?.missions.every(
+          (mission) => mission.lastRoutedWeek === event.advanceInput.week
+        )
+      ).toBe(true)
     }
     expect(first.some((event) => event.advanceInput.committedOperations.length > 0)).toBe(true)
+    expect(first[0].advanceInput.missionIntake?.missions.length).toBeGreaterThan(0)
   })
 
   it('isolates nested consumer mutation from simulation, summaries and retained snapshots', () => {
@@ -67,9 +75,72 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
         event.advanceInput.actionBudget.committedDemand = -999
         event.advanceInput.actionBudget.pressureLanes.splice(0)
         event.advanceInput.committedOperations[0]?.assignedTeamIds.splice(0)
+        event.advanceInput.missionIntake?.orderedMissionIds.splice(0)
+        event.advanceInput.missionIntake?.missions[0]?.routingBlockers.push('no-valid-team')
       },
     })
     expect(observed).toEqual(baseline)
+  })
+
+  it('copies recorded intake context without refreshing stale source timing or changing order', () => {
+    const state = createStartingState()
+    state.missionRouting = recomputeMissionRouting(state)
+    state.missionRouting.orderedMissionIds.reverse()
+    const mission = Object.values(state.missionRouting.missions)[0]
+    mission.routingState = 'deferred'
+    mission.deadlineRemaining = -2
+    mission.lastRoutedWeek = state.week - 1
+    mission.routingBlockers = ['no-valid-team']
+    const before = structuredClone(state)
+    const intake = captureSimulationValidationAdvanceInput(state).missionIntake
+    expect(intake).not.toBeNull()
+    if (!intake) throw new Error('Expected recorded intake')
+    expect(intake.orderedMissionIds).toEqual(state.missionRouting.orderedMissionIds)
+    expect(intake.missions).toHaveLength(Object.keys(state.missionRouting.missions).length)
+    for (const captured of intake.missions) {
+      const source = state.missionRouting.missions[captured.missionId]
+      expect(captured).toEqual({
+        missionId: source.missionId,
+        routingState: source.routingState,
+        priority: source.priority,
+        deadlineRemaining: source.deadlineRemaining,
+        priorityReasonCodes: source.priorityReasonCodes,
+        routingBlockers: source.routingBlockers,
+        playerDisposition: source.playerDisposition ?? null,
+        lastTriageWeek: source.lastTriageWeek ?? null,
+        lastRoutedWeek: source.lastRoutedWeek ?? null,
+      })
+    }
+    expect(intake.missions.find((entry) => entry.missionId === mission.missionId)).toMatchObject({
+      routingState: 'deferred',
+      deadlineRemaining: -2,
+      lastRoutedWeek: state.week - 1,
+    })
+    const reordered = {
+      ...state,
+      missionRouting: {
+        ...state.missionRouting,
+        missions: Object.fromEntries(Object.entries(state.missionRouting.missions).reverse()),
+      },
+    }
+    expect(captureSimulationValidationAdvanceInput(reordered).missionIntake).toEqual(intake)
+    intake.orderedMissionIds.splice(0)
+    intake.missions[0].routingBlockers.push('capacity-locked')
+    intake.missions[0].priorityReasonCodes.push('consumer-mutation')
+    expect(state).toEqual(before)
+  })
+
+  it('distinguishes missing intake from an explicitly empty recorded queue', () => {
+    const state = createStartingState()
+    expect(
+      captureSimulationValidationAdvanceInput({ ...state, missionRouting: undefined }).missionIntake
+    ).toBeNull()
+    expect(
+      captureSimulationValidationAdvanceInput({
+        ...state,
+        missionRouting: { orderedMissionIds: [], missions: {}, nextGeneratedSequence: 1 },
+      }).missionIntake
+    ).toEqual({ orderedMissionIds: [], missions: [] })
   })
 
   it('observes existing action-budget and difficulty owners without redefining their rules', () => {

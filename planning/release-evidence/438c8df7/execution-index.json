@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "438c8df709cdb568d156c1581a44d1833983e576",
+  "historicalBase": "8596b04efc82a807d0a334c195e73d8e533ba58e",
+  "collection": {
+    "beforeTrackedEdits": true,
+    "subjectRevision": "438c8df709cdb568d156c1581a44d1833983e576",
+    "startedAt": "2026-11-06T13:10:36.0337631Z",
+    "endedAt": "2026-11-06T13:29:37.2157313Z",
+    "statusBefore": [],
+    "statusAfter": [],
+    "nativeExit": 0,
+    "requirementsExit": 1,
+    "buildExit": 0,
+    "lockfileSha256": "e97d3eef635e19874b1a7774e6025b0fb1076fc9f7fe278a29c55de08caf6b82"
+  },
+  "environment": {
+    "subjectRevision": "438c8df709cdb568d156c1581a44d1833983e576",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.23.4",
+    "nodeExecutable": "C:/Users/james/.codex/tmp/node22-census/node-v22.23.4-win-x64\\node.exe",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "vite": "8.3.5",
+    "ci": true,
+    "validationJsonIsolate": true,
+    "dependencyAdoption": "Existing installed dependencies reused; no installation or lockfile change.",
+    "strictTestConsole": null
+  },
+  "commands": [
+    {
+      "command": "node --test scripts/release-acceptance/report.test.mjs scripts/validation/requirement-model.check.mjs",
+      "exitCode": 0,
+      "result": "55 tests passed",
+      "artifact": "native-tests.log"
+    },
+    {
+      "command": "npm --silent run verify:requirements -- --base 8596b04efc82a807d0a334c195e73d8e533ba58e --ci --json",
+      "exitCode": 1,
+      "environment": {
+        "CI": "true",
+        "VALIDATION_JSON_ISOLATE": "1",
+        "STRICT_TEST_CONSOLE": null
+      },
+      "files": [
+        "e2e/intervention-comparison.spec.ts",
+        "e2e/quiet-period.spec.ts",
+        "planning/spe-3352-information-access-slice.md",
+        "planning/spe-3352-intervention-comparison-slice.md",
+        "planning/spe-3352-quiet-period-slice.md",
+        "SCHEMA_REGISTRY.md",
+        "src/app/store/missionResultHydration.test.ts",
+        "src/app/store/runTransfer.ts",
+        "src/components/TrendSummaryPanel.tsx",
+        "src/features/report/reportTrendView.ts",
+        "src/features/report/TrendSummaryPanel.test.tsx"
+      ],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "failed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "unitSummary": {
+        "filesPassed": 1006,
+        "filesFailed": 1,
+        "testsPassed": 10968,
+        "testsFailed": 1,
+        "durationSeconds": 597.37
+      },
+      "typecheckSummary": {
+        "occurrences": 0,
+        "fingerprints": 0,
+        "files": 0
+      },
+      "artifact": "requirements-execution.json",
+      "outputArtifact": "requirements-stderr.log"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "result": "tsc -b and Vite production build passed; existing large-chunk warning retained",
+      "artifact": "full-build.log"
+    },
+    {
+      "command": "npm run test:run:ci -- src/app/App.test.tsx",
+      "exitCode": 0,
+      "environment": {
+        "CI": "true",
+        "STRICT_TEST_CONSOLE": "1"
+      },
+      "result": "44 tests passed in unchanged isolated file; 24.22 seconds; does not supersede the failed full execution",
+      "artifact": "app-route-diagnostic.log"
+    }
+  ],
+  "failure": {
+    "file": "src/app/App.test.tsx",
+    "line": 384,
+    "test": "moves directly between the live pages without routing back through the dashboard",
+    "observed": "Unable to find heading matching /^cases$/i on return navigation",
+    "cause": "Unverified; full-run failure with passing unchanged isolated diagnostic is consistent with load sensitivity but does not prove the cause.",
+    "registryOwner": "SPE-10",
+    "remediationOwner": "UNVERIFIED",
+    "relatedExcludedOwner": "SPE-3723 owns App.workflow.test.tsx coverage readiness, not this file; remains Done."
+  },
+  "artifactAvailability": "Retained host-local execution artifacts, not uploaded or embedded as full logs. Paths and hashes establish provenance; another host may need to rerun the pinned commands. Parsed browser JSON attachments are extracted copies with a trailing newline; original HTML report is retained separately.",
+  "artifacts": [
+    {
+      "name": "native-tests.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/native-tests.log",
+      "bytes": 11771,
+      "sha256": "0b4d41dd0dac3f41101c3c2c597d83535d8b8314bfc26dafb84b050bc9b87ba7"
+    },
+    {
+      "name": "requirements-execution.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/requirements-execution.json",
+      "bytes": 2214,
+      "sha256": "b90661bb00ccca035951de9447c7293f07555dab92be81a380afd17eb033ddd4"
+    },
+    {
+      "name": "requirements-stderr.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/requirements-stderr.log",
+      "bytes": 213066,
+      "sha256": "80264881d1c50a6f687ba4f64660889d5331743fc8a427a224aea5a508e315d5"
+    },
+    {
+      "name": "full-build.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/full-build.log",
+      "bytes": 9755,
+      "sha256": "20b307dd47f5d3e692eb70666c3d27082cf12658411c96409a18c9e9b577f012"
+    },
+    {
+      "name": "execution-result.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/execution-result.json",
+      "bytes": 364,
+      "sha256": "b163d615e2d721a77381a278d69ed8ae24c0a860e5fab222d9fe1e7714226a53"
+    },
+    {
+      "name": "environment.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/environment.json",
+      "bytes": 492,
+      "sha256": "5a5ea468cd21ad1c4b19f5fd3be9c93d1c94865b4d495bfd45d34086b574f1b3"
+    },
+    {
+      "name": "app-route-diagnostic.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/app-route-diagnostic.log",
+      "bytes": 439,
+      "sha256": "f12f62072501c954c0db1bc401531d995446e8ff3ff334ce0407621ec9a3f06b"
+    },
+    {
+      "name": "app-route-diagnostic.exit.txt",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/app-route-diagnostic.exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "name": "browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/browser-report.json",
+      "bytes": 13967,
+      "sha256": "3510204aa8982b852e529672eda0b598323c815e339366617cf10a17752bbc3a"
+    },
+    {
+      "name": "error-browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/error-browser-report.json",
+      "bytes": 2388,
+      "sha256": "bc8589d27d0f5e4c28a648e3f8da864c7c2bf114c98d3d347fb4c166267913c4"
+    },
+    {
+      "name": "browser-observations-raw.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/browser-observations-raw.json",
+      "bytes": 11654,
+      "sha256": "8d0d2216ce40de08cf44ef1c80203641eb17f5e1017f6680c821b49304080ef2"
+    },
+    {
+      "name": "controlled-intervention-comparison.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/controlled-intervention-comparison.json",
+      "bytes": 975481,
+      "sha256": "bc7353e16f26efdc1f365e0256c8f3558afe68829cf147ea8cbacaaeaf7748df"
+    },
+    {
+      "name": "information-access-convergence.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/information-access-convergence.json",
+      "bytes": 933286,
+      "sha256": "43a5101e467094cd06fb7c6624cc0570756751bd4f5c76ba440ad84de512c38e"
+    },
+    {
+      "name": "quiet-period-hiring-comparison.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/quiet-period-hiring-comparison.json",
+      "bytes": 668904,
+      "sha256": "f3415ce0d7107fedcb34525ee43874fba7b5cf4c621f3ddd4812c05003f7a7df"
+    },
+    {
+      "name": "playwright-report/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/playwright-report/index.html",
+      "bytes": 1219644,
+      "sha256": "9c2260bcf71d52036c760983886d7c696ee36841fbb3a75eb226367af6929254"
+    },
+    {
+      "name": "playwright-report/errors/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-438c8df7/playwright-report/errors/index.html",
+      "bytes": 523988,
+      "sha256": "12be7158763c34dec92076fc39f0291563dbd5eea950d5445e2f8475da3e2632"
+    }
+  ]
+}

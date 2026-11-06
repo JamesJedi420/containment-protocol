@@ -14,6 +14,21 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Executed snapshot at `438c8df7`
+
+The [current campaign snapshot](../planning/spe-3352-release-evidence.438c8df7.v1.json) assesses `438c8df709cdb568d156c1581a44d1833983e576`, collected in a clean checkout before publication edits. Its [execution index](../planning/release-evidence/438c8df7/execution-index.json), [original validator report](../planning/release-evidence/438c8df7/requirements-execution.json), and [browser observations](../planning/release-evidence/438c8df7/browser-observations.json) retain provenance, commands, results and scope. Raw logs and HTML reports are host-local, with hashes in the index; those references are not public downloadable artifacts.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.438c8df7.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.438c8df7.v1.json --format markdown
+```
+
+The result is **blocked**: required `unit-tests` failed in the full execution (10,968 passed, one failed). `src/app/App.test.tsx:384` could not find the Cases heading after returning from Reports. The unchanged focused file subsequently passed all 44 tests; this diagnostic does not supersede the full failure or establish its cause. The specific repair owner remains **UNVERIFIED**; the registry's SPE-10 reference does not establish repair ownership. AC-08 stays unavailable. Full collection used `CI=true` with `STRICT_TEST_CONSOLE` unset; the focused diagnostic enabled it. Neither run is misrepresented as an identical hosted environment. In particular, the full collection differs from hosted CI console enforcement and does not predict whether hosted CI reproduces this failure; no CI setting was changed.
+
+All 24 campaign browser tests and five separate synthetic error-reporting browser tests passed without retries. Literal `npm run build` passed, as did typecheck, lint and backlog validation. Advisory repository formatting failed and is retained. The original release change window starts at `8596b04efc82a807d0a334c195e73d8e533ba58e`; validation of this evidence-only publication uses its own narrower diff and cannot erase the release-window failure.
+
+The observations strengthen bounded intervention/inaction, dossier-access convergence, delayed consequences and authored two-week quiet-period coverage. They do not establish every information/incident criterion, subsystem owner signoff, explicit performance budgets or whole-release readiness. SPE-3352 remains In Progress. See the [publication slice](../planning/spe-3352-current-campaign-evidence-slice.md). Historical snapshots remain unchanged and neither snapshot advances automatically with HEAD.
+
 ## Executed snapshot at `de3f1eb6`
 
 The separate [executed snapshot](../planning/spe-3352-release-evidence.de3f1eb6.v1.json) assesses full revision `de3f1eb6caa90be0b87d5e20297dd3d190500e0a`. Its [execution index](../planning/release-evidence/de3f1eb6/execution-index.json) records the clean-checkout provenance, commands, environment, results and SHA-256 references to retained host-local artifacts. The original bootstrap remains unchanged. Neither snapshot automatically advances with HEAD.

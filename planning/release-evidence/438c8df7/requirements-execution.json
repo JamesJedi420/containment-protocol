@@ -1,0 +1,76 @@
+{
+  "policyOwner": "SPE-3348",
+  "files": [
+    "e2e/intervention-comparison.spec.ts",
+    "e2e/quiet-period.spec.ts",
+    "planning/spe-3352-information-access-slice.md",
+    "planning/spe-3352-intervention-comparison-slice.md",
+    "planning/spe-3352-quiet-period-slice.md",
+    "SCHEMA_REGISTRY.md",
+    "src/app/store/missionResultHydration.test.ts",
+    "src/app/store/runTransfer.ts",
+    "src/components/TrendSummaryPanel.tsx",
+    "src/features/report/reportTrendView.ts",
+    "src/features/report/TrendSummaryPanel.test.tsx"
+  ],
+  "activeClasses": ["application", "e2e", "planning"],
+  "requiredIds": ["backlog-handoff", "lint", "playwright-e2e", "unit-tests", "vite-build"],
+  "advisoryIds": ["format-check", "typecheck"],
+  "skippedExceptionIds": [],
+  "results": [
+    {
+      "id": "backlog-handoff",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:verify:backlog-handoff"
+    },
+    {
+      "id": "format-check",
+      "status": "failed",
+      "enforcement": "advisory",
+      "whenUnavailable": "report-unavailable",
+      "detail": "npm:format:check exit 1",
+      "exitCode": 1
+    },
+    {
+      "id": "lint",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:lint"
+    },
+    {
+      "id": "playwright-e2e",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "report-unavailable",
+      "detail": "npm:test:e2e:ci"
+    },
+    {
+      "id": "typecheck",
+      "status": "passed",
+      "enforcement": "advisory",
+      "whenUnavailable": "report-unavailable",
+      "detail": "command:node scripts/typecheck-advisory.mjs"
+    },
+    {
+      "id": "unit-tests",
+      "status": "failed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:test:run:ci exit 1",
+      "exitCode": 1
+    },
+    {
+      "id": "vite-build",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:build:bundle"
+    }
+  ],
+  "missingRequired": [],
+  "ok": false,
+  "advisoryFailures": ["format-check"]
+}

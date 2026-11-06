@@ -7,42 +7,39 @@ import path from 'node:path'
 
 const PATH_SEP = process.platform === 'win32' ? ';' : ':'
 
-function fixedPathDirs() {
+function fixedPathDirs(includeNode = false) {
+  const nodeDirectory = path.dirname(process.execPath)
   if (process.platform === 'win32') {
     const root = process.env.SystemRoot || 'C:\\Windows'
     return [
+      includeNode ? nodeDirectory : null,
       path.join(root, 'System32'),
       path.join(root, 'System32', 'Wbem'),
       path.join(root, 'System32', 'WindowsPowerShell', 'v1.0'),
-      process.env.ProgramFiles
-        ? path.join(process.env.ProgramFiles, 'Git', 'cmd')
-        : null,
-      process.env.ProgramFiles
-        ? path.join(process.env.ProgramFiles, 'GitHub CLI')
-        : null,
-      process.env.ProgramFiles
-        ? path.join(process.env.ProgramFiles, 'nodejs')
-        : null,
+      process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'Git', 'cmd') : null,
+      process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'GitHub CLI') : null,
+      process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'nodejs') : null,
       process.env.LOCALAPPDATA
         ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Git', 'cmd')
         : null,
       process.env.APPDATA ? path.join(process.env.APPDATA, 'npm') : null,
     ].filter(Boolean)
   }
-  return ['/usr/bin', '/bin', '/usr/local/bin']
+  return [...(includeNode ? [nodeDirectory] : []), '/usr/bin', '/bin', '/usr/local/bin']
 }
 
 function sanitizedEnv(extra = {}) {
   return {
     ...process.env,
     ...extra,
-    PATH: fixedPathDirs().join(PATH_SEP),
+    PATH: fixedPathDirs(true).join(PATH_SEP),
   }
 }
 
 const resolvedBins = new Map()
 
 export function resolveBin(name) {
+  if (name === 'node') return process.execPath
   if (resolvedBins.has(name)) return resolvedBins.get(name)
   const candidates =
     process.platform === 'win32'
@@ -94,9 +91,7 @@ export function resolveNpmLaunch({
   if (npmExecPath && NODE_SCRIPT_RE.test(npmExecPath)) {
     candidates.push(npmExecPath)
   }
-  candidates.push(
-    path.win32.join(path.win32.dirname(nodeExecPath), ...NPM_CLI_RELATIVE),
-  )
+  candidates.push(path.win32.join(path.win32.dirname(nodeExecPath), ...NPM_CLI_RELATIVE))
   for (const candidate of candidates) {
     if (fileExists(candidate)) {
       return { ok: true, command: nodeExecPath, args: [candidate] }
@@ -104,8 +99,7 @@ export function resolveNpmLaunch({
   }
   return {
     ok: false,
-    reason:
-      'npm CLI entrypoint not found on win32 (set npm_execpath or install npm beside node)',
+    reason: 'npm CLI entrypoint not found on win32 (set npm_execpath or install npm beside node)',
   }
 }
 
@@ -127,6 +121,22 @@ export function spawnSafe(command, args, options = {}) {
     path.isAbsolute(command) || command.includes('/') || command.includes('\\')
       ? command
       : resolveBin(command)
+  if (
+    absolute === command &&
+    !path.isAbsolute(command) &&
+    !command.includes('/') &&
+    !command.includes('\\')
+  ) {
+    return {
+      error: Object.assign(new Error(`Executable not found in trusted directories: ${command}`), {
+        code: 'ENOENT',
+      }),
+      status: null,
+      signal: null,
+      stdout: null,
+      stderr: null,
+    }
+  }
   return spawnSync(absolute, args, {
     ...options,
     env: sanitizedEnv(options.env),

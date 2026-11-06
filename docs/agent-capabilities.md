@@ -20,6 +20,8 @@
 
 ## Canonical references
 
+The [Codex local environment adapter](agent-session-handoff.md#codex-local-environment-adapter) exposes existing setup and repository commands. The `.github/agents/codex.agent.md` file is the GitHub Copilot **CP Sim Engine** profile, not OpenAI Codex App's instruction surface. Repository `AGENTS.md` and the approved Linear boundary govern Codex App work; neither an environment action nor a specialist profile grants additional authority.
+
 - [Repository agent instructions](../AGENTS.md) and [session-handoff instructions](agent-session-handoff.md).
 - [Cursor autonomous authority](cursor-autonomous-authority.md) and [always-apply rule](../.cursor/rules/cursor-autonomous-authority.mdc) — established under completed [SPE-3480](https://linear.app/spectranoir/issue/SPE-3480) ([merged implementation PR](https://github.com/JamesJedi420/containment-protocol/pull/4493)).
 - [Governance authority contract](governance/authority-contract.v1.json): CP-GOV-003 (ChatGPT phase gates), CP-GOV-004 (existing-boundary lifecycle), CP-GOV-009 (Cursor autonomy).

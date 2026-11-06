@@ -9,7 +9,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; finish live-source verification).
-- [SPE-3337](https://linear.app/spectranoir/issue/SPE-3337) — Approved implementation session continuity (In Progress; Slice A preflight).
+- [SPE-3337](https://linear.app/spectranoir/issue/SPE-3337) — Approved implementation session continuity (In Progress; Slice B environment adapter).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
 - [SPE-1051](https://linear.app/spectranoir/issue/SPE-1051) — Recoverable failure and campaign scars (Backlog; review remaining acceptance).
 - [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028) — Department workshop and processing queues (Backlog; coordinate remaining child work).

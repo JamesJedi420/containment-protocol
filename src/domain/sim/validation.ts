@@ -113,7 +113,7 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 2
+  schemaVersion: 3
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
@@ -134,6 +134,7 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
     funding: state.funding,
     actionBudget: projectStrategicActionBudget(state),
     difficulty: structuredClone(getResolvedDifficultyRunConfiguration(state)),
+    missionIntake: captureValidationMissionIntake(state),
     committedOperations: Object.values(state.cases)
       .filter(
         (currentCase) =>
@@ -146,6 +147,27 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
       }))
       .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId)),
   }
+}
+
+/** Observe recorded routing context; never recompute or silently refresh it. */
+function captureValidationMissionIntake(state: GameState) {
+  if (!state.missionRouting) return null
+  return structuredClone({
+    orderedMissionIds: state.missionRouting.orderedMissionIds,
+    missions: Object.values(state.missionRouting.missions)
+      .map((mission) => ({
+        missionId: mission.missionId,
+        routingState: mission.routingState,
+        priority: mission.priority,
+        deadlineRemaining: mission.deadlineRemaining,
+        priorityReasonCodes: mission.priorityReasonCodes,
+        routingBlockers: mission.routingBlockers,
+        playerDisposition: mission.playerDisposition ?? null,
+        lastTriageWeek: mission.lastTriageWeek ?? null,
+        lastRoutedWeek: mission.lastRoutedWeek ?? null,
+      }))
+      .sort((left, right) => compareTelemetryIds(left.missionId, right.missionId)),
+  })
 }
 
 // Code-unit ordering for canonical identifiers, independent of host locale.
@@ -804,7 +826,7 @@ export function runSimulationValidationScenario(
     weekly.push(snapshot)
     if (onSnapshot && advanceInput) {
       onSnapshot({
-        schemaVersion: 2,
+        schemaVersion: 3,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',

@@ -1,5 +1,6 @@
 import { createStartingState } from '../../data/startingState'
 import { isAgentAttritionUnavailable } from '../agent/attrition'
+import { getResolvedDifficultyRunConfiguration } from '../campaignLedger'
 import { assessFundingPressure } from '../funding'
 import { recomputeMissionRouting, routeMission } from '../missionIntakeRouting'
 import {
@@ -9,6 +10,7 @@ import {
   type WeeklyDirectiveId,
 } from '../models'
 import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
+import { projectStrategicActionBudget } from '../strategicActionBudgetProjection'
 import { advanceWeek } from './advanceWeek'
 import { assignTeam } from './assign'
 
@@ -109,15 +111,41 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 1
+  schemaVersion: 2
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
   scenarioId: SimulationValidationScenarioId
   /** One-based within this scenario run, including its final game-over week. */
   sequence: number
+  /** Conditions after harness assignment, immediately before advancing time. */
+  advanceInput: ReturnType<typeof captureSimulationValidationAdvanceInput>
   /** Detached consumer-owned copy of the existing validation snapshot. */
   snapshot: SimulationValidationWeekSnapshot
+}
+
+/** Internal validation observation; never use this as filtered player knowledge. */
+export function captureSimulationValidationAdvanceInput(state: GameState) {
+  return {
+    phase: 'before-week-close' as const,
+    week: state.week,
+    funding: state.funding,
+    actionBudget: projectStrategicActionBudget(state),
+    difficulty: structuredClone(getResolvedDifficultyRunConfiguration(state)),
+    committedOperations: Object.values(state.cases)
+      .filter(
+        (currentCase) =>
+          currentCase.status === 'in_progress' && currentCase.assignedTeamIds.length > 0
+      )
+      .map((currentCase) => ({
+        caseId: currentCase.id,
+        templateId: currentCase.templateId,
+        assignedTeamIds: [...currentCase.assignedTeamIds].sort(),
+      }))
+      .sort((left, right) =>
+        left.caseId < right.caseId ? -1 : left.caseId > right.caseId ? 1 : 0
+      ),
+  }
 }
 
 export interface SimulationValidationOptions {
@@ -734,6 +762,7 @@ export function runSimulationValidationScenario(
   scenarioId: SimulationValidationScenarioId,
   options: SimulationValidationOptions = {}
 ): SimulationValidationRun {
+  const onSnapshot = options.onSnapshot
   const scenario = getScenarioById(scenarioId)
   let state = createStartingState()
 
@@ -745,19 +774,23 @@ export function runSimulationValidationScenario(
     state = normalizeGameState(scenario.beforeWeek?.(state, weekIndex) ?? state)
     state = applyDirectiveSelection(state, scenario, weekIndex)
     state = driveValidationAssignments(state)
+    const advanceInput = onSnapshot ? captureSimulationValidationAdvanceInput(state) : undefined
     state = advanceWeek(state, VALIDATION_NOTE_BASE + weekIndex)
 
     const snapshot = captureWeeklySnapshot(state)
     weekly.push(snapshot)
-    options.onSnapshot?.({
-      schemaVersion: 1,
-      audience: 'internal-validation',
-      source: 'simulation-validation-weekly-snapshot',
-      phase: 'after-week-close',
-      scenarioId,
-      sequence: weekly.length,
-      snapshot: structuredClone(snapshot),
-    })
+    if (onSnapshot && advanceInput) {
+      onSnapshot({
+        schemaVersion: 2,
+        audience: 'internal-validation',
+        source: 'simulation-validation-weekly-snapshot',
+        phase: 'after-week-close',
+        scenarioId,
+        sequence: weekly.length,
+        advanceInput,
+        snapshot: structuredClone(snapshot),
+      })
+    }
 
     if (state.gameOver) {
       break

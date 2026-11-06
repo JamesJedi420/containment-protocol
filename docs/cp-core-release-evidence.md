@@ -14,6 +14,19 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Integrated execution at `b121d4f2`
+
+The [integrated manifest](../planning/spe-3352-release-evidence.b121d4f2.v1.json) assesses `b121d4f2a977309a120804b154ee596784d44f59`, combining current campaign fixtures, explicit budgets and bounded owner evidence. Its [execution index](../planning/release-evidence/b121d4f2/execution-index.json), [original validator report](../planning/release-evidence/b121d4f2/requirements-execution.json) and [browser observations](../planning/release-evidence/b121d4f2/browser-observations.json) preserve provenance. Host-local raw artifacts are identified by hashes, not presented as public downloads.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.b121d4f2.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-release-evidence.b121d4f2.v1.json --format markdown
+```
+
+The result is **blocked**: the full strict-console unit run passed 10,971 tests and failed the Agency maintenance-purchase route test at `src/app/App.systemBoundary.route.test.tsx:27`. Existing SPE-3283 owns that purchase flow and its production-route acceptance. An unchanged four-test diagnostic passed; cause remains unverified, and that pass does not supersede the failure. Literal production build, 24 campaign browser tests and five synthetic error browser tests passed; browser retries were zero. All twelve measured campaign paths satisfied the shipped runtime/state-growth bounds. Advisory formatting failure and incomplete owner/history-information applicability remain explicit.
+
+This execution used Node 22, CI=true and STRICT_TEST_CONSOLE=1 on a clean checkout before publication. All 28 criteria and seven selected validators are classified. The [slice](../planning/spe-3352-integrated-evidence-slice.md) distinguishes current execution from historical owner ancestry and records the repair-owner finding. Earlier blocked snapshots remain unchanged; no snapshot automatically advances with HEAD or grants release readiness.
+
 ## Owner evidence at `cb37c23a`
 
 The complementary [owner manifest](../planning/spe-3352-owner-evidence.cb37c23a.v1.json) and [source assessment](../planning/release-evidence/cb37c23a/owner-assessment.md) pin eight subsystem dimensions to `cb37c23afdf71a42a695f21e08497118d31d3efe`. Current checks passed 594 targeted tests and five browser checks. Calibration, simulation validation and explicit authored-path continuity receive bounded passes; persistence, accessibility, UX and replay retain warnings; telemetry applicability remains unavailable.

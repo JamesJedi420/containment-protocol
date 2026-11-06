@@ -14,6 +14,16 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Expanded telemetry assessment at `72888c52`
+
+The [operational telemetry manifest](../planning/spe-3352-telemetry-evidence.72888c52.v1.json) and [source assessment](../planning/release-evidence/72888c52/telemetry-assessment.md) assess `72888c52ca35012141909321fbd2aa7771020074`. Clean-subject execution passed 49 tests across seven existing files. This extends evidence to recorded intake/results, staff-time allocation, authored contract-risk groups and bounded pressure examples, distinguishing actual harness/source-command observations from constructed fixtures.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-telemetry-evidence.72888c52.v1.json --format json
+```
+
+The complementary report remains **incomplete**: one telemetry warning and 28 unavailable rows. Upstream selector/cadence/overlap diagnostics and broader operational acceptance remain pending; it is not a current integrated census or whole-owner completion. Earlier snapshots retain their own results and revisions.
+
 ## Complementary telemetry assessment at `4bb2464b`
 
 The [telemetry manifest](../planning/spe-3352-telemetry-evidence.4bb2464b.v1.json) and [source assessment](../planning/release-evidence/4bb2464b/telemetry-assessment.md) assess the merged hook, context, analysis and profile-segmentation slices at `4bb2464bd5051262f78effffe81daac0474ed497`. Fresh execution passed 29 tests across three existing files. The telemetry row is now a bounded **warning**: diagnostic evidence is available, but broader operational/risk/reward/cadence acceptance and profile-sensitive producer integration are incomplete.

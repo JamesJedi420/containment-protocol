@@ -43,6 +43,9 @@ describe('internal validation trace analysis (SPE-1119)', () => {
       expect(analysis.history.map((entry) => entry.missionIntakeBeforeAdvance)).toEqual(
         events.map((event) => event.advanceInput.missionIntake)
       )
+      expect(analysis.history.map((entry) => entry.missionResultsAfterClose)).toEqual(
+        events.map((event) => event.missionResults)
+      )
       expect(analysis.difficulty).toEqual(events[0].advanceInput.difficulty)
       analysis.history[0].actionBudgetBeforeAdvance.pressureLanes.splice(0)
       analysis.history[0].missionIntakeBeforeAdvance?.orderedMissionIds.splice(0)
@@ -94,7 +97,7 @@ describe('internal validation trace analysis (SPE-1119)', () => {
     expect(
       analyzeSimulationValidationTelemetry([], { scenarioId: 'baseline', weeksSimulated: 0 })
     ).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       audience: 'internal-validation',
       scenarioId: 'baseline',
       weeksObserved: 0,
@@ -102,6 +105,20 @@ describe('internal validation trace analysis (SPE-1119)', () => {
       distinctObservedCases: 0,
       templates: [],
       outcomes: { success: 0, partial: 0, fail: 0, unresolved: 0 },
+      resultComponents: {
+        recordedResults: 0,
+        weeksWithoutCaseSnapshots: 0,
+        withFundingChange: 0,
+        withContainmentChange: 0,
+        withStrategicValueChange: 0,
+        withReputationChange: 0,
+        withAgencyStandingChange: 0,
+        withInventoryRecords: 0,
+        withFactionStandingChange: 0,
+        withInjuryRecords: 0,
+        withFatalityRecords: 0,
+        withSpawnedConsequenceRecords: 0,
+      },
       history: [],
     })
   })

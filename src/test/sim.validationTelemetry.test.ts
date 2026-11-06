@@ -31,7 +31,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
     expect(first.map((event) => event.sequence)).toEqual(first.map((_, i) => i + 1))
     for (const event of first) {
       expect(event).toMatchObject({
-        schemaVersion: 3,
+        schemaVersion: 4,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',
@@ -47,6 +47,7 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
           'sequence',
           'advanceInput',
           'snapshot',
+          'missionResults',
         ].sort()
       )
       expect(event.advanceInput.phase).toBe('before-week-close')
@@ -77,6 +78,9 @@ describe('opt-in internal simulation validation telemetry (SPE-1119)', () => {
         event.advanceInput.committedOperations[0]?.assignedTeamIds.splice(0)
         event.advanceInput.missionIntake?.orderedMissionIds.splice(0)
         event.advanceInput.missionIntake?.missions[0]?.routingBlockers.push('no-valid-team')
+        const result = event.missionResults?.[0]
+        if (result)
+          Object.assign(result.rewards, { fundingDelta: -999, reasons: ['observer-mutation'] })
       },
     })
     expect(observed).toEqual(baseline)
